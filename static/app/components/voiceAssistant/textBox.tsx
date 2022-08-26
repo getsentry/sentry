@@ -7,6 +7,7 @@ import {NotifyStyle} from './voicePanel';
 interface VoiceAssistantTextboxProps {
   notifyStyle?: NotifyStyle;
   resultText?: string;
+  textBoxVisible?: boolean;
 }
 
 function getColorStyle(notifyStyle: NotifyStyle | undefined): string {
@@ -33,12 +34,17 @@ const StyledWrapper = styled('div')<VoiceAssistantTextboxProps>`
   max-height: 50px;
   padding: 0.6em;
   padding-right: 3em;
-  opacity: ${props => (props.resultText ? '1.0' : '0.0')};
   font-size: 18px;
   border-radius: 12px;
   border: 1px solid;
   box-shadow: 1px 1px 3px rgb(0 0 0 / 33%);
+  opacity: 0;
   ${props => getColorStyle(props.notifyStyle)};
+  transition: opacity 0.2s;
+
+  &.voice-panel-visible {
+    opacity: 1;
+  }
 `;
 
 export class VoiceAssistantTextbox extends React.Component<
@@ -50,6 +56,13 @@ export class VoiceAssistantTextbox extends React.Component<
   }
 
   render() {
-    return <StyledWrapper {...this.props}>{this.props.resultText}</StyledWrapper>;
+    return (
+      <StyledWrapper
+        className={this.props.textBoxVisible ? 'voice-panel-visible' : ''}
+        {...this.props}
+      >
+        {this.props.resultText}
+      </StyledWrapper>
+    );
   }
 }

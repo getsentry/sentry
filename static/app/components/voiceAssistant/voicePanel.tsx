@@ -47,9 +47,11 @@ export enum NotifyStyle {
 
 interface VoiceAssistantState {
   isListening: boolean;
+  isTextBoxClosing: boolean;
   notifyStyle: NotifyStyle;
   recognition: SpeechRecognition | undefined;
   speechResult: string;
+  textboxVisible: boolean;
 }
 
 type VoiceAssistantProps = WithRouterProps & {};
@@ -66,6 +68,8 @@ class VoiceAssistantPanel extends React.Component<
       recognition: initializeVoiceAssistant(),
       speechResult: '',
       notifyStyle: NotifyStyle.Empty,
+      textboxVisible: false,
+      isTextBoxClosing: false,
     };
 
     // This binding is necessary to make `this` work in the callback
@@ -80,14 +84,20 @@ class VoiceAssistantPanel extends React.Component<
     return {orgId: params.orgId, projectId: params.projectId, groupId: params.groupId};
   }
 
-  clearSpeechResultBox() {
+  hideSpeechResultBox() {
     this.setState(_ => ({
-      speechResult: '',
-      notifyStyle: NotifyStyle.Empty,
+      textboxVisible: false,
+    }));
+  }
+
+  setIsTextBoxClosing(isClosing: boolean) {
+    this.setState(_ => ({
+      isTextBoxClosing: isClosing,
     }));
   }
 
   startVoiceRecognition() {
+    this.setIsTextBoxClosing(false);
     const recognition = this.state.recognition;
 
     const router = this.props.router;
@@ -118,18 +128,30 @@ class VoiceAssistantPanel extends React.Component<
       this.setState(_ => ({
         speechResult: result.toLowerCase(),
         notifyStyle: style,
+        textboxVisible: true,
       }));
     };
 
-    const clearSpeechResultBox = () => {
-      this.clearSpeechResultBox();
+    const hideSpeechResultBox = () => {
+      this.hideSpeechResultBox();
+    };
+
+    // FIXME: aaaah this is ugly and wrong
+    const isTextBoxClosing = () => {
+      return this.state.isTextBoxClosing;
+    };
+    const setIsTextBoxClosing = (isClosing: boolean) => {
+      this.setIsTextBoxClosing(isClosing);
     };
 
     const setStateSpeechResultWithTimeout = (result: string, style: NotifyStyle) => {
       setStateSpeechResult(result, style);
       const CLOSE_TIMEOUT_MS = 5000;
+      setIsTextBoxClosing(true);
       setTimeout(() => {
-        clearSpeechResultBox();
+        if (isTextBoxClosing()) {
+          hideSpeechResultBox();
+        }
       }, CLOSE_TIMEOUT_MS);
     };
 
@@ -263,7 +285,7 @@ class VoiceAssistantPanel extends React.Component<
   handleToggle() {
     if (!this.state.isListening) {
       console.log('>>> Starting speech recognition...');
-      this.clearSpeechResultBox();
+      this.hideSpeechResultBox();
       this.startVoiceRecognition();
     } else {
       console.log('>>> Terminating speech recognition...');
@@ -281,6 +303,7 @@ class VoiceAssistantPanel extends React.Component<
         <VoiceAssistantTextbox
           resultText={this.state.speechResult}
           notifyStyle={this.state.notifyStyle}
+          textBoxVisible={this.state.textboxVisible}
         />
         <VoiceAssistantButton
           handleToggle={this.handleToggle}
