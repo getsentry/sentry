@@ -170,10 +170,10 @@ export function Segment({
 export const SegmentsLayout = styled('div')<{isContent?: boolean}>`
   width: 100%;
   display: grid;
-  grid-template-columns: 80px 1fr 108px;
+  grid-template-columns: 90px 1fr 108px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 80px 90px 1fr 0.5fr 96px 66px;
+    grid-template-columns: 90px 90px 1fr 0.5fr 96px 66px;
   }
 
   ${p =>

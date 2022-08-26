@@ -38,12 +38,12 @@ import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
-import {isCustomTag} from '../../utils';
+import {isCustomTag, preDefinedFeatureFlags} from '../../utils';
 
 import {Tag, Tags} from './tags';
 import {
   generateTagCategoriesOptions,
-  isJson,
+  isJsonObject,
   percentageToRate,
   rateToPercentage,
   validResultValue,
@@ -248,9 +248,9 @@ export function SegmentModal({
   }
 
   function handlePayloadChange(payload: FeatureFlagSegment['payload']) {
-    if (!isJson(payload)) {
+    if (!isJsonObject(payload)) {
       setData({...data, payload: undefined});
-      setErrors({...errors, payload: t('Invalid JSON')});
+      setErrors({...errors, payload: t('Invalid JSON object')});
       return;
     }
     setData({...data, payload});
@@ -375,24 +375,26 @@ export function SegmentModal({
               )}
             </PanelBody>
           </StyledPanel>
-          <StyledTextareaField
-            label={t('Json Payload')}
-            placeholder={`{\n   key: value\n}`}
-            name="payload"
-            onChange={handlePayloadChange}
-            onKeyDown={(_value: string, e: KeyboardEvent) => {
-              if (e.key === 'Enter') {
-                handleSubmit();
-              }
-            }}
-            value={data.payload}
-            inline={false}
-            rows={3}
-            autosize
-            error={errors.payload}
-            hideControlState={!errors.payload}
-            stacked
-          />
+          {!preDefinedFeatureFlags[flagKey]?.payloadDisabled && (
+            <StyledTextareaField
+              label={t('JSON Payload')}
+              placeholder={`{\n   key: value\n}`}
+              name="payload"
+              onChange={handlePayloadChange}
+              onKeyDown={(_value: string, e: KeyboardEvent) => {
+                if (e.key === 'Enter') {
+                  handleSubmit();
+                }
+              }}
+              value={data.payload}
+              inline={false}
+              rows={3}
+              autosize
+              error={errors.payload}
+              hideControlState={!errors.payload}
+              stacked
+            />
+          )}
           {data.type === EvaluationType.Rollout && (
             <StyledField
               label={t('Rollout in percent')}
@@ -497,6 +499,7 @@ export function SegmentModal({
 
 const StyledTextareaField = styled(TextareaField)`
   padding: 0;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const AddCustomTag = styled('div')<{isFocused: boolean}>`

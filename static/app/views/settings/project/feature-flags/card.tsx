@@ -79,7 +79,7 @@ export function Card({
         <div>
           <Key>
             {preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}
-            {preDefinedFeatureFlags[flagKey] && <PreDefinedMarker type="beta" />}
+            {preDefinedFeatureFlags[flagKey] && <PreDefinedMarker />}
           </Key>
           {description && <Description>{description}</Description>}
         </div>
@@ -124,7 +124,7 @@ export function Card({
           onEditSegment={onEditSegment}
           hasAccess={hasAccess}
           onSort={onSortSegments}
-          showGrab={segments.length > 1}
+          showGrab
           onToggleBooleanSegment={onToggleBooleanSegment}
           flagKind={kind}
         />
