@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+!/docker
+!/package.json
+!/yarn.lock
+!/dist/requirements-frozen.txt
+!/dist/*.whl
