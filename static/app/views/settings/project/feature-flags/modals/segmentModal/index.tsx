@@ -100,7 +100,10 @@ export function SegmentModal({
             ...(customTag && {tagKey: key}),
           };
         }),
-        result: segment.result,
+        result:
+          flags[flagKey].kind === FeatureFlagKind.RATE
+            ? rateToPercentage(typeof segment.result === 'number' ? segment.result : 0.0)
+            : segment.result,
         percentage: defined(segment.percentage)
           ? rateToPercentage(segment.percentage)
           : 0,
@@ -112,7 +115,12 @@ export function SegmentModal({
       type: EvaluationType.Match,
       tags: [],
       percentage: 0,
-      result: flags[flagKey].kind === FeatureFlagKind.BOOLEAN ? true : undefined,
+      result:
+        flags[flagKey].kind === FeatureFlagKind.BOOLEAN
+          ? true
+          : flags[flagKey].kind === FeatureFlagKind.RATE
+          ? 0.5
+          : undefined,
     };
   }
 
@@ -156,7 +164,10 @@ export function SegmentModal({
     const newSegment: FeatureFlagSegment = {
       type: data.type,
       tags: newTags,
-      result: data.result,
+      result:
+        flags[flagKey].kind === FeatureFlagKind.RATE
+          ? percentageToRate(data.result as number)!
+          : data.result,
       id: flags[flagKey].evaluation.length + 1,
     };
 
@@ -275,12 +286,6 @@ export function SegmentModal({
     };
   });
 
-  const isResultEdited = defined(segmentIndex)
-    ? data.result !== flags[flagKey].evaluation[segmentIndex].result
-    : flags[flagKey].kind === FeatureFlagKind.BOOLEAN
-    ? data.result !== true
-    : data.result !== undefined;
-
   const validSamplerate =
     flags[flagKey].kind === FeatureFlagKind.RATE
       ? isValidSampleRate(Number(data.result))
@@ -311,7 +316,7 @@ export function SegmentModal({
           />
           <StyledPanel>
             <StyledPanelHeader hasButtons>
-              {t('Tags')}
+              {t('Conditions')}
               <StyledCompactSelect
                 placement="bottom right"
                 triggerProps={{
@@ -324,7 +329,7 @@ export function SegmentModal({
                     {t('Add Tag')}
                   </TriggerLabel>
                 }
-                placeholder={t('Filter tags')}
+                placeholder={t('Filter conditions')}
                 options={predefinedTagsOptions}
                 value={data.tags
                   // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
@@ -360,8 +365,10 @@ export function SegmentModal({
               {!data.tags.length ? (
                 <EmptyMessage
                   icon={<IconSearch size="xl" />}
-                  title={t('No tags added')}
-                  description={t('Click on the button above to add (+) a tag')}
+                  title={t('No tag conditions added')}
+                  description={t(
+                    'Click on the button above to add (+) a tag as condition'
+                  )}
                 />
               ) : (
                 <Tags
@@ -395,7 +402,8 @@ export function SegmentModal({
           />
           {data.type === EvaluationType.Rollout && (
             <StyledField
-              label={`${t('Rollout')} \u0025`}
+              label={t('Rollout in percent')}
+              help="This is the percentage of users that will match and the result will be returned."
               inline={false}
               flexibleControlStateSize
               hideControlState
@@ -453,22 +461,27 @@ export function SegmentModal({
             />
           )}
           {flags[flagKey].kind === FeatureFlagKind.RATE && (
-            <StyledNumberField
-              label={`${t('Result value')} (rate)`}
-              type="number"
-              name="result"
-              placeholder="0.1"
-              step="0.1"
-              value={data.result}
-              error={
-                !validSamplerate && isResultEdited ? t('Invalid sample rate') : undefined
-              }
-              hideControlState={!isResultEdited && validSamplerate}
-              onChange={value => setData({...data, result: Number(value)})}
-              stacked
-              flexibleControlStateSize
+            <StyledField
+              label={t('Resulting rate in percent')}
               inline={false}
-            />
+              flexibleControlStateSize
+              hideControlState
+              required
+            >
+              <SliderWrapper>
+                {'0%'}
+                <StyledRangeSlider
+                  name="rollout"
+                  value={typeof data.result === 'number' ? data.result : 0.0}
+                  onChange={value => setData({...data, result: Number(value || 0)})}
+                  showLabel={false}
+                />
+                {'100%'}
+              </SliderWrapper>
+              <SliderPercentage>{`${
+                typeof data.result === 'number' ? data.result : 0.0
+              }%`}</SliderPercentage>
+            </StyledField>
           )}
         </Fields>
       </Body>
