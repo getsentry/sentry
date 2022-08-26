@@ -53,7 +53,7 @@ googleapis-common-protos==1.56.2
 grpc-google-iam-v1==0.12.4
 grpcio==1.47.0
 h11==0.13.0
-hiredis==2.0.0
+hiredis==0.3.1
 honcho==1.0.0
 identify==2.5.1
 idna==2.10
