@@ -1,11 +1,7 @@
 import round from 'lodash/round';
 
 import {t, tct} from 'sentry/locale';
-import {
-  EvaluationType,
-  FeatureFlagKind,
-  FeatureFlagSegmentTagKind,
-} from 'sentry/types/featureFlags';
+import {FeatureFlagSegmentTagKind} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
 import {Tags} from './tags';
@@ -120,54 +116,3 @@ export function isValidSampleRate(sampleRate: number | undefined) {
 
   return !isNaN(sampleRate) && sampleRate <= 1 && sampleRate >= 0;
 }
-
-export const preDefinedFeatureFlags = {
-  '@@sampleRate': {
-    humanReadableName: 'Error Sample Rate',
-    description: 'The sample rate for Sentry errors.',
-    enabled: false,
-    custom: false,
-    kind: FeatureFlagKind.NUMBER,
-    group: '',
-    evaluation: [
-      {
-        id: 1,
-        type: EvaluationType.Match,
-        tags: {},
-        result: 1.0,
-      },
-    ],
-  },
-  '@@tracesSampleRate': {
-    humanReadableName: 'Trace Sample Rate',
-    description: 'The sample rate for specific transaction initiated traces.',
-    enabled: false,
-    custom: false,
-    kind: FeatureFlagKind.NUMBER,
-    group: '',
-    evaluation: [
-      {
-        id: 1,
-        type: EvaluationType.Match,
-        tags: {},
-        result: 0.1,
-      },
-    ],
-  },
-  '@@profileSampleRate': {
-    humanReadableName: 'Profiling Sample Rate',
-    description: 'The sample rate for client side profiling.',
-    enabled: false,
-    custom: false,
-    kind: FeatureFlagKind.NUMBER,
-    group: '',
-    evaluation: [
-      {
-        id: 1,
-        type: EvaluationType.Match,
-        tags: {},
-        result: 0.05,
-      },
-    ],
-  },
-};

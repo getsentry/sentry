@@ -44,7 +44,6 @@ export default function ProjectFeatureFlags({project}: Props) {
 
   const currentFlags = project.featureFlags;
   const hasAccess = organization.access.includes('project:write');
-  const disabled = !hasAccess;
   const previousFlags = usePrevious(currentFlags);
 
   const [flags, setFlags] = useState(currentFlags ?? {});
@@ -283,7 +282,7 @@ export default function ProjectFeatureFlags({project}: Props) {
           action={
             !showPromo && (
               <AddFlagButton
-                disabled={disabled}
+                hasAccess={hasAccess}
                 onAddFlag={handleAddFlag}
                 flags={flags}
               />

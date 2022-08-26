@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
+import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import MenuItem from 'sentry/components/menuItem';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
@@ -24,18 +24,17 @@ const addFlagDropDownItems = [
   }),
 ];
 
-type Props = {
-  disabled: boolean;
+type Props = Pick<DropdownButtonProps, 'size'> & {
   flags: FeatureFlags;
+  hasAccess: boolean;
   onAddFlag: (key: string) => void;
-  size?: 'sm' | 'md';
 };
 
-export function AddFlagButton({disabled, onAddFlag, flags, size = 'sm'}: Props) {
+export function AddFlagButton({hasAccess, onAddFlag, flags, size = 'sm'}: Props) {
   return (
     <DropdownAutoComplete
       alignMenu="right"
-      disabled={disabled}
+      disabled={!hasAccess}
       onSelect={item => onAddFlag(item.value)}
       items={addFlagDropDownItems
         .filter(item => {
@@ -50,8 +49,8 @@ export function AddFlagButton({disabled, onAddFlag, flags, size = 'sm'}: Props) 
         <DropdownButton
           priority="primary"
           isOpen={isOpen}
-          disabled={disabled}
-          title={disabled ? t('You do not have permission to add flags') : undefined}
+          disabled={!hasAccess}
+          title={hasAccess ? t('You do not have permission to add flags') : undefined}
           size={size}
           aria-label={t('Add Flag')}
           icon={<IconAdd isCircled />}

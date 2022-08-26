@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {FeatureFlagKind, FeatureFlags} from 'sentry/types/featureFlags';
+import {FeatureFlag, FeatureFlagKind, FeatureFlags} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 
@@ -37,6 +37,7 @@ export function CustomFlagModal({
   const api = useApi();
 
   const [key, setKey] = useState(flagKey ?? '');
+  const [name, setName] = useState(flagKey ? flags[flagKey].name : '');
   const [description, setDescription] = useState(
     flagKey ? flags[flagKey].description : ''
   );
@@ -56,24 +57,26 @@ export function CustomFlagModal({
 
     const newFlags = {...flags};
 
-    let newFeatureFlags = {
-      ...flags,
-      [key]: {
-        description,
-        enabled: false,
-        custom: true,
-        kind,
-        group,
-        evaluation: [],
-      },
+    let newFlag: FeatureFlag = {
+      description,
+      enabled: false,
+      custom: true,
+      kind,
+      group,
+      evaluation: [],
+      name,
     };
 
-    // if the flag key changed, delete the old entry.
     if (defined(flagKey)) {
+      // if the flag key changed, delete the old entry.
       delete newFlags[flagKey];
-      newFeatureFlags = {
-        ...newFlags,
-        [key]: {...flags[flagKey], kind, description, group},
+
+      newFlag = {
+        ...flags[flagKey],
+        kind,
+        description,
+        group,
+        name,
       };
     }
 
@@ -82,7 +85,12 @@ export function CustomFlagModal({
         `/projects/${organization.slug}/${project.slug}/`,
         {
           method: 'PUT',
-          data: {featureFlags: newFeatureFlags},
+          data: {
+            featureFlags: {
+              ...flags,
+              [key]: newFlag,
+            },
+          },
         }
       );
 
@@ -110,7 +118,7 @@ export function CustomFlagModal({
     nameChoices.push([key, key]);
   }
 
-  function setKeyWithValidation(value: string) {
+  function handleKeyChange(value: string) {
     setKey(value);
 
     if (!value) {
@@ -144,21 +152,20 @@ export function CustomFlagModal({
       <Body>
         <Fields>
           <StyledTextField
-            name="name"
-            label={t('Name')}
-            placeholder={t('Enter a name')}
+            name="key"
+            label={t('Key')}
+            placeholder={t('Enter a key')}
             value={key}
             onKeyDown={(val: string, e: KeyboardEvent) => {
               if (e.key === 'Tab') {
-                setKeyWithValidation(val);
+                handleKeyChange(val);
               }
             }}
-            onChange={setKeyWithValidation}
+            onChange={handleKeyChange}
             error={error}
             inline={false}
             hideControlState={!error}
             required
-            creatable
           />
           <StyledTooltip
             title={
@@ -183,6 +190,21 @@ export function CustomFlagModal({
               disabled={!canUpdateKind}
             />
           </StyledTooltip>
+          <StyledTextField
+            name="name"
+            label={t('Name')}
+            placeholder={t('Enter a Name')}
+            value={name}
+            onKeyDown={(val: string, e: KeyboardEvent) => {
+              if (e.key === 'Tab') {
+                setName(val);
+              }
+            }}
+            onChange={setName}
+            error={error}
+            inline={false}
+            hideControlState={!error}
+          />
           <DescriptionField
             label={t('Description')}
             placeholder={t(
@@ -207,13 +229,15 @@ export function CustomFlagModal({
             placeholder={key}
             inline={false}
             value={group}
-            onChange={value => setGroup(value || null)}
+            onChange={value => setGroup(value ?? '')}
             onKeyDown={(_value: string, e: KeyboardEvent) => {
               if (e.key === 'Enter') {
                 handleSubmit();
               }
             }}
-            help="If two flags share the same group, they will be linked together for an applied rollout. You can leave this empty and the flag name is used."
+            help={t(
+              'If two flags share the same group, they will be linked together for an applied rollout. You can leave this empty and the flag name is used.'
+            )}
             hideControlState
           />
         </Fields>

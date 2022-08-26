@@ -29,7 +29,7 @@ export function Promo({onGetStarted, hasAccess, flags}: Props) {
         action={
           <ButtonList gap={1}>
             <AddFlagButton
-              disabled={!hasAccess}
+              hasAccess={hasAccess}
               onAddFlag={onGetStarted}
               flags={flags}
               size="md"

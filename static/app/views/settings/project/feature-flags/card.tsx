@@ -144,7 +144,7 @@ const Header = styled('div')`
   align-items: flex-start;
   gap: ${space(1)};
   > * {
-    line-height: 28px;
+    line-height: 24px;
   }
 `;
 
