@@ -225,6 +225,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         if not isinstance(instance, Event):
             data[name] = serialize(instance)
             event_type = event.split(".")[0]
+            # not sending error webhooks as of yet, can be added later
             for fn in SentryFunction.objects.get_sentry_functions(org, event_type):
                 if event_type == "issue":
                     send_sentry_function_webhook.delay(
