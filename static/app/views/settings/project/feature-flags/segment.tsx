@@ -204,7 +204,7 @@ export const SegmentsLayout = styled('div')<{isContent?: boolean}>`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 90px 90px 1fr 0.5fr 96px 66px;
+    grid-template-columns: 64px 90px 1fr 0.5fr 96px 66px;
   }
 
   ${p =>
@@ -239,6 +239,7 @@ export const ActionsColumn = styled(Column)`
   display: grid;
   grid-template-columns: max-content max-content;
   gap: ${space(2)};
+  padding-right: 0;
 
   display: none;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
