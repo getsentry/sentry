@@ -103,4 +103,4 @@ COPY ./docker/sentry.conf.py ./docker/config.yml ./docker/docker-entrypoint.sh $
 ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh "$0" "$@"
 # Heroku use $PORT, thus, it will overwrite this
 ENV PORT="8000"
-CMD sentry run web --bind 0.0.0.0:$PORT
+CMD ["sh", "-c", "sentry run web --bind 0.0.0.0:$PORT"]
