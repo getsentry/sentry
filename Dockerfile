@@ -60,6 +60,8 @@ RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/requirements-frozen.txt \
+  # HACK: Since we can't install from /dist
+  && pip install sentry \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
@@ -94,10 +96,11 @@ RUN set -x \
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
   && mkdir -p $SENTRY_CONF \
-  && pip install sentry \
   && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./docker/sentry.conf.py ./docker/config.yml ./docker/docker-entrypoint.sh $SENTRY_CONF/
 
 ENTRYPOINT exec $SENTRY_CONF/docker-entrypoint.sh "$0" "$@"
+# Heroku use $PORT, thus, it will overwrite this
+ENV PORT="8000"
 CMD sentry run web --bind 0.0.0.0:$PORT
