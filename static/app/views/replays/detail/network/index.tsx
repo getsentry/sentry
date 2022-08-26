@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {ColorOrAlias} from 'sentry/utils/theme';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
   Filters,
   getFilteredNetworkSpans,
@@ -25,8 +26,6 @@ import {
   UNKNOWN_STATUS,
 } from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import FluidHeight from '../layout/fluidHeight';
 
 type Props = {
   networkSpans: NetworkSpan[];
