@@ -44,7 +44,6 @@ import {Tag, Tags} from './tags';
 import {
   generateTagCategoriesOptions,
   isJson,
-  isValidSampleRate,
   percentageToRate,
   rateToPercentage,
   validResultValue,
@@ -286,15 +285,9 @@ export function SegmentModal({
     };
   });
 
-  const validSamplerate =
-    flags[flagKey].kind === FeatureFlagKind.RATE
-      ? isValidSampleRate(Number(data.result))
-      : true;
-
   const submitDisabled =
     data.tags.some(condition => !condition.match) ||
     !validResultValue(data.result) ||
-    !validSamplerate ||
     !!errors.payload;
 
   return (

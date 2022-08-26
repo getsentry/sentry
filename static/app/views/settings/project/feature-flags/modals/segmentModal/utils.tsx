@@ -109,14 +109,6 @@ export function percentageToRate(rate: number | undefined, decimalPlaces: number
   return round(rate / 100, decimalPlaces);
 }
 
-export function isValidSampleRate(sampleRate: number | undefined) {
-  if (!defined(sampleRate)) {
-    return false;
-  }
-
-  return !isNaN(sampleRate) && sampleRate <= 1 && sampleRate >= 0;
-}
-
 export function isJson(payload?: string) {
   if (!defined(payload)) {
     return false;
