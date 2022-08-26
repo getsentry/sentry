@@ -313,7 +313,7 @@ export default function ProjectFeatureFlags({project}: Props) {
         ) : (
           <Content>
             <Filters>
-              <SearchBar
+              <StyledSearchBar
                 size="md"
                 onChange={setQuery}
                 query={query}
@@ -378,7 +378,17 @@ const Content = styled('div')`
 `;
 
 const Filters = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(1)};
-  grid-template-columns: 1fr max-content;
+  flex-direction: column;
+  align-items: flex-start;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: row;
+  }
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex: 1;
+  width: 100%;
 `;

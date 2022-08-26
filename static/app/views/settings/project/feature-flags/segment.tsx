@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,17 +8,20 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import ContextData from 'sentry/components/contextData';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import NotAvailable from 'sentry/components/notAvailable';
-import Pill from 'sentry/components/pill';
-import Pills from 'sentry/components/pills';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {FeatureFlagKind, FeatureFlagSegment} from 'sentry/types/featureFlags';
+import {
+  FeatureFlagKind,
+  FeatureFlagSegment,
+  FeatureFlagSegmentTagKind,
+} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
 import {rateToPercentage} from '../server-side-sampling/utils';
 
+import {getInnerNameLabel} from './modals/segmentModal/utils';
 import {getCustomTagLabel, isCustomTag} from './utils';
 
 type Props = {
@@ -102,24 +105,41 @@ export function Segment({
       <TypeColumn>
         <Type>{segment.type === 'match' ? t('Match') : t('Rollout')}</Type>
       </TypeColumn>
-      <TagsColumn>
-        {!!segment.tags ? (
-          <Tags>
-            {Object.keys(segment.tags).map(tag => {
-              const tagValue = segment.tags?.[tag];
+      <ConditionColumn>
+        {!!Object.keys(segment.tags ?? {}).length ? (
+          <Fragment>
+            {Object.keys(segment.tags ?? {}).map((tagKey, index) => {
+              const tagValue = segment.tags?.[tagKey];
               return (
-                <Tag
-                  key={tag}
-                  name={isCustomTag(tag) ? getCustomTagLabel(tag) : tag}
-                  value={Array.isArray(tagValue) ? tagValue.join(', ') : tagValue}
-                />
+                <Condition key={index}>
+                  <ConditionName>
+                    {isCustomTag(tagKey)
+                      ? getCustomTagLabel(tagKey)
+                      : getInnerNameLabel(tagKey as FeatureFlagSegmentTagKind)}
+                  </ConditionName>
+                  <ConditionEqualOperator>{'='}</ConditionEqualOperator>
+                  {Array.isArray(tagValue) ? (
+                    <div>
+                      {tagValue.map((conditionValue, conditionValueIndex) => (
+                        <Fragment key={conditionValue}>
+                          <ConditionValue>{conditionValue}</ConditionValue>
+                          {conditionValueIndex !== (tagValue as string[]).length - 1 && (
+                            <ConditionSeparator>{'\u002C'}</ConditionSeparator>
+                          )}
+                        </Fragment>
+                      ))}
+                    </div>
+                  ) : (
+                    <ConditionValue>{String(tagValue)}</ConditionValue>
+                  )}
+                </Condition>
               );
             })}
-          </Tags>
+          </Fragment>
         ) : (
           <NotAvailable />
         )}
-      </TagsColumn>
+      </ConditionColumn>
       <ResultColumn>
         {flagKind === FeatureFlagKind.BOOLEAN ? (
           <ActiveToggle
@@ -177,9 +197,13 @@ export function Segment({
 export const SegmentsLayout = styled('div')<{isContent?: boolean}>`
   width: 100%;
   display: grid;
-  grid-template-columns: 90px 1fr 108px;
+  grid-template-columns: 1fr 96px 66px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 90px 1fr 0.5fr 96px 66px;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 90px 90px 1fr 0.5fr 96px 66px;
   }
 
@@ -214,14 +238,27 @@ export const ActionsColumn = styled(Column)`
   display: grid;
   grid-template-columns: max-content max-content;
   gap: ${space(2)};
+
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+  }
 `;
 
 export const TypeColumn = styled(Column)`
   text-align: left;
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    display: flex;
+  }
 `;
 
-export const TagsColumn = styled(Column)`
-  align-items: center;
+export const ConditionColumn = styled(Column)`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  align-items: flex-start;
+  flex-wrap: wrap;
 `;
 
 export const RolloutColumn = styled(Column)`
@@ -234,6 +271,11 @@ export const DeleteColumn = styled(Column)``;
 export const ResultColumn = styled(Column)`
   text-align: right;
   justify-content: flex-end;
+
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+  }
 `;
 
 const Payload = styled(Column)`
@@ -275,13 +317,11 @@ const IconGrabbableWrapper = styled('div')`
   height: 28px;
 `;
 
-const Tags = styled(Pills)`
+const Condition = styled('div')`
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: ${space(1)};
-`;
-
-const Tag = styled(Pill)`
-  margin-bottom: 0;
 `;
 
 const ActiveToggle = styled(NewBooleanField)`
@@ -303,4 +343,20 @@ const ExpandButton = styled(IconChevron)<{disabled: boolean}>`
       cursor: not-allowed;
       color: ${p.theme.disabled};
     `}
+`;
+
+const ConditionEqualOperator = styled('div')`
+  color: ${p => p.theme.purple300};
+`;
+
+const ConditionName = styled('div')`
+  color: ${p => p.theme.gray400};
+`;
+
+const ConditionValue = styled('span')`
+  color: ${p => p.theme.gray300};
+`;
+
+const ConditionSeparator = styled(ConditionValue)`
+  padding-right: ${space(0.5)};
 `;

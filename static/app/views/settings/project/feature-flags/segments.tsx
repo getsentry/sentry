@@ -12,12 +12,12 @@ import {
 
 import {
   ActionsColumn,
+  ConditionColumn,
   DeleteColumn,
   ResultColumn,
   RolloutColumn,
   Segment,
   SegmentsLayout,
-  TagsColumn,
   TypeColumn,
 } from './segment';
 
@@ -25,17 +25,17 @@ type Props = {
   canGrab: boolean;
   flagKind: FeatureFlagKind;
   hasAccess: boolean;
-  onDeleteSegment: (index: number) => void;
-  onEditSegment: (index: number) => void;
+  onDelete: (index: number) => void;
+  onEdit: (index: number) => void;
   onSort: (props: DraggableRuleListUpdateItemsProps) => void;
-  onToggleBooleanSegment: (index: number) => void;
+  onToggle: (index: number) => void;
   segments: FeatureFlagSegment[];
 };
 
 export function Segments({
-  onDeleteSegment,
-  onEditSegment,
-  onToggleBooleanSegment,
+  onDelete,
+  onEdit,
+  onToggle,
   hasAccess,
   onSort,
   segments,
@@ -53,7 +53,7 @@ export function Segments({
         <SegmentsLayout>
           <ActionsColumn />
           <TypeColumn>{t('Type')}</TypeColumn>
-          <TagsColumn>{t('Tags')}</TagsColumn>
+          <ConditionColumn>{t('Condition')}</ConditionColumn>
           <ResultColumn>{t('Result')}</ResultColumn>
           <RolloutColumn>{t('Rollout')}</RolloutColumn>
           <DeleteColumn />
@@ -97,9 +97,9 @@ export function Segments({
                 listeners={listeners}
                 dragging={dragging}
                 grabAttributes={attributes}
-                onDelete={() => onDeleteSegment(index)}
-                onEdit={() => onEditSegment(index)}
-                onToggle={() => onToggleBooleanSegment(index)}
+                onDelete={() => onDelete(index)}
+                onEdit={() => onEdit(index)}
+                onToggle={() => onToggle(index)}
                 hasAccess={hasAccess}
                 canGrab={canGrab}
                 flagKind={flagKind}

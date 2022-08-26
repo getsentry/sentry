@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,6 +13,8 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FeatureFlag, FeatureFlagSegment} from 'sentry/types/featureFlags';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
 
 import {DraggableRuleListUpdateItemsProps} from '../server-side-sampling/draggableRuleList';
 
@@ -50,6 +51,8 @@ export function Card({
   onToggleBooleanSegment,
   kind,
 }: Props) {
+  const isSmallDevice = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
   const actionMenuItems: MenuItemProps[] = [
     {
       key: 'feature-flag-delete',
@@ -73,17 +76,31 @@ export function Card({
     });
   }
 
+  if (isSmallDevice) {
+    actionMenuItems.push({
+      key: 'feature-flag-add-segment',
+      label: t('Add Segment'),
+      onAction: onAddSegment,
+    });
+  }
+
   return (
-    <Wrapper hasSegment={!!segments.length}>
-      <Header>
+    <CardPanel hasSegment={!!segments.length}>
+      <CardPanelHeader>
         <div>
-          <Key>
-            {preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}
-            {preDefinedFeatureFlags[flagKey] && <PreDefinedMarker />}
-          </Key>
+          <Key>{preDefinedFeatureFlags[flagKey]?.humanReadableName ?? flagKey}</Key>
           {description && <Description>{description}</Description>}
         </div>
         <Actions>
+          {preDefinedFeatureFlags[flagKey] && (
+            <Tooltip
+              title={t('This is an built-in SDK feature flag')}
+              position="right"
+              containerDisplayMode="inline-flex"
+            >
+              <Tag priority="info">{'built-in'}</Tag>
+            </Tooltip>
+          )}
           <ActiveToggle
             inline={false}
             hideControlState
@@ -92,9 +109,9 @@ export function Card({
             name="active"
             value={enabled}
           />
-          <Button size="xs" onClick={onAddSegment}>
+          <AddSegmentButton size="xs" onClick={onAddSegment}>
             {t('Add Segment')}
-          </Button>
+          </AddSegmentButton>
           <DropdownMenuControl
             items={actionMenuItems}
             trigger={({props: triggerProps, ref: triggerRef}) => (
@@ -116,26 +133,24 @@ export function Card({
             offset={4}
           />
         </Actions>
-      </Header>
+      </CardPanelHeader>
       {!!segments.length && (
         <Segments
           segments={segments}
-          onDeleteSegment={onDeleteSegment}
-          onEditSegment={onEditSegment}
+          onDelete={onDeleteSegment}
+          onEdit={onEditSegment}
           hasAccess={hasAccess}
           onSort={onSortSegments}
           canGrab={segments.length > 1}
-          onToggleBooleanSegment={onToggleBooleanSegment}
+          onToggle={onToggleBooleanSegment}
           flagKind={kind}
         />
       )}
-    </Wrapper>
+    </CardPanel>
   );
 }
 
-const Wrapper = styled(Panel)<{hasSegment: boolean}>`
-  display: grid;
-  gap: ${space(2)};
+const CardPanel = styled(Panel)<{hasSegment: boolean}>`
   ${p =>
     p.hasSegment &&
     css`
@@ -143,12 +158,13 @@ const Wrapper = styled(Panel)<{hasSegment: boolean}>`
     `}
 `;
 
-const Header = styled('div')`
+const CardPanelHeader = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
   padding: ${space(1.5)} ${space(2)};
   align-items: flex-start;
   gap: ${space(1)};
+  grid-template-columns: 1fr max-content;
+
   > * {
     line-height: 24px;
   }
@@ -162,7 +178,16 @@ const Key = styled('div')`
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
-  line-height: 1;
+  grid-column: 1/-1;
+`;
+
+const Actions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  justify-content: flex-end;
+  align-items: center;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
 `;
 
 const ActiveToggle = styled(NewBooleanField)`
@@ -172,25 +197,9 @@ const ActiveToggle = styled(NewBooleanField)`
   border-bottom: none;
 `;
 
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: max-content max-content max-content;
-  gap: ${space(2)};
-  justify-content: flex-end;
-  align-items: center;
+const AddSegmentButton = styled(Button)`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    display: block;
+  }
 `;
-
-const BuiltinTag = styled(Tag)`
-  margin-top: -3px;
-  margin-left: ${space(1)};
-`;
-
-const PreDefinedMarker = () => {
-  return (
-    <Tooltip title="This is an built-in SDK feature flag" position="right">
-      <Fragment>
-        <BuiltinTag priority="info">{'built-in'}</BuiltinTag>
-      </Fragment>
-    </Tooltip>
-  );
-};
