@@ -33,7 +33,6 @@ export type FeatureFlag = {
   kind: FeatureFlagKind;
   description?: string;
   group?: string;
-  name?: string;
 };
 
 export type FeatureFlags = Record<string, FeatureFlag>;

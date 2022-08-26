@@ -37,7 +37,6 @@ export function CustomFlagModal({
   const api = useApi();
 
   const [key, setKey] = useState(flagKey ?? '');
-  const [name, setName] = useState(flagKey ? flags[flagKey].name : '');
   const [description, setDescription] = useState(
     flagKey ? flags[flagKey].description : ''
   );
@@ -64,7 +63,6 @@ export function CustomFlagModal({
       kind,
       group,
       evaluation: [],
-      name,
     };
 
     if (defined(flagKey)) {
@@ -76,7 +74,6 @@ export function CustomFlagModal({
         kind,
         description,
         group,
-        name,
       };
     }
 
@@ -190,21 +187,6 @@ export function CustomFlagModal({
               disabled={!canUpdateKind}
             />
           </StyledTooltip>
-          <StyledTextField
-            name="name"
-            label={t('Name')}
-            placeholder={t('Enter a Name')}
-            value={name}
-            onKeyDown={(val: string, e: KeyboardEvent) => {
-              if (e.key === 'Tab') {
-                setName(val);
-              }
-            }}
-            onChange={setName}
-            error={error}
-            inline={false}
-            hideControlState={!error}
-          />
           <DescriptionField
             label={t('Description')}
             placeholder={t(
