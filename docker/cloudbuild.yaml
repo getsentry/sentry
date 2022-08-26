@@ -7,6 +7,8 @@ steps:
         '--use-new-run',
         '--build-arg',
         'SOURCE_COMMIT=$COMMIT_SHA',
+        '--build-arg',
+        'DIST_DIR=/dist',
         '--destination=us.gcr.io/$PROJECT_ID/sentry-builder:$COMMIT_SHA',
         '-f',
         './docker/builder.dockerfile',
