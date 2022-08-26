@@ -16,6 +16,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
@@ -109,7 +110,7 @@ const createWrapper = (props = {}) => {
   };
 };
 
-describe('ProjectAlerts -> IssueRuleEditor', function () {
+describe('IssueRuleEditor', function () {
   beforeEach(function () {
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
@@ -136,11 +137,14 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
         autoAssignment: false,
       },
     });
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
   });
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+    ProjectsStore.reset();
+    ProjectsStore.teardown();
   });
 
   describe('Edit Rule', function () {
@@ -227,6 +231,13 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    });
+
+    it('disables the project selector on edit', function () {
+      createWrapper();
+      userEvent.click(screen.getByText('project-slug'));
+      // Should only have one in the document still
+      expect(screen.getByText('project-slug')).toBeInTheDocument();
     });
   });
 
