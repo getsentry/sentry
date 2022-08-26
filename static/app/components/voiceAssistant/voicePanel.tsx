@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 
 import {getVoiceActionById, recognitionCommands} from './commands';
 import {VoiceAssistantButton} from './floatingButton';
-import {grammar} from './grammars';
+import {getGrammar} from './grammars';
 import {VoiceAssistantTextbox} from './textBox';
 import {
   getAllRecognitionAlternatives,
@@ -109,7 +109,7 @@ class VoiceAssistantPanel extends React.Component<
     }
 
     const speechRecognitionList = new SpeechGrammarList();
-    speechRecognitionList.addFromString(grammar, 1);
+    speechRecognitionList.addFromString(getGrammar(), 1);
     recognition.grammars = speechRecognitionList;
     recognition.lang = 'en-US';
     recognition.interimResults = false;

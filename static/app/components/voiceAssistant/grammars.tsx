@@ -1,13 +1,9 @@
-export const grammar = `
+import {recognitionCommands} from './commands';
+
+export const getGrammar = (): string => {
+  const rules = recognitionCommands.map(command => command.jsgfRule()).join(' ');
+  return `
 #JSGF V1.0;
 grammar sentryGrammar;
-
-public <phrase> = <navigationCommand>;
-
-// Navigation commands
-<navigationCommand> = go to <pageName> page;
-<pageName> = settings | issues | billing | DSN | apdex;
-
-// Action commands
-// e.g. Select issues, resolve issues, etc.
-`;
+${rules}`;
+};
