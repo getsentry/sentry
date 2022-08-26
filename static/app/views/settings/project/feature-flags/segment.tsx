@@ -10,6 +10,7 @@ import NewBooleanField from 'sentry/components/forms/booleanField';
 import NotAvailable from 'sentry/components/notAvailable';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
+import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -50,31 +51,46 @@ export function Segment({
   return (
     <SegmentsLayout isContent onClick={onEdit}>
       <ActionsColumn>
-        {showGrab && (
-          <Grabber disabled={!hasAccess}>
+        <Grabber disabled={!hasAccess || !showGrab}>
+          <Tooltip
+            containerDisplayMode="inline-flex"
+            title={
+              !showGrab
+                ? t('Add more segments to be able to sort')
+                : !hasAccess
+                ? t("You don't have access to sort segments")
+                : undefined
+            }
+            disabled={showGrab}
+          >
             <IconGrabbableWrapper
               {...listeners}
               {...grabAttributes}
               aria-label={dragging ? t('Drop Segment') : t('Drag Segment')}
-              aria-disabled={!hasAccess}
+              aria-disabled={!hasAccess || !showGrab}
             >
               <IconGrabbable />
             </IconGrabbableWrapper>
-          </Grabber>
-        )}
-        <Button
-          aria-label={t('See payload')}
-          size="xs"
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            setExpandedPayload(!expandedPayload);
-          }}
-          borderless
-          disabled={!segment.payload}
-          title={segment.payload ? undefined : t('No payload available')}
-          icon={<IconChevron direction={expandedPayload ? 'up' : 'down'} />}
-        />
+          </Tooltip>
+        </Grabber>
+        <Tooltip
+          title={!segment.payload ? t('No payload available') : undefined}
+          disabled={!!segment.payload}
+          containerDisplayMode="inline-flex"
+        >
+          <ExpandButton
+            aria-label={t('Expand to see payload')}
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (!!segment.payload) {
+                setExpandedPayload(!expandedPayload);
+              }
+            }}
+            disabled={!segment.payload}
+            direction={expandedPayload ? 'up' : 'down'}
+          />
+        </Tooltip>
       </ActionsColumn>
       <TypeColumn>
         <Type>{segment.type === 'match' ? t('Match') : t('Rollout')}</Type>
@@ -154,10 +170,10 @@ export function Segment({
 export const SegmentsLayout = styled('div')<{isContent?: boolean}>`
   width: 100%;
   display: grid;
-  grid-template-columns: 90px 1fr 108px;
+  grid-template-columns: 80px 1fr 108px;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 90px 90px 1fr 0.5fr 96px 66px;
+    grid-template-columns: 80px 90px 1fr 0.5fr 96px 66px;
   }
 
   ${p =>
@@ -190,7 +206,7 @@ export const Column = styled('div')`
 export const ActionsColumn = styled(Column)`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: ${space(1)};
+  gap: ${space(2)};
 `;
 
 export const TypeColumn = styled(Column)`
@@ -224,6 +240,7 @@ const Type = styled('div')`
 `;
 
 const Grabber = styled('div')<{disabled?: boolean}>`
+  width: 16px;
   [role='button'] {
     cursor: grab;
   }
@@ -268,4 +285,14 @@ const ActiveToggle = styled(NewBooleanField)`
 
 const StyledContextData = styled(ContextData)`
   width: 100%;
+`;
+
+const ExpandButton = styled(IconChevron)<{disabled: boolean}>`
+  height: 28px;
+  ${p =>
+    p.disabled &&
+    css`
+      cursor: not-allowed;
+      color: ${p.theme.disabled};
+    `}
 `;
