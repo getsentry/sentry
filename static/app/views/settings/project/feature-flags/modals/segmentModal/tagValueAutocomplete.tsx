@@ -143,6 +143,12 @@ export function TagValueAutocomplete({
       async
       cacheOptions
       defaultOptions
+      styles={{
+        control: provided => ({
+          ...provided,
+          height: 'auto',
+        }),
+      }}
       loadOptions={loadOptions}
     />
   );
