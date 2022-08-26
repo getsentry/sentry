@@ -12,7 +12,10 @@ import * as echarts from 'echarts/core';
 import {SVGRenderer} from 'echarts/renderers';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
 
+import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {IconExpand} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types';
 
 // Register the required components
@@ -321,6 +324,22 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         echarts={echarts}
         option={option}
         onEvents={onEvents}
+      />
+      <Button
+        size="sm"
+        data-test-id="real-time"
+        title="Expand/Shrink"
+        icon={<IconExpand size="xs" />}
+        onClick={() => {
+          const elements = document.getElementsByClassName('echarts-for-react');
+          const el = elements[0];
+          if (el.style.height === '85vh') {
+            el.style.height = '300px';
+          } else {
+            el.style.height = '85vh';
+          }
+        }}
+        aria-label={t('Expand/Shrink Diagram')}
       />
     </Layout.HotSpots>
   );
