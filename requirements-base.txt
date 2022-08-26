@@ -56,6 +56,7 @@ uWSGI==2.0.20.0
 ua-parser>=0.10.0
 unidiff>=0.7.4
 zstandard==0.18.0
+statsd==3.3
 
 # test dependencies, but unable to move to requirements-test until
 # sentry.utils.pytest and sentry.testutils are moved to tests/
