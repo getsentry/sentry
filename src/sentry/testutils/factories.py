@@ -17,8 +17,11 @@ from django.utils import timezone
 from django.utils.encoding import force_text
 from django.utils.text import slugify
 
+from sentry import eventtypes
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
+from sentry.eventtypes import ErrorEvent
+from sentry.eventtypes.security import SecurityEvent
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -608,6 +611,17 @@ class Factories:
         event = manager.save(project_id)
         if event.group:
             event.group.save()
+        for g in event.groups:
+            g.save()
+        # XXX: Maintain previous behaviour of `store_event` so that error like events still have a
+        # group associated with them.
+        error_event_types = {
+            event_type.key
+            for event_type in eventtypes.default_manager
+            if issubclass(event_type, ErrorEvent) or issubclass(event_type, SecurityEvent)
+        }
+        if event.get_event_type() in error_event_types:
+            event = next(event.build_group_events())
         return event
 
     @staticmethod

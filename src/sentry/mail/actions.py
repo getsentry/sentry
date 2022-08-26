@@ -1,5 +1,5 @@
 from sentry import analytics
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.notifications.types import ACTION_CHOICES, ActionTargetType
@@ -57,7 +57,7 @@ class NotifyActiveReleaseEmailAction(NotifyEmailAction):
     label = f"Send a notification to {ActionTargetType.RELEASE_MEMBERS.value}"
     metrics_slug = "ActiveReleaseEmailAction"
 
-    def after(self, event: Event, state, release_dry_run: bool):
+    def after(self, event: GroupEvent, state, release_dry_run: bool):
         recipients = determine_eligible_recipients(
             event.group.project,
             ActionTargetType.RELEASE_MEMBERS,

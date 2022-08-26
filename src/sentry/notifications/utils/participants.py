@@ -36,7 +36,7 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.eventstore.models import BaseEvent, GroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +144,7 @@ def split_participants_and_context(
     }
 
 
-def get_owners(project: Project, event: Event | None = None) -> Sequence[Team | User]:
+def get_owners(project: Project, event: BaseEvent | None = None) -> Sequence[Team | User]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -214,7 +214,7 @@ def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | None = None,
+    event: GroupEvent | None = None,
     release_dry_run: bool | None = False,
 ) -> Iterable[Team | User]:
     """
@@ -244,15 +244,12 @@ def determine_eligible_recipients(
 
 
 def get_release_committers(
-    project: Project, event: Event, release_dry_run: bool | None = False
+    project: Project, event: GroupEvent, release_dry_run: bool | None = False
 ) -> Sequence[User]:
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
     if not project or not event:
-        return []
-
-    if not event.group:
         return []
 
     last_release_version: str | None = event.group.get_last_release()
@@ -295,7 +292,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | None = None,
+    event: GroupEvent | None = None,
     notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> Mapping[ExternalProviders, set[Team | User]]:
     recipients = determine_eligible_recipients(project, target_type, target_identifier, event)

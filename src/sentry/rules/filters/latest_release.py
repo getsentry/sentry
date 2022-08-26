@@ -5,7 +5,7 @@ from typing import Any
 from django.db.models.signals import post_delete, post_save, pre_delete
 
 from sentry import tagstore
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import Environment, Release, ReleaseEnvironment, ReleaseProject
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
@@ -45,7 +45,7 @@ class LatestReleaseFilter(EventFilter):
     id = "sentry.rules.filters.latest_release.LatestReleaseFilter"
     label = "The event is from the latest release"
 
-    def get_latest_release(self, event: Event) -> Release | None:
+    def get_latest_release(self, event: GroupEvent) -> Release | None:
         environment_id = None if self.rule is None else self.rule.environment_id
         cache_key = get_project_release_cache_key(event.group.project_id, environment_id)
         latest_release = cache.get(cache_key)
@@ -74,7 +74,7 @@ class LatestReleaseFilter(EventFilter):
                 cache.set(cache_key, False, 600)
         return latest_release
 
-    def passes(self, event: Event, state: EventState) -> bool:
+    def passes(self, event: GroupEvent, state: EventState) -> bool:
         latest_release = self.get_latest_release(event)
         if not latest_release:
             return False

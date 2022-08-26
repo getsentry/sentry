@@ -8,7 +8,7 @@ from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 
 from sentry import tsdb
 from sentry.digests import Digest, Record
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import Group, GroupStatus, Project, Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.utils.dates import to_timestamp
@@ -41,7 +41,7 @@ def unsplit_key(
     return f"mail:p:{project.id}:{target_type.value}:{target_str}"
 
 
-def event_to_record(event: Event, rules: Sequence[Rule]) -> Record:
+def event_to_record(event: GroupEvent, rules: Sequence[Rule]) -> Record:
     if not rules:
         logger.warning(f"Creating record for {event} that does not contain any rules!")
 

@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 __all__ = ("Annotation", "Notification")
 
 import warnings
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import GroupEvent
 
 
 class Annotation:
@@ -11,7 +17,7 @@ class Annotation:
 
 
 class Notification:
-    def __init__(self, event, rule=None, rules=None):
+    def __init__(self, event: GroupEvent, rule=None, rules=None):
         if rule and not rules:
             rules = [rule]
 

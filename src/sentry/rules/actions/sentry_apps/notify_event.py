@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRuleActionSerializer
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.rules import EventState
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
@@ -40,7 +40,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
     # Required field for EventAction, value is ignored
     label = ""
 
-    def _get_sentry_app(self, event: Event) -> SentryApp | None:
+    def _get_sentry_app(self, event: GroupEvent) -> SentryApp | None:
         extra = {"event_id": event.event_id}
 
         sentry_app_installation_uuid = self.get_option("sentryAppInstallationUuid")
@@ -139,7 +139,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
                 f"Unexpected setting(s) '{extra_keys_string}' configured for {sentry_app.name}"
             )
 
-    def after(self, event: Event, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(
             notify_sentry_app,

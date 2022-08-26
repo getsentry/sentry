@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import logging
+from typing import TYPE_CHECKING, Sequence
 
 from sentry.utils.dates import to_timestamp
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import GroupEvent
 
 logger = logging.getLogger("sentry.similarity")
 
@@ -94,7 +100,7 @@ class FeatureSet:
                 )
         return results
 
-    def record(self, events):
+    def record(self, events: Sequence[GroupEvent]):
         if not events:
             return []
 

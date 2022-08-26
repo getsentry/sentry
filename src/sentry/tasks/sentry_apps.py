@@ -19,7 +19,7 @@ from requests.exceptions import RequestException
 from sentry import analytics, features
 from sentry.api.serializers import AppPlatformEvent, serialize
 from sentry.constants import SentryAppInstallationStatus
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import (
     Activity,
     Group,
@@ -57,7 +57,7 @@ RETRY_OPTIONS = {
 # Hook events to match what we externally call these primitives.
 RESOURCE_RENAMES = {"Group": "issue"}
 
-TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
+TYPES = {"Group": Group, "Error": GroupEvent, "Comment": Activity}
 
 
 def _webhook_event_data(event, group_id, project_id):
@@ -89,7 +89,7 @@ def _webhook_event_data(event, group_id, project_id):
 @instrumented_task(name="sentry.tasks.sentry_apps.send_alert_event", **TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def send_alert_event(
-    event: Event,
+    event: GroupEvent,
     rule: str,
     sentry_app_id: int,
     additional_payload_key: str | None = None,
@@ -97,7 +97,7 @@ def send_alert_event(
 ) -> None:
     """
     When an incident alert is triggered, send incident data to the SentryApp's webhook.
-    :param event: The `Event` for which to build a payload.
+    :param event: The `GroupEvent` for which to build a payload.
     :param rule: The AlertRule that was triggered.
     :param sentry_app_id: The SentryApp to notify.
     :param additional_payload_key: The key used to attach additional data to the webhook payload
@@ -158,9 +158,9 @@ def send_alert_event(
 def _process_resource_change(action, sender, instance_id, retryer=None, *args, **kwargs):
     # The class is serialized as a string when enqueueing the class.
     model = TYPES[sender]
-    # The Event model has different hooks for the different event types. The sender
+    # The GroupEvent model has different hooks for the different event types. The sender
     # determines which type eg. Error and therefore the 'name' eg. error
-    if issubclass(model, Event):
+    if issubclass(model, GroupEvent):
         if not kwargs.get("instance"):
             extra = {"sender": sender, "action": action, "event_id": instance_id}
             logger.info("process_resource_change.event_missing_event", extra=extra)
@@ -178,7 +178,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.
     try:
-        if issubclass(model, Event):
+        if issubclass(model, GroupEvent):
             # XXX:(Meredith): Passing through the entire event was an intentional choice
             # to avoid having to query NodeStore again for data we had previously in
             # post_process. While this is not ideal, changing this will most likely involve
@@ -198,7 +198,7 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     org = None
 
-    if isinstance(instance, Group) or isinstance(instance, Event):
+    if isinstance(instance, Group) or isinstance(instance, GroupEvent):
         org = Organization.objects.get_from_cache(
             id=Project.objects.get_from_cache(id=instance.project_id).organization_id
         )
@@ -212,8 +212,8 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     for installation in installations:
         data = {}
-        if isinstance(instance, Event):
-            data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+        if isinstance(instance, GroupEvent):
+            data[name] = _webhook_event_data(instance, instance.group.id, instance.project_id)
         else:
             data[name] = serialize(instance)
 

@@ -6,7 +6,7 @@ from sentry import digests
 from sentry.digests import Digest
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import event_to_record, unsplit_key
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models import NotificationSetting, Project, ProjectOption
 from sentry.notifications.notifications.active_release import ActiveReleaseIssueNotification
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
@@ -35,7 +35,7 @@ class MailAdapter:
 
     def rule_notify(
         self,
-        event: Any,
+        event: GroupEvent,
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
         target_identifier: Optional[int] = None,
@@ -86,7 +86,7 @@ class MailAdapter:
 
         logger.info("mail.adapter.notification.%s" % log_event, extra=extra)
 
-    def active_release_notify(self, event: Event, state) -> None:
+    def active_release_notify(self, event: GroupEvent, state) -> None:
         metrics.incr("mail_adapter.active_release_notify")
         self.notify_active_release(Notification(event=event, rules=None), state)
         logger.info(

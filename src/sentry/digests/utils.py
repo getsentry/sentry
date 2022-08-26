@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from collections import Counter, OrderedDict, defaultdict
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from typing import Counter as CounterType
 from typing import Iterable, Mapping, Sequence
 
 from sentry.digests import Digest, Record
-from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, Team, User
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.types.integrations import ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event, GroupEvent
 
 
 def get_digest_metadata(
@@ -85,7 +87,7 @@ def get_personalized_digests(
     }
 
 
-def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
+def get_event_from_groups_in_digest(digest: Digest) -> Iterable[GroupEvent]:
     """Gets a random event from each group in the digest."""
     return {
         group_records[0].value.event

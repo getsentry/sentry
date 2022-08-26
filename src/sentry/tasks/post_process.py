@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.conf import settings
@@ -17,6 +20,10 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import GroupEvent
+    from sentry.models import Group
 
 logger = logging.getLogger("sentry")
 
@@ -62,7 +69,7 @@ def _should_send_error_created_hooks(project):
     return result
 
 
-def _capture_stats(event, is_new):
+def _capture_stats(event: GroupEvent, is_new: bool):
     # TODO(dcramer): limit platforms to... something?
     platform = event.group.platform
     if not platform:
@@ -206,7 +213,7 @@ def handle_group_owners(project, group, owners):
         pass
 
 
-def update_existing_attachments(event):
+def update_existing_attachments(event: GroupEvent):
     """
     Attaches the group_id to all event attachments that were either:
 
@@ -220,7 +227,7 @@ def update_existing_attachments(event):
     )
 
 
-def fetch_buffered_group_stats(group):
+def fetch_buffered_group_stats(group: Group):
     """
     Fetches buffered increments to `times_seen` for this group and adds them to the current
     `times_seen`.
@@ -259,8 +266,9 @@ def post_process_group(
                 extra={"cache_key": cache_key, "reason": "missing_cache"},
             )
             return
+        group_ids = None if not group_id else [group_id]
         event = Event(
-            project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+            project_id=data["project"], event_id=data["event_id"], group_ids=group_ids, data=data
         )
 
         set_current_event_project(event.project_id)
@@ -308,10 +316,8 @@ def post_process_group(
         from sentry.tasks.groupowner import process_suspect_commits
         from sentry.tasks.servicehooks import process_service_hook
 
-        # Re-bind Group since we're reading the Event object
-        # from cache, which may contain a stale group and project
-        event.group, _ = get_group_with_redirect(event.group_id)
-        event.group_id = event.group.id
+        # Convert the `Event` to a `GroupEvent`
+        event = event.for_group(get_group_with_redirect(group_id)[0])
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
         # stats.
@@ -434,6 +440,7 @@ def post_process_group(
             from sentry.plugins.base import plugins
 
             for plugin in plugins.for_project(event.project):
+                # TODO: Investigate plugins
                 plugin_post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )

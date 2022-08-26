@@ -14,6 +14,10 @@ def get_payload_v0(event):
     group_context = serialize(group)
     group_context["url"] = group.get_absolute_url()
 
+    # TODO: Need to be able to serialize this event properly. Should only need to be serializing
+    # error events, so just one `Group`. We could make a new `GroupEvent` serializer that layers in
+    # extra group info if present. Maybe could make `EventSerializer` handle both types of Event
+    # and only include group info for a `GroupEvent`. That way subclasses still work.
     event_context = serialize(event)
     event_context["url"] = f"{group.get_absolute_url()}events/{event.event_id}/"
     data = {
