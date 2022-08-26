@@ -124,7 +124,7 @@ export function Card({
           onEditSegment={onEditSegment}
           hasAccess={hasAccess}
           onSort={onSortSegments}
-          showGrab={segments.length > 1}
+          showGrab
           onToggleBooleanSegment={onToggleBooleanSegment}
           flagKind={kind}
         />
