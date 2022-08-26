@@ -1,6 +1,4 @@
 FROM python:3.8.13-slim-bullseye
-# The Cloud build uses /dist as a place to cache wheels and others
-ARG DIST_DIR=.
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -49,18 +47,14 @@ ENV \
   # grpcio>1.30.0 requires this, see requirements.txt for more detail.
   GRPC_POLL_STRATEGY=epoll1
 
-COPY ${DIST_DIR}/requirements-frozen.txt /tmp/requirements-frozen.txt
-
+# Install dependencies first to leverage Docker layer caching.
+COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
   # uwsgi
   && buildDeps="$buildDeps \
   gcc \
   wget \
-  " \
-  # psycopg2-binary
-  && buildDeps="$buildDeps \
-  libpq-dev \
   " \
   # maxminddb
   && buildDeps="$buildDeps \
@@ -109,8 +103,8 @@ RUN set -x \
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
   && mkdir -p $SENTRY_CONF
 
-# COPY /dist/*.whl /tmp/dist/
-# RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
+COPY /dist/*.whl /tmp/dist/
+RUN pip install /tmp/dist/*.whl --no-deps && pip check && rm -rf /tmp/dist
 RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
