@@ -262,7 +262,10 @@ export default function ProjectFeatureFlags({project}: Props) {
 
   const filteredFlags = Object.keys(flags).filter(key => {
     return (
-      key.toLowerCase().includes(query.toLowerCase()) &&
+      (key.toLowerCase().includes(query.toLowerCase()) ||
+        (preDefinedFeatureFlags[key]?.humanReadableName || '')
+          .toLowerCase()
+          .includes(query.toLowerCase())) &&
       (status === null || flags[key].enabled === status)
     );
   });
