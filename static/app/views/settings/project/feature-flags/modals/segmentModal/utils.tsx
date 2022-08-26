@@ -87,7 +87,7 @@ export function validResultValue(value: string | number | boolean | undefined) {
   }
 
   if (typeof value === 'number') {
-    return !isNaN(value) && value >= 0;
+    return !isNaN(value);
   }
 
   return true;
