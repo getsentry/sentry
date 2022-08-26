@@ -13,7 +13,7 @@ djangorestframework==3.12.4
 drf-spectacular==0.22.1
 email-reply-parser==0.5.12
 google-api-core==1.32.0
-google-auth>=1.24.0
+google-auth==1.35.0
 google-cloud-bigtable==1.6.1
 google-cloud-core==1.5.0
 googleapis-common-protos==1.56.2
