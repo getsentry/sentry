@@ -14,6 +14,7 @@ import ReactEChartsCore from 'echarts-for-react/lib/core';
 
 import Button from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Text from 'sentry/components/text';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types';
@@ -304,6 +305,15 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
       },
     });
 
+    // Update path in bottom of diagram
+    const el = document.querySelector('[data-test-id="cirlePackingDiagramPath"]');
+    const path = displayRoot.id.replace('<project_root>', '');
+    if (path) {
+      el.innerHTML = `Current Path: ${path}`;
+    } else {
+      el.innerHTML = ``;
+    }
+
     // On the first click the reset click handler is installed.
     // (When clicking outside the view is resetted.)
     if (!resetEventInstalled) {
@@ -325,6 +335,7 @@ function IssueHotSpots({organizationSlug, projects}: Props) {
         option={option}
         onEvents={onEvents}
       />
+      <Text data-test-id="cirlePackingDiagramPath" style={{textAlign: 'center'}} />
       <Button
         size="sm"
         data-test-id="real-time"
