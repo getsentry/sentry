@@ -222,14 +222,14 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
 
     if features.has("organizations:sentry-functions", org):
         data = {}
-        if isinstance(instance, Event):
-            data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
-        else:
+        if not isinstance(instance, Event):
             data[name] = serialize(instance)
-        event_type = event.split(".")[0]
-        for fn in SentryFunction.objects.get_sentry_functions(org, event_type):
-            if event_type == "issue":
-                send_sentry_function_webhook.delay(fn.external_id, event, data["issue"]["id"], data)
+            event_type = event.split(".")[0]
+            for fn in SentryFunction.objects.get_sentry_functions(org, event_type):
+                if event_type == "issue":
+                    send_sentry_function_webhook.delay(
+                        fn.external_id, event, data["issue"]["id"], data
+                    )
 
 
 @instrumented_task("sentry.tasks.process_resource_change_bound", bind=True, **TASK_OPTIONS)
