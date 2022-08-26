@@ -287,7 +287,7 @@ export function SegmentModal({
           />
           <StyledPanel>
             <StyledPanelHeader hasButtons>
-              {t('Tags')}
+              {t('Conditions')}
               <StyledCompactSelect
                 placement="bottom right"
                 triggerProps={{
@@ -336,8 +336,10 @@ export function SegmentModal({
               {!data.tags.length ? (
                 <EmptyMessage
                   icon={<IconSearch size="xl" />}
-                  title={t('No tags added')}
-                  description={t('Click on the button above to add (+) a tag')}
+                  title={t('No tag conditions added')}
+                  description={t(
+                    'Click on the button above to add (+) a tag as condition'
+                  )}
                 />
               ) : (
                 <Tags
@@ -354,6 +356,7 @@ export function SegmentModal({
           {data.type === EvaluationType.Rollout && (
             <StyledField
               label={t('Rollout in percent')}
+              help="This is the percentage of users that will match and the result will be returned."
               inline={false}
               flexibleControlStateSize
               hideControlState
@@ -412,7 +415,7 @@ export function SegmentModal({
           )}
           {flags[flagKey].kind === FeatureFlagKind.RATE && (
             <StyledField
-              label={t('Result rate in percent')}
+              label={t('Resulting rate in percent')}
               inline={false}
               flexibleControlStateSize
               hideControlState
