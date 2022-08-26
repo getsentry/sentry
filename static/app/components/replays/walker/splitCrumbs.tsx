@@ -124,6 +124,7 @@ const Span = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
+  max-width: 120px;
 `;
 
 const Link = styled('a')`
