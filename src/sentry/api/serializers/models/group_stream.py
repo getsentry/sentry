@@ -408,8 +408,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             if self.conditions and not self._collapse("filtered")
             else None
         )
-        if not self._collapse("lifetime"):
-            lifetime_result = (
+        lifetime_result = (
+            (
                 self._parse_seen_stats_results(
                     partial_execute_seen_stats_query(start=None, end=None),
                     error_issue_list,
@@ -421,8 +421,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if self.start or self.end
                 else time_range_result
             )
-        else:
-            lifetime_result = None
+            if not self._collapse("lifetime")
+            else None
+        )
 
         for item in error_issue_list:
             time_range_result[item].update(
