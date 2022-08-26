@@ -14,8 +14,8 @@ import {FeatureFlag, FeatureFlagSegment} from 'sentry/types/featureFlags';
 
 import {DraggableRuleListUpdateItemsProps} from '../server-side-sampling/draggableRuleList';
 
-import {preDefinedFeatureFlags} from './modals/flagModal/utils';
 import {Segments} from './segments';
+import {preDefinedFeatureFlags} from './utils';
 
 type Props = Omit<FeatureFlag, 'evaluation' | 'custom'> & {
   flagKey: string;
@@ -45,7 +45,31 @@ export function Card({
   segments,
   onSortSegments,
   onToggleBooleanSegment,
+  kind,
 }: Props) {
+  const actionMenuItems: MenuItemProps[] = [
+    {
+      key: 'feature-flag-delete',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: () => {
+        openConfirmModal({
+          message: t('Are you sure you want to delete this feature flag?'),
+          priority: 'danger',
+          onConfirm: onDelete,
+        });
+      },
+    },
+  ];
+
+  if (!preDefinedFeatureFlags[flagKey]) {
+    actionMenuItems.push({
+      key: 'feature-flag-edit',
+      label: t('Edit'),
+      onAction: onEdit,
+    });
+  }
+
   return (
     <Wrapper hasSegment={!!segments.length}>
       <Header>
@@ -66,33 +90,7 @@ export function Card({
             {t('Add Segment')}
           </Button>
           <DropdownMenuControl
-            items={
-              [
-                ...(!preDefinedFeatureFlags[flagKey]
-                  ? [
-                      {
-                        key: 'feature-flag-edit',
-                        label: t('Edit'),
-                        onAction: onEdit,
-                      },
-                    ]
-                  : []),
-                ...[
-                  {
-                    key: 'feature-flag-delete',
-                    label: t('Delete'),
-                    priority: 'danger',
-                    onAction: () => {
-                      openConfirmModal({
-                        message: t('Are you sure you want to delete this feature flag?'),
-                        priority: 'danger',
-                        onConfirm: onDelete,
-                      });
-                    },
-                  },
-                ],
-              ] as MenuItemProps[]
-            }
+            items={actionMenuItems}
             trigger={({props: triggerProps, ref: triggerRef}) => (
               <Button
                 ref={triggerRef}
@@ -122,6 +120,7 @@ export function Card({
           onSort={onSortSegments}
           showGrab={segments.length > 1}
           onToggleBooleanSegment={onToggleBooleanSegment}
+          flagKind={kind}
         />
       )}
     </Wrapper>

@@ -7,6 +7,7 @@ export enum FeatureFlagKind {
   BOOLEAN = 'boolean',
   STRING = 'string',
   NUMBER = 'number',
+  RATE = 'rate',
 }
 
 export type FeatureFlagSegment = {

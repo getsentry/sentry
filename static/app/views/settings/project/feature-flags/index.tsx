@@ -27,12 +27,12 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
-import {CustomFlagModal} from './modals/flagModal/customFlagModal';
-import {preDefinedFeatureFlags} from './modals/flagModal/utils';
+import {CustomFlagModal} from './modals/customFlagModal';
 import {SegmentModal} from './modals/segmentModal';
 import {AddFlagButton} from './addFlagButton';
 import {Card} from './card';
 import {Promo} from './promo';
+import {preDefinedFeatureFlags} from './utils';
 
 type Props = ModalRenderProps & {
   project: Project;

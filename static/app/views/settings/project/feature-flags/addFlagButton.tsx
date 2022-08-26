@@ -7,7 +7,7 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {FeatureFlags} from 'sentry/types/featureFlags';
 
-import {preDefinedFeatureFlags} from './modals/flagModal/utils';
+import {preDefinedFeatureFlags} from './utils';
 
 const addFlagDropDownItems = [
   {

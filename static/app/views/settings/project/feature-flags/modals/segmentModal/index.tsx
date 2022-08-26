@@ -33,10 +33,12 @@ import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
+import {isCustomTag} from '../../utils';
+
 import {Tag, Tags} from './tags';
 import {
   generateTagCategoriesOptions,
-  isCustomTag,
+  isValidSampleRate,
   percentageToRate,
   rateToPercentage,
   validResultValue,
@@ -253,8 +255,21 @@ export function SegmentModal({
     };
   });
 
+  const isResultEdited = defined(segmentIndex)
+    ? data.result !== flags[flagKey].evaluation[segmentIndex].result
+    : flags[flagKey].kind === FeatureFlagKind.BOOLEAN
+    ? data.result !== true
+    : data.result !== undefined;
+
+  const validSamplerate =
+    flags[flagKey].kind === FeatureFlagKind.RATE
+      ? isValidSampleRate(Number(data.result))
+      : true;
+
   const submitDisabled =
-    data.tags.some(condition => !condition.match) || !validResultValue(data.result);
+    data.tags.some(condition => !condition.match) ||
+    !validResultValue(data.result) ||
+    !validSamplerate;
 
   return (
     <Fragment>
@@ -362,7 +377,7 @@ export function SegmentModal({
           )}
           {flags[flagKey].kind === FeatureFlagKind.BOOLEAN && (
             <StyledBooleanField
-              label={t('Result Value')}
+              label={`${t('Result value')} (boolean)`}
               name="result"
               flexibleControlStateSize
               hideControlState
@@ -373,8 +388,8 @@ export function SegmentModal({
           )}
           {flags[flagKey].kind === FeatureFlagKind.NUMBER && (
             <StyledNumberField
-              label={t('Result Value')}
-              placeholder={t('Enter a number')}
+              label={`${t('Result value')} (number)`}
+              placeholder="1"
               name="result"
               inline={false}
               flexibleControlStateSize
@@ -387,8 +402,8 @@ export function SegmentModal({
           )}
           {flags[flagKey].kind === FeatureFlagKind.STRING && (
             <StyledTextField
-              label={t('Result Value')}
-              placeholder={t('Enter a string')}
+              label={`${t('Result value')} (string)`}
+              placeholder="release"
               name="result"
               inline={false}
               flexibleControlStateSize
@@ -396,6 +411,24 @@ export function SegmentModal({
               required
               value={data.result}
               onChange={value => setData({...data, result: String(value)})}
+            />
+          )}
+          {flags[flagKey].kind === FeatureFlagKind.RATE && (
+            <StyledNumberField
+              label={`${t('Result value')} (rate)`}
+              type="number"
+              name="result"
+              placeholder="0.1"
+              step="0.1"
+              value={data.result}
+              error={
+                !validSamplerate && isResultEdited ? t('Invalid sample rate') : undefined
+              }
+              hideControlState={!isResultEdited && validSamplerate}
+              onChange={value => setData({...data, result: Number(value)})}
+              stacked
+              flexibleControlStateSize
+              inline={false}
             />
           )}
         </Fields>

@@ -11,7 +11,7 @@ import Pills from 'sentry/components/pills';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {FeatureFlagSegment} from 'sentry/types/featureFlags';
+import {FeatureFlagKind, FeatureFlagSegment} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
 import {
@@ -20,7 +20,10 @@ import {
 } from '../server-side-sampling/draggableRuleList';
 import {rateToPercentage} from '../server-side-sampling/utils';
 
+import {getCustomTagLabel, isCustomTag} from './utils';
+
 type Props = {
+  flagKind: FeatureFlagKind;
   hasAccess: boolean;
   onDeleteSegment: (index: number) => void;
   onEditSegment: (index: number) => void;
@@ -38,6 +41,7 @@ export function Segments({
   onSort,
   segments,
   showGrab,
+  flagKind,
 }: Props) {
   const items = segments.map(segment => ({
     ...segment,
@@ -111,7 +115,11 @@ export function Segments({
                   {!!segment.tags ? (
                     <Tags>
                       {Object.keys(segment.tags).map(tag => (
-                        <Tag key={tag} name={tag} value={segment.tags?.[tag]} />
+                        <Tag
+                          key={tag}
+                          name={isCustomTag(tag) ? getCustomTagLabel(tag) : tag}
+                          value={segment.tags?.[tag]}
+                        />
                       ))}
                     </Tags>
                   ) : (
@@ -119,7 +127,7 @@ export function Segments({
                   )}
                 </TagsColumn>
                 <ResultColumn>
-                  {typeof segment.result === 'boolean' ? (
+                  {flagKind === FeatureFlagKind.BOOLEAN ? (
                     <ActiveToggle
                       inline={false}
                       hideControlState
@@ -131,8 +139,10 @@ export function Segments({
                         onToggleBooleanSegment(index);
                       }}
                     />
+                  ) : flagKind === FeatureFlagKind.RATE ? (
+                    `${rateToPercentage(segment.result)}%`
                   ) : (
-                    String(segment.result)
+                    segment.result
                   )}
                 </ResultColumn>
                 <RolloutColumn>
@@ -205,7 +215,7 @@ const Column = styled('div')`
   word-break: break-all;
 `;
 
-export const GrabColumn = styled(Column)<{disabled?: boolean}>`
+const GrabColumn = styled(Column)<{disabled?: boolean}>`
   [role='button'] {
     cursor: grab;
   }

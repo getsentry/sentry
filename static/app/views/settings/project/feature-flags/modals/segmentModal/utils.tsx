@@ -1,7 +1,11 @@
 import round from 'lodash/round';
 
 import {t, tct} from 'sentry/locale';
-import {FeatureFlagSegmentTagKind} from 'sentry/types/featureFlags';
+import {
+  EvaluationType,
+  FeatureFlagKind,
+  FeatureFlagSegmentTagKind,
+} from 'sentry/types/featureFlags';
 import {defined} from 'sentry/utils';
 
 import {Tags} from './tags';
@@ -109,10 +113,61 @@ export function percentageToRate(rate: number | undefined, decimalPlaces: number
   return round(rate / 100, decimalPlaces);
 }
 
-export function isCustomTag(value: string) {
-  return (
-    value !== FeatureFlagSegmentTagKind.RELEASE &&
-    value !== FeatureFlagSegmentTagKind.ENVIRONMENT &&
-    value !== FeatureFlagSegmentTagKind.TRANSACTION
-  );
+export function isValidSampleRate(sampleRate: number | undefined) {
+  if (!defined(sampleRate)) {
+    return false;
+  }
+
+  return !isNaN(sampleRate) && sampleRate <= 1 && sampleRate >= 0;
 }
+
+export const preDefinedFeatureFlags = {
+  '@@sampleRate': {
+    humanReadableName: 'Error Sample Rate',
+    description: 'The sample rate for Sentry errors.',
+    enabled: false,
+    custom: false,
+    kind: FeatureFlagKind.NUMBER,
+    group: '',
+    evaluation: [
+      {
+        id: 1,
+        type: EvaluationType.Match,
+        tags: {},
+        result: 1.0,
+      },
+    ],
+  },
+  '@@tracesSampleRate': {
+    humanReadableName: 'Trace Sample Rate',
+    description: 'The sample rate for specific transaction initiated traces.',
+    enabled: false,
+    custom: false,
+    kind: FeatureFlagKind.NUMBER,
+    group: '',
+    evaluation: [
+      {
+        id: 1,
+        type: EvaluationType.Match,
+        tags: {},
+        result: 0.1,
+      },
+    ],
+  },
+  '@@profileSampleRate': {
+    humanReadableName: 'Profiling Sample Rate',
+    description: 'The sample rate for client side profiling.',
+    enabled: false,
+    custom: false,
+    kind: FeatureFlagKind.NUMBER,
+    group: '',
+    evaluation: [
+      {
+        id: 1,
+        type: EvaluationType.Match,
+        tags: {},
+        result: 0.05,
+      },
+    ],
+  },
+};
