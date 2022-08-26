@@ -6,3 +6,5 @@
 !/yarn.lock
 !/dist/requirements-frozen.txt
 !/dist/*.whl
+# To allow local builds
+!/requirements-frozen.txt
