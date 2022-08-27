@@ -665,7 +665,7 @@ class Event(BaseEvent):
         from sentry.models import Group
 
         if not self.group_ids:
-            return
+            return []
 
         if not hasattr(self, "_groups_cache"):
             self._groups_cache = list(Group.objects.filter(id__in=self.group_ids))
@@ -695,12 +695,13 @@ class GroupEvent(BaseEvent):
         self.group = group
         self.data = data
 
+    def __eq__(self, other):
+        if not isinstance(other, GroupEvent):
+            return False
+        return other.event_id == self.event_id and other.group_id == self.group_id
+
     @property
     def group_id(self) -> int:
-        # TODO: Including this as a shim for now. I think it makes sense to remove this helper,
-        # since people may as well use `group.id` instead of `group_id`, but it breaks a lot of
-        # compatibility with `Event`. Including this here for now so that we don't have to rewrite
-        # the whole codebase at once.
         return self.group.id
 
     @property

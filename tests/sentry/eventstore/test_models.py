@@ -4,7 +4,7 @@ import pytest
 
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
@@ -363,6 +363,167 @@ class EventTest(TestCase):
         assert sorted(v.as_dict()["hash"] for v in variants1.values()) == sorted(
             v.as_dict()["hash"] for v in variants2.values()
         )
+
+
+class EventGroupsTest(TestCase):
+    def test_none(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert event.groups == []
+
+    def test_snuba(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            snuba_data={"group_ids": [self.group.id]},
+            project_id=self.project.id,
+        )
+        assert event.groups == [self.group]
+
+    def test_passed_explicitly(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            group_ids=[self.group.id],
+        )
+        assert event.groups == [self.group]
+
+    def test_from_group(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            group_id=self.group.id,
+        )
+        assert event.groups == [self.group]
+
+    def test_from_group_snuba(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            snuba_data={"group_id": self.group.id},
+            project_id=self.project.id,
+        )
+        assert event.groups == [self.group]
+
+
+class EventBuildGroupEventsTest(TestCase):
+    def test_none(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert list(event.build_group_events()) == []
+
+    def test(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            group_ids=[self.group.id],
+        )
+        assert list(event.build_group_events()) == [GroupEvent.from_event(event, self.group)]
+
+    def test_multiple(self):
+        self.group_2 = self.create_group()
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            group_ids=[self.group.id, self.group_2.id],
+        )
+        sort_key = lambda group_event: (group_event.event_id, group_event.group_id)
+        assert sorted(event.build_group_events(), key=sort_key) == sorted(
+            [GroupEvent.from_event(event, self.group), GroupEvent.from_event(event, self.group_2)],
+            key=sort_key,
+        )
+
+
+class EventForGroupTest(TestCase):
+    def test(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert GroupEvent.from_event(event, self.group) == GroupEvent(
+            self.project.id, event.event_id, self.group, event.data, event._snuba_data
+        )
+
+
+class GroupEventFromEventTest(TestCase):
+    def test(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert event.for_group(self.group) == GroupEvent.from_event(event, self.group)
 
 
 @pytest.mark.django_db
