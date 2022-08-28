@@ -8,8 +8,7 @@ from requests.exceptions import Timeout
 
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
-from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation
-from sentry.models.sentryfunction import SentryFunction
+from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation, SentryFunction
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
@@ -341,8 +340,6 @@ class TestProcessResourceChange(TestCase):
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
 class TestProcessResourceChangeSentryFunctions(TestCase):
     def setUp(self):
-        # self.login_as(self.user)
-        # self.create_organization(owner=self.user, name="RowdyTiger")
         self.sentryFunction = self.create_sentry_function(
             organization_id=self.organization.id,
             name="foo",
