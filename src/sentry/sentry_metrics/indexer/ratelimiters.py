@@ -173,7 +173,7 @@ class WritesLimiter:
 
 
 class WritesLimiterFactory:
-    def __init__(self):
+    def __init__(self) -> None:
         self.rate_limiters: MutableMapping[str, WritesLimiter] = {}
 
     def get_ratelimiter(self, config: MetricsIngestConfiguration) -> WritesLimiter:
