@@ -11,7 +11,7 @@ from sentry.ratelimits.sliding_windows import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, KeyCollection, KeyResult
 from sentry.utils import metrics
 
@@ -103,23 +103,15 @@ class RateLimitState:
         Consumes the rate limits returned by `check_write_limits`.
         """
         if exc_type is None:
-            self._writes_limiter._get_rate_limiter(self._use_case_id, self._namespace).use_quotas(
+            self._writes_limiter.rate_limiter.use_quotas(
                 self._requests, self._grants, self._timestamp
             )
 
 
 class WritesLimiter:
-    def __init__(self) -> None:
-        self.rate_limiters: MutableMapping[str, RedisSlidingWindowRateLimiter] = {}
-
-    def _get_rate_limiter(
-        self, use_case_id: UseCaseKey, namespace: str
-    ) -> RedisSlidingWindowRateLimiter:
-        if namespace not in self.rate_limiters:
-            options = get_ingest_config(use_case_id).writes_limiter_cluster_options
-            self.rate_limiters[namespace] = RedisSlidingWindowRateLimiter(**options)
-
-        return self.rate_limiters[namespace]
+    def __init__(self, namespace: str, **options: Any) -> None:
+        self.namespace = namespace
+        self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
     def check_write_limits(
@@ -139,9 +131,7 @@ class WritesLimiter:
         """
 
         org_ids, requests = _construct_quota_requests(use_case_id, namespace, keys)
-        timestamp, grants = self._get_rate_limiter(use_case_id, namespace).check_within_quotas(
-            requests
-        )
+        timestamp, grants = self.rate_limiter.check_within_quotas(requests)
 
         granted_key_collection = dict(keys.mapping)
         dropped_strings = []
@@ -182,4 +172,17 @@ class WritesLimiter:
         return state
 
 
-writes_limiter = WritesLimiter()
+class WritesLimiterFactory:
+    def __init__(self):
+        self.rate_limiters: MutableMapping[str, WritesLimiter] = {}
+
+    def get_ratelimiter(self, config: MetricsIngestConfiguration) -> WritesLimiter:
+        namespace = config.writes_limiter_namespace
+        if namespace not in self.rate_limiters:
+            writes_rate_limiter = WritesLimiter(namespace, **config.writes_limiter_cluster_options)
+            self.rate_limiters[namespace] = writes_rate_limiter
+
+        return self.rate_limiters[namespace]
+
+
+writes_limiter_factory = WritesLimiterFactory()
