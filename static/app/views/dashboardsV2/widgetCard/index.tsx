@@ -24,7 +24,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -72,7 +72,7 @@ type Props = WithRouterProps & {
 type State = {
   pageLinks?: string;
   seriesData?: Series[];
-  seriesResultsType?: string;
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
@@ -200,12 +200,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
-    timeseriesResultsType,
+    timeseriesResultsTypes,
   }: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
-    timeseriesResultsType?: string;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
     this.setState({
@@ -213,7 +213,7 @@ class WidgetCard extends Component<Props, State> {
       tableData: tableResults,
       totalIssuesCount,
       pageLinks,
-      seriesResultsType: timeseriesResultsType,
+      seriesResultsType: timeseriesResultsTypes,
     });
   };
 
