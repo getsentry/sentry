@@ -697,8 +697,8 @@ class SharedGroupSerializer(GroupSerializer):
         return result
 
 
-class GroupSerializerSnuba(GroupSerializerBase):
-    skip_snuba_fields = {
+SKIP_SNUBA_FIELDS = frozenset(
+    (
         "status",
         "bookmarked_by",
         "assigned_to",
@@ -709,6 +709,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "subscribed_by",
         "first_release",
         "first_seen",
+        "category",
+        "type",
+    )
+)
+
+
+class GroupSerializerSnuba(GroupSerializerBase):
+    skip_snuba_fields = {
+        *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
         "date",  # We merge this with start/end, so don't want to include it as its own

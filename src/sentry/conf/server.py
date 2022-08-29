@@ -1143,6 +1143,8 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
+    # Backend support for supporting performance issue: endpoints, serializers, etc.
+    "organizations:performance-issue-details-backend": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1181,8 +1183,6 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
-    # Backend support for supporting performance issue: endpoints, serializers, etc.
-    "projects:performance-issue-details-backend": False,
     # Enable ingestion for suspect spans
     "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
