@@ -1,178 +1,87 @@
-import {createListeners} from 'sentry-test/createListeners';
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EditableText from 'sentry/components/editableText';
 
-const currentValue = 'foo';
-
-function renderedComponent(onChange: () => void, newValue = 'bar', maxLength?: number) {
-  const wrapper = mountWithTheme(
-    <EditableText value={currentValue} onChange={onChange} maxLength={maxLength} />
-  );
-
-  let label = wrapper.find('Label');
-  expect(label.text()).toEqual(currentValue);
-
-  let inputWrapper = wrapper.find('InputWrapper');
-  expect(inputWrapper.length).toEqual(0);
-
-  const styledIconEdit = wrapper.find('IconEdit');
-  expect(styledIconEdit.length).toEqual(1);
-
-  label.simulate('click');
-
-  label = wrapper.find('Label');
-  expect(inputWrapper.length).toEqual(0);
-
-  inputWrapper = wrapper.find('InputWrapper');
-  expect(inputWrapper.length).toEqual(1);
-
-  const styledInput = wrapper.find('StyledInput');
-  expect(styledInput.length).toEqual(1);
-  styledInput.simulate('change', {target: {value: newValue}});
-
-  const inputLabel = wrapper.find('InputLabel');
-  expect(inputLabel.text()).toEqual(newValue);
-
-  return wrapper;
-}
-
 describe('EditableText', function () {
-  const newValue = 'bar';
-
   it('edit value and click outside of the component', function () {
-    const fireEvent = createListeners('document');
     const handleChange = jest.fn();
 
-    const wrapper = renderedComponent(handleChange);
+    render(<EditableText value="foo" onChange={handleChange} />);
 
-    act(() => {
-      // Click outside of the component
-      fireEvent.mouseDown(document.body);
-    });
+    // Click on the input
+    userEvent.click(screen.getByText('foo'));
 
-    expect(handleChange).toHaveBeenCalled();
+    // Clear input value
+    userEvent.clear(screen.getByRole('textbox'));
 
-    wrapper.update();
+    // Edit input value
+    userEvent.type(screen.getByRole('textbox'), 'bar');
 
-    const updatedLabel = wrapper.find('Label');
-    expect(updatedLabel.length).toEqual(1);
+    // Click outside of the component
+    userEvent.click(document.body);
 
-    expect(updatedLabel.text()).toEqual(newValue);
-  });
+    expect(handleChange).toHaveBeenCalledWith('bar');
 
-  it('edit value and press enter', function () {
-    const fireEvent = createListeners('window');
-    const handleChange = jest.fn();
+    expect(screen.queryByText('foo')).not.toBeInTheDocument();
 
-    const wrapper = renderedComponent(handleChange);
-
-    act(() => {
-      // Press enter
-      fireEvent.keyDown('Enter');
-    });
-
-    expect(handleChange).toHaveBeenCalled();
-
-    wrapper.update();
-
-    const updatedLabel = wrapper.find('Label');
-    expect(updatedLabel.length).toEqual(1);
-
-    expect(updatedLabel.text()).toEqual(newValue);
+    expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
   it('clear value and show error message', function () {
-    const fireEvent = createListeners('window');
     const handleChange = jest.fn();
 
-    const wrapper = renderedComponent(handleChange, '');
+    render(<EditableText value="foo" onChange={handleChange} />);
 
-    act(() => {
-      // Press enter
-      fireEvent.keyDown('Enter');
-    });
+    // Click on the input
+    userEvent.click(screen.getByText('foo'));
+
+    // Clear input value
+    userEvent.clear(screen.getByRole('textbox'));
+
+    // Press enter to submit the value
+    userEvent.keyboard('{enter}');
 
     expect(handleChange).toHaveBeenCalledTimes(0);
-
-    wrapper.update();
   });
 
   it('displays a disabled value', function () {
-    const handleChange = jest.fn();
+    render(<EditableText value="foo" onChange={jest.fn()} isDisabled />);
 
-    const wrapper = mountWithTheme(
-      <EditableText value={currentValue} onChange={handleChange} isDisabled />
-    );
+    // Click on the input
+    userEvent.click(screen.getByText('foo'));
 
-    let label = wrapper.find('Label');
-    expect(label.text()).toEqual(currentValue);
-
-    label.simulate('click');
-
-    const inputWrapper = wrapper.find('InputWrapper');
-    expect(inputWrapper.length).toEqual(0);
-
-    label = wrapper.find('Label');
-    expect(label.length).toEqual(1);
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  describe('revert value and close editor', function () {
-    it('prop value changes', function () {
-      const handleChange = jest.fn();
-      const newPropValue = 'new-prop-value';
+  it('edit value and press escape', function () {
+    const handleChange = jest.fn();
 
-      const wrapper = renderedComponent(handleChange, '');
+    render(<EditableText value="foo" onChange={handleChange} />);
 
-      wrapper.setProps({value: newPropValue});
-      wrapper.update();
+    // Click on the input
+    userEvent.click(screen.getByText('foo'));
 
-      const updatedLabel = wrapper.find('Label');
-      expect(updatedLabel.length).toEqual(1);
+    // Edit input value
+    userEvent.type(screen.getByRole('textbox'), '-bar');
 
-      expect(updatedLabel.text()).toEqual(newPropValue);
-    });
+    // Press escape to cancel the value
+    userEvent.keyboard('{esc}');
 
-    it('prop isDisabled changes', function () {
-      const handleChange = jest.fn();
+    expect(handleChange).toHaveBeenCalledTimes(0);
 
-      const wrapper = renderedComponent(handleChange, '');
+    expect(screen.getByText('foo')).toBeInTheDocument();
+  });
 
-      wrapper.setProps({isDisabled: true});
-      wrapper.update();
+  it('enforces a max length if provided', function () {
+    render(<EditableText value="foo" onChange={jest.fn()} maxLength={4} />);
 
-      const updatedLabel = wrapper.find('Label');
-      expect(updatedLabel.length).toEqual(1);
+    // Click on the input
+    userEvent.click(screen.getByText('foo'));
 
-      expect(updatedLabel.text()).toEqual(currentValue);
-    });
+    // Edit input value
+    userEvent.type(screen.getByRole('textbox'), '-bar');
 
-    it('edit value and press escape', function () {
-      const fireEvent = createListeners('window');
-      const handleChange = jest.fn();
-
-      const wrapper = renderedComponent(handleChange);
-
-      act(() => {
-        // Press escape
-        fireEvent.keyDown('Escape');
-      });
-
-      expect(handleChange).toHaveBeenCalledTimes(0);
-
-      wrapper.update();
-
-      const updatedLabel = wrapper.find('Label');
-      expect(updatedLabel.length).toEqual(1);
-
-      expect(updatedLabel.text()).toEqual(currentValue);
-    });
-
-    it('enforces a max length if provided', function () {
-      const wrapper = renderedComponent(jest.fn(), '', 4);
-      const input = wrapper.find('input');
-      expect(input.prop('maxLength')).toBe(4);
-    });
+    // Display a text with the max length of 4 caracters
+    expect(screen.getByText('foo-')).toBeInTheDocument();
   });
 });
