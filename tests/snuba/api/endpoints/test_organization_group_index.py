@@ -43,6 +43,7 @@ from sentry.models import (
     add_group_to_inbox,
     remove_group_from_inbox,
 )
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -1804,6 +1805,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
         user2 = self.create_user()
         self.create_member(organization=self.organization, user=user2)
         author = self.create_commit_author(project=self.project, user=user2)
+        # External author
+        author2 = CommitAuthor.objects.create(
+            external_id="github:santry",
+            organization_id=self.project.organization_id,
+            email="santry@example.com",
+            name="santry",
+        )
         commit = Commit.objects.create(
             organization_id=self.project.organization_id,
             repository_id=repo.id,
@@ -1815,6 +1823,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
             repository_id=repo.id,
             key="b" * 40,
             author=author,
+        )
+        commit3 = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="c" * 40,
+            author=author2,
         )
 
         ReleaseCommit.objects.create(
@@ -1828,6 +1842,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release=release,
             commit=commit2,
             order=2,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit3,
+            order=3,
         )
 
         query = "status:unresolved"
