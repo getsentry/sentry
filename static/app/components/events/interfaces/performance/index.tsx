@@ -1,4 +1,6 @@
 import styled from '@emotion/styled';
+import Tooltip from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -30,7 +32,15 @@ export function PerformanceIssueSection({issue, event, organization}: Props) {
         />
       </Section>
       <Section>
-        <h3>{t('Span Change')}</h3>
+        <Heading>
+          {t('Span Change')}
+          <TooltipWrapper>
+            <Tooltip title="test">
+              <IconQuestion />
+            </Tooltip>
+          </TooltipWrapper>
+        </Heading>
+
         <SpanChangeBar />
         {/* <h3>{t('Span Count Distribution')}</h3>
         <SpanCountChart
@@ -76,4 +86,13 @@ export const Wrapper = styled('div')`
 
 const Section = styled('div')`
   width: 50%;
+`;
+
+const Heading = styled('h3')`
+  display: flex;
+  align-items: center;
+`;
+
+const TooltipWrapper = styled('span')`
+  margin-left: ${space(1)};
 `;
