@@ -232,13 +232,6 @@ describe('IssueRuleEditor', function () {
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
       expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });
-
-    it('disables the project selector on edit', function () {
-      createWrapper();
-      userEvent.click(screen.getByText('project-slug'));
-      // Should only have one in the document still
-      expect(screen.getByText('project-slug')).toBeInTheDocument();
-    });
   });
 
   describe('Edit Rule: Slack Channel Look Up', function () {
