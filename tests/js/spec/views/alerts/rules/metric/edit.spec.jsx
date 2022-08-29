@@ -18,7 +18,7 @@ jest.mock('sentry/utils/analytics', () => ({
   },
 }));
 
-describe('Incident Rules Details', function () {
+describe('MetricRulesEdit', function () {
   beforeAll(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',

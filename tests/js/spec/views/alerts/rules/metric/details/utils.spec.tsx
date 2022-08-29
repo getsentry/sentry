@@ -1,7 +1,7 @@
 import MockDate from 'mockdate';
 import moment from 'moment';
 
-import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/details/utils';
+import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/metric/details/utils';
 
 describe('buildMetricGraphDateRange', () => {
   const now = '2022-05-16T20:00:00';
