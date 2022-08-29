@@ -572,11 +572,13 @@ export default RuleNode;
 const InlineInput = styled(Input)`
   width: auto;
   height: 28px;
+  min-height: 28px;
 `;
 
 const InlineNumberInput = styled(Input)`
   width: 90px;
   height: 28px;
+  min-height: 28px;
 `;
 
 const InlineSelectControl = styled(SelectControl)`
