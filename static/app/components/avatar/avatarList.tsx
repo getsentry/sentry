@@ -13,14 +13,16 @@ const defaultProps = {
   tooltipOptions: {},
 };
 
+type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
+
 type DefaultProps = Readonly<typeof defaultProps>;
 type Mutable<T> = {-readonly [P in keyof T]: T[P]};
 
 type Props = {
-  tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
+  tooltipOptions: Mutable<UserAvatarProps['tooltipOptions']>;
   users: AvatarUser[];
   className?: string;
-  renderTooltip?: UserAvatar['props']['renderTooltip'];
+  renderTooltip?: UserAvatarProps['renderTooltip'];
 } & DefaultProps;
 
 export default class AvatarList extends Component<Props> {

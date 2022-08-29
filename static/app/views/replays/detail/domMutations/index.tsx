@@ -5,7 +5,6 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
-import Truncate from 'sentry/components/truncate';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -44,35 +43,29 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(mutation.crumb)}
           onMouseLeave={() => handleMouseLeave(mutation.crumb)}
         >
-          <StepConnector />
-          <MutationItemContainer>
-            <div>
-              <MutationMetadata>
-                <IconWrapper color={mutation.crumb.color}>
-                  <BreadcrumbIcon type={mutation.crumb.type} />
-                </IconWrapper>
-                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
-                  <PlayerRelativeTime
-                    relativeTimeMs={startTimestampMs}
-                    timestamp={mutation.crumb.timestamp}
-                  />
-                </UnstyledButton>
-              </MutationMetadata>
-              <MutationDetails>
+          {i < actions.length - 1 && <StepConnector />}
+          <IconWrapper color={mutation.crumb.color}>
+            <BreadcrumbIcon type={mutation.crumb.type} />
+          </IconWrapper>
+          <MutationContent>
+            <MutationDetailsContainer>
+              <div>
                 <TitleContainer>
                   <Title>{getDetails(mutation.crumb).title}</Title>
                 </TitleContainer>
-                <Truncate
-                  maxLength={30}
-                  leftTrim={(mutation.crumb.message || '').includes('>')}
-                  value={mutation.crumb.message || ''}
+                <MutationMessage>{mutation.crumb.message}</MutationMessage>
+              </div>
+              <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+                <PlayerRelativeTime
+                  relativeTimeMs={startTimestampMs}
+                  timestamp={mutation.crumb.timestamp}
                 />
-              </MutationDetails>
-            </div>
+              </UnstyledButton>
+            </MutationDetailsContainer>
             <CodeContainer>
               <HTMLCode code={mutation.html} />
             </CodeContainer>
-          </MutationItemContainer>
+          </MutationContent>
         </MutationListItem>
       ))}
     </MutationList>
@@ -92,22 +85,26 @@ const MutationList = styled('ul')`
 
 const MutationListItem = styled('li')`
   display: flex;
-  align-items: start;
+  flex-grow: 1;
   padding: ${space(2)};
+  position: relative;
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-const MutationItemContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 280px 1fr;
+const MutationContent = styled('div')`
+  overflow: hidden;
+  width: 100%;
+  margin-left: ${space(1.5)};
+  margin-right: ${space(1.5)};
 `;
 
-const MutationMetadata = styled('div')`
+const MutationDetailsContainer = styled('div')`
   display: flex;
-  align-items: start;
-  column-gap: ${space(1)};
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-grow: 1;
 `;
 
 /**
@@ -117,25 +114,21 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  z-index: 1;
+  z-index: 2;
 `;
 
 const UnstyledButton = styled('button')`
   background: none;
   border: none;
   padding: 0;
-`;
-
-const MutationDetails = styled('div')`
-  margin-left: 30px;
-  margin-top: ${space(0.5)};
-  margin-bottom: ${space(3)};
+  line-height: 0.75;
 `;
 
 const TitleContainer = styled('div')`
@@ -150,7 +143,12 @@ const Title = styled('span')`
   color: ${p => p.theme.gray400};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
-  margin-bottom: ${space(0.5)};
+`;
+
+const MutationMessage = styled('p')`
+  color: ${p => p.theme.blue300};
+  margin-bottom: ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const CodeContainer = styled('div')`
@@ -163,8 +161,9 @@ const StepConnector = styled('div')`
   position: absolute;
   height: 100%;
   top: 28px;
-  left: 31px;
-  border-right: 1px ${p => p.theme.border} dashed;
+  left: 29px;
+  border-right: 1px ${p => p.theme.border} solid;
+  z-index: 1;
 `;
 
 export default DomMutations;
