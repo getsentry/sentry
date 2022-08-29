@@ -103,6 +103,7 @@ class TraceView extends PureComponent<Props> {
                                         viewStart: dragProps.viewWindowStart,
                                         viewEnd: dragProps.viewWindowEnd,
                                       })}
+                                      focusedSpanIds={waterfallModel.focusedSpanIds}
                                     />
                                   </CustomerProfiler>
                                 );

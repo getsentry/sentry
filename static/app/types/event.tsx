@@ -251,7 +251,7 @@ type EntrySpans = {
 
 export type EntrySpanTree = {
   data: {
-    focusedSpanIds: string[];
+    affectedSpanIds: string[];
   };
   type: EntryType.SPANTREE;
 };
