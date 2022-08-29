@@ -7,29 +7,32 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {defined} from 'sentry/utils';
+import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
-  crumbs: Crumb[] | undefined;
-  durationMs: number | undefined;
   replayRecord: ReplayRecord | undefined;
 };
 
-function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
+function ReplayMetaData({replayRecord}: Props) {
   const {
     params: {replaySlug},
   } = useRouteContext();
-  const [slug, id] = replaySlug.split(':');
-
-  const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
+  const {projects} = useProjects();
+  const [slug] = replaySlug.split(':');
 
   return (
     <KeyMetrics>
       {replayRecord ? (
-        <ProjectBadge project={{slug, id}} avatarSize={16} />
+        <ProjectBadge
+          project={
+            projects.find(p => p.id === replayRecord.projectId) || {
+              slug,
+            }
+          }
+          avatarSize={16}
+        />
       ) : (
         <HeaderPlaceholder />
       )}
@@ -45,24 +48,20 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
         )}
       </KeyMetricData>
       <KeyMetricData>
-        {durationMs !== undefined ? (
+        {replayRecord ? (
           <React.Fragment>
             <IconClock color="gray300" />
-            <Duration
-              seconds={Math.floor(msToSec(durationMs || 0)) || 1}
-              abbreviation
-              exact
-            />
+            <Duration seconds={replayRecord?.duration} abbreviation exact />
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
       <KeyMetricData>
-        {defined(errors) ? (
+        {replayRecord ? (
           <React.Fragment>
             <IconFire color="red300" />
-            {errors}
+            {replayRecord?.countErrors}
           </React.Fragment>
         ) : (
           <HeaderPlaceholder />
@@ -70,10 +69,6 @@ function EventMetaData({crumbs, durationMs, replayRecord}: Props) {
       </KeyMetricData>
     </KeyMetrics>
   );
-}
-
-function msToSec(ms: number) {
-  return ms / 1000;
 }
 
 export const HeaderPlaceholder = styled(function HeaderPlaceholder(
@@ -103,4 +98,4 @@ const KeyMetricData = styled('div')`
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
-export default EventMetaData;
+export default ReplayMetaData;

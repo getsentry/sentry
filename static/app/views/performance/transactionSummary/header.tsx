@@ -118,6 +118,7 @@ class TransactionHeader extends Component<Props> {
         referrer="performance"
         alertType="trans_duration"
         aria-label={t('Create Alert')}
+        disableMetricDataset={metricsCardinality?.outcome?.forceTransactionsOnly}
       />
     );
   }
