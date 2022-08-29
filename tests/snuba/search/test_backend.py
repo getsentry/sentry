@@ -405,6 +405,10 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             results = self.make_query(search_filter_query="category:performance")
         assert set(results) == {group_3}
 
+        with self.feature("organizations:performance-issue-details-backend"):
+            results = self.make_query(search_filter_query="category:[error, performance]")
+        assert set(results) == {self.group1, self.group2, group_3}
+
         with pytest.raises(InvalidSearchQuery):
             with self.feature("organizations:performance-issue-details-backend"):
                 self.make_query(search_filter_query="category:hellboy")
@@ -443,6 +447,12 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         with self.feature("organizations:performance-issue-details-backend"):
             results = self.make_query(search_filter_query="type:performance_slow_span")
         assert set(results) == {group_4}
+
+        with self.feature("organizations:performance-issue-details-backend"):
+            results = self.make_query(
+                search_filter_query="type:[performance_slow_span, performance_n_plus_one, error]"
+            )
+        assert set(results) == {self.group1, self.group2, group_3, group_4}
 
         with pytest.raises(InvalidSearchQuery):
             with self.feature("organizations:performance-issue-details-backend"):

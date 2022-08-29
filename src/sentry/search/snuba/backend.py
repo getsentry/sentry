@@ -530,9 +530,11 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "organizations:performance-issue-details-backend", projects[0].organization
         ):
             queryset_conditions.update(
-                {"category": QCallbackCondition(lambda category: Q(type__in=category))}
+                {"category": QCallbackCondition(lambda categories: Q(type__in=categories))}
             )
-            queryset_conditions.update({"type": QCallbackCondition(lambda type: Q(type=type))})
+            queryset_conditions.update(
+                {"type": QCallbackCondition(lambda types: Q(type__in=types))}
+            )
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]
