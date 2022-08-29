@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
@@ -12,6 +12,8 @@ import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
 } from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -74,7 +76,7 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-interface GuideStoreDefinition extends StoreDefinition {
+interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
 
   closeGuide(dismissed?: boolean): void;
@@ -112,6 +114,10 @@ const storeConfig: GuideStoreDefinition = {
     if (this.browserHistoryListener) {
       this.browserHistoryListener();
     }
+  },
+
+  getState() {
+    return this.state;
   },
 
   onURLChange() {

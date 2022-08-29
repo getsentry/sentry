@@ -1,16 +1,22 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import {ProjectSdkUpdates} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
+import {CommonStoreDefinition} from './types';
+
+/**
+ * Org slug mapping to SDK updates
+ */
+type State = Map<string, ProjectSdkUpdates[]>;
+
 type InternalDefinition = {
-  /**
-   * Org slug mapping to SDK updates
-   */
-  orgSdkUpdates: Map<string, ProjectSdkUpdates[]>;
+  orgSdkUpdates: State;
 };
 
-interface SdkUpdatesStoreDefinition extends StoreDefinition, InternalDefinition {
+interface SdkUpdatesStoreDefinition
+  extends CommonStoreDefinition<State>,
+    InternalDefinition {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
   isSdkUpdatesLoaded(orgSlug: string): boolean;
   loadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
@@ -31,6 +37,10 @@ const storeConfig: SdkUpdatesStoreDefinition = {
 
   isSdkUpdatesLoaded(orgSlug) {
     return this.orgSdkUpdates.has(orgSlug);
+  },
+
+  getState() {
+    return this.orgSdkUpdates;
   },
 };
 

@@ -9,6 +9,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import RepositoryRow from 'sentry/components/repositoryRow';
@@ -17,7 +18,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = AsyncComponent['props'] & {
   integration: Integration;
@@ -117,7 +117,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       return selection.value === item.externalSlug;
     })[0];
 
-    let promise;
+    let promise: Promise<Repository>;
     if (migratableRepo) {
       promise = migrateRepository(this.api, orgId, migratableRepo.id, integration);
     } else {
