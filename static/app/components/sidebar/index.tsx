@@ -320,12 +320,12 @@ function Sidebar({location, organization}: Props) {
                 {projects}
                 {issues}
                 {performance}
+                {profiling}
                 {releases}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-                {profiling}
               </SidebarSection>
 
               <SidebarSection>
