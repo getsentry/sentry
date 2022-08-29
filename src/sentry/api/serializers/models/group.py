@@ -711,7 +711,8 @@ SKIP_SNUBA_FIELDS.update(SEARCH_TERMS)
 
 
 class GroupSerializerSnuba(GroupSerializerBase):
-    skip_snuba_fields = SKIP_SNUBA_FIELDS.update(
+    skip_snuba_fields = SKIP_SNUBA_FIELDS
+    skip_snuba_fields.update(
         [
             "last_seen",
             "times_seen",
