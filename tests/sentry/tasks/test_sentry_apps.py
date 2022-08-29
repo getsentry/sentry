@@ -8,7 +8,7 @@ from requests.exceptions import Timeout
 
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
-from sentry.models import Activity, Rule, SentryApp, SentryAppInstallation
+from sentry.models import Activity, Group, Rule, SentryApp, SentryAppInstallation, SentryFunction
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
@@ -335,6 +335,89 @@ class TestProcessResourceChange(TestCase):
             )
 
         assert not safe_urlopen.called
+
+
+@patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
+class TestProcessResourceChangeSentryFunctions(TestCase):
+    def setUp(self):
+        self.sentryFunction = self.create_sentry_function(
+            organization_id=self.organization.id,
+            name="foo",
+            author="bar",
+            code="baz",
+            overview="qux",
+            events=["issue", "comment", "error"],
+        )
+
+    @with_feature("organizations:sentry-functions")
+    def test_group_created_sends_webhook(self, send_sentry_function_webhook):
+        event = self.store_event(data={}, project_id=self.project.id)
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+        data = {}
+        data["issue"] = serialize(Group.objects.get(id=event.group_id))
+        assert faux(send_sentry_function_webhook).called_with(
+            self.sentryFunction.external_id,
+            "issue.created",
+            data["issue"]["id"],
+            data,
+        )
+
+    @with_feature("organizations:sentry-functions")
+    def test_does_not_process_disallowed_event(self, send_sentry_function_webhook):
+        process_resource_change_bound("delete", "Group", self.create_group().id)
+        assert len(send_sentry_function_webhook.mock_calls) == 0
+
+    @with_feature("organizations:sentry-functions")
+    def test_does_not_process_sentry_apps_without_issue_webhooks(
+        self, send_sentry_function_webhook
+    ):
+        SentryFunction.objects.all().delete()
+
+        # DOES NOT subscribe to Issue events
+        self.create_sentry_function(
+            organization_id=self.organization.id,
+            name="foo",
+            author="bar",
+            code="baz",
+            overview="qux",
+            events=["comment", "error"],
+        )
+
+        process_resource_change_bound("created", "Group", self.create_group().id)
+
+        assert len(send_sentry_function_webhook.mock_calls) == 0
+
+    @with_feature("organizations:sentry-functions")
+    def test_error_created_does_not_sends_webhook(self, send_sentry_function_webhook):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        assert len(send_sentry_function_webhook.mock_calls) == 0
 
 
 class TestSendResourceChangeWebhook(TestCase):
