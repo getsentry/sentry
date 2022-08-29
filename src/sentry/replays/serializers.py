@@ -41,8 +41,7 @@ VALID_FIELD_SET = {
 }
 
 
-class ReplaySerializer(Serializer):
-    # time params
+class ReplaySerializer(serializers.Serializer):
     statsPeriod = serializers.CharField(
         help_text=(
             "This defines the range of the time series, relative to now. "
@@ -67,11 +66,10 @@ class ReplaySerializer(Serializer):
     field = serializers.ChoiceField(
         VALID_FIELD_SET,
         help_text="Specifies a field that should be marshaled in the output. Invalid fields will be rejected.",
-    )
-
-    # filter parameters
-
-    project = serializers.ListField(
         required=False,
-        help_text="The ID of the projects to filter by.",
     )
+    project = serializers.ListField(
+        required=False, help_text="The ID of the projects to filter by."
+    )
+    environment = serializers.CharField(help_text="The environment to filter by.", required=False)
+    sort = serializers.CharField(help_text="The field to sort the output by.", required=False)
