@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
@@ -9,10 +9,10 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('StreamGroup', function () {
-  let GROUP_1;
+  let group1;
 
   beforeEach(function () {
-    GROUP_1 = TestStubs.Group({
+    group1 = TestStubs.Group({
       id: '1337',
       project: {
         id: '13',
@@ -30,11 +30,12 @@ describe('StreamGroup', function () {
       query: 'foo',
       body: [TestStubs.Project({slug: 'foo-project'})],
     });
-    jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
+    GroupStore.loadInitialData([group1]);
   });
 
   afterEach(function () {
     trackAdvancedAnalyticsEvent.mockClear();
+    GroupStore.reset();
     GroupStore.teardown();
   });
 
@@ -42,7 +43,7 @@ describe('StreamGroup', function () {
     const {routerContext} = initializeOrg();
     const wrapper = render(
       <StreamGroup
-        id="1L"
+        id="1337"
         orgId="orgId"
         groupId="groupId"
         lastSeen="2017-07-25T22:56:12Z"
@@ -74,8 +75,8 @@ describe('StreamGroup', function () {
     );
 
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
-    GROUP_1.inbox = false;
-    GroupStore.trigger(new Set(['1337']));
+    act(() => GroupStore.onUpdate('', ['1337'], {inbox: false}));
+
     // Reviewed only applies styles, difficult to select with RTL
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
