@@ -394,6 +394,31 @@ class TestProcessResourceChangeSentryFunctions(TestCase):
 
         assert len(send_sentry_function_webhook.mock_calls) == 0
 
+    @with_feature("organizations:sentry-functions")
+    def test_error_created_does_not_sends_webhook(self, send_sentry_function_webhook):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "Foo bar",
+                "exception": {"type": "Foo", "value": "oh no"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with self.tasks():
+            post_process_group(
+                is_new=False,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        assert len(send_sentry_function_webhook.mock_calls) == 0
+
 
 class TestSendResourceChangeWebhook(TestCase):
     def setUp(self):
