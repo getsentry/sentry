@@ -166,7 +166,7 @@ class GroupDetails extends Component<Props, State> {
 
     const spanTreeEntry: EntrySpanTree = {
       data: {
-        focusedSpanIds: performanceData.spans,
+        affectedSpanIds: performanceData.spans,
       },
       type: EntryType.SPANTREE,
     };
@@ -657,7 +657,7 @@ class GroupDetails extends Component<Props, State> {
   render() {
     const {project, group} = this.state;
     const {organization} = this.props;
-    const isSampleError = group?.tags.some(tag => tag.key === 'sample_event');
+    const isSampleError = group?.tags?.some(tag => tag.key === 'sample_event');
 
     return (
       <Fragment>

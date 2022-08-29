@@ -9,7 +9,7 @@ import re
 import socket
 import sys
 import tempfile
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import sentry
@@ -286,6 +286,7 @@ MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -349,6 +350,7 @@ INSTALLED_APPS = (
     "sentry.plugins.sentry_useragents.apps.Config",
     "sentry.plugins.sentry_webhooks.apps.Config",
     "sentry.utils.suspect_resolutions.apps.Config",
+    "sentry.utils.suspect_resolutions_releases.apps.Config",
     "social_auth",
     "sudo",
     "sentry.eventstream",
@@ -597,6 +599,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
+    "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -669,6 +672,7 @@ CELERY_QUEUES = [
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
+    Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1120,15 +1124,19 @@ SENTRY_FEATURES = {
     "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable populating suggested assignees with release committers
+    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
-    # Enable experimental session replay UI
+    # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
+    # Enable experimental session replay UI
+    "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1173,6 +1181,8 @@ SENTRY_FEATURES = {
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
+    # Backend support for supporting performance issue: endpoints, serializers, etc.
+    "projects:performance-issue-details-backend": False,
     # Enable ingestion for suspect spans
     "projects:performance-suspect-spans-ingestion": False,
     # Enable functionality for project plugins.
@@ -1884,7 +1894,7 @@ APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm6
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
         {
-            "image": "redis:5.0-alpine",
+            "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
             "ports": {"6379/tcp": 6379},
             "command": [
                 "redis-server",
@@ -1903,7 +1913,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
+            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -1929,7 +1939,7 @@ SENTRY_DEVSERVICES = {
         {
             # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "confluentinc/cp-zookeeper:6.2.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1937,7 +1947,7 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "confluentinc/cp-kafka:6.2.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1960,11 +1970,12 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
+            "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
+            if not APPLE_ARM64
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "altinity/clickhouse-server:21.6.1.6734-testing-arm",
+            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -2022,7 +2033,7 @@ SENTRY_DEVSERVICES = {
     ),
     "memcached": lambda settings, options: (
         {
-            "image": "memcached:1.5-alpine",
+            "image": "ghcr.io/getsentry/image-mirror-memcached:1.5-alpine",
             "ports": {"11211/tcp": 11211},
             "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
         }
@@ -2119,6 +2130,9 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "_experiments": {
+        "custom_measurements": True,
+    },
 }
 
 # Callable to bind additional context for the Sentry SDK
@@ -2729,7 +2743,8 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
-
+SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
+SENTRY_USE_SNOWFLAKE = False
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
@@ -2742,9 +2757,14 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 
 # Default string indexer cache options
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
-    "version": 1,
     "cache_name": "default",
 }
 
+SENTRY_FUNCTIONS_PROJECT_NAME = None
+
+SENTRY_FUNCTIONS_REGION = "us-central1"
+
 SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+
+DISALLOWED_CUSTOMER_DOMAINS = []

@@ -5,7 +5,7 @@ import space from 'sentry/styles/space';
 import {AvatarUser} from 'sentry/types';
 
 type Props = {
-  avatarSize?: UserAvatar['props']['size'];
+  avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];
   className?: string;
   displayEmail?: React.ReactNode | string;
   displayName?: React.ReactNode;

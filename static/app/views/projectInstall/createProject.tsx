@@ -10,12 +10,12 @@ import ProjectActions from 'sentry/actions/projectActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import TeamSelector from 'sentry/components/forms/teamSelector';
+import Input from 'sentry/components/input';
 import PageHeading from 'sentry/components/pageHeading';
 import PlatformPicker from 'sentry/components/platformPicker';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import {logExperiment} from 'sentry/utils/analytics';
@@ -96,9 +96,9 @@ class CreateProject extends Component<Props, State> {
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
-          <ProjectNameInput>
-            <StyledPlatformIcon platform={platform ?? ''} />
-            <input
+          <ProjectNameInputWrap>
+            <StyledPlatformIcon platform={platform ?? ''} size={20} />
+            <ProjectNameInput
               type="text"
               name="name"
               placeholder={t('project-name')}
@@ -106,7 +106,7 @@ class CreateProject extends Component<Props, State> {
               value={projectName}
               onChange={e => this.setState({projectName: slugify(e.target.value)})}
             />
-          </ProjectNameInput>
+          </ProjectNameInputWrap>
         </div>
         <div>
           <FormLabel>{t('Team')}</FormLabel>
@@ -365,22 +365,19 @@ const FormLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const StyledPlatformIcon = styled(PlatformIcon)`
-  margin-right: ${space(1)};
+const ProjectNameInputWrap = styled('div')`
+  position: relative;
 `;
 
-const ProjectNameInput = styled('div')`
-  ${p => inputStyles(p)};
-  padding: 5px 10px;
-  display: flex;
-  align-items: center;
+const ProjectNameInput = styled(Input)`
+  padding-left: calc(${p => p.theme.formPadding.md.paddingLeft}px * 1.5 + 20px);
+`;
 
-  input {
-    background: ${p => p.theme.background};
-    border: 0;
-    outline: 0;
-    flex: 1;
-  }
+const StyledPlatformIcon = styled(PlatformIcon)`
+  position: absolute;
+  top: 50%;
+  left: ${p => p.theme.formPadding.md.paddingLeft}px;
+  transform: translateY(-50%);
 `;
 
 const TeamSelectInput = styled('div')`

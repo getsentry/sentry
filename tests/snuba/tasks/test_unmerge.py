@@ -10,8 +10,7 @@ from unittest.mock import patch
 import pytz
 from django.utils import timezone
 
-from sentry import eventstream, tagstore
-from sentry.app import tsdb
+from sentry import eventstream, tagstore, tsdb
 from sentry.models import Environment, Group, GroupHash, GroupRelease, Release, UserReport
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups

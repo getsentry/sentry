@@ -14,6 +14,8 @@ interface ExportProfileButtonProps
   eventId: string | undefined;
   orgId: string | undefined;
   projectId: string | undefined;
+  children?: React.ReactNode;
+  variant?: 'xs' | 'default';
 }
 
 export function ExportProfileButton(props: ExportProfileButtonProps) {
@@ -24,22 +26,32 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
     return p.slug === props.projectId;
   });
 
-  return (
-    <StyledButton
-      {...props}
-      size="xs"
-      title={t('Export Profile')}
-      href={`${api.baseUrl}/projects/${props.orgId}/${props.projectId}/profiling/raw_profiles/${props.eventId}/`}
-      download={`${organization.slug}_${
-        project?.slug ?? props.projectId ?? 'unknown_project'
-      }_${props.eventId}.profile.json`}
-    >
+  const href = `${api.baseUrl}/projects/${props.orgId}/${props.projectId}/profiling/raw_profiles/${props.eventId}/`;
+  const download = `${organization.slug}_${
+    project?.slug ?? props.projectId ?? 'unknown_project'
+  }_${props.eventId}.profile.json`;
+
+  const title = t('Export Profile');
+
+  return props.variant === 'xs' ? (
+    <StyledButtonSmall size="xs" title={title} href={href} download={download} {...props}>
+      {props.children}
       <IconDownload size="xs" />
-    </StyledButton>
+    </StyledButtonSmall>
+  ) : (
+    <Button
+      icon={<IconDownload />}
+      title={title}
+      href={href}
+      download={download}
+      {...props}
+    >
+      {props.children}
+    </Button>
   );
 }
 
-const StyledButton = styled(Button)`
+const StyledButtonSmall = styled(Button)`
   border: none;
   background-color: transparent;
   box-shadow: none;

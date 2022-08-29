@@ -24,6 +24,8 @@ class DetectorType(Enum):
     DUPLICATE_SPANS = "duplicates"
     SEQUENTIAL_SLOW_SPANS = "sequential"
     LONG_TASK_SPANS = "long_task"
+    RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
+    N_PLUS_ONE_SPANS = "n_plus_one"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -85,6 +87,19 @@ def get_default_detection_settings():
                 "allowed_span_ops": ["ui.long-task", "ui.sentry.long-task"],
             }
         ],
+        DetectorType.RENDER_BLOCKING_ASSET_SPAN: {
+            "fcp_minimum_threshold": 2000.0,  # ms
+            "fcp_maximum_threshold": 10000.0,  # ms
+            "fcp_ratio_threshold": 0.25,
+            "allowed_span_ops": ["resource.link", "resource.script"],
+        },
+        DetectorType.N_PLUS_ONE_SPANS: [
+            {
+                "count": 3,
+                "start_time_threshold": 5.0,  # ms
+                "allowed_span_ops": ["http.client"],
+            }
+        ],
     }
 
 
@@ -94,11 +109,15 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
 
     detection_settings = get_default_detection_settings()
     detectors = {
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings),
-        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings),
-        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings),
-        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings),
-        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings),
+        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
+        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
+        DetectorType.SLOW_SPAN: SlowSpanDetector(detection_settings, data),
+        DetectorType.SEQUENTIAL_SLOW_SPANS: SequentialSlowSpanDetector(detection_settings, data),
+        DetectorType.LONG_TASK_SPANS: LongTaskSpanDetector(detection_settings, data),
+        DetectorType.RENDER_BLOCKING_ASSET_SPAN: RenderBlockingAssetSpanDetector(
+            detection_settings, data
+        ),
+        DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
     }
 
     for span in spans:
@@ -143,8 +162,9 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
-    def __init__(self, settings: Dict[str, Any]):
+    def __init__(self, settings: Dict[str, Any], event: Event):
         self.settings = settings[self.settings_key]
+        self._event = event
         self.init()
 
     @abstractmethod
@@ -169,6 +189,9 @@ class PerformanceDetector(ABC):
             if op_prefix:
                 return op, span_id, op_prefix, span_duration, setting
         return None
+
+    def event(self) -> Event:
+        return self._event
 
     @property
     @abstractmethod
@@ -409,6 +432,130 @@ class LongTaskSpanDetector(PerformanceDetector):
             self.stored_issues[fingerprint] = PerformanceSpanIssue(
                 span_id, op_prefix, self.spans_involved
             )
+
+
+class RenderBlockingAssetSpanDetector(PerformanceDetector):
+    __slots__ = ("stored_issues", "fcp", "transaction_start")
+
+    settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
+
+    def init(self):
+        self.stored_issues = {}
+        self.transaction_start = timedelta(seconds=self.event().get("start_timestamp", 0))
+        self.fcp = None
+
+        # Only concern ourselves with transactions where the FCP is within the
+        # range we care about.
+        fcp_hash = self.event().get("measurements", {}).get("fcp", {})
+        fcp_value = fcp_hash.get("value")
+        if fcp_value and ("unit" not in fcp_hash or fcp_hash["unit"] == "millisecond"):
+            fcp = timedelta(milliseconds=fcp_value)
+            fcp_minimum_threshold = timedelta(
+                milliseconds=self.settings.get("fcp_minimum_threshold")
+            )
+            fcp_maximum_threshold = timedelta(
+                milliseconds=self.settings.get("fcp_maximum_threshold")
+            )
+            if fcp >= fcp_minimum_threshold and fcp < fcp_maximum_threshold:
+                self.fcp = fcp
+
+    def visit_span(self, span: Span):
+        if not self.fcp:
+            return
+
+        op = span.get("op", None)
+        allowed_span_ops = self.settings.get("allowed_span_ops")
+        if op not in allowed_span_ops:
+            return False
+
+        if self._is_blocking_render(span):
+            span_id = span.get("span_id", None)
+            fingerprint = fingerprint_span(span)
+            if span_id and fingerprint:
+                self.stored_issues[fingerprint] = PerformanceSpanIssue(span_id, op, [span_id])
+
+        # If we visit a span that starts after FCP, then we know we've already
+        # seen all possible render-blocking resource spans.
+        span_start_timestamp = timedelta(seconds=span.get("start_timestamp", 0))
+        fcp_timestamp = self.transaction_start + self.fcp
+        if span_start_timestamp >= fcp_timestamp:
+            # Early return for all future span visits.
+            self.fcp = None
+
+    def _is_blocking_render(self, span):
+        span_end_timestamp = timedelta(seconds=span.get("timestamp", 0))
+        fcp_timestamp = self.transaction_start + self.fcp
+        if span_end_timestamp >= fcp_timestamp:
+            return False
+
+        span_duration = get_span_duration(span)
+        fcp_ratio_threshold = self.settings.get("fcp_ratio_threshold")
+        return span_duration / self.fcp > fcp_ratio_threshold
+
+
+class NPlusOneSpanDetector(PerformanceDetector):
+    """
+    Checks for multiple concurrent API calls.
+    N.B.1. Non-greedy! Returns the first N concurrent spans of a series of
+      concurrent spans, rather than all spans in a concurrent series.
+    N.B.2. Assumes that spans are passed in ascending order of `start_timestamp`
+    N.B.3. Only returns _the first_ set of concurrent calls of all possible.
+    """
+
+    __slots__ = ("spans_involved", "stored_issues")
+
+    settings_key = DetectorType.N_PLUS_ONE_SPANS
+
+    def init(self):
+        self.spans_involved = {}
+        self.most_recent_start_time = {}
+        self.most_recent_hash = {}
+        self.stored_issues = {}
+
+    def visit_span(self, span: Span):
+        settings_for_span = self.settings_for_span(span)
+        if not settings_for_span:
+            return
+
+        op, span_id, op_prefix, span_duration, settings = settings_for_span
+
+        start_time_threshold = timedelta(milliseconds=settings.get("start_time_threshold", 0))
+        count = settings.get("count", 10)
+
+        fingerprint = fingerprint_span_op(span)
+        if not fingerprint:
+            return
+
+        hash = span.get("hash", None)
+        if not hash:
+            return
+
+        if fingerprint not in self.spans_involved:
+            self.spans_involved[fingerprint] = []
+            self.most_recent_start_time[fingerprint] = 0
+            self.most_recent_hash[fingerprint] = ""
+
+        delta_to_previous_span_start_time = timedelta(
+            seconds=(span["start_timestamp"] - self.most_recent_start_time[fingerprint])
+        )
+
+        is_concurrent_with_previous_span = delta_to_previous_span_start_time < start_time_threshold
+        has_same_hash_as_previous_span = span["hash"] == self.most_recent_hash[fingerprint]
+
+        self.most_recent_start_time[fingerprint] = span["start_timestamp"]
+        self.most_recent_hash[fingerprint] = hash
+
+        if is_concurrent_with_previous_span and has_same_hash_as_previous_span:
+            self.spans_involved[fingerprint].append(span)
+        else:
+            self.spans_involved[fingerprint] = [span_id]
+            return
+
+        if not self.stored_issues.get(fingerprint, False):
+            if len(self.spans_involved[fingerprint]) >= count:
+                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                    span_id, op_prefix, self.spans_involved[fingerprint]
+                )
 
 
 # Reports metrics and creates spans for detection

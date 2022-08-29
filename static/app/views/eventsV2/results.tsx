@@ -32,6 +32,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
@@ -466,7 +467,7 @@ class Results extends Component<Props, State> {
       return (
         <Alert type="info" showIcon>
           {t(
-            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show sampled events."
+            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
           )}
         </Alert>
       );
@@ -489,7 +490,7 @@ class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, selection} = this.props;
     const {
       eventView,
       error,
@@ -519,73 +520,78 @@ class Results extends Component<Props, State> {
               router={router}
             />
             <Layout.Body>
-              <Top fullWidth>
-                {this.renderMetricsFallbackBanner()}
-                {this.renderError(error)}
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
-                </StyledPageFilterBar>
-                <StyledSearchBar
-                  searchSource="eventsv2"
-                  organization={organization}
-                  projectIds={eventView.project}
-                  query={query}
-                  fields={fields}
-                  onSearch={this.handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
-                <ResultsChart
-                  router={router}
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  onAxisChange={this.handleYAxisChange}
-                  onDisplayChange={this.handleDisplayChange}
-                  onTopEventsChange={this.handleTopEventsChange}
-                  total={totalValues}
-                  confirmedQuery={confirmedQuery}
-                  yAxis={yAxisArray}
-                />
-              </Top>
-              <Layout.Main fullWidth={!showTags}>
-                <Table
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  title={title}
-                  setError={this.setError}
-                  onChangeShowTags={this.handleChangeShowTags}
-                  showTags={showTags}
-                  confirmedQuery={confirmedQuery}
-                />
-              </Layout.Main>
-              {showTags ? this.renderTagsTable() : null}
-              <Confirm
-                priority="primary"
-                header={<strong>{t('May lead to thumb twiddling')}</strong>}
-                confirmText={t('Do it')}
-                cancelText={t('Nevermind')}
-                onConfirm={this.handleConfirmed}
-                onCancel={this.handleCancelled}
-                message={
-                  <p>
-                    {tct(
-                      `You've created a query that will search for events made
+              <CustomMeasurementsProvider
+                organization={organization}
+                selection={selection}
+              >
+                <Top fullWidth>
+                  {this.renderMetricsFallbackBanner()}
+                  {this.renderError(error)}
+                  <StyledPageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter alignDropdown="left" />
+                  </StyledPageFilterBar>
+                  <StyledSearchBar
+                    searchSource="eventsv2"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    fields={fields}
+                    onSearch={this.handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
+                  />
+                  <ResultsChart
+                    router={router}
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    onAxisChange={this.handleYAxisChange}
+                    onDisplayChange={this.handleDisplayChange}
+                    onTopEventsChange={this.handleTopEventsChange}
+                    total={totalValues}
+                    confirmedQuery={confirmedQuery}
+                    yAxis={yAxisArray}
+                  />
+                </Top>
+                <Layout.Main fullWidth={!showTags}>
+                  <Table
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    title={title}
+                    setError={this.setError}
+                    onChangeShowTags={this.handleChangeShowTags}
+                    showTags={showTags}
+                    confirmedQuery={confirmedQuery}
+                  />
+                </Layout.Main>
+                {showTags ? this.renderTagsTable() : null}
+                <Confirm
+                  priority="primary"
+                  header={<strong>{t('May lead to thumb twiddling')}</strong>}
+                  confirmText={t('Do it')}
+                  cancelText={t('Nevermind')}
+                  onConfirm={this.handleConfirmed}
+                  onCancel={this.handleCancelled}
+                  message={
+                    <p>
+                      {tct(
+                        `You've created a query that will search for events made
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                      {
-                        dayLimit: <strong />,
-                        projectLimit: <strong />,
-                      }
-                    )}
-                  </p>
-                }
-              >
-                {this.setOpenFunction}
-              </Confirm>
+                        {
+                          dayLimit: <strong />,
+                          projectLimit: <strong />,
+                        }
+                      )}
+                    </p>
+                  }
+                >
+                  {this.setOpenFunction}
+                </Confirm>
+              </CustomMeasurementsProvider>
             </Layout.Body>
           </NoProjectMessage>
         </StyledPageContent>

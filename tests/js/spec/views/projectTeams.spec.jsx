@@ -297,7 +297,7 @@ describe('ProjectTeams', function () {
       })
     );
 
-    await tick();
+    await act(tick);
 
     expect(addTeamToProject).toHaveBeenCalledTimes(1);
     expect(addTeamToProject).toHaveBeenCalledWith(

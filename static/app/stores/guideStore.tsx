@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
@@ -7,11 +7,13 @@ import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistan
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   cleanupActiveRefluxSubscriptions,
   makeSafeRefluxStore,
 } from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -74,7 +76,7 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-interface GuideStoreDefinition extends StoreDefinition {
+interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
 
   closeGuide(dismissed?: boolean): void;
@@ -112,6 +114,10 @@ const storeConfig: GuideStoreDefinition = {
     if (this.browserHistoryListener) {
       this.browserHistoryListener();
     }
+  },
+
+  getState() {
+    return this.state;
   },
 
   onURLChange() {
@@ -196,14 +202,10 @@ const storeConfig: GuideStoreDefinition = {
       return;
     }
 
-    const data = {
+    trackAdvancedAnalyticsEvent('assistant.guide_cued', {
+      organization: this.state.orgId,
       guide,
-      eventKey: 'assistant.guide_cued',
-      eventName: 'Assistant Guide Cued',
-      organization_id: this.state.orgId,
-      user_id: parseInt(user.id, 10),
-    };
-    trackAnalyticsEvent(data);
+    });
   },
 
   updatePrevGuide(nextGuide) {

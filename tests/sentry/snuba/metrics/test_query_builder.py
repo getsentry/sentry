@@ -932,7 +932,7 @@ def test_translate_meta_results():
         {"name": "metric_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE
+        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE, 1
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
@@ -954,7 +954,7 @@ def test_translate_meta_results_with_duplicates():
         {"name": "project_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH
+        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH, 1
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},

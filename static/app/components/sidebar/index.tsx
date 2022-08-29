@@ -221,7 +221,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <Feature features={['session-replay']} organization={organization}>
+    <Feature features={['session-replay-ui']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}
@@ -320,12 +320,12 @@ function Sidebar({location, organization}: Props) {
                 {projects}
                 {issues}
                 {performance}
+                {profiling}
                 {releases}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-                {profiling}
               </SidebarSection>
 
               <SidebarSection>

@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.utils.cursors import Cursor
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
@@ -36,7 +37,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(
@@ -51,7 +52,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 urls=[
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
-                ],  # duplicate urls are okay
+                ],  # duplicate urls are okay,
             )
         )
         self.store_replays(
@@ -85,7 +86,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ],
                 count_segments=2,
                 # count_errors=3,
-                count_errors=0,
+                count_errors=1,
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -93,8 +94,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test returned replays must have a substantive duration."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
-        replay2_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -117,7 +118,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test returned replays can not partially fall outside of range."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(days=365)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
@@ -139,8 +140,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.create_environment(name="development", project=self.project)
         self.create_environment(name="production", project=self.project)
 
-        replay1_id = str(uuid.uuid4())
-        replay2_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=20)
         timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
 
@@ -160,7 +161,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url + "?environment=development")
             assert response.status_code == 200
-            print(response.content.decode("utf-8"))
 
             response_data = response.json()
             assert "data" in response_data
@@ -176,8 +176,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_started_at_sorted(self):
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
-        replay2_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -204,8 +204,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_finished_at_sorted(self):
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
-        replay2_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -233,8 +233,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays can be sorted by duration."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
-        replay2_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=10)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=9)
@@ -262,8 +262,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays can be paginated."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
-        replay2_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
         replay1_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=15)
         replay1_timestamp1 = datetime.datetime.now() - datetime.timedelta(seconds=5)
         replay2_timestamp0 = datetime.datetime.now() - datetime.timedelta(seconds=10)
@@ -276,26 +276,33 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             # First page.
-            response = self.client.get(self.url + "?limit=1")
-            assert response.status_code == 200
-
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 0),
+                per_page=1,
+            )
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay2_id
 
             # Next page.
-            response = self.client.get(self.url + "?limit=1&offset=1")
-            assert response.status_code == 200
-
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 1),
+                per_page=1,
+            )
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 1
             assert response_data["data"][0]["id"] == replay1_id
 
             # Beyond pages.
-            response = self.client.get(self.url + "?limit=1&offset=2")
-            assert response.status_code == 200
+            response = self.get_success_response(
+                self.organization.slug,
+                cursor=Cursor(0, 2),
+                per_page=1,
+            )
 
             response_data = response.json()
             assert "data" in response_data

@@ -27,6 +27,7 @@ from .exporteddata import *  # noqa: F401,F403
 from .external_actor import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
+from .group_stream import *  # noqa: F401,F403
 from .grouprelease import *  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403

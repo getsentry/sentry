@@ -19,8 +19,7 @@ from fixtures.github import (
     GET_PRIOR_COMMIT_EXAMPLE,
     LATER_COMMIT_SHA,
 )
-from sentry import nodestore
-from sentry.app import tsdb
+from sentry import nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.event_manager import (
@@ -1301,7 +1300,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
-            group=event.group,
             event=event,
             is_new=True,
             is_regression=False,
@@ -1316,7 +1314,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         # Ensure that the next event in the (group, environment) pair is *not*
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
-            group=event.group,
             event=event,
             is_new=False,
             is_regression=None,  # XXX: wut
