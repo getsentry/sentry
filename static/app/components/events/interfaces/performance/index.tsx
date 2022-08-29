@@ -8,7 +8,7 @@ import {EventError, Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {DurationChart} from './durationChart';
-import {SpanChangeBar} from './spanChangeBar';
+import {SlowDbSpanChangeBar, SpanChangeBar} from './spanChangeBar';
 import {SpanCountChart} from './spanCountChart';
 
 interface Props {
@@ -32,16 +32,7 @@ export function PerformanceIssueSection({issue, event, organization}: Props) {
         />
       </Section>
       <Section>
-        <Heading>
-          {t('Span Change')}
-          <TooltipWrapper>
-            <Tooltip title="test">
-              <IconQuestion />
-            </Tooltip>
-          </TooltipWrapper>
-        </Heading>
-
-        <SpanChangeBar />
+        <SlowDbSpanChangeBar event={undefined} affectedSpanIds={[]} />
         {/* <h3>{t('Span Count Distribution')}</h3>
         <SpanCountChart
           issue={issue}
@@ -86,13 +77,4 @@ export const Wrapper = styled('div')`
 
 const Section = styled('div')`
   width: 50%;
-`;
-
-const Heading = styled('h3')`
-  display: flex;
-  align-items: center;
-`;
-
-const TooltipWrapper = styled('span')`
-  margin-left: ${space(1)};
 `;
