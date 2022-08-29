@@ -1,7 +1,6 @@
 import findIndex from 'lodash/findIndex';
 import {createStore, StoreDefinition} from 'reflux';
 
-import SavedSearchesActions from 'sentry/actions/savedSearchesActions';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -12,10 +11,21 @@ type State = {
 };
 
 interface SavedSearchesStoreDefinition extends StoreDefinition {
-  findByQuery(query: string, sort: string): SavedSearch | undefined;
+  findByQuery(query: string, sort?: string): SavedSearch | undefined;
   get(): State;
   getFilteredSearches(type: SavedSearchType, id?: string): SavedSearch[];
-  onPinSearch(type: SavedSearchType, query: string, sort: string): void;
+
+  onCreateSavedSearchSuccess: (data) => void;
+  onDeleteSavedSearchSuccess: (search: SavedSearch) => void;
+  onFetchSavedSearchesError: (data) => void;
+
+  onFetchSavedSearchesSuccess: (data) => void;
+  onPinSearch(type: SavedSearchType, query: string, sort?: string): void;
+  onPinSearchSuccess: (data) => void;
+  onReset: () => void;
+  onStartFetchSavedSearches: () => void;
+  onUnpinSearch: (type: SavedSearchType) => void;
+
   reset(): void;
   updateExistingSearch(id: string, changes: Partial<SavedSearch>): SavedSearch;
 }
@@ -30,40 +40,6 @@ const storeConfig: SavedSearchesStoreDefinition = {
   },
 
   init() {
-    const {
-      startFetchSavedSearches,
-      fetchSavedSearchesSuccess,
-      fetchSavedSearchesError,
-      createSavedSearchSuccess,
-      deleteSavedSearchSuccess,
-      pinSearch,
-      pinSearchSuccess,
-      resetSavedSearches,
-      unpinSearch,
-    } = SavedSearchesActions;
-
-    this.unsubscribeListeners.push(
-      this.listenTo(startFetchSavedSearches, this.onStartFetchSavedSearches)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(fetchSavedSearchesSuccess, this.onFetchSavedSearchesSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(fetchSavedSearchesError, this.onFetchSavedSearchesError)
-    );
-    this.unsubscribeListeners.push(this.listenTo(resetSavedSearches, this.onReset));
-    this.unsubscribeListeners.push(
-      this.listenTo(createSavedSearchSuccess, this.onCreateSavedSearchSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(deleteSavedSearchSuccess, this.onDeleteSavedSearchSuccess)
-    );
-    this.unsubscribeListeners.push(this.listenTo(pinSearch, this.onPinSearch));
-    this.unsubscribeListeners.push(
-      this.listenTo(pinSearchSuccess, this.onPinSearchSuccess)
-    );
-    this.unsubscribeListeners.push(this.listenTo(unpinSearch, this.onUnpinSearch));
-
     this.reset();
   },
 
@@ -174,10 +150,10 @@ const storeConfig: SavedSearchesStoreDefinition = {
     this.trigger(this.state);
   },
 
-  onCreateSavedSearchSuccess(resp) {
+  onCreateSavedSearchSuccess(data) {
     this.state = {
       ...this.state,
-      savedSearches: [...this.state.savedSearches, resp],
+      savedSearches: [...this.state.savedSearches, data],
     };
 
     this.trigger(this.state);
@@ -225,11 +201,11 @@ const storeConfig: SavedSearchesStoreDefinition = {
     this.trigger(this.state);
   },
 
-  onPinSearchSuccess(resp) {
-    const existingSearch = this.findByQuery(resp.query, resp.sort);
+  onPinSearchSuccess(data) {
+    const existingSearch = this.findByQuery(data.query, data.sort);
 
     if (existingSearch) {
-      this.updateExistingSearch(existingSearch.id, resp);
+      this.updateExistingSearch(existingSearch.id, data);
     }
 
     this.trigger(this.state);
