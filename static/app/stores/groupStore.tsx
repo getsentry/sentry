@@ -24,7 +24,7 @@ type ChangeId = string;
 
 type Change = {
   data: any;
-  itemId: string;
+  itemIds: string[];
 };
 
 type Item = BaseGroup | Group | GroupCollapseRelease;
@@ -261,8 +261,10 @@ const storeConfig: GroupStoreDefinition = {
     const pendingById: Record<string, Change[]> = {};
 
     this.pendingChanges.forEach(change => {
-      const existing = pendingById[change.itemId] ?? [];
-      pendingById[change.itemId] = [...existing, change];
+      change.itemIds.forEach(itemId => {
+        const existing = pendingById[itemId] ?? [];
+        pendingById[itemId] = [...existing, change];
+      });
     });
 
     // Merge pending changes into the item if it has them
@@ -401,8 +403,8 @@ const storeConfig: GroupStoreDefinition = {
 
     ids.forEach(itemId => {
       this.addStatus(itemId, 'update');
-      this.pendingChanges.set(changeId, {itemId, data});
     });
+    this.pendingChanges.set(changeId, {itemIds: ids, data});
 
     this.trigger(new Set(ids));
   },

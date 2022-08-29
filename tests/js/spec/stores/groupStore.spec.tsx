@@ -149,6 +149,19 @@ describe('GroupStore', function () {
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
       });
+      it('should apply optimistic updates', function () {
+        GroupStore.items = [g('1'), g('2')];
+        GroupStore.add([g('1'), g('2')]);
+
+        // Resolve 2 issues
+        const itemIds = ['1', '2'];
+        const data = {status: 'resolved', statusDetails: {}};
+        GroupStore.onUpdate('12345', itemIds, data);
+
+        expect(GroupStore.pendingChanges).toEqual(new Map([['12345', {itemIds, data}]]));
+        expect(GroupStore.get('1')).toEqual({...g('1'), ...data});
+        expect(GroupStore.get('2')).toEqual({...g('2'), ...data});
+      });
     });
 
     describe('onUpdateSuccess()', function () {
