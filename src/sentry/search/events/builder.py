@@ -836,7 +836,7 @@ class QueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
-        self._custom_measurement_cache = get_custom_measurements(
+        return get_custom_measurements(
             project_ids=self.params["project_id"],
             organization_id=self.organization_id,
             start=datetime.today() - timedelta(days=90),
