@@ -360,6 +360,8 @@ class SpanDetail extends Component<Props, State> {
     const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
       getFormattedTimeRangeWithLeadingZero(startTimestamp, endTimestamp);
 
+    console.log({startTimeWithLeadingZero, endTimeWithLeadingZero});
+
     const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
