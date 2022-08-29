@@ -8,7 +8,7 @@ import {Actor} from 'sentry/types';
 type Props = {
   owners: Actor[];
 } & BaseAvatar['props'] &
-  Omit<ActorAvatar['props'], 'actor' | 'hasTooltip'>;
+  Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'>;
 
 // Constrain the number of visible suggestions
 const MAX_SUGGESTIONS = 5;
