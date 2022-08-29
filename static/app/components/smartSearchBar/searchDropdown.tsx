@@ -54,7 +54,11 @@ class SearchDropdown extends PureComponent<Props> {
     } = this.props;
 
     return (
-      <SearchBarFlyout className={className} fullWidth>
+      <SearchBarFlyout
+        className={className}
+        fullWidth
+        data-test-id="smart-search-dropdown"
+      >
         {loading ? (
           <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
             <LoadingIndicator mini />
