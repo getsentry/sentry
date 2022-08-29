@@ -1,5 +1,6 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {changeInputValue, openMenu, selectByLabel} from 'sentry-test/select-new';
 
 import TagStore from 'sentry/stores/tagStore';
@@ -7,7 +8,7 @@ import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({columns, onApply}, initialData) {
+function mountModal({columns, onApply, customMeasurements}, initialData) {
   return mountWithTheme(
     <ColumnEditModal
       Header={stubEl}
@@ -17,6 +18,7 @@ function mountModal({columns, onApply}, initialData) {
       columns={columns}
       onApply={onApply}
       closeModal={() => void 0}
+      customMeasurements={customMeasurements}
     />,
     initialData.routerContext
   );
@@ -35,7 +37,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
   });
   const initialData = initializeOrg({
     organization: {
-      features: ['performance-view'],
+      features: ['performance-view', 'dashboards-mep'],
     },
   });
   const columns = [
@@ -710,6 +712,43 @@ describe('EventsV2 -> ColumnEditModal', function () {
       wrapper.find('button[aria-label="Apply"]').simulate('click');
 
       expect(onApply).toHaveBeenCalledWith([columns[1], {kind: 'field', field: 'title'}]);
+    });
+  });
+
+  describe('custom performance metrics', function () {
+    it('allows selecting custom performance metrics in dropdown', function () {
+      render(
+        <ColumnEditModal
+          Header={stubEl}
+          Footer={stubEl}
+          Body={stubEl}
+          organization={initialData.organization}
+          columns={[columns[0]]}
+          onApply={() => undefined}
+          closeModal={() => undefined}
+          customMeasurements={{
+            'measurements.custom.kibibyte': {
+              key: 'measurements.custom.kibibyte',
+              name: 'measurements.custom.kibibyte',
+              functions: ['p99'],
+            },
+            'measurements.custom.minute': {
+              key: 'measurements.custom.minute',
+              name: 'measurements.custom.minute',
+              functions: ['p99'],
+            },
+            'measurements.custom.ratio': {
+              key: 'measurements.custom.ratio',
+              name: 'measurements.custom.ratio',
+              functions: ['p99'],
+            },
+          }}
+        />
+      );
+      expect(screen.getByText('event.type')).toBeInTheDocument();
+      userEvent.click(screen.getByText('event.type'));
+      userEvent.type(screen.getAllByText('event.type')[0], 'custom');
+      expect(screen.getByText('measurements.custom.kibibyte')).toBeInTheDocument();
     });
   });
 });

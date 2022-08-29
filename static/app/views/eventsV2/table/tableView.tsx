@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   isFieldSortable,
@@ -65,6 +66,7 @@ export type TableViewProps = {
   tableData: TableData | null | undefined;
 
   title: string;
+  customMeasurements?: CustomMeasurementCollection;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -329,8 +331,13 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleEditColumns = () => {
-    const {organization, eventView, measurementKeys, spanOperationBreakdownKeys} =
-      this.props;
+    const {
+      organization,
+      eventView,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+      customMeasurements,
+    } = this.props;
 
     const hasBreakdownFeature = organization.features.includes(
       'performance-ops-breakdown'
@@ -347,6 +354,7 @@ class TableView extends Component<TableViewProps> {
           }
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
+          customMeasurements={customMeasurements}
         />
       ),
       {modalCss, backdrop: 'static'}
