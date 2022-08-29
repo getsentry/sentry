@@ -1,15 +1,15 @@
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {Group, Release, TimeseriesValue} from 'sentry/types';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';
 import type {Theme} from 'sentry/utils/theme';
-
-import SidebarSection from './sidebarSection';
 
 /**
  * Stats are provided indexed by statsPeriod strings.
@@ -123,7 +123,6 @@ export function getGroupReleaseChartMarkers(
 
 function GroupReleaseChart(props: Props) {
   const {
-    className,
     group,
     lastSeen,
     firstSeen,
@@ -177,26 +176,34 @@ function GroupReleaseChart(props: Props) {
   series[0].markPoint = getGroupReleaseChartMarkers(theme, stats, firstSeen, lastSeen);
 
   return (
-    <SidebarSection secondary title={title} className={className}>
-      <div>
-        <Count value={totalEvents} />
-      </div>
-      <MiniBarChart
-        isGroupedByDate
-        showTimeInTooltip
-        showMarkLineLabel
-        height={42}
-        colors={environment ? undefined : [theme.purple300, theme.purple300]}
-        series={series}
-        grid={{
-          top: 6,
-          bottom: 4,
-          left: 4,
-          right: 4,
-        }}
-      />
-    </SidebarSection>
+    <SidebarSection.Wrap>
+      <SidebarSection.Title>{title}</SidebarSection.Title>
+      <SidebarSection.Content>
+        <EventNumber>
+          <Count value={totalEvents} />
+        </EventNumber>
+        <MiniBarChart
+          isGroupedByDate
+          showTimeInTooltip
+          showMarkLineLabel
+          height={42}
+          colors={environment ? undefined : [theme.purple300, theme.purple300]}
+          series={series}
+          grid={{
+            top: 6,
+            bottom: 4,
+            left: 4,
+            right: 4,
+          }}
+        />
+      </SidebarSection.Content>
+    </SidebarSection.Wrap>
   );
 }
+
+const EventNumber = styled('div')`
+  line-height: 1;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
 
 export default GroupReleaseChart;

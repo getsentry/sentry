@@ -12,7 +12,7 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -121,19 +121,22 @@ class IssueListSidebar extends Component<Props, State> {
           <LoadingIndicator />
         ) : (
           <Fragment>
-            <SidebarSection title={t('Text')}>
-              <form onSubmit={this.onQueryChange}>
-                <Input
-                  placeholder={t('Search title and culprit text body')}
-                  onChange={this.onTextChange}
-                  value={this.state.textFilter}
-                />
-                {this.state.textFilter && (
-                  <StyledIconClose size="xs" onClick={this.onClearSearch} />
-                )}
-              </form>
-              <StyledHr />
-            </SidebarSection>
+            <SidebarSection.Wrap>
+              <SidebarSection.Title>{t('Text')}</SidebarSection.Title>
+              <SidebarSection.Content>
+                <form onSubmit={this.onQueryChange}>
+                  <Input
+                    placeholder={t('Search title and culprit text body')}
+                    onChange={this.onTextChange}
+                    value={this.state.textFilter}
+                  />
+                  {this.state.textFilter && (
+                    <StyledIconClose size="xs" onClick={this.onClearSearch} />
+                  )}
+                </form>
+                <StyledHr />
+              </SidebarSection.Content>
+            </SidebarSection.Wrap>
 
             {map(tags, tag => (
               <IssueListTagFilter

@@ -5,7 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import SelectControl from 'sentry/components/forms/selectControl';
 import Input from 'sentry/components/input';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
 import {Tag, TagValue} from 'sentry/types';
 
@@ -156,35 +156,38 @@ class IssueListTagFilter extends Component<Props, State> {
     const {options, isLoading} = this.state;
 
     return (
-      <SidebarSection title={tag.key}>
-        {!!tag.isInput && (
-          <Input value={this.state.textValue} onChange={this.handleChangeInput} />
-        )}
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{tag.key}</SidebarSection.Title>
+        <SidebarSection.Content>
+          {!!tag.isInput && (
+            <Input value={this.state.textValue} onChange={this.handleChangeInput} />
+          )}
 
-        {!tag.isInput && (
-          <SelectControl
-            clearable
-            aria-label={tag.key}
-            placeholder="--"
-            loadingMessage={() => t('Loading\u2026')}
-            value={this.state.value}
-            onChange={this.handleChangeSelect}
-            isLoading={isLoading}
-            onInputChange={this.handleChangeSelectInput}
-            onFocus={this.handleOpenMenu}
-            noResultsText={isLoading ? t('Loading\u2026') : t('No results found')}
-            options={
-              tag.predefined
-                ? tag.values &&
-                  tag.values.map(value => ({
-                    value,
-                    label: value,
-                  }))
-                : options
-            }
-          />
-        )}
-      </SidebarSection>
+          {!tag.isInput && (
+            <SelectControl
+              clearable
+              aria-label={tag.key}
+              placeholder="--"
+              loadingMessage={() => t('Loading\u2026')}
+              value={this.state.value}
+              onChange={this.handleChangeSelect}
+              isLoading={isLoading}
+              onInputChange={this.handleChangeSelectInput}
+              onFocus={this.handleOpenMenu}
+              noResultsText={isLoading ? t('Loading\u2026') : t('No results found')}
+              options={
+                tag.predefined
+                  ? tag.values &&
+                    tag.values.map(value => ({
+                      value,
+                      label: value,
+                    }))
+                  : options
+              }
+            />
+          )}
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 }

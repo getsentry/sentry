@@ -16,6 +16,7 @@ import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOw
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -29,7 +30,6 @@ import {
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 
-import SidebarSection from './sidebarSection';
 import SuspectReleases from './suspectReleases';
 
 type Props = {
@@ -158,9 +158,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     }
 
     return (
-      <SidebarSection title={t('External Issues')}>
-        <ExternalIssues>{issues}</ExternalIssues>
-      </SidebarSection>
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{t('External Issues')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          <ExternalIssues>{issues}</ExternalIssues>
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 
@@ -211,42 +214,47 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection title={t('Tags')}>
-          {!tagsWithTopValues ? (
-            <TagPlaceholders>
-              <Placeholder height="40px" />
-              <Placeholder height="40px" />
-              <Placeholder height="40px" />
-              <Placeholder height="40px" />
-            </TagPlaceholders>
-          ) : (
-            group.tags.map(tag => {
-              const tagWithTopValues = tagsWithTopValues[tag.key];
-              const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-              const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+        <SidebarSection.Wrap>
+          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+          <SidebarSection.Content>
+            {!tagsWithTopValues ? (
+              <TagPlaceholders>
+                <Placeholder height="40px" />
+                <Placeholder height="40px" />
+                <Placeholder height="40px" />
+                <Placeholder height="40px" />
+              </TagPlaceholders>
+            ) : (
+              group.tags.map(tag => {
+                const tagWithTopValues = tagsWithTopValues[tag.key];
+                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+                const topValuesTotal = tagWithTopValues
+                  ? tagWithTopValues.totalValues
+                  : 0;
 
-              return (
-                <GroupTagDistributionMeter
-                  key={tag.key}
-                  tag={tag.key}
-                  totalValues={topValuesTotal}
-                  topValues={topValues}
-                  name={tag.name}
-                  organization={organization}
-                  projectId={projectId}
-                  group={group}
-                />
-              );
-            })
-          )}
-          {group.tags.length === 0 && (
-            <p data-test-id="no-tags">
-              {environments.length
-                ? t('No tags found in the selected environments')
-                : t('No tags found')}
-            </p>
-          )}
-        </SidebarSection>
+                return (
+                  <GroupTagDistributionMeter
+                    key={tag.key}
+                    tag={tag.key}
+                    totalValues={topValuesTotal}
+                    topValues={topValues}
+                    name={tag.name}
+                    organization={organization}
+                    projectId={projectId}
+                    group={group}
+                  />
+                );
+              })
+            )}
+            {group.tags.length === 0 && (
+              <p data-test-id="no-tags">
+                {environments.length
+                  ? t('No tags found in the selected environments')
+                  : t('No tags found')}
+              </p>
+            )}
+          </SidebarSection.Content>
+        </SidebarSection.Wrap>
 
         {this.renderParticipantData()}
       </Container>
