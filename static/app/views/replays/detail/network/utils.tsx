@@ -44,14 +44,16 @@ export function sortNetwork(
 export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
     new Set<string>(
-      networkSpans.map(networkSpan => networkSpan.op.replace('resource.', ''))
+      networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')).sort()
     )
   );
 
 export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
     new Set<string | number>(
-      networkSpans.map(networkSpan => networkSpan.data?.statusCode ?? UNKNOWN_STATUS)
+      networkSpans
+        .map(networkSpan => networkSpan.data?.statusCode ?? UNKNOWN_STATUS)
+        .sort()
     )
   );
 
@@ -63,8 +65,9 @@ export const getFilteredNetworkSpans = (
   if (!searchTerm && Object.keys(filters).length === 0) {
     return networkSpans;
   }
+  const normalizedSearchTerm = searchTerm.toLowerCase();
+
   return networkSpans.filter(networkSpan => {
-    const normalizedSearchTerm = searchTerm.toLowerCase();
     const doesMatch = networkSpan.description
       ?.toLowerCase()
       .includes(normalizedSearchTerm);
