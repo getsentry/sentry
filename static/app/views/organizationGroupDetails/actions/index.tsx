@@ -24,7 +24,6 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -380,13 +379,12 @@ class Actions extends Component<Props, State> {
             disabled={disabled}
           />
         </GuideAnchor>
-        <Tooltip
-          disabled={!!group.inbox || disabled}
-          title={t('Issue has been reviewed')}
-          delay={300}
-        >
-          <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
-        </Tooltip>
+        <ReviewAction
+          onUpdate={this.onUpdate}
+          disabled={!group.inbox || disabled}
+          tooltip={t('Issue has been reviewed')}
+          tooltipProps={{disabled: !!group.inbox || disabled, delay: 300}}
+        />
         <Feature
           hookName="feature-disabled:open-in-discover"
           features={['discover-basic']}
