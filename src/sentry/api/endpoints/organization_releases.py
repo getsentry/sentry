@@ -187,6 +187,10 @@ def debounce_update_release_health_data(organization, project_ids):
                 # should not happen
                 continue
 
+            # Ignore versions that were saved with an empty string before validation was added
+            if version == "":
+                continue
+
             # We might have never observed the release.  This for instance can
             # happen if the release only had health data so far.  For these cases
             # we want to create the release the first time we observed it on the
