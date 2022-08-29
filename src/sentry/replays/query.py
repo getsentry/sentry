@@ -35,32 +35,6 @@ DEFAULT_OFFSET = 0
 
 Paginators = namedtuple("Paginators", ("limit", "offset"))
 
-replay_config = SearchConfig(
-    duration_keys={"duration"},
-    allowed_keys={
-        "title",
-        "platform",
-        "release",
-        "dist",
-        "duration",
-        "countSegments",
-        "user.id",
-        "user.email",
-        "user.name",
-        "user.ipAddress",
-        "sdk.name",
-        "sdk.version",
-        "os.name",
-        "os.version",
-        "browser.name",
-        "browser.version",
-        "device.name",
-        "device.brand",
-        "device.model",
-        "device.family",
-    },
-)
-
 
 def query_replays_collection(
     project_ids: List[int],
