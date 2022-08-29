@@ -761,6 +761,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   renderProjectSelect(disabled: boolean) {
     const {project: _selectedProject, projects, organization} = this.props;
+    const {rule} = this.state;
     const hasOpenMembership = organization.features.includes('open-membership');
     const myProjects = projects.filter(project => project.hasAccess && project.isMember);
     const allProjects = projects.filter(
@@ -807,7 +808,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
           return (
             <SelectControl
-              disabled={disabled}
+              disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
                 container: (provided: {[x: string]: string | number | boolean}) => ({
