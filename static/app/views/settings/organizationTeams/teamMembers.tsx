@@ -14,6 +14,7 @@ import UserAvatar from 'sentry/components/avatar/userAvatar';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,7 +28,6 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import TeamMembersRow from './teamMembersRow';
 

@@ -2,6 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,7 +13,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 interface IssueListProps extends WithRouterProps {
   endpoint: string;

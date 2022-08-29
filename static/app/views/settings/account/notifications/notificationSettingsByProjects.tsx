@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
@@ -23,7 +24,6 @@ import {
   RenderSearch,
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   notificationSettings: NotificationSettingsObject;

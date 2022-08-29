@@ -2,9 +2,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExceptionStacktraceContent from 'sentry/components/events/interfaces/crashContent/exception/stackTrace';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 describe('ExceptionStacktraceContent', () => {
   const organization = TestStubs.Organization();

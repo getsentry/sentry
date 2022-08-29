@@ -6,6 +6,7 @@ import startCase from 'lodash/startCase';
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
@@ -30,7 +31,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';

@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -17,7 +18,6 @@ import type {
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];

@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
@@ -20,7 +21,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 

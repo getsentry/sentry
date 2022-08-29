@@ -5,6 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Field from 'sentry/components/forms/field';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
@@ -19,7 +20,6 @@ import AsyncView from 'sentry/views/asyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
