@@ -65,8 +65,8 @@ export const getFilteredNetworkSpans = (
   }
   return networkSpans.filter(networkSpan => {
     const normalizedSearchTerm = searchTerm.toLowerCase();
-    const doesMatch = JSON.stringify(networkSpan.description)
-      .toLowerCase()
+    const doesMatch = networkSpan.description
+      ?.toLowerCase()
       .includes(normalizedSearchTerm);
 
     for (const key in filters) {

@@ -48,7 +48,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     [filters, networkSpans, searchTerm]
   );
 
-  const handleSearch = debounce(query => setSearchTerm(query), 150);
+  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
 
   const handleMouseEnter = useCallback(
     (timestamp: number) => {
