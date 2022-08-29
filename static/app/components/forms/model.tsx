@@ -157,12 +157,16 @@ class FormModel {
     return this.fields;
   }
 
-  /** Is form saving */
+  /**
+   * Is form saving
+   */
   get isSaving() {
     return this.formState === FormState.SAVING;
   }
 
-  /** Does form have any errors */
+  /**
+   * Does form have any errors
+   */
   get isError() {
     return !!this.errors.size;
   }
@@ -291,7 +295,9 @@ class FormModel {
     return this.errors.has(id) && this.errors.get(id);
   }
 
-  // Returns true if not required or is required and is not empty
+  /**
+   * Returns true if not required or is required and is not empty
+   */
   isValidRequiredField(id: string) {
     // Check field descriptor to see if field is required
     const isRequired = this.getDescriptor(id, 'required');
