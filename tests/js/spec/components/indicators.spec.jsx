@@ -19,7 +19,7 @@ jest.mock('framer-motion', () => ({
 
 describe('Indicators', function () {
   beforeEach(function () {
-    clearIndicators();
+    act(() => clearIndicators());
     act(jest.runAllTimers);
   });
 
@@ -68,7 +68,7 @@ describe('Indicators', function () {
   it('does not have loading indicator when "type" is empty (default)', function () {
     const {container} = render(<Indicators />);
 
-    addMessage('Loading', '', {duration: null});
+    act(() => addMessage('Loading', '', {duration: null}));
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('Indicators', function () {
   it('has a loading indicator when type is "loading"', function () {
     const {container} = render(<Indicators />);
 
-    addMessage('Loading', 'loading', {duration: null});
+    act(() => addMessage('Loading', 'loading', {duration: null}));
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -87,12 +87,12 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     // action creators don't return anything
-    addMessage('Loading', '', {duration: null});
+    act(() => addMessage('Loading', '', {duration: null}));
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
 
     // If no indicator is specified, will remove all indicators
-    clearIndicators();
+    act(() => clearIndicators());
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -101,12 +101,12 @@ describe('Indicators', function () {
   it('adds and replaces toast by calling action creators', function () {
     const {container} = render(<Indicators />);
 
-    addMessage('Loading', '', {duration: null});
+    act(() => addMessage('Loading', '', {duration: null}));
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
-    addMessage('success', 'success', {duration: null});
+    act(() => addMessage('success', 'success', {duration: null}));
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('success');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -116,14 +116,14 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     // Old indicator gets replaced when a new one is added
-    addSuccessMessage('success');
+    act(() => addSuccessMessage('success'));
 
     await waitFor(() => {
       expect(container).toHaveTextContent('success');
     });
 
-    clearIndicators();
-    addErrorMessage('error');
+    act(() => clearIndicators());
+    act(() => addErrorMessage('error'));
     await waitFor(() => {
       expect(container).toHaveTextContent('error');
     });
@@ -132,17 +132,17 @@ describe('Indicators', function () {
   it('appends toasts', function () {
     const {container} = render(<Indicators />);
 
-    addMessage('Loading', '', {append: true, duration: null});
+    act(() => addMessage('Loading', '', {append: true, duration: null}));
     act(jest.runAllTimers);
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
-    addMessage('Success', 'success', {append: true, duration: null});
+    act(() => addMessage('Success', 'success', {append: true, duration: null}));
     act(jest.runAllTimers);
     // Toasts get appended to the end
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
     expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
 
-    addMessage('Error', 'error', {append: true, duration: null});
+    act(() => addMessage('Error', 'error', {append: true, duration: null}));
     act(jest.runAllTimers);
     // Toasts get appended to the end
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
@@ -150,7 +150,7 @@ describe('Indicators', function () {
     expect(screen.getByTestId('toast-error')).toHaveTextContent('Error');
 
     // clears all toasts
-    clearIndicators();
+    act(() => clearIndicators());
     act(jest.runAllTimers);
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('Indicators', function () {
   it('dismisses on click', function () {
     const {container} = render(<Indicators />);
 
-    addMessage('Loading', '', {append: true, duration: null});
+    act(() => addMessage('Loading', '', {append: true, duration: null}));
     act(jest.runAllTimers);
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
@@ -172,7 +172,7 @@ describe('Indicators', function () {
   it('hides after 10s', function () {
     const {container} = render(<Indicators />);
 
-    addMessage('Duration', '', {append: true, duration: 10000});
+    act(() => addMessage('Duration', '', {append: true, duration: 10000}));
     act(() => jest.advanceTimersByTime(9000));
     expect(screen.getByTestId('toast')).toHaveTextContent('Duration');
 
