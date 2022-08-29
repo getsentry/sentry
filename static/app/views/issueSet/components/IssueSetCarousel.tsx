@@ -1,10 +1,12 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import {IconChevron, IconDelete} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
+import {fetchGroupEvent} from 'sentry/views/organizationGroupDetails/utils';
 
 import IssueSetCarouselItem from './IssueSetCarouselItem';
 
@@ -15,8 +17,37 @@ type Props = {
   issueSet?: any;
 };
 
-function IssueSetCarousel({issues, organization, projects}: Props) {
+function IssueSetCarousel({issues, organization, projects, ...props}: Props) {
+  const emptyIssueDataMap = {};
+  for (const issue of issues) {
+    emptyIssueDataMap[issue.id] = {};
+  }
+
   const [selectedIssueIndex, selectIssueIndex] = useState(0);
+  const [issueDataMap, updateIssueDataMap] = useState(emptyIssueDataMap);
+  const api = useApi();
+
+  useEffect(() => {
+    const eventPromises = issues.map(issue =>
+      fetchGroupEvent(
+        api,
+        organization.slug,
+        issue.id,
+        'latest',
+        [],
+        issue.project as any
+      )
+    );
+    Promise.all(eventPromises).then(events =>
+      events.forEach(event => {
+        updateIssueDataMap(dm => ({
+          ...dm,
+          [`${event.groupID}`]: {...dm[`${event.groupID}`], event},
+        }));
+      })
+    );
+  }, [api, issues, organization]);
+
   const renderMap = issues.reduce((map, issue, index) => {
     const project = projects.find(p => p.id === (issue.project as any));
     map[index] = (
@@ -25,6 +56,8 @@ function IssueSetCarousel({issues, organization, projects}: Props) {
         issue={issue}
         project={project ?? ({} as Project)}
         organization={organization}
+        event={issueDataMap[issue.id].event}
+        {...props}
       />
     );
     return map;

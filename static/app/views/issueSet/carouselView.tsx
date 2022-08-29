@@ -28,7 +28,7 @@ class IssueSetCarouselView extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, ...props} = this.props;
     const {issueSet, projects} = this.state;
     return (
       <PageContent>
@@ -38,6 +38,7 @@ class IssueSetCarouselView extends AsyncComponent<Props, State> {
           issues={issueSet.items.map(item => item.issueDetails)}
           projects={projects}
           organization={organization}
+          {...props}
         />
       </PageContent>
     );

@@ -31,7 +31,7 @@ export function getContextComponent(type: string) {
   return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
 }
 
-export function getSourcePlugin(pluginContexts: Array<any>, contextType: string) {
+export function getSourcePlugin(pluginContexts: Array<any> = [], contextType: string) {
   if (CONTEXT_TYPES[contextType]) {
     return null;
   }
