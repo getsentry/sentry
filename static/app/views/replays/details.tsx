@@ -76,13 +76,11 @@ function ReplayDetails({
 function LoadedDetails({orgSlug}: {orgSlug: string}) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
-  const durationMs = replay?.getDurationMs();
 
   return (
     <Page
       orgSlug={orgSlug}
       crumbs={replay?.getRawCrumbs()}
-      durationMs={durationMs}
       replayRecord={replay?.getReplay()}
     >
       <Layout layout={getLayout()} />

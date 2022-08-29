@@ -144,7 +144,7 @@ describe('IssueList -> Polling', function () {
       body: [groupStats],
     });
     pollRequest = MockApiClient.addMockResponse({
-      url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
       headers: {
         Link: DEFAULT_LINKS_HEADER,
@@ -197,7 +197,7 @@ describe('IssueList -> Polling', function () {
 
   it('stops polling for new issues when endpoint returns a 401', async function () {
     pollRequest = MockApiClient.addMockResponse({
-      url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
       statusCode: 401,
     });
@@ -217,7 +217,7 @@ describe('IssueList -> Polling', function () {
 
   it('stops polling for new issues when endpoint returns a 403', async function () {
     pollRequest = MockApiClient.addMockResponse({
-      url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
       statusCode: 403,
     });
@@ -238,7 +238,7 @@ describe('IssueList -> Polling', function () {
 
   it('stops polling for new issues when endpoint returns a 404', async function () {
     pollRequest = MockApiClient.addMockResponse({
-      url: `http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
       body: [],
       statusCode: 404,
     });

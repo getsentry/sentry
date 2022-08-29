@@ -45,7 +45,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _get_headers_for_insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -94,7 +93,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             return {
                 **super()._get_headers_for_insert(
-                    group,
                     event,
                     is_new,
                     is_regression,
@@ -107,7 +105,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -131,7 +128,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
 
         return super().insert(
-            group,
             event,
             is_new,
             is_regression,

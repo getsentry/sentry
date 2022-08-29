@@ -762,6 +762,8 @@ function buildRoutes() {
           )}
         />
       </Route>
+
+      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
           component={make(

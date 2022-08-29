@@ -31,6 +31,32 @@ describe('GroupStore', function () {
     });
   });
 
+  describe('addToFront()', function () {
+    it('should add new entries to beginning of the list', function () {
+      GroupStore.items = [g('2')];
+      GroupStore.addToFront([g('1'), g('3')]);
+
+      expect(GroupStore.items).toEqual([g('1'), g('3'), g('2')]);
+    });
+
+    it('should update matching existing entries', function () {
+      GroupStore.items = [g('1'), g('2')];
+
+      GroupStore.addToFront([{id: '1', foo: 'bar'}, g('3')]);
+
+      expect(GroupStore.getAllItems()).toEqual([
+        expect.objectContaining({id: '1', foo: 'bar'}),
+        g('3'),
+        g('2'),
+      ]);
+    });
+
+    it('should attempt to preserve order of ids', function () {
+      GroupStore.addToFront([g('2'), g('1'), g('3')]);
+      expect(GroupStore.getAllItemIds()).toEqual(['2', '1', '3']);
+    });
+  });
+
   describe('remove()', function () {
     it('should remove entry', function () {
       GroupStore.items = [g('1'), g('2')];
@@ -148,6 +174,19 @@ describe('GroupStore', function () {
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+      });
+      it('should apply optimistic updates', function () {
+        GroupStore.items = [g('1'), g('2')];
+        GroupStore.add([g('1'), g('2')]);
+
+        // Resolve 2 issues
+        const itemIds = ['1', '2'];
+        const data = {status: 'resolved', statusDetails: {}};
+        GroupStore.onUpdate('12345', itemIds, data);
+
+        expect(GroupStore.pendingChanges).toEqual(new Map([['12345', {itemIds, data}]]));
+        expect(GroupStore.get('1')).toEqual({...g('1'), ...data});
+        expect(GroupStore.get('2')).toEqual({...g('2'), ...data});
       });
     });
 

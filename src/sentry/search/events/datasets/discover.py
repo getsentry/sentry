@@ -52,6 +52,8 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TRACE_PARENT_SPAN_ALIAS,
+    TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
@@ -75,7 +77,6 @@ from sentry.search.events.fields import (
     SnQLStringArg,
     normalize_count_if_value,
     normalize_percentile_alias,
-    reflective_result_type,
     with_default,
 )
 from sentry.search.events.filter import (
@@ -119,6 +120,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
+            TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
         }
 
     @property
@@ -266,7 +268,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         NumberRange("percentile", 0, 1),
                     ],
                     snql_aggregate=self._resolve_percentile,
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                     combinators=[
@@ -279,7 +281,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -289,7 +291,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -299,7 +301,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -309,7 +311,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -319,7 +321,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -509,7 +511,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "min",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -517,7 +519,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "max",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                     combinators=[
@@ -528,7 +530,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "avg",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -570,7 +572,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "sum",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     combinators=[
                         SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
@@ -581,7 +583,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[SnQLFieldColumn("column")],
                     # Not actually using `any` so that this function returns consistent results
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
@@ -1485,6 +1487,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
                 0,
             )
+
+    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            return Condition(
+                Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
+                Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                1,
+            )
+        else:
+            return self.builder.get_default_converter()(search_filter)
 
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter
