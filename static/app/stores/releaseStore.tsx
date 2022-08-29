@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import OrganizationActions from 'sentry/actions/organizationActions';
-import ReleaseActions from 'sentry/actions/releaseActions';
 import {Deploy, Organization, Release} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -26,10 +25,18 @@ interface ReleaseStoreDefinition extends StoreDefinition {
   loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string): void;
 
   loadDeploysError(projectSlug: string, releaseVersion: string, error: Error): void;
-  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
+  loadDeploysSuccess(
+    projectSlug: string,
+    releaseVersion: string,
+    data: Deploy[] | null
+  ): void;
   loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string): void;
   loadReleaseError(projectSlug: string, releaseVersion: string, error: Error): void;
-  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release): void;
+  loadReleaseSuccess(
+    projectSlug: string,
+    releaseVersion: string,
+    data: Release | null
+  ): void;
   state: {
     deploys: StoreDeploys;
     deploysError: StoreError;
@@ -56,7 +63,6 @@ const storeConfig: ReleaseStoreDefinition = {
     deploysError: new Map() as StoreError,
   },
 
-  listenables: ReleaseActions,
   unsubscribeListeners: [],
 
   init() {
@@ -79,13 +85,13 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  updateOrganization(org: Organization) {
+  updateOrganization(org) {
     this.reset();
     this.state.orgSlug = org.slug;
     this.trigger(this.state);
   },
 
-  loadRelease(orgSlug: string, projectSlug: string, releaseVersion: string) {
+  loadRelease(orgSlug, projectSlug, releaseVersion) {
     // Wipe entire store if the user switched organizations
     if (!this.orgSlug || this.orgSlug !== orgSlug) {
       this.reset();
@@ -109,7 +115,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  loadReleaseError(projectSlug: string, releaseVersion: string, error: Error) {
+  loadReleaseError(projectSlug, releaseVersion, error) {
     const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
     const {releaseLoading, releaseError, ...state} = this.state;
 
@@ -127,7 +133,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  loadReleaseSuccess(projectSlug: string, releaseVersion: string, data: Release) {
+  loadReleaseSuccess(projectSlug, releaseVersion, data) {
     const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
     const {release, releaseLoading, releaseError, ...state} = this.state;
     this.state = {
@@ -148,7 +154,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  loadDeploys(orgSlug: string, projectSlug: string, releaseVersion: string) {
+  loadDeploys(orgSlug, projectSlug, releaseVersion) {
     // Wipe entire store if the user switched organizations
     if (!this.orgSlug || this.orgSlug !== orgSlug) {
       this.reset();
@@ -172,7 +178,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  loadDeploysError(projectSlug: string, releaseVersion: string, error: Error) {
+  loadDeploysError(projectSlug, releaseVersion, error) {
     const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
     const {deploysLoading, deploysError, ...state} = this.state;
 
@@ -190,7 +196,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  loadDeploysSuccess(projectSlug: string, releaseVersion: string, data: Release) {
+  loadDeploysSuccess(projectSlug, releaseVersion, data) {
     const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
     const {deploys, deploysLoading, deploysError, ...state} = this.state;
 
@@ -212,7 +218,7 @@ const storeConfig: ReleaseStoreDefinition = {
     this.trigger(this.state);
   },
 
-  get(projectSlug: string, releaseVersion: string) {
+  get(projectSlug, releaseVersion) {
     const releaseKey = getReleaseStoreKey(projectSlug, releaseVersion);
 
     return {
