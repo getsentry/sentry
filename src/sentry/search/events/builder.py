@@ -46,6 +46,7 @@ from sentry.search.events.constants import (
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
+    PERCENT_UNITS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
     SIZE_UNITS,
@@ -86,6 +87,10 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
     bulk_snql_query,
+    is_duration_measurement,
+    is_measurement,
+    is_percentage_measurement,
+    is_span_op_breakdown,
     raw_snql_query,
     resolve_column,
 )
@@ -141,6 +146,7 @@ class QueryBuilder:
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
         self.groupby: List[SelectType] = []
+
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.equation_alias_map: Dict[str, SelectType] = {}
@@ -824,6 +830,57 @@ class QueryBuilder:
                     boolean_conditions.append(condition)
 
         return flattened
+
+    @cached_property  # type: ignore
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        # Both projects & org are required, but might be missing for the search parser
+        if "project_id" not in self.params or self.organization_id is None:
+            return []
+
+        from sentry.snuba.metrics.datasource import get_custom_measurements
+
+        result: List[MetricMeta] = get_custom_measurements(
+            project_ids=self.params["project_id"],
+            organization_id=self.organization_id,
+            start=datetime.today() - timedelta(days=90),
+            end=datetime.today(),
+        )
+        return result
+
+    def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
+        # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
+        if not is_measurement(name):
+            return None
+
+        for measurement in self.custom_measurement_map:
+            if measurement["name"] == name and measurement["metric_id"] is not None:
+                return measurement
+        return None
+
+    def get_field_type(self, field: str) -> Optional[str]:
+        if (
+            field == "transaction.duration"
+            or is_duration_measurement(field)
+            or is_span_op_breakdown(field)
+        ):
+            return "duration"
+
+        if is_percentage_measurement(field):
+            return "percentage"
+        measurement = self.get_measument_by_name(field)
+        # let the caller decide what to do
+        if measurement is None:
+            return None
+
+        unit: str = measurement["unit"]
+        if unit in SIZE_UNITS or unit in DURATION_UNITS:
+            return unit
+        elif unit == "none":
+            return "integer"
+        elif unit in PERCENT_UNITS:
+            return "percentage"
+        else:
+            return "number"
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
@@ -1611,7 +1668,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self._custom_measurement_cache: Optional[List[MetricMeta]] = None
         self.tag_values_are_strings = options.get(
             "sentry-metrics.performance.tags-values-are-strings"
         )
@@ -1634,19 +1690,6 @@ class MetricsQueryBuilder(QueryBuilder):
     @property
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
-
-    @property
-    def custom_measurement_map(self) -> List[MetricMeta]:
-        if self._custom_measurement_cache is None:
-            from sentry.snuba.metrics.datasource import get_custom_measurements
-
-            self._custom_measurement_cache = get_custom_measurements(
-                project_ids=self.params["project_id"],
-                organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
-            )
-        return self._custom_measurement_cache
 
     def resolve_query(
         self,

@@ -667,7 +667,12 @@ def get_function_alias_with_columns(function_name, columns) -> str:
     return f"{function_name}_{columns}".rstrip("_")
 
 
-def get_json_meta_type(field_alias, snuba_type, function=None):
+def get_json_meta_type(field_alias, snuba_type, builder=None):
+    if builder:
+        function = builder.function_alias_map.get(field_alias)
+    else:
+        function = None
+
     alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.result_type is not None:
         return alias_definition.result_type
@@ -687,16 +692,12 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if (
-        "duration" in field_alias
-        or is_duration_measurement(field_alias)
-        or is_span_op_breakdown(field_alias)
-    ):
-        return "duration"
-    if is_measurement(field_alias):
-        return "number"
     if field_alias == "transaction.status":
         return "string"
+    # The builder will have Custom Measurement info etc.
+    field_type = builder.get_field_type(field_alias)
+    if field_type is not None:
+        return field_type
     return snuba_json
 
 
@@ -2095,6 +2096,10 @@ class MetricArg(FunctionArg):
                 raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
 
         return value
+
+    def get_type(self, value: str) -> str:
+        # Just a default
+        return "number"
 
 
 class MetricsFunction(SnQLFunction):
