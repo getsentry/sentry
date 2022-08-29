@@ -15,8 +15,6 @@ interface MemberListStoreDefinition extends StoreDefinition {
 }
 
 const storeConfig: MemberListStoreDefinition = {
-  // listenables: MemberActions,
-
   loaded: false,
   state: [],
 
