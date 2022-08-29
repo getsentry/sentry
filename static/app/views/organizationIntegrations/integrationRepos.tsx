@@ -117,7 +117,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       return selection.value === item.externalSlug;
     })[0];
 
-    let promise;
+    let promise: Promise<Repository>;
     if (migratableRepo) {
       promise = migrateRepository(this.api, orgId, migratableRepo.id, integration);
     } else {
