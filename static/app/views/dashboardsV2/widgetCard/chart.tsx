@@ -88,7 +88,7 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
   showSlider?: boolean;
-  timeseriesResultsType?: string;
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
 
@@ -297,7 +297,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       showSlider,
       noPadding,
       chartZoomOptions,
-      timeseriesResultsType,
+      timeseriesResultsTypes,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -409,18 +409,30 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) =>
-          timeseriesResultsType
-            ? tooltipFormatter(value, timeseriesResultsType as AggregationOutputType)
-            : tooltipFormatter(value, aggregateOutputType(seriesName)),
+        valueFormatter: (value: number, seriesName: string) => {
+          const aggregateName = seriesName.split(':').pop()?.trim();
+          if (aggregateName) {
+            return timeseriesResultsTypes
+              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+              : tooltipFormatter(value, aggregateOutputType(aggregateName));
+          }
+          return tooltipFormatter(value, 'number');
+        },
       },
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) =>
-            timeseriesResultsType
-              ? axisLabelFormatterUsingAggregateOutputType(value, timeseriesResultsType)
-              : axisLabelFormatter(value, aggregateOutputType(axisLabel)),
+          formatter: (value: number) => {
+            if (timeseriesResultsTypes) {
+              // Check to see if all series output types are the same. If not, then default to number.
+              const outputType =
+                new Set(Object.values(timeseriesResultsTypes)).size === 1
+                  ? timeseriesResultsTypes[axisLabel]
+                  : 'number';
+              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+            }
+            return axisLabelFormatter(value, aggregateOutputType(axisLabel));
+          },
         },
       },
     };

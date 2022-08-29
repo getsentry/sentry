@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+from django.conf import settings
+from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import resolve, reverse
 from rest_framework import status
@@ -80,6 +82,18 @@ class CustomerDomainMiddleware:
         subdomain = request.subdomain
         if subdomain is None or resolve_region(request) is not None:
             return self.get_response(request)
+
+        if (
+            settings.DISALLOWED_CUSTOMER_DOMAINS
+            and request.subdomain in settings.DISALLOWED_CUSTOMER_DOMAINS
+        ):
+            # DISALLOWED_CUSTOMER_DOMAINS is a list of org slugs that are explicitly not allowed to use customer domains.
+            # We kick any request to the logout view.
+            logout(request)
+            url_prefix = options.get("system.url-prefix")
+            logout_view = reverse("sentry-logout")
+            redirect_url = f"{url_prefix}{logout_view}"
+            return HttpResponseRedirect(redirect_url)
 
         user = getattr(request, "user", None)
         if user and user.is_authenticated and not user.is_staff:

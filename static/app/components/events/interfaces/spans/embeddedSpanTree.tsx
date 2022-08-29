@@ -15,19 +15,18 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import TraceView from './traceView';
-import {FocusedSpanIDMap} from './types';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
   event: Event;
   organization: Organization;
   projectSlug: string;
-  focusedSpanIds?: FocusedSpanIDMap;
+  affectedSpanIds?: string[];
 };
 
 // This is a wrapper class that is intended to be used within Performance Issues
 export function EmbeddedSpanTree(props: Props) {
-  const {event, organization, projectSlug, focusedSpanIds} = props;
+  const {event, organization, projectSlug, affectedSpanIds} = props;
   const api = useApi();
   const location = useLocation();
   const quickTrace = useContext(QuickTraceContext);
@@ -72,12 +71,12 @@ export function EmbeddedSpanTree(props: Props) {
         api={api}
         location={location}
       >
-        {_results => {
-          if (_results.isLoading) {
+        {results => {
+          if (results.isLoading) {
             return <LoadingIndicator />;
           }
 
-          if (!_results.tableData) {
+          if (!results.tableData) {
             return (
               <LoadingError
                 message={t(
@@ -107,10 +106,11 @@ export function EmbeddedSpanTree(props: Props) {
                   organization={organization}
                   waterfallModel={
                     new WaterfallModel(
-                      _results.tableData as EventTransaction,
-                      focusedSpanIds
+                      results.tableData as EventTransaction,
+                      affectedSpanIds
                     )
                   }
+                  isEmbedded
                 />
               </Section>
             </Wrapper>

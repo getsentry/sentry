@@ -15,6 +15,10 @@ on:
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
 
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   # This workflow is optimized to test the dev env with dev services as fast as possible
   # The bootstrap workflow (see last workflow) tests the experience of first time engineers
