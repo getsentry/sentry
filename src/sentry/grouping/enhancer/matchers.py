@@ -3,6 +3,7 @@ from typing import Optional
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+from sentry.utils import metrics
 from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
@@ -125,6 +126,7 @@ class FrameMatch(Match):
             instance = cls.instances[instance_key]
         else:
             instance = cls.instances[instance_key] = cls._from_key(key, pattern, negated)
+            metrics.gauge("grouping.enhancer.matchers.registry_size", len(cls.instances))
 
         return instance
 
