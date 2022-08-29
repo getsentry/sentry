@@ -120,7 +120,9 @@ function SentryFunctionDetails(props: Props) {
   }, [form, events]);
 
   const [envVariables, setEnvVariables] = useState(
-    sentryFunction?.env_variables || [{name: '', value: ''}]
+    sentryFunction?.env_variables?.length
+      ? sentryFunction?.env_variables
+      : [{name: '', value: ''}]
   );
 
   const handleSubmitError = err => {
