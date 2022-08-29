@@ -1,5 +1,4 @@
 import {getProjectRelease, getReleaseDeploys} from 'sentry/actionCreators/release';
-import ReleaseActions from 'sentry/actions/releaseActions';
 import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
 
 describe('ReleaseActionCreator', function () {
@@ -27,8 +26,8 @@ describe('ReleaseActionCreator', function () {
       ReleaseStore.reset();
 
       jest.restoreAllMocks();
-      jest.spyOn(ReleaseActions, 'loadRelease');
-      jest.spyOn(ReleaseActions, 'loadReleaseSuccess');
+      jest.spyOn(ReleaseStore, 'loadRelease');
+      jest.spyOn(ReleaseStore, 'loadReleaseSuccess');
 
       // XXX(leedongwei): We cannot spy on ReleaseStore at all
       // See repositories.spec.jsx beforeEach method for the reason
@@ -36,18 +35,18 @@ describe('ReleaseActionCreator', function () {
 
     it('fetches a Release and emits actions', async () => {
       getProjectRelease(api, {orgSlug, projectSlug, releaseVersion});
-      expect(ReleaseActions.loadRelease).toHaveBeenCalledWith(
+      expect(ReleaseStore.loadRelease).toHaveBeenCalledWith(
         orgSlug,
         projectSlug,
         releaseVersion
       );
-      expect(ReleaseActions.loadReleaseSuccess).not.toHaveBeenCalled();
+      expect(ReleaseStore.loadReleaseSuccess).not.toHaveBeenCalled();
 
       await tick(); // Run Store.loadRelease and fire Action.loadReleaseSuccess
       await tick(); // Run Store.loadReleaseSuccess
 
       expect(mockResponse).toHaveBeenCalledWith(releaseUrl, expect.anything());
-      expect(ReleaseActions.loadReleaseSuccess).toHaveBeenCalledWith(
+      expect(ReleaseStore.loadReleaseSuccess).toHaveBeenCalledWith(
         projectSlug,
         releaseVersion,
         mockData
@@ -62,7 +61,7 @@ describe('ReleaseActionCreator', function () {
       expect(ReleaseStore.state.releaseLoading[releaseKey]).toEqual(undefined);
 
       getProjectRelease(api, {orgSlug, projectSlug, releaseVersion});
-      expect(ReleaseActions.loadRelease).toHaveBeenCalled();
+      expect(ReleaseStore.loadRelease).toHaveBeenCalled();
       // expect(ReleaseStore.loadRelease).not.toHaveBeenCalled(); // See above for comment on ReleaseStore
       expect(ReleaseStore.state.releaseLoading[releaseKey]).toEqual(true);
     });
@@ -83,24 +82,24 @@ describe('ReleaseActionCreator', function () {
       ReleaseStore.reset();
 
       jest.restoreAllMocks();
-      jest.spyOn(ReleaseActions, 'loadDeploys');
-      jest.spyOn(ReleaseActions, 'loadDeploysSuccess');
+      jest.spyOn(ReleaseStore, 'loadDeploys');
+      jest.spyOn(ReleaseStore, 'loadDeploysSuccess');
     });
 
     it('fetch Deploys and emit an action', async () => {
       getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
-      expect(ReleaseActions.loadDeploys).toHaveBeenCalledWith(
+      expect(ReleaseStore.loadDeploys).toHaveBeenCalledWith(
         orgSlug,
         projectSlug,
         releaseVersion
       );
-      expect(ReleaseActions.loadDeploysSuccess).not.toHaveBeenCalled();
+      expect(ReleaseStore.loadDeploysSuccess).not.toHaveBeenCalled();
 
       await tick(); // Run Store.loadDeploys and fire Action.loadDeploysSuccess
       await tick(); // Run Store.loadDeploysSuccess
 
       expect(mockResponse).toHaveBeenCalledWith(deploysUrl, expect.anything());
-      expect(ReleaseActions.loadDeploysSuccess).toHaveBeenCalledWith(
+      expect(ReleaseStore.loadDeploysSuccess).toHaveBeenCalledWith(
         projectSlug,
         releaseVersion,
         [mockData]
@@ -115,7 +114,7 @@ describe('ReleaseActionCreator', function () {
       expect(ReleaseStore.state.deploysLoading[releaseKey]).toEqual(undefined);
 
       getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
-      expect(ReleaseActions.loadDeploys).toHaveBeenCalled();
+      expect(ReleaseStore.loadDeploys).toHaveBeenCalled();
       // expect(ReleaseStore.loadDeploys).not.toHaveBeenCalled(); // See above for comment on ReleaseStore
       expect(ReleaseStore.state.deploysLoading[releaseKey]).toEqual(true);
     });
