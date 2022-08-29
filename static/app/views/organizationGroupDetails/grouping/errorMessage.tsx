@@ -3,12 +3,12 @@ import {Fragment} from 'react';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingError from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Group, Organization, Project} from 'sentry/types';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type ErrorCode =
   | 'issue_not_hierarchical'

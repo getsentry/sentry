@@ -8,6 +8,7 @@ import {getCrumbsByColumn, relativeTimeInMs} from 'sentry/components/replays/uti
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
@@ -67,6 +68,7 @@ function Event({
   className?: string;
 }) {
   const {setCurrentTime} = useReplayContext();
+  const {setActiveTab} = useActiveReplayTab();
 
   const handleClick = useCallback(
     (crumb: Crumb) => {
@@ -105,8 +107,31 @@ function Event({
   // We just need to stack up to 3 times
   const totalStackNumber = Math.min(crumbs.length, 3);
 
+  // If there is only 1 event use the tab navigation handler on the node
+  const nodeClickHandler = () => {
+    if (crumbs.length === 1) {
+      const crumb = crumbs[0];
+
+      switch (crumb.type) {
+        case 'navigation':
+        case 'debug':
+          setActiveTab('network');
+          break;
+        case 'ui':
+          setActiveTab('dom');
+          break;
+        case 'error':
+          setActiveTab('issues');
+          break;
+        default:
+          setActiveTab('console');
+          break;
+      }
+    }
+  };
+
   return (
-    <IconPosition>
+    <IconPosition onClick={nodeClickHandler}>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
         {crumbs.slice(0, totalStackNumber).map((crumb, index) => (
           <IconNode

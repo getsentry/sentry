@@ -6,6 +6,7 @@ import Confirm from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +17,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   /**

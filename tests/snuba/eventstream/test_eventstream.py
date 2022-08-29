@@ -58,7 +58,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             self.project.id,
             "insert",
             (payload1, payload2),
-            is_transaction_event=insert_kwargs["group"] is None,
+            is_transaction_event=insert_kwargs["event"].group_id is None,
         )
 
     @patch("sentry.eventstream.insert")
@@ -72,7 +72,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         assert not insert_args
         assert insert_kwargs == {
             "event": event,
-            "group": event.group,
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
@@ -100,7 +99,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         insert_args = ()
         insert_kwargs = {
             "event": event,
-            "group": None,
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
