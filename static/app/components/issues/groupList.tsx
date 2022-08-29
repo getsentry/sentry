@@ -21,7 +21,6 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
-import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
@@ -113,7 +112,6 @@ class GroupList extends Component<Props, State> {
   }
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
-  private _streamManager = new StreamManager(GroupStore);
 
   fetchData = async () => {
     GroupStore.loadInitialData([]);
@@ -155,7 +153,7 @@ class GroupList extends Component<Props, State> {
         includeAllArgs: true,
       });
 
-      this._streamManager.push(data);
+      GroupStore.add(data);
 
       this.setState(
         {
@@ -218,7 +216,7 @@ class GroupList extends Component<Props, State> {
   }
 
   onGroupChange() {
-    const groups = this._streamManager.getAllItems();
+    const groups = GroupStore.getAllItems() as Group[];
     if (!isEqual(groups, this.state.groups)) {
       this.setState({groups});
     }
