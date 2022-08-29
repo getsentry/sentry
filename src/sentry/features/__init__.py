@@ -152,6 +152,7 @@ default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:dashboard-custom-measurement-widgets", OrganizationFeature, True)
+default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
@@ -190,7 +191,6 @@ default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:sso-basic", OrganizationFeature)
 default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
-default_manager.add("organizations:u2f-superuser-form", OrganizationFeature)
 
 # Project scoped features
 default_manager.add("projects:active-release-monitor-default-on", ProjectFeature)

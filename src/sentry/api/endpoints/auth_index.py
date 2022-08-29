@@ -208,7 +208,7 @@ class AuthIndexEndpoint(Endpoint):
                         "organizations:u2f-superuser-form", superuser_org, actor=request.user
                     )
 
-                if verify_authenticator or not DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL:
+                if verify_authenticator:
                     if not Authenticator.objects.filter(
                         user_id=request.user.id, type=U2fInterface.type
                     ).exists():
