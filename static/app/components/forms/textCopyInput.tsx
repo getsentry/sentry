@@ -4,41 +4,11 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
+import Input, {InputProps} from 'sentry/components/input';
 import {IconCopy} from 'sentry/icons';
-import {inputStyles} from 'sentry/styles/input';
 import {selectText} from 'sentry/utils/selectText';
 
-const Wrapper = styled('div')`
-  display: flex;
-`;
-
-export const StyledInput = styled('input')<{rtl?: boolean}>`
-  ${inputStyles};
-  background-color: ${p => p.theme.backgroundSecondary};
-  border-right-width: 0;
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
-
-  &:hover,
-  &:focus {
-    background-color: ${p => p.theme.backgroundSecondary};
-    border-right-width: 0;
-  }
-`;
-
-const OverflowContainer = styled('div')`
-  flex-grow: 1;
-  border: none;
-`;
-
-export const StyledCopyButton = styled(Button)`
-  flex-shrink: 1;
-  border-radius: 0 0.25em 0.25em 0;
-  box-shadow: none;
-`;
-
-type Props = {
+interface Props extends Omit<InputProps, 'onCopy'> {
   /**
    * Text to copy
    */
@@ -51,9 +21,18 @@ type Props = {
    */
   rtl?: boolean;
   style?: React.CSSProperties;
-};
+}
 
-function TextCopyInput({className, disabled, style, onCopy, rtl, children}: Props) {
+function TextCopyInput({
+  className,
+  disabled,
+  style,
+  onCopy,
+  rtl,
+  size,
+  children,
+  ...inputProps
+}: Props) {
   const textRef = useRef<HTMLInputElement>(null);
 
   const handleSelectText = useCallback(() => {
@@ -106,20 +85,25 @@ function TextCopyInput({className, disabled, style, onCopy, rtl, children}: Prop
 
   return (
     <Wrapper className={className}>
-      <OverflowContainer>
-        <StyledInput
-          readOnly
-          disabled={disabled}
-          ref={textRef}
-          style={style}
-          value={inputValue}
-          onClick={handleSelectText}
-          rtl={rtl}
-        />
-      </OverflowContainer>
+      <StyledInput
+        readOnly
+        disabled={disabled}
+        ref={textRef}
+        style={style}
+        value={inputValue}
+        onClick={handleSelectText}
+        size={size}
+        rtl={rtl}
+        {...inputProps}
+      />
       <Clipboard hideUnsupported value={children}>
-        <StyledCopyButton type="button" disabled={disabled} onClick={handleCopyClick}>
-          <IconCopy />
+        <StyledCopyButton
+          type="button"
+          size={size}
+          disabled={disabled}
+          onClick={handleCopyClick}
+        >
+          <IconCopy size={size === 'xs' ? 'xs' : 'sm'} />
         </StyledCopyButton>
       </Clipboard>
     </Wrapper>
@@ -127,3 +111,28 @@ function TextCopyInput({className, disabled, style, onCopy, rtl, children}: Prop
 }
 
 export default TextCopyInput;
+
+const Wrapper = styled('div')`
+  display: flex;
+`;
+
+export const StyledInput = styled(Input)<{rtl?: boolean}>`
+  position: relative;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right-color: transparent;
+  direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
+
+  &:focus {
+    z-index: 1;
+    border-right-color: ${p => p.theme.focusBorder};
+  }
+`;
+
+export const StyledCopyButton = styled(Button)`
+  flex-shrink: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  box-shadow: none;
+  transform: translateX(-1px);
+`;
