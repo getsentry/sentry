@@ -90,7 +90,7 @@ class SnubaProtocolEventStream(EventStream):
 
     @staticmethod
     def _is_transaction_event(event) -> bool:
-        return event.group_id is None
+        return event.get_event_type() == "transaction"
 
     def insert(
         self,
