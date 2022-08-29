@@ -182,7 +182,7 @@ werkzeug==2.1.2
 wheel==0.37.1
 wrapt==1.14.1
 wsproto==1.1.0
-xmlsec==1.3.11
+xmlsec==1.3.12
 zstandard==0.18.0
 
 # The following packages are considered to be unsafe in a requirements file:
