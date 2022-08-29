@@ -828,7 +828,7 @@ class QueryBuilder:
 
         return flattened
 
-    @cached_property
+    @cached_property  # type: ignore
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
         if "project_id" not in self.params or self.organization_id is None:
@@ -836,12 +836,13 @@ class QueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
-        return get_custom_measurements(
+        result: List[MetricMeta] = get_custom_measurements(
             project_ids=self.params["project_id"],
             organization_id=self.organization_id,
             start=datetime.today() - timedelta(days=90),
             end=datetime.today(),
         )
+        return result
 
     def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
