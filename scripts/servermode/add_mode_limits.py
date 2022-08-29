@@ -7,7 +7,7 @@ import re
 import sys
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Iterable
+from typing import Callable, Iterable, Tuple
 
 from sentry.utils import json
 
@@ -29,7 +29,7 @@ class ClassCategory(Enum):
 
 @dataclass
 class LimitedClass:
-    package: str
+    module: str
     name: str
     category: ClassCategory
     is_decorated: bool
@@ -38,15 +38,15 @@ class LimitedClass:
 def parse_audit(audit) -> Iterable[LimitedClass]:
     def split_qualname(value):
         dot_index = value.rindex(".")
-        package = value[:dot_index]
+        module = value[:dot_index]
         name = value[dot_index + 1 :]
-        return package, name
+        return module, name
 
     def parse_group(category, dec_group):
         is_decorated = dec_group["decorator"] is not None
         for value in dec_group["values"]:
-            package, name = split_qualname(value)
-            yield LimitedClass(package, name, category, is_decorated)
+            module, name = split_qualname(value)
+            yield LimitedClass(module, name, category, is_decorated)
 
     for dec_group in audit["models"]["decorators"]:
         yield from parse_group(ClassCategory.MODEL, dec_group)
@@ -88,14 +88,23 @@ def insert_import(src_code: str, import_stmt: str) -> str:
         return import_stmt + "\n" + src_code
 
 
+def is_module(src_path: str, module_name: str) -> bool:
+    if module_name is None:
+        return False
+    suffix = ".py"
+    return src_path.endswith(suffix) and (
+        src_path[: -len(suffix)].replace("/", ".").endswith(module_name)
+    )
+
+
 def apply_decorators(
     decorator_name: str,
     import_stmt: str,
-    target_classes: Iterable[LimitedClass],
+    target_names: Iterable[Tuple[str, str]],
 ) -> None:
-    target_names = {c.name for c in target_classes if not c.is_decorated}
+    targets = {class_name: module_name for (module_name, class_name) in target_names}
     for src_path, class_name in find_class_declarations():
-        if class_name in target_names:
+        if is_module(src_path, targets.get(class_name)):
             with open(src_path) as f:
                 src_code = f.read()
             new_code = re.sub(
@@ -111,8 +120,18 @@ def apply_decorators(
 def main():
     classes = read_audit()
 
-    def filter_classes(category, predicate):
-        return (c for c in classes if c.category == category and predicate(c))
+    def execute(
+        decorator_name: str,
+        import_stmt: str,
+        category: ClassCategory,
+        predicate: Callable[[LimitedClass], bool],
+    ) -> None:
+        filtered_targets = (
+            (c.module, c.name)
+            for c in classes
+            if c.category == category and not c.is_decorated and predicate(c)
+        )
+        apply_decorators(decorator_name, import_stmt, filtered_targets)
 
     ####################################################################
     # Fill these predicates in with the logic you want to apply
@@ -131,25 +150,29 @@ def main():
 
     ####################################################################
 
-    apply_decorators(
+    execute(
         "control_silo_model",
         "from sentry.db.models import control_silo_model",
-        filter_classes(ClassCategory.MODEL, control_model_predicate),
+        ClassCategory.MODEL,
+        control_model_predicate,
     )
-    apply_decorators(
+    execute(
         "customer_silo_model",
         "from sentry.db.models import customer_silo_model",
-        filter_classes(ClassCategory.MODEL, customer_model_predicate),
+        ClassCategory.MODEL,
+        customer_model_predicate,
     )
-    apply_decorators(
+    execute(
         "control_silo_endpoint",
         "from sentry.api.base import control_silo_endpoint",
-        filter_classes(ClassCategory.VIEW, control_endpoint_predicate),
+        ClassCategory.VIEW,
+        control_endpoint_predicate,
     )
-    apply_decorators(
+    execute(
         "customer_silo_endpoint",
         "from sentry.api.base import customer_silo_endpoint",
-        filter_classes(ClassCategory.VIEW, customer_endpoint_predicate),
+        ClassCategory.VIEW,
+        customer_endpoint_predicate,
     )
 
 
