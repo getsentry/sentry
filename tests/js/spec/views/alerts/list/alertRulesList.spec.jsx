@@ -24,10 +24,10 @@ describe('AlertRulesList', () => {
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const getComponent = props => (
-    <OrganizationContext.Provider value={organization}>
+  const getComponent = (props = {}) => (
+    <OrganizationContext.Provider value={props.organization ?? organization}>
       <AlertRulesList
-        organization={organization}
+        organization={props.organization ?? organization}
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
         router={router}
