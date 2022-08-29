@@ -1,9 +1,11 @@
 import pickle
+from unittest import mock
 
 import pytest
 
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
+from sentry.event_manager import _pull_out_data
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
@@ -248,19 +250,26 @@ class EventTest(TestCase):
         assert not event_from_nodestore.group
 
     def test_snuba_data_transaction(self):
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "level": "info",
-                "message": "Foo bar",
-                "culprit": "app/components/events/eventEntries in map",
-                "type": "transaction",
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1)),
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            project_id=self.project.id,
-        )
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].group_ids = [self.group.id]
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "level": "info",
+                    "message": "Foo bar",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "type": "transaction",
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                },
+                project_id=self.project.id,
+            )
 
         event_from_nodestore = Event(project_id=self.project.id, event_id="a" * 32)
 
@@ -283,9 +292,6 @@ class EventTest(TestCase):
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
             )["data"][0],
         )
-        # TODO: Remove this once snuba is writing group_ids, and we can create groups as part
-        # of self.store_event
-        event_from_snuba.groups = [self.group]
 
         assert event_from_nodestore.event_id == event_from_snuba.event_id
         assert event_from_nodestore.project_id == event_from_snuba.project_id
