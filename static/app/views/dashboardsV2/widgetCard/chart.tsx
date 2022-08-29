@@ -88,7 +88,7 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
   showSlider?: boolean;
-  timeseriesResultsType?: string;
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
 
@@ -297,7 +297,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       showSlider,
       noPadding,
       chartZoomOptions,
-      timeseriesResultsType,
+      timeseriesResultsTypes,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -409,17 +409,25 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       },
       tooltip: {
         trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) =>
-          timeseriesResultsType
-            ? tooltipFormatter(value, timeseriesResultsType as AggregationOutputType)
-            : tooltipFormatter(value, aggregateOutputType(seriesName)),
+        valueFormatter: (value: number, seriesName: string) => {
+          const aggregateName = seriesName.split(':').pop()?.trim();
+          if (aggregateName) {
+            return timeseriesResultsTypes
+              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+              : tooltipFormatter(value, aggregateOutputType(aggregateName));
+          }
+          return tooltipFormatter(value, 'number');
+        },
       },
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
           formatter: (value: number) =>
-            timeseriesResultsType
-              ? axisLabelFormatterUsingAggregateOutputType(value, timeseriesResultsType)
+            timeseriesResultsTypes
+              ? axisLabelFormatterUsingAggregateOutputType(
+                  value,
+                  timeseriesResultsTypes[axisLabel]
+                )
               : axisLabelFormatter(value, aggregateOutputType(axisLabel)),
         },
       },
