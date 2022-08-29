@@ -183,9 +183,8 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const links = parseLinkHeader(this.state.pageLinks);
     this._poller = new CursorPoller({
-      endpoint: links.previous?.href || '',
+      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
     });
 
@@ -689,12 +688,7 @@ class IssueListOverview extends Component<Props, State> {
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      // Remove collapse stats from endpoint before supplying to poller
-      const issueEndpoint = new URL(links.previous.href, window.location.origin);
-      issueEndpoint.searchParams.delete('collapse');
-      this._poller.setEndpoint(
-        decodeURIComponent(issueEndpoint.pathname + issueEndpoint.search)
-      );
+      this._poller.setEndpoint(links?.previous?.href);
       this._poller.enable();
     }
   };

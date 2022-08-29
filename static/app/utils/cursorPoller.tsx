@@ -2,7 +2,7 @@ import {Client, Request} from 'sentry/api';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
 type Options = {
-  endpoint: string;
+  linkPreviousHref: string;
   success: (data: any, link?: string | null) => void;
 };
 
@@ -12,12 +12,12 @@ const MAX_DELAY = 60000;
 class CursorPoller {
   constructor(options: Options) {
     this.options = options;
-    this.pollingEndpoint = options.endpoint;
+    this.setEndpoint(options.linkPreviousHref);
   }
 
   api = new Client();
   options: Options;
-  pollingEndpoint: string;
+  pollingEndpoint: string = '';
   timeoutId: number | null = null;
   lastRequest: Request | null = null;
   active: boolean = true;
@@ -29,8 +29,20 @@ class CursorPoller {
     return Math.min(delay, MAX_DELAY);
   }
 
-  setEndpoint(url: string) {
-    this.pollingEndpoint = url;
+  setEndpoint(linkPreviousHref: string) {
+    if (!linkPreviousHref) {
+      this.pollingEndpoint = '';
+      return;
+    }
+
+    const issueEndpoint = new URL(linkPreviousHref, window.location.origin);
+
+    // Remove collapse stats
+    issueEndpoint.searchParams.delete('collapse');
+
+    this.pollingEndpoint = decodeURIComponent(
+      issueEndpoint.pathname + issueEndpoint.search
+    );
   }
 
   enable() {
@@ -78,7 +90,7 @@ class CursorPoller {
 
         const linksHeader = resp?.getResponseHeader('Link') ?? null;
         const links = parseLinkHeader(linksHeader);
-        this.pollingEndpoint = links.previous.href;
+        this.setEndpoint(links.previous.href);
 
         this.options.success(data, linksHeader);
       },
