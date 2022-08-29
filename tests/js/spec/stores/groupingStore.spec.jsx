@@ -356,9 +356,9 @@ describe('Grouping Store', function () {
         const promise = GroupingStore.onMerge({
           params: {
             orgId: 'orgId',
-            projectId: 'projectId',
             groupId: 'groupId',
           },
+          projectId: 'projectId',
         });
 
         mergeState.set('1', {checked: true, busy: true});
@@ -414,9 +414,9 @@ describe('Grouping Store', function () {
         const promise = GroupingStore.onMerge({
           params: {
             orgId: 'orgId',
-            projectId: 'projectId',
             groupId: 'groupId',
           },
+          projectId: 'projectId',
         });
 
         mergeState.set('1', {checked: true, busy: true});
@@ -456,9 +456,9 @@ describe('Grouping Store', function () {
         const promise = GroupingStore.onMerge({
           params: {
             orgId: 'orgId',
-            projectId: 'projectId',
             groupId: 'groupId',
           },
+          projectId: 'projectId',
         });
 
         mergeState.set('1', {checked: true, busy: true});
