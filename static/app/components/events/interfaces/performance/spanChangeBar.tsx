@@ -16,9 +16,11 @@ export function SpanChangeBar() {
         <HighlightedText>{t('(Bad Span Added)')}</HighlightedText>
       </ContextualDetail>
 
-      <ChangeBar>
-        <ChangeBarText>XX.X ms</ChangeBarText>
-      </ChangeBar>
+      <ChangeBarBackdrop>
+        <ChangeBar>
+          <ChangeBarText>XX.X ms</ChangeBarText>
+        </ChangeBar>
+      </ChangeBarBackdrop>
 
       <Footer>
         <IconClock />
@@ -29,11 +31,9 @@ export function SpanChangeBar() {
   );
 }
 
-const Header = styled('div')`
-  color: ${p => p.theme.gray300};
+const ContextualDetail = styled('div')`
+  margin-bottom: ${space(1)};
 `;
-
-const ContextualDetail = styled('div')``;
 
 const HighlightedText = styled('span')`
   color: ${p => p.theme.purple300};
@@ -43,12 +43,17 @@ const ChangeBar = styled('div')`
   background: ${p => p.theme.purple400};
   color: ${p => p.theme.white};
   font-size: 10px;
-  width: 100%;
+  width: 15%;
   height: ${space(3)};
+  margin-bottom: ${space(1)};
 
   display: flex;
   align-items: center;
   justify-content: flex-end;
+`;
+
+const ChangeBarBackdrop = styled('div')`
+  background: ${p => p.theme.gray100};
 `;
 
 const ChangeBarText = styled('div')`

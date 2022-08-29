@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
+
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {EventError, Group, Organization} from 'sentry/types';
