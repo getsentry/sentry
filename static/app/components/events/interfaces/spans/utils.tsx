@@ -3,6 +3,7 @@ import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import maxBy from 'lodash/maxBy';
+import padStart from 'lodash/padStart';
 import set from 'lodash/set';
 import moment from 'moment';
 
@@ -913,3 +914,45 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   sample: 2,
   info: 1,
 };
+
+/**
+ * Formats start and end unix timestamps by inserting a leading zero if needed, so they can have the same length
+ */
+export function getFormattedTimeRangeWithLeadingZero(start: number, end: number) {
+  const stringStart = String(start).split('.');
+  const stringEnd = String(end).split('.');
+
+  if (stringStart.length !== stringEnd.length) {
+    return {
+      start,
+      end,
+    };
+  }
+
+  const newTimeStamps = stringStart.reduce(
+    (acc, stringStartTimestamp, index) => {
+      if (stringStartTimestamp.length > stringEnd[index].length) {
+        acc.start.push(Number(stringStartTimestamp));
+        acc.end.push(
+          Number(padStart(stringEnd[index], stringStartTimestamp.length, '0'))
+        );
+        return acc;
+      }
+
+      acc.start.push(
+        Number(padStart(stringStartTimestamp, stringEnd[index].length, '0'))
+      );
+      acc.end.push(Number(stringEnd[index]));
+      return acc;
+    },
+    {start: [], end: []} as {
+      end: number[];
+      start: number[];
+    }
+  );
+
+  return {
+    start: newTimeStamps.start.join('.'),
+    end: newTimeStamps.end.join('.'),
+  };
+}
