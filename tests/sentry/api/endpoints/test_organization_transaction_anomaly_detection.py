@@ -64,15 +64,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "query": "transaction.duration:>5s event.type:transaction",
             "data": self.snuba_raw_data,
             "granularity": 600,
-            "params": {
-                "start": datetime(2022, 1, 25, 12, 0, tzinfo=timezone.utc),
-                "end": datetime(2022, 2, 8, 12, 0, tzinfo=timezone.utc),
-                "project_objects": [self.project],
-                "project_id": [self.project.id],
-                "organization_id": self.organization.id,
-                "user_id": self.user.id,
-                "team_id": [self.team.id],
-            },
             "start": "2022-02-01 00:00:00",
             "end": "2022-02-02 00:00:00",
         }
@@ -99,15 +90,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "query": "transaction.duration:>5s event.type:transaction",
             "data": self.snuba_raw_data,
             "granularity": 600,
-            "params": {
-                "start": datetime(2022, 1, 28, 3, 21, 34, tzinfo=timezone.utc),
-                "end": datetime(2022, 2, 11, 3, 21, 34, tzinfo=timezone.utc),
-                "project_objects": [self.project],
-                "project_id": [self.project.id],
-                "organization_id": self.organization.id,
-                "user_id": self.user.id,
-                "team_id": [self.team.id],
-            },
             "start": "2022-02-10 14:21:34",
             "end": "2022-02-11 03:21:34",
         }
@@ -133,15 +115,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(APITestCase, SnubaTestCase
             "query": "event.type:transaction",
             "data": self.snuba_raw_data,
             "granularity": 1200,
-            "params": {
-                "start": datetime(2021, 12, 20, 0, 0, tzinfo=timezone.utc),
-                "end": datetime(2022, 1, 17, 0, 0, tzinfo=timezone.utc),
-                "project_objects": [self.project],
-                "project_id": [self.project.id],
-                "organization_id": self.organization.id,
-                "user_id": self.user.id,
-                "team_id": [self.team.id],
-            },
             "start": "2022-01-01 00:00:00",
             "end": "2022-01-05 00:00:00",
         }
