@@ -375,6 +375,8 @@ def initialize_app(config, skip_service_validation=False):
 
     setup_services(validate=not skip_service_validation)
 
+    configure_arroyo()
+
     from django.utils import timezone
 
     from sentry.app import env
@@ -382,6 +384,20 @@ def initialize_app(config, skip_service_validation=False):
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
+
+
+def configure_arroyo():
+    # Arroyo is configured in such a central place because
+    #
+    # 1) it doesn't harm any process that doesn't use arroyo
+    # 2) we want arroyo to be fully configured in subprocesses of the multiprocessing consumer
+    from arroyo import configure_metrics
+
+    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
+    from sentry.utils.metrics import backend
+
+    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics_wrapper)
 
 
 def setup_services(validate=True):
