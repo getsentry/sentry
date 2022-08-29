@@ -95,7 +95,7 @@ def convert_status_value(value, projects, user, environments):
 
 
 def convert_category_value(value, projects, user, environments):
-    if features.has("projects:performance-issue-details-backend", projects[0]):
+    if features.has("organizations:performance-issue-details-backend", projects[0].organization):
         for category in value:
             for member in GroupCategory:
                 if category.upper() == member.name:
@@ -106,7 +106,7 @@ def convert_category_value(value, projects, user, environments):
 
 
 def convert_type_value(value, projects, user, environments):
-    if features.has("projects:performance-issue-details-backend", projects[0]):
+    if features.has("organizations:performance-issue-details-backend", projects[0].organization):
         for type in value:
             for member in GroupType:
                 if type.upper() == member.name:

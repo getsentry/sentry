@@ -387,7 +387,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
 
     def test_category(self):
-        with self.feature("projects:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issue-details-backend"):
             results = self.make_query(search_filter_query="category:error")
         assert set(results) == {self.group1, self.group2}
 
@@ -401,17 +401,16 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         group_3 = event_3.group
         group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
-        group_3.save()
-        with self.feature("projects:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issue-details-backend"):
             results = self.make_query(search_filter_query="category:performance")
         assert set(results) == {group_3}
 
         with pytest.raises(InvalidSearchQuery):
-            with self.feature("projects:performance-issue-details-backend"):
+            with self.feature("organizations:performance-issue-details-backend"):
                 self.make_query(search_filter_query="category:hellboy")
 
     def test_type(self):
-        with self.feature("projects:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issue-details-backend"):
             results = self.make_query(search_filter_query="type:error")
         assert set(results) == {self.group1, self.group2}
 
@@ -426,9 +425,8 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         group_3 = event_3.group
         group_3.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
-        group_3.save()
 
-        with self.feature("projects:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issue-details-backend"):
             results = self.make_query(search_filter_query="type:performance_n_plus_one")
         assert set(results) == {group_3}
 
@@ -442,13 +440,12 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         group_4 = event_4.group
         group_4.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        group_4.save()
-        with self.feature("projects:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issue-details-backend"):
             results = self.make_query(search_filter_query="type:performance_slow_span")
         assert set(results) == {group_4}
 
         with pytest.raises(InvalidSearchQuery):
-            with self.feature("projects:performance-issue-details-backend"):
+            with self.feature("organizations:performance-issue-details-backend"):
                 self.make_query(search_filter_query="type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
