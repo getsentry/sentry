@@ -1300,7 +1300,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
-            group=event.group,
             event=event,
             is_new=True,
             is_regression=False,
@@ -1315,7 +1314,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         # Ensure that the next event in the (group, environment) pair is *not*
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
-            group=event.group,
             event=event,
             is_new=False,
             is_regression=None,  # XXX: wut

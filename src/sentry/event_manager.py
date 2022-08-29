@@ -983,7 +983,6 @@ def _eventstream_insert_many(jobs):
             )
 
         eventstream.insert(
-            group=job["group"],
             event=job["event"],
             is_new=job["is_new"],
             is_regression=job["is_regression"],

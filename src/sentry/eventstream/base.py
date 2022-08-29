@@ -60,7 +60,6 @@ class EventStream(Service):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,

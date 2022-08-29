@@ -78,7 +78,6 @@ class SnubaProtocolEventStream(EventStream):
 
     def _get_headers_for_insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -95,7 +94,6 @@ class SnubaProtocolEventStream(EventStream):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -120,7 +118,6 @@ class SnubaProtocolEventStream(EventStream):
             logger.error("%r received unexpected tags: %r", self, unexpected_tags)
 
         headers = self._get_headers_for_insert(
-            group,
             event,
             is_new,
             is_regression,
@@ -366,7 +363,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -377,7 +373,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         **kwargs,
     ):
         super().insert(
-            group,
             event,
             is_new,
             is_regression,
