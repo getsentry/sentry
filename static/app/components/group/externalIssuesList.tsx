@@ -131,7 +131,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       activeIntegrations.reduce((acc, curr) => {
         const items = acc.get(curr.provider.key);
 
-        if (!!items) {
+        if (items) {
           acc.set(curr.provider.key, [...items, curr]);
         } else {
           acc.set(curr.provider.key, [curr]);

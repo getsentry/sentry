@@ -28,14 +28,14 @@ function DashboardWidgetLibraryTab({
   setErrored,
 }: Props) {
   let defaultWidgets = DEFAULT_WIDGETS;
-  if (!!!organization.features.includes('dashboards-releases')) {
+  if (!organization.features.includes('dashboards-releases')) {
     defaultWidgets = defaultWidgets.filter(
-      widget => !!!(widget.widgetType === WidgetType.RELEASE)
+      widget => !(widget.widgetType === WidgetType.RELEASE)
     );
   }
   return (
     <Fragment>
-      {errored && !!!selectedWidgets.length ? (
+      {errored && !selectedWidgets.length ? (
         <Alert type="error">
           {t(
             'Please select at least one Widget from our Library. Alternatively, you can build a custom widget from scratch.'

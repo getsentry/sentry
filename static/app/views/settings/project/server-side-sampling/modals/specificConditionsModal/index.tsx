@@ -78,7 +78,7 @@ export function SpecificConditionsModal({
 
   useEffect(() => {
     setData(d => {
-      if (!!d.errors.sampleRate) {
+      if (d.errors.sampleRate) {
         return {...d, errors: {...d.errors, sampleRate: undefined}};
       }
 
@@ -348,7 +348,7 @@ export function SpecificConditionsModal({
             label={`${t('Sample Rate')} \u0025`}
             name="sampleRate"
             onChange={value => {
-              setData({...data, samplePercentage: !!value ? Number(value) : null});
+              setData({...data, samplePercentage: value ? Number(value) : null});
             }}
             onKeyDown={(_value: string, e: KeyboardEvent) => {
               if (e.key === 'Enter') {

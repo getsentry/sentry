@@ -98,7 +98,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
 
     const options: FilterOptions = [];
 
-    if (!!typeOptions.length) {
+    if (typeOptions.length) {
       options.push({
         value: 'types',
         label: t('Types'),
@@ -106,7 +106,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
       });
     }
 
-    if (!!levels.length) {
+    if (levels.length) {
       options.push({
         value: 'levels',
         label: t('Levels'),
@@ -224,13 +224,13 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
       );
     }
 
-    if (!![...checkedTypeOptions].length) {
+    if ([...checkedTypeOptions].length) {
       return breadcrumbs.filter(filteredCrumb =>
         checkedTypeOptions.has(filteredCrumb.type)
       );
     }
 
-    if (!![...checkedLevelOptions].length) {
+    if ([...checkedLevelOptions].length) {
       return breadcrumbs.filter(filteredCrumb =>
         checkedLevelOptions.has(filteredCrumb.level)
       );
@@ -282,7 +282,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
   }
 
   function getEmptyMessage() {
-    if (!!filteredBySearch.length) {
+    if (filteredBySearch.length) {
       return {};
     }
 

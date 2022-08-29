@@ -234,7 +234,7 @@ class Candidates extends Component<Props, State> {
   getEmptyMessage() {
     const {searchTerm, filteredCandidatesByFilter: images, filterSelections} = this.state;
 
-    if (!!images.length) {
+    if (images.length) {
       return {};
     }
 

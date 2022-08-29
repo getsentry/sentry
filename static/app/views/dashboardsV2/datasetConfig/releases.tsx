@@ -332,7 +332,7 @@ export function transformSessionsResponseToSeries(
       // derived status metrics through the Sessions API,
       // they are injected into the payload and need to be
       // stripped.
-      if (!!!injectedFields.includes(derivedMetricsToField(field))) {
+      if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
           data: data.intervals.map((interval, index) => ({
@@ -464,7 +464,7 @@ function getReleasesRequest(
   let requester;
   if (useSessionAPI) {
     const sessionAggregates = aggregates.filter(
-      agg => !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+      agg => !Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
     );
     requestData = {
       field: sessionAggregates,
@@ -510,12 +510,12 @@ function getReleasesRequest(
 
     if (
       rawOrderby &&
-      !!!unsupportedOrderby &&
-      !!!aggregates.includes(rawOrderby) &&
-      !!!columns.includes(rawOrderby)
+      !unsupportedOrderby &&
+      !aggregates.includes(rawOrderby) &&
+      !columns.includes(rawOrderby)
     ) {
       requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
-      if (!!!injectedFields.includes(rawOrderby)) {
+      if (!injectedFields.includes(rawOrderby)) {
         injectedFields.push(rawOrderby);
       }
     }

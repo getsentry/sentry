@@ -44,7 +44,7 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             onSetStepOneData({
               ...stepOneData,
               issuer: e.target.value,
-              errors: !!stepOneData.errors
+              errors: stepOneData.errors
                 ? {...stepOneData.errors, issuer: undefined}
                 : undefined,
             })
@@ -68,7 +68,7 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             onSetStepOneData({
               ...stepOneData,
               keyId: e.target.value,
-              errors: !!stepOneData.errors
+              errors: stepOneData.errors
                 ? {...stepOneData.errors, keyId: undefined}
                 : undefined,
             })

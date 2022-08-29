@@ -45,7 +45,7 @@ function getIntendedStackView(
   exception: ReturnType<typeof getThreadException>
 ): STACK_VIEW {
   if (exception) {
-    return !!exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+    return exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
       ? STACK_VIEW.APP
       : STACK_VIEW.FULL;
   }
@@ -65,7 +65,7 @@ function Threads({
   const threads = data.values ?? [];
 
   const [state, setState] = useState<State>(() => {
-    const thread = !!threads.length ? findBestThread(threads) : undefined;
+    const thread = threads.length ? findBestThread(threads) : undefined;
     return {activeThread: thread};
   });
 

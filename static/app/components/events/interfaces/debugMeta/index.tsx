@@ -480,7 +480,7 @@ class DebugMeta extends PureComponent<Props, State> {
   getEmptyMessage() {
     const {searchTerm, filteredImagesByFilter: images, filterSelections} = this.state;
 
-    if (!!images.length) {
+    if (images.length) {
       return {};
     }
 

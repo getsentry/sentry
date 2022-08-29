@@ -221,7 +221,7 @@ function getFormatter({
             subLabel => subLabel.parentLabel === s.seriesName
           );
 
-          if (!!filteredSubLabels.length) {
+          if (filteredSubLabels.length) {
             const labelWithSubLabels = [
               `<div><span class="tooltip-label">${marker} <strong>${formattedLabel}</strong></span> ${value}</div>`,
             ];

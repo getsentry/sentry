@@ -71,7 +71,7 @@ class NoteInputComponent extends Component<Props, State> {
   }
 
   submitForm() {
-    if (!!this.props.modelId) {
+    if (this.props.modelId) {
       this.update();
       return;
     }

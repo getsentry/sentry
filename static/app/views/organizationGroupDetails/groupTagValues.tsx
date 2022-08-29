@@ -265,7 +265,7 @@ class GroupTagValues extends AsyncComponent<
             ]}
             emptyMessage={t('Sorry, the tags for this issue could not be found.')}
             emptyAction={
-              !!environments?.length
+              environments?.length
                 ? t('No tags were found for the currently selected environments')
                 : null
             }

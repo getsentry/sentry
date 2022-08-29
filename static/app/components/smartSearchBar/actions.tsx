@@ -56,12 +56,12 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
 
       trackAdvancedAnalyticsEvent('search.pin', {
         organization,
-        action: !!pinnedSearch ? 'unpin' : 'pin',
+        action: pinnedSearch ? 'unpin' : 'pin',
         search_type: savedSearchType === SavedSearchType.ISSUE ? 'issues' : 'events',
         query: pinnedSearch?.query ?? query,
       });
 
-      if (!!pinnedSearch) {
+      if (pinnedSearch) {
         unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
           browserHistory.push({
             ...location,
@@ -95,7 +95,7 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
       });
     };
 
-    const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
+    const pinTooltip = pinnedSearch ? t('Unpin this search') : t('Pin this search');
 
     return menuItemVariant ? (
       <MenuItem
@@ -104,7 +104,7 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
         icon={<IconPin isSolid={!!pinnedSearch} size="xs" />}
         onClick={onTogglePinnedSearch}
       >
-        {!!pinnedSearch ? t('Unpin Search') : t('Pin Search')}
+        {pinnedSearch ? t('Unpin Search') : t('Pin Search')}
       </MenuItem>
     ) : (
       <ActionButton
