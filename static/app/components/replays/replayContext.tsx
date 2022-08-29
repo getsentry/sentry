@@ -196,11 +196,9 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 
 export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
   const events = replay?.getRRWebEvents();
-  const savedReplayConfig: ReplayConfig | null = localStorage.getItem(
-    ReplayLocalstorageKeys.ReplayConfig
-  )
-    ? JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.ReplayConfig)!)
-    : null;
+  const savedReplayConfig: ReplayConfig = JSON.parse(
+    localStorage.getItem(ReplayLocalstorageKeys.ReplayConfig) || '{}'
+  );
 
   const theme = useTheme();
   const oldEvents = usePrevious(events);
