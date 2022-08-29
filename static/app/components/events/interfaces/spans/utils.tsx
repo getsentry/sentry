@@ -928,7 +928,7 @@ export function getFormattedTimeRangeWithLeadingZero(start: number, end: number)
     };
   }
 
-  const newTimeStamps = startStrings.reduce(
+  const newTimestamps = startStrings.reduce(
     (acc, startString, index) => {
       if (startString.length > endStrings[index].length) {
         acc.start.push(startString);
@@ -947,7 +947,7 @@ export function getFormattedTimeRangeWithLeadingZero(start: number, end: number)
   );
 
   return {
-    start: newTimeStamps.start.join('.'),
-    end: newTimeStamps.end.join('.'),
+    start: newTimestamps.start.join('.'),
+    end: newTimestamps.end.join('.'),
   };
 }
