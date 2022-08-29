@@ -3,6 +3,7 @@ import copy
 from django.urls import reverse
 
 from sentry.models.commit import Commit
+from sentry.models.commitauthor import CommitAuthor
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.testutils import APITestCase
@@ -158,18 +159,38 @@ class EventCommittersTest(APITestCase):
         )
         user2 = self.create_user()
         self.create_member(organization=self.organization, user=user2)
-        author = self.create_commit_author(project=self.project, user=user2)
-        commit = Commit.objects.create(
+        author1 = self.create_commit_author(project=self.project, user=user2)
+        self.create_commit_author(project=self.project, user=user2)
+        # External author
+        author2 = CommitAuthor.objects.create(
+            external_id="github:santry",
+            organization_id=self.project.organization_id,
+            email="santry@example.com",
+            name="santry",
+        )
+        commit1 = Commit.objects.create(
             organization_id=self.project.organization_id,
             repository_id=repo.id,
             key="a" * 40,
-            author=author,
+            author=author1,
+        )
+        commit2 = Commit.objects.create(
+            organization_id=self.project.organization_id,
+            repository_id=repo.id,
+            key="b" * 40,
+            author=author2,
         )
         ReleaseCommit.objects.create(
             organization_id=self.project.organization_id,
             release=release,
-            commit=commit,
+            commit=commit1,
             order=2,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=release,
+            commit=commit2,
+            order=3,
         )
 
         url = reverse(
