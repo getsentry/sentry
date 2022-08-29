@@ -4,17 +4,7 @@ import string
 from collections import OrderedDict
 from datetime import datetime
 from hashlib import md5
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
 
 import pytz
 import sentry_sdk
@@ -363,12 +353,13 @@ class Event:
         # further.
         return self.data.get("metadata") or {}
 
-    def get_grouping_config(self) -> Dict[str, Any]:
+    def get_grouping_config(self) -> MutableMapping[str, Any]:
         """Returns the event grouping config."""
         from sentry.grouping.api import get_grouping_config_dict_for_event_data
 
         return cast(
-            Mapping[str, Any], get_grouping_config_dict_for_event_data(self.data, self.project)
+            MutableMapping[str, Any],
+            get_grouping_config_dict_for_event_data(self.data, self.project),
         )
 
     def get_hashes(self, force_config: str | Mapping[str, Any] | None = None) -> CalculatedHashes:
