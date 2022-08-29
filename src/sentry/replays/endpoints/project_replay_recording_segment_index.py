@@ -14,6 +14,7 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
 CHUNKSIZE = 4096
+FILE_FETCH_THREADPOOL_SIZE = 4
 
 
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
@@ -59,16 +60,20 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         in a threadpool.
         """
         recording_segment_files = File.objects.filter(id__in=[r.file_id for r in results])
-        with ThreadPoolExecutor(max_workers=3) as exe:
-            file_objects = exe.map(lambda file: file.getfile(), recording_segment_files)
+        # TODO: deflate files as theyre fetched, instead of having
+        # to wait untill all of them are complete before starting work.
+        with ThreadPoolExecutor(max_workers=4) as exe:
+            file_objects = exe.map(
+                lambda file: file.getfile(prefetch=True), recording_segment_files
+            )
 
         return iter(self.segment_generator(list(file_objects)))
 
     def segment_generator(self, recording_segments):
         """
         streams a JSON object made of replay recording segments.
-        the segments are gzip compressed json, so we build a JSON list around them.
-        we stream the decompressed output to the client.
+        the segments are individual json objects, and we build a list around them.
+        they are also default compressed, so deflate them if needed.
         """
         yield "["
 
