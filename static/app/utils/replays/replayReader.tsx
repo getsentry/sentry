@@ -85,7 +85,7 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this.replayRecord.duration * 1000;
+    return this.replayRecord.finishedAt.getTime() - this.replayRecord.startedAt.getTime();
   };
 
   getReplay = () => {
