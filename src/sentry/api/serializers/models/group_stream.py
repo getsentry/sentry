@@ -103,21 +103,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self.matching_event_id = matching_event_id
         self.matching_event_environment = matching_event_environment
 
-    def query_tsdb(self, group_ids, query_params, **kwargs):
-        try:
-            environment = self.environment_func()
-        except Environment.DoesNotExist:
-            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
-        else:
-            stats = tsdb.get_range(
-                model=tsdb.models.group,
-                keys=group_ids,
-                environment_ids=environment and [environment.id],
-                **query_params,
-            )
-
-        return stats
-
     def get_attrs(self, item_list, user):
         attrs = super().get_attrs(item_list, user)
 
@@ -141,6 +126,21 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
             result["matchingEventEnvironment"] = self.matching_event_environment
 
         return result
+
+    def query_tsdb(self, group_ids, query_params, **kwargs):
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+        else:
+            stats = tsdb.get_range(
+                model=tsdb.models.group,
+                keys=group_ids,
+                environment_ids=environment and [environment.id],
+                **query_params,
+            )
+
+        return stats
 
 
 class TagBasedStreamGroupSerializer(StreamGroupSerializer):
@@ -189,49 +189,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
         self.matching_event_id = matching_event_id
-
-    def _get_seen_stats(self, item_list, user):
-        if not self._collapse("stats"):
-            partial_execute_seen_stats_query = functools.partial(
-                self._execute_seen_stats_query,
-                item_list=item_list,
-                environment_ids=self.environment_ids,
-                start=self.start,
-                end=self.end,
-            )
-            time_range_result = partial_execute_seen_stats_query()
-            filtered_result = (
-                partial_execute_seen_stats_query(conditions=self.conditions)
-                if self.conditions and not self._collapse("filtered")
-                else None
-            )
-            if not self._collapse("lifetime"):
-                lifetime_result = (
-                    partial_execute_seen_stats_query(start=None, end=None)
-                    if self.start or self.end
-                    else time_range_result
-                )
-            else:
-                lifetime_result = None
-
-            for item in item_list:
-                time_range_result[item].update(
-                    {
-                        "filtered": filtered_result.get(item) if filtered_result else None,
-                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
-                    }
-                )
-            return time_range_result
-        return None
-
-    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
-        return snuba_tsdb.get_range(
-            model=snuba_tsdb.models.group,
-            keys=group_ids,
-            environment_ids=environment_ids,
-            conditions=conditions,
-            **query_params,
-        )
 
     def get_attrs(self, item_list, user):
         if not self._collapse("base"):
@@ -358,6 +315,49 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result["owners"] = attrs["owners"]
 
         return result
+
+    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
+        return snuba_tsdb.get_range(
+            model=snuba_tsdb.models.group,
+            keys=group_ids,
+            environment_ids=environment_ids,
+            conditions=conditions,
+            **query_params,
+        )
+
+    def _get_seen_stats(self, item_list, user):
+        if not self._collapse("stats"):
+            partial_execute_seen_stats_query = functools.partial(
+                self._execute_seen_stats_query,
+                item_list=item_list,
+                environment_ids=self.environment_ids,
+                start=self.start,
+                end=self.end,
+            )
+            time_range_result = partial_execute_seen_stats_query()
+            filtered_result = (
+                partial_execute_seen_stats_query(conditions=self.conditions)
+                if self.conditions and not self._collapse("filtered")
+                else None
+            )
+            if not self._collapse("lifetime"):
+                lifetime_result = (
+                    partial_execute_seen_stats_query(start=None, end=None)
+                    if self.start or self.end
+                    else time_range_result
+                )
+            else:
+                lifetime_result = None
+
+            for item in item_list:
+                time_range_result[item].update(
+                    {
+                        "filtered": filtered_result.get(item) if filtered_result else None,
+                        "lifetime": lifetime_result.get(item) if lifetime_result else None,
+                    }
+                )
+            return time_range_result
+        return None
 
     def _build_session_cache_key(self, project_id):
         start_key = end_key = env_key = ""
