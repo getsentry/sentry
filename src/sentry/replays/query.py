@@ -54,7 +54,7 @@ def query_replays_collection(
     sort_ordering = get_valid_sort_commands(
         sort,
         default=OrderBy(Column("startedAt"), Direction.DESC),
-        query_config=ReplaysQueryConfig(),
+        query_config=ReplayQueryConfig(),
     )
     paginators = make_pagination_values(limit, offset)
 
@@ -125,7 +125,7 @@ def query_replays_dataset(
                 # Discard short replays (5 seconds by arbitrary decision).
                 Condition(Column("duration"), Op.GTE, 5),
                 # User conditions.
-                *generate_valid_conditions(search_filters, query_config=ReplaysQueryConfig()),
+                *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
@@ -257,7 +257,7 @@ def _grouped_unique_scalar_value(
 
 # Filter
 
-replay_config = SearchConfig(
+replay_url_parser_config = SearchConfig(
     allowed_keys={
         "platform",
         "release",
@@ -283,7 +283,7 @@ replay_config = SearchConfig(
 )
 
 
-class ReplaysQueryConfig(QueryConfig):
+class ReplayQueryConfig(QueryConfig):
     # Integer filters.
     duration = Number()
     count_errors = Number(name="countErrors")

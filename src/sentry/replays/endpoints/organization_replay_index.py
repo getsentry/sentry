@@ -7,7 +7,7 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models.organization import Organization
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replays_collection, replay_config
+from sentry.replays.query import query_replays_collection, replay_url_parser_config
 
 
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
@@ -28,7 +28,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
         def data_fn(offset, limit):
             search_filters = parse_search_query(
-                request.query_params.get("query", ""), replay_config
+                request.query_params.get("query", ""), config=replay_url_parser_config
             )
             search_filters = [term for term in search_filters if isinstance(term, SearchFilter)]
 
