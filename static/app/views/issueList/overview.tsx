@@ -358,14 +358,12 @@ class IssueListOverview extends Component<Props, State> {
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
-  getGlobalSearchProjectIds = () => {
-    return this.props.selection.projects;
+  getSelectedProjectIds = (): string[] => {
+    return this.props.selection.projects.map(projectId => String(projectId));
   };
 
   fetchMemberList() {
-    const projectIds = this.getGlobalSearchProjectIds()?.map(projectId =>
-      String(projectId)
-    );
+    const projectIds = this.getSelectedProjectIds();
 
     fetchOrgMembers(this.props.api, this.props.organization.slug, projectIds).then(
       members => {
@@ -375,9 +373,9 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   fetchTags() {
-    const {organization, selection} = this.props;
+    const {api, organization, selection} = this.props;
     this.setState({tagsLoading: true});
-    loadOrganizationTags(this.props.api, organization.slug, selection).then(() =>
+    loadOrganizationTags(api, organization.slug, selection).then(() =>
       this.setState({tagsLoading: false})
     );
   }
@@ -1158,7 +1156,7 @@ class IssueListOverview extends Component<Props, State> {
 
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
-    const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
+    const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
     return fetchTagValues(

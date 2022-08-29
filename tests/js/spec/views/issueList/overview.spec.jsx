@@ -1172,23 +1172,6 @@ describe('IssueList', function () {
       wrapper = shallow(<IssueListOverview {...props} />);
     });
 
-    it('omits null values', function () {
-      wrapper.setProps({
-        selection: {
-          projects: null,
-          environments: null,
-          datetime: {period: '14d'},
-        },
-      });
-      const value = wrapper.instance().getEndpointParams();
-
-      expect(value.project).toBeUndefined();
-      expect(value.projects).toBeUndefined();
-      expect(value.environment).toBeUndefined();
-      expect(value.environments).toBeUndefined();
-      expect(value.statsPeriod).toEqual('14d');
-    });
-
     it('omits defaults', function () {
       wrapper.setProps({
         location: {
