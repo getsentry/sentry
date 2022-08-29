@@ -177,3 +177,29 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 )
             ]
         }
+
+    def test_collapse_stats_does_not_work(self):
+        """
+        'collapse' param should hide the stats data and not return anything in the response, but the impl
+        doesn't seem to respect this param.
+
+        include this test here in-case the endpoint behavior changes in the future.
+        """
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+        group = event.group
+
+        url = f"/api/0/issues/{group.id}/"
+
+        response = self.client.get(url, {"collapse": ["stats"]}, format="json")
+        assert response.status_code == 200
+        assert int(response.data["id"]) == event.group.id
+        assert response.data["stats"]  # key shouldn't be present
+        assert response.data["count"] is not None  # key shouldn't be present
+        assert response.data["userCount"] is not None  # key shouldn't be present
+        assert response.data["firstSeen"] is not None  # key shouldn't be present
+        assert response.data["lastSeen"] is not None  # key shouldn't be present
