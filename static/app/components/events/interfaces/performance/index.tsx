@@ -6,6 +6,7 @@ import {EventError, Group, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {DurationChart} from './durationChart';
+import {SpanChangeBar} from './spanChangeBar';
 import {SpanCountChart} from './spanCountChart';
 
 interface Props {
@@ -29,13 +30,15 @@ export function PerformanceIssueSection({issue, event, organization}: Props) {
         />
       </Section>
       <Section>
-        <h3>{t('Span Count Distribution')}</h3>
+        <h3>{t('Span Change')}</h3>
+        <SpanChangeBar />
+        {/* <h3>{t('Span Count Distribution')}</h3>
         <SpanCountChart
           issue={issue}
           event={event}
           location={location}
           organization={organization}
-        />
+        /> */}
       </Section>
     </Wrapper>
   );

@@ -21,7 +21,7 @@ type Props = {
   event: Event;
   organization: Organization;
   projectSlug: string;
-  affectedSpanIds?: string[];
+  affectedSpanIds: string[];
 };
 
 // This is a wrapper class that is intended to be used within Performance Issues
