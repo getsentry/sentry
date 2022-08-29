@@ -53,7 +53,7 @@ export function getFormattedTimestamp(
   );
 
   const timeWithMilliseconds = parsedTimestamp.format(
-    getAbsoluteTimeFormat(`${timeFormat}.SSS`)
+    getAbsoluteTimeFormat(`${timeFormat}:SSS`)
   );
 
   if (!displayRelativeTime) {
