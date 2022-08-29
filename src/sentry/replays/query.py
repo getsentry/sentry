@@ -52,7 +52,9 @@ def query_replays_collection(
         conditions.append(Condition(Column("environment"), Op.IN, environment))
 
     sort_ordering = get_valid_sort_commands(
-        sort, OrderBy(Column("startedAt"), Direction.DESC), ReplaysQueryConfig()
+        sort,
+        default=OrderBy(Column("startedAt"), Direction.DESC),
+        query_config=ReplaysQueryConfig(),
     )
     paginators = make_pagination_values(limit, offset)
 
@@ -123,7 +125,7 @@ def query_replays_dataset(
                 # Discard short replays (5 seconds by arbitrary decision).
                 Condition(Column("duration"), Op.GTE, 5),
                 # User conditions.
-                *generate_valid_conditions(search_filters, ReplaysQueryConfig()),
+                *generate_valid_conditions(search_filters, query_config=ReplaysQueryConfig()),
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
