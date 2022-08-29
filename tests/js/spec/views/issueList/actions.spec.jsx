@@ -25,7 +25,7 @@ describe('IssueListActions', function () {
       beforeAll(function () {
         const {routerContext, org} = initializeOrg();
 
-        SelectedGroupStore.records = {};
+        SelectedGroupStore.reset();
         SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
           <IssueListActions
@@ -94,7 +94,7 @@ describe('IssueListActions', function () {
 
     describe('Total results less than bulk limit', function () {
       beforeAll(function () {
-        SelectedGroupStore.records = {};
+        SelectedGroupStore.reset();
         SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
           <IssueListActions
@@ -161,7 +161,7 @@ describe('IssueListActions', function () {
 
     describe('Selected on page', function () {
       beforeAll(function () {
-        SelectedGroupStore.records = {};
+        SelectedGroupStore.reset();
         SelectedGroupStore.add(['1', '2', '3']);
         wrapper = mountWithTheme(
           <IssueListActions
@@ -375,7 +375,7 @@ describe('IssueListActions', function () {
   describe('mark reviewed', function () {
     let issuesApiMock;
     beforeEach(() => {
-      SelectedGroupStore.records = {};
+      SelectedGroupStore.reset();
       const organization = TestStubs.Organization();
 
       wrapper = mountWithTheme(
