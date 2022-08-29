@@ -74,10 +74,8 @@ class Number(Field):
 
 class QueryConfig:
     def __init__(self, only: Optional[Tuple[str]] = None) -> None:
-        self.only = only
         self.fields = {}
-
-        for field_name in self.only or dir(self):
+        for field_name in only or self.__class__.__dict__:
             field = getattr(self, field_name)
             if isinstance(field, Field):
                 field.attribute_name = field_name
