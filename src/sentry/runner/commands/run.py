@@ -6,7 +6,6 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 import click
-from arroyo import configure_metrics
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.ingest.types import ConsumerType
@@ -566,14 +565,11 @@ def metrics_streaming_consumer(**options):
 
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
-    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.utils.metrics import backend, global_tags
+    from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
     ingest_config = get_ingest_config(use_case)
-    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
 
     streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -608,14 +604,11 @@ def metrics_parallel_consumer(**options):
 
     from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
-    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.utils.metrics import backend, global_tags
+    from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
     ingest_config = get_ingest_config(use_case)
-    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
 
     streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
 

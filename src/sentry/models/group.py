@@ -32,6 +32,7 @@ from sentry.db.models import (
 from sentry.eventstore.models import Event
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -399,6 +400,14 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
+    type = BoundedPositiveIntegerField(
+        default=GroupType.ERROR.value,
+        choices=(
+            (GroupType.ERROR.value, _("Error")),
+            (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
+            (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
+        ),
+    )
 
     objects = GroupManager(cache_fields=("id",))
 
@@ -646,3 +655,11 @@ class Group(Model):
     @times_seen_pending.setter
     def times_seen_pending(self, times_seen: int):
         self._times_seen_pending = times_seen
+
+    @property
+    def issue_type(self):
+        return GroupType(self.type)
+
+    @property
+    def issue_category(self):
+        return GROUP_TYPE_TO_CATEGORY.get(self.issue_type, None)

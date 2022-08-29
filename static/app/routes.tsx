@@ -762,6 +762,8 @@ function buildRoutes() {
           )}
         />
       </Route>
+
+      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
           component={make(
@@ -1066,10 +1068,6 @@ function buildRoutes() {
       >
         <IndexRoute
           component={make(() => import('sentry/views/releases/detail/overview'))}
-        />
-        <Route
-          path="activity/"
-          component={make(() => import('sentry/views/releases/detail/activity'))}
         />
         <Route
           path="commits/"

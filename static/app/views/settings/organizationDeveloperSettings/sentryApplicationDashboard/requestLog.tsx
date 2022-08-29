@@ -7,6 +7,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button, {StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import DateTime from 'sentry/components/dateTime';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,7 +18,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;

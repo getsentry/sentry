@@ -32,7 +32,7 @@ const getListItemDescription = (rule: Rule) => {
   );
 
   if (rule.method === MethodType.REPLACE && rule.placeholder) {
-    descriptionDetails.push(` with [${rule.placeholder}]`);
+    descriptionDetails.push(`with [${rule.placeholder}]`);
   }
 
   return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
