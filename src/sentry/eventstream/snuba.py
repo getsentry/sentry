@@ -141,6 +141,7 @@ class SnubaProtocolEventStream(EventStream):
             extra_data=(
                 {
                     "group_id": event.group_id,
+                    "group_ids": event.group_ids,
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
                     "project_id": event.project_id,

@@ -117,3 +117,32 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
         )
         assert len(result["data"]) == 1
+
+    @patch("sentry.eventstream.insert")
+    def test_multiple_groups(self, mock_eventstream_insert):
+        now = datetime.utcnow()
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.group_ids = [self.group.id]
+        insert_args = ()
+        insert_kwargs = {
+            "event": event,
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+        }
+
+        self.__produce_event(*insert_args, **insert_kwargs)
+        result = snuba.raw_query(
+            dataset=snuba.Dataset.Transactions,
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            selected_columns=["event_id", "group_ids"],
+            groupby=None,
+            filter_keys={"project_id": [self.project.id], "event_id": [event.event_id]},
+        )
+        assert len(result["data"]) == 1
+        assert result["data"][0]["group_ids"] == [self.group.id]
