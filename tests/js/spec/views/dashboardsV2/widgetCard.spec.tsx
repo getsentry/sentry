@@ -893,9 +893,9 @@ describe('Dashboards > WidgetCard', function () {
       expect(tooltip).toBeDefined();
       expect(yAxis).toBeDefined();
       // @ts-ignore
-      expect(tooltip.valueFormatter(24, 'duration')).toEqual('24.00ms');
+      expect(tooltip.valueFormatter(24, 'p95(measurements.custom)')).toEqual('24.00ms');
       // @ts-ignore
-      expect(yAxis.axisLabel.formatter(24, 'duration')).toEqual('24ms');
+      expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
     });
 
     it('displays indexed badge in preview mode', async function () {

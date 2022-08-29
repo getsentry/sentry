@@ -8,7 +8,11 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {isEquation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  AggregationOutputType,
+  isEquation,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
@@ -142,7 +146,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getSeriesResultType?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery
-  ) => string | undefined;
+  ) => Record<string, AggregationOutputType>;
   /**
    * Generate the request promises for fetching
    * tabular data.
