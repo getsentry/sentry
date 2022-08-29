@@ -181,6 +181,7 @@ const NavContainer = styled('div')`
 
 const StyledSearchBar = styled(SearchBar)`
   min-width: 6rem;
+  max-width: 12rem;
   margin-top: -${space(0.25)};
   margin-left: auto;
   flex-shrink: 0;
