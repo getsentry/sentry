@@ -1,5 +1,4 @@
 import {getRepositories} from 'sentry/actionCreators/repositories';
-import RepositoryActions from 'sentry/actions/repositoryActions';
 import RepositoryStore from 'sentry/stores/repositoryStore';
 
 describe('RepositoryActionCreator', function () {
@@ -20,8 +19,8 @@ describe('RepositoryActionCreator', function () {
     RepositoryStore.resetRepositories();
 
     jest.restoreAllMocks();
-    jest.spyOn(RepositoryActions, 'loadRepositories');
-    jest.spyOn(RepositoryActions, 'loadRepositoriesSuccess');
+    jest.spyOn(RepositoryStore, 'loadRepositories');
+    jest.spyOn(RepositoryStore, 'loadRepositoriesSuccess');
 
     /**
      * XXX(leedongwei): We would want to ensure that Store methods are not
@@ -40,14 +39,14 @@ describe('RepositoryActionCreator', function () {
    */
   it('fetches a Repository and emits actions', async () => {
     getRepositories(api, {orgSlug}); // Fire Action.loadRepositories
-    expect(RepositoryActions.loadRepositories).toHaveBeenCalledWith(orgSlug);
-    expect(RepositoryActions.loadRepositoriesSuccess).not.toHaveBeenCalled();
+    expect(RepositoryStore.loadRepositories).toHaveBeenCalledWith(orgSlug);
+    expect(RepositoryStore.loadRepositoriesSuccess).not.toHaveBeenCalled();
 
     await tick(); // Run Store.loadRepositories and fire Action.loadRepositoriesSuccess
     await tick(); // Run Store.loadRepositoriesSuccess
 
     expect(mockResponse).toHaveBeenCalledWith(repoUrl, expect.anything());
-    expect(RepositoryActions.loadRepositoriesSuccess).toHaveBeenCalledWith(mockData);
+    expect(RepositoryStore.loadRepositoriesSuccess).toHaveBeenCalledWith(mockData);
 
     expect(RepositoryStore.state.orgSlug).toEqual(orgSlug);
     expect(RepositoryStore.state.repositories).toEqual(mockData);
@@ -58,7 +57,7 @@ describe('RepositoryActionCreator', function () {
     expect(RepositoryStore.state.repositoriesLoading).toEqual(undefined);
 
     getRepositories(api, {orgSlug}); // Fire Action.loadRepositories
-    expect(RepositoryActions.loadRepositories).toHaveBeenCalled();
+    expect(RepositoryStore.loadRepositories).toHaveBeenCalled();
     // expect(RepositoryStore.loadRepositories).not.toHaveBeenCalled();
     expect(RepositoryStore.state.repositoriesLoading).toEqual(true); // Short-circuit
   });

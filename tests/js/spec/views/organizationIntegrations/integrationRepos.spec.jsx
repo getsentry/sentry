@@ -1,7 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import RepositoryActions from 'sentry/actions/repositoryActions';
 import {Client} from 'sentry/api';
+import RepositoryStore from 'sentry/stores/repositoryStore';
 import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
 
 describe('IntegrationRepos', function () {
@@ -10,7 +10,7 @@ describe('IntegrationRepos', function () {
 
   beforeEach(() => {
     Client.clearMockResponses();
-    jest.spyOn(RepositoryActions, 'resetRepositories');
+    jest.spyOn(RepositoryStore, 'resetRepositories');
   });
 
   afterEach(() => {
@@ -77,7 +77,7 @@ describe('IntegrationRepos', function () {
       expect(name).toHaveLength(1);
       expect(name.text()).toEqual('example/repo-name');
 
-      expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
+      expect(RepositoryStore.resetRepositories).toHaveBeenCalled();
     });
 
     it('handles failure during save', function () {
@@ -150,7 +150,7 @@ describe('IntegrationRepos', function () {
           data: {integrationId: '1'},
         })
       );
-      expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
+      expect(RepositoryStore.resetRepositories).toHaveBeenCalled();
     });
 
     it('uses externalSlug not name for comparison', () => {
