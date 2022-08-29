@@ -2033,7 +2033,7 @@ SENTRY_DEVSERVICES = {
     ),
     "memcached": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-memcached:1.5-alpine",
+            "image": "ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine",
             "ports": {"11211/tcp": 11211},
             "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
         }
