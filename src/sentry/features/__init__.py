@@ -58,7 +58,7 @@ default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
-default_manager.add("organizations:active-release-notification-opt-in", OrganizationFeature, True)
+default_manager.add("organizations:active-release-notifications-enable", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
@@ -194,7 +194,6 @@ default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 
 # Project scoped features
-default_manager.add("projects:active-release-monitor-default-on", ProjectFeature)
 default_manager.add("projects:alert-filters", ProjectFeature)
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)
 default_manager.add("projects:data-forwarding", ProjectFeature)

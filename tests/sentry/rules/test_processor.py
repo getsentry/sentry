@@ -483,7 +483,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_default_notification_setting_off(self, mock_get_release_committers):
         mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -506,7 +506,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
             user=self.user,
             project=self.project,
         )
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -545,7 +545,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
                 ],
             },
         )
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -583,7 +583,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         )
 
         mock_get_release_committers.return_value = [self.user, user2]
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -603,7 +603,9 @@ class RuleProcessorActiveReleaseTest(TestCase):
     @mock.patch("sentry.analytics.record")
     def test_active_release_disabled(self, mock_record, mock_get_release_committers):
         mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature({"projects:active-release-monitor-default-on": False}):
+        with self.tasks(), self.feature(
+            {"organizations:active-release-notifications-enable": False}
+        ):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,

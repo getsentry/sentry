@@ -197,7 +197,7 @@ class GetSentToReleaseMembersTest(TestCase):
     def test_default_committer(self, spy_get_release_committers):
         event = self.store_event("empty.lol")
         event.group = self.group
-        with self.feature("organizations:active-release-notification-opt-in"):
+        with self.feature("organizations:active-release-notifications-enable"):
             assert self.get_send_to_release_members(event) == {
                 ExternalProviders.EMAIL: {self.user},
                 ExternalProviders.SLACK: {self.user},

@@ -949,8 +949,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Workflow 2.0 Alpha Functionality for sentry users only
     "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
-    "organizations:active-release-notification-opt-in": False,
+    # Workflow 2.0 Active Release Notifications
+    "organizations:active-release-notifications-enable": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1168,8 +1168,6 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable sending Active release notifications without creating an explicit rule in DB
-    "projects:active-release-monitor-default-on": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
