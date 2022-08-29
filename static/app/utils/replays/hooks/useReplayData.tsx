@@ -118,9 +118,8 @@ async function decompressSegmentData(
 ) {
   // for non-compressed events, parse and return
   try {
-    return data.map(d => mapRRWebAttachments(d));
+    return mapRRWebAttachments(JSON.parse(data));
   } catch (error) {
-    console.log(error);
     // swallow exception.. if we can't parse it, it's going to be compressed
   }
 
@@ -128,15 +127,10 @@ async function decompressSegmentData(
   try {
     // for compressed events, inflate the blob and map the events
     const responseBlob = await resp?.rawResponse.blob();
-    console.log(responseBlob);
-    // debugger;
     const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
-    // console.log(responseArray);
     const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
-    console.log(parsedPayload);
     return mapRRWebAttachments(parsedPayload);
   } catch (error) {
-    throw error;
     return {};
   }
 }
@@ -180,27 +174,26 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     return response.data as ReplaySegment[];
   }, [api, orgSlug, projectSlug, replayId]);
 
-  const fetchRRWebEvents = useCallback(async () => {
-    const response = await api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download=true`,
-      {includeAllArgs: true}
-    );
-    return flattenListOfObjects(await decompressSegmentData(...response));
+  const fetchRRWebEvents = useCallback(
+    async (segmentIds: number[]) => {
+      const attachments = await Promise.all(
+        segmentIds.map(async segmentId => {
+          const response = await api.requestPromise(
+            `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/${segmentId}/?download`,
+            {
+              includeAllArgs: true,
+            }
+          );
 
-    // const attachments = await Promise.all(
-    //   segmentIds.map(async segmentId => {
-    //     const response = await api.requestPromise(
-    //       `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/${segmentId}/?download`,
-    //       {
-    //         includeAllArgs: true,
-    //       }
-    //     );
-    //     return decompressSegmentData(...response);
-    //   })
-    // );
-    // // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
-    // return flattenListOfObjects(attachments);
-  }, [api, replayId, orgSlug, projectSlug]);
+          return decompressSegmentData(...response);
+        })
+      );
+
+      // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
+      return flattenListOfObjects(attachments);
+    },
+    [api, replayId, orgSlug, projectSlug]
+  );
 
   const {isLoading: isErrorsFetching, data: errors} = useReplayErrors({
     replayId,
@@ -221,12 +214,13 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     setState(INITIAL_STATE);
 
     try {
-      const [record] = await Promise.all([fetchReplay()]);
+      const [record, segments] = await Promise.all([fetchReplay(), fetchSegmentList()]);
 
       // TODO(replays): Something like `range(record.countSegments)` could work
       // once we make sure that segments have sequential id's and are not dropped.
+      const segmentIds = segments.map(segment => segment.segmentId);
 
-      const attachments = await fetchRRWebEvents();
+      const attachments = await fetchRRWebEvents(segmentIds);
 
       setState(prev => ({
         ...prev,
@@ -245,7 +239,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchReplay, fetchRRWebEvents]);
+  }, [fetchReplay, fetchSegmentList, fetchRRWebEvents]);
 
   useEffect(() => {
     loadEvents();
