@@ -65,7 +65,6 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.issues import SEARCH_TERMS
-from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -696,28 +695,34 @@ class SharedGroupSerializer(GroupSerializer):
         return result
 
 
+SKIP_SNUBA_FIELDS = {
+    "status",
+    "bookmarked_by",
+    "assigned_to",
+    "for_review",
+    "assigned_or_suggested",
+    "unassigned",
+    "linked",
+    "subscribed_by",
+    "first_release",
+    "first_seen",
+}
+SKIP_SNUBA_FIELDS.update(SEARCH_TERMS)
+
+
 class GroupSerializerSnuba(GroupSerializerBase):
-    skip_snuba_fields = {
-        "status",
-        "bookmarked_by",
-        "assigned_to",
-        "for_review",
-        "assigned_or_suggested",
-        "unassigned",
-        "linked",
-        "subscribed_by",
-        "first_release",
-        "first_seen",
-        "last_seen",
-        "times_seen",
-        "date",  # We merge this with start/end, so don't want to include it as its own
-        # condition
-        # We don't need to filter by release stage again here since we're
-        # filtering to specific groups. Saves us making a second query to
-        # postgres for no reason
-        RELEASE_STAGE_ALIAS,
-    }
-    skip_snuba_fields.update(SEARCH_TERMS)
+    skip_snuba_fields = SKIP_SNUBA_FIELDS.update(
+        [
+            "last_seen",
+            "times_seen",
+            "date",  # We merge this with start/end, so don't want to include it as its own
+            # condition
+            # We don't need to filter by release stage again here since we're
+            # filtering to specific groups. Saves us making a second query to
+            # postgres for no reason
+            RELEASE_STAGE_ALIAS,
+        ]
+    )
 
     def __init__(
         self,

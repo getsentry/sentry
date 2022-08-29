@@ -29,6 +29,7 @@ from snuba_sdk.relationships import Relationship
 from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
+from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models import Environment, Group, Optional, Project
@@ -37,7 +38,7 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.types.issues import SEARCH_TERMS
+
 
 def get_search_filter(search_filters: Sequence[SearchFilter], name: str, operator: str) -> Any:
     """
@@ -292,20 +293,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-    postgres_only_fields = {
-        "status",
-        "for_review",
-        "assigned_or_suggested",
-        "bookmarked_by",
-        "assigned_to",
-        "unassigned",
-        "linked",
-        "subscribed_by",
-        "first_release",
-        "first_seen",
-        "regressed_in_release",
-    }
-    postgres_only_fields.update(SEARCH_TERMS)
+    postgres_only_fields = SKIP_SNUBA_FIELDS
+    postgres_only_fields.add("regressed_in_release")
+    # add specific fields here on top of skip_snuba_fields from the serializer
     sort_strategies = {
         "date": "last_seen",
         "freq": "times_seen",
