@@ -82,7 +82,7 @@ function SeenInfo({
         </DateWrapper>
       </StyledHovercard>
       <DateWrapper>
-        {defined(release) ? (
+        {defined(release) && (
           <Fragment>
             {t('in release ')}
             <VersionHoverCard
@@ -95,7 +95,7 @@ function SeenInfo({
               </span>
             </VersionHoverCard>
           </Fragment>
-        ) : null}
+        )}
       </DateWrapper>
     </HovercardWrapper>
   );
