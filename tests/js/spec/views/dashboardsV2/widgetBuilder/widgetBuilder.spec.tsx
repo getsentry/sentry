@@ -2477,7 +2477,7 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
         expect(
-          screen.queryByText('Releases (sessions, crash rates)')
+          screen.queryByText('Releases (Sessions, Crash rates)')
         ).not.toBeInTheDocument();
       });
 
@@ -2487,7 +2487,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
-        expect(screen.getByText('Releases (sessions, crash rates)')).toBeInTheDocument();
+        expect(screen.getByText('Releases (Sessions, Crash rates)')).toBeInTheDocument();
       });
 
       it('maintains the selected dataset when display type is changed', async function () {
@@ -2496,7 +2496,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         expect(screen.getByLabelText(/releases/i)).not.toBeChecked();
@@ -2514,7 +2514,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2539,7 +2539,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2562,7 +2562,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2584,7 +2584,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2619,7 +2619,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2651,7 +2651,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2689,7 +2689,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         userEvent.click(screen.getByLabelText(/releases/i));
@@ -2727,7 +2727,7 @@ describe('WidgetBuilder', function () {
         });
 
         expect(
-          await screen.findByText('Releases (sessions, crash rates)')
+          await screen.findByText('Releases (Sessions, Crash rates)')
         ).toBeInTheDocument();
 
         // change dataset to releases
@@ -2752,7 +2752,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: releaseHealthFeatureFlags,
         });
 
-        userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+        userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
         expect(metricsDataMock).toHaveBeenCalled();
         expect(screen.getByLabelText(/Releases/i)).toBeChecked();
@@ -2835,7 +2835,7 @@ describe('WidgetBuilder', function () {
           expect(screen.getByText("isn't supported here.")).toBeInTheDocument();
         });
 
-        userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
+        userEvent.click(screen.getByText('Releases (Sessions, Crash rates)'));
         userEvent.click(
           screen.getByPlaceholderText(
             'Search for release version, session status, and more'
@@ -2852,7 +2852,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: releaseHealthFeatureFlags,
         });
 
-        userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+        userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
 
         await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'environment');
 
@@ -3732,6 +3732,54 @@ describe('WidgetBuilder', function () {
         });
 
         await screen.findByText('12.0 KiB');
+      });
+
+      it('renders custom performance metric using abyte format size units from events meta', async function () {
+        eventsMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          method: 'GET',
+          statusCode: 200,
+          body: {
+            meta: {
+              fields: {'p99(measurements.custom.measurement)': 'size'},
+              isMetricsData: true,
+              units: {'p99(measurements.custom.measurement)': 'kilobyte'},
+            },
+            data: [{'p99(measurements.custom.measurement)': 12000}],
+          },
+        });
+
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['p99(measurements.custom.measurement)'],
+                    columns: [],
+                    aggregates: ['p99(measurements.custom.measurement)'],
+                    orderby: '-p99(measurements.custom.measurement)',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+
+        await screen.findByText('12 MB');
       });
 
       it('displays custom performance metric in column select', async function () {

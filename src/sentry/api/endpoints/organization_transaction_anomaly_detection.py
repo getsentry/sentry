@@ -113,7 +113,6 @@ class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpoint
         datetime_format = "%Y-%m-%d %H:%M:%S"
         ads_request = {
             "query": query,
-            "params": query_params,
             "start": start.strftime(datetime_format),
             "end": end.strftime(datetime_format),
             "granularity": time_params.granularity,

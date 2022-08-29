@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Placeholder from 'sentry/components/placeholder';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -9,8 +10,6 @@ import type {Group, Release} from 'sentry/types';
 
 import AvatarList from '../avatar/avatarList';
 import TimeSince from '../timeSince';
-
-import SidebarSection from './sidebarSection';
 
 type Props = AsyncComponent['props'] & {
   group: Group;
@@ -28,9 +27,12 @@ class SuspectReleases extends AsyncComponent<Props, State> {
 
   renderLoading() {
     return (
-      <SidebarSection data-test-id="linked-issues" title={t('Linked Issues')}>
-        <Placeholder height="60px" />
-      </SidebarSection>
+      <SidebarSection.Wrap data-test-id="linked-issues">
+        <SidebarSection.Title>{t('Linked Issues')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          <Placeholder height="60px" />
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 
@@ -40,29 +42,32 @@ class SuspectReleases extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SidebarSection secondary title={t('Suspect Releases')}>
-        {this.state.suspectReleases?.map(release => (
-          <SuspectReleaseWrapper key={release.version}>
-            <div>
-              <StyledVersion version={release.version} />
-              {release.lastDeploy && (
-                <ReleaseDeployedDate>
-                  {release.lastDeploy.environment
-                    ? t('Deployed to %s ', release.lastDeploy.environment)
-                    : t('Deployed ')}
-                  <TimeSince date={release.lastDeploy.dateFinished} />
-                </ReleaseDeployedDate>
-              )}
-            </div>
-            <AvatarList
-              users={release.authors}
-              avatarSize={25}
-              tooltipOptions={{container: 'body'} as any}
-              typeMembers="authors"
-            />
-          </SuspectReleaseWrapper>
-        ))}
-      </SidebarSection>
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{t('Suspect Releases')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          {this.state.suspectReleases?.map(release => (
+            <SuspectReleaseWrapper key={release.version}>
+              <div>
+                <StyledVersion version={release.version} />
+                {release.lastDeploy && (
+                  <ReleaseDeployedDate>
+                    {release.lastDeploy.environment
+                      ? t('Deployed to %s ', release.lastDeploy.environment)
+                      : t('Deployed ')}
+                    <TimeSince date={release.lastDeploy.dateFinished} />
+                  </ReleaseDeployedDate>
+                )}
+              </div>
+              <AvatarList
+                users={release.authors}
+                avatarSize={25}
+                tooltipOptions={{container: 'body'} as any}
+                typeMembers="authors"
+              />
+            </SuspectReleaseWrapper>
+          ))}
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 }

@@ -1,13 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makePinSearchAction} from 'sentry/components/smartSearchBar/actions';
 
-describe('SmartSearchBarActions', () => {
-  describe('make', function () {
+describe('SmartSearchBar', () => {
+  describe('actions', function () {
     const organization = TestStubs.Organization({id: '123'});
     const api = new MockApiClient();
 
-    let pinRequest, unpinRequest, location, options;
+    let pinRequest, unpinRequest, location;
 
     beforeEach(function () {
       location = {
@@ -16,12 +16,6 @@ describe('SmartSearchBarActions', () => {
           projectId: '0',
         },
       };
-
-      options = TestStubs.routerContext([
-        {
-          organization,
-        },
-      ]);
 
       pinRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/pinned-searches/`,
@@ -43,18 +37,17 @@ describe('SmartSearchBarActions', () => {
     it('does not pin when query is empty', function () {
       const {Action} = makePinSearchAction({sort: ''});
 
-      const wrapper = mountWithTheme(
+      render(
         <Action
           api={api}
           organization={organization}
           query=""
           savedSearchType={0}
           location={location}
-        />,
-        options
+        />
       );
-      wrapper.find('ActionButton button').simulate('click');
-      wrapper.update();
+
+      userEvent.click(screen.getByRole('button'));
 
       expect(pinRequest).not.toHaveBeenCalled();
     });
@@ -62,18 +55,17 @@ describe('SmartSearchBarActions', () => {
     it('adds pins', function () {
       const {Action} = makePinSearchAction({sort: ''});
 
-      const wrapper = mountWithTheme(
+      render(
         <Action
           api={api}
           organization={organization}
           query="is:unresolved"
           savedSearchType={0}
           location={location}
-        />,
-        options
+        />
       );
-      wrapper.find('ActionButton button').simulate('click');
-      wrapper.update();
+
+      userEvent.click(screen.getByRole('button'));
 
       expect(pinRequest).toHaveBeenCalled();
       expect(unpinRequest).not.toHaveBeenCalled();
@@ -83,19 +75,17 @@ describe('SmartSearchBarActions', () => {
       const pinnedSearch = TestStubs.Search({isPinned: true});
       const {Action} = makePinSearchAction({pinnedSearch, sort: ''});
 
-      const wrapper = mountWithTheme(
+      render(
         <Action
           api={api}
           organization={organization}
           query="is:unresolved"
           savedSearchType={0}
           location={location}
-        />,
-        options
+        />
       );
 
-      wrapper.find('ActionButton button').simulate('click');
-      wrapper.update();
+      userEvent.click(screen.getByRole('button'));
 
       expect(pinRequest).not.toHaveBeenCalled();
       expect(unpinRequest).toHaveBeenCalled();
