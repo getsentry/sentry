@@ -39,6 +39,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -86,7 +87,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
-  seriesResultsType?: string;
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -806,7 +807,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
-                timeseriesResultsType={seriesResultsType}
+                timeseriesResultsTypes={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}
