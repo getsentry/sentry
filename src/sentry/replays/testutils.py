@@ -71,6 +71,7 @@ def mock_expected_response(
         },
         "user": {
             "id": kwargs.pop("user_id", "123"),
+            "displayName": kwargs.pop("user_display_name", "username"),
             "email": kwargs.pop("user_email", "username@example.com"),
             "name": kwargs.pop("user_name", "username"),
             "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
