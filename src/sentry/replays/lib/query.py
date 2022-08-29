@@ -72,11 +72,6 @@ class Number(Field):
     _python_type = int
 
 
-class Nested(Field):
-    _operators = []
-    _python_type = None
-
-
 class QueryConfig:
     def __init__(self, only: Optional[Tuple[str]] = None) -> None:
         self.only = only
