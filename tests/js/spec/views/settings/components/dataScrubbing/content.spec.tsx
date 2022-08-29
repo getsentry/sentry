@@ -1,31 +1,26 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Content from 'sentry/views/settings/components/dataScrubbing/content';
 import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
-const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
-const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
-const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);
+describe('Content', function () {
+  it('default empty', function () {
+    render(<Content rules={[]} onEditRule={jest.fn()} onDeleteRule={jest.fn()} />);
 
-const handleEditRule = jest.fn();
-const handleDelete = jest.fn();
-
-describe('Content', () => {
-  it('default render - empty', () => {
-    const wrapper = mountWithTheme(
-      <Content rules={[]} onEditRule={handleEditRule} onDeleteRule={handleDelete} />
-    );
-    expect(wrapper.text()).toEqual('You have no data scrubbing rules');
+    expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
   });
 
-  it('render rules', () => {
-    const wrapper = mountWithTheme(
+  it('render rules', function () {
+    render(
       <Content
-        rules={convertedRules}
-        onEditRule={handleEditRule}
-        onDeleteRule={handleDelete}
+        rules={convertRelayPiiConfig(
+          JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig())
+        )}
+        onEditRule={jest.fn()}
+        onDeleteRule={jest.fn()}
       />
     );
-    expect(wrapper.find('List')).toHaveLength(1);
+
+    expect(screen.getAllByRole('button', {name: 'Edit Rule'})).toHaveLength(3);
   });
 });
