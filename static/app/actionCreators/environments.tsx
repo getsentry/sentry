@@ -1,5 +1,5 @@
-import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Client} from 'sentry/api';
+import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 
 /**
  * Fetches all environments for an organization
@@ -10,19 +10,19 @@ export async function fetchOrganizationEnvironments(
   api: Client,
   organizationSlug: string
 ) {
-  EnvironmentActions.fetchEnvironments();
+  OrganizationEnvironmentsStore.onFetchEnvironments();
   try {
     const environments = await api.requestPromise(
       `/organizations/${organizationSlug}/environments/`
     );
     if (!environments) {
-      EnvironmentActions.fetchEnvironmentsError(
+      OrganizationEnvironmentsStore.onFetchEnvironmentsError(
         new Error('retrieved environments is falsey')
       );
       return;
     }
-    EnvironmentActions.fetchEnvironmentsSuccess(environments);
+    OrganizationEnvironmentsStore.onFetchEnvironmentsSuccess(environments);
   } catch (err) {
-    EnvironmentActions.fetchEnvironmentsError(err);
+    OrganizationEnvironmentsStore.onFetchEnvironmentsError(err);
   }
 }
