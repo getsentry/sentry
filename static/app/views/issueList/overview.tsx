@@ -774,13 +774,13 @@ class IssueListOverview extends Component<Props, State> {
           query.includes('is:ignored') ||
           isForReviewQuery(query))
       ) {
-        this.onIssueAction(resolvedIds, t('Resolved'));
+        this.onIssueAction(resolvedIds, 'Resolved');
       }
       if (
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, t('Ignored'));
+        this.onIssueAction(ignoredIds, 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -788,7 +788,7 @@ class IssueListOverview extends Component<Props, State> {
         reviewedIds.length > 0 &&
         (isForReviewQuery(query) || query.includes('is:ignored'))
       ) {
-        this.onIssueAction(reviewedIds, t('Reviewed'));
+        this.onIssueAction(reviewedIds, 'Reviewed');
       }
     }
 
@@ -1138,7 +1138,10 @@ class IssueListOverview extends Component<Props, State> {
     });
   };
 
-  onIssueAction = (itemIds: string[], actionType: string) => {
+  onIssueAction = (
+    itemIds: string[],
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+  ) => {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,
