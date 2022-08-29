@@ -2,7 +2,7 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
+import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('CreateSavedSearchModal', function () {
