@@ -9,17 +9,19 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   activeTab: 'stream' | 'rules';
-  organization: Organization;
-  projectSlugs: string[];
   router: InjectedRouter;
 };
 
-const AlertHeader = ({router, organization, activeTab, projectSlugs}: Props) => {
+const AlertHeader = ({router, activeTab}: Props) => {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
@@ -50,7 +52,11 @@ const AlertHeader = ({router, organization, activeTab, projectSlugs}: Props) => 
             priority="primary"
             referrer="alert_stream"
             showPermissionGuide
-            projectSlug={projectSlugs.length === 1 ? projectSlugs[0] : undefined}
+            projectSlug={
+              selection.projects.length === 1
+                ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+                : undefined
+            }
           >
             {t('Create Alert')}
           </CreateAlertButton>

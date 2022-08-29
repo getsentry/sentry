@@ -74,7 +74,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     }
   }
 
-  get projectsFromIncidents() {
+  get projectsFromResults() {
     const {ruleList = []} = this.state;
 
     return [...new Set(ruleList?.map(({projects}) => projects).flat())];
@@ -243,7 +243,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                 isEmpty={ruleList?.length === 0}
                 emptyMessage={t('No alert rules found for the current query.')}
               >
-                <Projects orgId={orgId} slugs={this.projectsFromIncidents}>
+                <Projects orgId={orgId} slugs={this.projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
                     ruleList.map(rule => (
                       <RuleListRow
@@ -287,18 +287,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   renderBody() {
-    const {params, organization, router} = this.props;
+    const {params, router} = this.props;
     const {orgId} = params;
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <PageFiltersContainer>
-          <AlertHeader
-            organization={organization}
-            router={router}
-            activeTab="rules"
-            projectSlugs={this.projectsFromIncidents}
-          />
+          <AlertHeader router={router} activeTab="rules" />
           {this.renderList()}
         </PageFiltersContainer>
       </SentryDocumentTitle>
