@@ -1,6 +1,7 @@
 import hashlib
 import random
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -9,7 +10,9 @@ import sentry_sdk
 
 from sentry import options
 from sentry.eventstore.processing.base import Event
+from sentry.types.issues import GroupType
 from sentry.utils import metrics
+from sentry.utils.types import Sequence
 
 from .performance_span_issue import PerformanceSpanIssue
 
@@ -28,6 +31,18 @@ class DetectorType(Enum):
     LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
+
+
+# TODO find a better way to map these
+DETECTOR_TYPE_TO_GROUP_TYPE = {
+    DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
+    DetectorType.DUPLICATE_SPANS_HASH: GroupType.PERFORMANCE_DUPLICATE_SPANS,
+    DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
+    DetectorType.SEQUENTIAL_SLOW_SPANS: GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
+    DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+    DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
+}
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -129,27 +144,57 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
 
     report_metrics_for_detectors(event_id, detectors, sdk_span)
 
+    # TODO each problem should return a group type
     all_detected_issues = [i for _, d in detectors.items() for i in d.stored_issues]
 
     # this assumes that perf problems were already ranked
-    formatted_perf_problems = [fingerprint_group(problem, data) for problem in all_detected_issues]
+    truncated_issues = all_detected_issues[:PERFORMANCE_GROUP_COUNT_LIMIT]
+
+    formatted_perf_problems = [
+        prepare_problem_for_grouping(problem, data) for problem in truncated_issues
+    ]
     return formatted_perf_problems
 
 
-def fingerprint_group(problem: PerformanceSpanIssue, data: Event):
+@dataclass
+class PerformanceProblem:
+    fingerprint: str
+    op: str
+    desc: str
+    type: GroupType
+    spans_involved: Sequence[str]
+
+
+def prepare_problem_for_grouping(problem: PerformanceSpanIssue, data: Event):
     # fingerpint transaction name + span op + span group id + problem class
     transaction_name = data.get("transaction")
+
+    # TODO: handle if no spans involved scenario
     first_span_id = problem.get("spans_involved", [])[0]
 
+    spans = data.get("spans", [])
+    first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
+    # get span op and hash from id
+
+    op = first_span["op"]
+    hash = first_span["hash"]
+
     # map detectors to the group type enum
+    group_fingerprint = fingerprint_group(
+        transaction_name, op, hash, GroupType.PERFORMANCE_N_PLUS_ONE
+    )
 
-    # get span op and span hash
+    prepared_problem = {
+        "fingerprint": group_fingerprint,
+        "op": op,
+        # TODO check if desc is needed
+        "desc": first_span["desc"],
+        # get real type here
+        "type": GroupType.PERFORMANCE_N_PLUS_ONE,
+        "spans_involved": problem.spans_involved,
+    }
 
-    # return
-    # spans_involved
-    # group fingerprint
-    # groupType enum
-    return []
+    return prepared_problem
 
 
 def fingerprint_group(transaction_name, span_op, hash, problem_class):
