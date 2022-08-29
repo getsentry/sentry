@@ -293,8 +293,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     logger = logging.getLogger("sentry.search.postgressnuba")
     dependency_aggregations = {"priority": ["last_seen", "times_seen"]}
-    postgres_only_fields = SKIP_SNUBA_FIELDS
-    postgres_only_fields.add("regressed_in_release")
+    postgres_only_fields = {*SKIP_SNUBA_FIELDS, "regressed_in_release"}
     # add specific fields here on top of skip_snuba_fields from the serializer
     sort_strategies = {
         "date": "last_seen",

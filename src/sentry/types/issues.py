@@ -30,5 +30,3 @@ def get_category_type_mapping():
 
 
 GROUP_CATEGORY_TO_TYPES = get_category_type_mapping()
-
-SEARCH_TERMS = ["category", "type"]
