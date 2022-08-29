@@ -53,7 +53,6 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
-import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -81,6 +80,7 @@ const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
+const MAX_ISSUES_COUNT = 100;
 
 type Params = {
   orgId: string;
@@ -183,9 +183,8 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const links = parseLinkHeader(this.state.pageLinks);
     this._poller = new CursorPoller({
-      endpoint: links.previous?.href || '',
+      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
     });
 
@@ -279,7 +278,6 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
-  private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
     const {savedSearch, location} = this.props;
@@ -517,7 +515,6 @@ class IssueListOverview extends Component<Props, State> {
     if (hasIssueListRemovalAction && !this.state.realtimeActive) {
       if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
-        this._streamManager.reset();
 
         this.setState({
           issuesLoading: true,
@@ -529,7 +526,6 @@ class IssueListOverview extends Component<Props, State> {
     } else {
       if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
         GroupStore.loadInitialData([]);
-        this._streamManager.reset();
 
         this.setState({
           issuesLoading: true,
@@ -611,7 +607,7 @@ class IssueListOverview extends Component<Props, State> {
         if (this.state.undo) {
           GroupStore.loadInitialData(data);
         }
-        this._streamManager.push(data);
+        GroupStore.add(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (!hasIssueListRemovalAction) {
@@ -692,12 +688,7 @@ class IssueListOverview extends Component<Props, State> {
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      // Remove collapse stats from endpoint before supplying to poller
-      const issueEndpoint = new URL(links.previous.href, window.location.origin);
-      issueEndpoint.searchParams.delete('collapse');
-      this._poller.setEndpoint(
-        decodeURIComponent(issueEndpoint.pathname + issueEndpoint.search)
-      );
+      this._poller.setEndpoint(links?.previous?.href);
       this._poller.enable();
     }
   };
@@ -736,7 +727,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimePoll = (data: any, _links: any) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
-    this._streamManager.unshift(data);
+    GroupStore.addToFront(data);
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -755,7 +746,7 @@ class IssueListOverview extends Component<Props, State> {
       !this.state.realtimeActive &&
       actionTakenGroupData.length > 0
     ) {
-      const filteredItems = this._streamManager.getAllItems().filter(item => {
+      const filteredItems = GroupStore.getAllItems().filter(item => {
         return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
 
@@ -798,7 +789,9 @@ class IssueListOverview extends Component<Props, State> {
       }
     }
 
-    const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
+    const groupIds = GroupStore.getAllItems()
+      .map(item => item.id)
+      .slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
