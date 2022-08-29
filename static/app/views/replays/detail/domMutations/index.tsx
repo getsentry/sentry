@@ -1,14 +1,27 @@
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
+import SearchBar from 'sentry/components/searchBar';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import useExtractedCrumbHtml, {
+  Extraction,
+} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import {
+  DomFilters,
+  getDomMutationsTypes,
+  getFilteredDomMutations,
+} from 'sentry/views/replays/detail/domMutations/utils';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   replay: ReplayReader;
@@ -16,51 +29,187 @@ type Props = {
 
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<DomFilters>({});
+
+  const filteredDomMutations = useMemo(
+    () => getFilteredDomMutations(actions, searchTerm, filters),
+    [actions, filters, searchTerm]
+  );
+
+  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
+
   const startTimestampMs = replay.getReplay().startedAt.getTime();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
+  const handleFilters = useCallback(
+    (
+      selectedValues: (string | number)[],
+      key: string,
+      filter: (mutation: Extraction) => boolean
+    ) => {
+      const filtersCopy = {...filters};
+
+      if (selectedValues.length === 0) {
+        delete filtersCopy[key];
+        setFilters(filtersCopy);
+        return;
+      }
+
+      setFilters({
+        ...filters,
+        [key]: filter,
+      });
+    },
+    [filters]
+  );
+
   if (isLoading) {
     return null;
   }
 
+  // return (
+  //   <MutationContainer>
+  //     <MutationFilters>
+  //       <CompactSelect
+  //         triggerProps={{
+  //           prefix: t('Event Type'),
+  //         }}
+  //         multiple
+  //         options={getDomMutationsTypes(actions).map(mutationEventType => ({
+  //           value: mutationEventType,
+  //           label: mutationEventType,
+  //         }))}
+  //         size="sm"
+  //         onChange={selections => {
+  //           const selectedValues = selections.map(selection => selection.value);
+
+  //           handleFilters(selectedValues, 'eventType', (mutation: Extraction) => {
+  //             return selectedValues.includes(mutation.crumb.type);
+  //           });
+  //         }}
+  //       />
+
+  //       <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
+  //     </MutationFilters>
+  //     <MutationList>
+  //       {filteredDomMutations.map((mutation, i) => (
+  //         <MutationListItem
+  //           key={i}
+  //           onMouseEnter={() => handleMouseEnter(mutation.crumb)}
+  //           onMouseLeave={() => handleMouseLeave(mutation.crumb)}
+  //         >
+  //           <StepConnector />
+  //           <MutationItemContainer>
+  //             <div>
+  //               <MutationMetadata>
+  //                 <IconWrapper color={mutation.crumb.color}>
+  //                   <BreadcrumbIcon type={mutation.crumb.type} />
+  //                 </IconWrapper>
+  //                 <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+  //                   <PlayerRelativeTime
+  //                     relativeTimeMs={startTimestampMs}
+  //                     timestamp={mutation.crumb.timestamp}
+  //                   />
+  //                 </UnstyledButton>
+  //               </MutationMetadata>
+  //               <MutationDetails>
+  //                 <TitleContainer>
+  //                   <Title>{getDetails(mutation.crumb).title}</Title>
+  //                 </TitleContainer>
+  //                 <Truncate
+  //                   maxLength={30}
+  //                   leftTrim={(mutation.crumb.message || '').includes('>')}
+  //                   value={mutation.crumb.message || ''}
+  //                 />
+  //               </MutationDetails>
+  //             </div>
+  //             <CodeContainer>
+  //               <HTMLCode code={mutation.html} />
+  //             </CodeContainer>
+  //           </MutationItemContainer>
+  //         </MutationListItem>
+  //       ))}
+  //     </MutationList>
+  //   </MutationContainer>
+  // );
+
   return (
-    <MutationList>
-      {actions.map((mutation, i) => (
-        <MutationListItem
-          key={i}
-          onMouseEnter={() => handleMouseEnter(mutation.crumb)}
-          onMouseLeave={() => handleMouseLeave(mutation.crumb)}
-        >
-          {i < actions.length - 1 && <StepConnector />}
-          <IconWrapper color={mutation.crumb.color}>
-            <BreadcrumbIcon type={mutation.crumb.type} />
-          </IconWrapper>
-          <MutationContent>
-            <MutationDetailsContainer>
-              <div>
-                <TitleContainer>
-                  <Title>{getDetails(mutation.crumb).title}</Title>
-                </TitleContainer>
-                <MutationMessage>{mutation.crumb.message}</MutationMessage>
-              </div>
-              <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
-                <PlayerRelativeTime
-                  relativeTimeMs={startTimestampMs}
-                  timestamp={mutation.crumb.timestamp}
-                />
-              </UnstyledButton>
-            </MutationDetailsContainer>
-            <CodeContainer>
-              <HTMLCode code={mutation.html} />
-            </CodeContainer>
-          </MutationContent>
-        </MutationListItem>
-      ))}
-    </MutationList>
+    <MutationContainer>
+      <MutationFilters>
+        <CompactSelect
+          triggerProps={{
+            prefix: t('Event Type'),
+          }}
+          multiple
+          options={getDomMutationsTypes(actions).map(mutationEventType => ({
+            value: mutationEventType,
+            label: mutationEventType,
+          }))}
+          size="sm"
+          onChange={selections => {
+            const selectedValues = selections.map(selection => selection.value);
+
+            handleFilters(selectedValues, 'eventType', (mutation: Extraction) => {
+              return selectedValues.includes(mutation.crumb.type);
+            });
+          }}
+        />
+
+        <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
+      </MutationFilters>
+      <MutationList>
+        {filteredDomMutations.map((mutation, i) => (
+          <MutationListItem
+            key={i}
+            onMouseEnter={() => handleMouseEnter(mutation.crumb)}
+            onMouseLeave={() => handleMouseLeave(mutation.crumb)}
+          >
+            {i < actions.length - 1 && <StepConnector />}
+            <IconWrapper color={mutation.crumb.color}>
+              <BreadcrumbIcon type={mutation.crumb.type} />
+            </IconWrapper>
+            <MutationContent>
+              <MutationDetailsContainer>
+                <div>
+                  <TitleContainer>
+                    <Title>{getDetails(mutation.crumb).title}</Title>
+                  </TitleContainer>
+                  <MutationMessage>{mutation.crumb.message}</MutationMessage>
+                </div>
+                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+                  <PlayerRelativeTime
+                    relativeTimeMs={startTimestampMs}
+                    timestamp={mutation.crumb.timestamp}
+                  />
+                </UnstyledButton>
+              </MutationDetailsContainer>
+              <CodeContainer>
+                <HTMLCode code={mutation.html} />
+              </CodeContainer>
+            </MutationContent>
+          </MutationListItem>
+        ))}
+      </MutationList>
+    </MutationContainer>
   );
 }
+
+const MutationContainer = styled(FluidHeight)`
+  height: 100%;
+`;
+
+const MutationFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content 1fr;
+  margin-bottom: ${space(1)};
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin-top: ${space(1)};
+  }
+`;
 
 const MutationList = styled('ul')`
   list-style: none;
