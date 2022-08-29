@@ -60,12 +60,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         """
         recording_segment_files = File.objects.filter(id__in=[r.file_id for r in results])
         with ThreadPoolExecutor(max_workers=3) as exe:
-            print("here?")
-
             file_objects = exe.map(lambda file: file.getfile(), recording_segment_files)
 
-        # file_objects = [file.getfile(prefetch=True) for file in recording_segment_files]
-        print(next(file_objects).read())
         return iter(self.segment_generator(list(file_objects)))
 
     def segment_generator(self, recording_segments):
@@ -80,7 +76,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
             if self.is_compressed(file):
                 yield from self.decompress_blob_stream(file)
             else:
-                yield file.decode("utf-8")
+                yield file.read().decode("utf-8")
 
             if i < len(recording_segments) - 1:
                 yield ","
