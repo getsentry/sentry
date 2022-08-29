@@ -28,7 +28,7 @@ function DomMutations({replay}: Props) {
     return null;
   }
 
-  if (actions.length <= 0) {
+  if (actions.length === 0) {
     return (
       <EmptyStateWarning withIcon={false} small>
         {t('No DOM Events recorded')}
