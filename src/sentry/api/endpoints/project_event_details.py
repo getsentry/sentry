@@ -4,7 +4,7 @@ from datetime import datetime
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
 
@@ -30,7 +30,6 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         group_id = request.GET.get("group_id")
         group_id = int(group_id) if group_id else None
 
-        # CEO start here
         event = eventstore.get_event_by_id(project.id, event_id, group_id=group_id)
 
         if event is None:
@@ -44,16 +43,23 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         prev_event_id = None
 
         if event.group_id:
-            # TODO add behind feature flag
-            if event.get_event_type() == "transaction":
-                conditions = [[["has", ["group_ids", group_id]], "=", 1]] # 1 means true here, not a hardcoded event id  
+            if (
+                features.has(
+                    "organizations:performance-issue-details-backend", project.organization
+                )
+                and event.get_event_type() == "transaction"
+            ):
+                conditions = [[["has", ["group_ids", group_id]], "=", 1]]
                 _filter = eventstore.Filter(
-                    conditions=conditions, project_ids=[event.project_id],
+                    conditions=conditions,
+                    project_ids=[event.project_id],
                 )
             else:
                 conditions = [["event.type", "!=", "transaction"]]
                 _filter = eventstore.Filter(
-                    conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
+                    conditions=conditions,
+                    project_ids=[event.project_id],
+                    group_ids=[event.group_id],
                 )
 
             requested_environments = set(request.GET.getlist("environment"))
