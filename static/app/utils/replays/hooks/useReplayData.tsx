@@ -206,13 +206,12 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       const response = await api.requestPromise(`/organizations/${orgSlug}/events/`, {
         query: {
           field: ['id', 'error.value', 'timestamp', 'error.type', 'issue.id'],
-          projects: [projectSlug],
           query: conditions.formatString(),
         },
       });
       return response.data;
     },
-    [api, orgSlug, projectSlug]
+    [api, orgSlug]
   );
 
   const loadEvents = useCallback(async () => {
