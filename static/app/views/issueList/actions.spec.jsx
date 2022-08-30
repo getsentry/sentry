@@ -121,7 +121,7 @@ describe('IssueListActions', function () {
         expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      it('bulk resolves', async function () {
+      it('bulk resolves', function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -140,9 +140,11 @@ describe('IssueListActions', function () {
 
         userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
-        await screen.findByRole('dialog');
+        const modal = screen.getByRole('dialog');
 
-        userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
+        expect(modal).toSnapshot();
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk resolve issues'}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
