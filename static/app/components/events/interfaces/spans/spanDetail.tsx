@@ -51,6 +51,7 @@ import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
   getCumulativeAlertLevelFromErrors,
+  getFormattedTimeRangeWithLeadingZero,
   getTraceDateTimeRange,
   isGapSpan,
   isOrphanSpan,
@@ -356,6 +357,8 @@ class SpanDetail extends Component<Props, State> {
 
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
+    const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
+      getFormattedTimeRangeWithLeadingZero(startTimestamp, endTimestamp);
 
     const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
@@ -421,7 +424,7 @@ class SpanDetail extends Component<Props, State> {
                   value: (
                     <Fragment>
                       <DateTime date={startTimestamp * 1000} year seconds timeZone />
-                      {` (${startTimestamp})`}
+                      {` (${startTimeWithLeadingZero})`}
                     </Fragment>
                   ),
                 })}
@@ -432,7 +435,7 @@ class SpanDetail extends Component<Props, State> {
                   value: (
                     <Fragment>
                       <DateTime date={endTimestamp * 1000} year seconds timeZone />
-                      {` (${endTimestamp})`}
+                      {` (${endTimeWithLeadingZero})`}
                     </Fragment>
                   ),
                 })}
