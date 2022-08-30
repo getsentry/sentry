@@ -283,7 +283,7 @@ class EventTest(TestCase):
         )
         # TODO: Remove this once snuba is writing group_ids, and we can create groups as part
         # of self.store_event
-        event_from_snuba.group_ids = [self.group.id]
+        event_from_snuba.groups = [self.group]
 
         assert event_from_nodestore.event_id == event_from_snuba.event_id
         assert event_from_nodestore.project_id == event_from_snuba.project_id
@@ -302,11 +302,11 @@ class EventTest(TestCase):
 
         # Group IDs must be fetched from Snuba since they are not present in nodestore
         assert not event_from_snuba.group_id
-        assert event_from_snuba.group_ids
+        assert event_from_snuba.groups == [self.group]
         assert not event_from_snuba.group
 
         assert not event_from_nodestore.group_id
-        assert not event_from_nodestore.group_ids
+        assert not event_from_nodestore.groups
         assert not event_from_nodestore.group
 
     def test_grouping_reset(self):
@@ -406,7 +406,7 @@ class EventGroupsTest(TestCase):
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
-            group_ids=[self.group.id],
+            groups=[self.group],
         )
         assert event.groups == [self.group]
 
@@ -467,7 +467,7 @@ class EventBuildGroupEventsTest(TestCase):
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
-            group_ids=[self.group.id],
+            groups=[self.group],
         )
         assert list(event.build_group_events()) == [GroupEvent.from_event(event, self.group)]
 
@@ -483,7 +483,7 @@ class EventBuildGroupEventsTest(TestCase):
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
-            group_ids=[self.group.id, self.group_2.id],
+            groups=[self.group, self.group_2],
         )
         sort_key = lambda group_event: (group_event.event_id, group_event.group_id)
         assert sorted(event.build_group_events(), key=sort_key) == sorted(
