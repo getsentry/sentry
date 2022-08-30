@@ -1,8 +1,6 @@
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
-import {shouldUse24Hours} from 'sentry/utils/dates';
 import {getDuration} from 'sentry/utils/formatters';
 
 const timeFormat = 'HH:mm:ss';
@@ -32,22 +30,13 @@ const getRelativeTime = (
   return `\xA0${shortRelativeTime}`;
 };
 
-const getAbsoluteTimeFormat = (format: string) => {
-  if (shouldUse24Hours()) {
-    return format;
-  }
-  return `${format} A`;
-};
-
-const getFormattedTimestamp = (
+export function getFormattedTimestamp(
   timestamp: string,
   relativeTimestamp: string,
   displayRelativeTime?: boolean
-) => {
+) {
   const parsedTimestamp = moment(timestamp);
   const date = parsedTimestamp.format('ll');
-
-  const displayMilliSeconds = defined(parsedTimestamp.milliseconds());
 
   const relativeTime = getRelativeTime(
     parsedTimestamp,
@@ -55,9 +44,12 @@ const getFormattedTimestamp = (
     displayRelativeTime
   );
 
+  const timeWithMilliseconds = parsedTimestamp.format(`${timeFormat}:SSS`);
+
   if (!displayRelativeTime) {
     return {
-      date: `${date} ${parsedTimestamp.format(getAbsoluteTimeFormat('HH:mm'))}`,
+      date,
+      timeWithMilliseconds,
       time: relativeTime,
       displayTime: parsedTimestamp.format(timeFormat),
     };
@@ -65,11 +57,7 @@ const getFormattedTimestamp = (
 
   return {
     date,
-    time: parsedTimestamp.format(
-      getAbsoluteTimeFormat(displayMilliSeconds ? `${timeFormat}.SSS` : timeFormat)
-    ),
+    timeWithMilliseconds,
     displayTime: relativeTime,
   };
-};
-
-export {getFormattedTimestamp};
+}
