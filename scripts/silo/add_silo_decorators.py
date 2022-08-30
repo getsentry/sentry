@@ -17,25 +17,25 @@ Instructions for use:
 1. Commit or stash any Git changes in progress.
 2. Scroll down to "Fill these predicates in..." and write what you want to do.
 3. From the Sentry project root, do
-     ./scripts/servermode/audit_mode_limits.py | ./scripts/servermode/add_mode_limits.py
+     ./scripts/silo/audit_silo_decorators.py | ./scripts/silo/add_silo_decorators.py
 4. Do `git status` or `git diff` to observe the results. Commit if you're happy.
 """
 
 
 class ClassCategory(Enum):
     MODEL = auto()
-    VIEW = auto()
+    ENDPOINT = auto()
 
 
 @dataclass
-class LimitedClass:
+class TargetClass:
     package: str
     name: str
     category: ClassCategory
     is_decorated: bool
 
 
-def parse_audit(audit) -> Iterable[LimitedClass]:
+def parse_audit(audit) -> Iterable[TargetClass]:
     def split_qualname(value):
         dot_index = value.rindex(".")
         package = value[:dot_index]
@@ -46,20 +46,20 @@ def parse_audit(audit) -> Iterable[LimitedClass]:
         is_decorated = dec_group["decorator"] is not None
         for value in dec_group["values"]:
             package, name = split_qualname(value)
-            yield LimitedClass(package, name, category, is_decorated)
+            yield TargetClass(package, name, category, is_decorated)
 
     for dec_group in audit["models"]["decorators"]:
         yield from parse_group(ClassCategory.MODEL, dec_group)
-    for dec_group in audit["views"]["decorators"]:
-        yield from parse_group(ClassCategory.VIEW, dec_group)
+    for dec_group in audit["endpoints"]["decorators"]:
+        yield from parse_group(ClassCategory.ENDPOINT, dec_group)
 
 
 def read_audit():
     pipe_input = sys.stdin.read()
     brace_index = pipe_input.index("{")
     pipe_input = pipe_input[brace_index:]  # strip leading junk
-    server_mode_audit = json.loads(pipe_input)
-    return list(parse_audit(server_mode_audit))
+    silo_audit = json.loads(pipe_input)
+    return list(parse_audit(silo_audit))
 
 
 def find_source_paths():
@@ -91,7 +91,7 @@ def insert_import(src_code: str, import_stmt: str) -> str:
 def apply_decorators(
     decorator_name: str,
     import_stmt: str,
-    target_classes: Iterable[LimitedClass],
+    target_classes: Iterable[TargetClass],
 ) -> None:
     target_names = {c.name for c in target_classes if not c.is_decorated}
     for src_path, class_name in find_class_declarations():
@@ -117,16 +117,16 @@ def main():
     ####################################################################
     # Fill these predicates in with the logic you want to apply
 
-    def control_model_predicate(c: LimitedClass) -> bool:
+    def control_model_predicate(c: TargetClass) -> bool:
         return False
 
-    def customer_model_predicate(c: LimitedClass) -> bool:
+    def customer_model_predicate(c: TargetClass) -> bool:
         return False
 
-    def control_endpoint_predicate(c: LimitedClass) -> bool:
+    def control_endpoint_predicate(c: TargetClass) -> bool:
         return False
 
-    def customer_endpoint_predicate(c: LimitedClass) -> bool:
+    def customer_endpoint_predicate(c: TargetClass) -> bool:
         return False
 
     ####################################################################
@@ -144,12 +144,12 @@ def main():
     apply_decorators(
         "control_silo_endpoint",
         "from sentry.api.base import control_silo_endpoint",
-        filter_classes(ClassCategory.VIEW, control_endpoint_predicate),
+        filter_classes(ClassCategory.ENDPOINT, control_endpoint_predicate),
     )
     apply_decorators(
         "customer_silo_endpoint",
         "from sentry.api.base import customer_silo_endpoint",
-        filter_classes(ClassCategory.VIEW, customer_endpoint_predicate),
+        filter_classes(ClassCategory.ENDPOINT, customer_endpoint_predicate),
     )
 
 

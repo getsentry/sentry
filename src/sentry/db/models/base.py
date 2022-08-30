@@ -6,7 +6,7 @@ from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.servermode import ModeLimited, ServerComponentMode
+from sentry.silo import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
@@ -142,18 +142,16 @@ signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
 
 
-class ModelAvailableOn(ModeLimited):
+class ModelSiloLimit(SiloLimit):
     def __init__(
         self,
-        *modes: ServerComponentMode,
-        read_only: ServerComponentMode | Iterable[ServerComponentMode] = (),
+        *modes: SiloMode,
+        read_only: SiloMode | Iterable[SiloMode] = (),
     ) -> None:
         super().__init__(*modes)
-        self.read_only = frozenset(
-            [read_only] if isinstance(read_only, ServerComponentMode) else read_only
-        )
+        self.read_only = frozenset([read_only] if isinstance(read_only, SiloMode) else read_only)
 
-    class DataAvailabilityError(Exception):
+    class ModelSiloLimitError(SiloLimit.SiloLimitError):
         pass
 
     @staticmethod
@@ -169,8 +167,8 @@ class ModelAvailableOn(ModeLimited):
     def handle_when_unavailable(
         self,
         original_method: Callable[..., Any],
-        current_mode: ServerComponentMode,
-        available_modes: Iterable[ServerComponentMode],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
         def handle(obj: Any, *args: Any, **kwargs: Any) -> None:
             model_name = self._recover_model_name(obj)
@@ -180,16 +178,16 @@ class ModelAvailableOn(ModeLimited):
                 f"Called `{method_name}` on server in {current_mode} mode. "
                 f"{model_name or 'The model'} is available only in: {mode_str}"
             )
-            raise self.DataAvailabilityError(message)
+            raise self.ModelSiloLimitError(message)
 
         return handle
 
     def __call__(self, model_class: Any) -> type:
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
-            raise TypeError("`@ModelAvailableOn ` must decorate a Model class")
+            raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
         assert isinstance(model_class.objects, BaseManager)
 
-        model_class.objects = model_class.objects.create_mode_limited_copy(self, self.read_only)
+        model_class.objects = model_class.objects.create_silo_limited_copy(self, self.read_only)
 
         # On the model (not manager) class itself, find all methods that are tagged
         # with the `alters_data` meta-attribute and replace them with overrides.
@@ -211,7 +209,5 @@ class ModelAvailableOn(ModeLimited):
         return model_class
 
 
-control_silo_model = ModelAvailableOn(
-    ServerComponentMode.CONTROL, read_only=ServerComponentMode.CUSTOMER
-)
-customer_silo_model = ModelAvailableOn(ServerComponentMode.CUSTOMER)
+control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.CUSTOMER)
+customer_silo_model = ModelSiloLimit(SiloMode.CUSTOMER)

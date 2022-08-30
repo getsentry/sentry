@@ -9,8 +9,12 @@ from typing import Any, Callable, Iterable
 from django.conf import settings
 
 
-class ServerComponentMode(Enum):
-    """Defines the component mode of the application to be acting as."""
+class SiloMode(Enum):
+    """Defines which "silo" component the application is acting as.
+
+    The default choice is "monolith", which assumes that the server is the only
+    "silo" in its environment and allows access to all tables and endpoints.
+    """
 
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
@@ -18,10 +22,10 @@ class ServerComponentMode(Enum):
     FRONTEND = "FRONTEND"
 
     @classmethod
-    def resolve(cls, mode: str | ServerComponentMode | None) -> ServerComponentMode:
+    def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
         if not mode:
             return cls.MONOLITH
-        if isinstance(mode, ServerComponentMode):
+        if isinstance(mode, SiloMode):
             return mode
         return cls[mode]
 
@@ -29,14 +33,14 @@ class ServerComponentMode(Enum):
         return self.value
 
     @classmethod
-    def get_current_mode(cls) -> ServerComponentMode:
-        return cls.resolve(settings.SERVER_COMPONENT_MODE)
+    def get_current_mode(cls) -> SiloMode:
+        return cls.resolve(settings.SILO_MODE)
 
 
-class ModeLimited(abc.ABC):
+class SiloLimit(abc.ABC):
     """Decorator for classes or methods that are limited to certain modes."""
 
-    def __init__(self, *modes: ServerComponentMode) -> None:
+    def __init__(self, *modes: SiloMode) -> None:
         self.modes = frozenset(modes)
         if not self.modes:
             raise ValueError
@@ -46,12 +50,15 @@ class ModeLimited(abc.ABC):
         """Modify the decorated object with appropriate overrides."""
         raise NotImplementedError
 
+    class SiloLimitError(Exception):
+        pass
+
     @abc.abstractmethod
     def handle_when_unavailable(
         self,
         original_method: Callable[..., Any],
-        current_mode: ServerComponentMode,
-        available_modes: Iterable[ServerComponentMode],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
         """Handle an attempt to access an unavailable element.
 
@@ -64,28 +71,26 @@ class ModeLimited(abc.ABC):
     def create_override(
         self,
         original_method: Callable[..., Any],
-        extra_modes: Iterable[ServerComponentMode] = (),
+        extra_modes: Iterable[SiloMode] = (),
     ) -> Callable[..., Any]:
         """Create a method that conditionally overrides another method.
 
         The returned method passes through to the original only if this server
-        component is in one of the allowed modes.
+        is in one of the allowed silo modes.
 
         :param original_method: the method being conditionally overridden
         :param extra_modes: modes to allow in addition to self.modes
         :return: the conditional method object
         """
 
-        available_modes = frozenset(
-            itertools.chain([ServerComponentMode.MONOLITH], self.modes, extra_modes)
-        )
+        available_modes = frozenset(itertools.chain([SiloMode.MONOLITH], self.modes, extra_modes))
 
         def override(*args: Any, **kwargs: Any) -> Any:
             # It's important to do this check inside the override, so that tests
             # using `override_settings` or a similar context can change the value of
-            # settings.SERVER_COMPONENT_MODE effectively. Otherwise, availability
+            # settings.SILO_MODE effectively. Otherwise, availability
             # would be immutably determined when the decorator is first evaluated.
-            current_mode = ServerComponentMode.get_current_mode()
+            current_mode = SiloMode.get_current_mode()
             is_available = current_mode in available_modes
 
             if is_available:
