@@ -191,6 +191,10 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
 
   const fetchErrors = useCallback(
     async errorIds => {
+      if (!errorIds.length) {
+        return [];
+      }
+
       const conditions = new MutableSearch('');
       errorIds.forEach((errorId, i) => {
         if (i > 0) {
