@@ -147,7 +147,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": four_min_ago, 
                     "start_timestamp": four_min_ago, 
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    # "fingerprint": ["group-1"]
+                    "fingerprint": ["group-1"]
                     },
                 project_id=project.id,
             )
@@ -163,7 +163,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": three_min_ago, 
                     "start_timestamp": three_min_ago, 
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    # "fingerprint": ["group-1"]
+                    "fingerprint": ["group-1"]
                     },
                 project_id=project.id,
             )
@@ -179,7 +179,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": two_min_ago,
                     "start_timestamp": two_min_ago, 
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    # "fingerprint": ["group-1"],
+                    "fingerprint": ["group-1"],
                     "environment": "production",
                     "tags": {"environment": "production"},
                 },
@@ -198,7 +198,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": one_min_ago,
                     "start_timestamp": one_min_ago, 
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    # "fingerprint": ["group-2"],
+                    "fingerprint": ["group-2"],
                     "environment": "production",
                     "tags": {"environment": "production"},
                 },

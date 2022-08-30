@@ -279,7 +279,9 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
+        dataset = snuba.Dataset.Transactions if event.get_event_type() == "transaction" else snuba.Dataset.Discover
+
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
     def get_prev_event_id(self, event, filter):
         """
@@ -297,24 +299,20 @@ class SnubaEventStorage(EventStorage):
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
+        
+        dataset = snuba.Dataset.Transactions if event.get_event_type() == "transaction" else snuba.Dataset.Discover
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
+        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING, dataset=dataset)
 
     def __get_columns(self):
         return [col.value.event_name for col in EventStorage.minimal_columns]
 
-    def __get_event_id_from_filter(self, filter=None, orderby=None):
+    def __get_event_id_from_filter(self, filter=None, orderby=None, dataset=snuba.Dataset.Discover):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
-        print("columns: ", columns)
-        print("filter keys: ", filter.filter_keys)
-        print("filter conditions: ", filter.conditions)
         try:
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
             # required when doing pagination in discover
-
-            # CEO look at this for the next/prev
-            # import pdb; pdb.set_trace()
             result = snuba.aliased_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
@@ -324,9 +322,8 @@ class SnubaEventStorage(EventStorage):
                 limit=1,
                 referrer="eventstore.get_next_or_prev_event_id",
                 orderby=orderby,
-                dataset=snuba.Dataset.Discover,
+                dataset=dataset,
             )
-            print("result: ", result)
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.

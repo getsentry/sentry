@@ -525,9 +525,9 @@ def _prepare_query_params(query_params):
         forward, reverse = get_snuba_translators(
             query_params.filter_keys, is_grouprelease=query_params.is_grouprelease
         )
-    print("dataset: ", query_params.dataset)
+
     if query_params.dataset in [
-        Dataset.Events, 
+        Dataset.Events,
         Dataset.Discover,
         Dataset.Sessions,
         Dataset.Transactions,

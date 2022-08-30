@@ -44,19 +44,21 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         prev_event_id = None
 
         if event.group_id:
-            requested_environments = set(request.GET.getlist("environment"))
-            event_category = event.get_event_type() # wow this naming sucks
-            if event_category == "transaction":
-                conditions = [["event.type", "=", "transaction"]]
+            # TODO add behind feature flag
+            if event.get_event_type() == "transaction":
+                conditions = [[["has", ["group_ids", group_id]], "=", event.group_id]]  
+                _filter = eventstore.Filter(
+                    conditions=conditions, project_ids=[event.project_id],
+                )
             else:
                 conditions = [["event.type", "!=", "transaction"]]
+                _filter = eventstore.Filter(
+                    conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
+                )
 
+            requested_environments = set(request.GET.getlist("environment"))
             if requested_environments:
                 conditions.append(["environment", "IN", requested_environments])
-
-            _filter = eventstore.Filter(
-                conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
-            )
 
             # Ignore any time params and search entire retention period
             next_event_filter = deepcopy(_filter)
