@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.sentry_metrics
 
-process_messages = MessageProcessor(UseCaseKey.RELEASE_HEALTH).process_messages
+MESSAGE_PROCESSOR = MessageProcessor(UseCaseKey.RELEASE_HEALTH)
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -277,7 +277,7 @@ def test_process_messages() -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    new_batch = process_messages(outer_message=outer_message)
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     expected_new_batch = [
         Message(
             m.partition,
@@ -417,7 +417,7 @@ def test_process_messages_invalid_messages(
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
     with caplog.at_level(logging.ERROR):
-        new_batch = process_messages(outer_message=outer_message)
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -479,7 +479,7 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     backend.indexer._strings[1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
-        new_batch = process_messages(outer_message=outer_message)
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited
