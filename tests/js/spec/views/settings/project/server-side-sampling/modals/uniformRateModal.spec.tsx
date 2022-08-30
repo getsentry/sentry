@@ -8,6 +8,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
@@ -17,17 +18,17 @@ import {getMockData, outcomesWithoutClientDiscarded} from '../utils';
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('Server-Side Sampling - Uniform Rate Modal', function () {
-  beforeAll(function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      body: TestStubs.OutcomesWithReason(),
-    });
+  beforeEach(function () {
+    ServerSideSamplingStore.reset();
   });
 
   it('render next button', async function () {
     const {organization, project} = getMockData();
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
+
+    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.fetchProjectStats48hSuccess(TestStubs.Outcomes());
 
     const {container} = render(<GlobalModal />);
 
@@ -36,7 +37,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        projectStats={TestStubs.Outcomes()}
         rules={[]}
         onSubmit={handleSubmit}
         onReadDocs={handleReadDocs}
@@ -151,6 +151,12 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('render done button', async function () {
+    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+      ...TestStubs.Outcomes(),
+      groups: [],
+    });
+
     const {organization, project} = getMockData();
     const handleSubmit = jest.fn();
 
@@ -161,7 +167,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        projectStats={{...TestStubs.Outcomes(), groups: []}}
         rules={[]}
         onSubmit={handleSubmit}
         onReadDocs={jest.fn()}
@@ -221,6 +226,12 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('cancel flow', async function () {
+    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+      ...TestStubs.Outcomes(),
+      groups: [],
+    });
+
     const {organization, project} = getMockData();
 
     render(<GlobalModal />);
@@ -230,7 +241,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        projectStats={{...TestStubs.Outcomes(), groups: []}}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
@@ -253,10 +263,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display "Specify client rate modal" content as a first step', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      body: outcomesWithoutClientDiscarded,
-    });
+    ServerSideSamplingStore.fetchProjectStats30dSuccess(outcomesWithoutClientDiscarded);
+    ServerSideSamplingStore.fetchProjectStats48hSuccess(outcomesWithoutClientDiscarded);
 
     const {organization, project} = getMockData();
 
@@ -267,7 +275,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        projectStats={outcomesWithoutClientDiscarded}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
@@ -312,10 +319,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('does not display "Specify client rate modal" if no groups', async function () {
-    const outcomesWithoutGroups = {...outcomesWithoutClientDiscarded, groups: []};
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      body: outcomesWithoutGroups,
+    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+      ...outcomesWithoutClientDiscarded,
+      groups: [],
     });
 
     const {organization, project} = getMockData();
@@ -327,7 +334,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        projectStats={outcomesWithoutGroups}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
@@ -344,10 +350,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display request error message', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      statusCode: 500,
-    });
+    ServerSideSamplingStore.fetchProjectStats30dError('some error');
+
+    ServerSideSamplingStore.fetchProjectStats48hError('some error');
 
     const {organization, project} = getMockData();
 
@@ -358,7 +363,6 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
         {...modalProps}
         organization={organization}
         project={project}
-        projectStats={outcomesWithoutClientDiscarded}
         rules={[]}
         onSubmit={jest.fn()}
         onReadDocs={jest.fn()}
