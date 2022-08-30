@@ -21,7 +21,8 @@ from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     get_column_names,
 )
 from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
-from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
+from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter, \
+    writes_limiter_factory
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
 from sentry.utils.codecs import Codec
@@ -367,10 +368,11 @@ class RawCloudSpannerIndexer(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        ratelimiter_namespace = get_ingest_config(use_case_id).writes_limiter_namespace
+        config = get_ingest_config(use_case_id)
+        writes_limiter = writes_limiter_factory.get_ratelimiter(config)
 
         with writes_limiter.check_write_limits(
-            use_case_id, ratelimiter_namespace, db_write_keys
+            use_case_id, db_write_keys
         ) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
