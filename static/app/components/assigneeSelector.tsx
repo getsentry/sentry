@@ -293,7 +293,7 @@ class AssigneeSelector extends Component<Props, State> {
       .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
       .filter(({type}) => type === 'user' || type === 'team')
       .map(({type, suggestedReason, assignee}) => {
-        const reason = textReason[suggestedReason] ?? t('Issue Owner');
+        const reason = textReason[suggestedReason];
         if (type === 'user') {
           return this.renderMemberNode(assignee as User, reason);
         }
