@@ -8,6 +8,7 @@ import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
@@ -17,6 +18,7 @@ interface Props {
   isSelected: boolean;
   onClick: null | MouseCallback;
   startTimestampMs: number;
+  allowHover?: boolean;
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
 }
@@ -26,11 +28,13 @@ function BreadcrumbItem({
   isHovered,
   isSelected,
   startTimestampMs,
+  allowHover = true,
   onMouseEnter,
   onMouseLeave,
   onClick,
 }: Props) {
   const {title, description} = getDetails(crumb);
+  const {setActiveTab} = useActiveReplayTab();
 
   const handleMouseEnter = useCallback(
     (e: React.MouseEvent<HTMLElement>) => onMouseEnter && onMouseEnter(crumb, e),
@@ -41,8 +45,25 @@ function BreadcrumbItem({
     [onMouseLeave, crumb]
   );
   const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => onClick?.(crumb, e),
-    [onClick, crumb]
+    (e: React.MouseEvent<HTMLElement>) => {
+      onClick?.(crumb, e);
+      switch (crumb.type) {
+        case 'navigation':
+        case 'debug':
+          setActiveTab('network');
+          break;
+        case 'ui':
+          setActiveTab('dom');
+          break;
+        case 'error':
+          setActiveTab('issues');
+          break;
+        default:
+          setActiveTab('console');
+          break;
+      }
+    },
+    [crumb, setActiveTab, onClick]
   );
 
   return (
@@ -54,6 +75,7 @@ function BreadcrumbItem({
       isHovered={isHovered}
       isSelected={isSelected}
       aria-current={isSelected}
+      allowHover={allowHover}
     >
       <IconWrapper color={crumb.color}>
         <BreadcrumbIcon type={crumb.type} />
@@ -104,6 +126,7 @@ const Description = styled('span')`
 type CrumbItemProps = {
   isHovered: boolean;
   isSelected: boolean;
+  allowHover?: boolean;
 };
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
@@ -122,6 +145,12 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
   ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
   border-radius: ${p => p.theme.borderRadius};
+
+  ${p =>
+    p.allowHover &&
+    ` &:hover {
+    background-color: ${p.theme.surface100};
+  }`}
 
   /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &::after {

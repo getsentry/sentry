@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import EnvironmentActions from 'sentry/actions/environmentActions';
 import {Environment} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
@@ -35,22 +34,6 @@ const storeConfig: OrganizationEnvironmentsStoreDefinition = {
 
   init() {
     this.state = {environments: null, error: null};
-
-    this.unsubscribeListeners.push(
-      this.listenTo(EnvironmentActions.fetchEnvironments, this.onFetchEnvironments)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(
-        EnvironmentActions.fetchEnvironmentsSuccess,
-        this.onFetchEnvironmentsSuccess
-      )
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(
-        EnvironmentActions.fetchEnvironmentsError,
-        this.onFetchEnvironmentsError
-      )
-    );
   },
 
   makeEnvironment(item: Environment): EnhancedEnvironment {

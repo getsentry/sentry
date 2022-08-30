@@ -1,4 +1,4 @@
-import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 
 const event = {
   id: '5caac5c07a3c4244ac2c02c0c484fb27',

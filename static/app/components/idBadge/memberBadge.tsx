@@ -8,7 +8,7 @@ import {AvatarUser, Member} from 'sentry/types';
 
 interface Props {
   member: Member;
-  avatarSize?: UserAvatar['props']['size'];
+  avatarSize?: React.ComponentProps<typeof UserAvatar>['size'];
   className?: string;
   displayEmail?: string;
   displayName?: React.ReactNode;
