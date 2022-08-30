@@ -16,12 +16,9 @@ import useExtractedCrumbHtml, {
   Extraction,
 } from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import {
-  DomFilters,
-  getDomMutationsTypes,
-  getFilteredDomMutations,
-} from 'sentry/views/replays/detail/domMutations/utils';
+import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 
 type Props = {
   replay: ReplayReader;
@@ -30,10 +27,16 @@ type Props = {
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<DomFilters>({});
+  const [filters, setFilters] = useState<Filters<Extraction>>({});
 
   const filteredDomMutations = useMemo(
-    () => getFilteredDomMutations(actions, searchTerm, filters),
+    () =>
+      getFilteredItems({
+        items: actions,
+        filters,
+        searchTerm,
+        searchProp: 'html',
+      }),
     [actions, filters, searchTerm]
   );
 
