@@ -80,9 +80,7 @@ class PGStringIndexerV2(StringIndexer):
         config = get_ingest_config(use_case_id)
         writes_limiter = writes_limiter_factory.get_ratelimiter(config)
 
-        with writes_limiter.check_write_limits(
-            use_case_id, config.writes_limiter_namespace, db_write_keys
-        ) as writes_limiter_state:
+        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.

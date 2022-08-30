@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -109,14 +109,12 @@ class RateLimitState:
 
 
 class WritesLimiter:
-    def __init__(self, namespace: str, **options: Any) -> None:
+    def __init__(self, namespace: str, **options: Mapping[str, str]) -> None:
         self.namespace = namespace
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
-    def check_write_limits(
-        self, use_case_id: UseCaseKey, namespace: str, keys: KeyCollection
-    ) -> RateLimitState:
+    def check_write_limits(self, use_case_id: UseCaseKey, keys: KeyCollection) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
@@ -130,7 +128,7 @@ class WritesLimiter:
         Upon (successful) exit, rate limits are consumed.
         """
 
-        org_ids, requests = _construct_quota_requests(use_case_id, namespace, keys)
+        org_ids, requests = _construct_quota_requests(use_case_id, self.namespace, keys)
         timestamp, grants = self.rate_limiter.check_within_quotas(requests)
 
         granted_key_collection = dict(keys.mapping)
@@ -162,7 +160,7 @@ class WritesLimiter:
         state = RateLimitState(
             _writes_limiter=self,
             _use_case_id=use_case_id,
-            _namespace=namespace,
+            _namespace=self.namespace,
             _requests=requests,
             _grants=grants,
             _timestamp=timestamp,
@@ -173,6 +171,14 @@ class WritesLimiter:
 
 
 class WritesLimiterFactory:
+    """
+    The WritesLimiterFactory is in charge of initializing the WritesLimiter
+    based on a configuration's namespace and options. Ideally this logic would
+    live in the initialization of the backends (postgres, cloudspanner etc) but
+    since each backend supports multiple use cases dynamically we just keep the
+    mapping of rate limiters in this factory.
+    """
+
     def __init__(self) -> None:
         self.rate_limiters: MutableMapping[str, WritesLimiter] = {}
 
