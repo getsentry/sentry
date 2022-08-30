@@ -526,9 +526,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
         }
 
-        if features.has(
-            "organizations:performance-issue-details-backend", projects[0].organization
-        ):
+        if features.has("organizations:performance-issues", projects[0].organization):
             queryset_conditions.update(
                 {"category": QCallbackCondition(lambda categories: Q(type__in=categories))}
             )
