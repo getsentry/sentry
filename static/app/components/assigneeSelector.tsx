@@ -237,7 +237,7 @@ class AssigneeSelector extends Component<Props, State> {
                 ? `${member.name || member.email} ${t('(You)')}`
                 : member.name || member.email}
             </Highlight>
-            {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
+            {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
       ),
@@ -268,7 +268,7 @@ class AssigneeSelector extends Component<Props, State> {
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>{display}</Highlight>
-            {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
+            {suggestedReason && <SuggestedReason>({suggestedReason})</SuggestedReason>}
           </Label>
         </MenuItemWrapper>
       ),
@@ -283,15 +283,17 @@ class AssigneeSelector extends Component<Props, State> {
     typeof DropdownAutoComplete
   >['items'] {
     const {assignedTo} = this.state;
+    const textReason: Record<SuggestedOwnerReason, string> = {
+      suspectCommit: t('Suspect Commit'),
+      releaseCommit: t('Suspect Release'),
+      ownershipRule: t('Ownership Rule'),
+    };
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
       .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
       .filter(({type}) => type === 'user' || type === 'team')
       .map(({type, suggestedReason, assignee}) => {
-        const reason =
-          suggestedReason === 'suspectCommit'
-            ? t('(Suspect Commit)')
-            : t('(Issue Owner)');
+        const reason = textReason[suggestedReason];
         if (type === 'user') {
           return this.renderMemberNode(assignee as User, reason);
         }
@@ -446,6 +448,7 @@ class AssigneeSelector extends Component<Props, State> {
           <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
         ),
       }),
+      releaseCommit: '',
       ownershipRule: t('Matching Issue Owners Rule'),
     };
     const assignedToSuggestion = suggestedActors.find(
@@ -462,11 +465,12 @@ class AssigneeSelector extends Component<Props, State> {
             {tct('Assigned to [name]', {
               name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
             })}
-            {assignedToSuggestion && (
-              <TooltipSubtext>
-                {suggestedReasons[assignedToSuggestion.suggestedReason]}
-              </TooltipSubtext>
-            )}
+            {assignedToSuggestion &&
+              suggestedReasons[assignedToSuggestion.suggestedReason] && (
+                <TooltipSubtext>
+                  {suggestedReasons[assignedToSuggestion.suggestedReason]}
+                </TooltipSubtext>
+              )}
           </TooltipWrapper>
         }
       />

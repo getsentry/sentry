@@ -131,7 +131,7 @@ export type InboxDetails = {
   reason?: number;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
+export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule' | 'releaseCommit';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
