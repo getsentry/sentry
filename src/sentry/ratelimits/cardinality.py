@@ -18,16 +18,15 @@ that there can only be a per-org or a global limit, not both at once.
 """
 
 
-from typing import Collection, Protocol, Sequence, TypeVar, Any, Optional, Iterator, Tuple
-
 import time
-
 from dataclasses import dataclass
+from typing import Any, Collection, Iterator, Optional, Protocol, Sequence, Tuple, TypeVar
 
 from sentry.utils.services import Service
 
 Hash = str
 Timestamp = int
+
 
 @dataclass(frozen=True)
 class Quota:
@@ -72,6 +71,7 @@ class RequestedQuota:
     # "fit" into all quotas.
     quotas: Sequence[Quota]
 
+
 @dataclass(frozen=True)
 class GrantedQuota:
     # The prefix from RequestedQuota
@@ -89,7 +89,9 @@ class CardinalityLimiter(Service):
     def __init__(self, **options: Any) -> None:
         pass
 
-    def check_within_quotas(self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+    def check_within_quotas(
+        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
+    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
         """
         Given a set of quotas requests and limits, compute how much quota could
         be consumed.
@@ -104,18 +106,25 @@ class CardinalityLimiter(Service):
             correctly.
         """
         if timestamp is None:
-            timestamp =  int(time.time())
+            timestamp = int(time.time())
         else:
             timestamp = int(timestamp)
 
         grants = [
-            GrantedQuota(prefix=request.prefix, granted_unit_hashes=request.unit_hashes, reached_quotas=[])
+            GrantedQuota(
+                prefix=request.prefix, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
+            )
             for request in requests
         ]
 
         return timestamp, grants
 
-    def use_quotas(self, requests: Sequence[RequestedQuota], grants: Sequence[GrantedQuota], timestamp: Timestamp) -> None:
+    def use_quotas(
+        self,
+        requests: Sequence[RequestedQuota],
+        grants: Sequence[GrantedQuota],
+        timestamp: Timestamp,
+    ) -> None:
         """
         Given a set of requests and the corresponding return values from
         `check_within_quotas`, consume the quotas.
