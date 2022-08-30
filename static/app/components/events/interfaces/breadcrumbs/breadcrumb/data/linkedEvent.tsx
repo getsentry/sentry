@@ -54,7 +54,7 @@ export function LinkedEvent({orgSlug, eventId, route, router}: Props) {
   }
 
   async function fetchEventById() {
-    if (!!storedLinkedEvent) {
+    if (storedLinkedEvent) {
       return;
     }
 

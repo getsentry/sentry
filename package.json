@@ -8,7 +8,6 @@
   },
   "dependencies": {
     "@babel/core": "~7.18.5",
-    "@babel/plugin-proposal-decorators": "~7.18.2",
     "@babel/plugin-transform-react-jsx": "^7.17.12",
     "@babel/plugin-transform-runtime": "~7.18.5",
     "@babel/preset-env": "~7.18.2",
@@ -120,7 +119,7 @@
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
     "pegjs-loader": "^0.5.6",
-    "platformicons": "^5.3.0",
+    "platformicons": "^5.3.1",
     "po-catalog-loader": "2.0.0",
     "prettier": "2.7.1",
     "prism-sentry": "^1.0.2",
