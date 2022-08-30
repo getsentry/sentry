@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Sequence
-from unittest.mock import Mock, patch
+from unittest import mock
 
 import pytest
 from django.utils import timezone
@@ -777,70 +777,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 class PerfTagStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-
-        from sentry.eventstream.kafka import KafkaEventStream
-
-        self.kafka_eventstream = KafkaEventStream()
-        self.kafka_eventstream.producer = Mock()
-
         self.ts = SnubaTagStorage()
-
-    def _build_transaction_event(
-        self, environment: Environment, project_id, group_ids, user_id, timestamp
-    ):
-        from sentry.event_manager import EventManager
-        from sentry.utils.samples import load_data
-
-        manager = EventManager(load_data("transaction"))
-        manager.normalize()
-
-        event = manager.save(project_id)
-        event.environment = environment
-        for i, tag_tuple in enumerate(event.data["tags"]):
-            if tag_tuple[0] == "environment":
-                removed_environment_tags = event.data["tags"][:i] + event.data["tags"][i + 1 :]
-                event.data["tags"] = removed_environment_tags
-                break
-        if environment:
-            event.data.update({"environment": environment.name})
-            event.data["tags"].extend([("environment", environment.name)])
-
-        event.group_id = None
-        event.group_ids = group_ids
-        event.data["tags"].extend([("sentry:user", user_id)])
-
-        if timestamp:
-            event.data["timestamp"] = timestamp.timestamp()
-
-        return event
-
-    def _produce_event(self, timestamp: datetime = None, *insert_args, **insert_kwargs):
-        # copy of SnubaEventStreamTest.__produce_event()
-        from django.conf import settings
-
-        from sentry.eventstream.snuba import SnubaEventStream
-        from sentry.utils import json
-
-        # pass arguments on to Kafka EventManager
-        self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
-
-        produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
-        assert not produce_args
-        assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
-        assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
-
-        version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
-        assert version == 2
-        assert type_ == "insert"
-        # insert what would have been the Kafka payload directly
-        # into Snuba, expect an HTTP 200 and for the event to now exist
-        snuba_eventstream = SnubaEventStream()
-        snuba_eventstream._send(
-            self.project.id,
-            "insert",
-            (payload1, payload2),
-            is_transaction_event=insert_kwargs["event"].get_event_type() == "transaction",
-        )
 
     def _insert_transaction(
         self,
@@ -850,28 +787,39 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         environment: Environment = None,
         timestamp: datetime = None,
     ):
+        from sentry.event_manager import _pull_out_data
         from sentry.utils import snuba
 
         # truncate microseconds since there's some loss in precision
         insert_time = (timestamp if timestamp else timezone.now()).replace(microsecond=0)
 
         user_id_val = f"id:{user_id}"
-        event = self._build_transaction_event(
-            environment, project_id, group_ids, user_id_val, insert_time
-        )
 
-        insert_args = ()
-        insert_kwargs = {
-            "event": event,
-            "is_new_group_environment": True,
-            "is_new": True,
-            "is_regression": False,
-            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
-            "skip_consume": False,
-            "received_timestamp": insert_time.timestamp(),
-        }
+        def inject_group_ids(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].group_ids = group_ids
+            return jobs, projects
 
-        self._produce_event(*insert_args, **insert_kwargs)
+        with mock.patch("sentry.event_manager._pull_out_data", inject_group_ids):
+            event_data = {
+                "type": "transaction",
+                "level": "info",
+                "message": "transaction message",
+                "tags": [("sentry:user", user_id_val)],
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "timestamp": insert_time.timestamp(),
+                "start_timestamp": insert_time.timestamp(),
+                "received": insert_time.timestamp(),
+            }
+            if environment:
+                event_data["environment"] = environment.name
+                event_data["tags"].extend([("environment", environment.name)])
+            event = self.store_event(
+                data=event_data,
+                project_id=project_id,
+            )
+
         result = snuba.raw_query(
             dataset=snuba.Dataset.Transactions,
             start=insert_time - timedelta(days=1),
@@ -897,8 +845,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
 
         return event
 
-    @patch("sentry.eventstream.insert")
-    def test_get_perf_groups_user_counts_simple(self, mock_eventstream_insert):
+    def test_get_perf_groups_user_counts_simple(self):
         first_group = self.create_group(
             project=self.project, first_seen=timezone.now() - timedelta(days=5)
         )
@@ -973,8 +920,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
             [self.project.id], group_ids=[first_group.id, second_group.id], environment_ids=None
         ) == {first_group.id: 3, second_group.id: 3}
 
-    @patch("sentry.eventstream.insert")
-    def test_get_perf_group_list_tag_value_by_environment(self, mock_eventstream_insert):
+    def test_get_perf_group_list_tag_value_by_environment(self):
         new_group = self.create_group(
             project=self.project, first_seen=timezone.now() - timedelta(hours=1)
         )
