@@ -10,8 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
-  fetchProjectStats30d,
-  fetchProjectStats48h,
+  fetchProjectStats,
   fetchSamplingDistribution,
   fetchSamplingSdkVersions,
 } from 'sentry/actionCreators/serverSideSampling';
@@ -110,13 +109,7 @@ export function ServerSideSampling({project}: Props) {
         projectID: project.id,
       });
 
-      await fetchProjectStats48h({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
-      });
-
-      await fetchProjectStats30d({
+      await fetchProjectStats({
         orgSlug: organization.slug,
         api,
         projId: project.id,

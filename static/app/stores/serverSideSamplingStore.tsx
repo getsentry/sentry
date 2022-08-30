@@ -55,20 +55,20 @@ const initialState: State = {
 };
 
 interface ServerSideSamplingStoreDefinition extends CommonStoreDefinition<State> {
-  fetchDistribution(): void;
   fetchDistributionError(error: string): void;
+  fetchDistributionStart(): void;
   fetchDistributionSuccess(data: SamplingDistribution): void;
 
-  fetchProjectStats30d(): void;
   fetchProjectStats30dError: (error: string) => void;
+  fetchProjectStats30dStart(): void;
   fetchProjectStats30dSuccess: (data: SeriesApi) => void;
 
-  fetchProjectStats48h(): void;
   fetchProjectStats48hError: (error: string) => void;
+  fetchProjectStats48hStart(): void;
   fetchProjectStats48hSuccess: (data: SeriesApi) => void;
 
-  fetchSdkVersions(): void;
   fetchSdkVersionsError(error: string): void;
+  fetchSdkVersionsStart(): void;
   fetchSdkVersionsSuccess(data: SamplingSdkVersion[]): void;
 
   reset(): void;
@@ -86,7 +86,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     return this.state;
   },
 
-  fetchProjectStats48h() {
+  fetchProjectStats48hStart() {
     this.state = {
       ...this.state,
       projectStats48h: {
@@ -122,7 +122,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchProjectStats30d() {
+  fetchProjectStats30dStart() {
     this.state = {
       ...this.state,
       projectStats30d: {
@@ -158,7 +158,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchDistribution() {
+  fetchDistributionStart() {
     this.state = {
       ...this.state,
       distribution: {
@@ -194,7 +194,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchSdkVersions() {
+  fetchSdkVersionsStart() {
     this.state = {
       ...this.state,
       sdkVersions: {

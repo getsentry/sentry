@@ -17,7 +17,7 @@ export function fetchSamplingSdkVersions({
   const {distribution} = ServerSideSamplingStore.getState();
   const {startTimestamp, endTimestamp, project_breakdown} = distribution.data ?? {};
 
-  ServerSideSamplingStore.fetchSdkVersions();
+  ServerSideSamplingStore.fetchSdkVersionsStart();
 
   if (!startTimestamp || !endTimestamp) {
     ServerSideSamplingStore.fetchSdkVersionsSuccess([]);
@@ -62,7 +62,7 @@ export function fetchSamplingDistribution({
 }): Promise<SamplingDistribution> {
   ServerSideSamplingStore.reset();
 
-  ServerSideSamplingStore.fetchDistribution();
+  ServerSideSamplingStore.fetchDistributionStart();
 
   const promise = api.requestPromise(
     `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`
@@ -77,7 +77,7 @@ export function fetchSamplingDistribution({
   return promise;
 }
 
-export function fetchProjectStats48h({
+function fetchProjectStats48h({
   api,
   orgSlug,
   projId,
@@ -86,7 +86,7 @@ export function fetchProjectStats48h({
   orgSlug: Organization['slug'];
   projId?: Project['id'];
 }) {
-  ServerSideSamplingStore.fetchProjectStats48h();
+  ServerSideSamplingStore.fetchProjectStats48hStart();
 
   const promise = api.requestPromise(`/organizations/${orgSlug}/stats_v2/`, {
     query: {
@@ -108,7 +108,7 @@ export function fetchProjectStats48h({
   return promise;
 }
 
-export function fetchProjectStats30d({
+function fetchProjectStats30d({
   api,
   orgSlug,
   projId,
@@ -117,7 +117,7 @@ export function fetchProjectStats30d({
   orgSlug: Organization['slug'];
   projId?: Project['id'];
 }) {
-  ServerSideSamplingStore.fetchProjectStats30d();
+  ServerSideSamplingStore.fetchProjectStats30dStart();
 
   const promise = api.requestPromise(`/organizations/${orgSlug}/stats_v2/`, {
     query: {
@@ -137,4 +137,12 @@ export function fetchProjectStats30d({
   });
 
   return promise;
+}
+
+export function fetchProjectStats(props: {
+  api: Client;
+  orgSlug: Organization['slug'];
+  projId?: Project['id'];
+}) {
+  return Promise.all([fetchProjectStats48h(props), fetchProjectStats30d(props)]);
 }
