@@ -1083,6 +1083,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
     "organizations:dashboards-top-level-filter": False,
+    # Enables usage of custom measurements in dashboard widgets
+    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1168,8 +1170,6 @@ SENTRY_FEATURES = {
     "organizations:team-roles": False,
     # Enable snowflake ids
     "organizations:enable-snowflake-id": False,
-    # Enable sending Active release notifications without creating an explicit rule in DB
-    "projects:active-release-monitor-default-on": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
