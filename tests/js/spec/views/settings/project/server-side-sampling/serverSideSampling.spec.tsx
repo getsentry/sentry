@@ -383,4 +383,21 @@ describe('Server-Side Sampling', function () {
       await screen.findByText('Uniform rules cannot be reordered')
     ).toBeInTheDocument();
   });
+
+  it('display request error message', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      statusCode: 500,
+    });
+
+    const {organization, project, router} = getMockData();
+
+    render(
+      <TestComponent organization={organization} project={project} router={router} />
+    );
+
+    expect(
+      await screen.findByText(/There was an error loading data/)
+    ).toBeInTheDocument();
+  });
 });
