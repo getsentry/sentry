@@ -933,7 +933,7 @@ export function getColumnsAndAggregates(fields: string[]): {
   columns: string[];
 } {
   const aggregates = getAggregateFields(fields);
-  const columns = fields.filter(field => !!!aggregates.includes(field));
+  const columns = fields.filter(field => !aggregates.includes(field));
   return {columns, aggregates};
 }
 
