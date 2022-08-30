@@ -29,8 +29,8 @@ class NotificationScopeType(Enum):
     USER = 0
 
 
-# backfill all users in the Sentry org
-def backfill_active_release_notificaation_settings(apps, schema_editor):
+# Set the new ACTIVE_RELEASE notification to always notify for users in the Sentry org.
+def backfill_active_release_notification_settings(apps, schema_editor):
     OrganizationMember = apps.get_model("sentry", "OrganizationMember")
     for om in RangeQuerySetWrapperWithProgressBar(
         OrganizationMember.objects.filter(organization_id=1).select_related("user")
@@ -80,7 +80,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RunPython(
-            backfill_active_release_notificaation_settings,
+            backfill_active_release_notification_settings,
             migrations.RunPython.noop,
             hints={
                 "tables": [
