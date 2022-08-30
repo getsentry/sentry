@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry import options
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -527,6 +528,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         ]
 
     def test_search_query_if_environment_does_not_exist_on_indexer(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         self.create_environment(self.project, name="prod")
         self.create_environment(self.project, name="dev")
         self.store_transaction_metric(

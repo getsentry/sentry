@@ -1,14 +1,13 @@
-import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {getCrumbsByColumn, relativeTimeInMs} from 'sentry/components/replays/utils';
+import {getCrumbsByColumn} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Color} from 'sentry/utils/theme';
 import theme from 'sentry/utils/theme';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
@@ -67,17 +66,9 @@ function Event({
   startTimestampMs: number;
   className?: string;
 }) {
-  const {setCurrentTime} = useReplayContext();
   const {setActiveTab} = useActiveReplayTab();
-
-  const handleClick = useCallback(
-    (crumb: Crumb) => {
-      crumb.timestamp !== undefined
-        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestampMs))
-        : null;
-    },
-    [setCurrentTime, startTimestampMs]
-  );
+  const {handleMouseEnter, handleMouseLeave, handleClick} =
+    useCrumbHandlers(startTimestampMs);
 
   const title = crumbs.map(crumb => (
     <BreadcrumbItem
@@ -86,6 +77,8 @@ function Event({
       startTimestampMs={startTimestampMs}
       isHovered={false}
       isSelected={false}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={handleClick}
     />
   ));
