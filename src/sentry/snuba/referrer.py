@@ -189,6 +189,7 @@ class Referrer(Enum):
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
+    API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
