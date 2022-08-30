@@ -566,14 +566,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     def test_group_ids_filter(self):
         # store transaction with group ids
         _data = load_data("transaction")
-        _data["group_ids"] = [123]
+        # _data["group_ids"] = [123]
         self.store_event(_data, self.project2.id)
 
         response = self.do_request(
             data={
                 "end": iso_format(before_now()),
                 "start": iso_format(before_now(hours=2)),
-                "query": "performance.issue_ids:123",
+                "query": "event.type:transaction performance.issue_ids:123",
                 "interval": "30m",
                 "yAxis": "count()",
             },

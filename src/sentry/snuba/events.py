@@ -32,7 +32,6 @@ class Columns(Enum):
     GROUP_IDS = Column(
         group_name=None,
         event_name=None,
-        # event_name="group_ids",
         transaction_name="group_ids",
         discover_name=None,
         alias="performance.issue_ids",
