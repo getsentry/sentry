@@ -258,6 +258,7 @@ def _grouped_unique_scalar_value(
 # Filter
 
 replay_url_parser_config = SearchConfig(
+    numeric_keys={"duration", "countErrors", "countSegments"},
     allowed_keys={
         "platform",
         "release",
@@ -284,7 +285,7 @@ replay_url_parser_config = SearchConfig(
 
 
 class ReplayQueryConfig(QueryConfig):
-    # Integer filters.
+    # Numeric filters.
     duration = Number()
     count_errors = Number(name="countErrors")
     count_segments = Number(name="countSegments")

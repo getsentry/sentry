@@ -320,7 +320,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay1_id,
-                platform="javascript",
+                platform="javascript client",
                 dist="abc123",
                 user_id="123",
                 user_email="username@example.com",
@@ -357,8 +357,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                ("platform", "javascript"),
-                ("duration", "17"),
+                ("platform", '"javascript client"'),
+                ("duration", ">15"),
                 ("user.id", "123"),
                 ("user.name", "username123"),
                 ("user.email", "username@example.com"),
@@ -369,7 +369,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 ("browser.name", "Firefox"),
                 ("browser.version", "99"),
                 ("dist", "abc123"),
-                ("countSegments", "2"),
+                ("countSegments", ">=2"),
                 ("device.name", "Macbook"),
                 ("device.brand", "Apple"),
                 ("device.family", "Macintosh"),
@@ -378,7 +378,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             for key, value in queries:
                 response = self.client.get(self.url + f"?query={key}:{value}")
-                print(response.content.decode("utf-8"))
                 assert response.status_code == 200, key
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, key
