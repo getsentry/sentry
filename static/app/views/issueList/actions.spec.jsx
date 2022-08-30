@@ -50,80 +50,110 @@ describe('IssueListActions', function () {
   });
 
   describe('Bulk', function () {
-    it('can bulk select and resolve with results greater than bulk limit', async function () {
-      const apiMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
+    describe('Total results greater than bulk limit', function () {
+      it('after checking "Select all" checkbox, displays bulk select message', function () {
+        render(<IssueListActions {...defaultProps} queryCount={1500} />);
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      render(
-        <React.Fragment>
-          <GlobalModal />
-          <IssueListActions {...defaultProps} queryCount={1500} />
-        </React.Fragment>
-      );
+      it('can bulk select', function () {
+        render(<IssueListActions {...defaultProps} queryCount={1500} />);
 
-      userEvent.click(screen.getByRole('checkbox'));
+        userEvent.click(screen.getByRole('checkbox'));
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-      expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+      });
 
-      userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+      it('bulk resolves', async function () {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
 
-      expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        render(
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={1500} />
+          </React.Fragment>
+        );
+        userEvent.click(screen.getByRole('checkbox'));
 
-      userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-      await screen.findByRole('dialog');
+        userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
-      userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
+        await screen.findByRole('dialog');
 
-      expect(apiMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {
-            project: [1],
-          },
-          data: {status: 'resolved', statusDetails: {}},
-        })
-      );
+        userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: [1],
+            },
+            data: {status: 'resolved', statusDetails: {}},
+          })
+        );
+      });
     });
 
-    it('can bulk select and resolve with resuls less than bulk limit', async function () {
-      const apiMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
+    describe('Total results less than bulk limit', function () {
+      it('after checking "Select all" checkbox, displays bulk select message', function () {
+        render(<IssueListActions {...defaultProps} queryCount={15} />);
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      render(
-        <React.Fragment>
-          <GlobalModal />
-          <IssueListActions {...defaultProps} queryCount={15} />
-        </React.Fragment>
-      );
+      it('can bulk select', function () {
+        render(<IssueListActions {...defaultProps} queryCount={15} />);
 
-      userEvent.click(screen.getByRole('checkbox'));
+        userEvent.click(screen.getByRole('checkbox'));
 
-      expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-      userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+      });
 
-      expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
+      it('bulk resolves', async function () {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
 
-      userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        render(
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={15} />
+          </React.Fragment>
+        );
 
-      await screen.findByRole('dialog');
+        userEvent.click(screen.getByRole('checkbox'));
 
-      userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-      expect(apiMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {
-            project: [1],
-          },
-          data: {status: 'resolved', statusDetails: {}},
-        })
-      );
+        userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        await screen.findByRole('dialog');
+
+        userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: [1],
+            },
+            data: {status: 'resolved', statusDetails: {}},
+          })
+        );
+      });
     });
 
     describe('Selected on page', function () {
