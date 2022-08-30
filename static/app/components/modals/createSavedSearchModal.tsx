@@ -10,8 +10,7 @@ import {OnSubmitCallback} from 'sentry/components/forms/type';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-
-import {getSortLabel, IssueSortOptions} from '../../views/issueList/utils';
+import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 type Props = ModalRenderProps & {
   api: Client;
