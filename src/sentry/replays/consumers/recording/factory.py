@@ -10,7 +10,7 @@ from sentry.replays.consumers.recording.process_recording import ProcessRecordin
 logger = logging.getLogger(__name__)
 
 
-class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):  # type: ignore
+class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     This consumer processes replay recordings, which are compressed payloads split up into
     chunks.

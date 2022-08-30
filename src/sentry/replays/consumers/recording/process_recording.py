@@ -45,7 +45,7 @@ class ReplayRecordingMessageFuture(NamedTuple):
     future: Future[None]
 
 
-class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):  # type: ignore
+class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def __init__(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
