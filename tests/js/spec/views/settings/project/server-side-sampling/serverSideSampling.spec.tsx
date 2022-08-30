@@ -45,6 +45,12 @@ describe('Server-Side Sampling', function () {
         TestStubs.Project({id: p.project_id, slug: p.project})
       ),
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      method: 'GET',
+      body: TestStubs.Outcomes(),
+    });
   });
 
   afterEach(() => {
@@ -201,7 +207,7 @@ describe('Server-Side Sampling', function () {
       expect(sdkVersionsMock).toHaveBeenCalled();
     });
 
-    const recommendedSdkUpgradesAlert = screen.getByTestId(
+    const recommendedSdkUpgradesAlert = await screen.findByTestId(
       'recommended-sdk-upgrades-alert'
     );
 
@@ -308,6 +314,8 @@ describe('Server-Side Sampling', function () {
       <TestComponent organization={organization} project={project} router={router} />
     );
 
+    await screen.findByTestId('recommended-sdk-upgrades-alert');
+
     expect(screen.getByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
 
     userEvent.hover(screen.getByLabelText('Activate Rule'));
@@ -381,23 +389,6 @@ describe('Server-Side Sampling', function () {
 
     expect(
       await screen.findByText('Uniform rules cannot be reordered')
-    ).toBeInTheDocument();
-  });
-
-  it('display request error message', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      statusCode: 500,
-    });
-
-    const {organization, project, router} = getMockData();
-
-    render(
-      <TestComponent organization={organization} project={project} router={router} />
-    );
-
-    expect(
-      await screen.findByText(/There was an error loading data/)
     ).toBeInTheDocument();
   });
 });

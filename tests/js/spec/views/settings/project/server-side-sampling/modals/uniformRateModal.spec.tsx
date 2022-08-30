@@ -348,4 +348,29 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     await waitForElementToBeRemoved(() => screen.queryByLabelText('Cancel'));
   });
+
+  it('display request error message', async function () {
+    ServerSideSamplingStore.fetchProjectStats30dError('some error');
+
+    ServerSideSamplingStore.fetchProjectStats48hError('some error');
+
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <UniformRateModal
+        {...modalProps}
+        organization={organization}
+        project={project}
+        rules={[]}
+        onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+      />
+    ));
+
+    expect(
+      await screen.findByText(/There was an error loading data/)
+    ).toBeInTheDocument();
+  });
 });
