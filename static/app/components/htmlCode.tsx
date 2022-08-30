@@ -9,17 +9,20 @@ type Props = {
   code: string;
 };
 
-if (ConfigStore.get('theme') === 'dark') {
-  require('prism-sentry/index.css');
-} else {
-  require('sentry/styles/prism-sentry-light.css');
-}
+const loadTheme = () => {
+  if (ConfigStore.get('theme') === 'dark') {
+    require('prism-sentry/index.css');
+  } else {
+    require('sentry/styles/prism-sentry-light.css');
+  }
+};
 
 function HTMLCode({code}: Props) {
   const codeRef = useRef<HTMLModElement | null>(null);
   const formattedCode = beautify.html(code, {indent_size: 2});
 
   useEffect(() => {
+    loadTheme();
     Prism.highlightElement(codeRef.current, false);
   }, []);
 
