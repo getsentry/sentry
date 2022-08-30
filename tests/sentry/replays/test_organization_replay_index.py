@@ -551,3 +551,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response = self.client.get(self.url + "?query=duration:a")
             assert response.status_code == 400
             assert b"duration" in response.content
+
+    def test_get_replays_unknown_field(self):
+        """Test replays unknown fields raise a 400 error."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = str(uuid.uuid4())
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=unknown")
+            assert response.status_code == 400
