@@ -23,7 +23,6 @@ import {Theme} from 'sentry/utils/theme';
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import {
   EnhancedSpan,
-  FocusedSpanIDMap,
   GapSpanType,
   OrphanSpanType,
   OrphanTreeDepth,
@@ -871,13 +870,6 @@ export class SpansInViewMap {
     const avgDepth = Math.round(this.treeDepthSum / this.length);
     return avgDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
   }
-}
-
-export function isSpanIdFocused(spanId: string, focusedSpanIds: FocusedSpanIDMap) {
-  return (
-    spanId in focusedSpanIds ||
-    Object.values(focusedSpanIds).some(relatedSpans => relatedSpans.has(spanId))
-  );
 }
 
 export function getCumulativeAlertLevelFromErrors(
