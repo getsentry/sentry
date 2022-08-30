@@ -23,12 +23,12 @@ def audit_mode_limits(format="json"):
     if format == "json":
         json_repr = {
             "models": ModelPresentation().as_json_repr(model_table),
-            "endpoints": ViewPresentation().as_json_repr(endpoint_table),
+            "endpoints": EndpointPresentation().as_json_repr(endpoint_table),
         }
         json.dump(json_repr, sys.stdout, indent=4)
     elif format == "markdown":
         ModelPresentation().print_markdown(model_table)
-        ViewPresentation().print_markdown(endpoint_table)
+        EndpointPresentation().print_markdown(endpoint_table)
     else:
         raise ValueError
 
@@ -47,15 +47,15 @@ def create_model_table():
 def create_endpoint_table():
     from sentry.api.base import Endpoint
 
-    def is_endpoint(endpoint_function, bindings):
-        endpoint_class = getattr(endpoint_function, "endpoint_class", None)
-        return endpoint_class and issubclass(endpoint_class, Endpoint)
+    def is_endpoint(view_function, bindings):
+        view_class = getattr(view_function, "view_class", None)
+        return view_class and issubclass(view_class, Endpoint)
 
     def get_endpoint_classes():
         url_mappings = list(django.urls.get_resolver().reverse_dict.items())
-        for (endpoint_function, bindings) in url_mappings:
-            if is_endpoint(endpoint_function, bindings):
-                yield endpoint_function.endpoint_class
+        for (view_function, bindings) in url_mappings:
+            if is_endpoint(view_function, bindings):
+                yield view_function.view_class
 
     table = defaultdict(list)
     for endpoint_class in get_endpoint_classes():
@@ -171,7 +171,7 @@ class ModelPresentation(ConsolePresentation):
             return self.format_mode_set(write_modes)
 
 
-class ViewPresentation(ConsolePresentation):
+class EndpointPresentation(ConsolePresentation):
     @property
     def table_label(self):
         return "VIEWS"
