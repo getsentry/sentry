@@ -28,6 +28,7 @@ class IndexerStorage(Enum):
 @dataclass(frozen=True)
 class MetricsIngestConfiguration:
     db_backend: IndexerStorage
+    db_backend_options: Mapping[str, Any]
     input_topic: str
     output_topic: str
     use_case_id: UseCaseKey
@@ -52,6 +53,7 @@ def get_ingest_config(
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
+                db_backend_options={},
                 input_topic=settings.KAFKA_INGEST_METRICS,
                 output_topic=settings.KAFKA_SNUBA_METRICS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
@@ -64,6 +66,7 @@ def get_ingest_config(
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
+                db_backend_options={},
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
                 output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
@@ -76,6 +79,8 @@ def get_ingest_config(
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.CLOUDSPANNER,
+                # todo: set cloudspanner options of db and instance ids
+                db_backend_options=settings.SENTRY_METRICS_INDEXER_SPANNER_OPTIONS,
                 input_topic=settings.KAFKA_INGEST_METRICS,
                 output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
@@ -88,6 +93,8 @@ def get_ingest_config(
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.CLOUDSPANNER,
+                # todo: set cloudspanner options of db and instance ids
+                db_backend_options=settings.SENTRY_METRICS_INDEXER_SPANNER_OPTIONS,
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
                 output_topic=settings.KAFKA_SNUBA_GENERICS_METRICS_CS,
                 use_case_id=UseCaseKey.PERFORMANCE,
@@ -101,6 +108,7 @@ def get_ingest_config(
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.MOCK,
+                db_backend_options={},
                 input_topic="topic",
                 output_topic="output-topic",
                 use_case_id=use_case_key,

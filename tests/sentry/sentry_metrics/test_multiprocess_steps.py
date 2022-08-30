@@ -18,7 +18,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
-from sentry.sentry_metrics.consumers.indexer.processing import STORAGE_TO_INDEXER, MessageProcessor
+from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -475,14 +475,14 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    indexer = STORAGE_TO_INDEXER[IndexerStorage.MOCK]()
+    message_processor = MessageProcessor(
+        get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
+    )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    indexer.indexer._strings[1]["rate_limited_test"] = None
-
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
+    message_processor._indexer.indexer._strings[1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        new_batch = message_processor.process_messages(outer_message=outer_message)
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited

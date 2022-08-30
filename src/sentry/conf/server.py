@@ -1482,6 +1482,8 @@ SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.Pos
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
 
+SENTRY_METRICS_INDEXER_SPANNER_OPTIONS = {}
+
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS = {}

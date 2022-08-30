@@ -2,9 +2,7 @@ import logging
 from typing import Callable, Mapping
 
 from arroyo.types import Message
-from django.conf import settings
 
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
@@ -16,23 +14,17 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-_MOCK = MockIndexer()
-_POSTGRES = PostgresIndexer()
-
 STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
-    # TODO(add cloudspanner options)
-    IndexerStorage.CLOUDSPANNER: lambda: CloudSpannerIndexer(**settings.CLOUDSPANNER_OPTIONS),
-    IndexerStorage.POSTGRES: lambda: _POSTGRES,
-    IndexerStorage.MOCK: lambda: _MOCK,
+    IndexerStorage.CLOUDSPANNER: CloudSpannerIndexer,
+    IndexerStorage.POSTGRES: PostgresIndexer,
+    IndexerStorage.MOCK: MockIndexer,
 }
 
 
 class MessageProcessor:
-    # todo: update message processor to take config instead of just use case
-    # and use the config to initialize indexer vs using service model
     def __init__(self, config: MetricsIngestConfiguration):
+        self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
-        self._indexer = indexer
 
     def process_messages(
         self,
