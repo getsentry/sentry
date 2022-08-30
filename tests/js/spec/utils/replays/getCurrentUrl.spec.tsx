@@ -63,12 +63,12 @@ describe('getCurrentUrl', () => {
     finishedAt: END_DATE,
   }) as ReplayRecord;
 
-  it('should return the url from tags when the offset is early', () => {
+  it('should return the origin of the first url from the url array if the offset is early', () => {
     const crumbs = [PAGELOAD_CRUMB, NAV_CRUMB];
     const offsetMS = 0;
     const url = getCurrentUrl(replayRecord, crumbs, offsetMS);
 
-    expect(url).toBe('https://sourcemaps.io/#initial');
+    expect(url).toBe('https://sourcemaps.io');
   });
 
   it('should return the first navigation url when the offset is after that', () => {
