@@ -46,7 +46,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if event.group_id:
             # TODO add behind feature flag
             if event.get_event_type() == "transaction":
-                conditions = [[["has", ["group_ids", group_id]], "=", event.group_id]]  
+                conditions = [[["has", ["group_ids", group_id]], "=", 1]] # 1 means true here, not a hardcoded event id  
                 _filter = eventstore.Filter(
                     conditions=conditions, project_ids=[event.project_id],
                 )
