@@ -9,6 +9,7 @@ import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -25,7 +26,6 @@ import {
   Organization,
 } from 'sentry/types';
 import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type CodeOwnersAssociationMappings = {
   [projectSlug: string]: {
