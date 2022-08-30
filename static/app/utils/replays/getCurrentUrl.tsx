@@ -17,7 +17,7 @@ function getCurrentUrl(
   ) as BreadcrumbTypeNavigation[];
 
   const initialUrl = replayRecord.tags.url;
-  const origin = initialUrl ? new URL(initialUrl).origin : '';
+  const origin = initialUrl ? new URL(initialUrl).origin : replayRecord.urls[0] ?? '';
 
   const mostRecentNavigation = last(
     navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) <= currentTimeMs)
