@@ -10,8 +10,10 @@ from sentry.eventstore.base import EventStorage
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
+from sentry import features
 
 from ..models import Event
+from sentry.models.project import Project
 
 EVENT_ID = Columns.EVENT_ID.value.alias
 PROJECT_ID = Columns.PROJECT_ID.value.alias
@@ -194,6 +196,9 @@ class SnubaEventStorage(EventStorage):
             # Set passed group_id if not a transaction
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
+                org = Project.objects.select_related("organization").get(id=project_id)
+                if features.has("organizations:performance-issue-details-backend", org):
+                    event.group_id = group_id
             else:
                 event.group_id = group_id
 
@@ -300,11 +305,16 @@ class SnubaEventStorage(EventStorage):
 
     def __get_event_id_from_filter(self, filter=None, orderby=None):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
-
+        print("columns: ", columns)
+        print("filter keys: ", filter.filter_keys)
+        print("filter conditions: ", filter.conditions)
         try:
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
             # required when doing pagination in discover
+
+            # CEO look at this for the next/prev
+            # import pdb; pdb.set_trace()
             result = snuba.aliased_query(
                 selected_columns=columns,
                 conditions=filter.conditions,
@@ -316,6 +326,7 @@ class SnubaEventStorage(EventStorage):
                 orderby=orderby,
                 dataset=snuba.Dataset.Discover,
             )
+            print("result: ", result)
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
             # and the current event generate impossible conditions.

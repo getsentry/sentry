@@ -138,13 +138,33 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
 
         with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
             self.prev_transaction_event = self.store_event(
-                data={"event_id": "a" * 32, "timestamp": four_min_ago, "fingerprint": ["group-1"]},
+                data={
+                    "event_id": "a" * 32, 
+                    "level": "info",
+                    "message": "ayoo",
+                    "type": "transaction",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "timestamp": four_min_ago, 
+                    "start_timestamp": four_min_ago, 
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    # "fingerprint": ["group-1"]
+                    },
                 project_id=project.id,
             )
 
         with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
             self.cur_transaction_event = self.store_event(
-                data={"event_id": "b" * 32, "timestamp": three_min_ago, "fingerprint": ["group-1"]},
+                data={
+                    "event_id": "b" * 32, 
+                    "level": "info",
+                    "message": "ayoo",
+                    "type": "transaction",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "timestamp": three_min_ago, 
+                    "start_timestamp": three_min_ago, 
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    # "fingerprint": ["group-1"]
+                    },
                 project_id=project.id,
             )
 
@@ -152,8 +172,14 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             self.next_transaction_event = self.store_event(
                 data={
                     "event_id": "c" * 32,
+                    "level": "info",
+                    "message": "ayoo",
+                    "type": "transaction",
+                    "culprit": "app/components/events/eventEntries in map",
                     "timestamp": two_min_ago,
-                    "fingerprint": ["group-1"],
+                    "start_timestamp": two_min_ago, 
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    # "fingerprint": ["group-1"],
                     "environment": "production",
                     "tags": {"environment": "production"},
                 },
@@ -165,8 +191,14 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "event_id": "d" * 32,
+                    "level": "info",
+                    "message": "ayoo",
+                    "type": "transaction",
+                    "culprit": "app/components/events/eventEntries in map",
                     "timestamp": one_min_ago,
-                    "fingerprint": ["group-2"],
+                    "start_timestamp": one_min_ago, 
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    # "fingerprint": ["group-2"],
                     "environment": "production",
                     "tags": {"environment": "production"},
                 },
@@ -185,7 +217,8 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
-        response = self.client.get(url, format="json", data={"group_id": self.group.id})
+        with self.feature("organizations:performance-issue-details-backend"):
+            response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.cur_transaction_event.event_id)

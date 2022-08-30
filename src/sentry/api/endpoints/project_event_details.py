@@ -30,6 +30,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         group_id = request.GET.get("group_id")
         group_id = int(group_id) if group_id else None
 
+        # CEO start here
         event = eventstore.get_event_by_id(project.id, event_id, group_id=group_id)
 
         if event is None:
@@ -44,7 +45,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         if event.group_id:
             requested_environments = set(request.GET.getlist("environment"))
-            conditions = [["event.type", "!=", "transaction"]]
+            event_category = event.get_event_type() # wow this naming sucks
+            if event_category == "transaction":
+                conditions = [["event.type", "=", "transaction"]]
+            else:
+                conditions = [["event.type", "!=", "transaction"]]
 
             if requested_environments:
                 conditions.append(["environment", "IN", requested_environments])
