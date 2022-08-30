@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import HTMLCode from 'sentry/components/htmlCode';
@@ -71,6 +72,14 @@ function DomMutations({replay}: Props) {
 
   if (isLoading) {
     return null;
+  }
+
+  if (actions.length === 0) {
+    return (
+      <EmptyStateWarning withIcon={false} small>
+        {t('No DOM Events recorded')}
+      </EmptyStateWarning>
+    );
   }
 
   return (
