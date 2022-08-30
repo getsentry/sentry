@@ -1,8 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {inflate} from 'pako';
 
-import type {ResponseMeta} from 'sentry/api';
+import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -13,7 +12,6 @@ import type {
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
-  ReplaySegment,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
@@ -104,30 +102,6 @@ const INITIAL_STATE: State = Object.freeze({
   spans: undefined,
 });
 
-async function decompressSegmentData(
-  data: any,
-  _textStatus: string | undefined,
-  resp: ResponseMeta | undefined
-) {
-  // for non-compressed events, parse and return
-  try {
-    return mapRRWebAttachments(JSON.parse(data));
-  } catch (error) {
-    // swallow exception.. if we can't parse it, it's going to be compressed
-  }
-
-  // for non-compressed events, parse and return
-  try {
-    // for compressed events, inflate the blob and map the events
-    const responseBlob = await resp?.rawResponse.blob();
-    const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
-    const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
-    return mapRRWebAttachments(parsedPayload);
-  } catch (error) {
-    return {};
-  }
-}
-
 /**
  * A react hook to load core replay data over the network.
  *
@@ -160,33 +134,31 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     return response.data;
   }, [api, orgSlug, projectSlug, replayId]);
 
-  const fetchSegmentList = useCallback(async () => {
-    const response = await api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`
-    );
-    return response.data as ReplaySegment[];
+  const fetchAllRRwebEvents = useCallback(async () => {
+    let next: ParsedHeader = {
+      href: `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download&per_page=5`,
+      results: true,
+      cursor: '',
+    };
+
+    const segmentRanges: any = [];
+    while (next.results) {
+      const url = stripHostFromHref(next.href);
+
+      const [data, _textStatus, resp] = await api.requestPromise(url.toString(), {
+        includeAllArgs: true,
+      });
+      segmentRanges.push(data);
+      const links = parseLinkHeader(resp?.getResponseHeader('Link') ?? '');
+      next = links.next;
+    }
+
+    const rrwebEvents = segmentRanges
+      .flatMap(segment => segment)
+      .flatMap(attachments => mapRRWebAttachments(attachments));
+
+    return flattenListOfObjects(rrwebEvents);
   }, [api, orgSlug, projectSlug, replayId]);
-
-  const fetchRRWebEvents = useCallback(
-    async (segmentIds: number[]) => {
-      const attachments = await Promise.all(
-        segmentIds.map(async segmentId => {
-          const response = await api.requestPromise(
-            `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/${segmentId}/?download`,
-            {
-              includeAllArgs: true,
-            }
-          );
-
-          return decompressSegmentData(...response);
-        })
-      );
-
-      // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
-      return flattenListOfObjects(attachments);
-    },
-    [api, replayId, orgSlug, projectSlug]
-  );
 
   const fetchErrors = useCallback(
     async (replayRecord: ReplayRecord) => {
@@ -213,17 +185,12 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     setState(INITIAL_STATE);
 
     try {
-      const [record, segments] = await Promise.all([fetchReplay(), fetchSegmentList()]);
-      const replayRecord = mapResponseToReplayRecord(record);
-
-      // TODO(replays): Something like `range(record.countSegments)` could work
-      // once we make sure that segments have sequential id's and are not dropped.
-      const segmentIds = segments.map(segment => segment.segmentId);
-
-      const [attachments, errors] = await Promise.all([
-        fetchRRWebEvents(segmentIds),
-        fetchErrors(replayRecord),
+      const [record, attachments] = await Promise.all([
+        fetchReplay(),
+        fetchAllRRwebEvents(),
       ]);
+      const replayRecord = mapResponseToReplayRecord(record);
+      const errors = await fetchErrors(replayRecord);
 
       setState(prev => ({
         ...prev,
@@ -243,7 +210,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchReplay, fetchSegmentList, fetchRRWebEvents, fetchErrors]);
+  }, [fetchReplay, fetchAllRRwebEvents, fetchErrors]);
 
   useEffect(() => {
     loadEvents();
@@ -271,6 +238,16 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     onRetry: loadEvents,
     replay,
   };
+}
+
+function stripHostFromHref(href: string) {
+  try {
+    const url = new URL(href);
+    url.host = window.location.host;
+    return url.toString();
+  } catch (_error) {
+    return href;
+  }
 }
 
 export default useReplayData;
