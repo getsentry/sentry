@@ -34,7 +34,7 @@ type Props = RouteComponentProps<{orgId: string}, {}> & {
 type State = {
   alertRuleCount?: number;
   issueRuleCount?: number;
-  ruleList?: CombinedMetricIssueAlerts[];
+  ruleList?: CombinedMetricIssueAlerts[] | null;
   teamFilterSearch?: string;
 };
 
@@ -75,9 +75,9 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 
   get projectsFromResults() {
-    const {ruleList = []} = this.state;
+    const ruleList = this.state.ruleList ?? [];
 
-    return [...new Set(ruleList?.map(({projects}) => projects).flat())];
+    return [...new Set(ruleList.map(({projects}) => projects).flat())];
   }
 
   handleChangeFilter = (activeFilters: string[]) => {
