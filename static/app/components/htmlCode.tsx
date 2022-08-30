@@ -1,13 +1,19 @@
-import 'sentry/styles/prism-sentry-light.css';
-
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 import Prism from 'prismjs';
 
+import ConfigStore from 'sentry/stores/configStore';
+
 type Props = {
   code: string;
 };
+
+if (ConfigStore.get('theme') === 'dark') {
+  require('prism-sentry/index.css');
+} else {
+  require('sentry/styles/prism-sentry-light.css');
+}
 
 function HTMLCode({code}: Props) {
   const codeRef = useRef<HTMLModElement | null>(null);
