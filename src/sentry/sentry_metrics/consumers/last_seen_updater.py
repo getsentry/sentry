@@ -29,7 +29,7 @@ def get_metrics():  # type: ignore
     return metrics
 
 
-class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]):  # type: ignore
+class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
     def __init__(self, metrics: Any) -> None:
         self.__metrics = metrics
 
@@ -68,7 +68,7 @@ def _update_stale_last_seen(
     )
 
 
-class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
+class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):
     def __init__(self, metrics: Any, table: IndexerTable) -> None:
         self.__seen_ints: Set[int] = set()
         self.__metrics = metrics
@@ -137,7 +137,7 @@ def get_last_seen_updater(
     auto_offset_reset: str,
     ingest_config: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
-) -> StreamProcessor:
+) -> StreamProcessor[KafkaPayload]:
     """
     The last_seen updater uses output from the metrics indexer to update the
     last_seen field in the sentry_stringindexer and sentry_perfstringindexer database
