@@ -56,7 +56,7 @@ class MetricsDatasetConfig(DatasetConfig):
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = self.resolve_value(constants.METRICS_MAP.get(value, value))
+        metric_id = self.builder.resolve_metric_index(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
             # Maybe this is a custom measurment?
             for measurement in self.builder.custom_measurement_map:
@@ -71,7 +71,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
-        value_id = self.builder.resolve_metric_index(value)
+        value_id = self.builder.resolve_tag_value(value)
 
         return value_id
 
@@ -644,7 +644,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return Function(
             "transform",
             [
-                Column(f"tags[{self.resolve_value('transaction')}]"),
+                Column(self.builder.resolve_column_name("transaction")),
                 [0 if not self.builder.tag_values_are_strings else ""],
                 [self.builder.resolve_tag_value("<< unparameterized >>")],
             ],
@@ -734,7 +734,12 @@ class MetricsDatasetConfig(DatasetConfig):
             if transaction_id is None:
                 continue
             project_threshold_override_config_keys.append(
-                (Function("toUInt64", [project_id]), (Function("toUInt64", [transaction_id])))
+                (
+                    Function("toUInt64", [project_id]),
+                    transaction_id
+                    if self.builder.tag_values_are_strings
+                    else Function("toUInt64", [transaction_id]),
+                )
             )
             project_threshold_override_config_values.append(metric)
 
@@ -883,7 +888,9 @@ class MetricsDatasetConfig(DatasetConfig):
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
         value = resolved_value
 
-        return Condition(Column(f"tags[{self.resolve_value('transaction')}]"), Op(operator), value)
+        return Condition(
+            Column(self.builder.resolve_column_name("transaction")), Op(operator), value
+        )
 
     # Query Functions
     def _resolve_count_if(
