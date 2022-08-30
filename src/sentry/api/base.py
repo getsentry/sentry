@@ -509,9 +509,6 @@ class EndpointSiloLimit(SiloLimit):
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
 
-    class EndpointSiloLimitError(SiloLimit.SiloLimitError):
-        pass
-
     def handle_when_unavailable(
         self,
         original_method: Callable[..., Any],
@@ -525,7 +522,7 @@ class EndpointSiloLimit(SiloLimit):
                 f"{current_mode} mode. This endpoint is available only in: {mode_str}"
             )
             if settings.FAIL_ON_UNAVAILABLE_API_CALL:
-                raise self.EndpointSiloLimitError(message)
+                raise self.AvailabilityError(message)
             else:
                 logger.warning(message)
                 return HttpResponse(status=status.HTTP_404_NOT_FOUND)

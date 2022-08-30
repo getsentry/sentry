@@ -151,9 +151,6 @@ class ModelSiloLimit(SiloLimit):
         super().__init__(*modes)
         self.read_only = frozenset([read_only] if isinstance(read_only, SiloMode) else read_only)
 
-    class ModelSiloLimitError(SiloLimit.SiloLimitError):
-        pass
-
     @staticmethod
     def _recover_model_name(obj: Any) -> str | None:
         # obj may be a model, manager, or queryset
@@ -178,7 +175,7 @@ class ModelSiloLimit(SiloLimit):
                 f"Called `{method_name}` on server in {current_mode} mode. "
                 f"{model_name or 'The model'} is available only in: {mode_str}"
             )
-            raise self.ModelSiloLimitError(message)
+            raise self.AvailabilityError(message)
 
         return handle
 

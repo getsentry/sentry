@@ -52,13 +52,13 @@ class AvailableOnTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CUSTOMER)
     def test_unavailable_on_other_mode(self):
-        with raises(ModelSiloLimit.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             list(self.ControlModel.objects.all())
-        with raises(ModelSiloLimit.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.get(id=1)
-        with raises(ModelSiloLimit.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.create()
-        with raises(ModelSiloLimit.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.filter(id=1).delete()
 
     @override_settings(SILO_MODE=SiloMode.CUSTOMER)
@@ -67,7 +67,7 @@ class AvailableOnTest(TestCase):
         with raises(self.ReadOnlyModel.DoesNotExist):
             self.ReadOnlyModel.objects.get(id=1)
 
-        with raises(ModelSiloLimit.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ReadOnlyModel.objects.create()
-        with raises(ModelSiloLimit.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ReadOnlyModel.objects.filter(id=1).delete()

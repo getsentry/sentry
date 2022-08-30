@@ -50,8 +50,8 @@ class SiloLimit(abc.ABC):
         """Modify the decorated object with appropriate overrides."""
         raise NotImplementedError
 
-    class SiloLimitError(Exception):
-        pass
+    class AvailabilityError(Exception):
+        """Indicate that something in unavailable in the current silo mode."""
 
     @abc.abstractmethod
     def handle_when_unavailable(

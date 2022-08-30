@@ -208,7 +208,7 @@ class CustomerDomainTest(APITestCase):
         assert request_with_subdomain("sentry") is None
 
 
-class ServerComponentModeTest(APITestCase):
+class SiloModeTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
         @EndpointSiloLimit(endpoint_mode)
         class DecoratedEndpoint(DummyEndpoint):
@@ -229,7 +229,7 @@ class ServerComponentModeTest(APITestCase):
 
             if not expect_to_be_active:
                 with override_settings(FAIL_ON_UNAVAILABLE_API_CALL=True):
-                    with raises(EndpointSiloLimit.EndpointAvailabilityError):
+                    with raises(EndpointSiloLimit.AvailabilityError):
                         DecoratedEndpoint.as_view()(request)
                     # TODO: Make work with EndpointWithDecoratedMethod
 
