@@ -136,7 +136,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
 
   const fetchAllRRwebEvents = useCallback(async () => {
     let next: ParsedHeader = {
-      href: `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download&per_page=5`,
+      href: `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download`,
       results: true,
       cursor: '',
     };
