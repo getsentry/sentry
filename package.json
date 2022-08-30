@@ -45,7 +45,7 @@
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^12.1.2",
     "@testing-library/react-hooks": "^8.0.1",
-    "@testing-library/user-event": "^13.5.0",
+    "@testing-library/user-event": "^14.4.3",
     "@types/color": "^3.0.3",
     "@types/crypto-js": "^4.1.1",
     "@types/diff": "5.0.2",
