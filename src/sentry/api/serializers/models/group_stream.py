@@ -369,14 +369,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         )
 
     def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
-        return self._seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
+        return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
 
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        return self._seen_stats_impl(perf_issue_list, self._execute_perf_seen_stats_query)
+        return self.__seen_stats_impl(perf_issue_list, self._execute_perf_seen_stats_query)
 
-    def _seen_stats_impl(
+    def __seen_stats_impl(
         self,
         error_issue_list: Sequence[Group],
         seen_stats_func: Callable[[Any, Any, Any, Any, Any], Mapping[str, Any]],

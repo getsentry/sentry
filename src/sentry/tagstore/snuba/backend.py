@@ -449,8 +449,10 @@ class SnubaTagStorage(TagStorage):
         )
 
         return {
-            issue: GroupTagValue(group_id=issue, key=key, value=value, **fix_tag_value_data(data))
-            for issue, data in result.items()
+            group_id: GroupTagValue(
+                group_id=group_id, key=key, value=value, **fix_tag_value_data(data)
+            )
+            for group_id, data in result.items()
         }
 
     def get_perf_group_list_tag_value(
@@ -475,8 +477,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         return {
-            issue: GroupTagValue(key=key, value=value, **fix_tag_value_data(data))
-            for issue, data in result.items()
+            group_id: GroupTagValue(key=key, value=value, **fix_tag_value_data(data))
+            for group_id, data in result.items()
         }
 
     def get_group_seen_values_for_environments(

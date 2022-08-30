@@ -13,6 +13,7 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     TypedDict,
@@ -65,6 +66,7 @@ from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
+from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
@@ -693,67 +695,52 @@ class GroupSerializerBase(Serializer, ABC):
 
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
+    class GroupUserCountsFunc(Protocol):
+        def __call__(
+            self,
+            project_ids: Sequence[int],
+            item_ids: Sequence[int],
+            environment_ids: Optional[Sequence[int]],
+        ) -> Mapping[int, int]:
+            pass
+
     def __init__(self, environment_func: Callable[[], Environment] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
     def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
-        try:
-            environment = self.environment_func()
-        except Environment.DoesNotExist:
-            return {
-                item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
-                for item in item_list
-            }
-
-        project_id = item_list[0].project_id
-        item_ids = [g.id for g in item_list]
-        user_counts: Mapping[int, int] = tagstore.get_groups_user_counts(
-            [project_id], item_ids, environment_ids=environment and [environment.id]
+        return self.__seen_stats_impl(
+            item_list, tagstore.get_groups_user_counts, tagstore.get_group_list_tag_value
         )
-        first_seen: MutableMapping[int, datetime] = {}
-        last_seen: MutableMapping[int, datetime] = {}
-        times_seen: MutableMapping[int, int] = {}
-
-        if environment is not None:
-            environment_tagvalues = tagstore.get_group_list_tag_value(
-                [project_id], item_ids, [environment.id], "environment", environment.name
-            )
-            for item_id, value in environment_tagvalues.items():
-                first_seen[item_id] = value.first_seen
-                last_seen[item_id] = value.last_seen
-                times_seen[item_id] = value.times_seen
-        else:
-            # fallback to the model data since we can't query tagstore
-            for item in item_list:
-                first_seen[item.id] = item.first_seen
-                last_seen[item.id] = item.last_seen
-                times_seen[item.id] = item.times_seen
-
-        return {
-            item: {
-                "times_seen": times_seen.get(item.id, 0),
-                "first_seen": first_seen.get(item.id),  # TODO: missing?
-                "last_seen": last_seen.get(item.id),
-                "user_count": user_counts.get(item.id, 0),
-            }
-            for item in item_list
-        }
 
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self.__seen_stats_impl(
+            perf_issue_list,
+            tagstore.get_perf_groups_user_counts,
+            tagstore.get_perf_group_list_tag_value,
+        )
+
+    def __seen_stats_impl(
+        self,
+        issue_list: Sequence[Group],
+        user_counts_func: GroupUserCountsFunc,
+        environment_seen_stats_func: Callable[
+            [Sequence[int], Sequence[int], Sequence[int], str, str], Mapping[int, GroupTagValue]
+        ],
     ) -> Mapping[Group, SeenStats]:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
             return {
                 item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
-                for item in perf_issue_list
+                for item in issue_list
             }
 
-        project_id = perf_issue_list[0].project_id
-        item_ids = [g.id for g in perf_issue_list]
-        user_counts: Mapping[int, int] = tagstore.get_perf_groups_user_counts(
+        project_id = issue_list[0].project_id
+        item_ids = [g.id for g in issue_list]
+        user_counts: Mapping[int, int] = user_counts_func(
             [project_id], item_ids, environment_ids=environment and [environment.id]
         )
         first_seen: MutableMapping[int, datetime] = {}
@@ -761,16 +748,16 @@ class GroupSerializer(GroupSerializerBase):
         times_seen: MutableMapping[int, int] = {}
 
         if environment is not None:
-            environment_tagvalues = tagstore.get_group_list_tag_value(
+            environment_seen_stats = environment_seen_stats_func(
                 [project_id], item_ids, [environment.id], "environment", environment.name
             )
-            for item_id, value in environment_tagvalues.items():
+            for item_id, value in environment_seen_stats.items():
                 first_seen[item_id] = value.first_seen
                 last_seen[item_id] = value.last_seen
                 times_seen[item_id] = value.times_seen
         else:
             # fallback to the model data since we can't query tagstore
-            for item in perf_issue_list:
+            for item in issue_list:
                 first_seen[item.id] = item.first_seen
                 last_seen[item.id] = item.last_seen
                 times_seen[item.id] = item.times_seen
@@ -782,7 +769,7 @@ class GroupSerializer(GroupSerializerBase):
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-            for item in perf_issue_list
+            for item in issue_list
         }
 
 
