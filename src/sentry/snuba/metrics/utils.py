@@ -98,7 +98,14 @@ MetricUnit = Literal[
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
+MetricEntity = Literal[
+    "metrics_counters",
+    "metrics_sets",
+    "metrics_distributions",
+    "generic_metrics_counters",
+    "generic_metrics_sets",
+    "generic_metrics_distributions",
+]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -144,6 +151,9 @@ AVAILABLE_GENERIC_OPERATIONS = {
 }
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
+}
+GENERIC_OPERATIONS_TO_ENTITY = {
+    op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
 }
 
 # ToDo add gauges/summaries
