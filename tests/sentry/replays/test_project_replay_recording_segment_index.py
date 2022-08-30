@@ -105,7 +105,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
             )
 
         with self.feature("organizations:session-replay"):
-            response = self.client.get(self.url + "?download=true")
+            response = self.client.get(self.url + "?download")
 
         assert response.status_code == 200
 
@@ -126,7 +126,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
             )
 
         with self.feature("organizations:session-replay"):
-            response = self.client.get(self.url + "?download=true&per_page=1&cursor=0:0:0")
+            response = self.client.get(self.url + "?download&per_page=1&cursor=0:0:0")
 
         assert response.status_code == 200
 
@@ -134,7 +134,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert b'[{"test":"hello 0"}]' == b"".join(response.streaming_content)
 
         with self.feature("organizations:session-replay"):
-            response = self.client.get(self.url + "?download=true&per_page=1&cursor=1:1:0")
+            response = self.client.get(self.url + "?download&per_page=1&cursor=1:1:0")
 
         assert response.status_code == 200
 
@@ -142,7 +142,7 @@ class DownloadSegmentsTestCase(TransactionTestCase):
         assert b'[{"test":"hello 1"}]' == b"".join(response.streaming_content)
 
         with self.feature("organizations:session-replay"):
-            response = self.client.get(self.url + "?download=true&per_page=2&cursor=1:1:0")
+            response = self.client.get(self.url + "?download&per_page=2&cursor=1:1:0")
 
         assert response.status_code == 200
 
