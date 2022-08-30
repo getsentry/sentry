@@ -292,16 +292,18 @@ class RawCloudSpannerIndexer(StringIndexer):
             for row in rows:
                 if row.id in existing_id_set:
                     new_id = get_id()
-                    missing_records.append(SpannerIndexerModel
-                                           (id=self.__codec.encode(new_id),
-                                            decoded_id=new_id,
-                                            string=row.string,
-                                            organization_id=row.organization_id,
-                                            date_added=row.date_added,
-                                            last_seen=row.last_seen,
-                                            retention_days=row.retention_days))
-                elif (row.organization_id, row.string) not in \
-                        existing_org_string_set:
+                    missing_records.append(
+                        SpannerIndexerModel(
+                            id=self.__codec.encode(new_id),
+                            decoded_id=new_id,
+                            string=row.string,
+                            organization_id=row.organization_id,
+                            date_added=row.date_added,
+                            last_seen=row.last_seen,
+                            retention_days=row.retention_days,
+                        )
+                    )
+                elif (row.organization_id, row.string) not in existing_org_string_set:
                     missing_records.append(row)
 
             if missing_records:
@@ -321,7 +323,8 @@ class RawCloudSpannerIndexer(StringIndexer):
         while not transaction_succeeded:
             try:
                 rows_inserted = self.database.run_in_transaction(
-                    insert_rw_transaction_uow, rows_to_insert)
+                    insert_rw_transaction_uow, rows_to_insert
+                )
                 transaction_succeeded = True
             except google.api_core.exceptions.AlreadyExists:
                 metrics.incr(_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC)
