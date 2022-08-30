@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from functools import partial
 from typing import Callable, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -17,7 +16,7 @@ from sentry.runner import configure
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
-from sentry.sentry_metrics.consumers.indexer.processing import process_messages
+from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
@@ -113,7 +112,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            partial(process_messages, self.__config.use_case_id),
+            MessageProcessor(self.__config.use_case_id).process_messages,
             Unbatcher(
                 SimpleProduceStep(
                     commit_function=commit,

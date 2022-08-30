@@ -11,37 +11,46 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def process_messages(
-    use_case_id: UseCaseKey,
-    outer_message: Message[MessageBatch],
-) -> MessageBatch:
-    """
-    We have an outer_message Message() whose payload is a batch of Message() objects.
+class MessageProcessor:
+    # todo: update message processor to take config instead of just use case
+    # and use the config to initialize indexer vs using service model
+    def __init__(self, use_case_id: UseCaseKey):
+        self._use_case_id = use_case_id
+        self._indexer = indexer
 
-        Message(
-            partition=...,
-            offset=...
-            timestamp=...
-            payload=[Message(...), Message(...), etc]
-        )
+    def process_messages(
+        self,
+        outer_message: Message[MessageBatch],
+    ) -> MessageBatch:
+        """
+        We have an outer_message Message() whose payload is a batch of Message() objects.
 
-    The inner messages payloads are KafkaPayload's that have:
-        * key
-        * headers
-        * value
+            Message(
+                partition=...,
+                offset=...
+                timestamp=...
+                payload=[Message(...), Message(...), etc]
+            )
 
-    The value of the message is what we need to parse and then translate
-    using the indexer.
-    """
-    batch = IndexerBatch(use_case_id, outer_message)
+        The inner messages payloads are KafkaPayload's that have:
+            * key
+            * headers
+            * value
 
-    org_strings = batch.extract_strings()
+        The value of the message is what we need to parse and then translate
+        using the indexer.
+        """
+        batch = IndexerBatch(self._use_case_id, outer_message)
 
-    with metrics.timer("metrics_consumer.bulk_record"):
-        record_result = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        org_strings = batch.extract_strings()
 
-    mapping = record_result.get_mapped_results()
-    bulk_record_meta = record_result.get_fetch_metadata()
+        with metrics.timer("metrics_consumer.bulk_record"):
+            record_result = self._indexer.bulk_record(
+                use_case_id=self._use_case_id, org_strings=org_strings
+            )
 
-    new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
-    return new_messages
+        mapping = record_result.get_mapped_results()
+        bulk_record_meta = record_result.get_fetch_metadata()
+
+        new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
+        return new_messages
