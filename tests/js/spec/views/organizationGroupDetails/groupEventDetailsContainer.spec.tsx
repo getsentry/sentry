@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationEnvironmentsStore from 'sentry/stores/organizationEnvironmentsStore';
 import GroupEventDetailsContainer, {
@@ -39,13 +39,15 @@ describe('groupEventDetailsContainer', () => {
     OrganizationEnvironmentsStore.teardown();
   });
 
-  it('fetches environments', function () {
+  it('fetches environments', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),
     });
 
     render(<GroupEventDetailsContainer {...makeProps({organization})} />);
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
     expect(environmentsCall).toHaveBeenCalledTimes(1);
   });
 
