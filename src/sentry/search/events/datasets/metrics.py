@@ -188,7 +188,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            0,
+                                            "" if self.builder.tag_values_are_strings else 0,
                                         ],
                                     ),
                                 ],
@@ -217,7 +217,13 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "and",
                                         [
                                             Function(
-                                                "notEquals", [self.builder.column("transaction"), 0]
+                                                "notEquals",
+                                                [
+                                                    self.builder.column("transaction"),
+                                                    ""
+                                                    if self.builder.tag_values_are_strings
+                                                    else 0,
+                                                ],
                                             ),
                                             Function(
                                                 "notEquals",
