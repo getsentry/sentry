@@ -1,7 +1,5 @@
-import {defined} from 'sentry/utils';
-
 export type Filters<T> = {
-  [key: string]: (action: T) => boolean;
+  [key: string]: (item: T) => boolean;
 };
 
 export const getFilteredItems = <T,>({
@@ -25,8 +23,13 @@ export const getFilteredItems = <T,>({
     let doesMatch = false;
     const searchValue = item[searchProp];
 
-    if (defined(searchValue) && typeof searchValue === 'string') {
-      doesMatch = searchValue?.toLowerCase().includes(normalizedSearchTerm) || false;
+    if (typeof searchValue === 'string') {
+      doesMatch = searchValue.toLowerCase().includes(normalizedSearchTerm);
+    } else {
+      // As this is a generic typed value, we can't know for sure its value type. So we use JSON.stringify to make sure we get a string.
+      doesMatch = JSON.stringify(searchValue)
+        .toLowerCase()
+        .includes(normalizedSearchTerm);
     }
 
     for (const key in filters) {
