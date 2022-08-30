@@ -14,8 +14,8 @@ from sentry.sentry_metrics.indexer.base import (
     StringIndexer,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
+from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
-from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
 
