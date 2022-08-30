@@ -144,6 +144,7 @@ def run_metrics_query(
 
 
 def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
+    # ToDo(ahmed): Add an abstraction that returns relevant data based on usecasekey without repeating code
     try:
         SessionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
@@ -182,21 +183,25 @@ def _get_entity_of_metric_mri(
     if metric_id is None:
         raise InvalidParams
 
-    for metric_type in (
-        "generic_counter",
-        "generic_set",
-        "generic_distribution",
-        "counter",
-        "set",
-        "distribution",
-    ):
+    if use_case_id == UseCaseKey.PERFORMANCE:
+        metric_types = (
+            "generic_counter",
+            "generic_set",
+            "generic_distribution",
+        )
+    elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+        metric_types = ("counter", "set", "distribution")
+    else:
+        raise InvalidParams
+
+    for metric_type in metric_types:
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         data = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id")],
             where=[Condition(Column("metric_id"), Op.EQ, metric_id)],
             groupby=[Column("metric_id")],
-            referrer="snuba.metrics.meta.get_entity_of_metric",
+            referrer=f"snuba.metrics.meta.get_entity_of_metric.{use_case_id.value}",
             project_ids=[p.id for p in projects],
             org_id=org_id,
         )
