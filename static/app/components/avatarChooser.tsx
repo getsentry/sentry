@@ -174,7 +174,7 @@ class AvatarChooser extends Component<Props, State> {
       help,
       defaultChoice,
     } = this.props;
-    const {hasError, model} = this.state;
+    const {hasError, model, dataUrl} = this.state;
 
     if (hasError) {
       return <LoadingError />;
@@ -254,7 +254,7 @@ class AvatarChooser extends Component<Props, State> {
                   type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
-                  disabled={disabled}
+                  disabled={disabled || (avatarType === 'upload' && !dataUrl)}
                 >
                   {t('Save Avatar')}
                 </Button>
