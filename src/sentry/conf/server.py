@@ -1083,8 +1083,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
     "organizations:dashboards-top-level-filter": False,
-    # Enables usage of custom measurements in dashboard widgets
-    "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
     # Enable minimap in the widget viewer modal in dashboards
