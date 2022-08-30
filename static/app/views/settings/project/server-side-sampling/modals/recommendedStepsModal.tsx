@@ -29,7 +29,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
-import useProjectStats from '../utils/useProjectStats';
+import {useProjectStats} from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {FooterActions, Stepper} from './uniformRateModal';
@@ -70,15 +70,8 @@ export function RecommendedStepsModal({
     projectId,
   });
   const [saving, setSaving] = useState(false);
-  const {projectStats} = useProjectStats({
-    orgSlug: organization.slug,
-    projectId,
-    interval: '1h',
-    statsPeriod: '48h',
-    disable: !!clientSampleRate,
-    groupBy: 'outcome',
-  });
-  const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const {projectStats48h} = useProjectStats();
+  const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats48h.data);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
 
   const isValid =
