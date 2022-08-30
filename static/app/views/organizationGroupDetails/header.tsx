@@ -325,6 +325,7 @@ class GroupHeader extends Component<Props, State> {
       </GuideAnchor>
     );
 
+    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
     const isPerformanceIssue = !!event?.contexts?.performance_issue;
 
     return (
