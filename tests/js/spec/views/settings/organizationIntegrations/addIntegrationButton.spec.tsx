@@ -9,7 +9,8 @@ describe('AddIntegrationButton', function () {
   it('Opens the setup dialog on click', function () {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
-    global.open = open;
+    // any is needed here because getSentry has different types for global
+    (global as any).open = open;
 
     render(
       <AddIntegrationButton
