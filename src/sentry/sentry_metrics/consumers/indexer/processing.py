@@ -34,6 +34,8 @@ def process_messages(
     using the indexer.
     """
     batch = IndexerBatch(use_case_id, outer_message)
+    batch.extract_messages()
+    batch.limit_messages()
 
     org_strings = batch.extract_strings()
 

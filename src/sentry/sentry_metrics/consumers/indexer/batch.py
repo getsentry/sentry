@@ -1,7 +1,7 @@
 import logging
 import random
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
+from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set, TypedDict
 
 import rapidjson
 import sentry_sdk
@@ -12,6 +12,7 @@ from django.conf import settings
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import Metadata
+from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -53,17 +54,23 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+class InboundMessage(TypedDict):
+    # Note: This is only the subset of fields we access in this file.
+    org_id: int
+    name: str
+    type: str
+    tags: Mapping[str, str]
+
+
 class IndexerBatch:
     def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
 
-    @metrics.wraps("process_messages.parse_outer_message")
-    def extract_strings(self) -> Mapping[int, Set[str]]:
-        org_strings = defaultdict(set)
-
+    @metrics.wraps("process_messages.extract_messages")
+    def extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
-        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
+        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
         for msg in self.outer_message.payload:
             partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
@@ -78,6 +85,15 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
+
+    @metrics.wraps("process_messages.limit_messages")
+    def limit_messages(self) -> None:
+        # TODO: wire up rate limiter, get granted quotas and trim down
+        # `self.parsed_payloads_by_offset` accordingly
+
+    @metrics.wraps("process_messages.extract_strings")
+    def extract_strings(self) -> Mapping[int, Set[str]]:
+        org_strings = defaultdict(set)
 
         for partition_offset, message in self.parsed_payloads_by_offset.items():
             partition_idx, offset = partition_offset
@@ -280,6 +296,8 @@ class IndexerBatch:
                 timestamp=message.timestamp,
             )
             new_messages.append(new_message)
+
+        # TODO: in this or a separate functon, commit the used cardinality limits
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

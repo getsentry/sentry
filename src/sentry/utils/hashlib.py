@@ -33,7 +33,7 @@ def hash_value(h, value):
             hash_value(h, item)
     elif isinstance(value, dict):
         h.update(b"\x05" + str(len(value)).encode("utf-8"))
-        for k, v in value.items():
+        for k, v in sorted(value.items()):
             hash_value(h, k)
             hash_value(h, v)
     elif isinstance(value, bytes):

@@ -25,6 +25,7 @@ class MetricsIngestConfiguration:
     internal_metrics_tag: Optional[str]
     writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
+    cardinality_limiter_cluster_options: Mapping[str, Any]
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[UseCaseKey, MetricsIngestConfiguration] = dict()
@@ -44,6 +45,7 @@ def get_ingest_config(use_case_key: UseCaseKey) -> MetricsIngestConfiguration:
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
             )
         )
         _register_ingest_config(
@@ -54,6 +56,7 @@ def get_ingest_config(use_case_key: UseCaseKey) -> MetricsIngestConfiguration:
                 internal_metrics_tag="perf",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
+                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
             )
         )
 

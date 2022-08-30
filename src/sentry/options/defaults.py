@@ -488,5 +488,22 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.per-org", default=[
 register("sentry-metrics.writes-limiter.limits.performance.global", default=[])
 register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[])
 
+# per-organization limits on the number of timeseries that can be observed in
+# each window.
+#
+# Format is a list of dictionaries of format {
+#   "window_seconds": ...,
+#   "granularity_seconds": ...,
+#   "limit": ...
+# }
+#
+# See sentry.ratelimiters.cardinality for an explanation of what each of
+# those terms mean.
+#
+# Note that changing either window or granularity_seconds of a limit will
+# effectively reset it, as the previous data can't/won't be converted.
+register("sentry-metrics.cardinality-limiter.limits.performance.per-org", default=[])
+register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
+
 # A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
 register("store.use-ingest-performance-detection-only", default=0.0)
