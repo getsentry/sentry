@@ -6,7 +6,6 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
-from sentry_sdk import capture_exception
 
 from sentry.utils import redis
 
@@ -30,7 +29,6 @@ class SnowflakeIdMixin:
             except IntegrityError:
                 self.id = None
 
-        capture_exception(MaxSnowflakeRetryError())
         raise MaxSnowflakeRetryError()
 
 
