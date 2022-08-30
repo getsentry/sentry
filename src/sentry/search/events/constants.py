@@ -121,6 +121,7 @@ ARRAY_FIELDS = {
     "error.mechanism",
     "error.type",
     "error.value",
+    "performance.issue_ids",
     "stack.abs_path",
     "stack.colno",
     "stack.filename",
