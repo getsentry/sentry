@@ -336,9 +336,14 @@ class Endpoint(APIView):
         default_per_page=100,
         max_per_page=100,
         cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
         **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
+
+        if response_kwargs is None:
+            response_kwargs = {}
 
         per_page = self.get_per_page(request, default_per_page, max_per_page)
 
@@ -372,7 +377,7 @@ class Endpoint(APIView):
         else:
             results = cursor_result.results
 
-        response = Response(results)
+        response = response_cls(results, **response_kwargs)
 
         self.add_cursor_headers(request, response, cursor_result)
 

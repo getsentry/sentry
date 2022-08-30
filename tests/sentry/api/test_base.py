@@ -1,6 +1,6 @@
 import base64
 
-from django.http import HttpRequest
+from django.http import HttpRequest, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
 from rest_framework.response import Response
@@ -37,6 +37,28 @@ class DummyPaginationEndpoint(Endpoint):
 
 
 _dummy_endpoint = DummyEndpoint.as_view()
+
+
+class DummyPaginationStreamingEndpoint(Endpoint):
+    permission_classes = ()
+
+    def get(self, request):
+        values = [x for x in range(0, 100)]
+
+        def data_fn(offset, limit):
+            page_offset = offset * limit
+            return values[page_offset : page_offset + limit]
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn),
+            on_results=lambda results: iter(results),
+            response_cls=StreamingHttpResponse,
+            response_kwargs={"content_type": "application/json"},
+        )
+
+
+_dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 
 class EndpointTest(APITestCase):
@@ -129,6 +151,12 @@ class PaginateTest(APITestCase):
         self.request.GET = {"per_page": "101"}
         response = self.view(self.request)
         assert response.status_code == 400
+
+    def test_custom_response_type(self):
+        response = _dummy_streaming_endpoint(self.request)
+        assert response.status_code == 200
+        assert type(response) == StreamingHttpResponse
+        assert response.has_header("content-type")
 
 
 class EndpointJSONBodyTest(APITestCase):
