@@ -7,7 +7,6 @@ import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import type {
   RecordingEvent,
@@ -190,25 +189,24 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   );
 
   const fetchErrors = useCallback(
-    async errorIds => {
-      const conditions = new MutableSearch('');
-      errorIds.forEach((errorId, i) => {
-        if (i > 0) {
-          conditions.addOp('OR');
-        }
-        conditions.addFilterValues('id', [errorId]);
-      });
+    async (replayRecord: ReplayRecord) => {
+      if (!replayRecord.errorIds.length) {
+        return [];
+      }
 
       const response = await api.requestPromise(`/organizations/${orgSlug}/events/`, {
         query: {
           field: ['id', 'error.value', 'timestamp', 'error.type', 'issue.id'],
-          projects: [projectSlug],
-          query: conditions.formatString(),
+          projects: [-1],
+          start: replayRecord.startedAt.toISOString(),
+          end: replayRecord.finishedAt.toISOString(),
+          query: `id:[${String(replayRecord.errorIds)}]`,
+          referrer: 'api.replay.details-page',
         },
       });
       return response.data;
     },
-    [api, orgSlug, projectSlug]
+    [api, orgSlug]
   );
 
   const loadEvents = useCallback(async () => {
@@ -216,6 +214,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
 
     try {
       const [record, segments] = await Promise.all([fetchReplay(), fetchSegmentList()]);
+      const replayRecord = mapResponseToReplayRecord(record);
 
       // TODO(replays): Something like `range(record.countSegments)` could work
       // once we make sure that segments have sequential id's and are not dropped.
@@ -223,7 +222,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
 
       const [attachments, errors] = await Promise.all([
         fetchRRWebEvents(segmentIds),
-        fetchErrors(record.errorIds),
+        fetchErrors(replayRecord),
       ]);
 
       setState(prev => ({
@@ -232,7 +231,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         errors,
         fetchError: undefined,
         fetching: false,
-        replayRecord: mapResponseToReplayRecord(record),
+        replayRecord,
         rrwebEvents: attachments.recording,
         spans: attachments.replaySpans,
       }));
