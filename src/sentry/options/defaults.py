@@ -468,7 +468,7 @@ register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
 register("api.deprecation.brownout-duration", default="PT1M")
 
 # switch all metrics usage over to using strings for tag values
-register("sentry-metrics.performance.tags-values-are-strings", default=True)
+register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
