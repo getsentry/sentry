@@ -4,10 +4,12 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
+from sentry.api.event_search import parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.post_process import process_raw_response
-from sentry.replays.query import query_replays_collection
+from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.serializers import ReplaySerializer
 
 
@@ -27,11 +29,18 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             raise ParseError(serializer.errors)
 
-        for key, value in request.query_params.items():
+        for key, value in serializer.validated_data.items():
             if key not in filter_params:
                 filter_params[key] = value
 
         def data_fn(offset, limit):
+            try:
+                search_filters = parse_search_query(
+                    request.query_params.get("query", ""), config=replay_url_parser_config
+                )
+            except InvalidSearchQuery as e:
+                raise ParseError(str(e))
+
             return query_replays_collection(
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],
@@ -40,6 +49,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 sort=filter_params.get("sort"),
                 limit=limit,
                 offset=offset,
+                search_filters=search_filters,
             )
 
         return self.paginate(

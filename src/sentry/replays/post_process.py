@@ -31,7 +31,7 @@ def generate_normalized_output(
             "id": item.pop("user_id"),
             "name": item.pop("user_name"),
             "email": item.pop("user_email"),
-            "ip_address": item.pop("user_ip_address"),
+            "ip_address": item.pop("user_ipAddress"),
         }
         item["user"]["displayName"] = (
             item["user"]["name"]
