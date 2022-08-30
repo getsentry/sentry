@@ -433,7 +433,7 @@ function WidgetBuilder({
     setState(prevState => {
       const newState = cloneDeep(prevState);
 
-      if (!!!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
+      if (!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
         // Set to Events dataset if Display Type is not supported by
         // current dataset
         set(
@@ -745,7 +745,7 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!!!orderOptions.length) {
+        if (!orderOptions.length) {
           newQuery.orderby = '';
         } else {
           orderOption = orderOptions[0].value;
@@ -851,7 +851,7 @@ function WidgetBuilder({
       return;
     }
 
-    if (!!widgetToBeUpdated) {
+    if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
       const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
@@ -1070,7 +1070,7 @@ function WidgetBuilder({
               <Body>
                 <MainWrapper>
                   <Main>
-                    {!!!organization.features.includes('dashboards-top-level-filter') && (
+                    {!organization.features.includes('dashboards-top-level-filter') && (
                       <StyledPageFilterBar condensed>
                         <ProjectPageFilter />
                         <EnvironmentPageFilter />
