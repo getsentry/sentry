@@ -89,7 +89,7 @@ function DashboardWidgetLibraryModal({
                   dashboard.widgets.length + selectedWidgets.length - MAX_WIDGETS,
               }
             )}
-            disabled={!!!overLimit}
+            disabled={!overLimit}
           >
             <StyledButton
               data-test-id="confirm-widgets"
@@ -97,7 +97,7 @@ function DashboardWidgetLibraryModal({
               disabled={overLimit}
               type="button"
               onClick={() => {
-                if (!!!selectedWidgets.length) {
+                if (!selectedWidgets.length) {
                   setErrored(true);
                   return;
                 }

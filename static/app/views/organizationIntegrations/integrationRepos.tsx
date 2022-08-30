@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import RepositoryActions from 'sentry/actions/repositoryActions';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
@@ -15,6 +14,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import RepositoryStore from 'sentry/stores/repositoryStore';
 import space from 'sentry/styles/space';
 import {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -74,7 +74,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
       }
     });
     this.setState({itemList});
-    RepositoryActions.resetRepositories();
+    RepositoryStore.resetRepositories();
   };
 
   debouncedSearchRepositoriesRequest = debounce(
@@ -126,7 +126,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     promise.then(
       (repo: Repository) => {
         this.setState({adding: false, itemList: itemList.concat(repo)});
-        RepositoryActions.resetRepositories();
+        RepositoryStore.resetRepositories();
       },
       () => this.setState({adding: false})
     );

@@ -279,27 +279,16 @@ def _get_release_committers(
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
 
+    release_committers = list(
+        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+    )
     # TODO(scttcper): Remove this after the experiment
     if release_dry_run:
-        return list(
-            User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
-        )
+        return release_committers
 
-    # XXX(gilbert): this is inefficient since this evaluates flagr once per user
-    # it should be ok since this method should only be called for projects within sentry
-    # do not copy this unless you know the risk; you've been warned!
-    return list(
-        filter(
-            lambda u: features.has(
-                "organizations:active-release-notification-opt-in", release.organization, actor=u
-            ),
-            list(
-                User.objects.filter(
-                    id__in={au["id"] for au in author_users.values() if au.get("id")}
-                )
-            ),
-        )
-    )
+    if features.has("organizations:active-release-notifications-enable", release.organization):
+        return release_committers
+    return []
 
 
 def get_send_to(

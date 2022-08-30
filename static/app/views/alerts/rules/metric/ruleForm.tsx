@@ -941,7 +941,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   onCancel={this.handleCancel}
                   onFieldChange={this.handleFieldChange}
                   extraButton={
-                    !!rule.id ? (
+                    rule.id ? (
                       <Confirm
                         disabled={disabled}
                         message={t('Are you sure you want to delete this alert rule?')}
