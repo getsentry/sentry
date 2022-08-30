@@ -1897,6 +1897,89 @@ def _calculate_span_grouping(jobs, projects):
             sentry_sdk.capture_exception()
 
 
+@metrics.wraps("save_event.save_aggregate_performance")
+def _save_aggregate_performance(jobs, projects):
+
+    # TODO: batch operations (like rate limiting) so we don't repeat for each job
+    MAX_GROUPS = (
+        10  # safety check in case we are passed too many. constant will live somewhere else tbd
+    )
+    for job in jobs[:MAX_GROUPS]:
+        # FEATURE FLAG RANDOMIZER
+        # check options to see if we should be creating performance issues for this org
+        rate = options.get("incidents-performance.rollout-rate")
+        if rate and rate > random.random():
+
+            kwargs = _create_kwargs(job)
+
+            # TODO: get fingerprint
+            existing_grouphashes = job.get("fingerprints", [])
+            event = job["event"]
+            project = event.project
+
+            # use fingerprint to check if group exists
+            if not existing_grouphashes:
+
+                # GROUP DOES NOT EXIST
+                with sentry_sdk.start_span(
+                    op="event_manager.create_group_transaction"
+                ) as span, metrics.timer(
+                    "event_manager.create_group_transaction"
+                ) as metric_tags, transaction.atomic():
+                    span.set_tag("create_group_transaction.outcome", "no_group")
+                    metric_tags["create_group_transaction.outcome"] = "no_group"
+
+                    # TODO: RATE LIMITER
+                    # ops team will give us a redis cluster, but told us to use the current one for now
+                    # below adapted from postgres_v2.py
+                    # from sentry.sentry_metrics.configuration import UseCaseKey
+                    # from sentry.sentry_metrics.indexer.base import KeyCollection
+                    # from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
+                    # with writes_limiter.check_write_limits(UseCaseKey("performance"), KeyCollection({job.organization.id: {job.organization.name}})) as writes_limiter_state:
+                    #     pass
+
+                    group = _create_group(project, event, **kwargs)
+
+                    is_new = True
+                    is_regression = False
+
+                    span.set_tag("create_group_transaction.outcome", "new_group")
+                    metric_tags["create_group_transaction.outcome"] = "new_group"
+
+                    metrics.incr(
+                        "group.created",
+                        skip_internal=True,
+                        tags={"platform": job["platform"] or "unknown"},
+                    )
+
+                    job["group"] = group
+                    job["event"].group = job["group"]
+                    job["is_new"] = is_new
+                    job["is_regression"] = is_regression
+                    continue
+
+            # GROUP EXISTS
+            for existing_grouphash in existing_grouphashes:
+                existing_grouphash_object = GroupHash.objects.get(
+                    project=project, hash=existing_grouphash
+                )
+
+                group = Group.objects.filter(id=existing_grouphash_object.group_id)
+
+                is_new = False
+
+                is_regression = _process_existing_aggregate(
+                    group=group, event=job["event"], data=kwargs, release=job["release"]
+                )
+
+                # TODO: make groups array
+                # return group IDs we've associated with the transaction
+                job["group"] = group
+                job["event"].group = job["group"]
+                job["is_new"] = is_new
+                job["is_regression"] = is_regression
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1926,8 +2009,10 @@ def save_transaction_events(jobs, projects):
             job["is_new_group_environment"] = False
 
     _pull_out_data(jobs, projects)
-    # add here
-    # _save_aggregate_performance(jobs, projects)
+
+    # NEW CODEPATH HERE
+    # add here detection here
+    _save_aggregate_performance(jobs, projects)
     _get_or_create_release_many(jobs, projects)
     _get_event_user_many(jobs, projects)
     _derive_plugin_tags_many(jobs, projects)
@@ -1935,7 +2020,9 @@ def save_transaction_events(jobs, projects):
     _calculate_span_grouping(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
+    _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
+    _get_or_create_group_release_many(jobs, projects)
     _tsdb_record_all_metrics(jobs)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs)
