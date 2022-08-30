@@ -1,10 +1,12 @@
 import styled from '@emotion/styled';
 
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
@@ -23,6 +25,14 @@ function DomMutations({replay}: Props) {
 
   if (isLoading) {
     return null;
+  }
+
+  if (actions.length === 0) {
+    return (
+      <EmptyStateWarning withIcon={false} small>
+        {t('No DOM Events recorded')}
+      </EmptyStateWarning>
+    );
   }
 
   return (
