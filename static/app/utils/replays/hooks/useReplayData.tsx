@@ -135,15 +135,16 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   }, [api, orgSlug, projectSlug, replayId]);
 
   const fetchAllRRwebEvents = useCallback(async () => {
+    const rootUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download&per_page=5`;
     let next: ParsedHeader = {
-      href: `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download`,
+      href: rootUrl,
       results: true,
       cursor: '',
     };
 
     const segmentRanges: any = [];
     while (next.results) {
-      const url = stripHostFromHref(next.href);
+      const url = rootUrl + '&cursor=' + next.cursor;
 
       const [data, _textStatus, resp] = await api.requestPromise(url.toString(), {
         includeAllArgs: true,
@@ -238,16 +239,6 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     onRetry: loadEvents,
     replay,
   };
-}
-
-function stripHostFromHref(href: string) {
-  try {
-    const url = new URL(href);
-    url.host = window.location.host;
-    return url.toString();
-  } catch (_error) {
-    return href;
-  }
 }
 
 export default useReplayData;
