@@ -53,19 +53,22 @@ const NEW_DOMAIN_CRUMB: Crumb = {
 
 describe('getCurrentUrl', () => {
   const replayRecord = TestStubs.Event({
-    tags: {
-      url: 'https://sourcemaps.io/#initial',
-    },
+    tags: {},
+    urls: [
+      'https://sourcemaps.io/#initial',
+      'https://sourcemaps.io/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
+      'https://a062-174-94-6-155.ngrok.io/report/jquery.min.js',
+    ],
     startedAt: START_DATE,
     finishedAt: END_DATE,
   }) as ReplayRecord;
 
-  it('should return the url from tags when the offset is early', () => {
+  it('should return the origin of the first url from the url array if the offset is early', () => {
     const crumbs = [PAGELOAD_CRUMB, NAV_CRUMB];
     const offsetMS = 0;
     const url = getCurrentUrl(replayRecord, crumbs, offsetMS);
 
-    expect(url).toBe('https://sourcemaps.io/#initial');
+    expect(url).toBe('https://sourcemaps.io');
   });
 
   it('should return the first navigation url when the offset is after that', () => {
