@@ -19,21 +19,20 @@ OrgId = int
 class CardinalityLimiterState:
     _cardinality_limiter: CardinalityLimiter
     _use_case_id: UseCaseKey
-    _namespace: str
     _requests: Sequence[RequestedQuota]
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
 
 
-def _build_quota_key(namespace: str, org_id: Optional[OrgId] = None) -> str:
+def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId]) -> str:
     if org_id is not None:
-        return f"metrics-indexer-cardinality-{namespace}-org-{org_id}"
+        return f"metrics-indexer-cardinality-{use_case_id}-org-{org_id}"
     else:
-        return f"metrics-indexer-cardinality-{namespace}-global"
+        return f"metrics-indexer-cardinality-{use_case_id}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseKey, namespace: str) -> Sequence[Quota]:
+def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
     """
     Construct write limit's quotas based on current sentry options.
 
@@ -57,7 +56,7 @@ class TimeseriesCardinalityLimiter:
     def __init__(self) -> None:
         self.rate_limiters: MutableMapping[UseCaseKey, CardinalityLimiter] = {}
 
-    def _get_rate_limiter( self, use_case_id: UseCaseKey) -> CardinalityLimiter:
+    def _get_rate_limiter(self, use_case_id: UseCaseKey) -> CardinalityLimiter:
         if use_case_id not in self.rate_limiters:
             options = get_ingest_config(use_case_id).cardinality_limiter_cluster_options
             # TODO: Replace with real implementation
@@ -65,10 +64,11 @@ class TimeseriesCardinalityLimiter:
 
         return self.rate_limiters[use_case_id]
 
-    def check_cardinality_limits(self, use_case_id: UseCaseKey, namespace: str, messages: MutableMapping[object, InboundMessage]) -> CardinalityLimiterState:
+    def check_cardinality_limits(self, use_case_id: UseCaseKey, messages: MutableMapping[Any, InboundMessage]) -> CardinalityLimiterState:
         limiter = self._get_rate_limiter(use_case_id)
         message_keys = []
         request_hashes = defaultdict(set)
+        org_id_and_hash_to_key = {}
         for key, message in messages.items():
             org_id = message['org_id']
             message_hash = hash_values([
@@ -76,23 +76,25 @@ class TimeseriesCardinalityLimiter:
                 message['type'],
                 message['tags'],
             ])
+            org_id_and_hash_to_key[org_id, message_hash] = key
             request_hashes[org_id].add(message_hash)
 
         requested_quotas = []
-        configured_quotas = _construct_quotas(use_case_id, namespace)
+        configured_quotas = _construct_quotas(use_case_id)
         for org_id, hashes in request_hashes.items():
             requested_quotas.append(RequestedQuota(
-                prefix=_build_quota_key(namespace, org_id),
+                prefix=_build_quota_key(use_case_id, org_id),
                 unit_hashes=hashes,
                 quotas=configured_quotas
             ))
 
         timestamp, grants = limiter.check_within_quotas(requested_quotas)
 
+        for granted_quota in grants:
+
         return CardinalityLimiterState(
             _cardinality_limiter=limiter,
             _use_case_id=use_case_id,
-            _namespace=namespace,
             _requests=requested_quotas,
             _grants=grants,
             _timestamp=timestamp

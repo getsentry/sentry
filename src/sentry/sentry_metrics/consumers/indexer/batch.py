@@ -88,8 +88,7 @@ class IndexerBatch:
 
     @metrics.wraps("process_messages.limit_messages")
     def limit_messages(self) -> None:
-        # TODO: wire up rate limiter, get granted quotas and trim down
-        # `self.parsed_payloads_by_offset` accordingly
+        self.cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(self.use_case_id, self.parsed_payloads_by_offset)
 
     @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[int, Set[str]]:
