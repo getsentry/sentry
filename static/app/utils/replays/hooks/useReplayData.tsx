@@ -7,7 +7,6 @@ import flattenListOfObjects from 'sentry/utils/replays/flattenListOfObjects';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import type {
   RecordingEvent,
@@ -195,18 +194,10 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         return [];
       }
 
-      const conditions = new MutableSearch('');
-      errorIds.forEach((errorId, i) => {
-        if (i > 0) {
-          conditions.addOp('OR');
-        }
-        conditions.addFilterValues('id', [errorId]);
-      });
-
       const response = await api.requestPromise(`/organizations/${orgSlug}/events/`, {
         query: {
           field: ['id', 'error.value', 'timestamp', 'error.type', 'issue.id'],
-          query: conditions.formatString(),
+          query: encodeURIComponent(`id:[${String(errorIds)}]`),
         },
       });
       return response.data;
