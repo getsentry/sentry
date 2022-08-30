@@ -698,6 +698,9 @@ class GroupEvent(BaseEvent):
             return False
         return other.event_id == self.event_id and other.group_id == self.group_id
 
+    def __hash__(self):
+        return hash((self.group_id, self.event_id))
+
     @property
     def group_id(self) -> int:
         return self.group.id
