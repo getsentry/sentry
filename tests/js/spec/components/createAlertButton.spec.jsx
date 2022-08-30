@@ -91,7 +91,7 @@ describe('CreateAlertFromViewButton', () => {
     renderSimpleComponent(organization);
     userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
-      `/organizations/org-slug/alerts/wizard/`,
+      `/organizations/org-slug/alerts/wizard/?`,
       undefined
     );
   });

@@ -48,7 +48,7 @@ class SendReleaseSummaryTest(ActivityTestCase):
         "sentry.notifications.notifications.activity.release_summary.ReleaseSummaryActivityNotification.send"
     )
     def test_simple(self, mock_release_summary_send):
-        with self.feature("organizations:active-release-notification-opt-in"):
+        with self.feature("organizations:active-release-notifications-enable"):
             prepare_release_summary()
 
         assert len(mock_release_summary_send.mock_calls) == 1

@@ -20,7 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
+import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 import FirstEventFooter from './components/firstEventFooter';
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';

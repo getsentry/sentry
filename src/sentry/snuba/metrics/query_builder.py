@@ -388,6 +388,9 @@ class SnubaQueryBuilder:
         "metrics_counters",
         "metrics_distributions",
         "metrics_sets",
+        "generic_metrics_counters",
+        "generic_metrics_distributions",
+        "generic_metrics_sets",
     }
 
     def __init__(
@@ -632,7 +635,7 @@ class SnubaResultConverter:
         tags = tuple(
             (key, data[key])
             for key in sorted(data.keys())
-            if (key.startswith("tags[") or key in FIELD_ALIAS_MAPPINGS.values())
+            if (key.startswith(("tags[", "tags_raw[")) or key in FIELD_ALIAS_MAPPINGS.values())
         )
 
         tag_data = groups.setdefault(tags, {})

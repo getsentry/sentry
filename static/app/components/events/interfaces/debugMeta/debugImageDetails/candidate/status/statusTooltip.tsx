@@ -32,7 +32,7 @@ function StatusTooltip({candidate, hasReprocessWarning}: Props) {
       }
       disabled={disabled}
     >
-      <Status status={download.status} />
+      <Status data-test-id="status" status={download.status} />
     </Tooltip>
   );
 }
