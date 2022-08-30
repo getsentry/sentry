@@ -4,13 +4,6 @@ import AvatarComponent from 'sentry/components/avatar';
 import ConfigStore from 'sentry/stores/configStore';
 import {Avatar} from 'sentry/types';
 
-const gravatarBaseUrl = 'gravatarBaseUrl';
-const storeConfig = ConfigStore.getConfig();
-
-jest
-  .spyOn(ConfigStore, 'getConfig')
-  .mockImplementation(() => ({...storeConfig, gravatarBaseUrl}));
-
 describe('Avatar', function () {
   const avatar: Avatar = {
     avatarType: 'gravatar',
@@ -32,8 +25,9 @@ describe('Avatar', function () {
     .join('');
 
   describe('render()', function () {
-    it('has `avatar` className', function () {
+    it('has `avatar` className', async function () {
       render(<AvatarComponent user={user} />);
+      await screen.findByRole('img');
 
       const avatarElement = screen.getByTestId(`${avatar.avatarType}-avatar`);
       expect(avatarElement).toBeInTheDocument();
@@ -41,6 +35,9 @@ describe('Avatar', function () {
     });
 
     it('should show a gravatar when avatar type is gravatar', async function () {
+      const gravatarBaseUrl = 'gravatarBaseUrl';
+      ConfigStore.set('gravatarBaseUrl', gravatarBaseUrl);
+
       render(<AvatarComponent user={user} />);
 
       expect(screen.getByTestId(`${avatar.avatarType}-avatar`)).toBeInTheDocument();
@@ -109,8 +106,9 @@ describe('Avatar', function () {
       expect(screen.getByText(userNameInitials)).toBeInTheDocument();
     });
 
-    it('should show a gravatar when no avatar type is set and user has an email address', function () {
+    it('should show a gravatar when no avatar type is set and user has an email address', async function () {
       render(<AvatarComponent gravatar user={{...user, avatar: undefined}} />);
+      await screen.findByRole('img');
 
       const avatarElement = screen.getByTestId(`gravatar-avatar`);
       expect(avatarElement).toBeInTheDocument();
