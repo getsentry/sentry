@@ -16,8 +16,6 @@ import {defined} from 'sentry/utils';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
-  Filters,
-  getFilteredNetworkSpans,
   getResourceTypes,
   getStatusTypes,
   ISortConfig,
@@ -25,6 +23,7 @@ import {
   sortNetwork,
   UNKNOWN_STATUS,
 } from 'sentry/views/replays/detail/network/utils';
+import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -41,10 +40,16 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     getValue: row => row[sortConfig.by],
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Filters>({});
+  const [filters, setFilters] = useState<Filters<NetworkSpan>>({});
 
   const filteredNetworkSpans = useMemo(
-    () => getFilteredNetworkSpans(networkSpans, searchTerm, filters),
+    () =>
+      getFilteredItems({
+        items: networkSpans,
+        filters,
+        searchTerm,
+        searchProp: 'description',
+      }),
     [filters, networkSpans, searchTerm]
   );
 

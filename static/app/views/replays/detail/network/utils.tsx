@@ -6,10 +6,6 @@ export type NetworkSpan = {
   description?: string;
 };
 
-export type Filters = {
-  [key: string]: (networkSpan: NetworkSpan) => boolean;
-};
-
 export interface ISortConfig {
   asc: boolean;
   by: keyof NetworkSpan | string;
@@ -56,31 +52,3 @@ export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
         .sort()
     )
   );
-
-export const getFilteredNetworkSpans = (
-  networkSpans: NetworkSpan[],
-  searchTerm: string,
-  filters: Filters
-) => {
-  if (!searchTerm && Object.keys(filters).length === 0) {
-    return networkSpans;
-  }
-  const normalizedSearchTerm = searchTerm.toLowerCase();
-
-  return networkSpans.filter(networkSpan => {
-    const doesMatch = networkSpan.description
-      ?.toLowerCase()
-      .includes(normalizedSearchTerm);
-
-    for (const key in filters) {
-      if (filters.hasOwnProperty(key)) {
-        const filter = filters[key];
-        if (!filter(networkSpan)) {
-          return false;
-        }
-      }
-    }
-
-    return doesMatch;
-  });
-};
