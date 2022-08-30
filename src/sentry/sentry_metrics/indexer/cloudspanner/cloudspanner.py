@@ -204,7 +204,7 @@ class RawCloudSpannerIndexer(StringIndexer):
         """
         Insert a batch of records in a transaction. This is the preferred
         way of inserting records as it will reduce the number of operations
-        which need to be performed in a transaction. If the isnert succeeds,
+        which need to be performed in a transaction. If the insert succeeds,
         we update the key_results with the records that were inserted.
 
         The transaction could fail if there are collisions with existing
@@ -270,7 +270,7 @@ class RawCloudSpannerIndexer(StringIndexer):
 
         def insert_rw_transaction_uow(
             transaction: Any, rows: Sequence[SpannerIndexerModel]
-        ) -> None:
+        ) -> Sequence[SpannerIndexerModel]:
             existing_org_string_results = transaction.read(
                 table=self._get_table_name(use_case_id),
                 columns=["organization_id", "string", "id"],
@@ -285,15 +285,23 @@ class RawCloudSpannerIndexer(StringIndexer):
             )
 
             existing_records = list(existing_org_string_results) + list(existing_id_results)
-            exisiting_org_string_set = {(row[0], row[1]) for row in existing_records}
-            existing_id_string_set = {row[2] for row in existing_records}
+            existing_org_string_set = {(row[0], row[1]) for row in existing_records}
+            existing_id_set = {row[2] for row in existing_records}
 
             missing_records = []
             for row in rows:
-                if (
-                    row.organization_id,
-                    row.string,
-                ) not in exisiting_org_string_set and row.id not in existing_id_string_set:
+                if row.id in existing_id_set:
+                    new_id = get_id()
+                    missing_records.append(SpannerIndexerModel
+                                           (id=self.__codec.encode(new_id),
+                                            decoded_id=new_id,
+                                            string=row.string,
+                                            organization_id=row.organization_id,
+                                            date_added=row.date_added,
+                                            last_seen=row.last_seen,
+                                            retention_days=row.retention_days))
+                elif (row.organization_id, row.string) not in \
+                        existing_org_string_set:
                     missing_records.append(row)
 
             if missing_records:
@@ -303,6 +311,8 @@ class RawCloudSpannerIndexer(StringIndexer):
                     values=missing_records,
                 )
 
+            return missing_records
+
         metrics.incr(
             _INDEXER_DB_INSERT_METRIC,
             tags={"batch": "false"},
@@ -310,32 +320,23 @@ class RawCloudSpannerIndexer(StringIndexer):
         transaction_succeeded = False
         while not transaction_succeeded:
             try:
-                self.database.run_in_transaction(insert_rw_transaction_uow, rows_to_insert)
+                rows_inserted = self.database.run_in_transaction(
+                    insert_rw_transaction_uow, rows_to_insert)
                 transaction_succeeded = True
             except google.api_core.exceptions.AlreadyExists:
                 metrics.incr(_INDEXER_DB_RW_TRANSACTION_FAILED_METRIC)
             else:
-                with self.database.snapshot() as snapshot:
-                    result = snapshot.read(
-                        table=self._get_table_name(use_case_id),
-                        columns=["organization_id", "string", "id"],
-                        keyset=spanner.KeySet(
-                            keys=[[row.organization_id, row.string] for row in rows_to_insert]
-                        ),
-                        index=self._get_unique_org_string_index_name(use_case_id),
-                    )
-                    result_list = list(result)
-                    key_results.add_key_results(
-                        [
-                            KeyResult(
-                                org_id=row[0],
-                                string=row[1],
-                                id=self.__codec.decode(row[2]),
-                            )
-                            for row in result_list
-                        ],
-                        fetch_type=FetchType.DB_READ,
-                    )
+                key_results.add_key_results(
+                    [
+                        KeyResult(
+                            org_id=row.organization_id,
+                            string=row.string,
+                            id=self.__codec.decode(row.id),
+                        )
+                        for row in rows_inserted
+                    ],
+                    fetch_type=FetchType.DB_READ,
+                )
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
