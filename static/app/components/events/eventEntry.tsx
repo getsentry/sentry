@@ -1,6 +1,6 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
@@ -17,7 +17,6 @@ import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types
 import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
 
 import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
-import {FocusedSpanIDMap} from './interfaces/spans/types';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -159,10 +158,7 @@ function EventEntry({
         return null;
       }
 
-      const {focusedSpanIds: _focusedSpanIds} = entry.data;
-
-      const focusedSpanIds: FocusedSpanIDMap = {};
-      _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
+      const {affectedSpanIds} = entry.data;
 
       // TODO: Need to dynamically determine the project slug for this issue
       const INTERNAL_PROJECT = 'sentry';
@@ -172,7 +168,7 @@ function EventEntry({
           event={event}
           organization={organization as Organization}
           projectSlug={INTERNAL_PROJECT}
-          focusedSpanIds={focusedSpanIds}
+          affectedSpanIds={affectedSpanIds}
         />
       );
     case EntryType.PERFORMANCE:

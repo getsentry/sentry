@@ -58,7 +58,7 @@ default_manager.add("organizations:create")
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:active-release-monitor-alpha", OrganizationFeature, True)
-default_manager.add("organizations:active-release-notification-opt-in", OrganizationFeature, True)
+default_manager.add("organizations:active-release-notifications-enable", OrganizationFeature)
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
@@ -126,9 +126,10 @@ default_manager.add(
     "organizations:performance-transaction-name-only-search", OrganizationFeature, True
 )
 default_manager.add("organizations:performance-extraneous-spans-poc", OrganizationFeature, True)
-default_manager.add("organizations:profiling", OrganizationFeature, True)
+default_manager.add("organizations:profiling", OrganizationFeature)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
+default_manager.add("organizations:release-committer-assignees", OrganizationFeature, True)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics-report", OrganizationFeature, True)
@@ -184,6 +185,7 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)
+default_manager.add("organizations:performance-issue-details-backend", OrganizationFeature)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
@@ -192,7 +194,6 @@ default_manager.add("organizations:sso-saml2", OrganizationFeature)
 default_manager.add("organizations:team-insights", OrganizationFeature)
 
 # Project scoped features
-default_manager.add("projects:active-release-monitor-default-on", ProjectFeature)
 default_manager.add("projects:alert-filters", ProjectFeature)
 default_manager.add("projects:custom-inbound-filters", ProjectFeature)
 default_manager.add("projects:data-forwarding", ProjectFeature)

@@ -111,6 +111,9 @@ install-py-dev() {
         export LDFLAGS="-L$(brew --prefix gettext)/lib"
     fi
 
+    # pip doesn't do well with swapping drop-ins
+    pip uninstall -qqy uwsgi
+
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
     # and acceptance tests, which webpack automatically if run.

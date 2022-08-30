@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from typing import Callable
 
-from django.http import HttpResponseRedirect
+from django.conf import settings
+from django.contrib.auth import logout
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import resolve, reverse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
 from sentry.models import Organization
@@ -21,6 +25,13 @@ def _org_exists(slug):
         return True
     except Organization.DoesNotExist:
         return False
+
+
+def _query_string(request):
+    qs = request.META.get("QUERY_STRING") or ""
+    if qs:
+        qs = f"?{qs}"
+    return qs
 
 
 def _resolve_activeorg(request):
@@ -51,8 +62,9 @@ def _resolve_redirect_url(request, activeorg):
     kwargs = {**result.kwargs}
     if org_slug_path_mismatch:
         kwargs["organization_slug"] = activeorg
-    path = reverse(result.url_name, kwargs=kwargs)
-    redirect_url = f"{redirect_url}{path}"
+    path = reverse(result.url_name or result.func, kwargs=kwargs)
+    qs = _query_string(request)
+    redirect_url = f"{redirect_url}{path}{qs}"
     return redirect_url
 
 
@@ -70,6 +82,30 @@ class CustomerDomainMiddleware:
         subdomain = request.subdomain
         if subdomain is None or resolve_region(request) is not None:
             return self.get_response(request)
+
+        if (
+            settings.DISALLOWED_CUSTOMER_DOMAINS
+            and request.subdomain in settings.DISALLOWED_CUSTOMER_DOMAINS
+        ):
+            # DISALLOWED_CUSTOMER_DOMAINS is a list of org slugs that are explicitly not allowed to use customer domains.
+            # We kick any request to the logout view.
+            logout(request)
+            url_prefix = options.get("system.url-prefix")
+            logout_view = reverse("sentry-logout")
+            redirect_url = f"{url_prefix}{logout_view}"
+            return HttpResponseRedirect(redirect_url)
+
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated and not user.is_staff:
+            # Kick user to sentry.io if they are not a Sentry staff
+            url_prefix = options.get("system.url-prefix")
+            qs = _query_string(request)
+            redirect_url = f"{url_prefix}{request.path}{qs}"
+            if request.method == "GET":
+                return HttpResponseRedirect(redirect_url)
+            else:
+                return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
+
         activeorg = _resolve_activeorg(request)
         if not activeorg:
             session = getattr(request, "session", None)

@@ -69,7 +69,8 @@ describe('CommitterActionCreator', function () {
       organization.slug,
       project.slug,
       event.id,
-      mockData.committers
+      mockData.committers,
+      undefined
     );
 
     expect(CommitterStore.state).toEqual({
