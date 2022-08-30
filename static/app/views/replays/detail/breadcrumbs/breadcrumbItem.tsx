@@ -18,6 +18,7 @@ interface Props {
   isSelected: boolean;
   onClick: null | MouseCallback;
   startTimestampMs: number;
+  allowHover?: boolean;
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
 }
@@ -27,6 +28,7 @@ function BreadcrumbItem({
   isHovered,
   isSelected,
   startTimestampMs,
+  allowHover = true,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -73,6 +75,7 @@ function BreadcrumbItem({
       isHovered={isHovered}
       isSelected={isSelected}
       aria-current={isSelected}
+      allowHover={allowHover}
     >
       <IconWrapper color={crumb.color}>
         <BreadcrumbIcon type={crumb.type} />
@@ -123,6 +126,7 @@ const Description = styled('span')`
 type CrumbItemProps = {
   isHovered: boolean;
   isSelected: boolean;
+  allowHover?: boolean;
 };
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
@@ -141,6 +145,12 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
   ${p => p.isHovered && `background-color: ${p.theme.surface100};`}
   border-radius: ${p => p.theme.borderRadius};
+
+  ${p =>
+    p.allowHover &&
+    ` &:hover {
+    background-color: ${p.theme.surface100};
+  }`}
 
   /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &::after {

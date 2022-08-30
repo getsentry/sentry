@@ -72,6 +72,8 @@ function Breadcrumbs({}: Props) {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          // We are controlling the hover state ourselves with `isHovered` prop
+          allowHover={false}
         />
       ))}
     </BreadcrumbContainer>
