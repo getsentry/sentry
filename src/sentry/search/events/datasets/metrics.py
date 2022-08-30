@@ -223,7 +223,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            0,
+                                            "" if self.builder.tag_values_are_strings else 0,
                                         ],
                                     ),
                                 ],
@@ -252,7 +252,13 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "and",
                                         [
                                             Function(
-                                                "notEquals", [self.builder.column("transaction"), 0]
+                                                "notEquals",
+                                                [
+                                                    self.builder.column("transaction"),
+                                                    ""
+                                                    if self.builder.tag_values_are_strings
+                                                    else 0,
+                                                ],
                                             ),
                                             Function(
                                                 "notEquals",
@@ -1191,14 +1197,6 @@ class MetricsDatasetConfig(DatasetConfig):
             quality_id = self.builder.resolve_tag_value(quality)
         except IncompatibleMetricsQuery:
             quality_id = None
-
-        if quality_id is None:
-            return Function(
-                # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
-                "toUInt64",
-                [0],
-                alias,
-            )
 
         return Function(
             "countIf",
