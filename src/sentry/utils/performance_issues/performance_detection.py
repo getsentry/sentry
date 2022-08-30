@@ -162,7 +162,7 @@ class PerformanceProblem:
     op: str
     desc: str
     type: GroupType
-    spans_involved: Sequence[str]
+    # spans_involved: Sequence[str]
 
 
 def prepare_problem_for_grouping(problem: PerformanceSpanIssue, data: Event):
