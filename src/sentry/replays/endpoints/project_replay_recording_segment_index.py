@@ -35,8 +35,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
                 ),
                 order_by="segment_id",
                 on_results=self.on_download_results,
-                response_type=StreamingHttpResponse,
-                response_type_kwargs={"content_type": "application/json"},
+                response_cls=StreamingHttpResponse,
+                response_kwargs={"content_type": "application/json"},
                 paginator_cls=OffsetPaginator,
             )
 

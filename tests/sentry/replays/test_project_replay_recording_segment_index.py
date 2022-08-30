@@ -59,6 +59,8 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
 
 
 class DownloadSegmentsTestCase(TransactionTestCase):
+    # have to use TransactionTestCase because we're using threadpools
+
     endpoint = "sentry-api-0-project-replay-recording-segment-index"
 
     def setUp(self):
