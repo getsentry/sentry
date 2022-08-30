@@ -104,6 +104,7 @@ export const MOCK_RESP_VERBOSE = [
           ['stacktrace.code', 'stacktrace.code'],
           ['stacktrace.module', 'stacktrace.module'],
           ['stacktrace.filename', 'stacktrace.filename'],
+          ['threads.name', 'threads.name'],
         ],
       },
       value: {

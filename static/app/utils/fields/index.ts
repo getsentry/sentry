@@ -78,6 +78,7 @@ export enum FieldKey {
   STACK_PACKAGE = 'stack.package',
   STACK_RESOURCE = 'stack.resource',
   STACK_STACK_LEVEL = 'stack.stack_level',
+  THREADS_NAME = 'threads.name',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
@@ -747,6 +748,11 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
+  [FieldKey.THREADS_NAME]: {
+    desc: t('Name of the thread'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
     kind: FieldKind.FIELD,
@@ -892,6 +898,7 @@ export const ISSUE_FIELDS = [
   FieldKey.STACK_MODULE,
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.THREADS_NAME,
   FieldKey.TIMESTAMP,
   FieldKey.TIMES_SEEN,
   FieldKey.TITLE,
@@ -969,6 +976,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_COLNO,
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.THREADS_NAME,
   // contexts.key and contexts.value omitted on purpose.
 
   // Transaction event fields.

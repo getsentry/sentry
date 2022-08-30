@@ -33,6 +33,13 @@ class EventAttributeConditionTest(RuleTestCase):
                     }
                 ]
             },
+            "threads": {
+                "values": [
+                    {
+                        "name": "awesome-thread",
+                    }
+                ]
+            },
             "tags": [("environment", "production")],
             "extra": {"foo": {"bar": "baz"}, "biz": ["baz"], "bar": "foo"},
             "platform": "php",
@@ -568,5 +575,17 @@ class EventAttributeConditionTest(RuleTestCase):
                 "attribute": "stacktrace.package",
                 "value": "package/otherotherpackage.lib",
             }
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_threads_name(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "threads.name", "value": "awesome-thread"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "threads.name", "value": "foo bar"}
         )
         self.assertDoesNotPass(rule, event)

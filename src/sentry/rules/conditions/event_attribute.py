@@ -25,6 +25,7 @@ ATTR_CHOICES = [
     "stacktrace.filename",
     "stacktrace.abs_path",
     "stacktrace.package",
+    "threads.name",
 ]
 
 
@@ -46,6 +47,7 @@ class EventAttributeCondition(EventCondition):
     - user.{id,ip_address,email,FIELD}
     - http.{method,url}
     - stacktrace.{code,module,filename,abs_path,package}
+    - threads.{name}
     - extra.{FIELD}
     """
 
@@ -144,6 +146,13 @@ class EventAttributeCondition(EventCondition):
                         if frame.post_context:
                             result.extend(frame.post_context)
             return result
+
+        elif path[0] == "threads":
+            if path[1] not in ("name"):
+                return []
+
+            return [e.get(path[1]) for e in event.interfaces["threads"].values]
+
         return []
 
     def render_label(self) -> str:

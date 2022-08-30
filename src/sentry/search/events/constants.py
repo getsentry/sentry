@@ -130,6 +130,7 @@ ARRAY_FIELDS = {
     "stack.module",
     "stack.package",
     "stack.stack_level",
+    "threads.name",
     "spans_op",
     "spans_group",
     "spans_exclusive_time",

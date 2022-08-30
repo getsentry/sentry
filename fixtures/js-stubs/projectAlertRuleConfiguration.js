@@ -202,6 +202,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
               ['stacktrace.filename', 'stacktrace.filename'],
               ['stacktrace.abs_path', 'stacktrace.abs_path'],
               ['stacktrace.package', 'stacktrace.package'],
+              ['threads.name', 'threads.name'],
             ],
           },
           match: {

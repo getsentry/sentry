@@ -436,6 +436,13 @@ class Columns(Enum):
         discover_name="exception_frames.stack_level",
         alias="stack.stack_level",
     )
+    THREADS_NAME = Column(
+        group_name="events.threads.name",
+        event_name="threads.name",
+        transaction_name=None,
+        discover_name="threads.name",
+        alias="threads.name",
+    )
     CONTEXTS_KEY = Column(
         group_name="events.contexts.key",
         event_name="contexts.key",
