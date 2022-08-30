@@ -4,6 +4,10 @@ on:
     branches:
       - master
 
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   build_and_deref_json:
     runs-on: ubuntu-20.04

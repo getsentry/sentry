@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
-import {getSortLabel, IssueSortOptions} from './utils';
+import {getSortLabel, IssueSortOptions} from '../../views/issueList/utils';
 
 type Props = ModalRenderProps & {
   api: Client;
