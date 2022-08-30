@@ -201,7 +201,7 @@ class ModelSiloLimit(SiloLimit):
 
         # For internal tooling only. Having any production logic depend on this is
         # strongly discouraged.
-        model_class._meta.__mode_limit = self
+        model_class._meta.__silo_limit = self
 
         return model_class
 
