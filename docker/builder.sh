@@ -14,4 +14,4 @@ cp -ur /js/node_modules/* ./node_modules/
 export YARN_CACHE_FOLDER="$(mktemp -d)"
 python setup.py bdist_wheel --build-number 0
 rm -r "$YARN_CACHE_FOLDER"
-pkginfo -f requires_dist --single --sequence-delim=! dist/*.whl | tr ! \\n > dist/requirements-frozen.txt
+cp requirements-frozen.txt dist/
