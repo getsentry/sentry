@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
@@ -15,7 +16,6 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withRepositories from 'sentry/utils/withRepositories';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {ReleaseContext} from '..';
 

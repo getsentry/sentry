@@ -12,7 +12,6 @@ import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -48,13 +47,7 @@ import {
   Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {
-  DashboardDetails,
-  DashboardFilterKeys,
-  DashboardWidgetSource,
-  Widget,
-  WidgetType,
-} from './types';
+import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
 import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
@@ -295,7 +288,7 @@ class Dashboard extends Component<Props, State> {
     }
 
     onUpdate(nextList);
-    if (!!!isEditing) {
+    if (!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -308,7 +301,7 @@ class Dashboard extends Component<Props, State> {
 
     onUpdate(nextList);
 
-    if (!!!isEditing) {
+    if (!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -325,7 +318,7 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
-    if (!!!isEditing) {
+    if (!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -408,10 +401,7 @@ class Dashboard extends Component<Props, State> {
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
-      dashboardFilters: omit(
-        getDashboardFiltersFromURL(location) ?? dashboard.filters,
-        DashboardFilterKeys.RELEASE_ID
-      ),
+      dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -581,7 +571,7 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {isEditing && !!!widgetLimitReached && (
+        {isEditing && !widgetLimitReached && (
           <AddWidgetWrapper
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={this.addWidgetLayout}
@@ -626,7 +616,7 @@ class Dashboard extends Component<Props, State> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && !!!widgetLimitReached && (
+            {isEditing && !widgetLimitReached && (
               <AddWidget onAddWidget={this.handleStartAdd} />
             )}
           </SortableContext>

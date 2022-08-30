@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import GroupingActions from 'sentry/actions/groupingActions';
 import Button from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
@@ -55,7 +54,7 @@ class Item extends Component<Props, State> {
 
     // clicking anywhere in the row will toggle the checkbox
     if (!this.state.busy) {
-      GroupingActions.toggleMerge(issue.id);
+      GroupingStore.onToggleMerge(issue.id);
     }
   };
 

@@ -3,14 +3,12 @@ import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {decodeInteger} from 'sentry/utils/queryString';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
-const DEFAULT_LIMIT = 50;
 export const DEFAULT_SORT = '-startedAt';
 
 export const REPLAY_LIST_FIELDS = [
@@ -27,7 +25,6 @@ export const REPLAY_LIST_FIELDS = [
 type Options = {
   eventView: EventView;
   organization: Organization;
-  defaultLimit?: number;
 };
 
 type State = {
@@ -39,11 +36,7 @@ type State = {
 
 type Result = State;
 
-function useReplayList({
-  eventView,
-  organization,
-  defaultLimit = DEFAULT_LIMIT,
-}: Options): Result {
+function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
 
@@ -61,17 +54,14 @@ function useReplayList({
         isFetching: true,
       }));
 
-      const queryLimit = decodeInteger(location.query.limit, defaultLimit);
-      const queryOffset = decodeInteger(location.query.offset, 0);
-
       const path = `/organizations/${organization.slug}/replays/`;
-      const query = eventView.generateQueryStringObject();
 
-      query.limit = String(queryLimit);
-      query.offset = String(queryOffset);
       const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
         includeAllArgs: true,
-        query: eventView.getEventsAPIPayload(location),
+        query: {
+          ...eventView.getEventsAPIPayload(location),
+          cursor: location.query.cursor,
+        },
       });
 
       const pageLinks = resp?.getResponseHeader('Link') ?? '';
@@ -91,7 +81,7 @@ function useReplayList({
         replays: [],
       });
     }
-  }, [api, organization, defaultLimit, location, eventView]);
+  }, [api, organization, location, eventView]);
 
   useEffect(() => {
     init();

@@ -1,5 +1,4 @@
 import {getCommitters} from 'sentry/actionCreators/committers';
-import CommitterActions from 'sentry/actions/committerActions';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 
 describe('CommitterActionCreator', function () {
@@ -31,8 +30,8 @@ describe('CommitterActionCreator', function () {
     CommitterStore.init();
 
     jest.restoreAllMocks();
-    jest.spyOn(CommitterActions, 'load');
-    jest.spyOn(CommitterActions, 'loadSuccess');
+    jest.spyOn(CommitterStore, 'load');
+    jest.spyOn(CommitterStore, 'loadSuccess');
 
     /**
      * XXX(leedongwei): We would want to ensure that Store methods are not
@@ -55,22 +54,23 @@ describe('CommitterActionCreator', function () {
       projectSlug: project.slug,
       eventId: event.id,
     }); // Fire Action.load
-    expect(CommitterActions.load).toHaveBeenCalledWith(
+    expect(CommitterStore.load).toHaveBeenCalledWith(
       organization.slug,
       project.slug,
       event.id
     );
-    expect(CommitterActions.loadSuccess).not.toHaveBeenCalled();
+    expect(CommitterStore.loadSuccess).not.toHaveBeenCalled();
 
     await tick(); // Run Store.load and fire Action.loadSuccess
     await tick(); // Run Store.loadSuccess
 
     expect(mockResponse).toHaveBeenCalledWith(endpoint, expect.anything());
-    expect(CommitterActions.loadSuccess).toHaveBeenCalledWith(
+    expect(CommitterStore.loadSuccess).toHaveBeenCalledWith(
       organization.slug,
       project.slug,
       event.id,
-      mockData.committers
+      mockData.committers,
+      undefined
     );
 
     expect(CommitterStore.state).toEqual({
@@ -91,7 +91,7 @@ describe('CommitterActionCreator', function () {
       eventId: event.id,
     }); // Fire Action.load
 
-    expect(CommitterActions.load).toHaveBeenCalled();
+    expect(CommitterStore.load).toHaveBeenCalled();
     // expect(CommitterStore.load).not.toHaveBeenCalled();
     expect(CommitterStore.state[storeKey].committersLoading).toEqual(true); // Short-circuit
   });
