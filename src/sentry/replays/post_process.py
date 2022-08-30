@@ -21,6 +21,12 @@ def normalize_fields(response: List[Dict[str, Any]]) -> None:
             "email": item.pop("user_email"),
             "ip_address": item.pop("user_ipAddress"),
         }
+        item["user"]["displayName"] = (
+            item["user"]["name"]
+            or item["user"]["email"]
+            or item["user"]["ip_address"]
+            or item["user"]["id"]
+        )
         item["sdk"] = {"name": item.pop("sdk_name"), "version": item.pop("sdk_version")}
         item["os"] = {"name": item.pop("os_name"), "version": item.pop("os_version")}
         item["browser"] = {"name": item.pop("browser_name"), "version": item.pop("browser_version")}

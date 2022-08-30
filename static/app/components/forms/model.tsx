@@ -684,7 +684,7 @@ class FormModel {
   setError(id: string, error: boolean | string) {
     // Note we don't keep error in `this.fieldState` so that we can easily
     // See if the form is in an "error" state with the `isError` getter
-    if (!!error) {
+    if (error) {
       this.formState = FormState.ERROR;
       this.errors.set(id, error);
     } else {
