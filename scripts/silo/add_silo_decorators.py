@@ -29,7 +29,7 @@ class ClassCategory(Enum):
 
 @dataclass
 class TargetClass:
-    package: str
+    module: str
     name: str
     category: ClassCategory
     is_decorated: bool
@@ -38,15 +38,15 @@ class TargetClass:
 def parse_audit(audit) -> Iterable[TargetClass]:
     def split_qualname(value):
         dot_index = value.rindex(".")
-        package = value[:dot_index]
+        module = value[:dot_index]
         name = value[dot_index + 1 :]
-        return package, name
+        return module, name
 
     def parse_group(category, dec_group):
         is_decorated = dec_group["decorator"] is not None
         for value in dec_group["values"]:
-            package, name = split_qualname(value)
-            yield TargetClass(package, name, category, is_decorated)
+            module, name = split_qualname(value)
+            yield TargetClass(module, name, category, is_decorated)
 
     for dec_group in audit["models"]["decorators"]:
         yield from parse_group(ClassCategory.MODEL, dec_group)
