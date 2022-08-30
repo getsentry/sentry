@@ -1,6 +1,7 @@
 """Dynamic query parsing library."""
 from typing import Any, Generator, List, Optional, Tuple
 
+from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -105,19 +106,19 @@ def generate_valid_conditions(
         field_alias = search_filter.key.name
         field = query_config.get(field_alias)
         if field is None or not field.is_filterable:
-            continue
+            raise ParseError(f"Invalid field specified: {field_alias}.")
 
         # Validate strategy is correct.
         query_operator = search_filter.operator
         operator, errors = field.deserialize_operator(query_operator)
         if errors:
-            continue
+            raise ParseError(f"Invalid operator specified: {field_alias}.")
 
         # Deserialize value to its correct type or error.
         query_value = search_filter.value.value
         value, errors = field.deserialize_value(query_value)
         if errors:
-            continue
+            raise ParseError(f"Invalid value specified: {field_alias}.")
 
         yield Condition(Column(field.query_alias or field.attribute_name), operator, value)
 
@@ -132,14 +133,13 @@ def get_valid_sort_commands(
 
     if sort.startswith("-"):
         strategy = Direction.DESC
-        sort = sort[1:]
+        field_name = sort[1:]
     else:
         strategy = Direction.ASC
+        field_name = sort
 
-    field = query_config.get(sort)
-    if field:
-        return [OrderBy(Column(field.query_alias or field.attribute_name), strategy)]
-    elif default:
-        return [default]
+    field = query_config.get(field_name)
+    if not field:
+        raise ParseError(f"Invalid field specified: {field_name}.")
     else:
-        return []
+        return [OrderBy(Column(field.query_alias or field.attribute_name), strategy)]

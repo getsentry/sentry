@@ -297,7 +297,7 @@ class ReplayQueryConfig(QueryConfig):
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
     user_name = String(field_alias="user.name")
-    user_ip_address = String(field_alias="user.ip_address", query_alias="user_ipAddress")
+    user_ip_address = String(field_alias="user.ipAddress", query_alias="user_ipAddress")
     os_name = String(field_alias="os.name")
     os_version = String(field_alias="os.version")
     browser_name = String(field_alias="browser.name")

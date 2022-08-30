@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,6 +6,7 @@ from sentry import features
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replays_collection, replay_url_parser_config
@@ -27,9 +29,12 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 filter_params[key] = value
 
         def data_fn(offset, limit):
-            search_filters = parse_search_query(
-                request.query_params.get("query", ""), config=replay_url_parser_config
-            )
+            try:
+                search_filters = parse_search_query(
+                    request.query_params.get("query", ""), config=replay_url_parser_config
+                )
+            except InvalidSearchQuery as e:
+                raise ParseError(str(e))
 
             return query_replays_collection(
                 project_ids=filter_params["project_id"],

@@ -378,6 +378,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
             for key, value in queries:
                 response = self.client.get(self.url + f"?query={key}:{value}")
+                print(response.content.decode("utf-8"))
                 assert response.status_code == 200, key
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, key
@@ -533,3 +534,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(r["data"]) == 2, key
                 assert r["data"][0]["id"] == replay1_id, key
                 assert r["data"][1]["id"] == replay2_id, key
+
+    def test_get_replays_filter_bad_field(self):
+        """Test replays conform to the interchange format."""
+        self.create_project(teams=[self.team])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?query=xyz:a")
+            assert response.status_code == 400
+            assert b"xyz" in response.content
+
+    def test_get_replays_filter_bad_value(self):
+        """Test replays conform to the interchange format."""
+        self.create_project(teams=[self.team])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?query=duration:a")
+            assert response.status_code == 400
+            assert b"duration" in response.content
