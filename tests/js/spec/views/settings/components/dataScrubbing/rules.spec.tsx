@@ -1,74 +1,53 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Rules from 'sentry/views/settings/components/dataScrubbing/rules';
 
-const relayPiiConfig = TestStubs.DataScrubbingRelayPiiConfig();
-const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
-const convertedRules = convertRelayPiiConfig(stringRelayPiiConfig);
-const rules = convertedRules;
-const handleShowEditRule = jest.fn();
-const handleDelete = jest.fn();
+const relayPiiConfig = convertRelayPiiConfig(
+  JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig())
+);
 
-describe('Rules', () => {
-  it('default render', () => {
-    const wrapper = mountWithTheme(<Rules rules={rules} />);
-    expect(wrapper.find('ListItem')).toHaveLength(3);
-  });
+describe('Rules', function () {
+  it('default render', function () {
+    render(<Rules rules={relayPiiConfig} onEditRule={jest.fn()} />);
 
-  it('render correct description', () => {
-    const wrapper = mountWithTheme(<Rules rules={rules} />);
-    const listItems = wrapper.find('ListItem');
-    expect(listItems.at(1).text()).toEqual(
-      '[Mask] [Credit card numbers] from [$message]'
-    );
-    expect(listItems.at(0).text()).toEqual(
-      '[Replace] [Password fields]  with [Scrubbed] from [password]'
-    );
-  });
-
-  it('render disabled list', () => {
-    const wrapper = mountWithTheme(<Rules rules={rules} disabled />);
-    expect(wrapper.find('List').prop('isDisabled')).toEqual(true);
-  });
-
-  it('render edit and delete buttons', () => {
-    const wrapper = mountWithTheme(
-      <Rules rules={rules} onEditRule={handleShowEditRule} onDeleteRule={handleDelete} />
-    );
-    expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
-    expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(3);
-  });
-
-  it('render disabled edit and delete buttons', () => {
-    const wrapper = mountWithTheme(
-      <Rules
-        rules={rules}
-        onEditRule={handleShowEditRule}
-        onDeleteRule={handleDelete}
-        disabled
-      />
-    );
-    expect(
-      wrapper.find('[aria-label="Edit Rule"]').hostNodes().at(0).prop('aria-disabled')
-    ).toEqual(true);
+    expect(screen.getAllByRole('button', {name: 'Edit Rule'})).toHaveLength(3);
 
     expect(
-      wrapper.find('[aria-label="Delete Rule"]').hostNodes().at(0).prop('aria-disabled')
-    ).toEqual(true);
+      screen.getByText(
+        textWithMarkupMatcher(
+          '[Replace] [[a-zA-Z0-9]+] with [Placeholder] from [$message]'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText('[Mask] [Credit card numbers] from [$message]')
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          '[Replace] [Password fields] with [Scrubbed] from [password]'
+        )
+      )
+    ).toBeInTheDocument();
   });
 
-  it('render edit button only', () => {
-    const wrapper = mountWithTheme(
-      <Rules rules={rules} onEditRule={handleShowEditRule} />
-    );
-    expect(wrapper.find('[aria-label="Edit Rule"]').hostNodes()).toHaveLength(3);
-    expect(wrapper.find('[aria-label="Delete Rule"]')).toHaveLength(0);
+  it('render edit button only', function () {
+    render(<Rules rules={relayPiiConfig} onEditRule={jest.fn()} />);
+
+    expect(screen.getAllByRole('button', {name: 'Edit Rule'})).toHaveLength(3);
+
+    expect(screen.queryByRole('button', {name: 'Delete Rule'})).not.toBeInTheDocument();
   });
 
-  it('render delete button only', () => {
-    const wrapper = mountWithTheme(<Rules rules={rules} onDeleteRule={handleDelete} />);
-    expect(wrapper.find('[aria-label="Edit Rule"]')).toHaveLength(0);
-    expect(wrapper.find('[aria-label="Delete Rule"]').hostNodes()).toHaveLength(3);
+  it('render delete button only', function () {
+    render(<Rules rules={relayPiiConfig} onDeleteRule={jest.fn()} />);
+
+    expect(screen.getAllByRole('button', {name: 'Delete Rule'})).toHaveLength(3);
+
+    expect(screen.queryByRole('button', {name: 'Edit Rule'})).not.toBeInTheDocument();
   });
 });

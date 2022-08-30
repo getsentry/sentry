@@ -8,6 +8,7 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   isAPIPayloadSimilar,
@@ -192,16 +193,21 @@ class Table extends PureComponent<TableProps, TableState> {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
 
             return (
-              <TableView
-                {...this.props}
-                isLoading={isLoading}
-                isFirstPage={isFirstPage}
-                error={error}
-                eventView={eventView}
-                tableData={tableData}
-                measurementKeys={measurementKeys}
-                spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
-              />
+              <CustomMeasurementsContext.Consumer>
+                {contextValue => (
+                  <TableView
+                    {...this.props}
+                    isLoading={isLoading}
+                    isFirstPage={isFirstPage}
+                    error={error}
+                    eventView={eventView}
+                    tableData={tableData}
+                    measurementKeys={measurementKeys}
+                    spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
+                    customMeasurements={contextValue?.customMeasurements ?? undefined}
+                  />
+                )}
+              </CustomMeasurementsContext.Consumer>
             );
           }}
         </Measurements>
