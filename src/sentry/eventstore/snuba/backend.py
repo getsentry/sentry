@@ -6,14 +6,15 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import features
 from sentry.eventstore.base import EventStorage
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
-from sentry import features
 
 from ..models import Event
-from sentry.models.project import Project
 
 EVENT_ID = Columns.EVENT_ID.value.alias
 PROJECT_ID = Columns.PROJECT_ID.value.alias
@@ -198,7 +199,7 @@ class SnubaEventStorage(EventStorage):
                 logger.warning("eventstore.passed-group-id-for-transaction")
                 org = Project.objects.select_related("organization").get(id=project_id)
                 if features.has("organizations:performance-issue-details-backend", org):
-                    event.group_id = group_id
+                    return event.for_group(Group.objects.get(id=group_id))
             else:
                 event.group_id = group_id
 
@@ -279,7 +280,11 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        dataset = snuba.Dataset.Transactions if event.get_event_type() == "transaction" else snuba.Dataset.Discover
+        dataset = (
+            snuba.Dataset.Transactions
+            if event.get_event_type() == "transaction"
+            else snuba.Dataset.Discover
+        )
 
         return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
@@ -299,10 +304,16 @@ class SnubaEventStorage(EventStorage):
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
-        
-        dataset = snuba.Dataset.Transactions if event.get_event_type() == "transaction" else snuba.Dataset.Discover
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING, dataset=dataset)
+        dataset = (
+            snuba.Dataset.Transactions
+            if event.get_event_type() == "transaction"
+            else snuba.Dataset.Discover
+        )
+
+        return self.__get_event_id_from_filter(
+            filter=filter, orderby=DESC_ORDERING, dataset=dataset
+        )
 
     def __get_columns(self):
         return [col.value.event_name for col in EventStorage.minimal_columns]
