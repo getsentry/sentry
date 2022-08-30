@@ -253,7 +253,7 @@ class ConvertFirstReleaseValueTest(TestCase):
 
 class ConvertCategoryValueTest(TestCase):
     def test(self):
-        with self.feature("organizations:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issues"):
             assert convert_category_value(["error"], [self.project], self.user, None) == [1]
             assert convert_category_value(["performance"], [self.project], self.user, None) == [
                 1000,
@@ -268,7 +268,7 @@ class ConvertCategoryValueTest(TestCase):
 
 class ConvertTypeValueTest(TestCase):
     def test(self):
-        with self.feature("organizations:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issues"):
             assert convert_type_value(["error"], [self.project], self.user, None) == [1]
             assert convert_type_value(
                 ["performance_n_plus_one"], [self.project], self.user, None
