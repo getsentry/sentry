@@ -576,11 +576,11 @@ class Event(BaseEvent):
         group_id: int | None = None,
         data: Mapping[str, Any] | None = None,
         snuba_data: Mapping[str, Any] | None = None,
-        group_ids: Sequence[int] | None = None,
+        groups: Sequence[Group] | None = None,
     ):
         super().__init__(project_id, event_id, snuba_data=snuba_data)
         self.group_id = group_id
-        self.group_ids = group_ids
+        self.groups = groups
         self.data = data
 
     def __getstate__(self) -> Mapping[str, Any]:
@@ -637,39 +637,37 @@ class Event(BaseEvent):
         self._group_cache = group
 
     @property
-    def group_ids(self) -> Sequence[int]:
-        """
-        This property returns all `group_ids` associated with an event. It checks both the
-        `GROUP_ID` and `GROUP_IDS` columns in snuba.
-        """
-        if self._group_ids:
-            return self._group_ids
-
-        snuba_group_id = self.group_id
-        # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-        # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
-        snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
-        group_ids = []
-        if snuba_group_id:
-            group_ids.append(snuba_group_id)
-        if snuba_group_ids:
-            group_ids.extend(snuba_group_ids)
-        return group_ids
-
-    @group_ids.setter
-    def group_ids(self, values: Sequence[int] | None) -> None:
-        self._group_ids = values
-
-    @property
-    def groups(self):
+    def groups(self) -> Sequence[Group]:
         from sentry.models import Group
 
-        if not self.group_ids:
-            return []
+        if getattr(self, "_groups_cache"):
+            return self._groups_cache
 
-        if not hasattr(self, "_groups_cache"):
-            self._groups_cache = list(Group.objects.filter(id__in=self.group_ids))
-        return self._groups_cache
+        if self._group_ids is not None:
+            group_ids = self._group_ids
+        else:
+            snuba_group_id = self.group_id
+            # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
+            # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
+            snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
+            group_ids = []
+            if snuba_group_id:
+                group_ids.append(snuba_group_id)
+            if snuba_group_ids:
+                group_ids.extend(snuba_group_ids)
+
+        if group_ids:
+            groups = list(Group.objects.filter(id__in=group_ids))
+        else:
+            groups = []
+
+        self._groups_cache = groups
+        return groups
+
+    @groups.setter
+    def groups(self, values: Sequence[Group] | None):
+        self._groups_cache = values
+        self._group_ids = [group.id for group in values] if values else None
 
     def build_group_events(self):
         """
