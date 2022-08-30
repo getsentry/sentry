@@ -34,9 +34,9 @@ export function WidgetLibrary({
 }: Props) {
   const theme = useTheme();
   let defaultWidgets = getTopNConvertedDefaultWidgets();
-  if (!!!organization.features.includes('dashboards-releases')) {
+  if (!organization.features.includes('dashboards-releases')) {
     defaultWidgets = defaultWidgets.filter(
-      widget => !!!(widget.widgetType === WidgetType.RELEASE)
+      widget => !(widget.widgetType === WidgetType.RELEASE)
     );
   }
 

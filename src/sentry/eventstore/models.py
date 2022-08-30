@@ -2,7 +2,7 @@ import string
 from collections import OrderedDict
 from datetime import datetime
 from hashlib import md5
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Sequence
 
 import pytz
 import sentry_sdk
@@ -36,10 +36,13 @@ class Event:
     Event backed by nodestore and Snuba.
     """
 
-    def __init__(self, project_id, event_id, group_id=None, data=None, snuba_data=None):
+    def __init__(
+        self, project_id, event_id, group_id=None, data=None, snuba_data=None, group_ids=None
+    ):
         self.project_id = project_id
         self.event_id = event_id
         self.group_id = group_id
+        self.group_ids = group_ids
         self.data = data
         self._snuba_data = snuba_data or {}
 
@@ -79,6 +82,20 @@ class Event:
     @group_id.setter
     def group_id(self, value):
         self._group_id = value
+
+    @property
+    def group_ids(self) -> Sequence[int]:
+        if self._group_ids:
+            return self._group_ids
+
+        # TODO: Should attempt to grab data from `Columns.GROUP_ID` as well?
+        column = self.__get_column_name(Columns.GROUP_IDS)
+
+        return self._snuba_data.get(column)
+
+    @group_ids.setter
+    def group_ids(self, values: Sequence[int]):
+        self._group_ids = values
 
     @property
     def platform(self):
