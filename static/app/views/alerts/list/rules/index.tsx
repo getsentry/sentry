@@ -245,7 +245,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               >
                 <Projects orgId={orgId} slugs={this.projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
+                    ruleList?.map(rule => (
                       <RuleListRow
                         // Metric and issue alerts can have the same id
                         key={`${
