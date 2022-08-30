@@ -115,6 +115,7 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
+    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
     const isPerformanceIssue = !!evt.contexts?.performance_issue;
 
     return (
