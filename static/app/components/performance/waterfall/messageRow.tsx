@@ -6,7 +6,6 @@ import space from 'sentry/styles/space';
 
 export const MessageRow = styled(Row)`
   display: block;
-  cursor: auto;
   line-height: ${ROW_HEIGHT}px;
   padding-left: ${space(1)};
   padding-right: ${space(1)};

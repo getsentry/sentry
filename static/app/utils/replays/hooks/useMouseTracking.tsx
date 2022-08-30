@@ -94,6 +94,11 @@ function useMouseTracking<T extends Element>({
       onMouseEnter?.(e);
     },
     onMouseMove: (e: MouseEvent<T>) => {
+      // prevent outside elements from firing, for example a tooltip
+      if (!elem.current?.contains(e.target as Node)) {
+        return;
+      }
+
       handlePositionChange(e);
       onMouseMove?.(e);
     },

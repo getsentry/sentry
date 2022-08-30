@@ -10,6 +10,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   DisplayType,
   Widget,
@@ -51,7 +52,7 @@ async function renderModal({
   widget: any;
   pageLinks?: string;
   seriesData?: Series[];
-  seriesResultsType?: string;
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
 }) {
   const rendered = render(
@@ -519,12 +520,26 @@ describe('Modals -> WidgetViewerModal', function () {
             initialData: initialDataWithFlag,
             widget: mockWidget,
             seriesData: [],
-            seriesResultsType: 'duration',
+            seriesResultsType: {'count()': 'duration', 'count_unique()': 'duration'},
           });
           const calls = (ReactEchartsCore as jest.Mock).mock.calls;
           const yAxisFormatter =
             calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
           expect(yAxisFormatter(123)).toEqual('123ms');
+        });
+
+        it('renders widget chart with default number y axis formatter when seriesResultType has multiple different types', async function () {
+          mockEvents();
+          await renderModal({
+            initialData: initialDataWithFlag,
+            widget: mockWidget,
+            seriesData: [],
+            seriesResultsType: {'count()': 'duration', 'count_unique()': 'size'},
+          });
+          const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+          const yAxisFormatter =
+            calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
+          expect(yAxisFormatter(123)).toEqual('123');
         });
 
         it('does not allow sorting by transaction name when widget is using metrics', async function () {
@@ -552,7 +567,7 @@ describe('Modals -> WidgetViewerModal', function () {
             initialData: initialDataWithFlag,
             widget: mockWidget,
             seriesData: [],
-            seriesResultsType: 'duration',
+            seriesResultsType: {'count()': 'duration'},
           });
           expect(eventsMock).toHaveBeenCalledTimes(1);
           expect(screen.getByText('title')).toBeInTheDocument();
