@@ -357,7 +357,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                ("platform", '"javascript client"'),
+                ("platform", "javascript"),
                 ("duration", ">15"),
                 ("user.id", "123"),
                 ("user.name", "username123"),
