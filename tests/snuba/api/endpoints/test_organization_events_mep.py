@@ -1467,7 +1467,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
 
         assert data[0]["transaction"] == "foo_transaction"
-        assert data[0]["environment"] is None
+        assert data[0]["environment"] is None or data[0]["environment"] == ""
         assert data[0]["p50(transaction.duration)"] == 100
         assert meta["isMetricsData"]
 
