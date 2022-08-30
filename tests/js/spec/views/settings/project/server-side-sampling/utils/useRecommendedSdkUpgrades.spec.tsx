@@ -13,7 +13,8 @@ describe('useRecommendedSdkUpgrades', function () {
       TestStubs.Project({id: '2', slug: 'java'}),
       TestStubs.Project({id: '3', slug: 'angular'}),
     ]);
-    ServerSideSamplingStore.loadSamplingSdkVersionsSuccess(mockedSamplingSdkVersions);
+
+    ServerSideSamplingStore.fetchSdkVersionsSuccess(mockedSamplingSdkVersions);
 
     const {result} = reactHooks.renderHook(() =>
       useRecommendedSdkUpgrades({orgSlug: 'org-slug', projectId: '3'})

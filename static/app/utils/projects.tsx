@@ -139,9 +139,9 @@ class BaseProjects extends Component<Props, State> {
   componentDidMount() {
     const {slugs, projectIds} = this.props;
 
-    if (!!slugs?.length) {
+    if (slugs?.length) {
       this.loadSpecificProjects();
-    } else if (!!projectIds?.length) {
+    } else if (projectIds?.length) {
       this.loadSpecificProjectsFromIds();
     } else {
       this.loadAllProjects();
@@ -167,7 +167,7 @@ class BaseProjects extends Component<Props, State> {
       return;
     }
 
-    if (!!slugs?.length) {
+    if (slugs?.length) {
       // Extract the requested projects from the store based on props.slugs
       const projectsMap = this.getProjectsMap(projects);
       const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
@@ -294,7 +294,7 @@ class BaseProjects extends Component<Props, State> {
       .map(slug =>
         projectsMap.has(slug)
           ? projectsMap.get(slug)
-          : !!passthroughPlaceholderProject
+          : passthroughPlaceholderProject
           ? {slug}
           : null
       )

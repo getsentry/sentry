@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils import APITestCase, TestCase
+from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
 class CustomerDomainMiddlewareTest(TestCase):
@@ -146,6 +147,11 @@ urlpatterns = [
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
+    url(
+        r"^api/0/(?P<organization_slug>[^\/]+)/nameless/$",
+        OrganizationTestEndpoint.as_view(),
+    ),
+    url(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
 ]
 
 
@@ -387,3 +393,34 @@ class End2EndTest(APITestCase):
             }
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "test"
+
+    def test_with_middleware_and_nameless_view(self):
+        self.create_organization(name="albertos-apples")
+
+        with override_settings(MIDDLEWARE=tuple(self.middleware)):
+            response = self.client.get(
+                "/api/0/some-org/nameless/",
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [("/api/0/albertos-apples/nameless/", 302)]
+            assert response.data == {
+                "organization_slug": "albertos-apples",
+                "subdomain": "albertos-apples",
+                "activeorg": "albertos-apples",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "albertos-apples"
+
+    def test_disallowed_customer_domain(self):
+        with override_settings(
+            MIDDLEWARE=tuple(self.middleware), DISALLOWED_CUSTOMER_DOMAINS=["banned"]
+        ):
+            response = self.client.get(
+                "/api/0/some-org/",
+                SERVER_NAME="banned.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [("http://testserver/logout/", 302)]

@@ -42,7 +42,6 @@ function getColors({priority, theme}: BannerProps & {theme: Theme}) {
 
 export const BannerContainer = styled('div')<BannerProps>`
   font-size: ${p => p.theme.fontSizeMedium};
-
   background: ${p => getColors(p).background};
   border-top: 1px solid ${p => getColors(p).border};
   border-bottom: 1px solid ${p => getColors(p).border};

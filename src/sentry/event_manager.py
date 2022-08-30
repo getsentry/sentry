@@ -442,19 +442,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = {
-            "platform": job["platform"],
-            "message": job["event"].search_message,
-            "culprit": job["culprit"],
-            "logger": job["logger_name"],
-            "level": LOG_LEVELS_MAP.get(job["level"]),
-            "last_seen": job["event"].datetime,
-            "first_seen": job["event"].datetime,
-            "active_at": job["event"].datetime,
-        }
+        kwargs = _create_kwargs(job)
 
-        if job["release"]:
-            kwargs["first_release"] = job["release"]
+        kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -485,26 +475,9 @@ class EventManager:
         job["event"].data.bind_ref(job["event"])
 
         _get_or_create_environment_many(jobs, projects)
-
-        if job["group"]:
-            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
-                group_id=job["group"].id,
-                environment_id=job["environment"].id,
-                defaults={"first_release": job["release"] or None},
-            )
-        else:
-            job["is_new_group_environment"] = False
-
+        _get_or_create_group_environment_many(jobs, projects)
         _get_or_create_release_associated_models(jobs, projects)
-
-        if job["release"] and job["group"]:
-            job["grouprelease"] = GroupRelease.get_or_create(
-                group=job["group"],
-                release=job["release"],
-                environment=job["environment"],
-                datetime=job["event"].datetime,
-            )
-
+        _get_or_create_group_release_many(jobs, projects)
         _tsdb_record_all_metrics(jobs)
 
         if job["group"]:
@@ -866,12 +839,42 @@ def _materialize_metadata_many(jobs):
         job["culprit"] = data["culprit"]
 
 
+def _create_kwargs(job):
+    kwargs = {
+        "platform": job["platform"],
+        "message": job["event"].search_message,
+        "logger": job["logger_name"],
+        "level": LOG_LEVELS_MAP.get(job["level"]),
+        "last_seen": job["event"].datetime,
+        "first_seen": job["event"].datetime,
+        "active_at": job["event"].datetime,
+    }
+
+    if job["release"]:
+        kwargs["first_release"] = job["release"]
+
+    return kwargs
+
+
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs, projects):
     for job in jobs:
         job["environment"] = Environment.get_or_create(
             project=projects[job["project_id"]], name=job["environment"]
         )
+
+
+@metrics.wraps("save_event.get_or_create_group_environment_many")
+def _get_or_create_group_environment_many(jobs, projects):
+    for job in jobs:
+        if job["group"]:
+            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
+                group_id=job["group"].id,
+                environment_id=job["environment"].id,
+                defaults={"first_release": job["release"] or None},
+            )
+        else:
+            job["is_new_group_environment"] = False
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -895,6 +898,18 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
+
+
+@metrics.wraps("save_event.get_or_create_group_release_many")
+def _get_or_create_group_release_many(jobs, projects):
+    for job in jobs:
+        if job["release"] and job["group"]:
+            job["grouprelease"] = GroupRelease.get_or_create(
+                group=job["group"],
+                release=job["release"],
+                environment=job["environment"],
+                datetime=job["event"].datetime,
+            )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -983,7 +998,6 @@ def _eventstream_insert_many(jobs):
             )
 
         eventstream.insert(
-            group=job["group"],
             event=job["event"],
             is_new=job["is_new"],
             is_regression=job["is_regression"],
@@ -1103,7 +1117,6 @@ def materialize_metadata(data, event_type, event_metadata):
     """Returns the materialized metadata to be merged with group or
     event data.  This currently produces the keys `type`, `culprit`,
     `metadata`, `title` and `location`.
-
     """
 
     # XXX(markus): Ideally this wouldn't take data or event_type, and instead
@@ -1210,31 +1223,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
             if existing_grouphash is None:
 
-                try:
-                    short_id = project.next_short_id()
-                except OperationalError:
-                    metrics.incr(
-                        "next_short_id.timeout",
-                        tags={"platform": event.platform or "unknown"},
-                    )
-                    sentry_sdk.capture_message("short_id.timeout")
-                    raise HashDiscarded("Timeout when getting next_short_id")
-
-                # it's possible the release was deleted between
-                # when we queried for the release and now, so
-                # make sure it still exists
-                first_release = kwargs.pop("first_release", None)
-
-                group = Group.objects.create(
-                    project=project,
-                    short_id=short_id,
-                    first_release_id=Release.objects.filter(id=first_release.id)
-                    .values_list("id", flat=True)
-                    .first()
-                    if first_release
-                    else None,
-                    **kwargs,
-                )
+                group = _create_group(project, event, **kwargs)
 
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
@@ -1384,6 +1373,34 @@ def _find_existing_grouphash(
             raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
 
     return None, root_hierarchical_hash
+
+
+def _create_group(project, event, **kwargs):
+    try:
+        short_id = project.next_short_id()
+    except OperationalError:
+        metrics.incr(
+            "next_short_id.timeout",
+            tags={"platform": event.platform or "unknown"},
+        )
+        sentry_sdk.capture_message("short_id.timeout")
+        raise HashDiscarded("Timeout when getting next_short_id")
+
+    # it's possible the release was deleted between
+    # when we queried for the release and now, so
+    # make sure it still exists
+    first_release = kwargs.pop("first_release", None)
+
+    return Group.objects.create(
+        project=project,
+        short_id=short_id,
+        first_release_id=Release.objects.filter(id=first_release.id)
+        .values_list("id", flat=True)
+        .first()
+        if first_release
+        else None,
+        **kwargs,
+    )
 
 
 def _handle_regression(group, event, release):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -19,7 +19,6 @@ from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -76,40 +75,6 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return value_id
 
-    def metric_type_resolver(
-        self, index: Optional[int] = 0
-    ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
-        """Return the type of the metric, default to duration
-
-        based on fields.reflective_result_type, but in this config since we need the _custom_measurement_cache
-        """
-
-        def result_type_fn(
-            function_arguments: List[fields.FunctionArg], parameter_values: Dict[str, Any]
-        ) -> str:
-            argument = function_arguments[index]
-            value = parameter_values[argument.name]
-            if (
-                value == "transaction.duration"
-                or is_duration_measurement(value)
-                or is_span_op_breakdown(value)
-            ):
-                return "duration"
-            for measurement in self.builder.custom_measurement_map:
-                if measurement["name"] == value and measurement["metric_id"] is not None:
-                    unit = measurement["unit"]
-                    if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
-                        return unit
-                    elif unit == "none":
-                        return "integer"
-                    elif unit in constants.PERCENT_UNITS:
-                        return "percentage"
-                    else:
-                        return "number"
-            return "number"
-
-        return result_type_fn
-
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
@@ -158,7 +123,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -302,7 +267,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -319,7 +284,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -336,7 +301,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -353,7 +318,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -370,7 +335,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -385,7 +350,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -402,7 +367,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "min",
@@ -418,7 +383,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -434,7 +399,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "sumIf",
@@ -471,7 +436,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile,
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
