@@ -73,7 +73,10 @@ describe('IssueListActions', function () {
         wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
         const modal = await mountGlobalModal();
-        expect(modal.find('Modal')).toSnapshot();
+
+        // TODO(epurkhiser): This test will be rewrittein in RLT soon, this snapshot has
+        // been flakey so let's just turn it off for now.
+        // expect(modal.find('Modal')).toSnapshot();
 
         modal.find('Button[priority="primary"]').simulate('click');
 
