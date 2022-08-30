@@ -1198,6 +1198,14 @@ class MetricsDatasetConfig(DatasetConfig):
         except IncompatibleMetricsQuery:
             quality_id = None
 
+        if quality_id is None:
+            return Function(
+                # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
+                "toUInt64",
+                [0],
+                alias,
+            )
+
         return Function(
             "countIf",
             [
