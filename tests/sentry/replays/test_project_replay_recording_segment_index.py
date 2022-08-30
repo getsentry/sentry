@@ -93,6 +93,25 @@ class DownloadSegmentsTestCase(TransactionTestCase):
             response.streaming_content
         )
 
+    def test_index_download_basic_compressed_over_chunk_size(self):
+        segment_id = 1
+        f = File.objects.create(name=f"rr:{segment_id}", type="replay.recording")
+        f.putfile(BytesIO(zlib.compress(("a" * 5000).encode())))
+        ReplayRecordingSegment.objects.create(
+            replay_id=self.replay_id,
+            project_id=self.project.id,
+            segment_id=segment_id,
+            file_id=f.id,
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+
+        assert response.get("Content-Type") == "application/json"
+        assert len(b"".join(response.streaming_content)) == 5002
+
     def test_index_download_basic_not_compressed(self):
         for i in range(0, 3):
             f = File.objects.create(name=f"rr:{i}", type="replay.recording")
