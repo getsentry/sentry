@@ -307,3 +307,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert "data" in response_data
             assert len(response_data["data"]) == 0
+
+    def test_get_replays_unknown_field(self):
+        """Test replays conform to the interchange format."""
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = str(uuid.uuid4())
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=unknown")
+            assert response.status_code == 400
