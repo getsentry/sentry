@@ -51,10 +51,12 @@ ENV \
 COPY /dist/requirements-frozen.txt /tmp/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
-  # uwsgi
+  # uwsgi-dogstatsd
   && buildDeps="$buildDeps \
   gcc \
+  libpcre3-dev \
   wget \
+  zlib1g-dev \
   " \
   # maxminddb
   && buildDeps="$buildDeps \
