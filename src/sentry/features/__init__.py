@@ -135,7 +135,7 @@ default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, Tr
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:server-side-sampling", OrganizationFeature)
 default_manager.add("organizations:server-side-sampling-ui", OrganizationFeature, True)
-default_manager.add("organizations:session-replay", OrganizationFeature, True)
+default_manager.add("organizations:session-replay", OrganizationFeature)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)

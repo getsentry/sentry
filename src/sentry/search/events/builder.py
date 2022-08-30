@@ -1913,6 +1913,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        if self.dry_run:
+            return -1
         if value not in self._indexer_cache:
             if self.is_performance:
                 use_case_id = UseCaseKey.PERFORMANCE
@@ -1944,7 +1946,7 @@ class MetricsQueryBuilder(QueryBuilder):
             lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
-        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable in ["tags", "tags_raw"]
         if is_tag:
             if isinstance(value, list):
                 resolved_value = []
@@ -1987,8 +1989,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def _resolve_environment_filter_value(self, value: str) -> int:
-        value_id: Optional[int] = self.config.resolve_value(f"{value}")
+    def _resolve_environment_filter_value(self, value: str) -> Union[int, str]:
+        value_id: Optional[Union[int, str]] = self.resolve_tag_value(f"{value}")
         if value_id is None:
             raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
 
@@ -2004,9 +2006,15 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(
-            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
-        )
+        values = []
+        for value in values_set:
+            if value:
+                values.append(self._resolve_environment_filter_value(value))
+            elif self.tag_values_are_strings:
+                values.append("")
+            else:
+                values.append(0)
+        values.sort()
         environment = self.column("environment")
         if len(values) == 1:
             operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
@@ -2152,7 +2160,10 @@ class MetricsQueryBuilder(QueryBuilder):
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
-            if (isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags") or (
+            if (
+                isinstance(orderby.exp, Column)
+                and orderby.exp.subscriptable in ["tags", "tags_raw"]
+            ) or (
                 isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
             ):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
