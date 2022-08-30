@@ -41,7 +41,7 @@ type State = AsyncComponent['state'] & {
   debugFiles: Array<DebugFile> | null;
 };
 
-class DebugImageDetails extends AsyncComponent<Props, State> {
+export class DebugImageDetails extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -347,8 +347,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     );
   }
 }
-
-export default DebugImageDetails;
 
 const Content = styled('div')`
   display: grid;
