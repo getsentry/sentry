@@ -1,9 +1,8 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import {imageStyle, ImageStyleProps} from './styles';
 
@@ -15,75 +14,65 @@ type Props = {
   placeholder?: string;
 } & ImageStyleProps;
 
-type State = {
-  MD5?: any;
-};
+type HasherHelper = typeof import('crypto-js/md5');
 
-class Gravatar extends Component<Props, State> {
-  state: State = {
-    MD5: undefined,
-  };
+function Gravatar({
+  remoteSize,
+  gravatarId,
+  placeholder,
+  round,
+  onError,
+  onLoad,
+  suggested,
+  grayscale,
+}: Props) {
+  const isMounted = useRef(false);
+  const [MD5, setMD5] = useState<HasherHelper>();
 
-  componentDidMount() {
-    this._isMounted = true;
+  const loadMd5Helper = useCallback(async () => {
+    const mod = await import('crypto-js/md5');
 
-    import('crypto-js/md5')
-      .then(mod => mod.default)
-      .then(MD5 => {
-        if (!this._isMounted) {
-          return;
-        }
-        this.setState({MD5});
-      });
-  }
-
-  componentWillUnmount() {
-    // Need to track mounted state because `React.isMounted()` is deprecated and because of
-    // dynamic imports
-    this._isMounted = false;
-  }
-
-  private _isMounted: boolean = false;
-
-  buildGravatarUrl = () => {
-    const {gravatarId, remoteSize, placeholder} = this.props;
-    let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
-
-    const md5 = callIfFunction(this.state.MD5, gravatarId);
-    if (md5) {
-      url += md5;
+    if (isMounted.current) {
+      // XXX: Use function invocation of `useState`s setter since the mod.default
+      // is a function itself.
+      setMD5(() => mod.default);
     }
+  }, []);
 
-    const query = {
-      s: remoteSize || undefined,
-      // If gravatar is not found we need the request to return an error,
-      // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
-      d: placeholder || '404',
+  useEffect(() => {
+    isMounted.current = true;
+    loadMd5Helper();
+    return () => {
+      isMounted.current = false;
     };
+  }, [loadMd5Helper]);
 
-    url += '?' + qs.stringify(query);
-
-    return url;
-  };
-
-  render() {
-    if (!this.state.MD5) {
-      return null;
-    }
-
-    const {round, onError, onLoad, suggested, grayscale} = this.props;
-
-    return (
-      <Image
-        round={round}
-        src={this.buildGravatarUrl()}
-        onLoad={onLoad}
-        onError={onError}
-        suggested={suggested}
-        grayscale={grayscale}
-      />
-    );
+  if (MD5 === undefined) {
+    return null;
   }
+
+  const query = qs.stringify({
+    s: remoteSize,
+    // If gravatar is not found we need the request to return an error,
+    // otherwise error handler will not trigger and avatar will not have a display a LetterAvatar backup.
+    d: placeholder ?? '404',
+  });
+
+  const gravatarBaseUrl = ConfigStore.get('gravatarBaseUrl');
+
+  const md5 = MD5(gravatarId ?? '');
+  const url = `${gravatarBaseUrl}/avatar/${md5}?${query}`;
+
+  return (
+    <Image
+      round={round}
+      src={url}
+      onLoad={onLoad}
+      onError={onError}
+      suggested={suggested}
+      grayscale={grayscale}
+    />
+  );
 }
 
 export default Gravatar;
