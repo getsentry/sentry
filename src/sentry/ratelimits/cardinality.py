@@ -1,26 +1,6 @@
-"""
-A kind of limiter that limits set cardinality instead of a rate/count.
-
-The high-level concepts are very similar to `sentry.ratelimits.sliding_windows`.
-
-Instead of passing in numbers and getting back smaller numbers, however, the
-user passes in a set and gets back a smaller set. Set elements that have
-already been observed in any quota's window are "for free" and will not
-count towards any quota.
-
-The implementation hasn't been finalized yet, but we expect that under the hood
-this cardinality limiter will be more expensive to operate than a simple rate
-limiter, as it needs to keep track of already-seen set elements. The memory
-usage in Redis will most likely be proportional to the set size.
-
-This kind of limiter does not support prefix overrides, which practically means
-that there can only be a per-org or a global limit, not both at once.
-"""
-
-
 import time
 from dataclasses import dataclass
-from typing import Any, Collection, Iterator, Optional, Protocol, Sequence, Tuple, TypeVar
+from typing import Collection, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
@@ -76,7 +56,8 @@ class RequestedQuota:
 class GrantedQuota:
     request: RequestedQuota
 
-    # The subset of hashes that passed through.
+    # The subset of hashes provided by the user `self.request` that were
+    # accepted by the limiter.
     granted_unit_hashes: Collection[Hash]
 
     # If len(granted_unit_hashes) < len(RequestedQuota.unit_hashes), this
@@ -87,6 +68,22 @@ class GrantedQuota:
 class CardinalityLimiter(Service):
     """
     A kind of limiter that limits set cardinality instead of a rate/count.
+
+    The high-level concepts are very similar to `sentry.ratelimits.sliding_windows`.
+
+    Instead of passing in numbers and getting back smaller numbers, however, the
+    user passes in a set and gets back a smaller set. Set elements that have
+    already been observed in any quota's window are "for free" and will not
+    count towards any quota.
+
+    The implementation hasn't been finalized yet, but we expect that under the hood
+    this cardinality limiter will be more expensive to operate than a simple rate
+    limiter, as it needs to keep track of already-seen set elements. The memory
+    usage in Redis will most likely be proportional to the set size.
+
+    This kind of limiter does not support prefix overrides, which practically means
+    that there can only be a per-org or a global limit, not both at once.
+    """
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
@@ -111,7 +108,7 @@ class CardinalityLimiter(Service):
 
         grants = [
             GrantedQuota(
-                prefix=request.prefix, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
+                request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
             )
             for request in requests
         ]
