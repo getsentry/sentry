@@ -140,40 +140,36 @@ function ConsoleMessage({
   const handleOnMouseOver = () => setCurrentHoverTime(diff);
   const handleOnMouseOut = () => setCurrentHoverTime(undefined);
 
+  const timeHandlers = {
+    isActive,
+    isCurrent,
+    isOcurring,
+    hasOccurred,
+  };
+
   return (
     <Fragment>
       <Icon
         isLast={isLast}
         level={breadcrumb.level}
-        isActive={isActive}
-        isCurrent={isCurrent}
-        isOcurring={isOcurring}
-        hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
+        {...timeHandlers}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
       <Message
         isLast={isLast}
-        isActive={isActive}
-        isCurrent={isCurrent}
         level={breadcrumb.level}
-        hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
+        {...timeHandlers}
       >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
       </Message>
-      <ConsoleTimestamp
-        isLast={isLast}
-        isCurrent={isCurrent}
-        isActive={isActive}
-        level={breadcrumb.level}
-        hasOccurred={hasOccurred}
-      >
+      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
           <ConsoleTimestampButton
             onClick={handleOnClick}
@@ -194,8 +190,8 @@ const Common = styled('div')<{
   isLast: boolean;
   level: string;
   hasOccurred?: boolean;
+  isOcurring?: boolean;
 }>`
-  position: relative;
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
@@ -211,7 +207,6 @@ const Common = styled('div')<{
 
     return 'inherit';
   }};
-  ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
 
   transition: color 0.5s ease;
 
@@ -232,21 +227,21 @@ const Common = styled('div')<{
     border-bottom-left-radius: 3px;
   }
 
-  &:after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    z-index: 1;
-    height: 2px;
-    width: 100%;
-    background-color: ${p => {
-      if (p.isCurrent) {
-        return p.theme.purple300;
-      }
-      return 'transparent';
-    }};
-  }
+  border-bottom: ${p => {
+    if (p.isLast) {
+      return 'none';
+    }
+
+    if (p.isCurrent) {
+      return `1px solid ${p.theme.purple300}`;
+    }
+
+    if (p.isActive && !p.isOcurring) {
+      return `1px solid ${p.theme.purple200}`;
+    }
+
+    return `1px solid ${p.theme.innerBorder}`;
+  }};
 `;
 
 const ConsoleTimestamp = styled(Common)`
@@ -262,7 +257,7 @@ const Icon = styled(Common)<{isOcurring?: boolean}>`
   padding: ${space(0.5)} ${space(1)};
   position: relative;
 
-  &:before {
+  &:after {
     content: '';
     position: absolute;
     top: 0;
