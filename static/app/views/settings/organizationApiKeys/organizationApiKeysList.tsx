@@ -106,7 +106,9 @@ function OrganizationApiKeysList({
                   <Link to={apiDetailsUrl}>{label}</Link>
                 </Cell>
 
-                <TextCopyInput monospace>{key}</TextCopyInput>
+                <TextCopyInput size="sm" monospace>
+                  {key}
+                </TextCopyInput>
 
                 <Cell>
                   <LinkWithConfirmation
