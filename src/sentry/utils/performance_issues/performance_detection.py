@@ -1,21 +1,25 @@
 import hashlib
 import random
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 
 from sentry import options
 from sentry.eventstore.processing.base import Event
+from sentry.types.issues import GroupType
 from sentry.utils import metrics
 
-from .performance_span_issue import PerformanceSpanIssue
+from .performance_span_issue import PerformanceSpanProblem
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
 PerformanceIssues = Dict[str, Any]
+
+PERFORMANCE_GROUP_COUNT_LIMIT = 10
 
 
 class DetectorType(Enum):
@@ -28,8 +32,29 @@ class DetectorType(Enum):
     N_PLUS_ONE_SPANS = "n_plus_one"
 
 
+DETECTOR_TYPE_TO_GROUP_TYPE = {
+    DetectorType.SLOW_SPAN: GroupType.PERFORMANCE_SLOW_SPAN,
+    # both duplicate spans hash and duplicate spans are mapped to the same group type
+    DetectorType.DUPLICATE_SPANS_HASH: GroupType.PERFORMANCE_DUPLICATE_SPANS,
+    DetectorType.DUPLICATE_SPANS: GroupType.PERFORMANCE_DUPLICATE_SPANS,
+    DetectorType.SEQUENTIAL_SLOW_SPANS: GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS,
+    DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
+    DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
+}
+
+
+@dataclass
+class PerformanceProblem:
+    fingerprint: str
+    op: str
+    desc: str
+    type: GroupType
+    spans_involved: Sequence[str]
+
+
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_issue(data: Event):
+def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
         rate = options.get("store.use-ingest-performance-detection-only")
         if rate and rate > random.random():
@@ -40,14 +65,16 @@ def detect_performance_issue(data: Event):
             ), sentry_sdk.start_span(
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
-                _detect_performance_issue(data, sdk_span)
+                return _detect_performance_problems(data, sdk_span)
     except Exception as e:
         sentry_sdk.capture_exception(e)
+        # TODO is it better to return an empty list or None?
+        return None
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
 # Thresholds are in milliseconds.
-# Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as it's op)
+# Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_default_detection_settings():
     return {
         DetectorType.DUPLICATE_SPANS: [
@@ -103,7 +130,7 @@ def get_default_detection_settings():
     }
 
 
-def _detect_performance_issue(data: Event, sdk_span: Any):
+def _detect_performance_problems(data: Event, sdk_span: Any):
     event_id = data.get("event_id", None)
     spans = data.get("spans", [])
 
@@ -120,11 +147,63 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
     }
 
+    # Create performance issues for duplicate spans first
+    used_perf_issue_detectors = {
+        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
+        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
+    }
+
     for span in spans:
         for _, detector in detectors.items():
             detector.visit_span(span)
 
     report_metrics_for_detectors(event_id, detectors, sdk_span)
+
+    detected_problems = [
+        (i, detector_type)
+        for detector_type, d in used_perf_issue_detectors.items()
+        for i in d.stored_issues
+    ]
+
+    truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
+
+    formatted_perf_problems = [
+        prepare_problem_for_grouping(problem, data) for problem, _ in truncated_problems
+    ]
+    return formatted_perf_problems
+
+
+def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
+    transaction_name = data.get("transaction")
+    first_span_id = problem[2][0]
+    spans = data.get("spans", [])
+    first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
+    op = first_span["op"]
+    hash = first_span["hash"]
+
+    # TODO map detectors to the group type enum
+    group_fingerprint = fingerprint_group(
+        transaction_name, op, hash, GroupType.PERFORMANCE_DUPLICATE_SPANS
+    )
+
+    prepared_problem = {
+        "fingerprint": group_fingerprint,
+        "op": op,
+        "desc": first_span["desc"],
+        # TODO get real type here
+        "type": GroupType.PERFORMANCE_DUPLICATE_SPANS,
+        "spans_involved": problem[2],
+    }
+
+    return prepared_problem
+
+
+def fingerprint_group(transaction_name, span_op, hash, problem_class):
+    signature = (str(transaction_name) + str(span_op) + str(hash) + str(problem_class)).encode(
+        "utf-8"
+    )
+    full_fingerprint = hashlib.sha1(signature).hexdigest()
+    return full_fingerprint
 
 
 # Creates a stable fingerprint given the same span details using sha1.
@@ -249,7 +328,7 @@ class DuplicateSpanDetector(PerformanceDetector):
                 fingerprint
             ] >= timedelta(milliseconds=duplicate_duration_threshold):
                 spans_involved = self.duplicate_spans_involved[fingerprint]
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved
                 )
 
@@ -296,7 +375,7 @@ class DuplicateSpanHashDetector(PerformanceDetector):
                 hash
             ] >= timedelta(milliseconds=duplicate_duration_threshold):
                 spans_involved = self.duplicate_spans_involved[hash]
-                self.stored_issues[hash] = PerformanceSpanIssue(
+                self.stored_issues[hash] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved, hash
                 )
 
@@ -329,7 +408,7 @@ class SlowSpanDetector(PerformanceDetector):
             milliseconds=duration_threshold
         ) and not self.stored_issues.get(fingerprint, False):
             spans_involved = [span_id]
-            self.stored_issues[fingerprint] = PerformanceSpanIssue(
+            self.stored_issues[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, spans_involved
             )
 
@@ -394,7 +473,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
                 fingerprint
             ] >= timedelta(milliseconds=duration_threshold):
                 spans_involved = self.spans_involved[fingerprint]
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved
                 )
 
@@ -429,7 +508,7 @@ class LongTaskSpanDetector(PerformanceDetector):
         self.spans_involved.append(span_id)
 
         if self.cumulative_duration >= timedelta(milliseconds=duration_threshold):
-            self.stored_issues[fingerprint] = PerformanceSpanIssue(
+            self.stored_issues[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, self.spans_involved
             )
 
@@ -472,7 +551,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             span_id = span.get("span_id", None)
             fingerprint = fingerprint_span(span)
             if span_id and fingerprint:
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(span_id, op, [span_id])
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
 
         # If we visit a span that starts after FCP, then we know we've already
         # seen all possible render-blocking resource spans.
@@ -553,7 +632,7 @@ class NPlusOneSpanDetector(PerformanceDetector):
 
         if not self.stored_issues.get(fingerprint, False):
             if len(self.spans_involved[fingerprint]) >= count:
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, self.spans_involved[fingerprint]
                 )
 

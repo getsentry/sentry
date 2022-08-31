@@ -93,6 +93,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 logger = logging.getLogger("sentry.events")
@@ -1897,6 +1898,14 @@ def _calculate_span_grouping(jobs, projects):
             sentry_sdk.capture_exception()
 
 
+@metrics.wraps("save_event.detect_performance_problems")
+def _detect_performance_problems(jobs, projects):
+    for job in jobs:
+        data = job["data"]
+        performance_problems = detect_performance_problems(data)
+        job["performance_problems"] = performance_problems
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs, projects):
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -1931,6 +1940,7 @@ def save_transaction_events(jobs, projects):
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
+    _detect_performance_problems(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
