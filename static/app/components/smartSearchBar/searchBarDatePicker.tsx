@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import format from 'date-fns/format';
 import type {Moment} from 'moment';
 
+import {Overlay} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, setDateToTime} from 'sentry/utils/dates';
 
 import {DatePicker} from '../calendar';
 import Checkbox from '../checkbox';
-
-import SearchBarFlyout from './searchBarFlyout';
 
 type SearchBarDatePickerProps = {
   handleSelectDateTime: (value: string) => void;
@@ -81,7 +80,7 @@ const SearchBarDatePicker = ({
   const utc = isUtcIsoDate(dateString);
 
   return (
-    <SearchBarFlyout
+    <StyledOverlay
       onMouseDown={e => e.stopPropagation()}
       data-test-id="search-bar-date-picker"
     >
@@ -125,7 +124,7 @@ const SearchBarDatePicker = ({
           />
         </UtcPickerLabel>
       </DatePickerFooter>
-    </SearchBarFlyout>
+    </StyledOverlay>
   );
 };
 
@@ -175,6 +174,14 @@ const TimeInput = ({time, setTime}: TimeInputProps) => {
     />
   );
 };
+
+const StyledOverlay = styled(Overlay)`
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  overflow: hidden;
+  margin-top: ${space(1)};
+`;
 
 const Input = styled('input')`
   border-radius: 4px;
