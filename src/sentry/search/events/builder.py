@@ -1633,13 +1633,15 @@ class SessionsV2QueryBuilder(QueryBuilder):
         conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
         return conditions
 
-    def resolve_groupby(self, groupby_columns: Optional[List[str]]) -> List[Column]:
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+        if groupby_columns is None:
+            groupby_columns = []
         return list(
             {col for col in self.columns if col.name in self.required_select_groupby}
             | {self.resolve_column(column) for column in groupby_columns}
         )
 
-    def resolve_granularity(self):
+    def resolve_granularity(self) -> Optional[Granularity]:
         if self._granularity is None:
             return None
         return Granularity(self._granularity)
