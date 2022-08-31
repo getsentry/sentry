@@ -26,6 +26,7 @@ class DetectorType(Enum):
     LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
+    N_PLUS_ONE_DB_SPANS = "n_plus_one_db"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -100,6 +101,10 @@ def get_default_detection_settings():
                 "allowed_span_ops": ["http.client"],
             }
         ],
+        DetectorType.N_PLUS_ONE_DB_SPANS: {
+            "count": 5,
+            "duration_threshold": 500.0,  # ms
+        },
     }
 
 
@@ -118,11 +123,14 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             detection_settings, data
         ),
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_DB_SPANS: NPlusOneDBSpanDetector(detection_settings, data),
     }
 
     for span in spans:
         for _, detector in detectors.items():
             detector.visit_span(span)
+    for _, detector in detectors.items():
+        detector.visited_all_spans()
 
     report_metrics_for_detectors(event_id, detectors, sdk_span)
 
@@ -201,6 +209,9 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def visit_span(self, span: Span) -> None:
         raise NotImplementedError
+
+    def visited_all_spans(self) -> None:
+        pass
 
     @property
     @abstractmethod
@@ -556,6 +567,159 @@ class NPlusOneSpanDetector(PerformanceDetector):
                 self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, self.spans_involved[fingerprint]
                 )
+
+
+class NPlusOneDBSpanDetector(PerformanceDetector):
+    """
+    Detector goals:
+      - identify a database N+1 query with high accuracy
+      - collect enough information to create a good fingerprint (see below)
+      - only return issues with good fingerprints
+
+    A good fingerprint is one that gives us confidence that, if two fingerprints
+    match, then they correspond to the same issue location in code (and
+    therefore, the same fix).
+    """
+
+    __slots__ = (
+        "stored_issues",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    settings_key = DetectorType.N_PLUS_ONE_DB_SPANS
+
+    def init(self):
+        self.stored_issues = {}
+        self.potential_parents = {}
+        self.n_spans = []
+        self.source_span = None
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        if not span_id or not op:
+            return
+
+        if op != "db":
+            # This breaks up the N+1 we're currently tracking.
+            self._maybe_store_issue()
+            self._reset_detection()
+            # Treat it as a potential parent as long as it isn't the root span.
+            if span.get("parent_span_id", None):
+                self.potential_parents[span_id] = span
+            return
+
+        if not self.source_span:
+            # We aren't currently tracking an N+1. Maybe this span triggers one!
+            self._maybe_use_as_source(span)
+            return
+
+        # If we got this far, we know we're a DB span and we're looking for a
+        # sequence of N identical DB spans.
+        if self._continues_n_plus_1(span):
+            self.n_spans.append(span)
+        else:
+            self._maybe_store_issue()
+            self._reset_detection()
+            # Maybe this DB span starts a whole new N+1!
+            self._maybe_use_as_source(span)
+
+    def visited_all_spans(self) -> None:
+        self._maybe_store_issue()
+
+    def _contains_complete_query(self, span: Span) -> bool:
+        # TODO
+        return True
+
+    def _maybe_use_as_source(self, span: Span):
+        if not self._contains_complete_query(span):
+            return
+
+        parent_span_id = span.get("parent_span_id", None)
+        if not parent_span_id or parent_span_id not in self.potential_parents:
+            return
+
+        self.source_span = span
+
+    def _continues_n_plus_1(self, span: Span):
+        if not self._contains_complete_query(span):
+            return False
+
+        if self._overlaps_last_span(span):
+            return False
+
+        span_hash = span.get("hash", None)
+        if not span_hash:
+            return False
+
+        if not self.n_hash:
+            self.n_hash = span_hash
+            return True
+
+        return span_hash == self.n_hash
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        last_span = self.source_span
+        if self.n_spans:
+            last_span = self.n_spans[-1]
+
+        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
+        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
+        return last_span_ends > current_span_begins
+
+    def _maybe_store_issue(self):
+        if not self.source_span or not self.n_spans:
+            return
+
+        count = self.settings.get("count")
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+
+        # Do we have enough spans?
+        if len(self.n_spans) < count:
+            return
+
+        # Do the spans take enough total time?
+        total_duration = timedelta()
+        for span in self.n_spans:
+            total_duration += get_span_duration(span)
+        if total_duration < duration_threshold:
+            return
+
+        # We need a parent span to create an issue.
+        parent_span_id = self.source_span.get("parent_span_id", None)
+        if not parent_span_id:
+            return
+        parent_span = self.potential_parents[parent_span_id]
+        if not parent_span:
+            return
+
+        fingerprint = self._fingerprint(
+            parent_span.get("op", None),
+            parent_span.get("hash", None),
+            self.source_span.get("hash", None),
+            self.n_spans[0].get("hash", None),
+        )
+        if fingerprint not in self.stored_issues:
+            self.stored_issues[fingerprint] = PerformanceSpanProblem(
+                fingerprint=fingerprint,
+                spans_involved=self.n_spans,
+                # Not used anymore
+                span_id=self.n_spans[0].get("span_id", None),
+                allowed_op="db",
+            )
+
+    def _reset_detection(self):
+        self.source_span = None
+        self.n_hash = None
+        self.n_spans = []
+
+    def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
+        return hashlib.sha1(
+            (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
+        ).hexdigest()
 
 
 # Reports metrics and creates spans for detection

@@ -431,12 +431,12 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         _detect_performance_issue(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    4,
                 ),
                 call(
                     "_pi_transaction",
@@ -451,8 +451,32 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_sequential",
                     "b409e78a092e642f",
                 ),
+                call("_pi_n_plus_one_db_fp", "8d86357da4d8a866b19c97670edee38d037a7bc8"),
+                call("_pi_n_plus_one_db", "b8be6138369491dd"),
             ]
         )
+
+    def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
+        self,
+    ):
+        index_n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        new_n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
+
+        sdk_span_mock = Mock()
+        _detect_performance_issue(index_n_plus_one_event, sdk_span_mock)
+        index_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                index_fingerprint = args[0][1]
+
+        sdk_span_mock.reset_mock()
+        _detect_performance_issue(new_n_plus_one_event, sdk_span_mock)
+        new_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                new_fingerprint = args[0][1]
+
+        assert index_fingerprint != new_fingerprint
 
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
