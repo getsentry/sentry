@@ -309,7 +309,6 @@ class SmartSearchBar extends Component<Props, State> {
     defaultQuery: '',
     query: null,
     onSearch: function () {},
-    excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
