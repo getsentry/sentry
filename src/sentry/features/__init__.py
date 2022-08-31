@@ -114,6 +114,7 @@ default_manager.add("organizations:performance-chart-interpolation", Organizatio
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-extraneous-spans-poc", OrganizationFeature, True)
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
+default_manager.add("organizations:performance-issues", OrganizationFeature, True)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
@@ -135,7 +136,7 @@ default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, Tr
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:server-side-sampling", OrganizationFeature)
 default_manager.add("organizations:server-side-sampling-ui", OrganizationFeature, True)
-default_manager.add("organizations:session-replay", OrganizationFeature, True)
+default_manager.add("organizations:session-replay", OrganizationFeature)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
@@ -147,6 +148,7 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
+default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
@@ -178,7 +180,6 @@ default_manager.add("organizations:integrations-issue-basic", OrganizationFeatur
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)
-default_manager.add("organizations:performance-issue-details-backend", OrganizationFeature)
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)

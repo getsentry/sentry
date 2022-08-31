@@ -18,7 +18,7 @@ filelock==3.7.1
 flake8==5.0.2
 flake8-bugbear==22.7.1
 freezegun==1.1.0
-honcho==1.0.0
+honcho==1.1.0
 identify==2.5.1
 idna==3.3
 importlib-resources==5.8.0

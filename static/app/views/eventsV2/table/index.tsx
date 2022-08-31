@@ -135,7 +135,7 @@ class Table extends PureComponent<TableProps, TableState> {
         const tableData = shouldUseEvents
           ? {
               ...data,
-              meta: {...fields, nonFieldsMeta},
+              meta: {...fields, ...nonFieldsMeta},
             }
           : data;
 
