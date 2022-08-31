@@ -1940,7 +1940,7 @@ def save_transaction_events(jobs, projects):
     _derive_plugin_tags_many(jobs, projects)
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
-
+    _detect_performance_problems(jobs, projects)
     _materialize_metadata_many(jobs)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)
