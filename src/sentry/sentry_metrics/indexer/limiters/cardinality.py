@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Generic, Mapping, MutableMapping, Optional, Sequence, TypedDict, TypeVar
+from typing import Any, Generic, Mapping, MutableMapping, Optional, Sequence, TypedDict, TypeVar
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -121,7 +121,7 @@ class TimeseriesCardinalityLimiter:
             keys_to_remove=list(keys_to_remove.values()),
         )
 
-    def apply_cardinality_limits(self, state: CardinalityLimiterState) -> None:
+    def apply_cardinality_limits(self, state: CardinalityLimiterState[Any]) -> None:
         state._cardinality_limiter.use_quotas(state._requests, state._grants, state._timestamp)
 
 

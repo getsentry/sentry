@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import Collection, Optional, Sequence, Tuple
+from typing import Any, Collection, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
@@ -137,5 +137,5 @@ class CardinalityLimiter(Service):
 
 class RedisCardinalityLimiter(CardinalityLimiter):
     # TODO: implement everything
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         pass
