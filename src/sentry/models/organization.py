@@ -200,7 +200,7 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_target = slugify_target.replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        if SENTRY_USE_SNOWFLAKE:
+        if SENTRY_USE_SNOWFLAKE or features.has("organizations:enable-snowflake-id", self):
             snowflake_redis_key = "organization_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
