@@ -77,6 +77,7 @@ class SentryHTTPServer(Service):
         options.setdefault("ignore-sigpipe", True)
         options.setdefault("ignore-write-errors", True)
         options.setdefault("disable-write-exception", True)
+        options.setdefault("binary-path", sys.executable)
         options.setdefault("virtualenv", sys.prefix)
         options.setdefault("die-on-term", True)
         options.setdefault(
