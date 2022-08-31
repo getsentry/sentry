@@ -1,9 +1,16 @@
 #!/usr/bin/env sentry exec
 
 import django.apps
-from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
+from django.db.models.fields.related_descriptors import (
+    ForwardManyToOneDescriptor,
+    ForwardOneToOneDescriptor,
+    ManyToManyDescriptor,
+    ReverseManyToOneDescriptor,
+    ReverseOneToOneDescriptor,
+)
 
 from scripts.silo.common import apply_decorators
+from sentry.db.models import BaseModel
 from sentry.models import Organization
 
 """
@@ -31,8 +38,18 @@ def get_sentry_model_classes():
 def get_related_models(model_class):
     for attr_name in dir(model_class):
         attr = getattr(model_class, attr_name)
-        if isinstance(attr, ForwardManyToOneDescriptor):
+        if isinstance(
+            attr,
+            (
+                ForwardManyToOneDescriptor,
+                ForwardOneToOneDescriptor,
+                ReverseManyToOneDescriptor,
+                ManyToManyDescriptor,
+            ),
+        ):
             yield attr.field.related_model
+        elif isinstance(attr, ReverseOneToOneDescriptor):
+            yield attr.related.related_model
 
 
 def sweep_for_references(model_classes, target_classes):
@@ -42,6 +59,7 @@ def sweep_for_references(model_classes, target_classes):
         for model_class in model_classes:
             if model_class not in marked:
                 for related_model in get_related_models(model_class):
+                    assert isinstance(related_model, type) and issubclass(related_model, BaseModel)
                     if related_model in marked:
                         new_marks[model_class] = marked[related_model] + (related_model,)
         if new_marks:
