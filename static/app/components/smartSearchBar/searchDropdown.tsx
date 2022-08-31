@@ -1,4 +1,4 @@
-import {Fragment, PureComponent} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -34,91 +34,74 @@ type Props = {
   visibleShortcuts?: Shortcut[];
 };
 
-class SearchDropdown extends PureComponent<Props> {
-  static defaultProps = {
-    searchSubstring: '',
-    onClick: function () {},
-  };
+const SearchDropdown = ({
+  className,
+  loading,
+  items,
+  runShortcut,
+  visibleShortcuts,
+  maxMenuHeight,
+  onIconClick,
+  searchSubstring = '',
+  onClick = () => {},
+}: Props) => (
+  <SearchBarFlyout className={className} fullWidth data-test-id="smart-search-dropdown">
+    {loading ? (
+      <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
+        <LoadingIndicator mini />
+      </LoadingWrapper>
+    ) : (
+      <SearchItemsList maxMenuHeight={maxMenuHeight}>
+        {items.map(item => {
+          const isEmpty = item.children && !item.children.length;
 
-  render() {
-    const {
-      className,
-      loading,
-      items,
-      runShortcut,
-      visibleShortcuts,
-      maxMenuHeight,
-      searchSubstring,
-      onClick,
-      onIconClick,
-    } = this.props;
+          // Hide header if `item.children` is defined, an array, and is empty
+          return (
+            <Fragment key={item.title}>
+              {item.type === 'header' && <HeaderItem group={item} />}
+              {item.children &&
+                item.children.map(child => (
+                  <DropdownItem
+                    key={getDropdownItemKey(child)}
+                    item={child}
+                    searchSubstring={searchSubstring}
+                    onClick={onClick}
+                    onIconClick={onIconClick}
+                  />
+                ))}
+              {isEmpty && <Info>{t('No items found')}</Info>}
+            </Fragment>
+          );
+        })}
+      </SearchItemsList>
+    )}
 
-    return (
-      <SearchBarFlyout
-        className={className}
-        fullWidth
-        data-test-id="smart-search-dropdown"
-      >
-        {loading ? (
-          <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
-            <LoadingIndicator mini />
-          </LoadingWrapper>
-        ) : (
-          <SearchItemsList maxMenuHeight={maxMenuHeight}>
-            {items.map(item => {
-              const isEmpty = item.children && !item.children.length;
-
-              // Hide header if `item.children` is defined, an array, and is empty
-              return (
-                <Fragment key={item.title}>
-                  {item.type === 'header' && <HeaderItem group={item} />}
-                  {item.children &&
-                    item.children.map(child => (
-                      <DropdownItem
-                        key={getDropdownItemKey(child)}
-                        item={child}
-                        searchSubstring={searchSubstring}
-                        onClick={onClick}
-                        onIconClick={onIconClick}
-                      />
-                    ))}
-                  {isEmpty && <Info>{t('No items found')}</Info>}
-                </Fragment>
-              );
-            })}
-          </SearchItemsList>
-        )}
-
-        <DropdownFooter>
-          <ShortcutsRow>
-            {runShortcut &&
-              visibleShortcuts?.map(shortcut => {
-                return (
-                  <ShortcutButtonContainer
-                    key={shortcut.text}
-                    onClick={() => runShortcut(shortcut)}
-                  >
-                    <HotkeyGlyphWrapper>
-                      <HotkeysLabel
-                        value={
-                          shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []
-                        }
-                      />
-                    </HotkeyGlyphWrapper>
-                    <IconWrapper>{shortcut.icon}</IconWrapper>
-                    <HotkeyTitle>{shortcut.text}</HotkeyTitle>
-                  </ShortcutButtonContainer>
-                );
-              })}
-          </ShortcutsRow>
-          <Button size="xs" href="https://docs.sentry.io/product/sentry-basics/search/">
-            Read the docs
-          </Button>
-        </DropdownFooter>
-      </SearchBarFlyout>
-    );
-  }
-}
+    <DropdownFooter>
+      <ShortcutsRow>
+        {runShortcut &&
+          visibleShortcuts?.map(shortcut => {
+            return (
+              <ShortcutButtonContainer
+                key={shortcut.text}
+                onClick={() => runShortcut(shortcut)}
+              >
+                <HotkeyGlyphWrapper>
+                  <HotkeysLabel
+                    value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
+                  />
+                </HotkeyGlyphWrapper>
+                <IconWrapper>{shortcut.icon}</IconWrapper>
+                <HotkeyTitle>{shortcut.text}</HotkeyTitle>
+              </ShortcutButtonContainer>
+            );
+          })}
+      </ShortcutsRow>
+      <Button size="xs" href="https://docs.sentry.io/product/sentry-basics/search/">
+        Read the docs
+      </Button>
+    </DropdownFooter>
+  </SearchBarFlyout>
+);
 
 export default SearchDropdown;
 
