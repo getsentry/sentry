@@ -103,6 +103,15 @@ function renderTestComponent({
   return {router};
 }
 
+/**
+ * This test suite contains tests that test the generic interactions
+ * between most components in the WidgetBuilder. Tests for the
+ * SortBy step can be found in (and should be added to)
+ * ./widgetBuilderSortBy.spec.tsx and tests for specific dataset
+ * behaviour can be found (and should be added to) ./widgetBuilderDataset.spec.tsx.
+ * The test files are broken up to allow better parallelization
+ * in CI (we currently parallelize files).
+ */
 describe('WidgetBuilder', function () {
   const untitledDashboard: DashboardDetails = {
     id: '1',
