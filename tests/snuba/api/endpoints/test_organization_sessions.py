@@ -1074,17 +1074,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
     @freeze_time(MOCK_DATETIME)
     def test_mix_known_and_unknown_strings(self):
-        for query_string in ("environment:[production,foo]",):
-            response = self.do_request(
-                {
-                    "project": self.project.id,  # project without users
-                    "statsPeriod": "1d",
-                    "interval": "1d",
-                    "field": ["count_unique(user)", "sum(session)"],
-                    "query": query_string,
-                }
-            )
-            assert response.status_code == 200, response.data
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["count_unique(user)", "sum(session)"],
+                "query": "environment:[production,foo]",
+            }
+        )
+        assert response.status_code == 200, response.data
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
