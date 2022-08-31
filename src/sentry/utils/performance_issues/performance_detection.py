@@ -68,8 +68,7 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
                 return _detect_performance_problems(data, sdk_span)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        # TODO is it better to return an empty list or None?
-        return None
+        return []
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
