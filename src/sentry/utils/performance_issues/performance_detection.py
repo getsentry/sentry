@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import sentry_sdk
 
 from sentry import options
-from sentry.eventstore.processing.base import Event
+from sentry.eventstore.models import Event
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 
@@ -164,12 +164,15 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
     formatted_perf_problems = [
-        prepare_problem_for_grouping(problem, data) for problem, _ in truncated_problems
+        prepare_problem_for_grouping(problem, data, detector_type)
+        for problem, detector_type in truncated_problems
     ]
-    return formatted_perf_problems
+    return list(filter(None, formatted_perf_problems))
 
 
-def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
+def prepare_problem_for_grouping(
+    problem: PerformanceSpanProblem, data: Event, detector_type: DetectorType
+) -> PerformanceProblem:
     transaction_name = data.get("transaction")
     spans_involved = problem.spans_involved
     first_span_id = spans_involved[0]
@@ -179,16 +182,14 @@ def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
     hash = first_span["hash"]
     desc = first_span["description"]
 
-    # TODO map detectors to the group type enum
-    group_fingerprint = fingerprint_group(
-        transaction_name, op, hash, GroupType.PERFORMANCE_DUPLICATE_SPANS
-    )
+    group_type = DETECTOR_TYPE_TO_GROUP_TYPE[detector_type]
+    group_fingerprint = fingerprint_group(transaction_name, op, hash, group_type)
 
     prepared_problem = PerformanceProblem(
         fingerprint=group_fingerprint,
         op=op,
         desc=desc,
-        type=GroupType.PERFORMANCE_DUPLICATE_SPANS,
+        type=group_type,
         spans_involved=spans_involved,
     )
 

@@ -6,10 +6,14 @@ from sentry.testutils.helpers import override_options
 from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
     PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
+    prepare_problem_for_grouping,
 )
+from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
 from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "events")
@@ -496,3 +500,30 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_slow_span", "9f31e1ee4ef94970"),
             ]
         )
+
+
+class PrepareProblemForGroupingTest(unittest.TestCase):
+    def test(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        assert prepare_problem_for_grouping(
+            PerformanceSpanProblem(
+                "97b250f72d59f230", "http.client", ["b3fdeea42536dbf1", "b2d4826e7b618f1b"], "hello"
+            ),
+            n_plus_one_event,
+            DetectorType.N_PLUS_ONE_SPANS,
+        ) == PerformanceProblem(
+            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE-562b149a55f0c195bd0a5fb5d7d9f9baea86ecea",
+            op="db",
+            type=GroupType.PERFORMANCE_N_PLUS_ONE,
+            desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            spans_involved=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
+        )
+
+
+class DetectorTypeToGroupTypeTest(unittest.TestCase):
+    def test(self):
+        # Make sure we don't forget to include a mapping to `GroupType`
+        for detector_type in DetectorType:
+            assert (
+                detector_type in DETECTOR_TYPE_TO_GROUP_TYPE
+            ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
