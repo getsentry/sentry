@@ -6,12 +6,12 @@ import {
   makeSaveSearchAction,
   makeSearchBuilderAction,
 } from 'sentry/components/smartSearchBar/actions';
-import {SavedSearch, SavedSearchType, Tag} from 'sentry/types';
+import {SavedSearch, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 import {TagValueLoader} from './types';
 
-const getSupportedTags = (supportedTags: {[key: string]: Tag}) =>
+const getSupportedTags = (supportedTags: TagCollection) =>
   Object.fromEntries(
     Object.keys(supportedTags).map(key => [
       key,
@@ -27,7 +27,7 @@ const getSupportedTags = (supportedTags: {[key: string]: Tag}) =>
 interface Props extends React.ComponentProps<typeof SmartSearchBar> {
   onSidebarToggle: (e: React.MouseEvent) => void;
   sort: string;
-  supportedTags: {[key: string]: Tag};
+  supportedTags: TagCollection;
   tagValueLoader: TagValueLoader;
   savedSearch?: SavedSearch;
 }

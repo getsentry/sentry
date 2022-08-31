@@ -37,7 +37,7 @@ import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -251,7 +251,7 @@ type Props = WithRouterProps & {
   /**
    * Map of tags
    */
-  supportedTags?: {[key: string]: Tag};
+  supportedTags?: TagCollection;
   /**
    * Wrap the input with a form. Useful if search bar is used within a parent
    * form

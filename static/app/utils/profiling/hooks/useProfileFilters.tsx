@@ -2,22 +2,20 @@ import {useEffect, useState} from 'react';
 
 import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Organization, PageFilters, Tag} from 'sentry/types';
+import {Organization, PageFilters, Tag, TagCollection} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-
-type ProfileFilters = Record<string, Tag>;
 
 interface ProfileFiltersOptions {
   query: string;
   selection?: PageFilters;
 }
 
-function useProfileFilters({query, selection}: ProfileFiltersOptions): ProfileFilters {
+function useProfileFilters({query, selection}: ProfileFiltersOptions): TagCollection {
   const api = useApi();
   const organization = useOrganization();
 
-  const [profileFilters, setProfileFilters] = useState<ProfileFilters>({});
+  const [profileFilters, setProfileFilters] = useState<TagCollection>({});
 
   useEffect(() => {
     if (!selection) {
@@ -26,7 +24,7 @@ function useProfileFilters({query, selection}: ProfileFiltersOptions): ProfileFi
 
     fetchProfileFilters(api, organization, query, selection).then(response => {
       const withPredefinedFilters = response.reduce(
-        (filters: ProfileFilters, tag: Tag) => {
+        (filters: TagCollection, tag: Tag) => {
           filters[tag.key] = {
             ...tag,
             // predefined allows us to specify a list of possible values

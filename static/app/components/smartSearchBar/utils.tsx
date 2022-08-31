@@ -26,7 +26,7 @@ import {
   Shortcut,
   ShortcutType,
 } from './types';
-import {Tag} from 'sentry/types';
+import {TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
@@ -384,12 +384,7 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
  * The parent will become interactive if there exists a key "device".
  */
-export const getTagItemsFromKeys = (
-  tagKeys: string[],
-  supportedTags: {
-    [key: string]: Tag;
-  }
-) => {
+export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
   return [...tagKeys].reduce((groups, key) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
