@@ -1,7 +1,18 @@
 import logging
 import random
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set, TypedDict
+from typing import (
+    Any,
+    List,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    TypedDict,
+    cast,
+)
 
 import rapidjson
 import sentry_sdk
@@ -88,7 +99,24 @@ class IndexerBatch:
 
     @metrics.wraps("process_messages.limit_messages")
     def limit_messages(self) -> None:
-        self.cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(self.use_case_id, self.parsed_payloads_by_offset)
+        self.cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
+            self.use_case_id, self.parsed_payloads_by_offset
+        )
+        for key in self.cardinality_limiter_state.keys_to_remove:
+            metrics.incr(
+                "sentry_metrics.indexer.process_messages.dropped_message",
+                tags={
+                    "reason": "cardinality_limit",
+                },
+            )
+            if _should_sample_debug_log():
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "reason": "cardinality_limit",
+                    },
+                )
+            del self.parsed_payloads_by_offset[key]
 
     @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[int, Set[str]]:
@@ -172,7 +200,9 @@ class IndexerBatch:
                     extra={"offset": message.offset, "partition": message.partition.index},
                 )
                 continue
-            new_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
+            new_payload_value = cast(
+                MutableMapping[Any, Any], self.parsed_payloads_by_offset.pop(partition_offset)
+            )
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]
@@ -222,6 +252,7 @@ class IndexerBatch:
                 metrics.incr(
                     "sentry_metrics.indexer.process_messages.dropped_message",
                     tags={
+                        "reason": "writes_limit",
                         "string_type": "tags",
                     },
                 )
@@ -229,6 +260,7 @@ class IndexerBatch:
                     logger.error(
                         "process_messages.dropped_message",
                         extra={
+                            "reason": "writes_limit",
                             "string_type": "tags",
                             "num_global_quotas": exceeded_global_quotas,
                             "num_org_quotas": exceeded_org_quotas,
@@ -296,7 +328,8 @@ class IndexerBatch:
             )
             new_messages.append(new_message)
 
-        # TODO: in this or a separate functon, commit the used cardinality limits
+        # TODO: move cardinality limits to separate thread
+        cardinality_limiter.apply_cardinality_limits(self.cardinality_limiter_state)
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

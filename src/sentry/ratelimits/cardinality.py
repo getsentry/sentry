@@ -133,3 +133,9 @@ class CardinalityLimiter(Service):
             indicates how much quota should actually be consumed.
         """
         pass
+
+
+class RedisCardinalityLimiter(CardinalityLimiter):
+    # TODO: implement everything
+    def __init__(self, **options):
+        pass
