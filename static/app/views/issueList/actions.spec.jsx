@@ -1,68 +1,71 @@
-import {act} from 'react-dom/test-utils';
+import React from 'react';
 
-import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {selectByLabel} from 'sentry-test/select-new';
-import {triggerPress} from 'sentry-test/utils';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
 describe('IssueListActions', function () {
-  let actions;
-  let actionsWrapper;
-  let wrapper;
+  let org, defaultProps;
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
+  beforeEach(() => {
+    const organization = initializeOrg();
+    org = organization.org;
+
+    GroupStore.reset();
+    SelectedGroupStore.reset();
+    SelectedGroupStore.add(['1', '2', '3']);
+
+    defaultProps = {
+      api: new MockApiClient(),
+      allResultsVisible: false,
+      query: '',
+      queryCount: 15,
+      organization: org,
+      projectId: 'project-slug',
+      selection: {
+        projects: [1],
+        environments: [],
+        datetime: {start: null, end: null, period: null, utc: true},
+      },
+      groupIds: ['1', '2', '3'],
+      onRealtimeChange: jest.fn(),
+      onSelectStatsPeriod: jest.fn(),
+      realtimeActive: false,
+      statsPeriod: '24h',
+    };
+  });
+
   describe('Bulk', function () {
     describe('Total results greater than bulk limit', function () {
-      beforeAll(function () {
-        const {routerContext, org} = initializeOrg();
-
-        SelectedGroupStore.reset();
-        SelectedGroupStore.add(['1', '2', '3']);
-        wrapper = mountWithTheme(
-          <IssueListActions
-            api={new MockApiClient()}
-            allResultsVisible={false}
-            query=""
-            queryCount={1500}
-            organization={org}
-            projectId="project-slug"
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
-            }}
-            groupIds={['1', '2', '3']}
-            onRealtimeChange={function () {}}
-            onSelectStatsPeriod={function () {}}
-            realtimeActive={false}
-            statsPeriod="24h"
-          />,
-          routerContext
-        );
-      });
-
-      afterAll(() => {
-        wrapper.unmount();
-      });
-
       it('after checking "Select all" checkbox, displays bulk select message', function () {
-        wrapper.find('ActionsCheckbox Checkbox').simulate('change');
-        expect(wrapper.find('SelectAllNotice')).toSnapshot();
+        render(<IssueListActions {...defaultProps} queryCount={1500} />);
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', function () {
-        wrapper.find('SelectAllNotice').find('a').simulate('click');
+        render(<IssueListActions {...defaultProps} queryCount={1500} />);
 
-        expect(wrapper.find('SelectAllNotice')).toSnapshot();
+        userEvent.click(screen.getByRole('checkbox'));
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('bulk resolves', async function () {
@@ -70,15 +73,22 @@ describe('IssueListActions', function () {
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
-        const modal = await mountGlobalModal();
+        render(
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={1500} />
+          </React.Fragment>
+        );
+        userEvent.click(screen.getByRole('checkbox'));
 
-        // TODO(epurkhiser): This test will be rewrittein in RLT soon, this snapshot has
-        // been flakey so let's just turn it off for now.
-        // expect(modal.find('Modal')).toSnapshot();
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        modal.find('Button[priority="primary"]').simulate('click');
+        userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        await screen.findByRole('dialog');
+
+        userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -89,63 +99,52 @@ describe('IssueListActions', function () {
             data: {status: 'resolved', statusDetails: {}},
           })
         );
-
-        await tick();
-        wrapper.update();
       });
     });
 
     describe('Total results less than bulk limit', function () {
-      beforeAll(function () {
-        SelectedGroupStore.reset();
-        SelectedGroupStore.add(['1', '2', '3']);
-        wrapper = mountWithTheme(
-          <IssueListActions
-            api={new MockApiClient()}
-            allResultsVisible={false}
-            query=""
-            queryCount={600}
-            organization={TestStubs.Organization()}
-            projectId="1"
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
-            }}
-            groupIds={['1', '2', '3']}
-            onRealtimeChange={function () {}}
-            onSelectStatsPeriod={function () {}}
-            realtimeActive={false}
-            statsPeriod="24h"
-          />
-        );
-      });
-
-      afterAll(() => {
-        wrapper.unmount();
-      });
-
       it('after checking "Select all" checkbox, displays bulk select message', function () {
-        wrapper.find('ActionsCheckbox Checkbox').simulate('change');
-        expect(wrapper.find('SelectAllNotice')).toSnapshot();
+        render(<IssueListActions {...defaultProps} queryCount={15} />);
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
       it('can bulk select', function () {
-        wrapper.find('SelectAllNotice').find('a').simulate('click');
+        render(<IssueListActions {...defaultProps} queryCount={15} />);
 
-        expect(wrapper.find('SelectAllNotice')).toSnapshot();
+        userEvent.click(screen.getByRole('checkbox'));
+
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      it('bulk resolves', async function () {
+      it('bulk resolves', function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        wrapper.find('ResolveActions ResolveButton button').simulate('click');
 
-        const modal = await mountGlobalModal();
-        expect(modal.find('Modal')).toSnapshot();
-        modal.find('Button[priority="primary"]').simulate('click');
+        render(
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={15} />
+          </React.Fragment>
+        );
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+        const modal = screen.getByRole('dialog');
+
+        expect(modal).toSnapshot();
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk resolve issues'}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -156,61 +155,31 @@ describe('IssueListActions', function () {
             data: {status: 'resolved', statusDetails: {}},
           })
         );
-
-        await tick();
-        wrapper.update();
       });
     });
 
     describe('Selected on page', function () {
-      beforeAll(function () {
-        SelectedGroupStore.reset();
-        SelectedGroupStore.add(['1', '2', '3']);
-        wrapper = mountWithTheme(
-          <IssueListActions
-            api={new MockApiClient()}
-            allResultsVisible
-            query=""
-            queryCount={15}
-            organization={TestStubs.Organization()}
-            projectId="1"
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
-            }}
-            groupIds={['1', '2', '3', '6', '9']}
-            onRealtimeChange={function () {}}
-            onSelectStatsPeriod={function () {}}
-            realtimeActive={false}
-            statsPeriod="24h"
-          />
-        );
-      });
-
-      afterAll(() => {
-        wrapper.unmount();
-      });
-
       it('resolves selected items', function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        jest
-          .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set(['3', '6', '9']));
 
-        wrapper
-          .find('IssueListActions')
-          .setState({allInQuerySelected: false, anySelected: true});
+        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-        wrapper.find('ResolveActions ResolveButton button').first().simulate('click');
+        render(
+          <IssueListActions {...defaultProps} groupIds={['1', '2', '3', '6', '9']} />
+        );
+
+        const resolveButton = screen.getByRole('button', {name: 'Resolve'});
+        expect(resolveButton).toBeEnabled();
+        userEvent.click(resolveButton);
+
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
             query: {
-              id: ['3', '6', '9'],
+              id: ['1'],
               project: [1],
             },
             data: {status: 'resolved', statusDetails: {}},
@@ -218,36 +187,34 @@ describe('IssueListActions', function () {
         );
       });
 
-      it('ignores selected items', async function () {
+      it('can ignore selected items (custom)', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
         });
-        jest
-          .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set(['1']));
-        wrapper
-          .find('IssueListActions')
-          .setState({allInQuerySelected: false, anySelected: true});
+        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-        await selectDropdownMenuItem({
-          wrapper,
-          specifiers: {prefix: 'IgnoreActions'},
-          triggerSelector: 'DropdownTrigger',
-          itemKey: ['until-affect', 'until-affect-custom'],
-        });
+        render(
+          <React.Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} />
+          </React.Fragment>
+        );
 
-        const modal = await mountGlobalModal();
+        userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
+        fireEvent.click(screen.getByText(/Until this affects an additional/));
+        await screen.findByTestId('until-affect-custom');
+        userEvent.click(screen.getByTestId('until-affect-custom'));
 
-        modal
-          .find('CustomIgnoreCountModal input[label="Number of users"]')
-          .simulate('change', {target: {value: 300}});
+        const modal = screen.getByRole('dialog');
 
-        selectByLabel(modal, 'per week', {
-          name: 'window',
-        });
+        userEvent.clear(within(modal).getByLabelText('Number of users'));
+        userEvent.type(within(modal).getByLabelText('Number of users'), '300');
 
-        modal.find('Button[priority="primary"]').simulate('click');
+        userEvent.click(within(modal).getByRole('textbox'));
+        userEvent.click(within(modal).getByText('per week'));
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Ignore'}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -269,241 +236,74 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('actionSelectedGroups()', function () {
-    beforeEach(function () {
-      jest.spyOn(SelectedGroupStore, 'deselectAll');
-      actionsWrapper = mountWithTheme(
-        <IssueListActions
-          api={new MockApiClient()}
-          query=""
-          organization={TestStubs.Organization()}
-          projectId="1"
-          selection={{
-            projects: [1],
-            environments: [],
-            datetime: {start: null, end: null, period: null, utc: true},
-          }}
-          groupIds={['1', '2', '3']}
-          onRealtimeChange={function () {}}
-          onSelectStatsPeriod={function () {}}
-          realtimeActive={false}
-          statsPeriod="24h"
-        />
-      );
-      actions = actionsWrapper.instance();
+  it('can resolve but not merge issues from different projects', function () {
+    jest
+      .spyOn(SelectedGroupStore, 'getSelectedIds')
+      .mockImplementation(() => new Set(['1', '2', '3']));
+    jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+      switch (id) {
+        case '1':
+          return TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})});
+        default:
+          return TestStubs.Group({project: TestStubs.Project({slug: 'project-2'})});
+      }
     });
 
-    afterEach(() => {
-      actionsWrapper.unmount();
-    });
+    render(<IssueListActions {...defaultProps} />);
 
-    describe('for all items', function () {
-      it("should invoke the callback with 'undefined' and deselect all", function () {
-        const callback = jest.fn();
-
-        actions.state.allInQuerySelected = true;
-
-        actions.actionSelectedGroups(callback);
-
-        expect(callback).toHaveBeenCalledWith(undefined);
-        expect(callback).toHaveBeenCalledTimes(1);
-        expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
-
-        // all selected is reset
-        expect(actions.state.allInQuerySelected).toBe(false);
-      });
-    });
-
-    describe('for page-selected items', function () {
-      it('should invoke the callback with an array of selected items and deselect all', function () {
-        jest
-          .spyOn(SelectedGroupStore, 'getSelectedIds')
-          .mockImplementation(() => new Set(['1', '2', '3']));
-
-        actions.state.allInQuerySelected = false;
-        const callback = jest.fn();
-        actions.actionSelectedGroups(callback);
-
-        expect(callback).toHaveBeenCalledWith(['1', '2', '3']);
-        expect(callback).toHaveBeenCalledTimes(1);
-        expect(SelectedGroupStore.deselectAll).toHaveBeenCalledTimes(1);
-      });
-    });
-  });
-
-  describe('multiple groups from different project', function () {
-    beforeEach(function () {
-      jest
-        .spyOn(SelectedGroupStore, 'getSelectedIds')
-        .mockImplementation(() => new Set(['1', '2', '3']));
-
-      wrapper = mountWithTheme(
-        <IssueListActions
-          api={new MockApiClient()}
-          query=""
-          organization={TestStubs.Organization()}
-          groupIds={['1', '2', '3']}
-          selection={{
-            projects: [],
-            environments: [],
-            datetime: {start: null, end: null, period: null, utc: true},
-          }}
-          onRealtimeChange={function () {}}
-          onSelectStatsPeriod={function () {}}
-          realtimeActive={false}
-          statsPeriod="24h"
-        />
-      );
-    });
-
-    afterEach(() => {
-      wrapper.unmount();
-    });
-
-    it('should disable resolve dropdown but not resolve action', function () {
-      const resolve = wrapper.find('ResolveActions').first();
-      expect(resolve.props().disabled).toBe(false);
-      expect(resolve.props().disableDropdown).toBe(true);
-    });
-
-    it('should disable merge button', function () {
-      expect(
-        wrapper.find('button[aria-label="Merge Selected Issues"]').props()[
-          'aria-disabled'
-        ]
-      ).toBe(true);
-    });
+    // Can resolve but not merge issues from multiple projects
+    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
   describe('mark reviewed', function () {
-    let issuesApiMock;
-    beforeEach(() => {
-      SelectedGroupStore.reset();
-      const organization = TestStubs.Organization();
+    it('acknowledges group', function () {
+      const mockOnMarkReviewed = jest.fn();
 
-      wrapper = mountWithTheme(
-        <IssueListActions
-          api={new MockApiClient()}
-          query=""
-          organization={organization}
-          groupIds={['1', '2', '3']}
-          selection={{
-            projects: [],
-            environments: [],
-            datetime: {start: null, end: null, period: null, utc: true},
-          }}
-          onRealtimeChange={function () {}}
-          onSelectStatsPeriod={function () {}}
-          realtimeActive={false}
-          statsPeriod="24h"
-          queryCount={100}
-          displayCount="3 of 3"
-        />
-      );
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set(['1', '2', '3']));
+      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+        return TestStubs.Group({
+          id,
+          inbox: {
+            date_added: '2020-11-24T13:17:42.248751Z',
+            reason: 0,
+            reason_details: null,
+          },
+        });
       });
-      issuesApiMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
-      });
+
+      render(<IssueListActions {...defaultProps} onMarkReviewed={mockOnMarkReviewed} />);
+
+      const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
+      expect(reviewButton).toBeEnabled();
+      userEvent.click(reviewButton);
+
+      expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
     });
 
-    afterEach(() => {
-      wrapper.unmount();
-    });
-
-    it('acknowledges group', async function () {
-      await act(async () => {
-        wrapper.find('IssueListActions').setState({anySelected: true});
-        await tick();
-        wrapper.update();
-      });
-      SelectedGroupStore.add(['1', '2', '3']);
-      SelectedGroupStore.toggleSelectAll();
-      const inbox = {
-        date_added: '2020-11-24T13:17:42.248751Z',
-        reason: 0,
-        reason_details: null,
-      };
-      GroupStore.loadInitialData([
-        TestStubs.Group({id: '1', inbox}),
-        TestStubs.Group({id: '2', inbox}),
-        TestStubs.Group({id: '2', inbox}),
-      ]);
-
-      await tick();
-
-      wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
-      expect(issuesApiMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {inbox: false},
-        })
-      );
-    });
-
-    it('mark reviewed disabled for group that is already reviewed', async function () {
-      await act(async () => {
-        wrapper.find('IssueListActions').setState({anySelected: true});
-        await tick();
-        wrapper.update();
-      });
+    it('mark reviewed disabled for group that is already reviewed', function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
 
-      await tick();
+      render(<IssueListActions {...defaultProps} />);
 
-      expect(
-        wrapper.find('button[aria-label="Mark Reviewed"]').props()['aria-disabled']
-      ).toBe(true);
+      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
   });
 
   describe('sort', function () {
-    let onSortChange;
-    afterEach(() => {
-      wrapper.unmount();
-    });
+    it('calls onSortChange with new sort value', function () {
+      const mockOnSortChange = jest.fn();
+      render(<IssueListActions {...defaultProps} onSortChange={mockOnSortChange} />);
 
-    beforeEach(function () {
-      const organization = TestStubs.Organization();
+      userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
 
-      onSortChange = jest.fn();
-      wrapper = mountWithTheme(
-        <IssueListActions
-          api={new MockApiClient()}
-          query=""
-          organization={organization}
-          groupIds={['1', '2', '3']}
-          selection={{
-            projects: [],
-            environments: [],
-            datetime: {start: null, end: null, period: null, utc: true},
-          }}
-          onRealtimeChange={function () {}}
-          onSelectStatsPeriod={function () {}}
-          onSortChange={onSortChange}
-          realtimeActive={false}
-          statsPeriod="24h"
-          queryCount={100}
-          displayCount="3 of 3"
-          sort="date"
-        />
-      );
-    });
+      userEvent.click(screen.getByText(/Number of events/));
 
-    it('calls onSortChange with new sort value', async function () {
-      await act(async () => {
-        triggerPress(wrapper.find('IssueListSortOptions button'));
-        await tick();
-        wrapper.update();
-      });
-      wrapper.find('Option').at(3).simulate('click');
-
-      expect(onSortChange).toHaveBeenCalledWith('freq');
+      expect(mockOnSortChange).toHaveBeenCalledWith('freq');
     });
   });
 });
