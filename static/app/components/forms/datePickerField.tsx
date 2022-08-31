@@ -1,10 +1,13 @@
+import isPropValid from '@emotion/is-prop-valid';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {FocusScope} from '@react-aria/focus';
 import moment from 'moment';
 
-import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import Input from 'sentry/components/input';
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconCalendar} from 'sentry/icons';
-import {inputStyles} from 'sentry/styles/input';
-import space from 'sentry/styles/space';
+import useOverlay from 'sentry/utils/useOverlay';
 
 import {DatePicker} from '../calendar';
 
@@ -26,81 +29,85 @@ function handleChangeDate(
 }
 
 export default function DatePickerField(props: DatePickerFieldProps) {
+  const {
+    isOpen,
+    state: overlayState,
+    triggerProps,
+    overlayProps,
+  } = useOverlay({position: 'bottom-start'});
+  const theme = useTheme();
+
   return (
     <InputField
       {...props}
-      field={({onChange, onBlur, value, id}) => {
+      field={({onChange, onBlur, value, id, size, ...inputProps}) => {
         const dateObj = new Date(value);
         const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
         const dateString = moment(inputValue).format('LL');
 
         return (
-          <DeprecatedDropdownMenu keepMenuOpen>
-            {({isOpen, getRootProps, getActorProps, getMenuProps, actions}) => (
-              <div {...getRootProps()}>
-                <InputWrapper id={id} {...getActorProps()} isOpen={isOpen}>
-                  <StyledInput readOnly value={dateString} />
-                  <CalendarIcon>
-                    <IconCalendar />
-                  </CalendarIcon>
-                </InputWrapper>
-
-                {isOpen && (
-                  <CalendarMenu {...getMenuProps()}>
+          <div>
+            <InputWrapper id={id}>
+              <StyledInput
+                {...inputProps}
+                {...triggerProps}
+                aria-haspopup="dialog"
+                size={size}
+                value={dateString}
+                readOnly
+              />
+              <StyledIconCalendar inputSize={size} size={size === 'xs' ? 'xs' : 'sm'} />
+            </InputWrapper>
+            {isOpen && (
+              <FocusScope contain restoreFocus autoFocus>
+                <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
+                  <StyledOverlay>
                     <DatePicker
                       date={inputValue}
                       onChange={date =>
-                        handleChangeDate(onChange, onBlur, date, actions.close)
+                        handleChangeDate(onChange, onBlur, date, overlayState.close)
                       }
                     />
-                  </CalendarMenu>
-                )}
-              </div>
+                  </StyledOverlay>
+                </PositionWrapper>
+              </FocusScope>
             )}
-          </DeprecatedDropdownMenu>
+          </div>
         );
       }}
     />
   );
 }
 
-type InputWrapperProps = {
-  isOpen: boolean;
-};
-
-const InputWrapper = styled('div')<InputWrapperProps>`
-  ${inputStyles}
-  cursor: text;
-  display: flex;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
-  ${p => p.isOpen && 'border-bottom-left-radius: 0'}
+const InputWrapper = styled('div')`
+  position: relative;
 `;
 
-const StyledInput = styled('input')`
-  border: none;
-  outline: none;
-  flex: 1;
+const StyledInput = styled(Input)`
+  text-align: left;
+  padding-right: ${p => `calc(
+  ${p.theme.formPadding[p.size ?? 'md'].paddingRight}px * 1.5 +
+  ${p.theme.iconSizes.sm}
+)`};
+
+  &:focus:not(.focus-visible) {
+    border-color: ${p => p.theme.border};
+    box-shadow: inset ${p => p.theme.dropShadowLight};
+  }
 `;
 
-const CalendarMenu = styled('div')`
-  display: flex;
-  background: ${p => p.theme.background};
-  position: absolute;
-  left: 0;
-  border: 1px solid ${p => p.theme.border};
-  border-top: none;
-  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.menu};
-  margin-top: -1px;
-
+const StyledOverlay = styled(Overlay)`
   .rdrMonthAndYearWrapper {
     height: 50px;
     padding-top: 0;
   }
 `;
 
-const CalendarIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
+const StyledIconCalendar = styled(IconCalendar, {
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+})<{inputSize?: InputFieldProps['size']}>`
+  position: absolute;
+  top: 50%;
+  right: ${p => p.theme.formPadding[p.inputSize ?? 'md'].paddingRight}px;
+  transform: translateY(-50%);
 `;
