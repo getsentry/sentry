@@ -69,7 +69,7 @@ class TransformStep(ProcessingStep[MessageBatch]):
     def __init__(
         self, next_step: ProcessingStep[KafkaPayload], config: MetricsIngestConfiguration
     ) -> None:
-        self.__message_processor: MessageProcessor = MessageProcessor(config.use_case_id)
+        self.__message_processor: MessageProcessor = MessageProcessor(config)
         self.__next_step = next_step
         self.__closed = False
 
