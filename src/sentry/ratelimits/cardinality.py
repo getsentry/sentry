@@ -1,33 +1,12 @@
-"""
-A kind of limiter that limits set cardinality instead of a rate/count.
-
-The high-level concepts are very similar to `sentry.ratelimits.sliding_windows`.
-
-Instead of passing in numbers and getting back smaller numbers, however, the
-user passes in a set and gets back a smaller set. Set elements that have
-already been observed in any quota's window are "for free" and will not
-count towards any quota.
-
-The implementation hasn't been finalized yet, but we expect that under the hood
-this cardinality limiter will be more expensive to operate than a simple rate
-limiter, as it needs to keep track of already-seen set elements. The memory
-usage in Redis will most likely be proportional to the set size.
-
-This kind of limiter does not support prefix overrides, which practically means
-that there can only be a per-org or a global limit, not both at once.
-"""
-
-
-from typing import Collection, Protocol, Sequence, TypeVar, Any, Optional, Iterator, Tuple
-
 import time
-
 from dataclasses import dataclass
+from typing import Collection, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
-Hash = str
+Hash = int
 Timestamp = int
+
 
 @dataclass(frozen=True)
 class Quota:
@@ -72,12 +51,13 @@ class RequestedQuota:
     # "fit" into all quotas.
     quotas: Sequence[Quota]
 
+
 @dataclass(frozen=True)
 class GrantedQuota:
-    # The prefix from RequestedQuota
-    prefix: str
+    request: RequestedQuota
 
-    # The subset of hashes that passed through.
+    # The subset of hashes provided by the user `self.request` that were
+    # accepted by the limiter.
     granted_unit_hashes: Collection[Hash]
 
     # If len(granted_unit_hashes) < len(RequestedQuota.unit_hashes), this
@@ -86,10 +66,28 @@ class GrantedQuota:
 
 
 class CardinalityLimiter(Service):
-    def __init__(self, **options: Any) -> None:
-        pass
+    """
+    A kind of limiter that limits set cardinality instead of a rate/count.
 
-    def check_within_quotas(self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+    The high-level concepts are very similar to `sentry.ratelimits.sliding_windows`.
+
+    Instead of passing in numbers and getting back smaller numbers, however, the
+    user passes in a set and gets back a smaller set. Set elements that have
+    already been observed in any quota's window are "for free" and will not
+    count towards any quota.
+
+    The implementation hasn't been finalized yet, but we expect that under the hood
+    this cardinality limiter will be more expensive to operate than a simple rate
+    limiter, as it needs to keep track of already-seen set elements. The memory
+    usage in Redis will most likely be proportional to the set size.
+
+    This kind of limiter does not support prefix overrides, which practically means
+    that there can only be a per-org or a global limit, not both at once.
+    """
+
+    def check_within_quotas(
+        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
+    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
         """
         Given a set of quotas requests and limits, compute how much quota could
         be consumed.
@@ -104,18 +102,25 @@ class CardinalityLimiter(Service):
             correctly.
         """
         if timestamp is None:
-            timestamp =  int(time.time())
+            timestamp = int(time.time())
         else:
             timestamp = int(timestamp)
 
         grants = [
-            GrantedQuota(prefix=request.prefix, granted_unit_hashes=request.unit_hashes, reached_quotas=[])
+            GrantedQuota(
+                request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
+            )
             for request in requests
         ]
 
         return timestamp, grants
 
-    def use_quotas(self, requests: Sequence[RequestedQuota], grants: Sequence[GrantedQuota], timestamp: Timestamp) -> None:
+    def use_quotas(
+        self,
+        requests: Sequence[RequestedQuota],
+        grants: Sequence[GrantedQuota],
+        timestamp: Timestamp,
+    ) -> None:
         """
         Given a set of requests and the corresponding return values from
         `check_within_quotas`, consume the quotas.
