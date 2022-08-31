@@ -18,8 +18,6 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
-import importedUseProjectStats from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
-import {useRecommendedSdkUpgrades as importedUseRecommendedSdkUpgrades} from 'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades';
 
 export const outcomesWithoutClientDiscarded = {
   ...TestStubs.OutcomesWithReason(),
@@ -154,40 +152,9 @@ export const mockedSamplingDistribution: SamplingDistribution = {
     p95: 1,
     p99: 1,
   },
+  startTimestamp: '2017-08-04T07:52:11Z',
+  endTimestamp: '2017-08-05T07:52:11Z',
 };
-
-jest.mock('sentry/views/settings/project/server-side-sampling/utils/useProjectStats');
-const useProjectStats = importedUseProjectStats as jest.MockedFunction<
-  typeof importedUseProjectStats
->;
-useProjectStats.mockImplementation(() => ({
-  projectStats: TestStubs.OutcomesWithReason(),
-  loading: false,
-  error: undefined,
-  projectStatsSeries: [],
-  onRefetch: jest.fn(),
-}));
-
-jest.mock(
-  'sentry/views/settings/project/server-side-sampling/utils/useRecommendedSdkUpgrades'
-);
-const useRecommendedSdkUpgrades =
-  importedUseRecommendedSdkUpgrades as jest.MockedFunction<
-    typeof importedUseRecommendedSdkUpgrades
-  >;
-useRecommendedSdkUpgrades.mockImplementation(() => ({
-  recommendedSdkUpgrades: [
-    {
-      project: mockedProjects[1],
-      latestSDKName: mockedSamplingSdkVersions[1].latestSDKName,
-      latestSDKVersion: mockedSamplingSdkVersions[1].latestSDKVersion,
-    },
-  ],
-  incompatibleProjects: [],
-  isProjectIncompatible: true,
-  affectedProjects: [mockedProjects[1]],
-  fetching: false,
-}));
 
 export function getMockData({
   projects,

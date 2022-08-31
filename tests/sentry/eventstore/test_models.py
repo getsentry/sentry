@@ -7,6 +7,7 @@ from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event
 from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import snuba
@@ -242,6 +243,70 @@ class EventTest(TestCase):
         assert event_from_snuba.group
 
         assert not event_from_nodestore.group_id
+        assert not event_from_nodestore.group
+
+    def test_snuba_data_transaction(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1)),
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+
+        event_from_nodestore = Event(project_id=self.project.id, event_id="a" * 32)
+
+        event_from_snuba = Event(
+            project_id=self.project.id,
+            event_id="a" * 32,
+            snuba_data=snuba.raw_query(
+                dataset=Dataset.Transactions,
+                selected_columns=[
+                    "event_id",
+                    "project_id",
+                    "group_ids",
+                    "timestamp",
+                    "message",
+                    "type",
+                    "transaction",
+                    "tags.key",
+                    "tags.value",
+                ],
+                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+            )["data"][0],
+        )
+        # TODO: Remove this once snuba is writing group_ids, and we can create groups as part
+        # of self.store_event
+        event_from_snuba.group_ids = [self.group.id]
+
+        assert event_from_nodestore.event_id == event_from_snuba.event_id
+        assert event_from_nodestore.project_id == event_from_snuba.project_id
+        assert event_from_nodestore.project == event_from_snuba.project
+        assert event_from_nodestore.timestamp == event_from_snuba.timestamp
+        assert event_from_nodestore.datetime == event_from_snuba.datetime
+        assert event_from_nodestore.title == event_from_snuba.title
+        assert event_from_nodestore.message == event_from_snuba.message
+        assert event_from_nodestore.platform == event_from_snuba.platform
+        assert event_from_nodestore.location == event_from_snuba.location
+        assert event_from_nodestore.culprit == event_from_snuba.culprit
+
+        assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
+        assert event_from_nodestore.ip_address == event_from_snuba.ip_address
+        assert event_from_nodestore.tags == event_from_snuba.tags
+
+        # Group IDs must be fetched from Snuba since they are not present in nodestore
+        assert not event_from_snuba.group_id
+        assert event_from_snuba.group_ids
+        assert not event_from_snuba.group
+
+        assert not event_from_nodestore.group_id
+        assert not event_from_nodestore.group_ids
         assert not event_from_nodestore.group
 
     def test_grouping_reset(self):

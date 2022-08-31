@@ -32,6 +32,8 @@ TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
+TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
+TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 
 
 class ThresholdDict(TypedDict):

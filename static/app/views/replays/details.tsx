@@ -15,7 +15,7 @@ import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 
 type Props = RouteComponentProps<
-  {orgSlug: string; replaySlug: string},
+  {orgId: string; replaySlug: string},
   {},
   any,
   {t: number}
@@ -27,7 +27,7 @@ function ReplayDetails({
       t: initialTimeOffset, // Time, in seconds, where the video should start
     },
   },
-  params: {orgSlug, replaySlug},
+  params: {orgId: orgSlug, replaySlug},
 }: Props) {
   const {fetching, onRetry, replay} = useReplayData({
     replaySlug,
@@ -76,13 +76,11 @@ function ReplayDetails({
 function LoadedDetails({orgSlug}: {orgSlug: string}) {
   const {getLayout} = useReplayLayout();
   const {replay} = useReplayContext();
-  const durationMs = replay?.getDurationMs();
 
   return (
     <Page
       orgSlug={orgSlug}
       crumbs={replay?.getRawCrumbs()}
-      durationMs={durationMs}
       replayRecord={replay?.getReplay()}
     >
       <Layout layout={getLayout()} />

@@ -4,7 +4,7 @@ import signal
 from typing import Any, MutableMapping
 
 from arroyo import Topic
-from arroyo.backends.kafka.consumer import KafkaConsumer
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
@@ -20,7 +20,7 @@ def get_replays_recordings_consumer(
     force_topic: str | None,
     force_cluster: str | None,
     **options: dict[str, str],
-) -> StreamProcessor:
+) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or topic
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
