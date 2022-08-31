@@ -224,7 +224,7 @@ def get_client_config(request=None):
             {
                 "email": serialized_user["email"],
                 "id": serialized_user["id"],
-                "isStaff": serialized_user.get("is_staff", False),
+                "isStaff": serialized_user["isStaff"],
             }
         )
 
