@@ -2074,7 +2074,7 @@ SENTRY_DEVSERVICES = {
     ),
     "cdc": lambda settings, options: (
         {
-            "image": "getsentry/cdc:nightly",
+            "image": "ghcr.io/getsentry/cdc:latest",
             "pull": True,
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
