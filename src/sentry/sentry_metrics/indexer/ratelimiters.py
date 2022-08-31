@@ -114,7 +114,11 @@ class WritesLimiter:
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
     @metrics.wraps("sentry_metrics.indexer.check_write_limits")
-    def check_write_limits(self, use_case_id: UseCaseKey, keys: KeyCollection) -> RateLimitState:
+    def check_write_limits(
+        self,
+        use_case_id: UseCaseKey,
+        keys: KeyCollection,
+    ) -> RateLimitState:
         """
         Takes a KeyCollection and applies DB write limits as configured via sentry.options.
 
@@ -127,7 +131,6 @@ class WritesLimiter:
 
         Upon (successful) exit, rate limits are consumed.
         """
-
         org_ids, requests = _construct_quota_requests(use_case_id, self.namespace, keys)
         timestamp, grants = self.rate_limiter.check_within_quotas(requests)
 
