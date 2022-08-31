@@ -228,16 +228,16 @@ const Common = styled('div')<{
   }
 
   border-bottom: ${p => {
-    if (p.isLast) {
-      return 'none';
-    }
-
     if (p.isCurrent) {
       return `1px solid ${p.theme.purple300}`;
     }
 
     if (p.isActive && !p.isOcurring) {
       return `1px solid ${p.theme.purple200}`;
+    }
+
+    if (p.isLast) {
+      return 'none';
     }
 
     return `1px solid ${p.theme.innerBorder}`;
