@@ -122,7 +122,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             statsPeriod="1h",
             interval="1h",
         )
-        print(response.data)
         assert response.data["detail"] == ("Tag name session.status is not a valid query filter")
 
     def test_invalid_filter(self):
