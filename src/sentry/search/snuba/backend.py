@@ -10,7 +10,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -525,6 +525,14 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 functools.partial(regressed_in_release_filter, projects=projects)
             ),
         }
+
+        if features.has("organizations:performance-issues", projects[0].organization):
+            queryset_conditions.update(
+                {"category": QCallbackCondition(lambda categories: Q(type__in=categories))}
+            )
+            queryset_conditions.update(
+                {"type": QCallbackCondition(lambda types: Q(type__in=types))}
+            )
 
         if environments is not None:
             environment_ids = [environment.id for environment in environments]

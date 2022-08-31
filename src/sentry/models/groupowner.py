@@ -152,6 +152,7 @@ def get_release_committers_for_group(group: Group, include_commits: bool = False
                 commits=rc_data["commits"],
             )
             for rc_data in owners_data.values()
+            if "commits" in rc_data
         ]
 
     return [
@@ -161,4 +162,5 @@ def get_release_committers_for_group(group: Group, include_commits: bool = False
             date_added=rc_data["date_added"],
         )
         for rc_data in owners_data.values()
+        if "owner" in rc_data
     ]

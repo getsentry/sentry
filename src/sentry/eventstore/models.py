@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import string
 from collections import OrderedDict
 from datetime import datetime
 from hashlib import md5
-from typing import Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
 
 import pytz
 import sentry_sdk
@@ -13,9 +15,9 @@ from django.utils.encoding import force_text
 from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.grouping.result import CalculatedHashes
-from sentry.interfaces.base import get_interfaces
+from sentry.interfaces.base import Interface, get_interfaces
 from sentry.models import EventDict
-from sentry.snuba.events import Columns
+from sentry.snuba.events import Column, Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -26,8 +28,16 @@ from sentry.utils.strings import truncatechars
 # Keys in the event payload we do not want to send to the event stream / snuba.
 EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
 
+if TYPE_CHECKING:
+    from sentry.interfaces.user import User
+    from sentry.models.environment import Environment
+    from sentry.models.group import Group
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.spans.grouping.result import SpanGroupingResults
 
-def ref_func(x):
+
+def ref_func(x: Event) -> int:
     return x.project_id or x.project.id
 
 
@@ -36,14 +46,23 @@ class Event:
     Event backed by nodestore and Snuba.
     """
 
-    def __init__(self, project_id, event_id, group_id=None, data=None, snuba_data=None):
+    def __init__(
+        self,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
+        data: Mapping[str, Any] | None = None,
+        snuba_data: Mapping[str, Any] | None = None,
+        group_ids: Sequence[int] | None = None,
+    ):
         self.project_id = project_id
         self.event_id = event_id
         self.group_id = group_id
+        self.group_ids = group_ids
         self.data = data
         self._snuba_data = snuba_data or {}
 
-    def __getstate__(self):
+    def __getstate__(self) -> Mapping[str, Any]:
         state = self.__dict__.copy()
         # do not pickle cached info.  We want to fetch this on demand
         # again.  In particular if we were to pickle interfaces we would
@@ -57,18 +76,18 @@ class Event:
         return state
 
     @property
-    def data(self):
+    def data(self) -> NodeData:
         return self._data
 
     @data.setter
-    def data(self, value):
+    def data(self, value: Mapping[str, Any]) -> None:
         node_id = Event.generate_node_id(self.project_id, self.event_id)
         self._data = NodeData(
             node_id, data=value, wrapper=EventDict, ref_version=2, ref_func=ref_func
         )
 
     @property
-    def group_id(self):
+    def group_id(self) -> int | None:
         if self._group_id:
             return self._group_id
 
@@ -77,18 +96,32 @@ class Event:
         return self._snuba_data.get(column)
 
     @group_id.setter
-    def group_id(self, value):
+    def group_id(self, value: int | None) -> None:
         self._group_id = value
 
     @property
-    def platform(self):
-        column = self.__get_column_name(Columns.PLATFORM)
-        if column in self._snuba_data:
-            return self._snuba_data[column]
-        return self.data.get("platform", None)
+    def group_ids(self) -> Sequence[int] | None:
+        if self._group_ids:
+            return self._group_ids
+
+        # TODO: Should attempt to grab data from `Columns.GROUP_ID` as well?
+        column = self.__get_column_name(Columns.GROUP_IDS)
+
+        return self._snuba_data.get(column)
+
+    @group_ids.setter
+    def group_ids(self, values: Sequence[int] | None) -> None:
+        self._group_ids = values
 
     @property
-    def message(self):
+    def platform(self) -> str | None:
+        column = self.__get_column_name(Columns.PLATFORM)
+        if column in self._snuba_data:
+            return cast(str, self._snuba_data[column])
+        return cast(str, self.data.get("platform", None))
+
+    @property
+    def message(self) -> str:
         return (
             get_path(self.data, "logentry", "formatted")
             or get_path(self.data, "logentry", "message")
@@ -96,7 +129,7 @@ class Event:
         )
 
     @property
-    def datetime(self):
+    def datetime(self) -> datetime:
         column = self.__get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
             return parse_date(self._snuba_data[column]).replace(tzinfo=pytz.utc)
@@ -107,14 +140,14 @@ class Event:
         return date
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> str:
         column = self.__get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
-            return self._snuba_data[column]
+            return cast(str, self._snuba_data[column])
         return self.datetime.isoformat()
 
     @property
-    def tags(self):
+    def tags(self) -> Sequence[Tuple[str, str]]:
         """
         Tags property uses tags from snuba if loaded otherwise falls back to
         nodestore.
@@ -149,18 +182,18 @@ class Event:
         return None
 
     @property
-    def release(self):
+    def release(self) -> Optional[str]:
         return self.get_tag("sentry:release")
 
     @property
-    def dist(self):
+    def dist(self) -> Optional[str]:
         return self.get_tag("sentry:dist")
 
     @property
-    def transaction(self):
+    def transaction(self) -> Optional[str]:
         return self.get_tag("transaction")
 
-    def get_environment(self):
+    def get_environment(self) -> Environment:
         from sentry.models import Environment
 
         if not hasattr(self, "_environment_cache"):
@@ -171,7 +204,7 @@ class Event:
 
         return self._environment_cache
 
-    def get_minimal_user(self):
+    def get_minimal_user(self) -> User:
         """
         A minimal 'User' interface object that gives us enough information
         to render a user badge.
@@ -203,7 +236,7 @@ class Event:
 
         return self.get_interface("user")
 
-    def get_event_type(self):
+    def get_event_type(self) -> str:
         """
         Return the type of this event.
 
@@ -211,22 +244,22 @@ class Event:
         """
         column = self.__get_column_name(Columns.TYPE)
         if column in self._snuba_data:
-            return self._snuba_data[column]
-        return self.data.get("type", "default")
+            return cast(str, self._snuba_data[column])
+        return cast(str, self.data.get("type", "default"))
 
     @property
-    def ip_address(self):
+    def ip_address(self) -> str | None:
         column = self.__get_column_name(Columns.USER_IP_ADDRESS)
         if column in self._snuba_data:
-            return self._snuba_data[column]
+            return cast(str, self._snuba_data[column])
 
         ip_address = get_path(self.data, "user", "ip_address")
         if ip_address:
-            return ip_address
+            return cast(str, ip_address)
 
         remote_addr = get_path(self.data, "request", "env", "REMOTE_ADDR")
         if remote_addr:
-            return remote_addr
+            return cast(str, remote_addr)
 
         return None
 
@@ -234,28 +267,28 @@ class Event:
     def title(self) -> str:
         column = self.__get_column_name(Columns.TITLE)
         if column in self._snuba_data:
-            return self._snuba_data[column]
+            return cast(str, self._snuba_data[column])
 
         et = eventtypes.get(self.get_event_type())()
-        return et.get_title(self.get_event_metadata())
+        return cast(str, et.get_title(self.get_event_metadata()))
 
     @property
-    def culprit(self):
+    def culprit(self) -> str | None:
         column = self.__get_column_name(Columns.CULPRIT)
         if column in self._snuba_data:
-            return self._snuba_data[column]
-        return self.data.get("culprit")
+            return cast(str, self._snuba_data[column])
+        return cast(Optional[str], self.data.get("culprit"))
 
     @property
-    def location(self):
+    def location(self) -> str | None:
         column = self.__get_column_name(Columns.LOCATION)
         if column in self._snuba_data:
-            return self._snuba_data[column]
+            return cast(str, self._snuba_data[column])
         et = eventtypes.get(self.get_event_type())()
-        return et.get_location(self.get_event_metadata())
+        return cast(Optional[str], et.get_location(self.get_event_metadata()))
 
     @classmethod
-    def generate_node_id(cls, project_id, event_id):
+    def generate_node_id(cls, project_id: int, event_id: str) -> str:
         """
         Returns a deterministic node_id for this event based on the project_id
         and event_id which together are globally unique. The event body should
@@ -269,7 +302,7 @@ class Event:
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.
     @property
-    def group(self):
+    def group(self) -> Group | None:
         from sentry.models import Group
 
         if not self.group_id:
@@ -279,12 +312,12 @@ class Event:
         return self._group_cache
 
     @group.setter
-    def group(self, group):
+    def group(self, group: Group) -> None:
         self.group_id = group.id
         self._group_cache = group
 
     @property
-    def project(self):
+    def project(self) -> Project:
         from sentry.models import Project
 
         if not hasattr(self, "_project_cache"):
@@ -292,21 +325,21 @@ class Event:
         return self._project_cache
 
     @project.setter
-    def project(self, project):
+    def project(self, project: Project) -> None:
         if project is None:
             self.project_id = None
         else:
             self.project_id = project.id
         self._project_cache = project
 
-    def get_interfaces(self):
-        return CanonicalKeyView(get_interfaces(self.data))
+    def get_interfaces(self) -> Mapping[str, Interface]:
+        return cast(Mapping[str, Interface], CanonicalKeyView(get_interfaces(self.data)))
 
     @memoize
-    def interfaces(self):
+    def interfaces(self) -> Mapping[str, Interface]:
         return self.get_interfaces()
 
-    def get_interface(self, name):
+    def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
 
     def get_event_metadata(self) -> Mapping[str, str]:
@@ -320,13 +353,16 @@ class Event:
         # further.
         return self.data.get("metadata") or {}
 
-    def get_grouping_config(self):
+    def get_grouping_config(self) -> MutableMapping[str, Any]:
         """Returns the event grouping config."""
         from sentry.grouping.api import get_grouping_config_dict_for_event_data
 
-        return get_grouping_config_dict_for_event_data(self.data, self.project)
+        return cast(
+            MutableMapping[str, Any],
+            get_grouping_config_dict_for_event_data(self.data, self.project),
+        )
 
-    def get_hashes(self, force_config=None) -> CalculatedHashes:
+    def get_hashes(self, force_config: str | Mapping[str, Any] | None = None) -> CalculatedHashes:
         """
         Returns _all_ information that is necessary to group an event into
         issues. It returns two lists of hashes, `(flat_hashes,
@@ -383,7 +419,7 @@ class Event:
             hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
         )
 
-    def get_sorted_grouping_variants(self, force_config=None):
+    def get_sorted_grouping_variants(self, force_config: str | Mapping[str, Any] | None = None):
         """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
@@ -414,7 +450,7 @@ class Event:
 
         return filtered_hashes, tree_labels
 
-    def normalize_stacktraces_for_grouping(self, grouping_config):
+    def normalize_stacktraces_for_grouping(self, grouping_config) -> None:
         """Normalize stacktraces and clear memoized interfaces
 
         See stand-alone function normalize_stacktraces_for_grouping
@@ -426,7 +462,7 @@ class Event:
         # We have modified event data, so any cached interfaces have to be reset:
         self.__dict__.pop("interfaces", None)
 
-    def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
+    def get_grouping_variants(self, force_config=None, normalize_stacktraces: bool = False):
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
@@ -468,7 +504,7 @@ class Event:
 
             return get_grouping_variants_for_event(self, config)
 
-    def get_primary_hash(self):
+    def get_primary_hash(self) -> str | None:
         hashes = self.get_hashes()
 
         if hashes.hierarchical_hashes:
@@ -479,19 +515,21 @@ class Event:
 
         return None
 
-    def get_span_groupings(self, force_config=None):
+    def get_span_groupings(
+        self, force_config: str | Mapping[str, Any] | None = None
+    ) -> SpanGroupingResults:
         config = load_span_grouping_config(force_config)
         return config.execute_strategy(self.data)
 
     @property
-    def organization(self):
+    def organization(self) -> Organization:
         return self.project.organization
 
     @property
-    def version(self):
-        return self.data.get("version", "5")
+    def version(self) -> str:
+        return cast(str, self.data.get("version", "5"))
 
-    def get_raw_data(self, for_stream=False):
+    def get_raw_data(self, for_stream: bool = False) -> Mapping[str, Any]:
         """Returns the internal raw event data dict."""
         rv = dict(self.data.items())
         # If we get raw data for snuba we remove some large keys that blow
@@ -502,21 +540,23 @@ class Event:
         return rv
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(json.dumps(dict(self.data)))
 
-    def get_email_subject(self):
+    def get_email_subject(self) -> str:
         template = self.project.get_option("mail:subject_template")
         if template:
             template = EventSubjectTemplate(template)
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
+        return cast(
+            str, truncatechars(template.safe_substitute(EventSubjectTemplateData(self)), 128)
+        )
 
-    def as_dict(self):
+    def as_dict(self) -> Mapping[str, Any]:
         """Returns the data in normalized form for external consumers."""
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
-        data = OrderedDict()
+        data: MutableMapping[str, Any] = OrderedDict()
         data["event_id"] = self.event_id
         data["project"] = self.project_id
         data["release"] = self.release
@@ -534,7 +574,7 @@ class Event:
 
         # for a long time culprit was not persisted.  In those cases put
         # the culprit in from the group.
-        if data.get("culprit") is None and self.group_id:
+        if data.get("culprit") is None and self.group_id and self.group:
             data["culprit"] = self.group.culprit
 
         # Override title and location with dynamically generated data
@@ -544,7 +584,7 @@ class Event:
         return data
 
     @memoize
-    def search_message(self):
+    def search_message(self) -> str:
         """
         The internal search_message attribute is only used for search purposes.
         It adds a bunch of data from the metadata and the culprit.
@@ -572,11 +612,11 @@ class Event:
             culprit_u = force_text(culprit, errors="replace")
             message = f"{message} {culprit_u}"
 
-        return trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
+        return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
 
-    def __get_column_name(self, column):
+    def __get_column_name(self, column: Column) -> str:
         # Events are currently populated from the Events dataset
-        return column.value.event_name
+        return cast(str, column.value.event_name)
 
 
 class EventSubjectTemplate(string.Template):
@@ -586,10 +626,10 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData:
     tag_aliases = {"release": "sentry:release", "dist": "sentry:dist", "user": "sentry:user"}
 
-    def __init__(self, event):
+    def __init__(self, event: Event):
         self.event = event
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str) -> str:
         if name.startswith("tag:"):
             name = name[4:]
             value = self.event.get_tag(self.tag_aliases.get(name, name))
@@ -597,13 +637,13 @@ class EventSubjectTemplateData:
                 raise KeyError
             return str(value)
         elif name == "project":
-            return self.event.project.get_full_name()
+            return cast(str, self.event.project.get_full_name())
         elif name == "projectID":
-            return self.event.project.slug
-        elif name == "shortID" and self.event.group_id:
-            return self.event.group.qualified_short_id
+            return cast(str, self.event.project.slug)
+        elif name == "shortID" and self.event.group_id and self.event.group:
+            return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":
-            return self.event.organization.slug
+            return cast(str, self.event.organization.slug)
         elif name == "title":
             return self.event.title
         raise KeyError
