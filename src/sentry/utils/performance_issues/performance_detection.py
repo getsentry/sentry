@@ -11,7 +11,7 @@ from sentry import options
 from sentry.eventstore.processing.base import Event
 from sentry.utils import metrics
 
-from .performance_span_issue import PerformanceSpanIssue
+from .performance_span_issue import PerformanceSpanProblem
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
@@ -249,7 +249,7 @@ class DuplicateSpanDetector(PerformanceDetector):
                 fingerprint
             ] >= timedelta(milliseconds=duplicate_duration_threshold):
                 spans_involved = self.duplicate_spans_involved[fingerprint]
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved
                 )
 
@@ -296,7 +296,7 @@ class DuplicateSpanHashDetector(PerformanceDetector):
                 hash
             ] >= timedelta(milliseconds=duplicate_duration_threshold):
                 spans_involved = self.duplicate_spans_involved[hash]
-                self.stored_issues[hash] = PerformanceSpanIssue(
+                self.stored_issues[hash] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved, hash
                 )
 
@@ -329,7 +329,7 @@ class SlowSpanDetector(PerformanceDetector):
             milliseconds=duration_threshold
         ) and not self.stored_issues.get(fingerprint, False):
             spans_involved = [span_id]
-            self.stored_issues[fingerprint] = PerformanceSpanIssue(
+            self.stored_issues[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, spans_involved
             )
 
@@ -394,7 +394,7 @@ class SequentialSlowSpanDetector(PerformanceDetector):
                 fingerprint
             ] >= timedelta(milliseconds=duration_threshold):
                 spans_involved = self.spans_involved[fingerprint]
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, spans_involved
                 )
 
@@ -429,7 +429,7 @@ class LongTaskSpanDetector(PerformanceDetector):
         self.spans_involved.append(span_id)
 
         if self.cumulative_duration >= timedelta(milliseconds=duration_threshold):
-            self.stored_issues[fingerprint] = PerformanceSpanIssue(
+            self.stored_issues[fingerprint] = PerformanceSpanProblem(
                 span_id, op_prefix, self.spans_involved
             )
 
@@ -472,7 +472,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             span_id = span.get("span_id", None)
             fingerprint = fingerprint_span(span)
             if span_id and fingerprint:
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(span_id, op, [span_id])
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(span_id, op, [span_id])
 
         # If we visit a span that starts after FCP, then we know we've already
         # seen all possible render-blocking resource spans.
@@ -553,7 +553,7 @@ class NPlusOneSpanDetector(PerformanceDetector):
 
         if not self.stored_issues.get(fingerprint, False):
             if len(self.spans_involved[fingerprint]) >= count:
-                self.stored_issues[fingerprint] = PerformanceSpanIssue(
+                self.stored_issues[fingerprint] = PerformanceSpanProblem(
                     span_id, op_prefix, self.spans_involved[fingerprint]
                 )
 
