@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Generic, Mapping, MutableMapping, Optional, Sequence, TypeVar
+from typing import Generic, Mapping, MutableMapping, Optional, Sequence, TypedDict, TypeVar
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -14,7 +14,6 @@ from sentry.ratelimits.cardinality import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.consumers.indexer.batch import InboundMessage
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
 
@@ -60,6 +59,14 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
         ]
     else:
         raise ValueError(use_case_id)
+
+
+class InboundMessage(TypedDict):
+    # Note: This is only the subset of fields we access in this file.
+    org_id: int
+    name: str
+    type: str
+    tags: Mapping[str, str]
 
 
 class TimeseriesCardinalityLimiter:
