@@ -202,8 +202,13 @@ class IndexerBatch:
                 )
                 continue
             new_payload_value = cast(
-                MutableMapping[Any, Any], self.parsed_payloads_by_offset.pop(partition_offset)
+                Optional[MutableMapping[Any, Any]],
+                self.parsed_payloads_by_offset.pop(partition_offset, None),
             )
+
+            if new_payload_value:
+                # Assume we dropped it in self.limit_messages and already logged it.
+                continue
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]

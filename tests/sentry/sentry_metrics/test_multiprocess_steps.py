@@ -10,6 +10,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Topic
 
+from sentry.ratelimits.cardinality import CardinalityLimiter
 from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
@@ -19,6 +20,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
+from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -497,6 +499,43 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
         )
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
+    assert "dropped_message" in caplog.text
+
+
+def test_process_messages_cardinality_limited(caplog, settings, monkeypatch) -> None:
+    """
+    Test that the message processor correctly calls the cardinality limiter.
+    """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+
+    class MockCardinalityLimiter(CardinalityLimiter):
+        def check_within_quotas(self, requested_quotas):
+            # Grant nothing, limit everything
+            return 123, []
+
+    monkeypatch.setitem(
+        cardinality_limiter.rate_limiters, UseCaseKey.RELEASE_HEALTH, MockCardinalityLimiter()
+    )
+
+    message_payloads = [counter_payload, distribution_payload, set_payload]
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            i + 1,
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    with caplog.at_level(logging.ERROR):
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+
+    compare_message_batches_ignoring_metadata(new_batch, [])
+
     assert "dropped_message" in caplog.text
 
 
