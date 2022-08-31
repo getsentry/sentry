@@ -1,12 +1,27 @@
+import os
 import unittest
 from unittest.mock import Mock, call, patch
 
 from sentry.testutils.helpers import override_options
+from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
     _detect_performance_issue,
     detect_performance_issue,
 )
 from tests.sentry.spans.grouping.test_strategy import SpanBuilder
+
+_fixture_path = os.path.join(os.path.dirname(__file__), "events")
+
+EVENTS = {}
+
+for filename in os.listdir(_fixture_path):
+    if not filename.endswith(".json"):
+        continue
+
+    [event_name, _extension] = filename.split(".")
+
+    with open(os.path.join(_fixture_path, filename)) as f:
+        EVENTS[event_name] = json.load(f)
 
 
 # Duration is in ms
@@ -407,5 +422,52 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_render_blocking_assets",
                     "bbbbbbbbbbbbbbbb",
                 ),
+            ]
+        )
+
+    def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    3,
+                ),
+                call(
+                    "_pi_transaction",
+                    "da78af6000a6400aaa87cf6e14ddeb40",
+                ),
+                call(
+                    "_pi_duplicates",
+                    "86d2ede57bbf48d4",
+                ),
+                call("_pi_slow_span", "82428e8ef4c5a539"),
+                call(
+                    "_pi_sequential",
+                    "b409e78a092e642f",
+                ),
+            ]
+        )
+
+    def test_detects_slow_span_in_solved_n_plus_one_query(self):
+        n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call("_pi_transaction", "4e7c82a05f514c93b6101d255ca14f89"),
+                call("_pi_slow_span", "9f31e1ee4ef94970"),
             ]
         )
