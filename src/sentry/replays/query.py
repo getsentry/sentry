@@ -260,6 +260,7 @@ def _grouped_unique_scalar_value(
 replay_url_parser_config = SearchConfig(
     numeric_keys={"duration", "countErrors", "countSegments"},
     allowed_keys={
+        "projectId",
         "platform",
         "release",
         "dist",
@@ -313,6 +314,8 @@ class ReplayQueryConfig(QueryConfig):
     # Sort keys
     started_at = String(name="startedAt", is_filterable=False)
     finished_at = String(name="finishedAt", is_filterable=False)
+    # Dedicated url parameter should be used.
+    project_id = String(field_alias="projectId", query_alias="projectId", is_filterable=False)
 
 
 # Pagination.
