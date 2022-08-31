@@ -38,7 +38,7 @@ def create_model_table():
     for model_class in django.apps.apps.get_models():
         if model_class._meta.app_label != "sentry":
             continue
-        limit = getattr(model_class._meta, "__silo_limit", None)
+        limit = getattr(model_class._meta, "_ModelSiloLimit__silo_limit", None)
         key = (limit.modes, limit.read_only) if limit else None
         table[key].append(model_class)
     return table
