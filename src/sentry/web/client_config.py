@@ -135,10 +135,6 @@ def get_client_config(request=None):
 
         # User identity is used by the sentry SDK
         user_identity = {"ip_address": request.META["REMOTE_ADDR"]}
-        if user and user.is_authenticated:
-            user_identity.update({"email": user.email, "id": user.id, "isStaff": user.is_staff})
-            if user.name:
-                user_identity["name"] = user.name
     else:
         user = None
         user_identity = {}
@@ -217,10 +213,23 @@ def get_client_config(request=None):
             "sentryUrl": options.get("system.url-prefix"),
         },
     }
+
     if user and user.is_authenticated:
-        context.update(
-            {"isAuthenticated": True, "user": serialize(user, user, DetailedSelfUserSerializer())}
+        serialized_user = serialize(user, user, DetailedSelfUserSerializer())
+        context.update({"isAuthenticated": True, "user": serialized_user})
+
+        # Used in Sentry SDK -- update fields here (vs. where it was initialized) so that we can use
+        # the serialized user so that data types match. (e.g. id is int before serialization and string after)
+        user_identity.update(
+            {
+                "email": serialized_user["email"],
+                "id": serialized_user["id"],
+                "isStaff": serialized_user.get("is_staff", False),
+            }
         )
+
+        if serialized_user["name"]:
+            user_identity["name"] = serialized_user["name"]
 
         if request.user.is_superuser:
             # Note: This intentionally does not use the "active" superuser flag as
