@@ -83,6 +83,7 @@ export function PersistedStoreProvider(props: {children: React.ReactNode}) {
 }
 
 type UsePersistedCategory<T> = [T | null, (nextState: T | null) => void];
+
 export function usePersistedStoreCategory<C extends keyof PersistedStore>(
   category: C
 ): UsePersistedCategory<PersistedStore[C]> {
@@ -109,12 +110,14 @@ export function usePersistedStoreCategory<C extends keyof PersistedStore>(
         data: val,
       });
     },
-    [category, organization, api]
+    [setState, category, organization, api]
   );
 
+  const result = state[category];
+
   const stableState: UsePersistedCategory<PersistedStore[C]> = useMemo(() => {
-    return [state[category] ?? null, setCategoryState];
-  }, [state[category], setCategoryState]);
+    return [result ?? null, setCategoryState];
+  }, [result, setCategoryState]);
 
   return stableState;
 }
