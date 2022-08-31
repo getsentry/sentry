@@ -19,17 +19,17 @@ from sentry.utils.hashlib import hash_values
 
 OrgId = int
 
-T = TypeVar("T")
+TMessageKey = TypeVar("TMessageKey")
 
 
 @dataclasses.dataclass(frozen=True)
-class CardinalityLimiterState(Generic[T]):
+class CardinalityLimiterState(Generic[TMessageKey]):
     _cardinality_limiter: CardinalityLimiter
     _use_case_id: UseCaseKey
     _requests: Sequence[RequestedQuota]
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
-    keys_to_remove: Sequence[T]
+    keys_to_remove: Sequence[TMessageKey]
 
 
 def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId]) -> str:
@@ -81,8 +81,8 @@ class TimeseriesCardinalityLimiter:
         return self.rate_limiters[use_case_id]
 
     def check_cardinality_limits(
-        self, use_case_id: UseCaseKey, messages: Mapping[T, InboundMessage]
-    ) -> CardinalityLimiterState[T]:
+        self, use_case_id: UseCaseKey, messages: Mapping[TMessageKey, InboundMessage]
+    ) -> CardinalityLimiterState[TMessageKey]:
         limiter = self._get_rate_limiter(use_case_id)
         request_hashes = defaultdict(set)
         keys_to_remove = {}
