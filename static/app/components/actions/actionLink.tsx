@@ -16,7 +16,6 @@ const StyledActionButton = styled(ActionButton)<{
 }>`
   display: flex;
   align-items: center;
-  pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
 
   ${p => p.disabled && 'cursor: not-allowed;'}
   ${p => p.hasDropdown && `border-radius: ${p.theme.borderRadiusLeft}`};
