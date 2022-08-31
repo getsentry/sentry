@@ -1143,8 +1143,8 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Backend support for supporting performance issue: endpoints, serializers, etc.
-    "organizations:performance-issue-details-backend": False,
+    # Enable performance issues
+    "organizations:performance-issue": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
