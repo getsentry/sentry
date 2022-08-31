@@ -15,6 +15,7 @@ type Props = {
   gravatar?: boolean;
   hasTooltip?: boolean;
   onClick?: () => void;
+  round?: boolean;
   size?: number;
   suggested?: boolean;
   title?: string;

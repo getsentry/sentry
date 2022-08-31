@@ -24,7 +24,8 @@ const StyledBaseAvatar = styled('span')<{
 }>`
   flex-shrink: 0;
   border-radius: ${p => (p.round ? '50%' : '3px')};
-  border: ${p => (p.suggested ? `1px dashed ${p.theme.gray400}` : 'none')};
+  border: ${p => (p.suggested ? `2px solid ${p.theme.background}` : 'none')};
+  background-color: ${p => (p.suggested ? p.theme.background : 'none')};
 `;
 
 const defaultProps: DefaultProps = {
@@ -172,7 +173,6 @@ class BaseAvatar extends Component<Props, State> {
           round={round}
           remoteSize={DEFAULT_REMOTE_SIZE}
           suggested={suggested}
-          grayscale={suggested}
           {...eventProps}
         />
       );
@@ -185,7 +185,6 @@ class BaseAvatar extends Component<Props, State> {
           src={this.buildUploadUrl()}
           {...eventProps}
           suggested={suggested}
-          grayscale={suggested}
         />
       );
     }

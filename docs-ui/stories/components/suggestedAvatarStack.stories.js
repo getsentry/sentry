@@ -41,7 +41,7 @@ export const SuggestedAvatars = ({...args}) => {
   TeamStore.loadInitialData([exampleTeam]);
   return (
     <SuggestedAvatarContainer>
-      <SuggestedAvatarStack {...args} />
+      <SuggestedAvatarStack size={24} {...args} />
     </SuggestedAvatarContainer>
   );
 };
@@ -66,5 +66,5 @@ SuggestedAvatars.parameters = {
 };
 
 const SuggestedAvatarContainer = styled('div')`
-  width: 40px;
+  display: flex;
 `;
