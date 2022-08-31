@@ -45,6 +45,12 @@ describe('Server-Side Sampling', function () {
         TestStubs.Project({id: p.project_id, slug: p.project})
       ),
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      method: 'GET',
+      body: TestStubs.Outcomes(),
+    });
   });
 
   afterEach(() => {
@@ -201,7 +207,7 @@ describe('Server-Side Sampling', function () {
       expect(sdkVersionsMock).toHaveBeenCalled();
     });
 
-    const recommendedSdkUpgradesAlert = screen.getByTestId(
+    const recommendedSdkUpgradesAlert = await screen.findByTestId(
       'recommended-sdk-upgrades-alert'
     );
 
@@ -307,6 +313,8 @@ describe('Server-Side Sampling', function () {
     render(
       <TestComponent organization={organization} project={project} router={router} />
     );
+
+    await screen.findByTestId('recommended-sdk-upgrades-alert');
 
     expect(screen.getByRole('checkbox', {name: 'Activate Rule'})).toBeDisabled();
 

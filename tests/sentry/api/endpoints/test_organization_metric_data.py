@@ -1308,68 +1308,50 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        tag1 = rh_indexer_record(org_id, "tag1")
-        group1 = rh_indexer_record(org_id, "group1")
-        group2 = rh_indexer_record(org_id, "group2")
-        group3 = rh_indexer_record(org_id, "group3")
-        group4 = rh_indexer_record(org_id, "group4")
-        group5 = rh_indexer_record(org_id, "group5")
+        for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={tag: tag_value},
+                timestamp=(user_ts // 60 - 4) * 60,
+                value=10,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {tag: tag_value},
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                }
-                for tag, tag_value in ((tag1, group1), (tag1, group2))
-            ],
-            entity="metrics_counters",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_error_metric,
-                    "timestamp": user_ts,
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, group2, list(range(3))),
-                    (tag1, group3, list(range(3, 6))),
+        for tag, tag_value, numbers in (
+            ("tag1", "group2", list(range(3))),
+            ("tag1", "group3", list(range(3, 6))),
+        ):
+            for value in numbers:
+                self.store_metric(
+                    org_id=org_id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.ERROR.value,
+                    tags={tag: tag_value},
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
-            ],
-            entity="metrics_sets",
-        )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_duration,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, group4, list(range(3))),
-                    (tag1, group5, list(range(3, 6))),
+        for tag, tag_value, numbers in (
+            ("tag1", "group4", list(range(3))),
+            ("tag1", "group5", list(range(3, 6))),
+        ):
+            for value in numbers:
+                self.store_metric(
+                    org_id=org_id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=SessionMRI.DURATION.value,
+                    tags={tag: tag_value},
+                    timestamp=int(time.time()),
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
-            ],
-            entity="metrics_distributions",
-        )
+
         response = self.get_success_response(
             self.organization.slug,
             field=[
