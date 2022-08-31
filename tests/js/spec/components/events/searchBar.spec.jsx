@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
@@ -339,5 +340,28 @@ describe('Events > SearchBar', function () {
     setQuery(wrapper, 'browser:Something');
 
     expect(emptyTagValuesMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('searches for custom measurements', async function () {
+    const initializationObj = initializeOrg({
+      organization: {
+        features: ['performance-view'],
+      },
+    });
+    props.organization = initializationObj.organization;
+    render(
+      <SearchBar
+        {...props}
+        customMeasurements={{
+          'measurements.custom.ratio': {
+            key: 'measurements.custom.ratio',
+            name: 'measurements.custom.ratio',
+          },
+        }}
+      />
+    );
+    userEvent.type(screen.getByRole('textbox'), 'custom');
+    expect(await screen.findByText('measurements')).toBeInTheDocument();
+    expect(screen.getByText(/\.ratio/)).toBeInTheDocument();
   });
 });
