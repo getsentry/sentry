@@ -75,6 +75,7 @@ function RulesPanel({
         <InnerPanelBody>
           <StyledTextArea
             monospace
+            readOnly
             value={raw}
             spellCheck="false"
             autoComplete="off"
