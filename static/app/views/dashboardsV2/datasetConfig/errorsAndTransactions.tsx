@@ -23,6 +23,7 @@ import {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {
+  AggregationOutputType,
   errorsAndTransactionsAggregateFunctionOutputType,
   getAggregateAlias,
   isEquation,
@@ -387,13 +388,18 @@ function transformEventsResponseToSeries(
 function getSeriesResultType(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
-) {
+): Record<string, AggregationOutputType> {
   const field = widgetQuery.aggregates[0];
+  const resultTypes = {};
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
-    return data[Object.keys(data)[0]].meta?.fields[getAggregateAlias(field)];
+    Object.keys(data).forEach(
+      key => (resultTypes[key] = data[key].meta?.fields[getAggregateAlias(key)])
+    );
+  } else {
+    resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
   }
-  return data.meta?.fields[getAggregateAlias(field)];
+  return resultTypes;
 }
 
 function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunctionBaggage) {

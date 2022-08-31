@@ -18,7 +18,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import FirstEventFooter from 'sentry/views/onboarding/components/firstEventFooter';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
-import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
+import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 

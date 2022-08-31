@@ -9,6 +9,7 @@ import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   Field,
   FIELD_TAGS,
@@ -87,6 +88,7 @@ const getSemverTags = () =>
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
+  customMeasurements?: CustomMeasurementCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   /**
@@ -108,6 +110,7 @@ function SearchBar(props: SearchBarProps) {
     projectIds,
     includeSessionTagsValues,
     maxMenuHeight,
+    customMeasurements,
   } = props;
 
   const api = useApi();
@@ -206,7 +209,7 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
+          supportedTags={getTagList({...measurements, ...(customMeasurements ?? {})})}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');

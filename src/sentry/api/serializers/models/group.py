@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
@@ -64,6 +65,7 @@ from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
+from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -158,7 +160,14 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     annotations: Sequence[str]
 
 
-class GroupSerializerBase(Serializer):
+class SeenStats(TypedDict):
+    times_seen: int
+    first_seen: datetime
+    last_seen: datetime
+    user_count: int
+
+
+class GroupSerializerBase(Serializer, ABC):
     def __init__(
         self,
         collapse=None,
@@ -167,226 +176,9 @@ class GroupSerializerBase(Serializer):
         self.collapse = collapse
         self.expand = expand
 
-    def _expand(self, key):
-        if self.expand is None:
-            return False
-
-        return key in self.expand
-
-    def _collapse(self, key):
-        if self.collapse is None:
-            return False
-        return key in self.collapse
-
-    def _get_seen_stats(self, item_list, user):
-        """
-        Returns a dictionary keyed by item that includes:
-            - times_seen
-            - first_seen
-            - last_seen
-            - user_count
-        """
-        raise NotImplementedError
-
-    @staticmethod
-    def _get_start_from_seen_stats(seen_stats):
-        # Try to figure out what is a reasonable time frame to look into stats,
-        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
-        # but it has to be at least 14 days, and not more than 90 days ago.
-        # Fallback to the 30 days ago if we are not able to calculate the value.
-        last_seen = None
-        if seen_stats:
-            for item in seen_stats.values():
-                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
-                    last_seen = item["last_seen"]
-
-        if last_seen is None:
-            return datetime.now(pytz.utc) - timedelta(days=30)
-
-        return max(
-            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
-            datetime.now(pytz.utc) - timedelta(days=90),
-        )
-
-    def _get_group_snuba_stats(self, item_list, seen_stats):
-        start = self._get_start_from_seen_stats(seen_stats)
-        unhandled = {}
-
-        cache_keys = []
-        for item in item_list:
-            cache_keys.append(f"group-mechanism-handled:{item.id}")
-
-        cache_data = cache.get_many(cache_keys)
-        for item, cache_key in zip(item_list, cache_keys):
-            unhandled[item.id] = cache_data.get(cache_key)
-
-        filter_keys = {}
-        for item in item_list:
-            if unhandled.get(item.id) is not None:
-                continue
-            filter_keys.setdefault("project_id", []).append(item.project_id)
-            filter_keys.setdefault("group_id", []).append(item.id)
-
-        if filter_keys:
-            rv = raw_query(
-                dataset=Dataset.Events,
-                selected_columns=[
-                    "group_id",
-                    [
-                        "argMax",
-                        [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
-                        "unhandled",
-                    ],
-                ],
-                groupby=["group_id"],
-                filter_keys=filter_keys,
-                start=start,
-                orderby="group_id",
-                referrer="group.unhandled-flag",
-            )
-            for x in rv["data"]:
-                unhandled[x["group_id"]] = x["unhandled"]
-
-                # cache the handled flag for 60 seconds.  This is broadly in line with
-                # the time we give for buffer flushes so the user experience is somewhat
-                # consistent here.
-                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
-
-        return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
-
-    @staticmethod
-    def _get_subscriptions(
-        groups: Iterable[Group], user: User
-    ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
-        """
-        Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
-        subscribed: bool, subscription: Optional[GroupSubscription]) for the
-        provided user and groups.
-        """
-        if not groups:
-            return {}
-
-        groups_by_project = collect_groups_by_project(groups)
-        notification_settings_by_scope = transform_to_notification_settings_by_scope(
-            NotificationSetting.objects.get_for_user_by_projects(
-                NotificationSettingTypes.WORKFLOW,
-                user,
-                groups_by_project.keys(),
-            )
-        )
-        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
-        subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
-        subscriptions_by_group_id = {
-            subscription.group_id: subscription for subscription in subscriptions
-        }
-
-        return get_user_subscriptions_for_groups(
-            groups_by_project,
-            notification_settings_by_scope,
-            subscriptions_by_group_id,
-            user,
-        )
-
-    @staticmethod
-    def _resolve_resolutions(groups, user) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
-        resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
-        if not resolved_groups:
-            return {}, {}
-
-        _release_resolutions = {
-            i[0]: i[1:]
-            for i in GroupResolution.objects.filter(group__in=resolved_groups).values_list(
-                "group", "type", "release__version", "actor_id"
-            )
-        }
-
-        # due to our laziness, and django's inability to do a reasonable join here
-        # we end up with two queries
-        commit_results = list(
-            Commit.objects.extra(
-                select={"group_id": "sentry_grouplink.group_id"},
-                tables=["sentry_grouplink"],
-                where=[
-                    "sentry_grouplink.linked_id = sentry_commit.id",
-                    "sentry_grouplink.group_id IN ({})".format(
-                        ", ".join(str(i.id) for i in resolved_groups)
-                    ),
-                    "sentry_grouplink.linked_type = %s",
-                    "sentry_grouplink.relationship = %s",
-                ],
-                params=[int(GroupLink.LinkedType.commit), int(GroupLink.Relationship.resolves)],
-            )
-        )
-        _commit_resolutions = {
-            i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
-        }
-
-        return _release_resolutions, _commit_resolutions
-
-    @staticmethod
-    def _resolve_external_issue_annotations(groups) -> Mapping[int, Sequence[Any]]:
-        from sentry.models import PlatformExternalIssue
-
-        # find the external issues for sentry apps and add them in
-        return (
-            safe_execute(
-                PlatformExternalIssue.get_annotations_for_group_list,
-                group_list=groups,
-                _with_transaction=False,
-            )
-            or {}
-        )
-
-    @staticmethod
-    def _resolve_integration_annotations(org_id, groups) -> Sequence[Mapping[int, Sequence[Any]]]:
-        from sentry.integrations import IntegrationFeatures
-
-        integration_annotations = []
-        # find all the integration installs that have issue tracking
-        for integration in Integration.objects.filter(organizations=org_id):
-            if not (
-                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-            ):
-                continue
-
-            install = integration.get_installation(org_id)
-            local_annotations_by_group_id = (
-                safe_execute(
-                    install.get_annotations_for_group_list,
-                    group_list=groups,
-                    _with_transaction=False,
-                )
-                or {}
-            )
-            integration_annotations.append(local_annotations_by_group_id)
-
-        return integration_annotations
-
-    @staticmethod
-    def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: List[Any]
-    ) -> Sequence[Any]:
-        from sentry.plugins.base import plugins
-
-        annotations_for_group = []
-        annotations_for_group.extend(current_annotations)
-
-        # add the annotations for plugins
-        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
-        # `get_attrs`, so these for loops doesn't make a bunch of queries
-        for plugin in plugins.for_project(project=item.project, version=1):
-            if is_plugin_deprecated(plugin, item.project):
-                continue
-            safe_execute(plugin.tags, None, item, annotations_for_group, _with_transaction=False)
-        for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(
-                safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
-            )
-
-        return annotations_for_group
-
-    def get_attrs(self, item_list, user):
+    def get_attrs(
+        self, item_list: Sequence[Group], user: Any, **kwargs: Any
+    ) -> MutableMapping[Group, MutableMapping[str, Any]]:
         GroupMeta.objects.populate_cache(item_list)
 
         # Note that organization is necessary here for use in `_get_permalink` to avoid
@@ -502,7 +294,74 @@ class GroupSerializerBase(Serializer):
                 result[item].update(seen_stats.get(item, {}))
         return result
 
-    def _get_status(self, attrs, obj):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
+        status_details, status_label = self._get_status(attrs, obj)
+        permalink = self._get_permalink(attrs, obj)
+        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
+        share_id = attrs["share_id"]
+        group_dict = {
+            "id": str(obj.id),
+            "shareId": share_id,
+            "shortId": obj.qualified_short_id,
+            "title": obj.title,
+            "culprit": obj.culprit,
+            "permalink": permalink,
+            "logger": obj.logger or None,
+            "level": LOG_LEVELS.get(obj.level, "unknown"),
+            "status": status_label,
+            "statusDetails": status_details,
+            "isPublic": share_id is not None,
+            "platform": obj.platform,
+            "project": {
+                "id": str(obj.project.id),
+                "name": obj.project.name,
+                "slug": obj.project.slug,
+                "platform": obj.project.platform,
+            },
+            "type": obj.get_event_type(),
+            "metadata": obj.get_event_metadata(),
+            "numComments": obj.num_comments,
+            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
+            "isBookmarked": attrs["is_bookmarked"],
+            "isSubscribed": is_subscribed,
+            "subscriptionDetails": subscription_details,
+            "hasSeen": attrs["has_seen"],
+            "annotations": attrs["annotations"],
+        }
+
+        # This attribute is currently feature gated
+        if "is_unhandled" in attrs:
+            group_dict["isUnhandled"] = attrs["is_unhandled"]
+        if "times_seen" in attrs:
+            group_dict.update(self._convert_seen_stats(attrs))
+        return group_dict
+
+    @abstractmethod
+    def _seen_stats_error(
+        self, error_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        pass
+
+    @abstractmethod
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        pass
+
+    def _expand(self, key) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
+    def _collapse(self, key) -> bool:
+        if self.collapse is None:
+            return False
+        return key in self.collapse
+
+    def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
         status = obj.status
         status_details = {}
         if attrs["ignore_until"]:
@@ -558,7 +417,238 @@ class GroupSerializerBase(Serializer):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _is_authorized(self, user, organization_id):
+    def _get_seen_stats(
+        self, item_list: Sequence[Group], user
+    ) -> Optional[Mapping[Group, SeenStats]]:
+        """
+        Returns a dictionary keyed by item that includes:
+            - times_seen
+            - first_seen
+            - last_seen
+            - user_count
+        """
+        if self._collapse("stats"):
+            return None
+
+        # partition the item_list by type
+        error_issues = [group for group in item_list if GroupCategory.ERROR == group.issue_category]
+        perf_issues = [
+            group for group in item_list if GroupCategory.PERFORMANCE == group.issue_category
+        ]
+
+        # bulk query for the seen_stats by type
+        error_stats = self._seen_stats_error(error_issues, user) or {}
+        perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
+        agg_stats = {**error_stats, **perf_stats}
+        # combine results back
+        return {group: agg_stats.get(group, {}) for group in item_list}
+
+    def _get_group_snuba_stats(
+        self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
+    ):
+        start = self._get_start_from_seen_stats(seen_stats)
+        unhandled = {}
+
+        cache_keys = []
+        for item in item_list:
+            cache_keys.append(f"group-mechanism-handled:{item.id}")
+
+        cache_data = cache.get_many(cache_keys)
+        for item, cache_key in zip(item_list, cache_keys):
+            unhandled[item.id] = cache_data.get(cache_key)
+
+        filter_keys = {}
+        for item in item_list:
+            if unhandled.get(item.id) is not None:
+                continue
+            filter_keys.setdefault("project_id", []).append(item.project_id)
+            filter_keys.setdefault("group_id", []).append(item.id)
+
+        if filter_keys:
+            rv = raw_query(
+                dataset=Dataset.Events,
+                selected_columns=[
+                    "group_id",
+                    [
+                        "argMax",
+                        [["has", ["exception_stacks.mechanism_handled", 0]], "timestamp"],
+                        "unhandled",
+                    ],
+                ],
+                groupby=["group_id"],
+                filter_keys=filter_keys,
+                start=start,
+                orderby="group_id",
+                referrer="group.unhandled-flag",
+            )
+            for x in rv["data"]:
+                unhandled[x["group_id"]] = x["unhandled"]
+
+                # cache the handled flag for 60 seconds.  This is broadly in line with
+                # the time we give for buffer flushes so the user experience is somewhat
+                # consistent here.
+                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+
+        return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
+
+    @staticmethod
+    def _get_start_from_seen_stats(seen_stats: Optional[Mapping[Group, SeenStats]]):
+        # Try to figure out what is a reasonable time frame to look into stats,
+        # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
+        # but it has to be at least 14 days, and not more than 90 days ago.
+        # Fallback to the 30 days ago if we are not able to calculate the value.
+        last_seen = None
+        if seen_stats:
+            for item in seen_stats.values():
+                if last_seen is None or (item["last_seen"] and last_seen > item["last_seen"]):
+                    last_seen = item["last_seen"]
+
+        if last_seen is None:
+            return datetime.now(pytz.utc) - timedelta(days=30)
+
+        return max(
+            min(last_seen - timedelta(days=1), datetime.now(pytz.utc) - timedelta(days=14)),
+            datetime.now(pytz.utc) - timedelta(days=90),
+        )
+
+    @staticmethod
+    def _get_subscriptions(
+        groups: Iterable[Group], user: User
+    ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
+        """
+        Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
+        subscribed: bool, subscription: Optional[GroupSubscription]) for the
+        provided user and groups.
+        """
+        if not groups:
+            return {}
+
+        groups_by_project = collect_groups_by_project(groups)
+        notification_settings_by_scope = transform_to_notification_settings_by_scope(
+            NotificationSetting.objects.get_for_user_by_projects(
+                NotificationSettingTypes.WORKFLOW,
+                user,
+                groups_by_project.keys(),
+            )
+        )
+        query_groups = get_groups_for_query(groups_by_project, notification_settings_by_scope, user)
+        subscriptions = GroupSubscription.objects.filter(group__in=query_groups, user=user)
+        subscriptions_by_group_id = {
+            subscription.group_id: subscription for subscription in subscriptions
+        }
+
+        return get_user_subscriptions_for_groups(
+            groups_by_project,
+            notification_settings_by_scope,
+            subscriptions_by_group_id,
+            user,
+        )
+
+    @staticmethod
+    def _resolve_resolutions(
+        groups: Sequence[Group], user
+    ) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
+        resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
+        if not resolved_groups:
+            return {}, {}
+
+        _release_resolutions = {
+            i[0]: i[1:]
+            for i in GroupResolution.objects.filter(group__in=resolved_groups).values_list(
+                "group", "type", "release__version", "actor_id"
+            )
+        }
+
+        # due to our laziness, and django's inability to do a reasonable join here
+        # we end up with two queries
+        commit_results = list(
+            Commit.objects.extra(
+                select={"group_id": "sentry_grouplink.group_id"},
+                tables=["sentry_grouplink"],
+                where=[
+                    "sentry_grouplink.linked_id = sentry_commit.id",
+                    "sentry_grouplink.group_id IN ({})".format(
+                        ", ".join(str(i.id) for i in resolved_groups)
+                    ),
+                    "sentry_grouplink.linked_type = %s",
+                    "sentry_grouplink.relationship = %s",
+                ],
+                params=[int(GroupLink.LinkedType.commit), int(GroupLink.Relationship.resolves)],
+            )
+        )
+        _commit_resolutions = {
+            i.group_id: d for i, d in zip(commit_results, serialize(commit_results, user))
+        }
+
+        return _release_resolutions, _commit_resolutions
+
+    @staticmethod
+    def _resolve_external_issue_annotations(groups: Sequence[Group]) -> Mapping[int, Sequence[Any]]:
+        from sentry.models import PlatformExternalIssue
+
+        # find the external issues for sentry apps and add them in
+        return (
+            safe_execute(
+                PlatformExternalIssue.get_annotations_for_group_list,
+                group_list=groups,
+                _with_transaction=False,
+            )
+            or {}
+        )
+
+    @staticmethod
+    def _resolve_integration_annotations(
+        org_id: int, groups: Sequence[Group]
+    ) -> Sequence[Mapping[int, Sequence[Any]]]:
+        from sentry.integrations import IntegrationFeatures
+
+        integration_annotations = []
+        # find all the integration installs that have issue tracking
+        for integration in Integration.objects.filter(organizations=org_id):
+            if not (
+                integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
+                or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
+            ):
+                continue
+
+            install = integration.get_installation(org_id)
+            local_annotations_by_group_id = (
+                safe_execute(
+                    install.get_annotations_for_group_list,
+                    group_list=groups,
+                    _with_transaction=False,
+                )
+                or {}
+            )
+            integration_annotations.append(local_annotations_by_group_id)
+
+        return integration_annotations
+
+    @staticmethod
+    def _resolve_and_extend_plugin_annotation(
+        item: Group, current_annotations: List[Any]
+    ) -> Sequence[Any]:
+        from sentry.plugins.base import plugins
+
+        annotations_for_group = []
+        annotations_for_group.extend(current_annotations)
+
+        # add the annotations for plugins
+        # note that the model GroupMeta(where all the information is stored) is already cached at the start of
+        # `get_attrs`, so these for loops doesn't make a bunch of queries
+        for plugin in plugins.for_project(project=item.project, version=1):
+            if is_plugin_deprecated(plugin, item.project):
+                continue
+            safe_execute(plugin.tags, None, item, annotations_for_group, _with_transaction=False)
+        for plugin in plugins.for_project(project=item.project, version=2):
+            annotations_for_group.extend(
+                safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
+            )
+
+        return annotations_for_group
+
+    @staticmethod
+    def _is_authorized(user, organization_id: int):
         # If user is not logged in and member of the organization,
         # do not return the permalink which contains private information i.e. org name.
         request = env.request
@@ -580,61 +670,21 @@ class GroupSerializerBase(Serializer):
 
         return user.is_authenticated and user.get_orgs().filter(id=organization_id).exists()
 
-    def _get_permalink(self, attrs, obj):
+    @staticmethod
+    def _get_permalink(attrs, obj: Group):
         if attrs["authorized"]:
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()
         else:
             return None
 
-    def serialize(self, obj, attrs, user) -> BaseGroupSerializerResponse:
-        status_details, status_label = self._get_status(attrs, obj)
-        permalink = self._get_permalink(attrs, obj)
-        is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
-        share_id = attrs["share_id"]
-        group_dict = {
-            "id": str(obj.id),
-            "shareId": share_id,
-            "shortId": obj.qualified_short_id,
-            "title": obj.title,
-            "culprit": obj.culprit,
-            "permalink": permalink,
-            "logger": obj.logger or None,
-            "level": LOG_LEVELS.get(obj.level, "unknown"),
-            "status": status_label,
-            "statusDetails": status_details,
-            "isPublic": share_id is not None,
-            "platform": obj.platform,
-            "project": {
-                "id": str(obj.project.id),
-                "name": obj.project.name,
-                "slug": obj.project.slug,
-                "platform": obj.project.platform,
-            },
-            "type": obj.get_event_type(),
-            "metadata": obj.get_event_metadata(),
-            "numComments": obj.num_comments,
-            "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
-            "isBookmarked": attrs["is_bookmarked"],
-            "isSubscribed": is_subscribed,
-            "subscriptionDetails": subscription_details,
-            "hasSeen": attrs["has_seen"],
-            "annotations": attrs["annotations"],
-        }
-
-        # This attribute is currently feature gated
-        if "is_unhandled" in attrs:
-            group_dict["isUnhandled"] = attrs["is_unhandled"]
-        if "times_seen" in attrs:
-            group_dict.update(self._convert_seen_stats(attrs))
-        return group_dict
-
-    def _convert_seen_stats(self, stats):
+    @staticmethod
+    def _convert_seen_stats(attrs: SeenStats):
         return {
-            "count": str(stats["times_seen"]),
-            "userCount": stats["user_count"],
-            "firstSeen": stats["first_seen"],
-            "lastSeen": stats["last_seen"],
+            "count": str(attrs["times_seen"]),
+            "userCount": attrs["user_count"],
+            "firstSeen": attrs["first_seen"],
+            "lastSeen": attrs["last_seen"],
         }
 
 
@@ -644,7 +694,7 @@ class GroupSerializer(GroupSerializerBase):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _get_seen_stats(self, item_list, user):
+    def _seen_stats_error(self, item_list, user):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -686,16 +736,27 @@ class GroupSerializer(GroupSerializerBase):
 
         return attrs
 
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        # TODO(gilbert): implement this to return real data
+        if perf_issue_list:
+            raise NotImplementedError
+
+        return {}
+
 
 class SharedGroupSerializer(GroupSerializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
+    ) -> BaseGroupSerializerResponse:
         result = super().serialize(obj, attrs, user)
-        del result["annotations"]
+        del result["annotations"]  # type:ignore
         return result
 
 
-class GroupSerializerSnuba(GroupSerializerBase):
-    skip_snuba_fields = {
+SKIP_SNUBA_FIELDS = frozenset(
+    (
         "status",
         "bookmarked_by",
         "assigned_to",
@@ -706,6 +767,15 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "subscribed_by",
         "first_release",
         "first_seen",
+        "category",
+        "type",
+    )
+)
+
+
+class GroupSerializerSnuba(GroupSerializerBase):
+    skip_snuba_fields = {
+        *SKIP_SNUBA_FIELDS,
         "last_seen",
         "times_seen",
         "date",  # We merge this with start/end, so don't want to include it as its own
@@ -761,6 +831,24 @@ class GroupSerializerSnuba(GroupSerializerBase):
             if search_filters is not None
             else []
         )
+
+    def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
+        return self._execute_seen_stats_query(
+            item_list=error_issue_list,
+            start=self.start,
+            end=self.end,
+            conditions=self.conditions,
+            environment_ids=self.environment_ids,
+        )
+
+    def _seen_stats_performance(
+        self, perf_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        # TODO(gilbert): implement this to return real data
+        if perf_issue_list:
+            raise NotImplementedError
+
+        return {}
 
     def _execute_seen_stats_query(
         self, item_list, start=None, end=None, conditions=None, environment_ids=None
@@ -822,12 +910,3 @@ class GroupSerializerSnuba(GroupSerializerBase):
             }
 
         return attrs
-
-    def _get_seen_stats(self, item_list, user):
-        return self._execute_seen_stats_query(
-            item_list=item_list,
-            start=self.start,
-            end=self.end,
-            conditions=self.conditions,
-            environment_ids=self.environment_ids,
-        )

@@ -62,7 +62,7 @@ describe('PlatformPicker', function () {
       setPlatform: jest.fn(),
     };
 
-    render(<PlatformPicker {...props} />);
+    render(<PlatformPicker noAutoFilter {...props} />);
 
     userEvent.click(screen.getByRole('button', {name: 'Clear'}));
     expect(props.setPlatform).toHaveBeenCalledWith(null);
