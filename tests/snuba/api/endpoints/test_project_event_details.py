@@ -147,7 +147,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": four_min_ago,
                     "start_timestamp": four_min_ago,
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    "fingerprint": ["group-1"],
+                    # "fingerprint": ["group-1"],
                 },
                 project_id=project.id,
             )
@@ -163,7 +163,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": three_min_ago,
                     "start_timestamp": three_min_ago,
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    "fingerprint": ["group-1"],
+                    # "fingerprint": ["group-1"],
                 },
                 project_id=project.id,
             )
@@ -179,7 +179,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": two_min_ago,
                     "start_timestamp": two_min_ago,
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    "fingerprint": ["group-1"],
+                    # "fingerprint": ["group-1"],
                     "environment": "production",
                     "tags": {"environment": "production"},
                 },
@@ -198,7 +198,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                     "timestamp": one_min_ago,
                     "start_timestamp": one_min_ago,
                     "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                    "fingerprint": ["group-2"],
+                    # "fingerprint": ["group-2"],
                     "environment": "production",
                     "tags": {"environment": "production"},
                 },
@@ -206,6 +206,9 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
             )
 
         self.group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        self.prev_transaction_event.group = self.group
+        self.cur_transaction_event.group = self.group
+        self.next_transaction_event.group = self.group
 
     def test_transaction_event(self):
         """Test that you can look up a transaction event w/ a prev and next event"""
@@ -217,7 +220,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 "organization_slug": self.cur_transaction_event.project.organization.slug,
             },
         )
-        with self.feature("organizations:performance-issue"):
+        with self.feature("organizations:performance-issues"):
             response = self.client.get(url, format="json", data={"group_id": self.group.id})
 
         assert response.status_code == 200, response.content
