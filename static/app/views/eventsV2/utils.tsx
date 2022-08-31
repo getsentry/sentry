@@ -37,12 +37,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
-import {
-  DISCOVER_FIELDS,
-  FIELDS,
-  FieldValueType,
-  getFieldDefinition,
-} from 'sentry/utils/fields';
+import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
@@ -102,8 +97,8 @@ export function decodeColumnOrder(
       const aggregate = AGGREGATIONS[col.function[0]];
       column.isSortable = aggregate && aggregate.isSortable;
     } else if (col.kind === 'field') {
-      if (FIELDS.hasOwnProperty(col.field)) {
-        column.type = FIELDS[col.field].valueType as ColumnValueType;
+      if (getFieldDefinition(col.field) !== null) {
+        column.type = getFieldDefinition(col.field)?.valueType as ColumnValueType;
       } else if (isMeasurement(col.field)) {
         column.type = measurementType(col.field);
       } else if (isSpanOperationBreakdownField(col.field)) {
