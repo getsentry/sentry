@@ -1,8 +1,8 @@
 from django.test import override_settings
 from pytest import raises
 
-from sentry.db.models.base import Model, ModelAvailableOn
-from sentry.servermode import ServerComponentMode
+from sentry.db.models.base import Model, ModelSiloLimit
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 
 
@@ -14,15 +14,15 @@ class AvailableOnTest(TestCase):
             abstract = True
             app_label = "fixtures"
 
-    @ModelAvailableOn(ServerComponentMode.CONTROL)
+    @ModelSiloLimit(SiloMode.CONTROL)
     class ControlModel(TestModel):
         pass
 
-    @ModelAvailableOn(ServerComponentMode.CUSTOMER)
+    @ModelSiloLimit(SiloMode.CUSTOMER)
     class CustomerModel(TestModel):
         pass
 
-    @ModelAvailableOn(ServerComponentMode.CONTROL, read_only=ServerComponentMode.CUSTOMER)
+    @ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.CUSTOMER)
     class ReadOnlyModel(TestModel):
         pass
 
@@ -39,7 +39,7 @@ class AvailableOnTest(TestCase):
 
         self.ModelOnMonolith.objects.filter(id=1).delete()
 
-    @override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.CUSTOMER)
+    @override_settings(SILO_MODE=SiloMode.CUSTOMER)
     def test_available_on_same_mode(self):
         assert list(self.CustomerModel.objects.all()) == []
         with raises(self.CustomerModel.DoesNotExist):
@@ -50,24 +50,24 @@ class AvailableOnTest(TestCase):
 
         self.CustomerModel.objects.filter(id=1).delete()
 
-    @override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.CUSTOMER)
+    @override_settings(SILO_MODE=SiloMode.CUSTOMER)
     def test_unavailable_on_other_mode(self):
-        with raises(ModelAvailableOn.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             list(self.ControlModel.objects.all())
-        with raises(ModelAvailableOn.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.get(id=1)
-        with raises(ModelAvailableOn.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.create()
-        with raises(ModelAvailableOn.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.filter(id=1).delete()
 
-    @override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.CUSTOMER)
+    @override_settings(SILO_MODE=SiloMode.CUSTOMER)
     def test_available_for_read_only(self):
         assert list(self.ReadOnlyModel.objects.all()) == []
         with raises(self.ReadOnlyModel.DoesNotExist):
             self.ReadOnlyModel.objects.get(id=1)
 
-        with raises(ModelAvailableOn.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ReadOnlyModel.objects.create()
-        with raises(ModelAvailableOn.DataAvailabilityError):
+        with raises(ModelSiloLimit.AvailabilityError):
             self.ReadOnlyModel.objects.filter(id=1).delete()
