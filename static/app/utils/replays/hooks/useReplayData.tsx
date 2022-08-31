@@ -135,7 +135,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   }, [api, orgSlug, projectSlug, replayId]);
 
   const fetchAllRRwebEvents = useCallback(async () => {
-    const rootUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download&per_page=5`;
+    const rootUrl = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/?download`;
     let next: ParsedHeader = {
       href: rootUrl,
       results: true,
@@ -143,10 +143,13 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     };
 
     const segmentRanges: any = [];
+    // TODO(replay): It would be good to load the first page of results then
+    // start to render the UI while the next N pages continue to get fetched in
+    // the background.
     while (next.results) {
       const url = rootUrl + '&cursor=' + next.cursor;
 
-      const [data, _textStatus, resp] = await api.requestPromise(url.toString(), {
+      const [data, _textStatus, resp] = await api.requestPromise(url, {
         includeAllArgs: true,
       });
       segmentRanges.push(data);
