@@ -4,7 +4,7 @@ from typing import Collection, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
-Hash = int
+Hash = str
 Timestamp = int
 
 
