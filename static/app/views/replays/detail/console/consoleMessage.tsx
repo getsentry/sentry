@@ -163,6 +163,7 @@ function ConsoleMessage({
         level={breadcrumb.level}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
+        aria-current={isCurrent}
         {...timeHandlers}
       >
         <ErrorBoundary mini>
@@ -210,23 +211,6 @@ const Common = styled('div')<{
 
   transition: color 0.5s ease;
 
-  /*
-  Using radius of 3px instead of p.theme.borderRadius (4px) because this is an
-  inner radius to the border, and needs to be smaller to avoid gaps in the turn.
-  */
-  &:nth-child(1) {
-    border-top-left-radius: 3px;
-  }
-  &:nth-child(3) {
-    border-top-right-radius: 3px;
-  }
-  &:nth-last-child(1) {
-    border-bottom-right-radius: 3px;
-  }
-  &:nth-last-child(3) {
-    border-bottom-left-radius: 3px;
-  }
-
   border-bottom: ${p => {
     if (p.isCurrent) {
       return `1px solid ${p.theme.purple300}`;
@@ -266,13 +250,6 @@ const Icon = styled(Common)<{isOcurring?: boolean}>`
     height: 100%;
     width: ${space(0.5)};
     background-color: ${p => (p.isOcurring ? p.theme.focus : 'transparent')};
-  }
-
-  &:nth-child(1):after {
-    border-top-left-radius: 3px;
-  }
-  &:nth-last-child(3):after {
-    border-bottom-left-radius: 3px;
   }
 `;
 const Message = styled(Common)`
