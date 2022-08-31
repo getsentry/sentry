@@ -37,6 +37,10 @@ export type SearchItem = {
   deprecated?: boolean;
   desc?: string;
   documentation?: React.ReactNode;
+  /**
+   * The feature flag gating the search item
+   */
+  featureFlag?: string;
   ignoreMaxSearchItems?: boolean;
   kind?: FieldKind;
   title?: string;
