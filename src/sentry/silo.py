@@ -87,8 +87,8 @@ class SiloLimit(abc.ABC):
         def override(*args: Any, **kwargs: Any) -> Any:
             # It's important to do this check inside the override, so that tests
             # using `override_settings` or a similar context can change the value of
-            # settings.SILO_MODE effectively. Otherwise, availability
-            # would be immutably determined when the decorator is first evaluated.
+            # settings.SILO_MODE effectively. Otherwise, availability would be
+            # immutably determined when the decorator is first evaluated.
             current_mode = SiloMode.get_current_mode()
             is_available = current_mode in available_modes
 
