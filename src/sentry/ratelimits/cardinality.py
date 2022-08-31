@@ -24,7 +24,7 @@ from typing import Any, Collection, Iterator, Optional, Protocol, Sequence, Tupl
 
 from sentry.utils.services import Service
 
-Hash = str
+Hash = int
 Timestamp = int
 
 
@@ -74,8 +74,7 @@ class RequestedQuota:
 
 @dataclass(frozen=True)
 class GrantedQuota:
-    # The prefix from RequestedQuota
-    prefix: str
+    request: RequestedQuota
 
     # The subset of hashes that passed through.
     granted_unit_hashes: Collection[Hash]
@@ -86,8 +85,8 @@ class GrantedQuota:
 
 
 class CardinalityLimiter(Service):
-    def __init__(self, **options: Any) -> None:
-        pass
+    """
+    A kind of limiter that limits set cardinality instead of a rate/count.
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
