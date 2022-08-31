@@ -1,24 +1,30 @@
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional
 
 from django.utils.encoding import force_bytes
 
+if TYPE_CHECKING:
+    # Yes, really. Private classes.
+    # https://github.com/python/typeshed/issues/2928
+    from hashlib import _Hash
 
-def md5_text(*args):
+
+def md5_text(*args: Any) -> _Hash:
     m = _md5()
     for x in args:
         m.update(force_bytes(x, errors="replace"))
     return m
 
 
-def sha1_text(*args):
+def sha1_text(*args: Any) -> _Hash:
     m = _sha1()
     for x in args:
         m.update(force_bytes(x, errors="replace"))
     return m
 
 
-def hash_value(h, value):
+def hash_value(h: _Hash, value: Any) -> None:
     if value is None:
         h.update(b"\x00")
     elif value is True:
@@ -44,7 +50,9 @@ def hash_value(h, value):
         raise TypeError("Invalid hash value")
 
 
-def hash_values(values, seed=None, algorithm=_md5):
+def hash_values(
+    values: Iterable[Any], seed: Optional[str] = None, algorithm: Callable[[], _Hash] = _md5
+) -> str:
     h = _md5()
     if seed is not None:
         h.update(("%s\xff" % seed).encode("utf-8"))
