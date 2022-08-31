@@ -62,8 +62,13 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           onChange={selections =>
             setLogLevel(selections.map(selection => selection.value))
           }
+          size="sm"
         />
-        <SearchBar onChange={handleSearch} placeholder={t('Search console logs...')} />
+        <SearchBar
+          onChange={handleSearch}
+          placeholder={t('Search console logs...')}
+          size="sm"
+        />
       </ConsoleFilters>
 
       {filteredBreadcrumbs.length > 0 ? (
