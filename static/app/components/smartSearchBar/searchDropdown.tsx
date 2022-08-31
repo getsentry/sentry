@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import color from 'color';
 
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
+import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FieldKind} from 'sentry/utils/fields';
-
-import Button from '../button';
-import HotkeysLabel from '../hotkeysLabel';
-import Tag from '../tag';
 
 import SearchBarFlyout from './searchBarFlyout';
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
@@ -77,25 +76,25 @@ const SearchDropdown = ({
     )}
 
     <DropdownFooter>
-      <ShortcutsRow>
+      <ButtonBar gap={1}>
         {runShortcut &&
-          visibleShortcuts?.map(shortcut => {
-            return (
-              <ShortcutButtonContainer
-                key={shortcut.text}
-                onClick={() => runShortcut(shortcut)}
-              >
-                <HotkeyGlyphWrapper>
-                  <HotkeysLabel
-                    value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
-                  />
-                </HotkeyGlyphWrapper>
-                <IconWrapper>{shortcut.icon}</IconWrapper>
-                <HotkeyTitle>{shortcut.text}</HotkeyTitle>
-              </ShortcutButtonContainer>
-            );
-          })}
-      </ShortcutsRow>
+          visibleShortcuts?.map(shortcut => (
+            <Button
+              borderless
+              size="xs"
+              key={shortcut.text}
+              onClick={() => runShortcut(shortcut)}
+            >
+              <HotkeyGlyphWrapper>
+                <HotkeysLabel
+                  value={shortcut.hotkeys?.display ?? shortcut.hotkeys?.actual ?? []}
+                />
+              </HotkeyGlyphWrapper>
+              <IconWrapper>{shortcut.icon}</IconWrapper>
+              {shortcut.text}
+            </Button>
+          ))}
+      </ButtonBar>
       <Button size="xs" href="https://docs.sentry.io/product/sentry-basics/search/">
         Read the docs
       </Button>
@@ -109,17 +108,15 @@ type HeaderItemProps = {
   group: SearchGroup;
 };
 
-const HeaderItem = ({group}: HeaderItemProps) => {
-  return (
-    <SearchDropdownGroup key={group.title}>
-      <SearchDropdownGroupTitle>
-        {group.icon}
-        {group.title && group.title}
-        {group.desc && <span>{group.desc}</span>}
-      </SearchDropdownGroupTitle>
-    </SearchDropdownGroup>
-  );
-};
+const HeaderItem = ({group}: HeaderItemProps) => (
+  <SearchDropdownGroup key={group.title}>
+    <SearchDropdownGroupTitle>
+      {group.icon}
+      {group.title && group.title}
+      {group.desc && <span>{group.desc}</span>}
+    </SearchDropdownGroupTitle>
+  </SearchDropdownGroup>
+);
 
 type HighlightedRestOfWordsProps = {
   combinedRestWords: string;
@@ -228,42 +225,28 @@ const ItemTitle = ({item, searchSubstring, isChild}: ItemTitleProps) => {
   );
 };
 
-type KindTagProps = {kind: FieldKind; deprecated?: boolean};
+type KindTagProps = {
+  kind: FieldKind;
+  deprecated?: boolean;
+};
 
 const KindTag = ({kind, deprecated}: KindTagProps) => {
-  let text, tagType;
+  if (deprecated) {
+    return <Tag type="error">deprecated</Tag>;
+  }
+
   switch (kind) {
     case FieldKind.FUNCTION:
-      text = 'f(x)';
-      tagType = 'success';
-      break;
-    case FieldKind.MEASUREMENT:
-      text = 'field';
-      tagType = 'highlight';
-      break;
-    case FieldKind.BREAKDOWN:
-      text = 'field';
-      tagType = 'highlight';
-      break;
-    case FieldKind.TAG:
-      text = kind;
-      tagType = 'warning';
-      break;
     case FieldKind.NUMERIC_METRICS:
-      text = 'f(x)';
-      tagType = 'success';
-      break;
-    case FieldKind.FIELD:
+      return <Tag type="success">f(x)</Tag>;
+    case FieldKind.MEASUREMENT:
+    case FieldKind.BREAKDOWN:
+      return <Tag type="highlight">field</Tag>;
+    case FieldKind.TAG:
+      return <Tag type="warning">{kind}</Tag>;
     default:
-      text = kind;
+      return <Tag>{kind}</Tag>;
   }
-
-  if (deprecated) {
-    text = 'deprecated';
-    tagType = 'error';
-  }
-
-  return <Tag type={tagType}>{text}</Tag>;
 };
 
 type DropdownItemProps = {
@@ -560,27 +543,6 @@ const DropdownFooter = styled(`div`)`
   gap: ${space(1)};
 `;
 
-const ShortcutsRow = styled('div')`
-  flex-direction: row;
-  display: flex;
-  align-items: center;
-`;
-
-const ShortcutButtonContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: auto;
-  padding: 0 ${space(1.5)};
-
-  cursor: pointer;
-
-  :hover {
-    border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => color(p.theme.hover).darken(0.02).string()};
-  }
-`;
-
 const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.gray300};
   margin-right: ${space(0.5)};
@@ -599,10 +561,6 @@ const IconWrapper = styled('span')`
     align-items: center;
     justify-content: center;
   }
-`;
-
-const HotkeyTitle = styled(`span`)`
-  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Invalid = styled(`span`)`
