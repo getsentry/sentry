@@ -3,8 +3,8 @@ import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
-import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import Button from 'sentry/components/button';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
