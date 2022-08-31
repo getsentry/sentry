@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEmpty from 'lodash/isEmpty';
 
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -236,6 +237,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{
             prefix: t('Resource Type'),
           }}
+          triggerLabel={isEmpty(filters) ? t('Any') : null}
           multiple
           options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
             value: networkSpanResourceType,
@@ -254,6 +256,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{
             prefix: t('Status'),
           }}
+          triggerLabel={isEmpty(filters) ? t('Any') : null}
           multiple
           options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
             value: networkSpanStatusType,

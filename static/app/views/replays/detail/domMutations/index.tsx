@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEmpty from 'lodash/isEmpty';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -80,6 +81,7 @@ function DomMutations({replay}: Props) {
           triggerProps={{
             prefix: t('Event Type'),
           }}
+          triggerLabel={isEmpty(filters) ? t('Any') : null}
           multiple
           options={getDomMutationsTypes(actions).map(mutationEventType => ({
             value: mutationEventType,
@@ -104,7 +106,7 @@ function DomMutations({replay}: Props) {
             onMouseEnter={() => handleMouseEnter(mutation.crumb)}
             onMouseLeave={() => handleMouseLeave(mutation.crumb)}
           >
-            {i < actions.length - 1 && <StepConnector />}
+            {i < filteredDomMutations.length - 1 && <StepConnector />}
             <IconWrapper color={mutation.crumb.color}>
               <BreadcrumbIcon type={mutation.crumb.type} />
             </IconWrapper>
