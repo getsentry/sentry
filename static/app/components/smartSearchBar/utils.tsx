@@ -385,7 +385,7 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * The parent will become interactive if there exists a key "device".
  */
 export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
-  return [...tagKeys].reduce((groups, key) => {
+  return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
 
@@ -401,6 +401,7 @@ export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollect
       documentation: definition?.desc ?? '-',
       kind,
       deprecated: definition?.deprecated,
+      featureFlag: definition?.featureFlag,
     };
 
     const lastGroup = groups.at(-1);
@@ -442,7 +443,7 @@ export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollect
     }
 
     return [...groups, item];
-  }, [] as SearchItem[]);
+  }, []);
 };
 
 /**

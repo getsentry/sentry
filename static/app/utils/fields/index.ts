@@ -180,6 +180,10 @@ export interface FieldDefinition {
    */
   desc?: string;
   /**
+   * Feature flag that indicates gating of the field from use
+   */
+  featureFlag?: string;
+  /**
    * Additional keywords used when filtering via autocomplete
    */
   keywords?: string[];
