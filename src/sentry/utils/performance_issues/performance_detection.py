@@ -651,6 +651,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if self._overlaps_last_span(span):
             return False
 
+        expected_parent_id = self.source_span.get("parent_span_id", None)
+        parent_id = span.get("parent_span_id", None)
+        if not parent_id or parent_id != expected_parent_id:
+            return False
+
         span_hash = span.get("hash", None)
         if not span_hash:
             return False
