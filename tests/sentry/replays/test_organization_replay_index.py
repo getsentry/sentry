@@ -320,7 +320,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay1_id,
-                platform="javascript client",
+                platform="javascript",
                 dist="abc123",
                 user_id="123",
                 user_email="username@example.com",
