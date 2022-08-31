@@ -162,7 +162,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any):
     detected_problems = [
         (i, detector_type)
         for detector_type, d in used_perf_issue_detectors.items()
-        for i in d.stored_issues
+        for _, i in d.stored_issues
     ]
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
