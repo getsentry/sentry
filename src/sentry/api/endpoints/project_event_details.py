@@ -44,9 +44,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         if event.group_id:
             if (
-                features.has(
-                    "organizations:performance-issue-details-backend", project.organization
-                )
+                features.has("organizations:performance-issue", project.organization)
                 and event.get_event_type() == "transaction"
             ):
                 conditions = [[["has", ["group_ids", group_id]], "=", 1]]

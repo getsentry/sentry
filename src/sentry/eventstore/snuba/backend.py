@@ -198,7 +198,7 @@ class SnubaEventStorage(EventStorage):
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
                 org = Project.objects.select_related("organization").get(id=project_id)
-                if features.has("organizations:performance-issue-details-backend", org):
+                if features.has("organizations:performance-issue", org):
                     return event.for_group(Group.objects.get(id=group_id))
             else:
                 event.group_id = group_id
