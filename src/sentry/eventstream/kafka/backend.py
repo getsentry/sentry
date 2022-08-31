@@ -45,7 +45,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _get_headers_for_insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -94,7 +93,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             return {
                 **super()._get_headers_for_insert(
-                    group,
                     event,
                     is_new,
                     is_regression,
@@ -107,7 +105,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -131,7 +128,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
 
         return super().insert(
-            group,
             event,
             is_new,
             is_regression,
@@ -199,9 +195,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         concurrency = options.get(_CONCURRENCY_OPTION)
         logger.info(f"Starting post process forwarder to consume {entity} messages")
@@ -249,9 +245,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         consumer = self._build_consumer(
             entity,
@@ -279,9 +275,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         logger.debug("Starting post-process forwarder...")
 

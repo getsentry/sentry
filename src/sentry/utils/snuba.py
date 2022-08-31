@@ -1455,6 +1455,14 @@ def is_duration_measurement(key):
     ]
 
 
+def is_percentage_measurement(key):
+    return key in [
+        "measurements.frames_slow_rate",
+        "measurements.frames_frozen_rate",
+        "measurements.stall_percentage",
+    ]
+
+
 def is_span_op_breakdown(key):
     return isinstance(key, str) and get_span_op_breakdown_name(key) is not None
 

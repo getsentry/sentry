@@ -26,6 +26,16 @@ class Columns(Enum):
         discover_name="group_id",
         alias="issue.id",
     )
+    # This is needed to query transactions by group id
+    # in the Issue Details page. This will not be
+    # exposed to users through discover search.
+    GROUP_IDS = Column(
+        group_name=None,
+        event_name="group_ids",
+        transaction_name="group_ids",
+        discover_name=None,
+        alias="performance.issue_ids",
+    )
     PROJECT_ID = Column(
         group_name="events.project_id",
         event_name="project_id",

@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -18,46 +16,41 @@ interface AddIntegrationButtonProps
   reinstall?: boolean;
 }
 
-export default class AddIntegrationButton extends Component<AddIntegrationButtonProps> {
-  render() {
-    const {
-      provider,
-      buttonText,
-      onAddIntegration,
-      organization,
-      reinstall,
-      analyticsParams,
-      modalParams,
-      ...buttonProps
-    } = this.props;
+export function AddIntegrationButton({
+  provider,
+  buttonText,
+  onAddIntegration,
+  organization,
+  reinstall,
+  analyticsParams,
+  modalParams,
+  ...buttonProps
+}: AddIntegrationButtonProps) {
+  const label = buttonText || t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
 
-    const label =
-      buttonText || t(reinstall ? 'Enable' : 'Add %s', provider.metadata.noun);
-
-    return (
-      <Tooltip
-        disabled={provider.canAdd}
-        title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
+  return (
+    <Tooltip
+      disabled={provider.canAdd}
+      title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
+    >
+      <AddIntegration
+        provider={provider}
+        onInstall={onAddIntegration}
+        organization={organization}
+        analyticsParams={analyticsParams}
+        modalParams={modalParams}
       >
-        <AddIntegration
-          provider={provider}
-          onInstall={onAddIntegration}
-          organization={organization}
-          analyticsParams={analyticsParams}
-          modalParams={modalParams}
-        >
-          {onClick => (
-            <Button
-              disabled={!provider.canAdd}
-              {...buttonProps}
-              onClick={() => onClick()}
-              aria-label={t('Add integration')}
-            >
-              {label}
-            </Button>
-          )}
-        </AddIntegration>
-      </Tooltip>
-    );
-  }
+        {onClick => (
+          <Button
+            disabled={!provider.canAdd}
+            {...buttonProps}
+            onClick={() => onClick()}
+            aria-label={t('Add integration')}
+          >
+            {label}
+          </Button>
+        )}
+      </AddIntegration>
+    </Tooltip>
+  );
 }
