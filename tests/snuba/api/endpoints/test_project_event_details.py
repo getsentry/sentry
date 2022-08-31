@@ -133,7 +133,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
         def hack_pull_out_data(jobs, projects):
             _pull_out_data(jobs, projects)
             for job in jobs:
-                job["event"].group_ids = [self.group.id]
+                job["event"].groups = [self.group]
             return jobs, projects
 
         with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
