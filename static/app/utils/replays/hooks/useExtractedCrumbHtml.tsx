@@ -18,7 +18,7 @@ enum EventType {
   Plugin = 6,
 }
 
-type Extraction = {
+export type Extraction = {
   crumb: Crumb;
   html: string;
   timestamp: number;
