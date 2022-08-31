@@ -21,6 +21,9 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}
+    # no-op if they're already strings
+    if query_definition.tag_values_are_strings:
+        return results
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
         for column in query_definition.columns:
