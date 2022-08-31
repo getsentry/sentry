@@ -36,9 +36,11 @@ const List = styled('ul')<{cols: number}>`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: ${p =>
-    `minmax(auto, max-content) repeat(${
-      (p.cols - 2) * 2 + 1
-    }, max-content) minmax(auto, max-content)`};
+    p.cols <= 3
+      ? `minmax(auto, max-content) max-content minmax(auto, max-content) max-content minmax(auto, max-content)`
+      : `minmax(auto, max-content) repeat(${
+          (p.cols - 2) * 2 + 1
+        }, max-content) minmax(auto, max-content)`};
   flex-wrap: nowrap;
   align-items: center;
   overflow: hidden;
