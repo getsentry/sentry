@@ -1143,8 +1143,8 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
-    # Backend support for supporting performance issue: endpoints, serializers, etc.
-    "organizations:performance-issue-details-backend": False,
+    # Enable performance issues
+    "organizations:performance-issues": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1168,6 +1168,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable snowflake ids
+    "organizations:enable-snowflake-id": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1995,9 +1997,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
-            # We cross-build arm64 images on GH's Apple Intel runners
-            else "ghcr.io/getsentry/snuba-arm64-dev:latest",
+            "image": "ghcr.io/getsentry/snuba:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
@@ -2074,7 +2074,7 @@ SENTRY_DEVSERVICES = {
     ),
     "cdc": lambda settings, options: (
         {
-            "image": "getsentry/cdc:nightly",
+            "image": "ghcr.io/getsentry/cdc:latest",
             "pull": True,
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],

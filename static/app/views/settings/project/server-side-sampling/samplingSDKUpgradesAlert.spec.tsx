@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GlobalModal from 'sentry/components/globalModal';
 import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKUpgradesAlert';
 
-import {getMockData, mockedProjects, recommendedSdkUpgrades} from './utils';
+import {getMockData, mockedProjects, recommendedSdkUpgrades} from './testUtils';
 
 describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   it('does not render content', function () {
