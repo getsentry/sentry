@@ -1,6 +1,6 @@
 import {projectStatsToSeries} from 'sentry/views/settings/project/server-side-sampling/utils/projectStatsToSeries';
 
-import {outcomesWithoutClientDiscarded} from '../utils';
+import {outcomesWithoutClientDiscarded} from '../testUtils';
 
 describe('projectStatsToSeries', function () {
   it('returns correct series', function () {

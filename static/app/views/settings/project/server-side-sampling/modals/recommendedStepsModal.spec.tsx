@@ -12,7 +12,7 @@ import {
   mockedSamplingSdkVersions,
   recommendedSdkUpgrades,
   uniformRule,
-} from '../utils';
+} from '../testUtils';
 
 describe('Server-Side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {

@@ -13,7 +13,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, outcomesWithoutClientDiscarded} from '../utils';
+import {getMockData, outcomesWithoutClientDiscarded} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
