@@ -1,10 +1,9 @@
-import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
+import TextArea from 'sentry/components/forms/controls/textarea';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
-import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 
 type Props = {
@@ -75,6 +74,7 @@ function RulesPanel({
       <PanelBody>
         <InnerPanelBody>
           <StyledTextArea
+            monospace
             value={raw}
             spellCheck="false"
             autoComplete="off"
@@ -107,21 +107,18 @@ const InnerPanelBody = styled(PanelBody)`
   height: auto;
 `;
 
-const StyledTextArea = styled(TextareaAutosize)`
-  ${p => inputStyles(p)};
+const StyledTextArea = styled(TextArea)`
   height: 350px !important;
   overflow: auto;
   outline: 0;
   width: 100%;
   resize: none;
   margin: 0;
-  font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
   white-space: pre-wrap;
   line-height: ${space(3)};
   border: none;
   box-shadow: none;
-  padding: ${space(2)};
   color: transparent;
   text-shadow: 0 0 0 #9386a0;
 
