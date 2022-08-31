@@ -17,7 +17,7 @@ import {
   specificRule,
   TestComponent,
   uniformRule,
-} from './utils';
+} from './testUtils';
 
 describe('Server-Side Sampling', function () {
   let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
