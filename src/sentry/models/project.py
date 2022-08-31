@@ -17,7 +17,7 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
-from sentry import projectoptions
+from sentry import features, projectoptions
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
@@ -180,7 +180,9 @@ class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
                     max_length=50,
                 )
 
-        if SENTRY_USE_SNOWFLAKE:
+        if SENTRY_USE_SNOWFLAKE or features.has(
+            "organizations:enable-snowflake-id", self.organization
+        ):
             snowflake_redis_key = "project_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)
