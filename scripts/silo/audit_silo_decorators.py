@@ -11,7 +11,7 @@ import django.apps
 import django.urls
 
 
-def audit_mode_limits(format="json"):
+def audit_silo_limits(format="json"):
     """Lists which classes have had silo decorators applied."""
 
     from sentry.runner import configure
@@ -188,4 +188,4 @@ class EndpointPresentation(ConsolePresentation):
 
 
 if __name__ == "__main__":
-    audit_mode_limits()
+    audit_silo_limits()
