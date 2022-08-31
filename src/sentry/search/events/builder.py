@@ -1,6 +1,20 @@
+import copy
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Match,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import sentry_sdk
 from django.utils import timezone
@@ -172,6 +186,7 @@ class QueryBuilder:
             equations=equations,
             orderby=orderby,
         )
+        self._non_nullable_keys = {"event.type"}
 
     def get_default_converter(self) -> Callable[[SearchFilter], Optional[WhereType]]:
         return self._default_filter_converter
@@ -1108,7 +1123,7 @@ class QueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
-            and name != "event.type"
+            and name not in self._non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
@@ -1588,10 +1603,129 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class SessionsQueryBuilder(QueryBuilder):
+    # ToDo(ahmed): Rename this to AlertsSessionsQueryBuilder as it is exclusively used for crash rate alerts
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
         return conditions
+
+
+class SessionsV2QueryBuilder(QueryBuilder):
+    condition_fields = {"project", "project_id", "environment", "release"}
+
+    def __init__(
+        self,
+        *args: Any,
+        granularity: Optional[int] = None,
+        extra_condition_fields: Optional[Sequence[str]] = None,
+        **kwargs: Any,
+    ):
+        self._granularity = granularity
+        self._extra_condition_fields = extra_condition_fields or []
+        self._non_nullable_keys = self.condition_fields
+        # Fields that if present in the select, then need to be in the group by as well
+        self.required_select_groupby = copy.copy(self.condition_fields)
+        self.required_select_groupby.remove("project")
+        super().__init__(*args, **kwargs)
+
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
+        return conditions
+
+    def resolve_groupby(self, groupby_columns: Optional[List[str]]) -> List[Column]:
+        return list(
+            {col for col in self.columns if col.name in self.required_select_groupby}
+            | {self.resolve_column(column) for column in groupby_columns}
+        )
+
+    def resolve_granularity(self):
+        if self._granularity is None:
+            return None
+        return Granularity(self._granularity)
+
+    def resolve_query(
+        self,
+        query: Optional[str] = None,
+        use_aggregate_conditions: bool = False,
+        selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
+        equations: Optional[List[str]] = None,
+        orderby: Optional[List[str]] = None,
+    ) -> None:
+        super().resolve_query(
+            query, use_aggregate_conditions, selected_columns, groupby_columns, equations, orderby
+        )
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
+            # Needs to happen before params and after time conditions since granularity can change start&end
+            self.granularity = self.resolve_granularity()
+
+    def get_snql_query(self) -> Request:
+        self.validate_having_clause()
+
+        return Request(
+            dataset=self.dataset.value,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value, sample=self.sample_rate),
+                select=self.columns,
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                granularity=self.granularity,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
+        )
+
+    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        if name in self.condition_fields or name in self._extra_condition_fields:
+            return super()._default_filter_converter(search_filter)
+        raise InvalidSearchQuery(f"Invalid search filter: {name}")
+
+
+class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
+    time_column = "bucketed_started"
+
+    def __init__(
+        self,
+        *args: Any,
+        extra_conditions: Optional[List[WhereType]] = None,
+        **kwargs: Any,
+    ):
+        self._extra_conditions = extra_conditions
+        super().__init__(*args, **kwargs)
+
+    def get_snql_query(self) -> Request:
+        self.validate_having_clause()
+
+        where = self.where
+        if self._extra_conditions:
+            where += self._extra_conditions
+
+        return Request(
+            dataset=self.dataset.value,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value, sample=self.sample_rate),
+                select=[Column(self.time_column)] + self.columns,
+                array_join=self.array_join,
+                where=where,
+                having=self.having,
+                groupby=[Column(self.time_column)] + self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                granularity=self.granularity,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
+        )
 
 
 class MetricsQueryBuilder(QueryBuilder):

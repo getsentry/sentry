@@ -160,7 +160,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid query field: "foo"'}
+        assert response.data["detail"] == "Invalid search filter: foo"
 
         response = self.do_request(
             {
@@ -173,14 +173,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         # TODO: it would be good to provide a better error here,
         # since its not obvious where `message` comes from.
-        assert response.data == {"detail": 'Invalid query field: "message"'}
+        assert response.data["detail"] == "Invalid search filter: message"
 
     def test_illegal_query(self):
         response = self.do_request(
             {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["issue.id:123"]}
         )
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid query field: "group_id"'}
+        assert response.data["detail"] == "Invalid search filter: issue.id"
 
     def test_too_many_points(self):
         # default statsPeriod is 90d
