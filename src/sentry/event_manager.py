@@ -1901,9 +1901,7 @@ def _calculate_span_grouping(jobs, projects):
 @metrics.wraps("save_event.detect_performance_problems")
 def _detect_performance_problems(jobs, projects):
     for job in jobs:
-        data = job["data"]
-        performance_problems = detect_performance_problems(data)
-        job["performance_problems"] = performance_problems
+        job["performance_problems"] = detect_performance_problems(job["data"])
 
 
 @metrics.wraps("event_manager.save_transaction_events")
