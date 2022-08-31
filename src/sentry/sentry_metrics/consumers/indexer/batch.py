@@ -77,6 +77,7 @@ class IndexerBatch:
     def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
+        self.cardinality_limiter_state = None
 
     @metrics.wraps("process_messages.extract_messages")
     def extract_messages(self) -> None:
@@ -329,7 +330,9 @@ class IndexerBatch:
             new_messages.append(new_message)
 
         # TODO: move cardinality limits to separate thread
-        cardinality_limiter.apply_cardinality_limits(self.cardinality_limiter_state)
+        # Cardinality limiter state is optional such that it can be skipped in unit tests.
+        if self.cardinality_limiter_state is not None:
+            cardinality_limiter.apply_cardinality_limits(self.cardinality_limiter_state)
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

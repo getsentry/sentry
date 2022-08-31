@@ -133,6 +133,7 @@ def test_all_resolved(caplog, settings):
     )
 
     batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch.extract_messages()
     assert batch.extract_strings() == (
         {
             1: {
@@ -265,6 +266,7 @@ def test_metric_id_rate_limited(caplog, settings):
     )
 
     batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch.extract_messages()
     assert batch.extract_strings() == (
         {
             1: {
@@ -361,6 +363,7 @@ def test_tag_key_rate_limited(caplog, settings):
     )
 
     batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch.extract_messages()
     assert batch.extract_strings() == (
         {
             1: {
@@ -439,6 +442,7 @@ def test_tag_value_rate_limited(caplog, settings):
     )
 
     batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch.extract_messages()
     assert batch.extract_strings() == (
         {
             1: {
@@ -556,6 +560,7 @@ def test_one_org_limited(caplog, settings):
     )
 
     batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch.extract_messages()
     assert batch.extract_strings() == (
         {
             1: {
