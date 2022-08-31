@@ -255,7 +255,8 @@ class TableView extends Component<TableViewProps> {
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
-    let cell = fieldRenderer(dataRow, {organization, location});
+    const unit = tableData.meta.units?.[columnKey];
+    let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);

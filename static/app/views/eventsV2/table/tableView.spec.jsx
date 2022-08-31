@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
@@ -343,5 +343,53 @@ describe('TableView > CellActions', function () {
   it('does not have tooltip on integer value less than 999', function () {
     const wrapper = makeWrapper(initialData, rows, eventView);
     expect(wrapper.find('GridBody Tooltip').length).toEqual(2);
+  });
+
+  it('renders size columns correctly', function () {
+    const orgWithFeature = TestStubs.Organization({
+      features: ['discover-frontend-use-events-endpoint'],
+      projects: [TestStubs.Project()],
+    });
+    render(
+      <TableView
+        organization={orgWithFeature}
+        location={location}
+        eventView={EventView.fromLocation({
+          ...location,
+          query: {
+            ...location.query,
+            field: [
+              'title',
+              'p99(measurements.custom.kibibyte)',
+              'p99(measurements.custom.kilobyte)',
+            ],
+          },
+        })}
+        isLoading={false}
+        projects={initialData.organization.projects}
+        tableData={{
+          data: [
+            {
+              title: '/random/transaction/name',
+              'p99(measurements.custom.kibibyte)': 222.3,
+              'p99(measurements.custom.kilobyte)': 444.3,
+            },
+          ],
+          meta: {
+            title: 'string',
+            'p99(measurements.custom.kibibyte)': 'size',
+            'p99(measurements.custom.kilobyte)': 'size',
+            units: {
+              title: null,
+              'p99(measurements.custom.kibibyte)': 'kibibyte',
+              'p99(measurements.custom.kilobyte)': 'kilobyte',
+            },
+          },
+        }}
+        onChangeShowTags={onChangeShowTags}
+      />
+    );
+    expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
+    expect(screen.getByText('444.3 KB')).toBeInTheDocument();
   });
 });
