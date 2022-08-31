@@ -150,7 +150,6 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     # Create performance issues for duplicate spans first
     used_perf_issue_detectors = {
         DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
-        DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
     }
 
     for span in spans:
@@ -175,7 +174,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
 def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
     transaction_name = data.get("transaction")
-    first_span_id = problem[2][0]
+    spans_involved = problem["spans_involved"]
+    first_span_id = spans_involved[0]
     spans = data.get("spans", [])
     first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
     op = first_span["op"]
@@ -192,7 +192,7 @@ def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
         op=op,
         desc=desc,
         type=GroupType.PERFORMANCE_DUPLICATE_SPANS,
-        spans_involved=problem[2],
+        spans_involved=spans_involved,
     )
 
     return prepared_problem
