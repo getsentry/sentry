@@ -45,7 +45,7 @@ const SearchDropdown = ({
   searchSubstring = '',
   onClick = () => {},
 }: Props) => (
-  <StyledOverlay className={className} data-test-id="smart-search-dropdown">
+  <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
     {loading ? (
       <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
         <LoadingIndicator mini />
@@ -100,7 +100,7 @@ const SearchDropdown = ({
         Read the docs
       </Button>
     </DropdownFooter>
-  </StyledOverlay>
+  </SearchDropdownOverlay>
 );
 
 export default SearchDropdown;
@@ -407,7 +407,7 @@ const QueryItem = ({item}: QueryItemProps) => {
   );
 };
 
-const StyledOverlay = styled(Overlay)`
+const SearchDropdownOverlay = styled(Overlay)`
   position: absolute;
   top: 100%;
   left: -1px;

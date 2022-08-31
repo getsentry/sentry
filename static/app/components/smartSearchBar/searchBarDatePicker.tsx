@@ -80,7 +80,7 @@ const SearchBarDatePicker = ({
   const utc = isUtcIsoDate(dateString);
 
   return (
-    <StyledOverlay
+    <SearchBarDatePickerOverlay
       onMouseDown={e => e.stopPropagation()}
       data-test-id="search-bar-date-picker"
     >
@@ -124,7 +124,7 @@ const SearchBarDatePicker = ({
           />
         </UtcPickerLabel>
       </DatePickerFooter>
-    </StyledOverlay>
+    </SearchBarDatePickerOverlay>
   );
 };
 
@@ -175,7 +175,7 @@ const TimeInput = ({time, setTime}: TimeInputProps) => {
   );
 };
 
-const StyledOverlay = styled(Overlay)`
+const SearchBarDatePickerOverlay = styled(Overlay)`
   position: absolute;
   top: 100%;
   left: -1px;
