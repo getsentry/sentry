@@ -147,9 +147,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
     }
 
     # Create performance issues for duplicate spans first
-    used_perf_issue_detectors = {
-        DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
-    }
+    used_perf_issue_detectors = {DetectorType.DUPLICATE_SPANS_HASH}
 
     for span in spans:
         for _, detector in detectors.items():
@@ -159,8 +157,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     detected_problems = [
         (i, detector_type)
-        for detector_type, d in used_perf_issue_detectors.items()
-        for _, i in d.stored_problems
+        for detector_type in used_perf_issue_detectors
+        for _, i in detectors[detector_type].stored_problems.items()
     ]
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
@@ -173,13 +171,13 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
 def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
     transaction_name = data.get("transaction")
-    spans_involved = problem["spans_involved"]
+    spans_involved = problem.spans_involved
     first_span_id = spans_involved[0]
     spans = data.get("spans", [])
     first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
     op = first_span["op"]
     hash = first_span["hash"]
-    desc = first_span["desc"]
+    desc = first_span["description"]
 
     # TODO map detectors to the group type enum
     group_fingerprint = fingerprint_group(
