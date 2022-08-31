@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -26,12 +26,18 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Group, GroupReprocessing, NewQuery, Organization, User} from 'sentry/types';
+import {
+  Group,
+  GroupReprocessing,
+  InboxDetails,
+  NewQuery,
+  Organization,
+  User,
+} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
@@ -85,15 +91,15 @@ function BaseGroupRow({
 
   const {selection} = usePageFilters();
 
-  const lastInboxState = usePrevious(group.inbox);
+  const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
   const reviewed =
-    isForReviewQuery(query) &&
-    lastInboxState !== false &&
-    lastInboxState?.reason !== undefined &&
-    group.inbox === false;
-
-  const actionTaken = group.status !== 'unresolved';
+    // Original state had an inbox reason
+    originalInboxState.current?.reason !== undefined &&
+    // Updated state has been removed from inbox
+    !group.inbox &&
+    // Only apply reviewed on the "for review" tab
+    isForReviewQuery(query);
 
   const {period, start, end} = selection.datetime || {};
   const summary =
@@ -392,8 +398,6 @@ function BaseGroupRow({
       data-test-reviewed={reviewed}
       onClick={displayReprocessingLayout ? undefined : toggleSelect}
       reviewed={reviewed}
-      unresolved={group.status === 'unresolved'}
-      actionTaken={actionTaken}
       useTintRow={useTintRow ?? true}
     >
       {canSelect && (
@@ -455,9 +459,7 @@ export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
-  actionTaken: boolean;
   reviewed: boolean;
-  unresolved: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
@@ -466,8 +468,7 @@ const Wrapper = styled(PanelItem)<{
 
   ${p =>
     p.useTintRow &&
-    (p.reviewed || !p.unresolved) &&
-    !p.actionTaken &&
+    p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;
