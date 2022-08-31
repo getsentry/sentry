@@ -130,7 +130,7 @@ def get_default_detection_settings():
     }
 
 
-def _detect_performance_problems(data: Event, sdk_span: Any):
+def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
     spans = data.get("spans", [])
 
@@ -180,20 +180,20 @@ def prepare_problem_for_grouping(problem: PerformanceSpanProblem, data: Event):
     first_span = next((span for span in spans if span["span_id"] == first_span_id), None)
     op = first_span["op"]
     hash = first_span["hash"]
+    desc = first_span["desc"]
 
     # TODO map detectors to the group type enum
     group_fingerprint = fingerprint_group(
         transaction_name, op, hash, GroupType.PERFORMANCE_DUPLICATE_SPANS
     )
 
-    prepared_problem = {
-        "fingerprint": group_fingerprint,
-        "op": op,
-        "desc": first_span["desc"],
-        # TODO get real type here
-        "type": GroupType.PERFORMANCE_DUPLICATE_SPANS,
-        "spans_involved": problem[2],
-    }
+    prepared_problem = PerformanceProblem(
+        fingerprint=group_fingerprint,
+        op=op,
+        desc=desc,
+        type=GroupType.PERFORMANCE_DUPLICATE_SPANS,
+        spans_involved=problem[2],
+    )
 
     return prepared_problem
 
