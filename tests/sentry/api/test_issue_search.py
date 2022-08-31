@@ -11,9 +11,11 @@ from sentry.api.event_search import (
 )
 from sentry.api.issue_search import (
     convert_actor_or_none_value,
+    convert_category_value,
     convert_first_release_value,
     convert_query_values,
     convert_release_value,
+    convert_type_value,
     convert_user_value,
     parse_search_query,
     value_converters,
@@ -247,3 +249,35 @@ class ConvertFirstReleaseValueTest(TestCase):
             release.version
         ]
         assert convert_first_release_value(["14.*"], [self.project], self.user, None) == ["14.*"]
+
+
+class ConvertCategoryValueTest(TestCase):
+    def test(self):
+        with self.feature("organizations:performance-issues"):
+            assert convert_category_value(["error"], [self.project], self.user, None) == [1]
+            assert convert_category_value(["performance"], [self.project], self.user, None) == [
+                1000,
+                1001,
+            ]
+            assert convert_category_value(
+                ["error", "performance"], [self.project], self.user, None
+            ) == [1, 1000, 1001]
+            with pytest.raises(InvalidSearchQuery):
+                convert_category_value(["hellboy"], [self.project], self.user, None)
+
+
+class ConvertTypeValueTest(TestCase):
+    def test(self):
+        with self.feature("organizations:performance-issues"):
+            assert convert_type_value(["error"], [self.project], self.user, None) == [1]
+            assert convert_type_value(
+                ["performance_n_plus_one"], [self.project], self.user, None
+            ) == [1000]
+            assert convert_type_value(
+                ["performance_slow_span"], [self.project], self.user, None
+            ) == [1001]
+            assert convert_type_value(
+                ["error", "performance_n_plus_one"], [self.project], self.user, None
+            ) == [1, 1000]
+            with pytest.raises(InvalidSearchQuery):
+                convert_type_value(["hellboy"], [self.project], self.user, None)
