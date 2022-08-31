@@ -77,6 +77,7 @@ function ReplaysContent({
         replays={replays}
         showProjectColumn={false}
         sort={eventView.sorts[0]}
+        origin="transaction-summary"
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>

@@ -23,6 +23,7 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 type Props = {
   isFetching: boolean;
+  origin: string;
   replays: undefined | ReplayListRecord[];
   showProjectColumn: boolean;
   sort: Sort;
@@ -31,6 +32,7 @@ type Props = {
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
+  origin: string;
   replay: ReplayListRecord;
   showProjectColumn: boolean;
 };
@@ -72,7 +74,7 @@ function SortableHeader({
   );
 }
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+function ReplayTable({isFetching, origin, replays, showProjectColumn, sort}: Props) {
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
@@ -116,10 +118,11 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
       {replays?.map(replay => (
         <ReplayTableRow
           key={replay.id}
-          replay={replay}
-          organization={organization}
-          showProjectColumn={showProjectColumn}
           minWidthIsSmall={minWidthIsSmall}
+          organization={organization}
+          origin={origin}
+          replay={replay}
+          showProjectColumn={showProjectColumn}
         />
       ))}
     </StyledPanelTable>
@@ -129,6 +132,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
 function ReplayTableRow({
   minWidthIsSmall,
   organization,
+  origin,
   replay,
   showProjectColumn,
 }: RowProps) {
@@ -140,7 +144,7 @@ function ReplayTableRow({
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`}
+            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?origin=${origin}`}
           >
             {replay.user.username ||
               replay.user.name ||

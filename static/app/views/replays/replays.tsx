@@ -106,6 +106,7 @@ function Replays({location}: Props) {
           />
           <ReplayTable
             isFetching={isFetching}
+            origin="replay-list"
             replays={replays}
             showProjectColumn={minWidthIsSmall}
             sort={eventView.sorts[0]}
