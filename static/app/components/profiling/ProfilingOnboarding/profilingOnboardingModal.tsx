@@ -521,6 +521,8 @@ const StepIndicator = styled('span')`
 `;
 
 const PreContainer = styled('pre')`
+  overflow: scroll;
+
   code {
     white-space: pre;
   }
