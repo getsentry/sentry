@@ -11,7 +11,7 @@ type Props = {
   Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'>;
 
 // Constrain the number of visible suggestions
-const MAX_SUGGESTIONS = 5;
+const MAX_SUGGESTIONS = 3;
 
 const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props) => {
   const [firstSuggestion, ...suggestedOwners] = owners;
