@@ -190,7 +190,7 @@ class KeyResults:
         return self.results[org_id]
 
 
-class StringIndexer(Service):
+class StringIndexer:
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
@@ -200,9 +200,7 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -237,7 +235,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -245,7 +243,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -257,7 +255,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only
@@ -266,3 +264,11 @@ class StringIndexer(Service):
         Returns None if the entry cannot be found.
         """
         raise NotImplementedError()
+
+
+class IndexerApi(Service):
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        raise NotImplementedError
+
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+        raise NotImplementedError

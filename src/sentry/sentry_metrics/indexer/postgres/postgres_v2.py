@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
+    IndexerApi,
     KeyCollection,
     KeyResult,
     KeyResults,
@@ -38,7 +39,10 @@ class PGStringIndexerV2(StringIndexer):
     and the corresponding reverse lookup.
     """
 
-    def _get_db_records(self, use_case_id: UseCaseKey, db_keys: KeyCollection) -> Any:
+    def __init__(self, use_case_id: UseCaseKey) -> None:
+        self.use_case_id = use_case_id
+
+    def _get_db_records(self, db_keys: KeyCollection) -> Any:
         conditions = []
         for pair in db_keys.as_tuples():
             organization_id, string = pair
@@ -46,18 +50,16 @@ class PGStringIndexerV2(StringIndexer):
 
         query_statement = reduce(or_, conditions)
 
-        return self._table(use_case_id).objects.filter(query_statement)
+        return self._table(self.use_case_id).objects.filter(query_statement)
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         db_read_keys = KeyCollection(org_strings)
 
         db_read_key_results = KeyResults()
         db_read_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(use_case_id, db_read_keys)
+                for db_obj in self._get_db_records(db_read_keys)
             ],
             FetchType.DB_READ,
         )
@@ -77,10 +79,12 @@ class PGStringIndexerV2(StringIndexer):
         if db_write_keys.size == 0:
             return db_read_key_results
 
-        config = get_ingest_config(use_case_id, IndexerStorage.POSTGRES)
+        config = get_ingest_config(self.use_case_id, IndexerStorage.POSTGRES)
         writes_limiter = writes_limiter_factory.get_ratelimiter(config)
 
-        with writes_limiter.check_write_limits(use_case_id, db_write_keys) as writes_limiter_state:
+        with writes_limiter.check_write_limits(
+            self.use_case_id, db_write_keys
+        ) as writes_limiter_state:
             # After the DB has successfully committed writes, we exit this
             # context manager and consume quotas. If the DB crashes we
             # shouldn't consume quota.
@@ -102,38 +106,42 @@ class PGStringIndexerV2(StringIndexer):
             for write_pair in filtered_db_write_keys.as_tuples():
                 organization_id, string = write_pair
                 new_records.append(
-                    self._table(use_case_id)(organization_id=int(organization_id), string=string)
+                    self._table(self.use_case_id)(
+                        organization_id=int(organization_id), string=string
+                    )
                 )
 
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
                 # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
                 # records might have be created between when we queried in `bulk_record` and the
                 # attempt to create the rows down below.
-                self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
+                self._table(self.use_case_id).objects.bulk_create(
+                    new_records, ignore_conflicts=True
+                )
 
         db_write_key_results = KeyResults()
         db_write_key_results.add_key_results(
             [
                 KeyResult(org_id=db_obj.organization_id, string=db_obj.string, id=db_obj.id)
-                for db_obj in self._get_db_records(use_case_id, filtered_db_write_keys)
+                for db_obj in self._get_db_records(filtered_db_write_keys)
             ],
             fetch_type=FetchType.FIRST_SEEN,
         )
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+        result = self.bulk_record(org_strings={org_id: {string}})
         return result[org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
 
         """
-        table = self._table(use_case_id)
+        table = self._table(self.use_case_id)
         try:
             id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
         except table.DoesNotExist:
@@ -141,12 +149,12 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
-        table = self._table(use_case_id)
+        table = self._table(self.use_case_id)
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
@@ -161,5 +169,23 @@ class PGStringIndexerV2(StringIndexer):
 
 
 class PostgresIndexer(StaticStringIndexer):
-    def __init__(self) -> None:
-        super().__init__(CachingIndexer(indexer_cache, PGStringIndexerV2()))
+    def __init__(self, use_case_id: UseCaseKey) -> None:
+        super().__init__(CachingIndexer(indexer_cache, PGStringIndexerV2(use_case_id), use_case_id))
+
+
+class PostgresApi(IndexerApi):
+    __all__ = ("resolve", "reverse_resolve")
+
+    def __init__(
+        self,
+    ) -> None:
+        self.indexers = {
+            UseCaseKey.PERFORMANCE: PostgresIndexer(UseCaseKey.PERFORMANCE),
+            UseCaseKey.RELEASE_HEALTH: PostgresIndexer(UseCaseKey.RELEASE_HEALTH),
+        }
+
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        return self.indexers[use_case_id].resolve(org_id, string)
+
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+        return self.indexers[use_case_id].reverse_resolve(org_id, id)

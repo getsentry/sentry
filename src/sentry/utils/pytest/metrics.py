@@ -22,7 +22,7 @@ STRINGS_THAT_LOOK_LIKE_TAG_VALUES = (
 def control_metrics_access(monkeypatch, request, set_sentry_option):
     from sentry.sentry_metrics import indexer
     from sentry.sentry_metrics.configuration import UseCaseKey
-    from sentry.sentry_metrics.indexer.mock import MockIndexer
+    from sentry.sentry_metrics.indexer.mock import MockApi
     from sentry.snuba import tasks
     from sentry.utils import snuba
 
@@ -30,13 +30,11 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
     set_sentry_option("sentry-metrics.performance.tags-values-are-strings", False)
 
     if "sentry_metrics" in {mark.name for mark in request.node.iter_markers()}:
-        mock_indexer = MockIndexer()
-        monkeypatch.setattr("sentry.sentry_metrics.indexer.backend", mock_indexer)
-        monkeypatch.setattr("sentry.sentry_metrics.indexer.bulk_record", mock_indexer.bulk_record)
-        monkeypatch.setattr("sentry.sentry_metrics.indexer.record", mock_indexer.record)
-        monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", mock_indexer.resolve)
+        mock_indexer_api = MockApi()
+        monkeypatch.setattr("sentry.sentry_metrics.indexer.backend", mock_indexer_api)
+        monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", mock_indexer_api.resolve)
         monkeypatch.setattr(
-            "sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer.reverse_resolve
+            "sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer_api.reverse_resolve
         )
 
         tag_values_are_strings = (
@@ -106,7 +104,6 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
             return old_fn(*args, **kwargs)
 
         monkeypatch.setattr(indexer, "resolve", functools.partial(fail, indexer.resolve))
-        monkeypatch.setattr(indexer, "bulk_record", functools.partial(fail, indexer.bulk_record))
 
         yield
 

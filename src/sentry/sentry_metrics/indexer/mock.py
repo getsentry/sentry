@@ -24,14 +24,12 @@ class RawSimpleIndexer(StringIndexer):
         )
         self._reverse: Dict[int, str] = {}
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         db_read_keys = KeyCollection(org_strings)
         db_read_key_results = KeyResults()
         for org_id, strs in org_strings.items():
             for string in strs:
-                id = self.resolve(use_case_id, org_id, string)
+                id = self.resolve(org_id, string)
                 if id is not None:
                     db_read_key_results.add_key_result(
                         KeyResult(org_id=org_id, string=string, id=id), fetch_type=FetchType.DB_READ
@@ -51,14 +49,14 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, org_id: int, string: str) -> Optional[int]:
         return self._record(org_id, string)
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         strs = self._strings[org_id]
         return strs.get(string)
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
     def _record(self, org_id: int, string: str) -> Optional[int]:
@@ -69,7 +67,7 @@ class RawSimpleIndexer(StringIndexer):
 
 
 class SimpleIndexer(StaticStringIndexer):
-    def __init__(self) -> None:
+    def __init__(self, use_case_id: UseCaseKey) -> None:
         super().__init__(RawSimpleIndexer())
 
 
@@ -77,3 +75,21 @@ class MockIndexer(SimpleIndexer):
     """
     Mock string indexer. Comes with a prepared set of strings.
     """
+
+
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.indexer.base import IndexerApi
+
+
+class MockApi(IndexerApi):
+    def __init__(self) -> None:
+        self.indexers = {
+            UseCaseKey.PERFORMANCE: MockIndexer(UseCaseKey.PERFORMANCE),
+            UseCaseKey.RELEASE_HEALTH: MockIndexer(UseCaseKey.RELEASE_HEALTH),
+        }
+
+    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+        return self.indexers[use_case_id].resolve(org_id, string)
+
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+        return self.indexers[use_case_id].reverse_resolve(org_id, id)

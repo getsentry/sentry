@@ -98,17 +98,18 @@ class StringIndexerCache:
 
 
 class CachingIndexer(StringIndexer):
-    def __init__(self, cache: StringIndexerCache, indexer: StringIndexer) -> None:
+    def __init__(
+        self, cache: StringIndexerCache, indexer: StringIndexer, use_case_id: UseCaseKey
+    ) -> None:
         self.cache = cache
         self.indexer = indexer
+        self.use_case_id = use_case_id
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         cache_keys = KeyCollection(org_strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
-        cache_results = self.cache.get_many(cache_key_strs, use_case_id.value)
+        cache_results = self.cache.get_many(cache_key_strs, self.use_case_id.value)
 
         hits = [k for k, v in cache_results.items() if v is not None]
         metrics.incr(
@@ -139,31 +140,31 @@ class CachingIndexer(StringIndexer):
         if db_record_keys.size == 0:
             return cache_key_results
 
-        db_record_key_results = self.indexer.bulk_record(use_case_id, db_record_keys.mapping)
+        db_record_key_results = self.indexer.bulk_record(db_record_keys.mapping)
         self.cache.set_many(
-            db_record_key_results.get_mapped_key_strings_to_ints(), use_case_id.value
+            db_record_key_results.get_mapped_key_strings_to_ints(), self.use_case_id.value
         )
         return cache_key_results.merge(db_record_key_results)
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
+    def record(self, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(org_strings={org_id: {string}})
         return result[org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         key = f"{org_id}:{string}"
-        result = self.cache.get(key, use_case_id.value)
+        result = self.cache.get(key, self.use_case_id.value)
 
         if result and isinstance(result, int):
             metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "true", "caller": "resolve"})
             return result
 
         metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
-        id = self.indexer.resolve(use_case_id, org_id, string)
+        id = self.indexer.resolve(org_id, string)
 
         if id is not None:
-            self.cache.set(key, id, use_case_id.value)
+            self.cache.set(key, id, self.use_case_id.value)
 
         return id
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
-        return self.indexer.reverse_resolve(use_case_id, org_id, id)
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
+        return self.indexer.reverse_resolve(org_id, id)

@@ -42,9 +42,10 @@ class RawCloudSpannerIndexer(StringIndexer):
     and the corresponding reverse lookup.
     """
 
-    def __init__(self, instance_id: str, database_id: str) -> None:
+    def __init__(self, instance_id: str, database_id: str, use_case_id: UseCaseKey) -> None:
         self.instance_id = instance_id
         self.database_id = database_id
+        self.use_case_id = use_case_id
         spanner_client = spanner.Client()
         self.instance = spanner_client.instance(self.instance_id)
         self.database = self.instance.database(self.database_id)
@@ -60,30 +61,30 @@ class RawCloudSpannerIndexer(StringIndexer):
                 # TODO: What is the correct way to handle connection errors?
                 pass
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         # Currently just calls record() on each item. We may want to consider actually recording
         # in batches though.
         key_results = KeyResults()
 
         for (org_id, strings) in org_strings.items():
             for string in strings:
-                result = self.record(use_case_id, org_id, string)
+                result = self.record(org_id, string)
                 key_results.add_key_result(KeyResult(org_id, string, result))
 
         return key_results
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def record(self, org_id: int, string: str) -> Optional[int]:
         raise NotImplementedError
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         raise NotImplementedError
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, org_id: int, id: int) -> Optional[str]:
         raise NotImplementedError
 
 
 class CloudSpannerIndexer(StaticStringIndexer):
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs)))
+    def __init__(self, use_case_id: UseCaseKey, **kwargs: Any) -> None:
+        super().__init__(
+            CachingIndexer(indexer_cache, RawCloudSpannerIndexer(**kwargs), use_case_id)
+        )

@@ -3,7 +3,11 @@ from typing import Callable, Mapping
 
 from arroyo.types import Message
 
-from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import (
+    IndexerStorage,
+    MetricsIngestConfiguration,
+    UseCaseKey,
+)
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import StringIndexer
@@ -14,7 +18,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
+STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[UseCaseKey], StringIndexer]] = {
     IndexerStorage.CLOUDSPANNER: CloudSpannerIndexer,
     IndexerStorage.POSTGRES: PostgresIndexer,
     IndexerStorage.MOCK: MockIndexer,
@@ -23,7 +27,9 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
 
 class MessageProcessor:
     def __init__(self, config: MetricsIngestConfiguration):
-        self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
+        self._indexer = STORAGE_TO_INDEXER[config.db_backend](
+            config.use_case_id, **config.db_backend_options
+        )
         self._config = config
 
     def process_messages(
@@ -53,9 +59,7 @@ class MessageProcessor:
         org_strings = batch.extract_strings()
 
         with metrics.timer("metrics_consumer.bulk_record"):
-            record_result = self._indexer.bulk_record(
-                use_case_id=self._config.use_case_id, org_strings=org_strings
-            )
+            record_result = self._indexer.bulk_record(org_strings=org_strings)
 
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()
