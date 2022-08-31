@@ -106,7 +106,8 @@ const storeConfig: TagStoreDefinition = {
         key: FieldKey.TIMES_SEEN,
         name: 'Times Seen',
         isInput: true,
-        // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
+        // Below values are required or else SearchBar will attempt to get values
+        // This is required or else SearchBar will attempt to get values
         values: [],
         predefined: true,
       },

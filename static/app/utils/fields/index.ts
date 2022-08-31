@@ -432,7 +432,7 @@ type AllFieldKeys =
   | keyof typeof SPAN_OP_FIELDS
   | FieldKey;
 
-export const FIELDS: Record<AllFieldKeys, FieldDefinition> = {
+const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
@@ -1014,5 +1014,5 @@ export const DISCOVER_FIELDS = [
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {
-  return FIELDS[key] ?? null;
+  return FIELD_DEFINITIONS[key] ?? null;
 };
