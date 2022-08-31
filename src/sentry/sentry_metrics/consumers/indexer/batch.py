@@ -103,7 +103,7 @@ class IndexerBatch:
         self.cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
             self.use_case_id, self.parsed_payloads_by_offset
         )
-        for key in self.cardinality_limiter_state.keys_to_remove:
+        for offset in self.cardinality_limiter_state.keys_to_remove:
             metrics.incr(
                 "sentry_metrics.indexer.process_messages.dropped_message",
                 tags={
@@ -117,7 +117,8 @@ class IndexerBatch:
                         "reason": "cardinality_limit",
                     },
                 )
-            del self.parsed_payloads_by_offset[key]
+
+            self.skipped_offsets.add(offset)
 
     @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[int, Set[str]]:
@@ -202,13 +203,9 @@ class IndexerBatch:
                 )
                 continue
             new_payload_value = cast(
-                Optional[MutableMapping[Any, Any]],
-                self.parsed_payloads_by_offset.pop(partition_offset, None),
+                MutableMapping[Any, Any],
+                self.parsed_payloads_by_offset.pop(partition_offset),
             )
-
-            if new_payload_value:
-                # Assume we dropped it in self.limit_messages and already logged it.
-                continue
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]
