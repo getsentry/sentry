@@ -62,6 +62,9 @@ export type PerformanceEventParameters = {
     project_platforms: string;
     show_onboarding: boolean;
   };
+  'performance_views.relative_breakdown.selection': {
+    action: string;
+  };
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
@@ -199,4 +202,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.filter_dropdown.selection': 'Performance Views: Filter Dropdown',
   'performance_views.vital_detail.comparison_viewed':
     'Performance Views: Vital Detail Comparison Viewed',
+  'performance_views.relative_breakdown.selection':
+    'Performance Views: Select Relative Breakdown',
 };

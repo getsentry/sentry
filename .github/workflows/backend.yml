@@ -6,6 +6,10 @@ on:
       - master
   pull_request:
 
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   files-changed:
     name: detect what files changed
@@ -64,12 +68,12 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2]
+        instance: [0, 1, 2, 3]
         pg-version: ['9.6']
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 3
+      MATRIX_INSTANCE_TOTAL: 4
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -139,11 +143,10 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
-          unset USE_SNUBA
           export PYTEST_ADDOPTS="-m 'sentry_metrics and not broken_under_tags_values_as_strings'"
           export SENTRY_METRICS_SIMULATE_TAG_VALUES_IN_CLICKHOUSE=1
           make test-python-ci
+          make test-snuba
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
@@ -243,7 +246,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev-only-frozen.txt
 
-      - uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
+      - uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}

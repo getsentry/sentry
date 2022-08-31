@@ -13,8 +13,8 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
-  FIELDS,
   FieldValueType,
+  getFieldDefinition,
   MEASUREMENT_FIELDS,
   SpanOpBreakdown,
   WebVital,
@@ -500,7 +500,7 @@ export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string'
+  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size'
 >;
 
 export type PlotType = 'bar' | 'line' | 'area';
@@ -933,7 +933,7 @@ export function getColumnsAndAggregates(fields: string[]): {
   columns: string[];
 } {
   const aggregates = getAggregateFields(fields);
-  const columns = fields.filter(field => !!!aggregates.includes(field));
+  const columns = fields.filter(field => !aggregates.includes(field));
   return {columns, aggregates};
 }
 
@@ -972,7 +972,10 @@ export function getColumnsAndAggregatesAsStrings(fields: QueryFieldValue[]): {
  * This is useful when you need to format values in tooltips,
  * or in series markers.
  */
-export function aggregateOutputType(field: string): AggregationOutputType {
+export function aggregateOutputType(field: string | undefined): AggregationOutputType {
+  if (!field) {
+    return 'number';
+  }
   const result = parseFunction(field);
   if (!result) {
     return 'number';
@@ -1019,8 +1022,10 @@ export function aggregateFunctionOutputType(
 
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
-  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg].valueType as AggregationOutputType;
+  const fieldDef = getFieldDefinition(firstArg ?? '');
+
+  if (fieldDef !== null) {
+    return fieldDef.valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1055,8 +1060,10 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
 
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
-  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg].valueType as AggregationOutputType;
+  const fieldDef = getFieldDefinition(firstArg ?? '');
+
+  if (fieldDef !== null) {
+    return fieldDef.valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1196,8 +1203,10 @@ export function getColumnType(column: Column): ColumnType {
       return outputType;
     }
   } else if (column.kind === 'field') {
-    if (FIELDS.hasOwnProperty(column.field)) {
-      return FIELDS[column.field].valueType as ColumnType;
+    const fieldDef = getFieldDefinition(column.field);
+
+    if (fieldDef !== null) {
+      return fieldDef.valueType as ColumnType;
     }
     if (isMeasurement(column.field)) {
       return measurementType(column.field);

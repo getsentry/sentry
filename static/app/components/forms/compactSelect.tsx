@@ -404,7 +404,7 @@ const MenuHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
   z-index: 1;
 `;

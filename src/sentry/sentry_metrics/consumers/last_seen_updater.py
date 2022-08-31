@@ -16,7 +16,7 @@ from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
-from sentry.sentry_metrics.indexer.db import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
 from sentry.utils import json
 
 MAPPING_META = "mapping_meta"
@@ -29,7 +29,7 @@ def get_metrics():  # type: ignore
     return metrics
 
 
-class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]):  # type: ignore
+class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):
     def __init__(self, metrics: Any) -> None:
         self.__metrics = metrics
 
@@ -68,7 +68,7 @@ def _update_stale_last_seen(
     )
 
 
-class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
+class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):
     def __init__(self, metrics: Any, table: IndexerTable) -> None:
         self.__seen_ints: Set[int] = set()
         self.__metrics = metrics
@@ -125,7 +125,7 @@ def _last_seen_updater_processing_factory(
         process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
         collector=lambda: LastSeenUpdaterCollector(
-            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.db_model]
+            metrics=get_metrics(), table=TABLE_MAPPING[ingest_config.use_case_id]
         ),
     )
 
@@ -137,7 +137,7 @@ def get_last_seen_updater(
     auto_offset_reset: str,
     ingest_config: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
-) -> StreamProcessor:
+) -> StreamProcessor[KafkaPayload]:
     """
     The last_seen updater uses output from the metrics indexer to update the
     last_seen field in the sentry_stringindexer and sentry_perfstringindexer database

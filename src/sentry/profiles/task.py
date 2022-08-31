@@ -15,6 +15,7 @@ from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
@@ -42,10 +43,33 @@ def process_profile(
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
-    if _should_symbolicate(profile):
-        _symbolicate(profile=profile, project=project)
-    elif _should_deobfuscate(profile):
-        _deobfuscate(profile=profile, project=project)
+    try:
+        if _should_symbolicate(profile):
+            _symbolicate(profile=profile, project=project)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            key_id=key_id,
+            reason="failed-symbolication",
+        )
+        return
+
+    try:
+        if _should_deobfuscate(profile):
+            _deobfuscate(profile=profile, project=project)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            key_id=key_id,
+            reason="failed-deobfuscation",
+        )
+        return
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
@@ -244,6 +268,9 @@ def _track_outcome(
     key_id: Optional[int],
     reason: Optional[str] = None,
 ) -> None:
+    if not project.flags.has_profiles:
+        first_profile_received.send_robust(project=project, sender=Project)
+
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
@@ -298,6 +325,16 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return
+    finally:
+        # Assumes that the call tree is inserted into the
+        # event stream before the profile is inserted into
+        # the event stream.
+        #
+        # After inserting the call tree, we no longer need
+        # it, but if we don't delete it here, it will be
+        # inserted in the profile payload making it larger
+        # and slower.
+        del profile["call_trees"]
 
     processed_profiles_publisher.publish(
         "profiles-call-tree",
@@ -338,10 +375,18 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
             metrics.incr(
-                "profiling.insert_vroom_profile.error", tags={"platform": profile["platform"]}
+                "profiling.insert_vroom_profile.error",
+                tags={"platform": profile["platform"], "reason": "bad status"},
             )
             return False
         return True
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        metrics.incr(
+            "profiling.insert_vroom_profile.error",
+            tags={"platform": profile["platform"], "reason": "encountered error"},
+        )
+        return False
     finally:
         profile["received"] = original_timestamp
         profile["profile"] = ""

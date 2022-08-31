@@ -16,8 +16,17 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.api.event_search import SearchConfig, SearchFilter
+from sentry.replays.lib.query import (
+    Number,
+    QueryConfig,
+    String,
+    generate_valid_conditions,
+    get_valid_sort_commands,
+)
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -35,13 +44,18 @@ def query_replays_collection(
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
+    search_filters: List[SearchFilter],
 ) -> dict:
     """Query aggregated replay collection."""
     conditions = []
     if environment:
         conditions.append(Condition(Column("environment"), Op.IN, environment))
 
-    sort_ordering = make_sort_ordering(sort)
+    sort_ordering = get_valid_sort_commands(
+        sort,
+        default=OrderBy(Column("startedAt"), Direction.DESC),
+        query_config=ReplayQueryConfig(),
+    )
     paginators = make_pagination_values(limit, offset)
 
     response = query_replays_dataset(
@@ -51,6 +65,7 @@ def query_replays_collection(
         where=conditions,
         sorting=sort_ordering,
         pagination=paginators,
+        search_filters=search_filters,
     )
     return response["data"]
 
@@ -71,6 +86,7 @@ def query_replay_instance(
         ],
         sorting=[],
         pagination=None,
+        search_filters=[],
     )
     return response["data"]
 
@@ -82,6 +98,7 @@ def query_replays_dataset(
     where: List[Condition],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
+    search_filters: List[SearchFilter],
 ):
     query_options = {}
 
@@ -107,6 +124,8 @@ def query_replays_dataset(
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
                 # Discard short replays (5 seconds by arbitrary decision).
                 Condition(Column("duration"), Op.GTE, 5),
+                # User conditions.
+                *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
             ],
             orderby=sorting,
             groupby=[Column("replay_id")],
@@ -123,10 +142,14 @@ def query_replays_dataset(
 def make_select_statement() -> List[Union[Column, Function]]:
     """Return the selection that forms the base of our replays response payload."""
     return [
-        Column("replay_id"),
+        _strip_uuid_dashes("replay_id", Column("replay_id")),
         # First, non-null value of a collected array.
         _grouped_unique_scalar_value(column_name="title"),
-        _grouped_unique_scalar_value(column_name="project_id", alias="projectId"),
+        Function(
+            "toString",
+            parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
+            alias="projectId",
+        ),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
         _grouped_unique_scalar_value(column_name="release"),
@@ -144,16 +167,16 @@ def make_select_statement() -> List[Union[Column, Function]]:
             ],
             alias="user_ipAddress",
         ),
-        _grouped_unique_scalar_value(column_name="os_name", alias="osName"),
-        _grouped_unique_scalar_value(column_name="os_version", alias="osVersion"),
-        _grouped_unique_scalar_value(column_name="browser_name", alias="browserName"),
-        _grouped_unique_scalar_value(column_name="browser_version", alias="browserVersion"),
-        _grouped_unique_scalar_value(column_name="device_name", alias="deviceName"),
-        _grouped_unique_scalar_value(column_name="device_brand", alias="deviceBrand"),
-        _grouped_unique_scalar_value(column_name="device_family", alias="deviceFamily"),
-        _grouped_unique_scalar_value(column_name="device_model", alias="deviceModel"),
-        _grouped_unique_scalar_value(column_name="sdk_name", alias="sdkName"),
-        _grouped_unique_scalar_value(column_name="sdk_version", alias="sdkVersion"),
+        _grouped_unique_scalar_value(column_name="os_name"),
+        _grouped_unique_scalar_value(column_name="os_version"),
+        _grouped_unique_scalar_value(column_name="browser_name"),
+        _grouped_unique_scalar_value(column_name="browser_version"),
+        _grouped_unique_scalar_value(column_name="device_name"),
+        _grouped_unique_scalar_value(column_name="device_brand"),
+        _grouped_unique_scalar_value(column_name="device_family"),
+        _grouped_unique_scalar_value(column_name="device_model"),
+        _grouped_unique_scalar_value(column_name="sdk_name"),
+        _grouped_unique_scalar_value(column_name="sdk_version"),
         _grouped_unique_scalar_value(column_name="tags.key"),
         _grouped_unique_scalar_value(column_name="tags.value"),
         # Flatten array of arrays.
@@ -162,7 +185,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
             parameters=[
                 Lambda(
                     ["trace_id"],
-                    Function("toString", parameters=[Identifier("trace_id")]),
+                    _strip_uuid_dashes("trace_id", Identifier("trace_id")),
                 ),
                 Function(
                     "groupUniqArrayArray",
@@ -174,10 +197,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         Function(
             "arrayMap",
             parameters=[
-                Lambda(
-                    ["error_id"],
-                    Function("toString", parameters=[Identifier("error_id")]),
-                ),
+                Lambda(["error_id"], _strip_uuid_dashes("error_id", Identifier("error_id"))),
                 Function(
                     "groupUniqArrayArray",
                     parameters=[Column("error_ids")],
@@ -235,26 +255,67 @@ def _grouped_unique_scalar_value(
     )
 
 
-# Sort.
+# Filter
+
+replay_url_parser_config = SearchConfig(
+    numeric_keys={"duration", "countErrors", "countSegments"},
+    allowed_keys={
+        "projectId",
+        "platform",
+        "release",
+        "dist",
+        "duration",
+        "countErrors",
+        "countSegments",
+        "user.id",
+        "user.email",
+        "user.name",
+        "user.ipAddress",
+        "sdk.name",
+        "sdk.version",
+        "os.name",
+        "os.version",
+        "browser.name",
+        "browser.version",
+        "device.name",
+        "device.brand",
+        "device.model",
+        "device.family",
+    },
+)
 
 
-def make_sort_ordering(sort: Optional[str]) -> List[OrderBy]:
-    """Return the complete set of conditions to order our query by."""
-    if sort == "startedAt":
-        orderby = [OrderBy(Column("startedAt"), Direction.ASC)]
-    elif sort == "finishedAt":
-        orderby = [OrderBy(Column("finishedAt"), Direction.ASC)]
-    elif sort == "-finishedAt":
-        orderby = [OrderBy(Column("finishedAt"), Direction.DESC)]
-    elif sort == "duration":
-        orderby = [OrderBy(Column("duration"), Direction.ASC)]
-    elif sort == "-duration":
-        orderby = [OrderBy(Column("duration"), Direction.DESC)]
-    else:
-        # By default return the most recent replays.
-        orderby = [OrderBy(Column("startedAt"), Direction.DESC)]
+class ReplayQueryConfig(QueryConfig):
+    # Numeric filters.
+    duration = Number()
+    count_errors = Number(name="countErrors")
+    count_segments = Number(name="countSegments")
 
-    return orderby
+    # String filters.
+    platform = String()
+    agg_environment = String(field_alias="environment")
+    release = String()
+    dist = String()
+    user_id = String(field_alias="user.id")
+    user_email = String(field_alias="user.email")
+    user_name = String(field_alias="user.name")
+    user_ip_address = String(field_alias="user.ipAddress", query_alias="user_ipAddress")
+    os_name = String(field_alias="os.name")
+    os_version = String(field_alias="os.version")
+    browser_name = String(field_alias="browser.name")
+    browser_version = String(field_alias="browser.version")
+    device_name = String(field_alias="device.name")
+    device_brand = String(field_alias="device.brand")
+    device_family = String(field_alias="device.family")
+    device_model = String(field_alias="device.model")
+    sdk_name = String(field_alias="sdk.name")
+    sdk_version = String(field_alias="sdk.version")
+
+    # Sort keys
+    started_at = String(name="startedAt", is_filterable=False)
+    finished_at = String(name="finishedAt", is_filterable=False)
+    # Dedicated url parameter should be used.
+    project_id = String(field_alias="projectId", query_alias="projectId", is_filterable=False)
 
 
 # Pagination.
@@ -279,3 +340,16 @@ def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
         return int(value)
     except (ValueError, TypeError):
         return default
+
+
+def _strip_uuid_dashes(
+    input_name: str,
+    input_value: Expression,
+    alias: Optional[str] = None,
+    aliased: bool = True,
+):
+    return Function(
+        "replaceAll",
+        parameters=[Function("toString", parameters=[input_value]), "-", ""],
+        alias=alias or input_name if aliased else None,
+    )

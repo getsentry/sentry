@@ -13,6 +13,10 @@ on:
       - releases/**
   pull_request:
 
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   files-changed:
     name: detect what files changed
@@ -133,7 +137,7 @@ jobs:
         run: echo "::set-output name=webpack-path::.webpack_cache"
 
       - name: webpack cache
-        uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -211,7 +215,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@0865c47f36e68161719c5b124609996bb5c40129  # v3
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}

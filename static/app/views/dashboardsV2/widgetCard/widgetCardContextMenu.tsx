@@ -18,13 +18,13 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 
-import {UNSAVED_FILTERS_MESSAGE} from '../detail';
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
@@ -37,7 +37,6 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
-  hasUnsavedFilters?: boolean;
   index?: string;
   isPreview?: boolean;
   onDelete?: () => void;
@@ -45,6 +44,7 @@ type Props = {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
@@ -69,7 +69,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
-  hasUnsavedFilters,
+  seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -137,6 +137,7 @@ function WidgetCardContextMenu({
                       tableData,
                       pageLinks,
                       totalIssuesCount,
+                      seriesResultsType,
                     });
                   openWidgetViewerPath(index);
                 }}
@@ -215,8 +216,6 @@ function WidgetCardContextMenu({
       key: 'duplicate-widget',
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
     widgetLimitReached && disabledKeys.push('duplicate-widget');
 
@@ -224,8 +223,6 @@ function WidgetCardContextMenu({
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
 
     menuOptions.push({
@@ -239,8 +236,6 @@ function WidgetCardContextMenu({
           onConfirm: () => onDelete?.(),
         });
       },
-      tooltip: hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE,
-      tooltipOptions: {position: 'left'},
     });
   }
 
@@ -271,12 +266,7 @@ function WidgetCardContextMenu({
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             placement="bottom right"
-            disabledKeys={[
-              ...disabledKeys,
-              ...(hasUnsavedFilters
-                ? ['duplicate-widget', 'edit-widget', 'delete-widget']
-                : []),
-            ]}
+            disabledKeys={[...disabledKeys]}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
@@ -290,6 +280,7 @@ function WidgetCardContextMenu({
                   tableData,
                   pageLinks,
                   totalIssuesCount,
+                  seriesResultsType,
                 });
                 openWidgetViewerPath(widget.id ?? index);
               }}

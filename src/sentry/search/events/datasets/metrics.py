@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from snuba_sdk import AliasedExpression, Column, Function
+from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import options
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.transaction_threshold import (
@@ -20,7 +19,6 @@ from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 
 
 class MetricsDatasetConfig(DatasetConfig):
@@ -40,6 +38,9 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
             "transaction.duration": self._duration_filter_converter,  # Only for dry_run
             "environment": self.builder._environment_filter_converter,
+            "transaction": self._transaction_filter_converter,
+            "tags[transaction]": self._transaction_filter_converter,
+            constants.TITLE_ALIAS: self._transaction_filter_converter,
         }
 
     @property
@@ -50,10 +51,12 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
             constants.PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
+            "transaction": self._resolve_transaction_alias,
+            "tags[transaction]": self._resolve_transaction_alias,
         }
 
     def resolve_metric(self, value: str) -> int:
-        metric_id = self.resolve_value(constants.METRICS_MAP.get(value, value))
+        metric_id = self.builder.resolve_metric_index(constants.METRICS_MAP.get(value, value))
         if metric_id is None:
             # Maybe this is a custom measurment?
             for measurement in self.builder.custom_measurement_map:
@@ -65,53 +68,12 @@ class MetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
-    def resolve_tag_value(self, value: str) -> Union[str, int]:
-        if self.builder.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
-            return value
-        return self.resolve_value(value)
-
     def resolve_value(self, value: str) -> int:
         if self.builder.dry_run:
             return -1
-        value_id = self.builder.resolve_metric_index(value)
+        value_id = self.builder.resolve_tag_value(value)
 
         return value_id
-
-    def metric_type_resolver(
-        self, index: Optional[int] = 0
-    ) -> Callable[[List[fields.FunctionArg], Dict[str, Any]], str]:
-        """Return the type of the metric, default to duration
-
-        based on fields.reflective_result_type, but in this config since we need the _custom_measurement_cache
-        """
-
-        def result_type_fn(
-            function_arguments: List[fields.FunctionArg], parameter_values: Dict[str, Any]
-        ) -> str:
-            argument = function_arguments[index]
-            value = parameter_values[argument.name]
-            for measurement in self.builder.custom_measurement_map:
-                if measurement["name"] == value and measurement["metric_id"] is not None:
-                    unit = measurement["unit"]
-                    if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
-                        return unit
-                    elif unit == "none":
-                        return "integer"
-                    elif unit in constants.PERCENT_UNITS:
-                        return "percentage"
-                    else:
-                        return "number"
-            if (
-                value == "transaction.duration"
-                or is_duration_measurement(value)
-                or is_span_op_breakdown(value)
-            ):
-                return "duration"
-            return "number"
-
-        return result_type_fn
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
@@ -161,7 +123,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
@@ -195,7 +157,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            self.resolve_tag_value("<< unparameterized >>"),
+                                            self.builder.resolve_tag_value("<< unparameterized >>"),
                                         ],
                                     ),
                                 ],
@@ -226,7 +188,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             self.builder.column("transaction"),
-                                            0,
+                                            "" if self.builder.tag_values_are_strings else 0,
                                         ],
                                     ),
                                 ],
@@ -255,13 +217,21 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "and",
                                         [
                                             Function(
-                                                "notEquals", [self.builder.column("transaction"), 0]
+                                                "notEquals",
+                                                [
+                                                    self.builder.column("transaction"),
+                                                    ""
+                                                    if self.builder.tag_values_are_strings
+                                                    else 0,
+                                                ],
                                             ),
                                             Function(
                                                 "notEquals",
                                                 [
                                                     self.builder.column("transaction"),
-                                                    self.resolve_tag_value("<< unparameterized >>"),
+                                                    self.builder.resolve_tag_value(
+                                                        "<< unparameterized >>"
+                                                    ),
                                                 ],
                                             ),
                                         ],
@@ -303,7 +273,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -320,7 +290,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -337,7 +307,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -354,7 +324,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -371,7 +341,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -386,7 +356,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -403,7 +373,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "min",
@@ -419,7 +389,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "sum",
@@ -435,7 +405,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
                     "sumIf",
@@ -446,7 +416,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                            "fn": lambda args: self.builder.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_counter=lambda args, alias: Function(
@@ -472,7 +442,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile,
-                    result_type_fn=self.metric_type_resolver(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
@@ -510,7 +480,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     calculated_args=[
                         {
                             "name": "resolved_val",
-                            "fn": lambda args: self.resolve_tag_value(args["if_val"]),
+                            "fn": lambda args: self.builder.resolve_tag_value(args["if_val"]),
                         }
                     ],
                     snql_set=lambda args, alias: Function(
@@ -662,7 +632,7 @@ class MetricsDatasetConfig(DatasetConfig):
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
         """title == transaction in discover"""
-        return AliasedExpression(self.builder.resolve_column("transaction"), alias)
+        return self._resolve_transaction_alias(alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         if self.builder.dry_run:
@@ -675,6 +645,17 @@ class MetricsDatasetConfig(DatasetConfig):
         if self.builder.dry_run:
             return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
+
+    def _resolve_transaction_alias(self, alias: str) -> SelectType:
+        return Function(
+            "transform",
+            [
+                Column(self.builder.resolve_column_name("transaction")),
+                [0 if not self.builder.tag_values_are_strings else ""],
+                [self.builder.resolve_tag_value("<< unparameterized >>")],
+            ],
+            alias,
+        )
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
@@ -754,12 +735,17 @@ class MetricsDatasetConfig(DatasetConfig):
                 # and no project configs were set, we can skip it in the final query
                 continue
 
-            transaction_id = self.resolve_tag_value(transaction)
+            transaction_id = self.builder.resolve_tag_value(transaction)
             # Don't add to the config if we can't resolve it
             if transaction_id is None:
                 continue
             project_threshold_override_config_keys.append(
-                (Function("toUInt64", [project_id]), (Function("toUInt64", [transaction_id])))
+                (
+                    Function("toUInt64", [project_id]),
+                    transaction_id
+                    if self.builder.tag_values_are_strings
+                    else Function("toUInt64", [transaction_id]),
+                )
             )
             project_threshold_override_config_values.append(metric)
 
@@ -881,6 +867,37 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return self.builder._default_filter_converter(search_filter)
 
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        operator = search_filter.operator
+        value = search_filter.value.value
+
+        if operator in ("=", "!=") and value == "":
+            # !has:transaction
+            if operator == "=":
+                raise InvalidSearchQuery(
+                    "All events have a transaction so this query wouldn't return anything"
+                )
+            else:
+                # All events have a "transaction" since we map null -> unparam so no need to filter
+                return None
+
+        if isinstance(value, list):
+            resolved_value = []
+            for item in value:
+                resolved_item = self.builder.resolve_tag_value(item)
+                if resolved_item is None:
+                    raise IncompatibleMetricsQuery(f"Transaction value {item} in filter not found")
+                resolved_value.append(resolved_item)
+        else:
+            resolved_value = self.builder.resolve_tag_value(value)
+            if resolved_value is None:
+                raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
+        value = resolved_value
+
+        return Condition(
+            Column(self.builder.resolve_column_name("transaction")), Op(operator), value
+        )
+
     # Query Functions
     def _resolve_count_if(
         self,
@@ -914,8 +931,8 @@ class MetricsDatasetConfig(DatasetConfig):
                 "Cannot query apdex with a threshold parameter on the metrics dataset"
             )
 
-        metric_satisfied = self.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
-        metric_tolerated = self.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
+        metric_satisfied = self.builder.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
+        metric_tolerated = self.builder.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_satisfied is None and metric_tolerated is None:
@@ -984,7 +1001,7 @@ class MetricsDatasetConfig(DatasetConfig):
             raise IncompatibleMetricsQuery(
                 "Cannot query misery with a threshold parameter on the metrics dataset"
             )
-        metric_frustrated = self.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+        metric_frustrated = self.builder.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
 
         # Nobody is miserable, we can return 0
         if metric_frustrated is None:
@@ -1058,7 +1075,9 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        statuses = [self.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS]
+        statuses = [
+            self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
+        ]
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1146,7 +1165,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 alias,
             )
 
-        quality_id = self.resolve_tag_value(quality)
+        try:
+            quality_id = self.builder.resolve_tag_value(quality)
+        except IncompatibleMetricsQuery:
+            quality_id = None
+
         if quality_id is None:
             return Function(
                 # This matches the type from doing `select toTypeName(count()) ...` from clickhouse

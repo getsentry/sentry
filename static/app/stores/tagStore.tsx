@@ -81,14 +81,14 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.LAST_SEEN]: {
         key: FieldKey.LAST_SEEN,
         name: 'Last Seen',
-        values: ['-1h', '+1d', '-1w'],
-        predefined: true,
+        values: [],
+        predefined: false,
       },
       [FieldKey.FIRST_SEEN]: {
         key: FieldKey.FIRST_SEEN,
         name: 'First Seen',
-        values: ['-1h', '+1d', '-1w'],
-        predefined: true,
+        values: [],
+        predefined: false,
       },
       [FieldKey.FIRST_RELEASE]: {
         key: FieldKey.FIRST_RELEASE,
@@ -99,14 +99,15 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.EVENT_TIMESTAMP]: {
         key: FieldKey.EVENT_TIMESTAMP,
         name: 'Event Timestamp',
-        values: ['2017-01-02', '>=2017-01-02T01:00:00', '<2017-01-02T02:00:00'],
+        values: [],
         predefined: true,
       },
       [FieldKey.TIMES_SEEN]: {
         key: FieldKey.TIMES_SEEN,
         name: 'Times Seen',
         isInput: true,
-        // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
+        // Below values are required or else SearchBar will attempt to get values
+        // This is required or else SearchBar will attempt to get values
         values: [],
         predefined: true,
       },

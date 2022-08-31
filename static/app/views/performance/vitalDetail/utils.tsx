@@ -7,7 +7,7 @@ import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -223,7 +223,10 @@ export function getVitalChartDefinitions({
     tooltip: {
       trigger: 'axis',
       valueFormatter: (value: number, seriesName?: string) =>
-        tooltipFormatter(value, vital === WebVital.CLS ? seriesName : yAxis),
+        tooltipFormatter(
+          value,
+          aggregateOutputType(vital === WebVital.CLS ? seriesName : yAxis)
+        ),
     },
     yAxis: {
       min: 0,
@@ -232,7 +235,8 @@ export function getVitalChartDefinitions({
         color: theme.chartLabel,
         showMaxLabel: false,
         // coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType(yAxis)),
       },
     },
   };

@@ -7,14 +7,14 @@ from arroyo.backends.kafka import KafkaPayload
 from django.utils import timezone
 
 from sentry.metrics.dummy import DummyMetricsBackend
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.last_seen_updater import (
     LastSeenUpdaterMessageFilter,
     _last_seen_updater_processing_factory,
     _update_stale_last_seen,
     retrieve_db_read_keys,
 )
-from sentry.sentry_metrics.indexer.models import StringIndexer
+from sentry.sentry_metrics.indexer.postgres.models import StringIndexer
 from sentry.testutils.cases import TestCase
 
 
@@ -96,7 +96,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
     @staticmethod
     def processing_factory():
         return _last_seen_updater_processing_factory(
-            ingest_config=get_ingest_config(UseCaseKey.RELEASE_HEALTH),
+            ingest_config=get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES),
             max_batch_time=1.0,
             max_batch_size=1,
         )

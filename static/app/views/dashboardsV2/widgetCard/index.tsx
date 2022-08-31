@@ -24,7 +24,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -52,7 +52,6 @@ type Props = WithRouterProps & {
   widgetLimitReached: boolean;
   dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
-  hasUnsavedFilters?: boolean;
   hideToolbar?: boolean;
   index?: string;
   isMobile?: boolean;
@@ -73,6 +72,7 @@ type Props = WithRouterProps & {
 type State = {
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
@@ -162,10 +162,10 @@ class WidgetCard extends Component<Props, State> {
       router,
       location,
       index,
-      hasUnsavedFilters,
     } = this.props;
 
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
+      this.state;
 
     if (isEditing) {
       return null;
@@ -187,10 +187,10 @@ class WidgetCard extends Component<Props, State> {
         location={location}
         index={index}
         seriesData={seriesData}
+        seriesResultsType={seriesResultsType}
         tableData={tableData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
-        hasUnsavedFilters={hasUnsavedFilters}
       />
     );
   }
@@ -200,10 +200,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
+    timeseriesResultsTypes,
   }: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
     this.setState({
@@ -211,6 +213,7 @@ class WidgetCard extends Component<Props, State> {
       tableData: tableResults,
       totalIssuesCount,
       pageLinks,
+      seriesResultsType: timeseriesResultsTypes,
     });
   };
 

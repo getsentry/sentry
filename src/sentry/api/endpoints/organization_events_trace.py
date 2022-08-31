@@ -31,6 +31,7 @@ from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
+from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import Dataset, bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
@@ -254,7 +255,7 @@ def query_trace_data(
         referrer="api.trace-view.get-events",
     )
     transformed_results = [
-        discover.transform_results(result, query.function_alias_map, {}, None)["data"]
+        discover.transform_results(result, query, {}, None)["data"]
         for result, query in zip(results, [transaction_query, error_query])
     ]
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
@@ -318,6 +319,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             sentry_sdk.set_tag(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
+            set_measurement("trace_view.transactions", len_transactions)
             projects: Set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
@@ -325,6 +327,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
+            set_measurement("trace_view.projects", len_projects)
 
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):

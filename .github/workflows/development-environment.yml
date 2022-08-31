@@ -15,6 +15,10 @@ on:
       - 'src/sentry/runner/commands/devservices.py'
       - 'bin/load-mocks'
 
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   # This workflow is optimized to test the dev env with dev services as fast as possible
   # The bootstrap workflow (see last workflow) tests the experience of first time engineers
@@ -40,7 +44,9 @@ jobs:
       # NOTE: This can sometimes take up to 10 minutes
       - name: Install Docker
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --cask docker
+          # d4m 4.11+ never starts: https://github.com/docker/for-mac/issues/6450
+          curl -o /tmp/docker.rb https://raw.githubusercontent.com/Homebrew/homebrew-cask/fe866ec0765de141599745f03e215452db7f511b/Casks/docker.rb
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v --HEAD -s /tmp/docker.rb
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
 

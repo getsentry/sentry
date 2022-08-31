@@ -10,7 +10,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Topic
 
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
@@ -18,7 +18,7 @@ from sentry.sentry_metrics.consumers.indexer.common import (
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
-from sentry.sentry_metrics.consumers.indexer.processing import process_messages
+from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 
 
 pytestmark = pytest.mark.sentry_metrics
+
+MESSAGE_PROCESSOR = MessageProcessor(
+    get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
+)
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -275,7 +279,7 @@ def test_process_messages() -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    new_batch = process_messages(use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message)
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     expected_new_batch = [
         Message(
             m.partition,
@@ -293,7 +297,7 @@ def test_process_messages() -> None:
 
 
 def test_transform_step() -> None:
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
+    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
 
@@ -415,9 +419,7 @@ def test_process_messages_invalid_messages(
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
     with caplog.at_level(logging.ERROR):
-        new_batch = process_messages(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
-        )
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -473,15 +475,14 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    from sentry.sentry_metrics.indexer import backend
-
+    message_processor = MessageProcessor(
+        get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
+    )
     # Insert a None-value into the mock-indexer to simulate a rate-limit.
-    backend._strings[1]["rate_limited_test"] = None
+    message_processor._indexer.indexer._strings[1]["rate_limited_test"] = None
 
     with caplog.at_level(logging.ERROR):
-        new_batch = process_messages(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
-        )
+        new_batch = message_processor.process_messages(outer_message=outer_message)
 
     # we expect just the counter_payload msg to be left, as that one didn't
     # cause/depend on string writes that have been rate limited

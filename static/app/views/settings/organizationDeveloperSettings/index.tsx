@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import {removeSentryFunction} from 'sentry/actionCreators/sentryFunctions';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -20,7 +21,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import CreateIntegrationButton from 'sentry/views/organizationIntegrations/createIntegrationButton';
 import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 
@@ -93,8 +93,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       return;
     }
     removeSentryFunction(this.api, organization, sentryFunction).then(
-      () => {
-        this.setState({sentryFunctions: functionsToKeep});
+      isSuccess => {
+        if (isSuccess) {
+          this.setState({sentryFunctions: functionsToKeep});
+        }
       },
       () => {}
     );

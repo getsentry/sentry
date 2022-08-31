@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
 
-import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -126,7 +125,7 @@ class SimilarStackTrace extends Component<Props, State> {
       });
     }
 
-    GroupingActions.fetch(reqs);
+    GroupingStore.onFetch(reqs);
   }
 
   handleMerge = () => {
@@ -147,7 +146,7 @@ class SimilarStackTrace extends Component<Props, State> {
       ? this.state.similarItems
       : this.state.filteredSimilarItems;
 
-    GroupingActions.merge({
+    GroupingStore.onMerge({
       params,
       query,
       projectId: firstIssue.issue.project.slug,

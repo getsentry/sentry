@@ -797,10 +797,14 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             Condition(Column("org_id"), Op.EQ, self.organization.id),
         ]
 
-        for string in self.METRIC_STRINGS:
-            indexer.record(
-                use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string=string
-            )
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            for string in self.METRIC_STRINGS:
+                indexer.record(
+                    use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string=string
+                )
+            self.expected_tag_value_type = "UInt64"
+        else:
+            self.expected_tag_value_type = "String"
 
         indexer.record(
             use_case_id=UseCaseKey.PERFORMANCE, org_id=self.organization.id, string="transaction"
@@ -836,6 +840,30 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             timestamp=self.start + datetime.timedelta(minutes=5),
         )
 
+    def build_transaction_transform(self, alias):
+        if not options.get("sentry-metrics.performance.tags-values-are-strings"):
+            tags_col = "tags"
+            unparam = indexer.resolve(
+                UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>"
+            )
+            null = 0
+        else:
+            tags_col = "tags_raw"
+            unparam = "<< unparameterized >>"
+            null = ""
+
+        return Function(
+            "transform",
+            [
+                Column(
+                    f"{tags_col}[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
+                ),
+                [null],
+                [unparam],
+            ],
+            alias,
+        )
+
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_default_conditions(self):
@@ -854,18 +882,8 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             query.columns,
             [
-                AliasedExpression(
-                    Column(
-                        f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
-                    ),
-                    "tags[transaction]",
-                ),
-                AliasedExpression(
-                    Column(
-                        f"tags[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
-                    ),
-                    "transaction",
-                ),
+                self.build_transaction_transform("tags[transaction]"),
+                self.build_transaction_transform("transaction"),
             ],
         )
 
@@ -1054,10 +1072,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 *_metric_conditions(self.organization.id, ["transaction.duration"]),
             ],
         )
-        transaction = AliasedExpression(
-            Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")),
-            "transaction",
-        )
+        transaction = self.build_transaction_transform("transaction")
         project = Function(
             "transform",
             [
@@ -1132,7 +1147,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -1146,7 +1161,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -1389,7 +1404,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "p100_measurements_lcp", "type": "Float64"},
             ],
@@ -1431,7 +1446,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
             ],
@@ -1476,7 +1491,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "String"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
@@ -1522,7 +1537,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "String"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
@@ -1813,7 +1828,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "String"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
@@ -1975,7 +1990,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "String"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
@@ -2029,7 +2044,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         self.assertCountEqual(
             result["meta"],
             [
-                {"name": "transaction", "type": "UInt64"},
+                {"name": "transaction", "type": self.expected_tag_value_type},
                 {"name": "project", "type": "String"},
                 {"name": "p95_transaction_duration", "type": "Float64"},
                 {"name": "count_unique_user", "type": "UInt64"},
@@ -2193,6 +2208,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             expected.append(
                 mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction")
             )
+            expected.append(
+                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "<< unparameterized >>")
+            )
 
         expected.extend(
             [
@@ -2269,12 +2287,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         self.assertCountEqual(
             snql_query.groupby,
-            [
-                project,
-                Column(
-                    resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")
-                ),
-            ],
+            [project, self.build_transaction_transform("transaction")],
         )
 
     def test_missing_function(self):
@@ -2404,7 +2417,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
@@ -2419,7 +2432,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             pytest.skip("test does not apply if tag values are in clickhouse")
         with pytest.raises(
             IncompatibleMetricsQuery,
-            match=re.escape("Tag value was not found"),
+            match=re.compile("Transaction value .* in filter not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,

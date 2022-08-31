@@ -46,6 +46,7 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   isFirstPage?: boolean;
+  isMetricsData?: boolean;
   onHeaderClick?: () => void;
   tableData?: TableDataWithTitle;
 };
@@ -87,7 +88,15 @@ export const renderIssueGridHeaderCell =
   };
 
 export const renderDiscoverGridHeaderCell =
-  ({location, selection, widget, tableData, organization, onHeaderClick}: Props) =>
+  ({
+    location,
+    selection,
+    widget,
+    tableData,
+    organization,
+    onHeaderClick,
+    isMetricsData,
+  }: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const {orderby} = widget.queries[0];
     // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
@@ -123,7 +132,8 @@ export const renderDiscoverGridHeaderCell =
     }
 
     const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    const canSort =
+      !(isMetricsData && field.field === 'title') && isFieldSortable(field, tableMeta);
     const titleText = isEquationAlias(column.name)
       ? eventView.getEquations()[getEquationAliasIndex(column.name)]
       : column.name;
@@ -174,6 +184,7 @@ export const renderGridBodyCell =
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
+        const unit = tableData.meta.units?.[column.key];
         cell = getFieldRenderer(
           columnKey,
           tableData.meta,
@@ -181,6 +192,7 @@ export const renderGridBodyCell =
         )(dataRow, {
           organization,
           location,
+          unit,
         });
 
         const fieldName = getAggregateAlias(columnKey);

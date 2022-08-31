@@ -14,13 +14,21 @@ export function fetchSamplingSdkVersions({
   orgSlug: Organization['slug'];
   projectID: Project['id'];
 }): Promise<SamplingSdkVersion[]> {
-  const {samplingDistribution} = ServerSideSamplingStore.getState();
+  const {distribution} = ServerSideSamplingStore.getState();
+  const {startTimestamp, endTimestamp, project_breakdown} = distribution.data ?? {};
+
+  ServerSideSamplingStore.fetchSdkVersions();
+
+  if (!startTimestamp || !endTimestamp) {
+    ServerSideSamplingStore.fetchSdkVersionsSuccess([]);
+    return new Promise(resolve => {
+      resolve([]);
+    });
+  }
 
   const projectIds = [
     projectID,
-    ...(samplingDistribution.project_breakdown?.map(
-      projectBreakdown => projectBreakdown.project_id
-    ) ?? []),
+    ...(project_breakdown?.map(projectBreakdown => projectBreakdown.project_id) ?? []),
   ];
 
   const promise = api.requestPromise(
@@ -28,22 +36,17 @@ export function fetchSamplingSdkVersions({
     {
       query: {
         project: projectIds,
-        statsPeriod: '24h',
+        start: startTimestamp,
+        end: endTimestamp,
       },
     }
   );
 
-  ServerSideSamplingStore.setFetching(true);
-
-  promise
-    .then(ServerSideSamplingStore.loadSamplingSdkVersionsSuccess)
-    .catch(response => {
-      const errorMessage = t('Unable to fetch sampling sdk versions');
-      handleXhrErrorResponse(errorMessage)(response);
-    })
-    .finally(() => {
-      ServerSideSamplingStore.setFetching(false);
-    });
+  promise.then(ServerSideSamplingStore.fetchSdkVersionsSuccess).catch(response => {
+    const errorMessage = t('Unable to fetch sampling sdk versions');
+    handleXhrErrorResponse(errorMessage)(response);
+    ServerSideSamplingStore.fetchSdkVersionsError(errorMessage);
+  });
 
   return promise;
 }
@@ -59,26 +62,79 @@ export function fetchSamplingDistribution({
 }): Promise<SamplingDistribution> {
   ServerSideSamplingStore.reset();
 
-  ServerSideSamplingStore.setFetching(true);
+  ServerSideSamplingStore.fetchDistribution();
 
   const promise = api.requestPromise(
-    `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`,
-    {
-      query: {
-        statsPeriod: '24h',
-      },
-    }
+    `/projects/${orgSlug}/${projSlug}/dynamic-sampling/distribution/`
   );
 
-  promise
-    .then(ServerSideSamplingStore.loadSamplingDistributionSuccess)
-    .catch(response => {
-      const errorMessage = t('Unable to fetch sampling distribution');
-      handleXhrErrorResponse(errorMessage)(response);
-    })
-    .finally(() => {
-      ServerSideSamplingStore.setFetching(false);
-    });
+  promise.then(ServerSideSamplingStore.fetchDistributionSuccess).catch(response => {
+    const errorMessage = t('Unable to fetch sampling distribution');
+    handleXhrErrorResponse(errorMessage)(response);
+    ServerSideSamplingStore.fetchDistributionError(errorMessage);
+  });
+
+  return promise;
+}
+
+export function fetchProjectStats48h({
+  api,
+  orgSlug,
+  projId,
+}: {
+  api: Client;
+  orgSlug: Organization['slug'];
+  projId?: Project['id'];
+}) {
+  ServerSideSamplingStore.fetchProjectStats48h();
+
+  const promise = api.requestPromise(`/organizations/${orgSlug}/stats_v2/`, {
+    query: {
+      project: projId,
+      category: 'transaction',
+      field: 'sum(quantity)',
+      interval: '1h',
+      statsPeriod: '48h',
+      groupBy: 'outcome',
+    },
+  });
+
+  promise.then(ServerSideSamplingStore.fetchProjectStats48hSuccess).catch(response => {
+    const errorMessage = t('Unable to fetch project stats from the last 48 hours');
+    handleXhrErrorResponse(errorMessage)(response);
+    ServerSideSamplingStore.fetchProjectStats48hError(errorMessage);
+  });
+
+  return promise;
+}
+
+export function fetchProjectStats30d({
+  api,
+  orgSlug,
+  projId,
+}: {
+  api: Client;
+  orgSlug: Organization['slug'];
+  projId?: Project['id'];
+}) {
+  ServerSideSamplingStore.fetchProjectStats30d();
+
+  const promise = api.requestPromise(`/organizations/${orgSlug}/stats_v2/`, {
+    query: {
+      project: projId,
+      category: 'transaction',
+      field: 'sum(quantity)',
+      interval: '1d',
+      statsPeriod: '30d',
+      groupBy: ['outcome', 'reason'],
+    },
+  });
+
+  promise.then(ServerSideSamplingStore.fetchProjectStats30dSuccess).catch(response => {
+    const errorMessage = t('Unable to fetch project stats from the last 30 days');
+    handleXhrErrorResponse(errorMessage)(response);
+    ServerSideSamplingStore.fetchProjectStats30dError(errorMessage);
+  });
 
   return promise;
 }

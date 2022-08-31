@@ -265,7 +265,7 @@ def post_process_group(
 
         set_current_event_project(event.project_id)
 
-        is_transaction_event = not bool(event.group_id)
+        is_transaction_event = event.get_event_type() == "transaction"
 
         from sentry.models import EventDict, Organization, Project
 
@@ -437,7 +437,6 @@ def post_process_group(
                 plugin_post_process_group(
                     plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
                 )
-
             from sentry import similarity
 
             with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):

@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -6,12 +5,10 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import {Organization, SavedSearch, TagCollection} from 'sentry/types';
 
 import IssueListSearchBar from './searchBar';
 import {TagValueLoader} from './types';
-
-type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
 type Props = {
   isSearchDisabled: boolean;
@@ -22,7 +19,7 @@ type Props = {
   savedSearch: SavedSearch;
   sort: string;
   tagValueLoader: TagValueLoader;
-  tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
+  tags: TagCollection;
 };
 
 function IssueListFilters({
@@ -37,27 +34,25 @@ function IssueListFilters({
   tags,
 }: Props) {
   return (
-    <Fragment>
-      <SearchContainer>
-        <PageFilterBar>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </PageFilterBar>
-        <IssueListSearchBar
-          organization={organization}
-          query={query || ''}
-          sort={sort}
-          onSearch={onSearch}
-          disabled={isSearchDisabled}
-          excludeEnvironment
-          supportedTags={tags}
-          tagValueLoader={tagValueLoader}
-          savedSearch={savedSearch}
-          onSidebarToggle={onSidebarToggle}
-        />
-      </SearchContainer>
-    </Fragment>
+    <SearchContainer>
+      <PageFilterBar>
+        <ProjectPageFilter />
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </PageFilterBar>
+      <IssueListSearchBar
+        organization={organization}
+        query={query || ''}
+        sort={sort}
+        onSearch={onSearch}
+        disabled={isSearchDisabled}
+        excludeEnvironment
+        supportedTags={tags}
+        tagValueLoader={tagValueLoader}
+        savedSearch={savedSearch}
+        onSidebarToggle={onSidebarToggle}
+      />
+    </SearchContainer>
   );
 }
 

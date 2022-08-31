@@ -1,13 +1,15 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {fetchProjectStats30d} from 'sentry/actionCreators/serverSideSampling';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {NumberField} from 'sentry/components/forms';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
@@ -19,11 +21,12 @@ import {t, tct} from 'sentry/locale';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Project, SeriesApi} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
+import useApi from 'sentry/utils/useApi';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -38,7 +41,7 @@ import {
 import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
-import useProjectStats from '../utils/useProjectStats';
+import {useProjectStats} from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
@@ -65,7 +68,6 @@ type Props = Omit<
   onSubmit: UniformModalsSubmit;
   project: Project;
   rules: SamplingRule[];
-  projectStats?: SeriesApi;
 };
 
 export function UniformRateModal({
@@ -74,13 +76,13 @@ export function UniformRateModal({
   Footer,
   closeModal,
   organization,
-  projectStats,
   project,
   uniformRule,
   onSubmit,
   onReadDocs,
   ...props
 }: Props) {
+  const api = useApi();
   const [rules, setRules] = useState(props.rules);
   const [specifiedClientRate, setSpecifiedClientRate] = useState<undefined | number>(
     undefined
@@ -90,18 +92,7 @@ export function UniformRateModal({
 
   const modalStore = useLegacyStore(ModalStore);
 
-  const {
-    projectStats: projectStats30d,
-    // TODO(sampling): check how to render this error in the UI
-    error: _error30d,
-    loading: loading30d,
-  } = useProjectStats({
-    orgSlug: organization.slug,
-    projectId: project.id,
-    interval: '1d',
-    statsPeriod: '30d',
-    groupBy: useMemo(() => ['outcome', 'reason'], []),
-  });
+  const {projectStats30d, projectStats48h} = useProjectStats();
 
   const {recommendedSdkUpgrades, affectedProjects, isProjectIncompatible} =
     useRecommendedSdkUpgrades({
@@ -109,30 +100,30 @@ export function UniformRateModal({
       projectId: project.id,
     });
 
-  const loading = loading30d || !projectStats;
+  const loading = projectStats30d.loading || projectStats48h.loading;
 
   useEffect(() => {
-    if (loading || !projectStats30d) {
+    if (loading || !projectStats30d.data) {
       return;
     }
 
-    if (!projectStats30d.groups.length) {
+    if (!projectStats30d.data.groups.length) {
       setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE);
       return;
     }
 
-    const clientDiscard = projectStats30d.groups.some(
+    const clientDiscard = projectStats30d.data.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
 
     setActiveStep(
       clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
-  }, [loading, projectStats30d]);
+  }, [loading, projectStats30d.data]);
 
   const shouldUseConservativeSampleRate =
-    hasFirstBucketsEmpty(projectStats30d, 27) &&
-    hasFirstBucketsEmpty(projectStats, 3) &&
+    hasFirstBucketsEmpty(projectStats30d.data, 27) &&
+    hasFirstBucketsEmpty(projectStats48h.data, 3) &&
     !defined(specifiedClientRate);
 
   useEffect(() => {
@@ -168,7 +159,7 @@ export function UniformRateModal({
   const uniformSampleRate = uniformRule?.sampleRate;
 
   const {recommended: recommendedClientSampling, current: currentClientSampling} =
-    getClientSampleRates(projectStats, specifiedClientRate);
+    getClientSampleRates(projectStats48h.data, specifiedClientRate);
 
   const currentServerSampling =
     defined(uniformSampleRate) && !isNaN(uniformSampleRate)
@@ -258,14 +249,26 @@ export function UniformRateModal({
     });
   }
 
-  if (activeStep === undefined || loading) {
+  async function handleRefetchProjectStats30d() {
+    await fetchProjectStats30d({api, orgSlug: organization.slug, projId: project.id});
+  }
+
+  if (activeStep === undefined || loading || projectStats30d.error) {
     return (
       <Fragment>
         <Header closeButton>
-          <Placeholder height="22px" />
+          {projectStats30d.error ? (
+            <h4>{t('Set a global sample rate')}</h4>
+          ) : (
+            <Placeholder height="22px" />
+          )}
         </Header>
         <Body>
-          <LoadingIndicator />
+          {projectStats30d.error ? (
+            <LoadingError onRetry={handleRefetchProjectStats30d} />
+          ) : (
+            <LoadingIndicator />
+          )}
         </Body>
         <Footer>
           <FooterActions>
@@ -278,7 +281,17 @@ export function UniformRateModal({
             </Button>
             <ButtonBar gap={1}>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
-              <Placeholder height="40px" width="80px" />
+              {projectStats30d.error ? (
+                <Button
+                  priority="primary"
+                  title={t('There was an error loading data')}
+                  disabled
+                >
+                  {t('Done')}
+                </Button>
+              ) : (
+                <Placeholder height="40px" width="80px" />
+              )}
             </ButtonBar>
           </FooterActions>
         </Footer>
@@ -345,20 +358,18 @@ export function UniformRateModal({
             }
           )}
         </TextBlock>
-
         <Fragment>
           <UniformRateChart
             series={
               selectedStrategy === Strategy.CURRENT
-                ? projectStatsToSeries(projectStats30d, specifiedClientRate)
+                ? projectStatsToSeries(projectStats30d.data, specifiedClientRate)
                 : projectStatsToPredictedSeries(
-                    projectStats30d,
+                    projectStats30d.data,
                     client,
                     server,
                     specifiedClientRate
                   )
             }
-            isLoading={loading30d}
           />
 
           <StyledPanelTable

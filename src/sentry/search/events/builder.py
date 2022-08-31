@@ -46,6 +46,7 @@ from sentry.search.events.constants import (
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
+    PERCENT_UNITS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
     SIZE_UNITS,
@@ -86,6 +87,10 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
     bulk_snql_query,
+    is_duration_measurement,
+    is_measurement,
+    is_percentage_measurement,
+    is_span_op_breakdown,
     raw_snql_query,
     resolve_column,
 )
@@ -141,6 +146,7 @@ class QueryBuilder:
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
         self.groupby: List[SelectType] = []
+
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.equation_alias_map: Dict[str, SelectType] = {}
@@ -172,6 +178,9 @@ class QueryBuilder:
             equations=equations,
             orderby=orderby,
         )
+
+    def get_default_converter(self) -> Callable[[SearchFilter], Optional[WhereType]]:
+        return self._default_filter_converter
 
     def resolve_time_conditions(self) -> None:
         if self.skip_time_conditions:
@@ -821,6 +830,57 @@ class QueryBuilder:
                     boolean_conditions.append(condition)
 
         return flattened
+
+    @cached_property  # type: ignore
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        # Both projects & org are required, but might be missing for the search parser
+        if "project_id" not in self.params or self.organization_id is None:
+            return []
+
+        from sentry.snuba.metrics.datasource import get_custom_measurements
+
+        result: List[MetricMeta] = get_custom_measurements(
+            project_ids=self.params["project_id"],
+            organization_id=self.organization_id,
+            start=datetime.today() - timedelta(days=90),
+            end=datetime.today(),
+        )
+        return result
+
+    def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
+        # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
+        if not is_measurement(name):
+            return None
+
+        for measurement in self.custom_measurement_map:
+            if measurement["name"] == name and measurement["metric_id"] is not None:
+                return measurement
+        return None
+
+    def get_field_type(self, field: str) -> Optional[str]:
+        if (
+            field == "transaction.duration"
+            or is_duration_measurement(field)
+            or is_span_op_breakdown(field)
+        ):
+            return "duration"
+
+        if is_percentage_measurement(field):
+            return "percentage"
+        measurement = self.get_measument_by_name(field)
+        # let the caller decide what to do
+        if measurement is None:
+            return None
+
+        unit: str = measurement["unit"]
+        if unit in SIZE_UNITS or unit in DURATION_UNITS:
+            return unit
+        elif unit == "none":
+            return "integer"
+        elif unit in PERCENT_UNITS:
+            return "percentage"
+        else:
+            return "number"
 
     @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
@@ -1608,7 +1668,9 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self._custom_measurement_cache: Optional[List[MetricMeta]] = None
+        self.tag_values_are_strings = options.get(
+            "sentry-metrics.performance.tags-values-are-strings"
+        )
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -1628,19 +1690,6 @@ class MetricsQueryBuilder(QueryBuilder):
     @property
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
-
-    @property
-    def custom_measurement_map(self) -> List[MetricMeta]:
-        if self._custom_measurement_cache is None:
-            from sentry.snuba.metrics.datasource import get_custom_measurements
-
-            self._custom_measurement_cache = get_custom_measurements(
-                project_ids=self.params["project_id"],
-                organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
-            )
-        return self._custom_measurement_cache
 
     def resolve_query(
         self,
@@ -1687,9 +1736,7 @@ class MetricsQueryBuilder(QueryBuilder):
         tag_id = self.resolve_metric_index(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
-        if self.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+        if self.is_performance and self.tag_values_are_strings:
             return f"tags_raw[{tag_id}]"
         else:
             return f"tags[{tag_id}]"
@@ -1866,6 +1913,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        if self.dry_run:
+            return -1
         if value not in self._indexer_cache:
             if self.is_performance:
                 use_case_id = UseCaseKey.PERFORMANCE
@@ -1876,17 +1925,12 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def _resolve_tag_value(self, value: str) -> Union[int, str]:
-        if self.is_performance and options.get(
-            "sentry-metrics.performance.tags-values-are-strings"
-        ):
+    def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
+        if self.is_performance and self.tag_values_are_strings:
             return value
         if self.dry_run:
             return -1
-        result = self.resolve_metric_index(value)
-        if result is None:
-            raise IncompatibleMetricsQuery("Tag value was not found")
-        return result
+        return self.resolve_metric_index(value)
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         if search_filter.value.is_wildcard():
@@ -1902,12 +1946,21 @@ class MetricsQueryBuilder(QueryBuilder):
             lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
-        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable in ["tags", "tags_raw"]
         if is_tag:
             if isinstance(value, list):
-                value = [self._resolve_tag_value(v) for v in value]
+                resolved_value = []
+                for item in value:
+                    resolved_item = self.resolve_tag_value(item)
+                    if resolved_item is None:
+                        raise IncompatibleMetricsQuery(f"{name} value {item} in filter not found")
+                    resolved_value.append(resolved_item)
+                value = resolved_value
             else:
-                value = self._resolve_tag_value(value)
+                resolved_item = self.resolve_tag_value(value)
+                if resolved_item is None:
+                    raise IncompatibleMetricsQuery(f"{name} value {value} in filter not found")
+                value = resolved_item
 
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
@@ -1936,8 +1989,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def _resolve_environment_filter_value(self, value: str) -> int:
-        value_id: Optional[int] = self.config.resolve_value(f"{value}")
+    def _resolve_environment_filter_value(self, value: str) -> Union[int, str]:
+        value_id: Optional[Union[int, str]] = self.resolve_tag_value(f"{value}")
         if value_id is None:
             raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
 
@@ -1953,9 +2006,15 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(
-            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
-        )
+        values = []
+        for value in values_set:
+            if value:
+                values.append(self._resolve_environment_filter_value(value))
+            elif self.tag_values_are_strings:
+                values.append("")
+            else:
+                values.append(0)
+        values.sort()
         environment = self.column("environment")
         if len(values) == 1:
             operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
@@ -2101,7 +2160,12 @@ class MetricsQueryBuilder(QueryBuilder):
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
-            if isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags":
+            if (
+                isinstance(orderby.exp, Column)
+                and orderby.exp.subscriptable in ["tags", "tags_raw"]
+            ) or (
+                isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
+            ):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

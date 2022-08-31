@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import Editor from '@monaco-editor/react';
 
@@ -93,7 +93,8 @@ const formFields: Field[] = [
 ];
 
 function SentryFunctionDetails(props: Props) {
-  const form = useRef(new SentryFunctionFormModel());
+  const [form] = useState(() => new SentryFunctionFormModel());
+
   const {orgId, functionSlug} = props.params;
   const {sentryFunction} = props;
   const method = functionSlug ? 'PUT' : 'POST';
@@ -113,13 +114,15 @@ function SentryFunctionDetails(props: Props) {
   const [events, setEvents] = useState(sentryFunction?.events || []);
 
   useEffect(() => {
-    form.current.setValue('onIssue', events.includes('issue'));
-    form.current.setValue('onError', events.includes('error'));
-    form.current.setValue('onComment', events.includes('comment'));
-  }, [events]);
+    form.setValue('onIssue', events.includes('issue'));
+    form.setValue('onError', events.includes('error'));
+    form.setValue('onComment', events.includes('comment'));
+  }, [form, events]);
 
   const [envVariables, setEnvVariables] = useState(
-    sentryFunction?.env_variables || [{name: '', value: ''}]
+    sentryFunction?.env_variables?.length
+      ? sentryFunction?.env_variables
+      : [{name: '', value: ''}]
   );
 
   const handleSubmitError = err => {
@@ -143,7 +146,7 @@ function SentryFunctionDetails(props: Props) {
   };
 
   function handleEditorChange(value, _event) {
-    form.current.setValue('code', value);
+    form.setValue('code', value);
   }
 
   return (
@@ -155,7 +158,7 @@ function SentryFunctionDetails(props: Props) {
         <Form
           apiMethod={method}
           apiEndpoint={endpoint}
-          model={form.current}
+          model={form}
           onPreSubmit={() => {
             addLoadingMessage(t('Saving changes..'));
           }}

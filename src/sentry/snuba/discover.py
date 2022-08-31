@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 from typing_extensions import TypedDict
@@ -125,19 +126,15 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(
-    results, function_alias_map, translated_columns, snuba_filter
-) -> EventsResponse:
+def transform_results(results, query_builder, translated_columns, snuba_filter) -> EventsResponse:
     results = transform_data(results, translated_columns, snuba_filter)
-    results["meta"] = transform_meta(results, function_alias_map)
+    results["meta"] = transform_meta(results, query_builder)
     return results
 
 
-def transform_meta(results: EventsResponse, function_alias_map) -> Dict[str, str]:
+def transform_meta(results: EventsResponse, query_builder: QueryBuilder) -> Dict[str, str]:
     meta: Dict[str, str] = {
-        value["name"]: get_json_meta_type(
-            value["name"], value.get("type"), function_alias_map.get(value["name"])
-        )
+        value["name"]: get_json_meta_type(value["name"], value.get("type"), query_builder)
         for value in results["meta"]
     }
     # Ensure all columns in the result have types.
@@ -277,13 +274,12 @@ def query(
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
         translated_columns = {}
-        function_alias_map = builder.function_alias_map
         if transform_alias_to_input_format:
             translated_columns = {
                 column: function_details.field
                 for column, function_details in builder.function_alias_map.items()
             }
-            function_alias_map = {
+            builder.function_alias_map = {
                 translated_columns.get(column): function_details
                 for column, function_details in builder.function_alias_map.items()
             }
@@ -291,7 +287,7 @@ def query(
                 translated_columns[f"equation[{index}]"] = f"equation|{equation}"
         result = transform_results(
             result,
-            function_alias_map,
+            builder,
             translated_columns,
             None,
         )
@@ -398,6 +394,8 @@ def create_result_key(result_row, fields, issues) -> str:
             if issue_id is None:
                 issue_id = "unknown"
             values.append(issue_id)
+        elif field == "transaction.status":
+            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -518,7 +516,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, top_events_builder.function_alias_map, {}, None)
+        result = transform_results(result, top_events_builder, {}, None)
 
         issues = {}
         if "issue" in selected_columns:
@@ -977,6 +975,7 @@ def histogram_query(
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
     results = builder.run_query(referrer)
+    results["meta"] = transform_meta(results, builder)
 
     if not normalize_results:
         return results

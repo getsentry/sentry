@@ -18,9 +18,16 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
-import {Tag} from 'sentry/types';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  AutocompleteGroup,
+  ItemType,
+  SearchGroup,
+  SearchItem,
+  Shortcut,
+  ShortcutType,
+} from './types';
+import {TagCollection} from 'sentry/types';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -164,6 +171,8 @@ export function createSearchGroups(
   queryCharsLeft?: number,
   isDefaultState?: boolean
 ) {
+  const fieldDefinition = getFieldDefinition(tagName);
+
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
     filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
@@ -200,6 +209,16 @@ export function createSearchGroups(
     }
     return [item];
   });
+
+  if (fieldDefinition?.valueType === FieldValueType.DATE) {
+    if (type === ItemType.TAG_OPERATOR) {
+      return {
+        searchGroups: [],
+        flatSearchItems: [],
+        activeSearchItem: -1,
+      };
+    }
+  }
 
   if (isDefaultState) {
     // Recent searches first in default state.
@@ -365,13 +384,8 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
  * The parent will become interactive if there exists a key "device".
  */
-export const getTagItemsFromKeys = (
-  tagKeys: string[],
-  supportedTags: {
-    [key: string]: Tag;
-  }
-) => {
-  return [...tagKeys].reduce((groups, key) => {
+export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
+  return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
 
@@ -387,6 +401,7 @@ export const getTagItemsFromKeys = (
       documentation: definition?.desc ?? '-',
       kind,
       deprecated: definition?.deprecated,
+      featureFlag: definition?.featureFlag,
     };
 
     const lastGroup = groups.at(-1);
@@ -428,7 +443,7 @@ export const getTagItemsFromKeys = (
     }
 
     return [...groups, item];
-  }, [] as SearchItem[]);
+  }, []);
 };
 
 /**
@@ -510,3 +525,65 @@ export const filterKeysFromQuery = (tagKeys: string[], searchTerm: string): stri
       return a.key < b.key ? -1 : 1;
     })
     .map(({key}) => key);
+
+const DATE_SUGGESTED_VALUES = [
+  {
+    title: t('Last hour'),
+    value: '-1h',
+    desc: '-1h',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 24 hours'),
+    value: '-24h',
+    desc: '-24h',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 7 days'),
+    value: '-7d',
+    desc: '-7d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 14 days'),
+    value: '-14d',
+    desc: '-14d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 30 days'),
+    value: '-30d',
+    desc: '-30d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('After a custom datetime'),
+    value: '>',
+    desc: '>YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+  {
+    title: t('Before a custom datetime'),
+    value: '<',
+    desc: '<YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+  {
+    title: t('At a custom datetime'),
+    value: '=',
+    desc: '=YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+];
+
+export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup[] => {
+  return [
+    {
+      searchItems: DATE_SUGGESTED_VALUES,
+      recentSearchItems: [],
+      tagName,
+      type: ItemType.TAG_VALUE,
+    },
+  ];
+};

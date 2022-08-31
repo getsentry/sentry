@@ -1,13 +1,10 @@
 from datetime import timedelta
-from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    Environment,
     Group,
     GroupLink,
     GroupResolution,
@@ -249,19 +246,20 @@ class GroupSerializerTest(TestCase):
         for default_value, project_value, is_subscribed, has_details in combinations:
             UserOption.objects.clear_local_cache()
 
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                default_value,
-                user=user,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                project_value,
-                user=user,
-                project=group.project,
-            )
+            for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
+                NotificationSetting.objects.update_settings(
+                    provider,
+                    NotificationSettingTypes.WORKFLOW,
+                    default_value,
+                    user=user,
+                )
+                NotificationSetting.objects.update_settings(
+                    provider,
+                    NotificationSettingTypes.WORKFLOW,
+                    project_value,
+                    user=user,
+                    project=group.project,
+                )
 
             result = serialize(group, user)
             subscription_details = result.get("subscriptionDetails")
@@ -288,6 +286,13 @@ class GroupSerializerTest(TestCase):
             user=user,
         )
 
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+        )
+
         result = serialize(group, user)
         assert not result["isSubscribed"]
         assert result["subscriptionDetails"] == {"disabled": True}
@@ -302,6 +307,14 @@ class GroupSerializerTest(TestCase):
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.NEVER,
+            user=user,
+            project=group.project,
+        )
+
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.NEVER,
             user=user,
@@ -337,39 +350,3 @@ class GroupSerializerTest(TestCase):
                 "dateCreated": result["statusDetails"]["info"]["dateCreated"],
             },
         }
-
-
-class StreamGroupSerializerTestCase(TestCase):
-    def test_environment(self):
-        group = self.group
-
-        environment = Environment.get_or_create(group.project, "production")
-
-        from sentry.api.serializers.models.group import tsdb
-
-        with mock.patch(
-            "sentry.api.serializers.models.group.tsdb.get_range", side_effect=tsdb.get_range
-        ) as get_range:
-            serialize(
-                [group],
-                serializer=StreamGroupSerializer(
-                    environment_func=lambda: environment, stats_period="14d"
-                ),
-            )
-            assert get_range.call_count == 1
-            for args, kwargs in get_range.call_args_list:
-                assert kwargs["environment_ids"] == [environment.id]
-
-        def get_invalid_environment():
-            raise Environment.DoesNotExist()
-
-        with mock.patch(
-            "sentry.api.serializers.models.group.tsdb.make_series", side_effect=tsdb.make_series
-        ) as make_series:
-            serialize(
-                [group],
-                serializer=StreamGroupSerializer(
-                    environment_func=get_invalid_environment, stats_period="14d"
-                ),
-            )
-            assert make_series.call_count == 1

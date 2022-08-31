@@ -60,7 +60,7 @@ class NonMappableUser(TypedDict):
 Author = Union[UserSerializerResponse, NonMappableUser]
 
 
-def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, Author]:
+def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, User]:
     """
     Returns a dictionary of author_id => user, if a Sentry
     user object exists for that email. If there is no matching
@@ -511,6 +511,7 @@ class ReleaseSerializer(Serializer):
             return rv
 
         d = {
+            "id": obj.id,
             "version": obj.version,
             "status": ReleaseStatus.to_string(obj.status),
             "shortVersion": obj.version,

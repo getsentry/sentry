@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import {Location, Query} from 'history';
 
 import {
   fetchDashboard,
@@ -27,6 +27,7 @@ import {
   Widget,
 } from 'sentry/views/dashboardsV2/types';
 import {
+  getDashboardFiltersFromURL,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
 } from 'sentry/views/dashboardsV2/utils';
@@ -47,6 +48,7 @@ type WidgetAsQueryParams = Query & {
 };
 
 export type AddToDashboardModalProps = {
+  location: Location;
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
@@ -63,6 +65,7 @@ function AddToDashboardModal({
   Body,
   Footer,
   closeModal,
+  location,
   organization,
   router,
   selection,
@@ -141,7 +144,7 @@ function AddToDashboardModal({
     }
 
     let orderby = widget.queries[0].orderby;
-    if (!!!(DisplayType.AREA && widget.queries[0].columns.length)) {
+    if (!(DisplayType.AREA && widget.queries[0].columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
     const query = widget.queries[0];
@@ -190,7 +193,7 @@ function AddToDashboardModal({
                 ...dashboards.map(({title, id, widgetDisplay}) => ({
                   label: title,
                   value: id,
-                  isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                  disabled: widgetDisplay.length >= MAX_WIDGETS,
                   tooltip:
                     widgetDisplay.length >= MAX_WIDGETS &&
                     tct('Max widgets ([maxWidgets]) per dashboard reached.', {
@@ -230,7 +233,7 @@ function AddToDashboardModal({
           }
           dashboardFilters={
             organization.features.includes('dashboards-top-level-filter')
-              ? selectedDashboard?.filters
+              ? getDashboardFiltersFromURL(location) ?? selectedDashboard?.filters
               : {}
           }
           widget={widget}

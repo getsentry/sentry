@@ -6,6 +6,7 @@ export enum ItemType {
   DEFAULT = 'default',
   TAG_KEY = 'tag-key',
   TAG_VALUE = 'tag-value',
+  TAG_VALUE_ISO_DATE = 'tag-value-iso-date',
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
@@ -36,6 +37,10 @@ export type SearchItem = {
   deprecated?: boolean;
   desc?: string;
   documentation?: React.ReactNode;
+  /**
+   * The feature flag gating the search item
+   */
+  featureFlag?: string;
   ignoreMaxSearchItems?: boolean;
   kind?: FieldKind;
   title?: string;
@@ -72,4 +77,11 @@ export type Shortcut = {
     actual: string[] | string;
     display?: string[] | string;
   };
+};
+
+export type AutocompleteGroup = {
+  recentSearchItems: SearchItem[] | undefined;
+  searchItems: SearchItem[];
+  tagName: string;
+  type: ItemType;
 };

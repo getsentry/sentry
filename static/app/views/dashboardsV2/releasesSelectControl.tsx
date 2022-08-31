@@ -21,6 +21,13 @@ type Props = {
   isDisabled?: boolean;
 };
 
+const ALIASED_RELEASES = [
+  {
+    label: t('Latest Release(s)'),
+    value: 'latest',
+  },
+];
+
 function ReleasesSelectControl({
   handleChangeFilter,
   selectedReleases,
@@ -44,6 +51,8 @@ function ReleasesSelectControl({
     t('All Releases')
   );
 
+  const activeReleasesSet = new Set(activeReleases);
+
   return (
     <CompactSelect
       multiple
@@ -54,7 +63,7 @@ function ReleasesSelectControl({
       menuTitle={
         <MenuTitleWrapper>
           {t('Filter Releases')}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </MenuTitleWrapper>
       }
       className={className}
@@ -65,20 +74,29 @@ function ReleasesSelectControl({
         {
           value: '_releases',
           label: t('Sorted by date created'),
-          options: releases.length
-            ? releases.map(release => {
-                return {
-                  label: release.shortVersion ?? release.version,
-                  value: release.version,
-                };
-              })
-            : [],
+          options: [
+            ...ALIASED_RELEASES,
+            ...activeReleases
+              .filter(version => version !== 'latest')
+              .map(version => ({
+                label: version,
+                value: version,
+              })),
+            ...releases
+              .filter(({version}) => !activeReleasesSet.has(version))
+              .map(({version}) => ({
+                label: version,
+                value: version,
+              })),
+          ],
         },
       ]}
       onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
       onClose={() => {
         resetSearch();
-        handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
+        handleChangeFilter?.({
+          [DashboardFilterKeys.RELEASE]: activeReleases,
+        });
       }}
       value={activeReleases}
       triggerLabel={

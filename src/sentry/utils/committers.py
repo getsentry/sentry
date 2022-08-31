@@ -21,9 +21,10 @@ from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
-from sentry.api.serializers.models.release import Author
+from sentry.api.serializers.models.release import Author, ReleaseSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.models.groupowner import get_release_committers_for_group
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -134,6 +135,12 @@ class AuthorCommits(TypedDict):
 class AuthorCommitsSerialized(TypedDict):
     author: Union[Author, None]
     commits: Sequence[MutableMapping[str, Any]]
+
+
+class AuthorCommitsWithReleaseSerialized(TypedDict):
+    author: Author
+    commits: Sequence[MutableMapping[str, Any]]
+    release: Release
 
 
 class AnnotatedFrame(TypedDict):
@@ -336,3 +343,23 @@ def dedupe_commits(
     commits: Sequence[MutableMapping[str, Any]]
 ) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())
+
+
+# Get all serialized committers for the first releases for a group.
+def get_serialized_release_committers_for_group(
+    group: Group,
+) -> List[AuthorCommitsWithReleaseSerialized]:
+    release_committers = get_release_committers_for_group(group, include_commits=True)
+    serialized_committers: List[AuthorCommitsWithReleaseSerialized] = []
+    for committer in release_committers:
+        serialized_committers.append(
+            {
+                "author": committer["author"],
+                "commits": serialize(
+                    committer["commits"], serializer=CommitSerializer(exclude=["author"])
+                ),
+                "release": serialize(committer["release"], serializer=ReleaseSerializer()),
+            }
+        )
+
+    return serialized_committers

@@ -9,8 +9,8 @@ import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
 import {
+  EnhancedProcessedSpanType,
   FilterSpans,
-  FocusedSpanIDMap,
   IndexedFusedSpan,
   ParsedTraceType,
   RawSpanType,
@@ -26,7 +26,6 @@ class WaterfallModel {
   rootSpan: SpanTreeModel;
   parsedTrace: ParsedTraceType;
   fuse: Fuse<IndexedFusedSpan> | undefined = undefined;
-  focusedSpanIds?: FocusedSpanIDMap;
 
   // readable/writable state
   operationNameFilters: ActiveOperationFilter = noFilter;
@@ -34,8 +33,9 @@ class WaterfallModel {
   searchQuery: string | undefined = undefined;
   hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
+  focusedSpanIds: Set<string> | undefined = undefined;
 
-  constructor(event: Readonly<EventTransaction>, focusedSpanIds?: FocusedSpanIDMap) {
+  constructor(event: Readonly<EventTransaction>, affectedSpanIds?: string[]) {
     this.event = event;
 
     this.parsedTrace = parseTrace(event);
@@ -58,7 +58,7 @@ class WaterfallModel {
     this.hiddenSpanSubTrees = new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
-    this.focusedSpanIds = focusedSpanIds;
+    this.focusedSpanIds = affectedSpanIds ? new Set(affectedSpanIds) : undefined;
 
     makeObservable(this, {
       parsedTrace: observable,
@@ -83,6 +83,9 @@ class WaterfallModel {
       traceBounds: observable,
       addTraceBounds: action,
       removeTraceBounds: action,
+
+      focusedSpanIds: observable,
+      expandHiddenSpans: action,
     });
   }
 
@@ -310,6 +313,16 @@ class WaterfallModel {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: this.addTraceBounds,
       removeTraceBounds: this.removeTraceBounds,
+    });
+  };
+
+  expandHiddenSpans = (spans: EnhancedProcessedSpanType[]) => {
+    spans.forEach(span => {
+      if (span.type !== 'filtered_out') {
+        return;
+      }
+
+      this.focusedSpanIds?.add(span.span.span_id);
     });
   };
 }

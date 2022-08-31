@@ -24,6 +24,7 @@ import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {
   formatAbbreviatedNumber,
@@ -31,6 +32,10 @@ import {
   formatPercentage,
 } from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {
+  MetricsCardinalityContext,
+  useMetricsCardinalityContext,
+} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -116,6 +121,30 @@ function SidebarCharts(props: Props) {
   );
 }
 
+function getDatasetCounts({
+  chartData,
+  metricsChartData,
+  metricsCardinality,
+}: {
+  metricsCardinality: MetricsCardinalityContext;
+  chartData?: ChartData;
+  metricsChartData?: ChartData;
+}) {
+  const transactionCount =
+    chartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
+  const metricsCount =
+    metricsChartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
+  const missingMetrics =
+    (!metricsCount && transactionCount) ||
+    metricsCount < transactionCount ||
+    metricsCardinality.outcome?.forceTransactionsOnly;
+  return {
+    transactionCount,
+    metricsCount,
+    missingMetrics,
+  };
+}
+
 function ChartLabels({
   organization,
   isLoading,
@@ -128,12 +157,15 @@ function ChartLabels({
   const useAggregateAlias = !organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
+  const metricsCardinality = useMetricsCardinalityContext();
 
   if (isShowingMetricsEventCount) {
-    const transactionCount =
-      chartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
-    const metricsCount =
-      metricsChartData?.series[0]?.data.reduce((sum, {value}) => sum + value, 0) ?? 0;
+    const {transactionCount, metricsCount, missingMetrics} = getDatasetCounts({
+      chartData,
+      metricsChartData,
+      metricsCardinality,
+    });
+
     return (
       <Fragment>
         <ChartLabel top="0px">
@@ -153,10 +185,14 @@ function ChartLabels({
             error={error}
             value={
               totals
-                ? tct('[txnCount] of [metricCount]', {
-                    txnCount: formatAbbreviatedNumber(transactionCount),
-                    metricCount: formatAbbreviatedNumber(metricsCount),
-                  })
+                ? missingMetrics
+                  ? tct('[txnCount]', {
+                      txnCount: formatAbbreviatedNumber(transactionCount),
+                    })
+                  : tct('[txnCount] of [metricCount]', {
+                      txnCount: formatAbbreviatedNumber(transactionCount),
+                      metricCount: formatAbbreviatedNumber(metricsCount),
+                    })
                 : null
             }
           />
@@ -287,7 +323,8 @@ function getSideChartsOptions({
       tooltip: {
         trigger: 'axis',
         truncate: 80,
-        valueFormatter: tooltipFormatter,
+        valueFormatter: (value, label) =>
+          tooltipFormatter(value, aggregateOutputType(label)),
         nameFormatter(value: string) {
           return value === 'epm()' ? 'tpm()' : value;
         },
@@ -352,7 +389,8 @@ function getSideChartsOptions({
     tooltip: {
       trigger: 'axis',
       truncate: 80,
-      valueFormatter: tooltipFormatter,
+      valueFormatter: (value, label) =>
+        tooltipFormatter(value, aggregateOutputType(label)),
       nameFormatter(value: string) {
         return value === 'epm()' ? 'tpm()' : value;
       },
@@ -399,6 +437,7 @@ function SidebarChartsContainer({
 }: ContainerProps) {
   const api = useApi();
   const theme = useTheme();
+  const metricsCardinality = useMetricsCardinalityContext();
 
   const statsPeriod = eventView.statsPeriod;
   const start = eventView.start ? getUtcToLocalDateObject(eventView.start) : undefined;
@@ -500,6 +539,12 @@ function SidebarChartsContainer({
                   }))
                 : [];
 
+              const chartData = {series, errored, loading, reloading, chartOptions};
+              const _metricsChartData = {
+                ...metricsChartData,
+                series: metricSeries,
+                chartOptions,
+              };
               if (isShowingMetricsEventCount && metricSeries.length) {
                 const countSeries = series[0];
 
@@ -511,19 +556,28 @@ function SidebarChartsContainer({
                     series[0] = {...countSeries, ...trimmed};
                   }
                 }
+
+                const {missingMetrics} = getDatasetCounts({
+                  chartData,
+                  metricsChartData: _metricsChartData,
+                  metricsCardinality,
+                });
+
                 const metricsCountSeries = metricSeries[0];
-                if (metricsCountSeries) {
-                  metricsCountSeries.seriesName = t('Processed Events');
-                  metricsCountSeries.lineStyle = {
-                    type: 'dashed',
-                    width: 1.5,
-                  };
-                  const trimmed = trimLeadingTrailingZeroCounts(metricsCountSeries);
-                  if (trimmed) {
-                    metricSeries[0] = {...metricsCountSeries, ...trimmed};
+                if (!missingMetrics) {
+                  if (metricsCountSeries) {
+                    metricsCountSeries.seriesName = t('Processed Events');
+                    metricsCountSeries.lineStyle = {
+                      type: 'dashed',
+                      width: 1.5,
+                    };
+                    const trimmed = trimLeadingTrailingZeroCounts(metricsCountSeries);
+                    if (trimmed) {
+                      metricSeries[0] = {...metricsCountSeries, ...trimmed};
+                    }
                   }
+                  series.push(metricsCountSeries);
                 }
-                series.push(metricsCountSeries);
               }
 
               return (
@@ -532,13 +586,9 @@ function SidebarChartsContainer({
                   transactionName={transactionName}
                   location={location}
                   eventView={eventView}
-                  chartData={{series, errored, loading, reloading, chartOptions}}
+                  chartData={chartData}
                   isShowingMetricsEventCount={isShowingMetricsEventCount}
-                  metricsChartData={{
-                    ...metricsChartData,
-                    series: metricSeries,
-                    chartOptions,
-                  }}
+                  metricsChartData={_metricsChartData}
                 />
               );
             }}
