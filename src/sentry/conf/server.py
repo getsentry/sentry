@@ -1995,9 +1995,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
-            # We cross-build arm64 images on GH's Apple Intel runners
-            else "ghcr.io/getsentry/snuba-arm64-dev:latest",
+            "image": "ghcr.io/getsentry/snuba:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
