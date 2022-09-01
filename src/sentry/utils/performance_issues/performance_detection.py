@@ -579,6 +579,20 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     A good fingerprint is one that gives us confidence that, if two fingerprints
     match, then they correspond to the same issue location in code (and
     therefore, the same fix).
+
+    To do this we look for a specific structure:
+
+      [-------- transaction span -----------]
+         [-------- parent span -----------]
+            [source query]
+                          [n0]
+                              [n1]
+                                  [n2]
+                                      ...
+
+    If we detect two different N+1 problems, and both have matching parents,
+    source queries, and repeated (n) queries, then we can be fairly confident
+    they are the same issue.
     """
 
     __slots__ = (
@@ -683,7 +697,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if total_duration < duration_threshold:
             return
 
-        # We need a parent span to create an issue.
+        # We require a parent span in order to improve our fingerprint accuracy.
         parent_span_id = self.source_span.get("parent_span_id", None)
         if not parent_span_id:
             return
