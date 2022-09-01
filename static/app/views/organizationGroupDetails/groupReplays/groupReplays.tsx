@@ -55,7 +55,6 @@ const GroupReplays = ({group}: Props) => {
     <StyledPageContent>
       <ReplayTable
         isFetching={isFetching}
-        origin="issues"
         replays={replays}
         showProjectColumn={false}
         sort={eventView.sorts[0]}

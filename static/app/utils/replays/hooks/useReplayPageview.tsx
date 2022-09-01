@@ -15,10 +15,10 @@ function useReplayPageview() {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('replay-details.viewed', {
       organization,
-      referrer: decodeScalar(location.query.origin),
+      referrer: decodeScalar(location.query.referrer),
       user_email: config.user.email,
     });
-  }, [organization, location.query.origin, config.user.email]);
+  }, [organization, location.query.referrer, config.user.email]);
 }
 
 export default useReplayPageview;

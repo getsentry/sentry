@@ -15,15 +15,16 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {Sort} from 'sentry/utils/discover/fields';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
   isFetching: boolean;
-  origin: string;
   replays: undefined | ReplayListRecord[];
   showProjectColumn: boolean;
   sort: Sort;
@@ -32,7 +33,7 @@ type Props = {
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
-  origin: string;
+  referrer: string;
   replay: ReplayListRecord;
   showProjectColumn: boolean;
 };
@@ -74,7 +75,10 @@ function SortableHeader({
   );
 }
 
-function ReplayTable({isFetching, origin, replays, showProjectColumn, sort}: Props) {
+function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+  const routes = useRoutes();
+  const referrer = getRouteStringFromRoutes(routes);
+
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
@@ -120,7 +124,7 @@ function ReplayTable({isFetching, origin, replays, showProjectColumn, sort}: Pro
           key={replay.id}
           minWidthIsSmall={minWidthIsSmall}
           organization={organization}
-          origin={origin}
+          referrer={referrer}
           replay={replay}
           showProjectColumn={showProjectColumn}
         />
@@ -132,7 +136,7 @@ function ReplayTable({isFetching, origin, replays, showProjectColumn, sort}: Pro
 function ReplayTableRow({
   minWidthIsSmall,
   organization,
-  origin,
+  referrer,
   replay,
   showProjectColumn,
 }: RowProps) {
@@ -144,7 +148,7 @@ function ReplayTableRow({
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?origin=${origin}`}
+            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?referrer=${referrer}`}
           >
             {replay.user.username ||
               replay.user.name ||
