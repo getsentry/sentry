@@ -30,6 +30,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
         ? `tid (${profile.threadId}): ${profile.name}`
         : `tid (${profile.threadId})`,
       value: profile.threadId,
+      disabled: profile.samples.length === 0,
       details: (
         <ThreadLabelDetails
           duration={makeFormatter(profile.unit)(profile.duration)}
