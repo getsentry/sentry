@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -34,6 +34,10 @@ export function SpecifyClientRateModal({
   value,
   onChange,
 }: SpecifyClientRateModalProps) {
+  useEffect(() => {
+    onChange(0.1);
+  }, [onChange]);
+
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.rate_read_docs', {
       organization,
@@ -61,12 +65,12 @@ export function SpecifyClientRateModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Specify current client(SDK) sample rate')}</h4>
+        <h4>{t('Current SDK Sample Rate')}</h4>
       </Header>
       <Body>
         <StyledNumberField
           label={tct(
-            'Find the [textHighlight:tracesSampleRate] option in your SDK config, and copy it’s value into the field below.',
+            'We are not able to estimate your client sample rate. For a more accurate estimation find the [textHighlight:tracesSampleRate] option in your SDK config, and copy it’s value into the field below.',
             {
               textHighlight: <TextHighlight />,
             }
