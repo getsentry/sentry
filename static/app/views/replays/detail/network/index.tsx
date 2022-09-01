@@ -239,29 +239,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       <NetworkFilters>
         <CompactSelect
           triggerProps={{
-            prefix: t('Type'),
-          }}
-          triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
-          multiple
-          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
-            value: networkSpanResourceType,
-            label: networkSpanResourceType,
-          }))}
-          size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(
-              selectedValues,
-              FilterTypesEnum.RESOURCE_TYPE,
-              (networkSpan: NetworkSpan) => {
-                return selectedValues.includes(networkSpan.op.replace('resource.', ''));
-              }
-            );
-          }}
-        />
-        <CompactSelect
-          triggerProps={{
             prefix: t('Status'),
           }}
           triggerLabel={!filters[FilterTypesEnum.STATUS] ? t('Any') : null}
@@ -286,6 +263,29 @@ function NetworkList({replayRecord, networkSpans}: Props) {
                 }
 
                 return selectedValues.includes(networkSpan.data.statusCode);
+              }
+            );
+          }}
+        />
+        <CompactSelect
+          triggerProps={{
+            prefix: t('Type'),
+          }}
+          triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
+          multiple
+          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
+            value: networkSpanResourceType,
+            label: networkSpanResourceType,
+          }))}
+          size="sm"
+          onChange={selections => {
+            const selectedValues = selections.map(selection => selection.value);
+
+            handleFilters(
+              selectedValues,
+              FilterTypesEnum.RESOURCE_TYPE,
+              (networkSpan: NetworkSpan) => {
+                return selectedValues.includes(networkSpan.op.replace('resource.', ''));
               }
             );
           }}
