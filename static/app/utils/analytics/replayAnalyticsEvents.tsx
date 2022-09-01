@@ -10,7 +10,7 @@ export type ReplayEventParameters = {
     slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
   };
   'replay-details.viewed': {
-    origin: undefined | string;
+    referrer: undefined | string;
     user_email: string;
   };
 };

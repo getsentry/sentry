@@ -15,7 +15,7 @@ function useReplayPageview() {
   useEffect(() => {
     trackAdvancedAnalyticsEvent('replay-details.viewed', {
       organization,
-      origin: decodeScalar(location.query.origin),
+      referrer: decodeScalar(location.query.origin),
       user_email: config.user.email,
     });
   }, [organization, location.query.origin, config.user.email]);
