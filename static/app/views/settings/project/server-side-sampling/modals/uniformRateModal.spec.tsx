@@ -299,14 +299,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Specify current client(SDK) sample rate',
+        name: 'Current SDK Sample Rate',
       })
     ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
-
-    // Enter valid specified client-sample rate
-    userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
 
     userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
@@ -315,10 +310,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ).toBeInTheDocument();
 
     // Content
-    expect(screen.getByText('20%')).toBeInTheDocument(); // Current client-side sample rate
+    expect(screen.getByText('10%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(100); // Suggested client-side sample rate
-    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(20); // Suggested server-side sample rate
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(10); // Suggested server-side sample rate
 
     // Footer
     expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
@@ -327,7 +322,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
     // Specified sample rate has to still be there
-    expect(screen.getByRole('spinbutton')).toHaveValue(0.2);
+    expect(screen.getByRole('spinbutton')).toHaveValue(0.1);
 
     // Close Modal
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
