@@ -476,15 +476,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 1
         frame = frame_list[0]
-        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
-        assert frame.context_line == "\treturn a * b;"
-        assert frame.post_context == [
-            "}",
-            "function divide(a, b) {",
-            '\t"use strict";',
-            "\ttry {",
-            "\t\treturn multiply(add(a, b), a, b) / c;",
-        ]
+        assert frame.abs_path == "app:///nofiles.js"
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]
 
     @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
@@ -1330,15 +1325,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 6
 
-        import pprint
-
-        pprint.pprint(frame_list[0].__dict__)
-        pprint.pprint(frame_list[1].__dict__)
-        pprint.pprint(frame_list[2].__dict__)
-        pprint.pprint(frame_list[3].__dict__)
-        pprint.pprint(frame_list[4].__dict__)
-        pprint.pprint(frame_list[5].__dict__)
-
         assert frame_list[0].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
         assert frame_list[0].function == "bar"
         assert frame_list[0].lineno == 8
@@ -1351,7 +1337,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame_list[2].function == "App"
         assert frame_list[2].lineno == 2
 
-        assert frame_list[3].abs_path == "app:///dist.bundle.js"
+        assert frame_list[3].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
 

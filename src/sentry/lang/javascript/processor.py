@@ -16,10 +16,9 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
-from symbolic import SourceMapView
+from symbolic import SourceMapCache as SmCache
 
 from sentry import http, options
-from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -46,6 +45,9 @@ LINES_OF_CONTEXT = 5
 BASE64_SOURCEMAP_PREAMBLE = "data:application/json;base64,"
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 UNKNOWN_MODULE = "<unknown module>"
+# Names that do not provide any reasonable value, and that can possibly obstruct
+# better available names. In case we encounter one, we fallback to current frame fn name if available.
+useless_fn_names = ["<anonymous>", "__webpack_require__", "__webpack_modules__"]
 CLEAN_MODULE_RE = re.compile(
     r"""^
 (?:/|  # Leading slashes
@@ -117,9 +119,11 @@ def trim_line(line, column=0):
     return line
 
 
-def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
+def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     if not source:
         return None, None, None
+
+    source = source.split("\n")
 
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
@@ -130,17 +134,17 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     upper_bound = min(lineno + 1 + context, len(source))
 
     try:
-        pre_context = [trim_line(x) for x in source[lower_bound:lineno]]
+        pre_context = source[lower_bound:lineno]
     except IndexError:
         pre_context = []
 
     try:
-        context_line = trim_line(source[lineno], colno)
+        context_line = source[lineno]
     except IndexError:
         context_line = ""
 
     try:
-        post_context = [trim_line(x) for x in source[(lineno + 1) : upper_bound]]
+        post_context = source[(lineno + 1) : upper_bound]
     except IndexError:
         post_context = []
 
@@ -739,7 +743,7 @@ def get_max_age(headers):
     return min(max_age, CACHE_CONTROL_MAX)
 
 
-def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
+def fetch_sourcemap(url, source="", project=None, release=None, dist=None, allow_scraping=True):
     if is_data_uri(url):
         try:
             body = base64.b64decode(
@@ -764,9 +768,10 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
         body = result.body
     try:
         with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.fetch_sourcemap.SourceMapView.from_json_bytes"
+            op="JavaScriptStacktraceProcessor.fetch_sourcemap.SmCache.from_bytes"
         ):
-            return SourceMapView.from_json_bytes(body)
+            return SmCache.from_bytes(source.encode("utf-8"), body)
+
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(str(exc), exc_info=True)
@@ -850,15 +855,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.release = None
         self.dist = None
 
-    def get_stacktraces(self, data):
-        exceptions = get_path(data, "exception", "values", filter=True, default=())
-        stacktraces = [e["stacktrace"] for e in exceptions if e.get("stacktrace")]
-
-        if "stacktrace" in data:
-            stacktraces.append(data["stacktrace"])
-
-        return [(s, Stacktrace.to_python(s)) for s in stacktraces]
-
     def get_valid_frames(self):
         # build list of frames that we can actually grab source for
         frames = []
@@ -927,19 +923,25 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # This might fail but that's okay, we try with a different path a
         # bit later down the road.
-        source = self.get_sourceview(frame["abs_path"])
+
+        # NOTE: Used for pre_context, context_line, post_context
+
+        # /assets/bundle.js.min
+        source = self.get_source(frame["abs_path"])
+        source_context = None
 
         in_app = None
         new_frame = dict(frame)
         raw_frame = dict(frame)
 
-        sourcemap_url, sourcemap_view = sourcemaps.get_link(frame["abs_path"])
+        sourcemap_url, sourcemap_cache = sourcemaps.get_link(frame["abs_path"])
         self.sourcemaps_touched.add(sourcemap_url)
-        if sourcemap_view and frame.get("colno") is None:
+
+        if sourcemap_cache and frame.get("colno") is None:
             all_errors.append(
                 {"type": EventError.JS_NO_COLUMN, "url": http.expose_url(frame["abs_path"])}
             )
-        elif sourcemap_view:
+        elif sourcemap_cache:
             if is_data_uri(sourcemap_url):
                 sourcemap_label = frame["abs_path"]
             else:
@@ -947,19 +949,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             sourcemap_label = http.expose_url(sourcemap_label)
 
-            if frame.get("function"):
-                minified_function_name = frame["function"]
-                minified_source = self.get_sourceview(frame["abs_path"])
-            else:
-                minified_function_name = minified_source = None
-
             try:
-                # Errors are 1-indexed in the frames, so we need to -1 to get
-                # zero-indexed value from tokens.
+                # Errors are 1-indexed in the frames.
                 assert frame["lineno"] > 0, "line numbers are 1-indexed"
-                token = sourcemap_view.lookup(
-                    frame["lineno"] - 1, frame["colno"] - 1, minified_function_name, minified_source
-                )
+                token = sourcemap_cache.lookup(frame["lineno"], frame["colno"], LINES_OF_CONTEXT)
             except Exception:
                 token = None
                 all_errors.append(
@@ -972,21 +965,25 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     }
                 )
 
-            # persist the token so that we can find it later
-            processable_frame.data["token"] = token
-
             # Store original data in annotation
             new_frame["data"] = dict(frame.get("data") or {}, sourcemap=sourcemap_label)
 
             sourcemap_applied = True
 
             if token is not None:
-                abs_path = non_standard_url_join(sourcemap_url, token.src)
+                if token.src is not None:
+                    abs_path = non_standard_url_join(sourcemap_url, token.src)
+                else:
+                    abs_path = frame["abs_path"]
 
                 logger.debug(
                     "Mapping compressed source %r to mapping in %r", frame["abs_path"], abs_path
                 )
-                source = self.get_sourceview(abs_path)
+
+                if token.context_line is not None:
+                    source_context = token.pre_context, token.context_line, token.post_context
+                else:
+                    source = self.get_source(abs_path)
 
                 if source is None:
                     errors = cache.get_errors(abs_path)
@@ -997,31 +994,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                             {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(abs_path)}
                         )
 
-                # the tokens are zero indexed, so offset correctly
-                new_frame["lineno"] = token.src_line + 1
-                new_frame["colno"] = token.src_col + 1
+                # The tokens are 1-indexed.
+                new_frame["lineno"] = token.line
+                new_frame["colno"] = token.col
 
-                # Try to use the function name we got from symbolic
-                original_function_name = token.function_name
-
-                # In the ideal case we can use the function name from the
-                # frame and the location to resolve the original name
-                # through the heuristics in our sourcemap library.
-                if original_function_name is None:
-                    last_token = None
-
-                    # Find the previous token for function name handling as a
-                    # fallback.
-                    if (
-                        processable_frame.previous_frame
-                        and processable_frame.previous_frame.processor is self
-                    ):
-                        last_token = processable_frame.previous_frame.data.get("token")
-                        if last_token:
-                            original_function_name = last_token.name
-
-                if original_function_name is not None:
-                    new_frame["function"] = original_function_name
+                if token.function_name not in useless_fn_names:
+                    new_frame["function"] = token.function_name
 
                 filename = token.src
                 # special case webpack support
@@ -1080,9 +1058,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame.get("data") or {}, sourcemap=http.expose_url(sourcemap_url)
             )
 
-        # TODO: theoretically a minified source could point to
-        # another mapped, minified source
-        changed_frame = self.expand_frame(new_frame, source=source)
+        changed_frame = self.expand_frame(new_frame, source_context=source_context, source=source)
 
         # If we did not manage to match but we do have a line or column
         # we want to report an error here.
@@ -1116,25 +1092,33 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             raw_frames = [raw_frame] if changed_raw else None
             return new_frames, raw_frames, all_errors
 
-    def expand_frame(self, frame, source=None):
+    def expand_frame(self, frame, source_context=None, source=None):
         """
         Mutate the given frame to include pre- and post-context lines.
         """
 
         if frame.get("lineno") is not None:
             if source is None:
-                source = self.get_sourceview(frame["abs_path"])
+                source = self.get_source(frame["abs_path"])
                 if source is None:
                     logger.debug("No source found for %s", frame["abs_path"])
                     return False
 
-            frame["pre_context"], frame["context_line"], frame["post_context"] = get_source_context(
-                source=source, lineno=frame["lineno"], colno=frame.get("colno") or 0
+            (pre_context, context_line, post_context) = source_context or get_source_context(
+                source=source, lineno=frame["lineno"]
             )
+
+            if pre_context is not None and len(pre_context) > 0:
+                frame["pre_context"] = [trim_line(x) for x in pre_context]
+            if context_line is not None:
+                frame["context_line"] = trim_line(context_line, frame.get("colno") or 0)
+            if post_context is not None and len(post_context) > 0:
+                frame["post_context"] = [trim_line(x) for x in post_context]
+
             return True
         return False
 
-    def get_sourceview(self, filename):
+    def get_source(self, filename):
         if filename not in self.cache:
             self.cache_source(filename)
         return self.cache.get(filename)
@@ -1180,6 +1164,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
             return
+
         cache.add(filename, result.body, result.encoding)
         cache.alias(result.url, filename)
 
@@ -1200,8 +1185,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
             ) as span:
                 span.set_data("sourcemap_url", sourcemap_url)
-                sourcemap_view = fetch_sourcemap(
+                sourcemap_cache = fetch_sourcemap(
                     sourcemap_url,
+                    cache.get(filename),
                     project=self.project,
                     release=self.release,
                     dist=self.dist,
@@ -1218,17 +1204,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return
 
         with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
+            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_cache"
         ) as span:
-            span.set_data("source_count", sourcemap_view.source_count)
-
-            sourcemaps.add(sourcemap_url, sourcemap_view)
-
-            # cache any inlined sources
-            for src_id, source_name in sourcemap_view.iter_sources():
-                source_view = sourcemap_view.get_sourceview(src_id)
-                if source_view is not None:
-                    self.cache.add(non_standard_url_join(sourcemap_url, source_name), source_view)
+            sourcemaps.add(sourcemap_url, sourcemap_cache)
 
     def populate_source_cache(self, frames):
         """
@@ -1251,7 +1229,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 continue
             pending_file_list.add(f["abs_path"])
 
-        for idx, filename in enumerate(pending_file_list):
+        for filename in pending_file_list:
             with sentry_sdk.start_span(
                 op="JavaScriptStacktraceProcessor.populate_source_cache.cache_source"
             ) as span:

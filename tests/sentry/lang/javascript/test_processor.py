@@ -9,7 +9,6 @@ from unittest.mock import ANY, MagicMock, call, patch
 import pytest
 import responses
 from requests.exceptions import RequestException
-from symbolic import SourceMapTokenMatch
 
 from sentry import http, options
 from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
@@ -999,21 +998,21 @@ class GenerateModuleTest(unittest.TestCase):
 class FetchSourcemapTest(TestCase):
     def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
-        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src="/test.js", src_id=0)]
+        token = smap_view.lookup(1, 1, 0)
 
-        assert list(smap_view) == tokens
-        sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == 'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == "/test.js"
+        assert token.src == "/test.js"
+        assert token.line == 1
+        assert token.col == 1
+        assert token.context_line == 'console.log("hello, World!")'
 
     def test_base64_without_padding(self):
         smap_view = fetch_sourcemap(base64_sourcemap.rstrip("="))
-        tokens = [SourceMapTokenMatch(0, 0, 1, 0, src="/test.js", src_id=0)]
+        token = smap_view.lookup(1, 1, 0)
 
-        assert list(smap_view) == tokens
-        sv = smap_view.get_sourceview(0)
-        assert sv.get_source() == 'console.log("hello, World!")'
-        assert smap_view.get_source_name(0) == "/test.js"
+        assert token.src == "/test.js"
+        assert token.line == 1
+        assert token.col == 1
+        assert token.context_line == 'console.log("hello, World!")'
 
     def test_broken_base64(self):
         with pytest.raises(UnparseableSourcemap):
@@ -1342,7 +1341,7 @@ class CacheSourceTest(TestCase):
         processor.cache_source(abs_path)
 
         # file is cached, no errors are generated
-        assert processor.cache.get(abs_path)
+        assert processor.cache.get(abs_path) == ""
         assert len(processor.cache.get_errors(abs_path)) == 0
 
     @patch("sentry.lang.javascript.processor.discover_sourcemap")
