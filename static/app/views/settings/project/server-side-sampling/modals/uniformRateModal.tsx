@@ -576,12 +576,6 @@ export function UniformRateModal({
               </Projects>
             </Alert>
           )}
-
-          <SamplingProjectIncompatibleAlert
-            organization={organization}
-            projectId={project.id}
-            isProjectIncompatible={isProjectIncompatible}
-          />
         </Fragment>
       </Body>
       <Footer>
