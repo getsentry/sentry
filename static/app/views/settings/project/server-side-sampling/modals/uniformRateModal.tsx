@@ -30,7 +30,6 @@ import useApi from 'sentry/utils/useApi';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {
   getClientSampleRates,
   isValidSampleRate,
@@ -577,12 +576,6 @@ export function UniformRateModal({
               </Projects>
             </Alert>
           )}
-
-          <SamplingProjectIncompatibleAlert
-            organization={organization}
-            projectId={project.id}
-            isProjectIncompatible={isProjectIncompatible}
-          />
         </Fragment>
       </Body>
       <Footer>
