@@ -113,12 +113,12 @@ function SplitPanel(props: Props) {
     slideDirection: 'left' in props ? 'leftright' : 'updown',
   });
 
-  const {start: startMouseIdleTimer, stop: stopMouseIdleTimer} = useTimeout({
+  const {start: startMouseIdleTimer, cancel: cancelMouseIdleTimer} = useTimeout({
     timeMs: MOUSE_RELEASE_TIMEOUT_MS,
-    callback: () => {
+    onTimeout: useCallback(() => {
       setMousedown(false);
       logEndPosition(sizeCSSRef.current);
-    },
+    }, [logEndPosition]),
   });
 
   const handleMouseDown = useCallback(() => {
@@ -129,14 +129,14 @@ function SplitPanel(props: Props) {
       'mouseup',
       () => {
         setMousedown(false);
-        stopMouseIdleTimer();
+        cancelMouseIdleTimer();
         logEndPosition(sizeCSSRef.current);
       },
       {once: true}
     );
 
     startMouseIdleTimer();
-  }, [logEndPosition, setStartPosition, startMouseIdleTimer, stopMouseIdleTimer]);
+  }, [cancelMouseIdleTimer, logEndPosition, setStartPosition, startMouseIdleTimer]);
 
   const handlePositionChange = useCallback(
     params => {
