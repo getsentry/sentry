@@ -7,8 +7,7 @@ import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-
-import SearchBar from './searchBar';
+import SearchBar from 'sentry/views/replays/searchBar';
 
 type Props = {
   handleSearchQuery: (query: string) => void;

@@ -126,7 +126,6 @@ function SearchBar(props: SearchBarProps) {
 
   return (
     <SmartSearchBar
-      hasRecentSearches
       onGetTagValues={getEventFieldValues}
       supportedTags={getTagList()}
       prepareQuery={query => {
