@@ -468,6 +468,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
             if args[0][0] == "_pi_n_plus_one_db_fp":
                 index_fingerprint = args[0][1]
+        assert index_fingerprint
 
         sdk_span_mock.reset_mock()
         _detect_performance_issue(new_n_plus_one_event, sdk_span_mock)
@@ -475,6 +476,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
             if args[0][0] == "_pi_n_plus_one_db_fp":
                 new_fingerprint = args[0][1]
+        assert new_fingerprint
 
         assert index_fingerprint != new_fingerprint
 
