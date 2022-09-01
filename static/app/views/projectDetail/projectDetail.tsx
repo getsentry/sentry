@@ -196,8 +196,6 @@ class ProjectDetail extends AsyncView<Props, State> {
       return this.renderNoAccess(project);
     }
 
-    console.log({project});
-
     return (
       <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
         <NoProjectMessage organization={organization}>
