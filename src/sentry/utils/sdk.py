@@ -51,7 +51,6 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     # events
-    "sentry-api-0-organization-eventsv2": 0.1,
     "sentry-api-0-organization-events": 1,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
