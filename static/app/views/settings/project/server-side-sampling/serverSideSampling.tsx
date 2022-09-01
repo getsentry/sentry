@@ -97,6 +97,12 @@ export function ServerSideSampling({project}: Props) {
     }
 
     async function fetchData() {
+      fetchProjectStats({
+        orgSlug: organization.slug,
+        api,
+        projId: project.id,
+      });
+
       await fetchSamplingDistribution({
         orgSlug: organization.slug,
         projSlug: project.slug,
@@ -107,12 +113,6 @@ export function ServerSideSampling({project}: Props) {
         orgSlug: organization.slug,
         api,
         projectID: project.id,
-      });
-
-      await fetchProjectStats({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
       });
     }
 
@@ -474,7 +474,6 @@ export function ServerSideSampling({project}: Props) {
             onGetStarted={handleGetStarted}
             onReadDocs={handleReadDocs}
             hasAccess={hasAccess}
-            isProjectIncompatible={isProjectIncompatible}
           />
         ) : (
           <RulesPanel>

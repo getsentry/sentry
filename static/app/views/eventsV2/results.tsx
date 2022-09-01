@@ -32,6 +32,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -532,15 +533,20 @@ class Results extends Component<Props, State> {
                     <EnvironmentPageFilter />
                     <DatePageFilter alignDropdown="left" />
                   </StyledPageFilterBar>
-                  <StyledSearchBar
-                    searchSource="eventsv2"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    fields={fields}
-                    onSearch={this.handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
+                  <CustomMeasurementsContext.Consumer>
+                    {contextValue => (
+                      <StyledSearchBar
+                        searchSource="eventsv2"
+                        organization={organization}
+                        projectIds={eventView.project}
+                        query={query}
+                        fields={fields}
+                        onSearch={this.handleSearch}
+                        maxQueryLength={MAX_QUERY_LENGTH}
+                        customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      />
+                    )}
+                  </CustomMeasurementsContext.Consumer>
                   <ResultsChart
                     router={router}
                     organization={organization}

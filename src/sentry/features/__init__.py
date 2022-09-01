@@ -114,7 +114,7 @@ default_manager.add("organizations:performance-chart-interpolation", Organizatio
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-extraneous-spans-poc", OrganizationFeature, True)
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
-default_manager.add("organizations:performance-issues", OrganizationFeature)
+default_manager.add("organizations:performance-issues", OrganizationFeature, True)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
@@ -148,6 +148,7 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
+default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
