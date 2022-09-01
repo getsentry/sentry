@@ -77,7 +77,7 @@ function SortableHeader({
 
 function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
   const routes = useRoutes();
-  const referrer = getRouteStringFromRoutes(routes);
+  const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
   const organization = useOrganization();
   const theme = useTheme();
