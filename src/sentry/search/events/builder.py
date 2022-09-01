@@ -1666,16 +1666,16 @@ class SessionsQueryBuilder(QueryBuilder):
 
 
 class SessionsV2QueryBuilder(QueryBuilder):
-    condition_fields = {"project", "project_id", "environment", "release"}
+    filter_allowlist_fields = {"project", "project_id", "environment", "release"}
 
     def __init__(
         self,
         *args: Any,
         granularity: Optional[int] = None,
-        extra_condition_fields: Optional[Sequence[str]] = None,
+        extra_filter_allowlist_fields: Optional[Sequence[str]] = None,
         **kwargs: Any,
     ):
-        self._extra_condition_fields = extra_condition_fields or []
+        self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
         self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
 
@@ -1699,7 +1699,7 @@ class SessionsV2QueryBuilder(QueryBuilder):
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
-        if name in self.condition_fields or name in self._extra_condition_fields:
+        if name in self.filter_allowlist_fields or name in self._extra_filter_allowlist_fields:
             return super()._default_filter_converter(search_filter)
         raise InvalidSearchQuery(f"Invalid search filter: {name}")
 

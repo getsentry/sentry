@@ -340,7 +340,7 @@ class QueryDefinition:
             "granularity": self.rollup,
         }
         if self._query_config.allow_session_status_query:
-            query_builder_dict.update({"extra_condition_fields": ["session.status"]})
+            query_builder_dict.update({"extra_filter_allowlist_fields": ["session.status"]})
         return query_builder_dict
 
     def get_filter_conditions(self):
