@@ -146,7 +146,7 @@ s3transfer==0.5.2
 selenium==4.3.0
 sentry-arroyo==1.0.4
 sentry-relay==0.8.13
-sentry-sdk==1.9.5
+sentry-sdk==1.9.7
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
