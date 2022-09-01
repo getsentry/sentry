@@ -361,3 +361,20 @@ def _strip_uuid_dashes(
         parameters=[Function("toString", parameters=[input_value]), "-", ""],
         alias=alias or input_name if aliased else None,
     )
+
+
+# TODO
+
+
+def filter_tag_value(key: str, value: str, operator):
+    return Condition(
+        Function(
+            "arrayElement",
+            parameters=[
+                Column("tv"),
+                Function("indexOf", parameters=[Column("tk"), key]),
+            ],
+        ),
+        operator,
+        value,
+    )
