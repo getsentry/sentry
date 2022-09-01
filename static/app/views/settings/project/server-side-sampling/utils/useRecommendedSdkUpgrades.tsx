@@ -10,8 +10,8 @@ type Props = {
 };
 
 export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
-  const {sdkVersions} = useLegacyStore(ServerSideSamplingStore);
-  const {data = [], loading} = sdkVersions;
+  const {sdkVersions, distribution} = useLegacyStore(ServerSideSamplingStore);
+  const {data = []} = sdkVersions;
 
   const sdksToUpdate = data.filter(
     ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) => {
@@ -61,7 +61,7 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
     recommendedSdkUpgrades,
     incompatibleProjects,
     affectedProjects,
-    loading,
+    loading: sdkVersions.loading || distribution.loading,
     isProjectIncompatible,
   };
 }

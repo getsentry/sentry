@@ -66,7 +66,7 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
 
     // Hover over next button
     userEvent.hover(screen.getByRole('button', {name: 'Next'}));
-    expect(await screen.findByText('Sample rate is not valid')).toBeInTheDocument();
+    expect(await screen.findByText('Sample rate must not be empty')).toBeInTheDocument();
 
     // Enter valid specified client-sample rate
     userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
