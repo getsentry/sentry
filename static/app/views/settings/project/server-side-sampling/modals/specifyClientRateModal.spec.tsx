@@ -4,7 +4,6 @@ import {
   userEvent,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
@@ -39,15 +38,11 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
     // Header
     expect(
       await screen.findByRole('heading', {
-        name: 'Specify current client(SDK) sample rate',
+        name: 'Current SDK Sample Rate',
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(
-          'Find the tracesSampleRate option in your SDK config, and copy it’s value into the field below.'
-        )
-      )
+      screen.getByText(/We are not able to estimate your client sample rate/)
     ).toBeInTheDocument();
 
     // Content
@@ -70,7 +65,7 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
 
     // Enter valid specified client-sample rate
     userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
-    expect(handleChange).toHaveBeenCalled();
+    expect(handleChange).toHaveBeenCalledWith('0.2');
 
     // Click on the docs
     userEvent.click(screen.getByLabelText('Read Docs'));
