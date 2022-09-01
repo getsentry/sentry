@@ -31,7 +31,7 @@ const LoadingGroup: ProfileGroup = {
   name: 'Loading',
   traceID: '',
   activeProfileIndex: 0,
-  profiles: [Profile.Empty()],
+  profiles: [Profile.Empty],
 };
 
 function ProfileFlamegraph(): React.ReactElement {
