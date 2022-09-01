@@ -1,4 +1,10 @@
+import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+
 export type ReplayEventParameters = {
+  'replay-details.layout-changed': {
+    chosenLayout: LayoutKey;
+    defaultLayout: LayoutKey;
+  };
   'replay-details.viewed': {
     origin: undefined | string;
     user_email: string;
@@ -8,5 +14,6 @@ export type ReplayEventParameters = {
 export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
+  'replay-details.layout-changed': 'Changed Replay Details Layout',
   'replay-details.viewed': 'Viewed Replay Details',
 };
