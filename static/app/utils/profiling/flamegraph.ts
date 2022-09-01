@@ -37,7 +37,7 @@ export class Flamegraph {
   timelineFormatter: (value: number) => string;
 
   static Empty(): Flamegraph {
-    return new Flamegraph(Profile.Empty(), 0, {
+    return new Flamegraph(Profile.Empty, 0, {
       inverted: false,
       leftHeavy: false,
     });

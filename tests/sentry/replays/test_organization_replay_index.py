@@ -312,7 +312,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(
@@ -357,34 +357,34 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                ("platform", "javascript"),
-                ("duration", ">15"),
-                ("user.id", "123"),
-                ("user.name", "username123"),
-                ("user.email", "username@example.com"),
-                ("user.ipAddress", "127.0.0.1"),
-                ("sdk.name", "sentry.javascript.react"),
-                ("os.name", "macOS"),
-                ("os.version", "15"),
-                ("browser.name", "Firefox"),
-                ("browser.version", "99"),
-                ("dist", "abc123"),
-                ("countSegments", ">=2"),
-                ("device.name", "Macbook"),
-                ("device.brand", "Apple"),
-                ("device.family", "Macintosh"),
-                ("device.model", "10"),
+                f"id:[{replay1_id}, {uuid.uuid4().hex}]",
+                "platform:javascript",
+                "duration:>15",
+                "user.id:123",
+                "user.name:username123",
+                "user.email:username@example.com",
+                "user.ipAddress:127.0.0.1",
+                "sdk.name:sentry.javascript.react",
+                "os.name:macOS",
+                "os.version:15",
+                "browser.name:Firefox",
+                "browser.version:99",
+                "dist:abc123",
+                "countSegments:>=2",
+                "device.name:Macbook",
+                "device.brand:Apple",
+                "device.family:Macintosh",
+                "device.model:10",
             ]
 
-            for key, value in queries:
-                response = self.client.get(self.url + f"?query={key}:{value}")
-                assert response.status_code == 200, key
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
                 response_data = response.json()
-                assert len(response_data["data"]) == 1, key
+                assert len(response_data["data"]) == 1, query
 
             # Test all queries as a single AND expression.
-            raw_queries = [f"{key}:{value}" for key, value in queries]
-            all_queries = " ".join(raw_queries)
+            all_queries = " ".join(queries)
 
             response = self.client.get(self.url + f"?query={all_queries}")
             assert response.status_code == 200
@@ -558,7 +558,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))

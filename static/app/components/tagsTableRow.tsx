@@ -37,7 +37,9 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
         !!keyMetaData && !tag.key ? (
           <AnnotatedText value={tag.key} meta={keyMetaData} />
         ) : (
-          <StyledTooltip title={tag.key}>{tag.key}</StyledTooltip>
+          <StyledTooltip title={tag.key} showOnlyOnOverflow>
+            {tag.key}
+          </StyledTooltip>
         )
       }
       value={
@@ -50,7 +52,7 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
             <ValueContainer>{renderTagValue()}</ValueContainer>
           </StyledTooltip>
         ) : (
-          <StyledTooltip title={renderTagValue()}>
+          <StyledTooltip title={renderTagValue()} showOnlyOnOverflow>
             <Link to={target || ''}>{renderTagValue()}</Link>
           </StyledTooltip>
         )

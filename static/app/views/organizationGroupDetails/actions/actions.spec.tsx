@@ -28,10 +28,6 @@ describe('GroupActions', function () {
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
   });
 
-  afterEach(() => {
-    ConfigStore.teardown();
-  });
-
   describe('render()', function () {
     it('renders correctly', function () {
       const wrapper = render(
