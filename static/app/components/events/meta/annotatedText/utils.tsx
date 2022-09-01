@@ -35,7 +35,7 @@ export function getTooltipText({
 
   // default data scrubbing
   if (KNOWN_RULES[rule_id]) {
-    return tct('[method] because of the rule [break][rule-description]', {
+    return tct('[method] because of the PII rule [break][rule-description]', {
       method,
       break: <br />,
       'rule-description': KNOWN_RULES[rule_id],
@@ -48,7 +48,7 @@ export function getTooltipText({
   if (level === 'organization') {
     // if organization is not available, fall back to the default message
     if (!organization) {
-      return tct('[method] because of the rule [break][rule-description]', {
+      return tct('[method] because of the PII rule [break][rule-description]', {
         method,
         break: <br />,
         'rule-description': rule_id,
@@ -61,7 +61,7 @@ export function getTooltipText({
     return (
       <Wrapper>
         {tct(
-          '[method] because of the rule [break][rule-description] in the settings of the organization [break][slug]',
+          '[method] because of the PII rule [break][rule-description] in the settings of the organization [break][slug]',
           {
             method,
             break: <br />,
@@ -91,7 +91,7 @@ export function getTooltipText({
 
   // if project and organization are not available, fall back to the default message
   if (!project || !organization) {
-    return tct('[method] because of the rule [break][rule-description]', {
+    return tct('[method] because of the PII rule [break][rule-description]', {
       method,
       break: <br />,
       'rule-description': rule_id,
@@ -102,7 +102,7 @@ export function getTooltipText({
   const rule = rules.find(({id}) => String(id) === ruleId);
 
   return tct(
-    '[method] because of the rule [break][rule-description] in the settings of the organization [break][slug]',
+    '[method] because of the PII rule [break][rule-description] in the settings of the project [break][slug]',
     {
       method,
       break: <br />,
