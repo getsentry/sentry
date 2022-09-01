@@ -2,7 +2,6 @@ import {createStore} from 'reflux';
 
 import {SeriesApi} from 'sentry/types';
 import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -231,4 +230,4 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
   },
 };
 
-export const ServerSideSamplingStore = createStore(makeSafeRefluxStore(storeConfig));
+export const ServerSideSamplingStore = createStore(storeConfig);

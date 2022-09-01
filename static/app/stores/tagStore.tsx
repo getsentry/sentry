@@ -3,7 +3,6 @@ import {createStore} from 'reflux';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -26,7 +25,6 @@ interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
 
 const storeConfig: TagStoreDefinition = {
   state: {},
-  unsubscribeListeners: [],
 
   init() {
     this.state = {};
@@ -178,5 +176,5 @@ const storeConfig: TagStoreDefinition = {
   },
 };
 
-const TagStore = createStore(makeSafeRefluxStore(storeConfig));
+const TagStore = createStore(storeConfig);
 export default TagStore;
