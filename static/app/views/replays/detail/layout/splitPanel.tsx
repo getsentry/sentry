@@ -4,13 +4,17 @@ import styled from '@emotion/styled';
 import {IconGrabbable} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
+import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
+import useTimeout from 'sentry/utils/replays/hooks/useTimeout';
 
 const BAR_THICKNESS = 16;
 const HALF_BAR = BAR_THICKNESS / 2;
 
 const MOUSE_RELEASE_TIMEOUT_MS = 200;
 
-type CSSValue = `${number}px` | `${number}%`;
+type CSSValuePX = `${number}px`;
+type CSSValuePct = `${number}%`;
+type CSSValue = CSSValuePX | CSSValuePct;
 type LimitValue =
   | {
       /**
@@ -25,14 +29,12 @@ type LimitValue =
       px: number;
     };
 
-type Side =
-  | ReactNode
-  | {
-      content: ReactNode;
-      default?: CSSValue;
-      max?: LimitValue;
-      min?: LimitValue;
-    };
+type Side = {
+  content: ReactNode;
+  default?: CSSValuePct;
+  max?: LimitValue;
+  min?: LimitValue;
+};
 
 type Props =
   | {
@@ -56,8 +58,9 @@ type Props =
       top: Side;
     };
 
-const getValFromSide = (side: Side, field: string) =>
-  side && typeof side === 'object' && field in side ? side[field] : undefined;
+function getValFromSide<Field extends keyof Side>(side: Side, field: Field) {
+  return side && typeof side === 'object' && field in side ? side[field] : undefined;
+}
 
 function getSplitDefault(props: Props) {
   if ('left' in props) {
@@ -69,7 +72,7 @@ function getSplitDefault(props: Props) {
     if (b) {
       return {b};
     }
-    return {a: '50%'};
+    return {a: '50%' as CSSValuePct};
   }
   const a = getValFromSide(props.top, 'default');
   if (a) {
@@ -79,7 +82,7 @@ function getSplitDefault(props: Props) {
   if (b) {
     return {b};
   }
-  return {a: '50%'};
+  return {a: '50%' as CSSValuePct};
 }
 
 function getMinMax(side: Side): {
@@ -100,50 +103,44 @@ function getMinMax(side: Side): {
   };
 }
 
-function useTimeout({timeMs, callback}: {callback: () => void; timeMs: number}) {
-  const timeoutRef = useRef<number>(null);
-
-  const saveTimeout = useCallback((timeout: ReturnType<typeof setTimeout> | null) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-    // @ts-expect-error
-    timeoutRef.current = timeout;
-  }, []);
-
-  return {
-    start: () => saveTimeout(setTimeout(callback, timeMs)),
-    stop: () => saveTimeout(null),
-  };
-}
-
 function SplitPanel(props: Props) {
-  const [mousedown, setMousedown] = useState(false);
+  const [isMousedown, setMousedown] = useState(false);
   const [sizeCSS, setSizeCSS] = useState(getSplitDefault(props));
+  const sizeCSSRef = useRef<undefined | CSSValuePct>();
+  sizeCSSRef.current = sizeCSS.a;
+
+  const {setStartPosition, logEndPosition} = useSplitPanelTracking({
+    slideDirection: 'left' in props ? 'leftright' : 'updown',
+  });
+
   const {start: startMouseIdleTimer, stop: stopMouseIdleTimer} = useTimeout({
     timeMs: MOUSE_RELEASE_TIMEOUT_MS,
-    callback: () => setMousedown(false),
+    callback: () => {
+      setMousedown(false);
+      logEndPosition(sizeCSSRef.current);
+    },
   });
 
   const handleMouseDown = useCallback(() => {
     setMousedown(true);
+    setStartPosition(sizeCSSRef.current);
 
     document.addEventListener(
       'mouseup',
       () => {
         setMousedown(false);
         stopMouseIdleTimer();
+        logEndPosition(sizeCSSRef.current);
       },
       {once: true}
     );
 
     startMouseIdleTimer();
-  }, [startMouseIdleTimer, stopMouseIdleTimer]);
+  }, [logEndPosition, setStartPosition, startMouseIdleTimer, stopMouseIdleTimer]);
 
   const handlePositionChange = useCallback(
     params => {
-      if (mousedown && params) {
+      if (params) {
         startMouseIdleTimer();
         const {left, top, width, height} = params;
 
@@ -190,14 +187,14 @@ function SplitPanel(props: Props) {
         }
       }
     },
-    [mousedown, props, startMouseIdleTimer]
+    [props, startMouseIdleTimer]
   );
 
   const mouseTrackingProps = useMouseTracking<HTMLDivElement>({
     onPositionChange: handlePositionChange,
   });
 
-  const activeTrackingProps = mousedown ? mouseTrackingProps : {};
+  const activeTrackingProps = isMousedown ? mouseTrackingProps : {};
 
   if ('left' in props) {
     const {left: a, right: b} = props;
@@ -207,7 +204,7 @@ function SplitPanel(props: Props) {
         <Panel>{getValFromSide(a, 'content') || a}</Panel>
         <Divider
           slideDirection="leftright"
-          mousedown={mousedown}
+          isMousedown={isMousedown}
           onMouseDown={handleMouseDown}
         />
         <Panel>{getValFromSide(b, 'content') || b}</Panel>
@@ -220,9 +217,8 @@ function SplitPanel(props: Props) {
       <Panel>{getValFromSide(a, 'content') || a}</Panel>
       <Divider
         slideDirection="updown"
-        onMouseDown={() => setMousedown(true)}
-        onMouseUp={() => setMousedown(false)}
-        mousedown={mousedown}
+        isMousedown={isMousedown}
+        onMouseDown={handleMouseDown}
       />
       <Panel>{getValFromSide(b, 'content') || b}</Panel>
     </SplitPanelContainer>
@@ -248,10 +244,10 @@ const Panel = styled('div')`
   overflow: hidden;
 `;
 
-type DividerProps = {mousedown: boolean; slideDirection: 'leftright' | 'updown'};
+type DividerProps = {isMousedown: boolean; slideDirection: 'leftright' | 'updown'};
 const Divider = styled(
   ({
-    mousedown: _a,
+    isMousedown: _a,
     slideDirection: _b,
     ...props
   }: DividerProps & DOMAttributes<HTMLDivElement>) => (
@@ -265,7 +261,7 @@ const Divider = styled(
   height: 100%;
   width: 100%;
 
-  ${p => (p.mousedown ? 'user-select: none;' : '')}
+  ${p => (p.isMousedown ? 'user-select: none;' : '')}
 
   :hover {
     background: ${p => p.theme.hover};
