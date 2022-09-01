@@ -286,6 +286,7 @@ MIDDLEWARE = (
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
+    "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.user.UserActiveMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -948,8 +949,8 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Workflow 2.0 Alpha Functionality for sentry users only
     "organizations:active-release-monitor-alpha": False,
-    # Workflow 2.0 Experimental ReleaseMembers who opt-in to get notified as a release committer
-    "organizations:active-release-notification-opt-in": False,
+    # Workflow 2.0 Active Release Notifications
+    "organizations:active-release-notifications-enable": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1123,6 +1124,8 @@ SENTRY_FEATURES = {
     "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
+    # Enable populating suggested assignees with release committers
+    "organizations:release-committer-assignees": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
@@ -1140,6 +1143,8 @@ SENTRY_FEATURES = {
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
+    # Enable performance issues
+    "organizations:performance-issues": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1163,8 +1168,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable sending Active release notifications without creating an explicit rule in DB
-    "projects:active-release-monitor-default-on": False,
+    # Enable snowflake ids
+    "organizations:enable-snowflake-id": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1478,6 +1483,8 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+
+SENTRY_METRICS_INDEXER_SPANNER_OPTIONS = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
@@ -1889,7 +1896,7 @@ APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm6
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
         {
-            "image": "redis:5.0-alpine",
+            "image": "ghcr.io/getsentry/image-mirror-library-redis:5.0-alpine",
             "ports": {"6379/tcp": 6379},
             "command": [
                 "redis-server",
@@ -1908,7 +1915,7 @@ SENTRY_DEVSERVICES = {
     ),
     "postgres": lambda settings, options: (
         {
-            "image": f"postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
+            "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{os.getenv('PG_VERSION') or '9.6'}-alpine",
             "pull": True,
             "ports": {"5432/tcp": 5432},
             "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
@@ -1934,7 +1941,7 @@ SENTRY_DEVSERVICES = {
         {
             # On Apple arm64, we upgrade to version 6.x to allow zookeeper to run properly on Apple's arm64
             # See details https://github.com/confluentinc/kafka-images/issues/80#issuecomment-855511438
-            "image": "confluentinc/cp-zookeeper:6.2.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-zookeeper:6.2.0",
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
@@ -1942,7 +1949,7 @@ SENTRY_DEVSERVICES = {
     ),
     "kafka": lambda settings, options: (
         {
-            "image": "confluentinc/cp-kafka:6.2.0",
+            "image": "ghcr.io/getsentry/image-mirror-confluentinc-cp-kafka:6.2.0",
             "ports": {"9092/tcp": 9092},
             "environment": {
                 "KAFKA_ZOOKEEPER_CONNECT": "{containers[zookeeper][name]}:2181",
@@ -1965,11 +1972,12 @@ SENTRY_DEVSERVICES = {
     ),
     "clickhouse": lambda settings, options: (
         {
-            "image": "yandex/clickhouse-server:20.3.9.70" if not APPLE_ARM64
+            "image": "ghcr.io/getsentry/image-mirror-yandex-clickhouse-server:20.3.9.70"
+            if not APPLE_ARM64
             # altinity provides clickhouse support to other companies
             # Official support: https://github.com/ClickHouse/ClickHouse/issues/22222
             # This image is build with this script https://gist.github.com/filimonov/5f9732909ff66d5d0a65b8283382590d
-            else "altinity/clickhouse-server:21.6.1.6734-testing-arm",
+            else "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:21.6.1.6734-testing-arm",
             "pull": True,
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -1991,9 +1999,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
-            # We cross-build arm64 images on GH's Apple Intel runners
-            else "ghcr.io/getsentry/snuba-arm64-dev:latest",
+            "image": "ghcr.io/getsentry/snuba:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
@@ -2027,7 +2033,7 @@ SENTRY_DEVSERVICES = {
     ),
     "memcached": lambda settings, options: (
         {
-            "image": "memcached:1.5-alpine",
+            "image": "ghcr.io/getsentry/image-mirror-library-memcached:1.5-alpine",
             "ports": {"11211/tcp": 11211},
             "only_if": "memcached" in settings.CACHES.get("default", {}).get("BACKEND"),
         }
@@ -2070,7 +2076,7 @@ SENTRY_DEVSERVICES = {
     ),
     "cdc": lambda settings, options: (
         {
-            "image": "getsentry/cdc:nightly",
+            "image": "ghcr.io/getsentry/cdc:latest",
             "pull": True,
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
@@ -2124,6 +2130,9 @@ SENTRY_SDK_CONFIG = {
     "debug": True,
     "send_default_pii": True,
     "auto_enabling_integrations": False,
+    "_experiments": {
+        "custom_measurements": True,
+    },
 }
 
 # Callable to bind additional context for the Sentry SDK
@@ -2365,7 +2374,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
@@ -2413,6 +2422,11 @@ KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 
+# topic for testing multiple indexer backends in parallel
+# in production. So far just testing backends for the perf data,
+# not release helth
+KAFKA_SNUBA_GENERICS_METRICS_CS = "snuba-metrics-generics-cloudspanner"
+
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
@@ -2451,6 +2465,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
+    # Metrics Testing Topics
+    KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
 }
 
 
@@ -2755,5 +2771,7 @@ SENTRY_FUNCTIONS_PROJECT_NAME = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
-SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
+SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+
+DISALLOWED_CUSTOMER_DOMAINS = []

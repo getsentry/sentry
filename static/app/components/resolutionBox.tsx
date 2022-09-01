@@ -95,7 +95,7 @@ function renderReason(
           ),
         });
   }
-  if (!!statusDetails.inCommit) {
+  if (statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
       commit: (
         <Fragment>
