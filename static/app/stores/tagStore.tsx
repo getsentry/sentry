@@ -78,6 +78,18 @@ const storeConfig: TagStoreDefinition = {
         values: [],
         predefined: true,
       },
+      [FieldKey.ISSUE_CATEGORY]: {
+        key: FieldKey.ISSUE_CATEGORY,
+        name: 'Issue Category',
+        values: ['error', 'performance'],
+        predefined: true,
+      },
+      [FieldKey.ISSUE_TYPE]: {
+        key: FieldKey.ISSUE_TYPE,
+        name: 'Issue Type',
+        values: [],
+        predefined: true,
+      },
       [FieldKey.LAST_SEEN]: {
         key: FieldKey.LAST_SEEN,
         name: 'Last Seen',

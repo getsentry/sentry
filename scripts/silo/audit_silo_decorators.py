@@ -11,24 +11,24 @@ import django.apps
 import django.urls
 
 
-def audit_mode_limits(format="json"):
-    """Lists which classes have had server mode decorators applied."""
+def audit_silo_limits(format="json"):
+    """Lists which classes have had silo decorators applied."""
 
     from sentry.runner import configure
 
     configure()
     model_table = create_model_table()
-    view_table = create_view_table()
+    endpoint_table = create_endpoint_table()
 
     if format == "json":
         json_repr = {
             "models": ModelPresentation().as_json_repr(model_table),
-            "views": ViewPresentation().as_json_repr(view_table),
+            "endpoints": EndpointPresentation().as_json_repr(endpoint_table),
         }
         json.dump(json_repr, sys.stdout, indent=4)
     elif format == "markdown":
         ModelPresentation().print_markdown(model_table)
-        ViewPresentation().print_markdown(view_table)
+        EndpointPresentation().print_markdown(endpoint_table)
     else:
         raise ValueError
 
@@ -38,30 +38,30 @@ def create_model_table():
     for model_class in django.apps.apps.get_models():
         if model_class._meta.app_label != "sentry":
             continue
-        limit = getattr(model_class._meta, "_ModelAvailableOn__mode_limit", None)
+        limit = getattr(model_class._meta, "_ModelSiloLimit__silo_limit", None)
         key = (limit.modes, limit.read_only) if limit else None
         table[key].append(model_class)
     return table
 
 
-def create_view_table():
+def create_endpoint_table():
     from sentry.api.base import Endpoint
 
     def is_endpoint(view_function, bindings):
         view_class = getattr(view_function, "view_class", None)
         return view_class and issubclass(view_class, Endpoint)
 
-    def get_view_classes():
+    def get_endpoint_classes():
         url_mappings = list(django.urls.get_resolver().reverse_dict.items())
         for (view_function, bindings) in url_mappings:
             if is_endpoint(view_function, bindings):
                 yield view_function.view_class
 
     table = defaultdict(list)
-    for view_class in get_view_classes():
-        limit = getattr(view_class, "__mode_limit", None)
+    for endpoint_class in get_endpoint_classes():
+        limit = getattr(endpoint_class, "__silo_limit", None)
         key = limit.modes if limit else None
-        table[key].append(view_class)
+        table[key].append(endpoint_class)
 
     return table
 
@@ -171,13 +171,13 @@ class ModelPresentation(ConsolePresentation):
             return self.format_mode_set(write_modes)
 
 
-class ViewPresentation(ConsolePresentation):
+class EndpointPresentation(ConsolePresentation):
     @property
     def table_label(self):
         return "VIEWS"
 
     def order(self, group):
-        mode_set, _view_group = group
+        mode_set, _endpoint_group = group
         return len(mode_set or ()), self.format_mode_set(mode_set)
 
     def get_group_label(self, key):
@@ -188,4 +188,4 @@ class ViewPresentation(ConsolePresentation):
 
 
 if __name__ == "__main__":
-    audit_mode_limits()
+    audit_silo_limits()
