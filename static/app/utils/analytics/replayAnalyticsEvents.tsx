@@ -13,9 +13,6 @@ export type ReplayEventParameters = {
     referrer: undefined | string;
     user_email: string;
   };
-  'replay.playstate-changed': {
-    play_state: 'isPlaying' | 'isPaused';
-  };
 };
 
 export type ReplayEventKey = keyof ReplayEventParameters;
