@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import isEmpty from 'lodash/isEmpty';
 
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -31,6 +30,11 @@ type Props = {
   networkSpans: NetworkSpan[];
   replayRecord: ReplayRecord;
 };
+
+enum FilterTypesEnum {
+  RESOURCE_TYPE = 'resourceType',
+  STATUS = 'status',
+}
 
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
@@ -237,7 +241,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{
             prefix: t('Resource Type'),
           }}
-          triggerLabel={isEmpty(filters) ? t('Any') : null}
+          triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
           multiple
           options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
             value: networkSpanResourceType,
@@ -247,16 +251,20 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           onChange={selections => {
             const selectedValues = selections.map(selection => selection.value);
 
-            handleFilters(selectedValues, 'resourceType', (networkSpan: NetworkSpan) => {
-              return selectedValues.includes(networkSpan.op.replace('resource.', ''));
-            });
+            handleFilters(
+              selectedValues,
+              FilterTypesEnum.RESOURCE_TYPE,
+              (networkSpan: NetworkSpan) => {
+                return selectedValues.includes(networkSpan.op.replace('resource.', ''));
+              }
+            );
           }}
         />
         <CompactSelect
           triggerProps={{
             prefix: t('Status'),
           }}
-          triggerLabel={isEmpty(filters) ? t('Any') : null}
+          triggerLabel={!filters[FilterTypesEnum.STATUS] ? t('Any') : null}
           multiple
           options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
             value: networkSpanStatusType,
@@ -266,16 +274,20 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           onChange={selections => {
             const selectedValues = selections.map(selection => selection.value);
 
-            handleFilters(selectedValues, 'statusCode', (networkSpan: NetworkSpan) => {
-              if (
-                selectedValues.includes(UNKNOWN_STATUS) &&
-                !defined(networkSpan.data.statusCode)
-              ) {
-                return true;
-              }
+            handleFilters(
+              selectedValues,
+              FilterTypesEnum.STATUS,
+              (networkSpan: NetworkSpan) => {
+                if (
+                  selectedValues.includes(UNKNOWN_STATUS) &&
+                  !defined(networkSpan.data.statusCode)
+                ) {
+                  return true;
+                }
 
-              return selectedValues.includes(networkSpan.data.statusCode);
-            });
+                return selectedValues.includes(networkSpan.data.statusCode);
+              }
+            );
           }}
         />
         <SearchBar
