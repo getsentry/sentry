@@ -103,9 +103,9 @@ function SummarySegment({
 }) {
   const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
 
-  const summaryItems = crumbs.map(crumb => (
+  const summaryItems = crumbs.map((crumb, i) => (
     <BreadcrumbItem
-      key={crumb.id}
+      key={crumb.id || i}
       crumb={crumb}
       startTimestampMs={startTimestampMs}
       isHovered={false}

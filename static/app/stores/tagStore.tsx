@@ -18,7 +18,6 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getIssueAttributes(): TagCollection;
   getIssueTags(): TagCollection;
-  getStateTags(): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -78,6 +77,18 @@ const storeConfig: TagStoreDefinition = {
         values: [],
         predefined: true,
       },
+      [FieldKey.ISSUE_CATEGORY]: {
+        key: FieldKey.ISSUE_CATEGORY,
+        name: 'Issue Category',
+        values: ['error', 'performance'],
+        predefined: true,
+      },
+      [FieldKey.ISSUE_TYPE]: {
+        key: FieldKey.ISSUE_TYPE,
+        name: 'Issue Type',
+        values: [],
+        predefined: true,
+      },
       [FieldKey.LAST_SEEN]: {
         key: FieldKey.LAST_SEEN,
         name: 'Last Seen',
@@ -133,13 +144,6 @@ const storeConfig: TagStoreDefinition = {
       // We want issue attributes to overwrite any built in and state tags
       ...this.getIssueAttributes(),
     };
-  },
-
-  /**
-   * Get only tags loaded from the backend
-   */
-  getStateTags() {
-    return this.getState();
   },
 
   getState() {
