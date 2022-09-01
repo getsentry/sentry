@@ -257,7 +257,7 @@ class InstallationGuideView(PipelineView):
         return render_to_response(
             template="sentry/integrations/gitlab-config.html",
             context={
-                "next_url": f'{absolute_uri("extensions/gitlab/setup/")}?completed_installation_guide',
+                "next_url": f'{absolute_uri("/extensions/gitlab/setup/")}?completed_installation_guide',
                 "setup_values": [
                     {"label": "Name", "value": "Sentry"},
                     {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},
