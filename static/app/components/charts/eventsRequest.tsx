@@ -21,6 +21,7 @@ import {
 } from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   AggregationOutputType,
   getAggregateAlias,
@@ -416,13 +417,24 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   /**
    * Transforms query response into timeseries data to be used in a chart
    */
-  transformTimeseriesData(data: EventsStatsData, seriesName?: string): Series[] {
+  transformTimeseriesData(
+    data: EventsStatsData,
+    meta: EventsStats['meta'],
+    seriesName?: string
+  ): Series[] {
+    let scale = 1;
+    if (seriesName) {
+      const unit = meta?.units?.[getAggregateAlias(seriesName)];
+      // Scale series values to milliseconds or bytes depending on units from meta
+      scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
+    }
+
     return [
       {
         seriesName: seriesName || 'Current',
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
-          value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+          value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
         })),
       },
     ];
@@ -447,7 +459,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   }
 
   processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
-    const {data, isMetricsData, totals} = response;
+    const {data, isMetricsData, totals, meta} = response;
     const {
       includeTransformedData,
       includeTimeAggregation,
@@ -460,6 +472,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     const transformedData = includeTransformedData
       ? this.transformTimeseriesData(
           current,
+          meta,
           seriesName ?? currentSeriesNames?.[seriesIndex]
         )
       : [];
