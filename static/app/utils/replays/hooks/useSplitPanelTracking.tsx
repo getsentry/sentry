@@ -24,7 +24,7 @@ function useSplitPanelTracking({
       const smaller = slideDirection === 'updown' ? 'toTop' : 'toLeft';
       const bigger = slideDirection === 'updown' ? 'toBottom' : 'toRight';
       const endSizeCSS = Number(endPosition?.replace('%', '') || 0);
-      trackAdvancedAnalyticsEvent('replay-details.resized-panel', {
+      trackAdvancedAnalyticsEvent('replay.details-resized-panel', {
         organization,
         layout: getLayout(),
         slide_motion: endSizeCSS > startSizeCSSRef.current ? bigger : smaller,

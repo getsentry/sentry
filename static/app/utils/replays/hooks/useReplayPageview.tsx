@@ -13,7 +13,7 @@ function useReplayPageview() {
   const organization = useOrganization();
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('replay-details.viewed', {
+    trackAdvancedAnalyticsEvent('replay.details-viewed', {
       organization,
       referrer: decodeScalar(location.query.referrer),
       user_email: config.user.email,

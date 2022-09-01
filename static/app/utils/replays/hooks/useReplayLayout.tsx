@@ -73,7 +73,7 @@ function useActiveReplayTab() {
         const chosenLayout = isLayout(value) ? value : defaultLayout;
 
         setParamValue(chosenLayout);
-        trackAdvancedAnalyticsEvent('replay-details.layout-changed', {
+        trackAdvancedAnalyticsEvent('replay.details-layout-changed', {
           organization,
           default_layout: defaultLayout,
           chosen_layout: chosenLayout,
