@@ -222,6 +222,8 @@ class RuleProcessor:
         if not updated:
             return
 
+        self.send_analytics()
+
         history.record(rule, self.group)
 
         for action in rule.data.get("actions", ()):
