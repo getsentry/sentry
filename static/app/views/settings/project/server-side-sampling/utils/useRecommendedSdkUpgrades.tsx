@@ -52,6 +52,10 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
     incompatibleProject => incompatibleProject.id === projectId
   );
 
+  const isProjectOnOldSDK = recommendedSdkUpgrades.some(
+    recommendedSdkUpgrade => recommendedSdkUpgrade.project.id === projectId
+  );
+
   const affectedProjects = [
     ...recommendedSdkUpgrades.map(({project}) => project),
     ...incompatibleProjects,
@@ -63,5 +67,6 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
     affectedProjects,
     loading: sdkVersions.loading || distribution.loading,
     isProjectIncompatible,
+    isProjectOnOldSDK,
   };
 }
