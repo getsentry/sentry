@@ -98,8 +98,7 @@ const SearchDropdown = ({
       <Button
         size="xs"
         href="https://docs.sentry.io/product/sentry-basics/search/"
-        target="_blank"
-        rel="noopener noreferrer"
+        external
       >
         Read the docs
       </Button>
