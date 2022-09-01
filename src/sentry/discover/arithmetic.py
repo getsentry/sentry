@@ -81,6 +81,15 @@ class Operation:
 class ParsedEquation:
     equation: Operation
     contains_functions: bool
+    date_math: bool
+
+
+@dataclass
+class ParsedArithmetic:
+    parsed_equation: Operation
+    fields: List[str]
+    functions: List[str]
+    date_math: bool
 
 
 def flatten(remaining):
@@ -160,6 +169,10 @@ class ArithmeticVisitor(NodeVisitor):
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
     }
+    # Implicitly an allowlist as well, once added the result will be a timestamp
+    datefields = {
+        "timestamp",
+    }
     function_allowlist = {
         "count",
         "count_if",
@@ -188,6 +201,7 @@ class ArithmeticVisitor(NodeVisitor):
         self.operators: int = 0
         self.terms: int = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
+        self.date_fields = False
         self.fields: set[str] = set()
         self.functions: set[str] = set()
 
@@ -261,8 +275,10 @@ class ArithmeticVisitor(NodeVisitor):
 
     def visit_field_value(self, node, _):
         field = node.text
-        if field not in self.field_allowlist:
+        if field not in self.field_allowlist and field not in self.datefields:
             raise ArithmeticValidationError(f"{field} not allowed in arithmetic")
+        if field in self.datefields:
+            self.date_math = True
         self.fields.add(field)
         return field
 
@@ -279,9 +295,7 @@ class ArithmeticVisitor(NodeVisitor):
         return children or node
 
 
-def parse_arithmetic(
-    equation: str, max_operators: Optional[int] = None
-) -> Tuple[Operation, List[str], List[str]]:
+def parse_arithmetic(equation: str, max_operators: Optional[int] = None) -> ParsedArithmetic:
     """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)
@@ -297,7 +311,12 @@ def parse_arithmetic(
         raise ArithmeticValidationError("Arithmetic expression must contain at least 2 terms")
     if visitor.operators == 0:
         raise ArithmeticValidationError("Arithmetic expression must contain at least 1 operator")
-    return result, list(visitor.fields), list(visitor.functions)
+    return ParsedArithmetic(
+        result,
+        list(visitor.fields),
+        list(visitor.functions),
+        visitor.date_math,
+    )
 
 
 def resolve_equation_list(
@@ -306,7 +325,7 @@ def resolve_equation_list(
     aggregates_only: Optional[bool] = False,
     auto_add: Optional[bool] = False,
     plain_math: Optional[bool] = False,
-) -> Tuple[List[str], List[Operation], List[bool]]:
+) -> Tuple[List[str], List[Operation], bool]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
@@ -319,14 +338,16 @@ def resolve_equation_list(
     parsed_equations: List[ParsedEquation] = []
     resolved_columns: List[str] = selected_columns[:]
     for index, equation in enumerate(equations):
-        parsed_equation, fields, functions = parse_arithmetic(equation)
+        parsed_arithmetic = parse_arithmetic(equation)
 
-        if (len(fields) == 0 and len(functions) == 0) and not plain_math:
+        if (
+            len(parsed_arithmetic.fields) == 0 and len(parsed_arithmetic.functions) == 0
+        ) and not plain_math:
             raise InvalidSearchQuery("Equations need to include a field or function")
-        if aggregates_only and len(functions) == 0:
+        if aggregates_only and len(parsed_arithmetic.functions) == 0:
             raise InvalidSearchQuery("Only equations on aggregate functions are supported")
 
-        for field in fields:
+        for field in parsed_arithmetic.fields:
             if field not in selected_columns:
                 if auto_add:
                     resolved_columns.append(field)
@@ -334,7 +355,7 @@ def resolve_equation_list(
                     raise InvalidSearchQuery(
                         f"{field} used in an equation but is not a selected field"
                     )
-        for function in functions:
+        for function in parsed_arithmetic.functions:
             if function not in selected_columns:
                 if auto_add:
                     resolved_columns.append(function)
@@ -345,7 +366,13 @@ def resolve_equation_list(
 
         # TODO: currently returning "resolved_equations" for the json syntax
         # once we're converted to SnQL this should only return parsed_equations
-        parsed_equations.append(ParsedEquation(parsed_equation, len(functions) > 0))
+        parsed_equations.append(
+            ParsedEquation(
+                parsed_arithmetic.parsed_equation,
+                len(parsed_arithmetic.functions) > 0,
+                parsed_arithmetic.date_math,
+            )
+        )
     return resolved_columns, parsed_equations
 
 

@@ -494,9 +494,21 @@ class QueryBuilder:
                 **self.equation_config,
             )
             for index, parsed_equation in enumerate(parsed_equations):
-                resolved_equation = self.resolve_equation(
-                    parsed_equation.equation, f"equation[{index}]"
-                )
+                if parsed_equation.date_math:
+                    resolved_equation = Function(
+                        "toDateTime64",
+                        [
+                            self.resolve_equation(
+                                parsed_equation.equation, date_math=parsed_equation.date_math
+                            ),
+                            1,
+                        ],
+                        f"equation[{index}]",
+                    )
+                else:
+                    resolved_equation = self.resolve_equation(
+                        parsed_equation.equation, f"equation[{index}]"
+                    )
                 self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
@@ -688,10 +700,12 @@ class QueryBuilder:
             alias,
         )
 
-    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+    def resolve_equation(
+        self, equation: Operation, alias: Optional[str] = None, date_math: bool = False
+    ) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
-        lhs = self._resolve_equation_operand(equation.lhs)
-        rhs = self._resolve_equation_operand(equation.rhs)
+        lhs = self._resolve_equation_operand(equation.lhs, date_math)
+        rhs = self._resolve_equation_operand(equation.rhs, date_math)
         if equation.operator == "divide":
             rhs = Function("nullIf", [rhs, 0])
         return Function(equation.operator, [lhs, rhs], alias)
@@ -1214,13 +1228,18 @@ class QueryBuilder:
             return env_conditions[0]
 
     # Query Fields helper methods
-    def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
+    def _resolve_equation_operand(
+        self, operand: OperandType, date_math: bool = False
+    ) -> Union[SelectType, float]:
         if isinstance(operand, Operation):
             return self.resolve_equation(operand)
         elif isinstance(operand, float):
             return operand
         else:
-            return self.resolve_column(operand)
+            column = self.resolve_column(operand)
+            if date_math:
+                return Function("toUnixTimestamp", [column])
+            return column
 
     def is_equation_column(self, column: SelectType) -> bool:
         """Equations are only ever functions, and shouldn't be literals so we
