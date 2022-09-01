@@ -35,6 +35,7 @@ function EventEntry({
   route,
   router,
 }: Props) {
+  console.log({organization});
   const hasHierarchicalGrouping =
     !!organization.features?.includes('grouping-stacktrace-ui') &&
     !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);

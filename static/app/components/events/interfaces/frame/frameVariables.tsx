@@ -1,6 +1,6 @@
 import {KeyValueListData} from 'sentry/types';
 
-import AnnotatedText from '../../meta/annotatedText';
+import {AnnotatedText} from '../../meta/annotatedText';
 import KeyValueList from '../keyValueList';
 
 type Props = {
