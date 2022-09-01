@@ -630,14 +630,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def visited_all_spans(self) -> None:
         self._maybe_store_issue()
 
-    def _contains_complete_query(self, span: Span) -> bool:
-        # TODO
-        return True
-
     def _maybe_use_as_source(self, span: Span):
-        if not self._contains_complete_query(span):
-            return
-
         parent_span_id = span.get("parent_span_id", None)
         if not parent_span_id or parent_span_id not in self.potential_parents:
             return
@@ -645,9 +638,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.source_span = span
 
     def _continues_n_plus_1(self, span: Span):
-        if not self._contains_complete_query(span):
-            return False
-
         if self._overlaps_last_span(span):
             return False
 
