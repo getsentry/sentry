@@ -132,7 +132,6 @@ export function UniformRateModal({
     !defined(specifiedClientRate);
 
   const isWithoutTransactions =
-    projectStats30d.data?.groups.length === 0 ||
     projectStats30d.data?.groups.reduce(
       (acc, group) => acc + group.totals['sum(quantity)'],
       0
