@@ -10,8 +10,8 @@ type Props = {
 };
 
 export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
-  const {sdkVersions} = useLegacyStore(ServerSideSamplingStore);
-  const {data = [], loading} = sdkVersions;
+  const {sdkVersions, distribution} = useLegacyStore(ServerSideSamplingStore);
+  const {data = []} = sdkVersions;
 
   const sdksToUpdate = data.filter(
     ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) => {
@@ -21,8 +21,15 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
 
   const incompatibleSDKs = data.filter(({isSupportedPlatform}) => !isSupportedPlatform);
 
+  const compatibleUpdatedSDKs = data.filter(
+    ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) =>
+      isSendingSource && isSendingSampleRate && isSupportedPlatform
+  );
+
   const {projects} = useProjects({
-    slugs: [...sdksToUpdate, ...incompatibleSDKs].map(({project}) => project),
+    slugs: [...sdksToUpdate, ...incompatibleSDKs, ...compatibleUpdatedSDKs].map(
+      ({project}) => project
+    ),
     orgId: orgSlug,
   });
 
@@ -52,16 +59,28 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
     incompatibleProject => incompatibleProject.id === projectId
   );
 
+  const isProjectOnOldSDK = recommendedSdkUpgrades.some(
+    recommendedSdkUpgrade => recommendedSdkUpgrade.project.id === projectId
+  );
+
+  const compatibleUpdatedProjects = projects.filter(project =>
+    compatibleUpdatedSDKs.find(
+      compatibleUpdatedSDK => compatibleUpdatedSDK.project === project.slug
+    )
+  );
+
   const affectedProjects = [
     ...recommendedSdkUpgrades.map(({project}) => project),
     ...incompatibleProjects,
+    ...compatibleUpdatedProjects,
   ];
 
   return {
     recommendedSdkUpgrades,
     incompatibleProjects,
     affectedProjects,
-    loading,
+    loading: sdkVersions.loading || distribution.loading,
     isProjectIncompatible,
+    isProjectOnOldSDK,
   };
 }
