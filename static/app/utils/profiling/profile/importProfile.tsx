@@ -96,7 +96,7 @@ function importJSSelfProfile(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex(input.frames);
+  const frameIndex = createFrameIndex('web', input.frames);
   const profile = importSingleProfile(input, frameIndex, options);
 
   return {
@@ -132,7 +132,7 @@ function importSchema(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex(input.shared.frames);
+  const frameIndex = createFrameIndex('mobile', input.shared.frames);
 
   return {
     traceID,
@@ -150,7 +150,7 @@ function importNodeProfile(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
-  const frameIndex = createFrameIndex(input.frames);
+  const frameIndex = createFrameIndex('web', input.frames);
 
   return {
     traceID,
@@ -198,12 +198,12 @@ function importSingleProfile(
   if (isJSProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames));
+      return JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames));
     }
 
     return wrapWithSpan(
       transaction,
-      () => JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames)),
+      () => JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames)),
       {
         op: 'profile.import',
         description: 'js-self-profile',

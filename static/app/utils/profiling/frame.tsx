@@ -27,7 +27,7 @@ export class Frame extends WeightedNode {
 
     this.key = frameInfo.key;
     this.file = frameInfo.file;
-    this.name = frameInfo.name || t('anonymous');
+    this.name = frameInfo.name;
     this.resource = frameInfo.resource;
     this.line = frameInfo.line;
     this.column = frameInfo.column;
@@ -60,6 +60,10 @@ export class Frame extends WeightedNode {
       if (frameInfo.line === undefined && frameInfo.column === undefined) {
         this.name += ` ${t('[native code]')}`;
       }
+    }
+
+    if (this.name === undefined || this.name === '') {
+      this.name = t('unknown');
     }
   }
 
