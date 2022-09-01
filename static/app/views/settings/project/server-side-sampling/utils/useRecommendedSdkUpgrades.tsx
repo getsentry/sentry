@@ -21,8 +21,15 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
 
   const incompatibleSDKs = data.filter(({isSupportedPlatform}) => !isSupportedPlatform);
 
+  const compatibleUpdatedSDKs = data.filter(
+    ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) =>
+      isSendingSource && isSendingSampleRate && isSupportedPlatform
+  );
+
   const {projects} = useProjects({
-    slugs: [...sdksToUpdate, ...incompatibleSDKs].map(({project}) => project),
+    slugs: [...sdksToUpdate, ...incompatibleSDKs, ...compatibleUpdatedSDKs].map(
+      ({project}) => project
+    ),
     orgId: orgSlug,
   });
 
@@ -56,9 +63,16 @@ export function useRecommendedSdkUpgrades({orgSlug, projectId}: Props) {
     recommendedSdkUpgrade => recommendedSdkUpgrade.project.id === projectId
   );
 
+  const compatibleUpdatedProjects = projects.filter(project =>
+    compatibleUpdatedSDKs.find(
+      compatibleUpdatedSDK => compatibleUpdatedSDK.project === project.slug
+    )
+  );
+
   const affectedProjects = [
     ...recommendedSdkUpgrades.map(({project}) => project),
     ...incompatibleProjects,
+    ...compatibleUpdatedProjects,
   ];
 
   return {
