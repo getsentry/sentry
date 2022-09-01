@@ -1,4 +1,7 @@
+import logging
+
 from django.conf import settings
+from django.db import transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +10,8 @@ from sentry import options
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SuperuserPermission
 from sentry.utils.email import is_smtp_enabled
+
+logger = logging.getLogger("sentry")
 
 
 class SystemOptionsEndpoint(Endpoint):
@@ -51,6 +56,9 @@ class SystemOptionsEndpoint(Endpoint):
         return Response(results)
 
     def put(self, request: Request):
+        if not request.access.has_permission("options.admin"):
+            return Response(status=403)
+
         # TODO(dcramer): this should validate options before saving them
         for k, v in request.data.items():
             if v and isinstance(v, str):
@@ -64,10 +72,21 @@ class SystemOptionsEndpoint(Endpoint):
                 )
 
             try:
-                if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
-                    options.delete(k)
-                else:
-                    options.set(k, v)
+                with transaction.atomic():
+                    if not (option.flags & options.FLAG_ALLOW_EMPTY) and not v:
+                        options.delete(k)
+                    else:
+                        options.set(k, v)
+
+                    logger.info(
+                        "options.update",
+                        extra={
+                            "ip_address": request.META["REMOTE_ADDR"],
+                            "user_id": request.user.id,
+                            "option_key": k,
+                            "option_value": v,
+                        },
+                    )
             except (TypeError, AssertionError) as e:
                 # TODO(chadwhitacre): Use a custom exception for the
                 # immutability case, especially since asserts disappear with

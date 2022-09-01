@@ -15,6 +15,7 @@ class UserPermissionsConfigGetTest(UserPermissionsConfigTest):
     def test_lookup_self(self):
         resp = self.get_response("me")
         assert resp.status_code == 200
-        assert len(resp.data) == 2, resp.data
+        assert len(resp.data) == 3, resp.data
         assert "broadcasts.admin" in resp.data
         assert "users.admin" in resp.data
+        assert "options.admin" in resp.data
