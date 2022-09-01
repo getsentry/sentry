@@ -350,31 +350,30 @@ class SnubaTSDB(BaseTSDB):
                         del result[rk]
 
     def unnest(self, result, aggregated_as):
-        # need to map the results if selected_columns was used since there could be aggregations within
-        # selected_columns, and the results will be nested
-        # convert
-        # {
-        #   "groupby[0]:value1" : {
-        #     "groupby[1]:value1" : {
-        #       "groupby[2]:value1" : {
-        #         "groupby[0]": groupby[0]:value1
-        #         "groupby[1]": groupby[1]:value1
-        #         "aggregation_as": aggregated_value
-        #       }
-        #     }
-        #   },
-        # },
-        # {
-        #   "groupby[0]:value2": {
-        #     "groupby[1]:value2" : {
-        #       "groupby[2]:value2" : {
-        #         "groupby[0]": groupby[0]:value2
-        #         "groupby[1]": groupby[1]:value2
-        #         "aggregation_as": aggregated_value
-        #       }
-        #     }
-        #   },
-        # }, ...
+        """
+        Unnests the aggregated value in results and places it one level higher to conform to the
+        proper result format
+        convert:
+        {
+          "groupby[0]:value1" : {
+            "groupby[1]:value1" : {
+              "groupby[2]:value1" : {
+                "groupby[0]": groupby[0]:value1
+                "groupby[1]": groupby[1]:value1
+                "aggregation_as": aggregated_value
+              }
+            }
+          },
+        },
+        to:
+        {
+          "groupby[0]:value1": {
+            "groupby[1]:value1" : {
+              "groupby[2]:value1" : aggregated_value
+            }
+          },
+        }, ...
+        """
         from typing import MutableMapping
 
         if isinstance(result, MutableMapping):
