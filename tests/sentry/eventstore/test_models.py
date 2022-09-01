@@ -254,66 +254,86 @@ class EventTest(TestCase):
                 job["event"].group_ids = [self.group.id]
             return jobs, projects
 
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "level": "info",
-                    "message": "Foo bar",
-                    "culprit": "app/components/events/eventEntries in map",
-                    "type": "transaction",
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-                },
+        prefixes = ["a", "b", "c", "d", "d", "f", "1", "2", "3", "4"]
+        for pre in prefixes:
+            event_id = pre * 32
+            with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+                self.store_event(
+                    data={
+                        "event_id": event_id,
+                        "level": "info",
+                        "message": "Foo bar",
+                        "culprit": "app/components/events/eventEntries in map",
+                        "type": "transaction",
+                        "timestamp": iso_format(before_now(minutes=1)),
+                        "start_timestamp": iso_format(before_now(minutes=1)),
+                        "contexts": {
+                            "trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}
+                        },
+                    },
+                    project_id=self.project.id,
+                )
+
+            event_from_nodestore = Event(project_id=self.project.id, event_id=event_id)
+
+            event_from_snuba = Event(
                 project_id=self.project.id,
+                event_id=event_id,
+                snuba_data=snuba.raw_query(
+                    dataset=Dataset.Transactions,
+                    selected_columns=[
+                        "event_id",
+                        "project_id",
+                        "group_ids",
+                        "timestamp",
+                        "message",
+                        "type",
+                        "transaction",
+                        "tags.key",
+                        "tags.value",
+                    ],
+                    filter_keys={"project_id": [self.project.id], "event_id": [event_id]},
+                )["data"][0],
             )
 
-        event_from_nodestore = Event(project_id=self.project.id, event_id="a" * 32)
+            assert event_from_nodestore.event_id == event_from_snuba.event_id
+            assert event_from_nodestore.project_id == event_from_snuba.project_id
+            assert event_from_nodestore.project == event_from_snuba.project
+            assert event_from_nodestore.timestamp == event_from_snuba.timestamp
+            assert event_from_nodestore.datetime == event_from_snuba.datetime
+            assert event_from_nodestore.title == event_from_snuba.title
+            assert event_from_nodestore.message == event_from_snuba.message
+            assert event_from_nodestore.platform == event_from_snuba.platform
+            assert event_from_nodestore.location == event_from_snuba.location
+            assert event_from_nodestore.culprit == event_from_snuba.culprit
 
-        event_from_snuba = Event(
-            project_id=self.project.id,
-            event_id="a" * 32,
-            snuba_data=snuba.raw_query(
-                dataset=Dataset.Transactions,
-                selected_columns=[
-                    "event_id",
-                    "project_id",
-                    "group_ids",
-                    "timestamp",
-                    "message",
-                    "type",
-                    "transaction",
-                    "tags.key",
-                    "tags.value",
-                ],
-                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
-            )["data"][0],
+            assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
+            assert event_from_nodestore.ip_address == event_from_snuba.ip_address
+            assert event_from_nodestore.tags == event_from_snuba.tags
+
+            # Group IDs must be fetched from Snuba since they are not present in nodestore
+            assert not event_from_snuba.group_id
+            assert event_from_snuba.group_ids
+            assert not event_from_snuba.group
+
+            assert not event_from_nodestore.group_id
+            assert not event_from_nodestore.group_ids
+            assert not event_from_nodestore.group
+
+        from sentry.utils.snuba import aliased_query
+
+        grouped_by_project = aliased_query(
+            dataset=Dataset.Transactions,
+            start=None,
+            end=None,
+            groupby=None,
+            conditions=None,
+            filter_keys={"project_id": [self.project.id], "event_id": [x * 32 for x in prefixes]},
+            selected_columns=["event_id", "project_id", "group_ids"],
+            aggregations=None,
         )
 
-        assert event_from_nodestore.event_id == event_from_snuba.event_id
-        assert event_from_nodestore.project_id == event_from_snuba.project_id
-        assert event_from_nodestore.project == event_from_snuba.project
-        assert event_from_nodestore.timestamp == event_from_snuba.timestamp
-        assert event_from_nodestore.datetime == event_from_snuba.datetime
-        assert event_from_nodestore.title == event_from_snuba.title
-        assert event_from_nodestore.message == event_from_snuba.message
-        assert event_from_nodestore.platform == event_from_snuba.platform
-        assert event_from_nodestore.location == event_from_snuba.location
-        assert event_from_nodestore.culprit == event_from_snuba.culprit
-
-        assert event_from_nodestore.get_minimal_user() == event_from_snuba.get_minimal_user()
-        assert event_from_nodestore.ip_address == event_from_snuba.ip_address
-        assert event_from_nodestore.tags == event_from_snuba.tags
-
-        # Group IDs must be fetched from Snuba since they are not present in nodestore
-        assert not event_from_snuba.group_id
-        assert event_from_snuba.group_ids
-        assert not event_from_snuba.group
-
-        assert not event_from_nodestore.group_id
-        assert not event_from_nodestore.group_ids
-        assert not event_from_nodestore.group
+        assert len(grouped_by_project["data"]) == len(prefixes)
 
     def test_grouping_reset(self):
         """
