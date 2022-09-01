@@ -54,6 +54,7 @@ from sentry.signals import (
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
@@ -184,6 +185,15 @@ def update_groups(
             return Response(status=204)
     else:
         group_list = None
+
+    # option 1: return early if perf issues
+    if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
+        return Response(status=204)
+
+    # option 2: pick out perf issues and only process errors
+    group_list = [
+        group for group in group_list if group.issue_category != GroupCategory.PERFORMANCE
+    ]
 
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator

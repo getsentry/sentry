@@ -27,6 +27,7 @@ from sentry.models import (
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupType
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
@@ -577,3 +578,21 @@ class GroupDeleteTest(APITestCase):
         assert response.data["firstRelease"] is None
         response = self.client.get(url, {"collapse": ["release"]})
         assert "firstRelease" not in response.data
+
+    def test_delete_performance_issue(self):
+        """Test that a performance issue cannot be deleted"""
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+        group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        hash = "x" * 32
+        GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        url = f"/api/0/issues/{group.id}/"
+
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 403, response.content
+
+        # Ensure it's still there
+        assert Group.objects.filter(id=group.id).exists()
+        assert GroupHash.objects.filter(group_id=group.id).exists()
