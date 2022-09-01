@@ -55,7 +55,7 @@ def get_related_models(model_class):
 def sweep_for_references(model_classes, target_classes):
     # The keys are the set of classes marked so far. The values show the path through
     # the graph of models, which we don't use but can be cool to look at in debugging.
-    marked = {c: () for c in target_classes}
+    marked = {c: (c,) for c in target_classes}
 
     while True:
         new_marks = {}
