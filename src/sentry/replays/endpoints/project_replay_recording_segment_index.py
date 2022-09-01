@@ -26,13 +26,18 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
+        queryset = ReplayRecordingSegment.objects.filter(
+            project_id=project.id,
+            replay_id=replay_id,
+        )
+
+        if queryset.count() == 0:
+            return self.respond(status=404)
+
         if request.GET.get("download") is not None:
             return self.paginate(
                 request=request,
-                queryset=ReplayRecordingSegment.objects.filter(
-                    project_id=project.id,
-                    replay_id=replay_id.replace("-", ""),
-                ),
+                queryset=queryset,
                 order_by="segment_id",
                 on_results=self.on_download_results,
                 response_cls=StreamingHttpResponse,
@@ -43,10 +48,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         else:
             return self.paginate(
                 request=request,
-                queryset=ReplayRecordingSegment.objects.filter(
-                    project_id=project.id,
-                    replay_id=replay_id.replace("-", ""),
-                ),
+                queryset=queryset,
                 order_by="segment_id",
                 on_results=lambda x: {
                     "data": serialize(x, request.user, ReplayRecordingSegmentSerializer())

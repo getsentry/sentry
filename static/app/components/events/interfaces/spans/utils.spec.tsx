@@ -1,4 +1,7 @@
-import {getFormattedTimeRangeWithLeadingZero} from './utils';
+import {
+  getCumulativeAlertLevelFromErrors,
+  getFormattedTimeRangeWithLeadingZero,
+} from 'sentry/components/events/interfaces/spans/utils';
 
 describe('test utility functions', function () {
   it('getFormattedTimeRangeWithLeadingZero', function () {
@@ -21,5 +24,33 @@ describe('test utility functions', function () {
     result = getFormattedTimeRangeWithLeadingZero(1658925888.601534, 1658925888.601935);
     expect(result.start).toEqual('1658925888.601534');
     expect(result.end).toEqual('1658925888.601935');
+  });
+});
+
+describe('getCumulativeAlertLevelFromErrors', () => {
+  it('returns undefined for an empty array', () => {
+    expect(getCumulativeAlertLevelFromErrors([])).toBeUndefined();
+  });
+
+  it('returns the alert level of the first error if only one error is provided', () => {
+    expect(getCumulativeAlertLevelFromErrors([{level: 'error'}])).toBe('error');
+  });
+
+  it('returns the highest alert level for a set of severe errors', () => {
+    expect(getCumulativeAlertLevelFromErrors([{level: 'fatal'}, {level: 'info'}])).toBe(
+      'error'
+    );
+  });
+
+  it('returns the highest alert level for a set of non-severe errors', () => {
+    expect(getCumulativeAlertLevelFromErrors([{level: 'warning'}, {level: 'info'}])).toBe(
+      'warning'
+    );
+  });
+
+  it('returns the highest alert level for a set of info errors', () => {
+    expect(getCumulativeAlertLevelFromErrors([{level: 'info'}, {level: 'info'}])).toBe(
+      'info'
+    );
   });
 });

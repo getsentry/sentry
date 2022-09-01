@@ -320,7 +320,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 seq1_timestamp,
                 project.id,
                 replay1_id,
-                platform="javascript client",
+                platform="javascript",
                 dist="abc123",
                 user_id="123",
                 user_email="username@example.com",
@@ -394,6 +394,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_user_sorts(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
+        project2 = self.create_project(teams=[self.team])
 
         replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
@@ -401,7 +402,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(
             mock_replay(
                 seq1_timestamp,
-                project.id,
+                project2.id,
                 replay1_id,
                 platform="b",
                 dist="b",
@@ -424,7 +425,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(
             mock_replay(
                 seq2_timestamp,
-                project.id,
+                project2.id,
                 replay1_id,
                 platform="b",
                 dist="b",
@@ -498,6 +499,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
+                "projectId",
                 "platform",
                 "dist",
                 "duration",
