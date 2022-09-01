@@ -21,7 +21,11 @@ import {
 } from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  AggregationOutputType,
+  getAggregateAlias,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
@@ -34,6 +38,7 @@ export type TimeSeriesData = {
   timeframe?: {end: number; start: number};
   // timeseries data
   timeseriesData?: Series[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesTotals?: {count: number};
 };
 
@@ -504,7 +509,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   }
 
   render() {
-    const {children, showLoading, ...props} = this.props;
+    const {children, showLoading, yAxis, ...props} = this.props;
     const {topEvents} = this.props;
     const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
@@ -550,6 +555,13 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
           }
         )
         .sort((a, b) => a[0] - b[0]);
+      const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
+      Object.keys(timeseriesData).forEach(key => {
+        const fieldsMeta = timeseriesData[key].meta?.fields[getAggregateAlias(key)];
+        if (fieldsMeta) {
+          timeseriesResultsTypes[key] = fieldsMeta;
+        }
+      });
       const results: Series[] = sortedTimeseriesData.map(item => {
         return item[1];
       });
@@ -570,11 +582,18 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         timeframe,
         previousTimeseriesData,
         seriesAdditionalInfo,
+        timeseriesResultsTypes,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
     }
     if (timeseriesData) {
+      const yAxisKey = yAxis && (typeof yAxis === 'string' ? yAxis : yAxis[0]);
+      const yAxisFieldType =
+        yAxisKey && timeseriesData.meta?.fields[getAggregateAlias(yAxisKey)];
+      const timeseriesResultsTypes = yAxisFieldType
+        ? {[yAxisKey]: yAxisFieldType}
+        : undefined;
       const {
         data: transformedTimeseriesData,
         comparisonData: transformedComparisonTimeseriesData,
@@ -611,6 +630,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
           : previousTimeseriesData,
         timeAggregatedData,
         timeframe,
+        timeseriesResultsTypes,
         // sometimes we want to reference props that were given to EventsRequest
         ...props,
       });
