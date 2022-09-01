@@ -2192,6 +2192,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.use_metric_layer:
             # TODO: call metric layer
             from sentry.snuba.metrics.datasource import get_series
+
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
             query = Query(
                 match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
@@ -2214,7 +2215,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 projects=self.params.get("project_id", []),  # type: ignore
                 metrics_query=query,
                 use_case_id=use_case_id,
-                include_meta=True
+                include_meta=True,
             )
         primary, query_framework = self._create_query_framework()
 
