@@ -117,7 +117,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @staticmethod
-    def __group_hourly_daily_stats(self, group: Group, environment_ids: Sequence[int]):
+    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
         get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
         # choose the model based off the group.category
         model = (
