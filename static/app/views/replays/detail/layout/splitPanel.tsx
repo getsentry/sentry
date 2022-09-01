@@ -104,7 +104,7 @@ function getMinMax(side: Side): {
 }
 
 function SplitPanel(props: Props) {
-  const [isMousedown, setMousedown] = useState(false);
+  const [isMousedown, setIsMousedown] = useState(false);
   const [sizeCSS, setSizeCSS] = useState(getSplitDefault(props));
   const sizeCSSRef = useRef<undefined | CSSValuePct>();
   sizeCSSRef.current = sizeCSS.a;
@@ -116,19 +116,19 @@ function SplitPanel(props: Props) {
   const {start: startMouseIdleTimer, cancel: cancelMouseIdleTimer} = useTimeout({
     timeMs: MOUSE_RELEASE_TIMEOUT_MS,
     onTimeout: useCallback(() => {
-      setMousedown(false);
+      setIsMousedown(false);
       logEndPosition(sizeCSSRef.current);
     }, [logEndPosition]),
   });
 
   const handleMouseDown = useCallback(() => {
-    setMousedown(true);
+    setIsMousedown(true);
     setStartPosition(sizeCSSRef.current);
 
     document.addEventListener(
       'mouseup',
       () => {
-        setMousedown(false);
+        setIsMousedown(false);
         cancelMouseIdleTimer();
         logEndPosition(sizeCSSRef.current);
       },
