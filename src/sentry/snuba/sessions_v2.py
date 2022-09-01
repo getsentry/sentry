@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
@@ -531,10 +531,10 @@ def _run_sessions_query(query):
     else:
         extra_conditions = []
 
-    result_timeseries = TimeseriesSessionsV2QueryBuilder(
-        **{**query_builder_dict, "limit": SNUBA_LIMIT},
-        extra_conditions=extra_conditions,
-    ).run_query("sessions.timeseries")["data"]
+    timeseries_query_builder = TimeseriesSessionsV2QueryBuilder(**query_builder_dict)
+    timeseries_query_builder.where.extend(extra_conditions)
+    timeseries_query_builder.limit = Limit(SNUBA_LIMIT)
+    result_timeseries = timeseries_query_builder.run_query("sessions.timeseries")["data"]
 
     return result_totals, result_timeseries
 

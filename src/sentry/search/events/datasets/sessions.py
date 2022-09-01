@@ -3,7 +3,7 @@ from typing import Callable, Mapping, Optional
 from snuba_sdk import Function
 
 from sentry.api.event_search import SearchFilter
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, SessionsV2QueryBuilder
 from sentry.search.events.constants import RELEASE_ALIAS
 from sentry.search.events.datasets import filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -12,6 +12,8 @@ from sentry.search.events.types import SelectType, WhereType
 
 
 class SessionsDatasetConfig(DatasetConfig):
+    non_nullable_keys = SessionsV2QueryBuilder.condition_fields
+
     def __init__(self, builder: QueryBuilder):
         self.builder = builder
 

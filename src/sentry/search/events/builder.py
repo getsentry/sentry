@@ -1,4 +1,3 @@
-import copy
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
@@ -192,7 +191,6 @@ class QueryBuilder:
             equations=equations,
             orderby=orderby,
         )
-        self._non_nullable_keys = {"event.type"}
 
     def get_default_converter(self) -> Callable[[SearchFilter], Optional[WhereType]]:
         return self._default_filter_converter
@@ -1180,7 +1178,7 @@ class QueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
-            and name not in self._non_nullable_keys
+            and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
@@ -1677,12 +1675,8 @@ class SessionsV2QueryBuilder(QueryBuilder):
         extra_condition_fields: Optional[Sequence[str]] = None,
         **kwargs: Any,
     ):
-        self._granularity = granularity
         self._extra_condition_fields = extra_condition_fields or []
-        self._non_nullable_keys = self.condition_fields
-        # Fields that if present in the select, then need to be in the group by as well
-        self.required_select_groupby = copy.copy(self.condition_fields)
-        self.required_select_groupby.remove("project")
+        self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
 
     def resolve_params(self) -> List[WhereType]:
@@ -1691,55 +1685,17 @@ class SessionsV2QueryBuilder(QueryBuilder):
         return conditions
 
     def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+        """
+        The default QueryBuilder `resolve_groupby` function needs to be overridden here because, it only adds the
+        columns in the groupBy clause to the query if the query has `aggregates` present in it. For this specific case
+        of the `sessions` dataset, the session fields are aggregates but these aggregate definitions are hidden away in
+        snuba so if we rely on the default QueryBuilder `resolve_groupby` method, then it won't add the requested
+        groupBy columns as it does not consider these fields as aggregates, and so we end up with clickhouse error that
+        the column is not under an aggregate function or in the `groupBy` basically.
+        """
         if groupby_columns is None:
-            groupby_columns = []
-        return list(
-            {col for col in self.columns if col.name in self.required_select_groupby}
-            | {self.resolve_column(column) for column in groupby_columns}
-        )
-
-    def resolve_granularity(self) -> Optional[Granularity]:
-        if self._granularity is None:
-            return None
-        return Granularity(self._granularity)
-
-    def resolve_query(
-        self,
-        query: Optional[str] = None,
-        use_aggregate_conditions: bool = False,
-        selected_columns: Optional[List[str]] = None,
-        groupby_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
-        orderby: Optional[List[str]] = None,
-    ) -> None:
-        super().resolve_query(
-            query, use_aggregate_conditions, selected_columns, groupby_columns, equations, orderby
-        )
-        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_granularity"):
-            # Needs to happen before params and after time conditions since granularity can change start&end
-            self.granularity = self.resolve_granularity()
-
-    def get_snql_query(self) -> Request:
-        self.validate_having_clause()
-
-        return Request(
-            dataset=self.dataset.value,
-            app_id="default",
-            query=Query(
-                match=Entity(self.dataset.value, sample=self.sample_rate),
-                select=self.columns,
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=self.groupby,
-                orderby=self.orderby,
-                limit=self.limit,
-                offset=self.offset,
-                granularity=self.granularity,
-                limitby=self.limitby,
-            ),
-            flags=Flags(turbo=self.turbo),
-        )
+            return []
+        return list({self.resolve_column(column) for column in groupby_columns})
 
     def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
@@ -1751,21 +1707,8 @@ class SessionsV2QueryBuilder(QueryBuilder):
 class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
     time_column = "bucketed_started"
 
-    def __init__(
-        self,
-        *args: Any,
-        extra_conditions: Optional[List[WhereType]] = None,
-        **kwargs: Any,
-    ):
-        self._extra_conditions = extra_conditions
-        super().__init__(*args, **kwargs)
-
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
-
-        where = self.where
-        if self._extra_conditions:
-            where += self._extra_conditions
 
         return Request(
             dataset=self.dataset.value,
@@ -1774,7 +1717,7 @@ class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
                 match=Entity(self.dataset.value, sample=self.sample_rate),
                 select=[Column(self.time_column)] + self.columns,
                 array_join=self.array_join,
-                where=where,
+                where=self.where,
                 having=self.having,
                 groupby=[Column(self.time_column)] + self.groupby,
                 orderby=self.orderby,
