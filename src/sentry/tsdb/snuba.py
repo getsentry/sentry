@@ -15,7 +15,7 @@ SnubaModelQuerySettings = namedtuple(
     # `groupby` - the column in Snuba that we want to put in the group by statement
     # `aggregate` - the column in Snuba that we want to run the aggregate function on
     # `conditions` - any additional model specific conditions we want to pass in the query
-    # `selected_columns` - the projected the columns to select in the underlying dataset
+    # `selected_columns` - the projected columns to select in the underlying dataset
     "SnubaModelSettings",
     ["dataset", "groupby", "aggregate", "conditions", "selected_columns"],
 )
