@@ -27,6 +27,7 @@ describe('ProfilingOnboarding', function () {
   beforeEach(() => {
     ProjectStore.teardown();
   });
+
   it('renders default step', () => {
     render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();

@@ -1,7 +1,5 @@
 import {createStore} from 'reflux';
 
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
-
 import {CommonStoreDefinition} from './types';
 
 type Preferences = {
@@ -23,7 +21,6 @@ interface PreferenceStoreDefinition extends CommonStoreDefinition<Preferences> {
 
 const storeConfig: PreferenceStoreDefinition = {
   prefs: {},
-  unsubscribeListeners: [],
 
   init() {
     this.reset();
@@ -61,5 +58,5 @@ const storeConfig: PreferenceStoreDefinition = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const PreferenceStore = createStore(makeSafeRefluxStore(storeConfig));
+const PreferenceStore = createStore(storeConfig);
 export default PreferenceStore;

@@ -10,7 +10,6 @@ import {
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -622,5 +621,5 @@ const storeConfig: GroupingStoreDefinition = {
   },
 };
 
-const GroupingStore = createStore(makeSafeRefluxStore(storeConfig));
+const GroupingStore = createStore(storeConfig);
 export default GroupingStore;

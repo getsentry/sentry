@@ -29,10 +29,6 @@ describe('Project Ownership Input', function () {
     ]);
   });
 
-  afterEach(() => {
-    MemberListStore.teardown();
-  });
-
   it('renders', function () {
     const wrapper = mountWithTheme(
       <OwnerInput

@@ -13,7 +13,6 @@ describe('InstallWizard', function () {
   });
 
   afterEach(function () {
-    ConfigStore.teardown();
     MockApiClient.clearMockResponses();
   });
 

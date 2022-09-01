@@ -35,10 +35,6 @@ describe('groupEventDetailsContainer', () => {
     OrganizationEnvironmentsStore.init();
   });
 
-  afterEach(() => {
-    OrganizationEnvironmentsStore.teardown();
-  });
-
   it('fetches environments', async function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,

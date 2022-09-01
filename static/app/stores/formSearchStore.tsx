@@ -1,7 +1,6 @@
-import {createStore} from 'reflux';
+import {createStore, StoreDefinition} from 'reflux';
 
 import {FieldObject} from 'sentry/components/forms/type';
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
 
 /**
  * Processed form field metadata.
@@ -24,7 +23,7 @@ type InternalDefinition = {
 };
 
 interface ExternalIssuesDefinition
-  extends SafeStoreDefinition,
+  extends StoreDefinition,
     InternalDefinition,
     StoreInterface {}
 
@@ -33,7 +32,6 @@ interface ExternalIssuesDefinition
  */
 const storeConfig: ExternalIssuesDefinition = {
   searchMap: null,
-  unsubscribeListeners: [],
 
   init() {
     this.reset();
@@ -62,5 +60,5 @@ const storeConfig: ExternalIssuesDefinition = {
   },
 };
 
-const FormSearchStore = createStore(makeSafeRefluxStore(storeConfig));
+const FormSearchStore = createStore(storeConfig);
 export default FormSearchStore;

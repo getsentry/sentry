@@ -17,7 +17,6 @@ describe('CustomResolutionModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ConfigStore.teardown();
   });
 
   it('can select a version', async () => {

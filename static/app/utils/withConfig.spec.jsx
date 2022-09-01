@@ -8,9 +8,6 @@ describe('withConfig HoC', function () {
     ConfigStore.init();
   });
 
-  afterEach(() => {
-    ConfigStore.teardown();
-  });
   it('adds config prop', function () {
     const MyComponent = ({config}) => <div>{config.test}</div>;
     const Container = withConfig(MyComponent);

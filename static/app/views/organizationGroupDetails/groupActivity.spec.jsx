@@ -30,7 +30,6 @@ describe('GroupActivity', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.teardown();
-    GroupStore.teardown();
   });
 
   function createWrapper({activity, organization: additionalOrg} = {}) {

@@ -31,6 +31,7 @@ describe('Issues -> Merged View', function () {
       tags: [],
     },
   };
+
   beforeAll(function () {
     Client.addMockResponse({
       url: '/issues/groupId/hashes/?limit=50&query=',
@@ -41,9 +42,7 @@ describe('Issues -> Merged View', function () {
   beforeEach(() => {
     GroupingStore.init();
   });
-  afterEach(() => {
-    GroupingStore.teardown();
-  });
+
   it('renders initially with loading component', function () {
     const wrapper = mountWithTheme(
       <GroupMergedView

@@ -2,7 +2,6 @@ import findIndex from 'lodash/findIndex';
 import {createStore, StoreDefinition} from 'reflux';
 
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type State = {
   hasError: boolean;
@@ -31,8 +30,6 @@ interface SavedSearchesStoreDefinition extends StoreDefinition {
 }
 
 const storeConfig: SavedSearchesStoreDefinition = {
-  unsubscribeListeners: [],
-
   state: {
     savedSearches: [],
     hasError: false,
@@ -221,5 +218,5 @@ const storeConfig: SavedSearchesStoreDefinition = {
   },
 };
 
-const SavedSearchesStore = createStore(makeSafeRefluxStore(storeConfig));
+const SavedSearchesStore = createStore(storeConfig);
 export default SavedSearchesStore;

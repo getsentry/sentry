@@ -19,7 +19,6 @@ describe('ResolveActions', function () {
   afterEach(() => {
     spy.mockClear();
     MockApiClient.clearMockResponses();
-    ModalStore.teardown();
   });
 
   describe('disabled', function () {

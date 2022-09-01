@@ -161,7 +161,6 @@ describe('IssueList -> Polling', function () {
       wrapper.unmount();
     }
     wrapper = null;
-    TagStore.teardown();
   });
 
   it('toggles polling for new issues', async function () {
