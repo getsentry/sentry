@@ -1,5 +1,8 @@
 #!/usr/bin/env sentry exec
 
+from dataclasses import dataclass
+from typing import Iterable, Mapping, Type
+
 import django.apps
 from django.db.models.fields.related_descriptors import (
     ForwardManyToOneDescriptor,
@@ -11,7 +14,7 @@ from django.db.models.fields.related_descriptors import (
 
 from scripts.silo.common import apply_decorators
 from sentry.db.models import BaseModel
-from sentry.models import Organization
+from sentry.models import Group, Organization, Project, Release
 
 """
 This is an alternative to add_mode_limits.py that uses an algorithmic definition of
@@ -35,46 +38,65 @@ def get_sentry_model_classes():
             yield model_class
 
 
-def get_related_models(model_class):
-    for attr_name in dir(model_class):
-        attr = getattr(model_class, attr_name)
-        if isinstance(
-            attr,
-            (
-                ForwardManyToOneDescriptor,
-                ForwardOneToOneDescriptor,
-                ReverseManyToOneDescriptor,
-                ManyToManyDescriptor,
-            ),
-        ):
-            yield attr.field.related_model
-        elif isinstance(attr, ReverseOneToOneDescriptor):
-            yield attr.related.related_model
+@dataclass
+class RelationGraphSearch:
+    model_classes: Iterable[Type[BaseModel]]
+    target_classes: Iterable[Type[BaseModel]]
+    naming_conventions: Mapping[str, Type[BaseModel]]
 
+    def get_related_models(self, model_class):
+        for attr_name in dir(model_class):
+            attr = getattr(model_class, attr_name)
+            if isinstance(
+                attr,
+                (
+                    ForwardManyToOneDescriptor,
+                    ForwardOneToOneDescriptor,
+                    ReverseManyToOneDescriptor,
+                    ManyToManyDescriptor,
+                ),
+            ):
+                yield attr.field.related_model
+            elif isinstance(attr, ReverseOneToOneDescriptor):
+                yield attr.related.related_model
+            elif attr_name in self.naming_conventions:
+                yield self.naming_conventions[attr_name]
 
-def sweep_for_references(model_classes, target_classes):
-    # The keys are the set of classes marked so far. The values show the path through
-    # the graph of models, which we don't use but can be cool to look at in debugging.
-    marked = {c: (c,) for c in target_classes}
+    def sweep_for_relations(self):
+        # The keys are the set of classes marked so far. The values show the path through
+        # the graph of models, which we don't use but can be cool to look at in debugging.
+        marked = {c: (c,) for c in self.target_classes}
 
-    while True:
-        new_marks = {}
-        for model_class in model_classes:
-            if model_class not in marked:
-                for related_model in get_related_models(model_class):
+        while True:
+            new_marks = {}
+            for model_class in self.model_classes:
+                if model_class in marked:
+                    continue
+                for related_model in self.get_related_models(model_class):
                     assert isinstance(related_model, type) and issubclass(related_model, BaseModel)
                     if related_model in marked:
                         new_marks[model_class] = marked[related_model] + (related_model,)
-        if new_marks:
-            marked.update(new_marks)
-        else:
-            return marked.keys()
+            if new_marks:
+                marked.update(new_marks)
+            else:
+                return marked.keys()
 
 
 def main():
-    model_classes = set(get_sentry_model_classes())
-    customer_classes = sweep_for_references(model_classes, [Organization])
-    control_classes = model_classes.difference(customer_classes)
+    sentry_model_classes = frozenset(get_sentry_model_classes())
+    search = RelationGraphSearch(
+        model_classes=sentry_model_classes,
+        target_classes=[Organization],
+        naming_conventions={
+            # Covers BoundedBigIntegerFields used as soft foreign keys
+            "organization_id": Organization,
+            "project_id": Project,
+            "group_id": Group,
+            "release_id": Release,
+        },
+    )
+    customer_classes = search.sweep_for_relations()
+    control_classes = sentry_model_classes.difference(customer_classes)
 
     def filtered_names(classes):
         return (
