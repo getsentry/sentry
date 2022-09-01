@@ -6,11 +6,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 type CSSValuePct = `${number}%`;
 
-function useSplitPanelTracking({
-  slideDirection,
-}: {
+type Options = {
   slideDirection: 'updown' | 'leftright';
-}) {
+};
+
+function useSplitPanelTracking({slideDirection}: Options) {
   const organization = useOrganization();
   const {getLayout} = useReplayLayout();
   const startSizeCSSRef = useRef<number>(0);

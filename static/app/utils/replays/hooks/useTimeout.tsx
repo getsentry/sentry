@@ -1,6 +1,11 @@
 import {useCallback, useRef} from 'react';
 
-function useTimeout({timeMs, onTimeout}: {onTimeout: () => void; timeMs: number}) {
+type Options = {
+  onTimeout: () => void;
+  timeMs: number;
+};
+
+function useTimeout({timeMs, onTimeout}: Options) {
   const timeoutRef = useRef<number>(null);
 
   const saveTimeout = useCallback((timeout: ReturnType<typeof setTimeout> | null) => {
