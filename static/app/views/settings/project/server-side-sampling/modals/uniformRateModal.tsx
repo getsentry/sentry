@@ -94,13 +94,18 @@ export function UniformRateModal({
 
   const {projectStats30d, projectStats48h} = useProjectStats();
 
-  const {recommendedSdkUpgrades, affectedProjects, isProjectIncompatible} =
-    useRecommendedSdkUpgrades({
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+  const {
+    recommendedSdkUpgrades,
+    affectedProjects,
+    isProjectIncompatible,
+    loading: sdkUpgradesLoading,
+  } = useRecommendedSdkUpgrades({
+    orgSlug: organization.slug,
+    projectId: project.id,
+  });
 
-  const loading = projectStats30d.loading || projectStats48h.loading;
+  const loading =
+    projectStats30d.loading || projectStats48h.loading || sdkUpgradesLoading;
 
   useEffect(() => {
     if (loading || !projectStats30d.data) {
@@ -125,6 +130,13 @@ export function UniformRateModal({
     hasFirstBucketsEmpty(projectStats30d.data, 27) &&
     hasFirstBucketsEmpty(projectStats48h.data, 3) &&
     !defined(specifiedClientRate);
+
+  const isWithoutTransactions =
+    projectStats30d.data?.groups.length === 0 ||
+    projectStats30d.data?.groups.reduce(
+      (acc, group) => acc + group.totals['sum(quantity)'],
+      0
+    ) === 0;
 
   useEffect(() => {
     // updated or created rules will always have a new id,
@@ -530,13 +542,7 @@ export function UniformRateModal({
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingProjectIncompatibleAlert
-            organization={organization}
-            projectId={project.id}
-            isProjectIncompatible={isProjectIncompatible}
-          />
-
-          {shouldUseConservativeSampleRate && (
+          {!isWithoutTransactions && shouldUseConservativeSampleRate && (
             <Alert type="info" showIcon>
               {t(
                 "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
@@ -544,7 +550,7 @@ export function UniformRateModal({
             </Alert>
           )}
 
-          {affectedProjects.length > 0 && (
+          {!isProjectIncompatible && affectedProjects.length > 0 && (
             <Alert
               data-test-id="affected-sdk-alert"
               type="info"
@@ -572,6 +578,12 @@ export function UniformRateModal({
               </Projects>
             </Alert>
           )}
+
+          <SamplingProjectIncompatibleAlert
+            organization={organization}
+            projectId={project.id}
+            isProjectIncompatible={isProjectIncompatible}
+          />
         </Fragment>
       </Body>
       <Footer>
@@ -600,10 +612,15 @@ export function UniformRateModal({
                 saving ||
                 !isValid ||
                 selectedStrategy === Strategy.CURRENT ||
-                isProjectIncompatible
+                isProjectIncompatible ||
+                isWithoutTransactions
               }
               title={
-                selectedStrategy === Strategy.CURRENT
+                isProjectIncompatible
+                  ? t('Your project is currently incompatible with Server-Side Sampling.')
+                  : isWithoutTransactions
+                  ? t('You need at least one transaction to set up Server-Side Sampling.')
+                  : selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
                   : !isValid
                   ? t('Sample rate is not valid')
