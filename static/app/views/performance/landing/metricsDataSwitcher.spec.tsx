@@ -1,6 +1,7 @@
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SidebarProvider} from 'sentry/stores/sidebarProvider';
 import TeamStore from 'sentry/stores/teamStore';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -58,24 +59,26 @@ const WrappedComponent = ({data, withStaticFilters = true}) => {
 
   return (
     <OrganizationContext.Provider value={data.organization}>
-      <MetricsCardinalityProvider
-        location={data.router.location}
-        organization={data.organization}
-      >
-        <PerformanceLanding
-          router={data.router}
-          organization={data.organization}
+      <SidebarProvider>
+        <MetricsCardinalityProvider
           location={data.router.location}
-          eventView={eventView}
-          projects={data.projects}
-          selection={eventView.getPageFilters()}
-          onboardingProject={undefined}
-          handleSearch={() => {}}
-          handleTrendsClick={() => {}}
-          setError={() => {}}
-          withStaticFilters={withStaticFilters}
-        />
-      </MetricsCardinalityProvider>
+          organization={data.organization}
+        >
+          <PerformanceLanding
+            router={data.router}
+            organization={data.organization}
+            location={data.router.location}
+            eventView={eventView}
+            projects={data.projects}
+            selection={eventView.getPageFilters()}
+            onboardingProject={undefined}
+            handleSearch={() => {}}
+            handleTrendsClick={() => {}}
+            setError={() => {}}
+            withStaticFilters={withStaticFilters}
+          />
+        </MetricsCardinalityProvider>
+      </SidebarProvider>
     </OrganizationContext.Provider>
   );
 };

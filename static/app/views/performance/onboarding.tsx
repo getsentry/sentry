@@ -26,7 +26,7 @@ import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useSidebarDispatch} from 'sentry/stores/sidebarProvider';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
@@ -102,6 +102,7 @@ function Onboarding({organization, project}: Props) {
 
   const {projects} = useProjects();
   const {location} = useRouteContext();
+  const dispatchSidebar = useSidebarDispatch();
 
   const {projectsForOnboarding} = filterProjects(projects);
 
@@ -115,9 +116,18 @@ function Onboarding({organization, project}: Props) {
       location.hash === '#performance-sidequest' &&
       projectsForOnboarding.some(p => p.id === project.id)
     ) {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+      dispatchSidebar({
+        type: 'activate panel',
+        payload: SidebarPanelKey.PerformanceOnboarding,
+      });
     }
-  }, [location.hash, projectsForOnboarding, project.id, showOnboardingChecklist]);
+  }, [
+    location.hash,
+    projectsForOnboarding,
+    project.id,
+    showOnboardingChecklist,
+    dispatchSidebar,
+  ]);
 
   function handleAdvance(step: number, duration: number) {
     trackAdvancedAnalyticsEvent('performance_views.tour.advance', {
@@ -157,7 +167,10 @@ function Onboarding({organization, project}: Props) {
         onClick={event => {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
-          SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+          dispatchSidebar({
+            type: 'activate panel',
+            payload: SidebarPanelKey.PerformanceOnboarding,
+          });
         }}
       >
         {t('Start Checklist')}

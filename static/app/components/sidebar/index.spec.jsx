@@ -5,6 +5,7 @@ import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
+import {SidebarProvider} from 'sentry/stores/sidebarProvider';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -28,9 +29,15 @@ describe('Sidebar', function () {
       }}
     >
       <OrganizationContext.Provider value={organization}>
-        <PersistedStoreProvider>
-          <SidebarContainer organization={organization} location={location} {...props} />
-        </PersistedStoreProvider>
+        <SidebarProvider>
+          <PersistedStoreProvider>
+            <SidebarContainer
+              organization={organization}
+              location={location}
+              {...props}
+            />
+          </PersistedStoreProvider>
+        </SidebarProvider>
       </OrganizationContext.Provider>
     </RouteContext.Provider>
   );

@@ -7,6 +7,7 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {SidebarProvider} from 'sentry/stores/sidebarProvider';
 import TeamStore from 'sentry/stores/teamStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -27,9 +28,11 @@ function WrappedComponent({organization, isMEPEnabled = false, router}) {
       }}
     >
       <OrganizationContext.Provider value={organization}>
-        <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-          <PerformanceContent organization={organization} location={router.location} />
-        </MEPSettingProvider>
+        <SidebarProvider>
+          <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
+            <PerformanceContent organization={organization} location={router.location} />
+          </MEPSettingProvider>
+        </SidebarProvider>
       </OrganizationContext.Provider>
     </RouteContext.Provider>
   );

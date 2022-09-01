@@ -8,7 +8,7 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {SidebarProvider, useSidebarDispatch} from 'sentry/stores/sidebarProvider';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -21,13 +21,12 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       push: jest.fn(),
     },
   } as any);
-  const broadcast = TestStubs.Broadcast();
 
   const apiMocks: any = {};
-
+  const broadcast = TestStubs.Broadcast();
   const location = {...router.location, ...{pathname: '/test/'}};
 
-  const getElement = props => {
+  const Sidebar = props => {
     return (
       <RouteContext.Provider
         value={{
@@ -38,19 +37,20 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         }}
       >
         <OrganizationContext.Provider value={props.organization}>
-          <PersistedStoreProvider>
-            <SidebarContainer
-              organization={props.organization}
-              location={location}
-              {...props}
-            />
-          </PersistedStoreProvider>
+          <SidebarProvider initialPanel={props.initialPanel}>
+            <PersistedStoreProvider>
+              <SidebarContainer
+                organization={props.organization}
+                location={location}
+                {...props}
+              />
+              {props.children}
+            </PersistedStoreProvider>
+          </SidebarProvider>
         </OrganizationContext.Provider>
       </RouteContext.Provider>
     );
   };
-
-  const renderSidebar = props => render(getElement(props));
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -75,12 +75,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays boost performance card', async function () {
-    const {container} = renderSidebar({
-      organization: {
-        ...organization,
-        features: ['onboarding'],
-      },
-    });
+    const {container} = render(
+      <Sidebar
+        {...{
+          organization: {
+            ...organization,
+            features: ['onboarding'],
+          },
+        }}
+      />
+    );
     await waitFor(() => container);
 
     const quickStart = screen.getByText('Quick Start');
@@ -100,12 +104,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('checklist feature disabled', async function () {
-    const {container} = renderSidebar({
-      organization: {
-        ...organization,
-        features: ['onboarding'],
-      },
-    });
+    const {container} = render(
+      <Sidebar
+        {...{
+          organization: {
+            ...organization,
+            features: ['onboarding'],
+          },
+        }}
+      />
+    );
     await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
@@ -133,12 +141,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     ProjectsStore.loadInitialData([
       TestStubs.Project({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
-    const {container} = renderSidebar({
-      organization: {
-        ...organization,
-        features: ['onboarding', 'performance-onboarding-checklist'],
-      },
-    });
+    const {container} = render(
+      <Sidebar
+        {...{
+          organization: {
+            ...organization,
+            features: ['onboarding', 'performance-onboarding-checklist'],
+          },
+        }}
+      />
+    );
     await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
@@ -166,12 +178,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     ProjectsStore.loadInitialData([
       TestStubs.Project({platform: 'javascript-angular', firstTransactionEvent: false}),
     ]);
-    const {container} = renderSidebar({
-      organization: {
-        ...organization,
-        features: ['onboarding', 'performance-onboarding-checklist'],
-      },
-    });
+    const {container} = render(
+      <Sidebar
+        {...{
+          organization: {
+            ...organization,
+            features: ['onboarding', 'performance-onboarding-checklist'],
+          },
+        }}
+      />
+    );
     await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
@@ -199,12 +215,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     ProjectsStore.loadInitialData([
       TestStubs.Project({platform: 'elixir', firstTransactionEvent: false}),
     ]);
-    const {container} = renderSidebar({
-      organization: {
-        ...organization,
-        features: ['onboarding', 'performance-onboarding-checklist'],
-      },
-    });
+    const {container} = render(
+      <Sidebar
+        {...{
+          organization: {
+            ...organization,
+            features: ['onboarding', 'performance-onboarding-checklist'],
+          },
+        }}
+      />
+    );
     await waitFor(() => container);
     window.open = jest.fn().mockImplementation(() => true);
 
@@ -250,15 +270,41 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       body: {},
     });
 
-    renderSidebar({
-      organization: {
-        ...organization,
-        features: ['onboarding', 'performance-onboarding-checklist'],
-      },
-    });
+    // Setup performance onboarding button is actually located on a different page that the one we are testing
+    // For now, mock the dispatch button which is mimics the previous store testing behavior. To properly fix,
+    // we need to ensure that the page with the onboarding button renders.
+    function PerformanceOnboardingTrigger() {
+      const dispatch = useSidebarDispatch();
+
+      return (
+        <button
+          onClick={() =>
+            dispatch({
+              type: 'activate panel',
+              payload: SidebarPanelKey.PerformanceOnboarding,
+            })
+          }
+        >
+          trigger performance onboarding
+        </button>
+      );
+    }
+
+    render(
+      <Sidebar
+        {...{
+          organization: {
+            ...organization,
+            features: ['onboarding', 'performance-onboarding-checklist'],
+          },
+        }}
+      >
+        <PerformanceOnboardingTrigger />
+      </Sidebar>
+    );
 
     act(() => {
-      SidebarPanelStore.activatePanel(SidebarPanelKey.PerformanceOnboarding);
+      userEvent.click(screen.getByText(/trigger performance onboarding/));
     });
 
     expect(

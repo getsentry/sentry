@@ -4,7 +4,7 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Alert, {AlertProps} from 'sentry/components/alert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useSidebarDispatch} from 'sentry/stores/sidebarProvider';
 import {ProjectSdkUpdates} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -27,6 +27,7 @@ function InnerGlobalSdkUpdateAlert(
   const api = useApi();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const dispatchSidebar = useSidebarDispatch();
 
   const [showUpdateAlert, setShowUpdateAlert] = useState<boolean>(false);
 
@@ -42,9 +43,9 @@ function InnerGlobalSdkUpdateAlert(
   }, [api, organization]);
 
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
+    dispatchSidebar({type: 'activate panel', payload: SidebarPanelKey.Broadcasts});
     trackAdvancedAnalyticsEvent('sdk_updates.clicked', {organization});
-  }, [organization]);
+  }, [organization, dispatchSidebar]);
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('sdk_updates.seen', {organization});

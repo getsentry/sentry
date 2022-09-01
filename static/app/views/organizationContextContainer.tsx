@@ -19,6 +19,7 @@ import SentryTypes from 'sentry/sentryTypes';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import {SidebarProvider} from 'sentry/stores/sidebarProvider';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
@@ -328,12 +329,14 @@ class OrganizationContextContainer extends Component<Props, State> {
     return (
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <OrganizationContext.Provider value={this.state.organization}>
-          <div className="app">
-            <SentryReplayInit organization={this.state.organization} />
-            {this.state.hooks}
-            {this.renderSidebar()}
-            {this.props.children}
-          </div>
+          <SidebarProvider>
+            <div className="app">
+              <SentryReplayInit organization={this.state.organization} />
+              {this.state.hooks}
+              {this.renderSidebar()}
+              {this.props.children}
+            </div>
+          </SidebarProvider>
         </OrganizationContext.Provider>
       </SentryDocumentTitle>
     );

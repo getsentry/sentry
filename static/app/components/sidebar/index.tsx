@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -29,7 +29,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useSidebar} from 'sentry/stores/sidebarProvider';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -55,22 +55,10 @@ type Props = {
   organization?: Organization;
 };
 
-function activatePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.activatePanel(panel);
-}
-
-function togglePanel(panel: SidebarPanelKey) {
-  SidebarPanelStore.togglePanel(panel);
-}
-
-function hidePanel() {
-  SidebarPanelStore.hidePanel();
-}
-
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
-  const activePanel = useLegacyStore(SidebarPanelStore);
+  const [sidebar, dispatchSidebar] = useSidebar();
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -82,8 +70,21 @@ function Sidebar({location, organization}: Props) {
 
   const bcl = document.body.classList;
 
+  const hidePanel = useCallback(() => {
+    dispatchSidebar({type: 'hide panel'});
+  }, [dispatchSidebar]);
+
+  const togglePanel = useCallback(
+    (panel: SidebarPanelKey) => {
+      dispatchSidebar({type: 'toggle panel', payload: panel});
+    },
+    [dispatchSidebar]
+  );
+
   // Close panel on any navigation
-  useEffect(() => void hidePanel(), [location?.pathname]);
+  useEffect(() => {
+    dispatchSidebar({type: 'hide panel'});
+  }, [location?.pathname, dispatchSidebar]);
 
   // Add classname to body
   useEffect(() => {
@@ -105,11 +106,14 @@ function Sidebar({location, organization}: Props) {
   // Trigger panels depending on the location hash
   useEffect(() => {
     if (location?.hash === '#welcome') {
-      activatePanel(SidebarPanelKey.OnboardingWizard);
+      dispatchSidebar({
+        type: 'activate panel',
+        payload: SidebarPanelKey.OnboardingWizard,
+      });
     }
-  }, [location?.hash]);
+  }, [location?.hash, dispatchSidebar]);
 
-  const hasPanel = !!activePanel;
+  const hasPanel = !!sidebar;
   const hasOrganization = !!organization;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
@@ -347,7 +351,7 @@ function Sidebar({location, organization}: Props) {
       {hasOrganization && (
         <SidebarSectionGroup>
           <PerformanceOnboardingSidebar
-            currentPanel={activePanel}
+            currentPanel={sidebar}
             onShowPanel={() => togglePanel(SidebarPanelKey.PerformanceOnboarding)}
             hidePanel={hidePanel}
             {...sidebarItemProps}
@@ -355,7 +359,7 @@ function Sidebar({location, organization}: Props) {
           <SidebarSection noMargin noPadding>
             <OnboardingStatus
               org={organization}
-              currentPanel={activePanel}
+              currentPanel={sidebar}
               onShowPanel={() => togglePanel(SidebarPanelKey.OnboardingWizard)}
               hidePanel={hidePanel}
               {...sidebarItemProps}
@@ -379,7 +383,7 @@ function Sidebar({location, organization}: Props) {
             <Broadcasts
               orientation={orientation}
               collapsed={collapsed}
-              currentPanel={activePanel}
+              currentPanel={sidebar}
               onShowPanel={() => togglePanel(SidebarPanelKey.Broadcasts)}
               hidePanel={hidePanel}
               organization={organization}
@@ -387,7 +391,7 @@ function Sidebar({location, organization}: Props) {
             <ServiceIncidents
               orientation={orientation}
               collapsed={collapsed}
-              currentPanel={activePanel}
+              currentPanel={sidebar}
               onShowPanel={() => togglePanel(SidebarPanelKey.ServiceIncidents)}
               hidePanel={hidePanel}
             />

@@ -4,6 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {SidebarProvider} from 'sentry/stores/sidebarProvider';
 import ProjectDetails from 'sentry/views/projectDetail/projectDetail';
 
 describe('ProjectDetail', function () {
@@ -51,10 +52,15 @@ describe('ProjectDetail', function () {
 
       ProjectsStore.loadInitialData(projects);
 
-      render(<ProjectDetails organization={organization} {...router} params={params} />, {
-        context: routerContext,
-        organization,
-      });
+      render(
+        <SidebarProvider>
+          <ProjectDetails organization={organization} {...router} params={params} />
+        </SidebarProvider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
 
       expect(
         screen.queryByText(
@@ -86,10 +92,15 @@ describe('ProjectDetail', function () {
         body: projects[0],
       });
 
-      render(<ProjectDetails organization={organization} {...router} params={params} />, {
-        context: routerContext,
-        organization,
-      });
+      render(
+        <SidebarProvider>
+          <ProjectDetails organization={organization} {...router} params={params} />
+        </SidebarProvider>,
+        {
+          context: routerContext,
+          organization,
+        }
+      );
 
       expect(
         await screen.findByText(

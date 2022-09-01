@@ -9,7 +9,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t, tct} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useSidebarDispatch} from 'sentry/stores/sidebarProvider';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -55,9 +55,11 @@ const UNSUPPORTED_TRANSACTION_NAME_DOCS = [
 export function MetricsDataSwitcherAlert(
   props: MetricEnhancedDataAlertProps
 ): React.ReactElement | null {
+  const dispatchSidebar = useSidebarDispatch();
+
   const handleReviewUpdatesClick = useCallback(() => {
-    SidebarPanelStore.activatePanel(SidebarPanelKey.Broadcasts);
-  }, []);
+    dispatchSidebar({type: 'activate panel', payload: SidebarPanelKey.Broadcasts});
+  }, [dispatchSidebar]);
 
   const docsLink = useMemo(() => {
     const platforms = getSelectedProjectPlatformsArray(props.location, props.projects);

@@ -8,6 +8,8 @@ import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 
+import {SidebarProvider} from '../stores/sidebarProvider';
+
 jest.mock('sentry/utils/usePageFilters');
 
 const usePageFilters = importedUsePageFilters as jest.MockedFunction<
@@ -73,9 +75,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: promptResponse,
     });
 
-    const {rerender} = render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    const {rerender} = render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -84,7 +91,11 @@ describe('GlobalSDKUpdateAlert', () => {
     usePageFilters.mockImplementation(() => makeFilterProps({projects: [2]}));
 
     // ProjectId no longer matches, so updates should not be shown anymore
-    rerender(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />);
+    rerender(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>
+    );
 
     expect(
       screen.queryByText(/You have outdated SDKs in your projects/)
@@ -104,9 +115,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -129,9 +145,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     await waitFor(() =>
       expect(
@@ -156,9 +177,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -181,9 +207,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     await waitFor(() =>
       expect(
@@ -208,9 +239,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: promptResponse,
     });
 
-    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     expect(
       await screen.findByText(/You have outdated SDKs in your projects/)
@@ -230,9 +266,14 @@ describe('GlobalSDKUpdateAlert', () => {
       body: {data: promptResponse},
     });
 
-    render(<InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />, {
-      organization: TestStubs.Organization(),
-    });
+    render(
+      <SidebarProvider>
+        <InnerGlobalSdkUpdateAlert sdkUpdates={sdkUpdates} />
+      </SidebarProvider>,
+      {
+        organization: TestStubs.Organization(),
+      }
+    );
 
     userEvent.click(await screen.findByText(/Remind me later/));
 
