@@ -103,7 +103,7 @@ function TeamFilter({
         if (!opts) {
           return handleChangeFilter([]);
         }
-        return handleChangeFilter((opts ?? []).map(opt => opt.value));
+        return handleChangeFilter(opts.map(opt => opt.value));
       }}
       triggerLabel={
         <Fragment>
