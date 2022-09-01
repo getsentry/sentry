@@ -2,12 +2,12 @@ import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 
 export type ReplayEventParameters = {
   'replay-details.layout-changed': {
-    chosenLayout: LayoutKey;
-    defaultLayout: LayoutKey;
+    chosen_layout: LayoutKey;
+    default_layout: LayoutKey;
   };
   'replay-details.resized-panel': {
     layout: LayoutKey;
-    slideMotion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
+    slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
   };
   'replay-details.viewed': {
     origin: undefined | string;

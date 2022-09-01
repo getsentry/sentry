@@ -27,7 +27,7 @@ function useSplitPanelTracking({
       trackAdvancedAnalyticsEvent('replay-details.resized-panel', {
         organization,
         layout: getLayout(),
-        slideMotion: endSizeCSS > startSizeCSSRef.current ? bigger : smaller,
+        slide_motion: endSizeCSS > startSizeCSSRef.current ? bigger : smaller,
       });
     },
     [getLayout, organization, slideDirection]

@@ -75,8 +75,8 @@ function useActiveReplayTab() {
         setParamValue(chosenLayout);
         trackAdvancedAnalyticsEvent('replay-details.layout-changed', {
           organization,
-          defaultLayout,
-          chosenLayout,
+          default_layout: defaultLayout,
+          chosen_layout: chosenLayout,
         });
       },
       [organization, defaultLayout, setParamValue]
