@@ -31,7 +31,7 @@ describe('SmartSearchBar', function () {
     TagStore.reset();
     TagStore.loadTagsSuccess(TestStubs.Tags());
     tagValuesMock.mockClear();
-    supportedTags = TagStore.getStateTags();
+    supportedTags = TagStore.getState();
     supportedTags.firstRelease = {
       key: 'firstRelease',
       name: 'firstRelease',
