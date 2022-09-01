@@ -1,14 +1,13 @@
 import {Component, Fragment} from 'react';
-import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
+import TextArea from 'sentry/components/forms/controls/textarea';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {inputStyles} from 'sentry/styles/input';
 import {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
@@ -175,6 +174,8 @@ class OwnerInput extends Component<Props, State> {
               'url:http://example.com/settings/* #product\n' +
               'tags.sku_class:enterprise #enterprise'
             }
+            autosize
+            monospace
             onChange={this.handleChange}
             disabled={disabled}
             value={defined(text) ? text : initialText}
@@ -187,7 +188,7 @@ class OwnerInput extends Component<Props, State> {
             <div>{this.parseError(error)}</div>
             <SaveButton>
               <Button
-                size="small"
+                size="sm"
                 priority="primary"
                 onClick={this.handleUpdateOwnership}
                 disabled={disabled || !hasChanges}
@@ -212,14 +213,13 @@ const ActionBar = styled('div')`
 `;
 
 const SyntaxOverlay = styled('div')<{line: number}>`
-  ${inputStyles};
+  position: absolute;
+  top: ${({line}) => TEXTAREA_PADDING + line * TEXTAREA_LINE_HEIGHT + 1}px;
   width: 100%;
   height: ${TEXTAREA_LINE_HEIGHT}px;
-  background-color: red;
+  background-color: ${p => p.theme.error};
   opacity: 0.1;
   pointer-events: none;
-  position: absolute;
-  top: ${({line}) => TEXTAREA_PADDING + line * 24}px;
 `;
 
 const SaveButton = styled('div')`
@@ -227,15 +227,13 @@ const SaveButton = styled('div')`
   padding-top: 10px;
 `;
 
-const StyledTextArea = styled(TextareaAutosize)`
-  ${p => inputStyles(p)};
+const StyledTextArea = styled(TextArea)`
   min-height: 140px;
   overflow: auto;
   outline: 0;
   width: 100%;
   resize: none;
   margin: 0;
-  font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
   white-space: pre-wrap;
   padding-top: ${TEXTAREA_PADDING}px;

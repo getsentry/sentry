@@ -1,3 +1,67 @@
+22.8.0
+------
+
+### Various fixes & improvements
+
+- fix(breadcrumbsFilter): Fix level tag crop issue (#37777) by @vuluongj20
+- ref(dropdownMenu): Mark as deprecated (#37319) by @vuluongj20
+- feat(workflow): Remove `duplicate-alert-rule` flag (#37489) by @scttcper
+- fix(dashboards): Fix custom metrics not displaying with units correctly in widget viewer(#37807) by @edwardgou-sentry
+- feat(replays): New column size and improve of a11y (#37765) by @jesus4497
+- ref(perf): Add duplicate detection on group hash (#37787) by @k-fish
+- fix(profiling): Profiling stats response for no projects (#37772) by @Zylphrex
+- feat(replays): Normalize resources with client expectations (#37708) by @cmanallen
+- feat(dashboard-filters): Save and expose releaseId in dashboards (#37779) by @narsaynorath
+- ref: upgrade confluent-kafka to 1.9.2 (#37733) by @asottile-sentry
+- pass resolution time to get_files_changed_in_releases() (#37800) by @komal-saini
+- don't call flagr on this feature flag since we'll be hard-coding the handler (#37799) by @barkbarkimashark
+- fix(suspect-resolutions): Get files changed in releases within 5h time-window  (#37789) by @komal-saini
+- fix: explicitly define app label (#37795) by @MeredithAnya
+- fix(integrations): don't remove functions before they're actually removed (#37793) by @vpandiarajan20
+- ref(indexer): Add postgres, cloudspanner modules (#37771) by @MeredithAnya
+- Sentry Functions: Backend Webhook Integration (#37205) by @vpandiarajan20
+- ref(indexer): Deprecate DbKey (#37790) by @lynnagara
+- ref(suspect-resolutions): refactor code around (#37775) by @barkbarkimashark
+- fix(dashboard): Pass location to handleAddQueryToDashboard (#37785) by @shruthilayaj
+- fix(releases): filter out releases with projects by project membership instead of access (#37495) by @barkbarkimashark
+- feat(suspect-resolutions): track the suspect resolutions algo changes in analytics events (#37778) by @barkbarkimashark
+- Revert "fix(mep): Missed a tag resolver (#37768)" (#37782) by @k-fish
+- fix(ui): integrations text alignment (#37776) by @robinrendle
+
+_Plus 789 more_
+
+22.7.0
+------
+
+### Various fixes & improvements
+
+- ref(replays): Refactor MouseTracking component into a react hook (#36710) by @ryan953
+- feat(release-activity): backend support for tracking release activity (#36608) by @barkbarkimashark
+- feat(grouping): Add support for automatic grouping updates (#36358) by @mitsuhiko
+- feat(replays): add session replays endpoints, proxy logic (#36631) by @JoshFerge
+- fix(dashboards): Open in Discover missing in Default Dashboard (#36728) by @narsaynorath
+- chore(deps): Upgrade @sentry/* JS SDKs from 7.6.0 to 7.7.0 (#36727) by @AbhiPrasad
+- fix(mep): Remove the granularity hacks (#36724) by @wmak
+- chore(deps): Bump eslint-config-sentry 1.94 -> 1.95 (#36693) by @NisanthanNanthakumar
+- fix(test) Allow the connection name to be defined by migration tests (#36712) by @markstory
+- fix(perf) Disabled performance settings if denied access (#36675) by @DominikB2014
+- fix: Remove potentially unnecessary pip installs (#36649) by @untitaker
+- fix: Fix unbound variable if DEVENV_NO_REPORT=1 (#36650) by @untitaker
+- test(issue-details): Fix issue details create comment test (#36715) by @Zylphrex
+- ref(tags): Refactor the Tags table so the rows are independant of the styled title (#36711) by @ryan953
+- fix(ci): include workdir to cache-dependency-path in setup-sentry (#36718) by @joshuarli
+- bug(replays): Remove the custom replays navTabs, use core nav which supports with dark-mode (#36709) by @ryan953
+- feat(replays): Cleanup unneeded tabs from the Replay Details page (#36706) by @ryan953
+- feat(alert): Create metric alerts on project creation (#36582) by @Neo-Zhixing
+- fix(devserver): Start both string indexers when metrics are enabled (#36682) by @untitaker
+- feat(profiling): Ingest profile call trees (#36268) by @Zylphrex
+- ref: replace legacy compat.map with list comprehensions (api) (#36694) by @asottile-sentry
+- feat(integrations): Endpoint for SentryFunctions creation page (#36557) by @vpandiarajan20
+- tests(mep): Add missing tests for entity subscription helper functions (#36689) by @wedamija
+- feat(mep): Add `PerformanceMetricsEntitySubscription` for use with MEP alerts (#36653) by @wedamija
+
+_Plus 760 more_
+
 22.6.0
 ------
 

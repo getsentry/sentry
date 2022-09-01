@@ -1,5 +1,4 @@
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import type {Event, EventTransaction} from 'sentry/types/event';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -11,6 +10,7 @@ import type {
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
+  ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
@@ -21,7 +21,7 @@ interface ReplayReaderParams {
   /**
    * The root Replay event, created at the start of the browser session.
    */
-  event: Event | undefined;
+  replayRecord: ReplayRecord | undefined;
 
   /**
    * The captured data from rrweb.
@@ -37,56 +37,59 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({breadcrumbs, event, errors, rrwebEvents, spans}: ReplayReaderParams) {
-    if (!breadcrumbs || !event || !rrwebEvents || !spans || !errors) {
+  static factory({
+    breadcrumbs,
+    replayRecord,
+    errors,
+    rrwebEvents,
+    spans,
+  }: ReplayReaderParams) {
+    if (!breadcrumbs || !replayRecord || !rrwebEvents || !spans || !errors) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans});
+    return new ReplayReader({breadcrumbs, replayRecord, errors, rrwebEvents, spans});
   }
 
   private constructor({
     breadcrumbs,
-    event,
+    replayRecord,
     errors,
     rrwebEvents,
     spans,
   }: RequiredNotNull<ReplayReaderParams>) {
-    const {startTimestampMS, endTimestampMS} = replayTimestamps(
+    // TODO(replays): We should get correct timestamps from the backend instead
+    // of having to fix them up here.
+    const {startTimestampMs, endTimestampMs} = replayTimestamps(
       rrwebEvents,
       breadcrumbs,
       spans
     );
+    replayRecord.startedAt = new Date(startTimestampMs);
+    replayRecord.finishedAt = new Date(endTimestampMs);
 
     this.spans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(
-      startTimestampMS,
-      event,
-      errors,
-      breadcrumbs,
-      this.spans
-    );
+    this.breadcrumbs = breadcrumbFactory(replayRecord, errors, breadcrumbs, this.spans);
 
-    this.rrwebEvents = rrwebEventListFactory(
-      startTimestampMS,
-      endTimestampMS,
-      rrwebEvents
-    );
+    this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
-    this.event = {
-      ...event,
-      startTimestamp: startTimestampMS / 1000,
-      endTimestamp: endTimestampMS / 1000,
-    } as EventTransaction;
+    this.replayRecord = replayRecord;
   }
 
-  private event: EventTransaction;
+  private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
   private spans: ReplaySpan[];
 
-  getEvent = () => {
-    return this.event;
+  /**
+   * @returns Duration of Replay (milliseonds)
+   */
+  getDurationMs = () => {
+    return this.replayRecord.duration * 1000;
+  };
+
+  getReplay = () => {
+    return this.replayRecord;
   };
 
   getRRWebEvents = () => {
@@ -105,7 +108,7 @@ export default class ReplayReader {
     return span.op === 'memory';
   };
 
-  isNotMemorySpan = (span: ReplaySpan) => {
-    return !this.isMemorySpan(span);
+  isNetworkSpan = (span: ReplaySpan) => {
+    return !this.isMemorySpan(span) && !span.op.includes('paint');
   };
 }

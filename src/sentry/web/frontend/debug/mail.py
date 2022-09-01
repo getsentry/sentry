@@ -96,6 +96,7 @@ def make_group_generator(random, project):
     for id in itertools.count(1):
         first_seen = epoch + random.randint(0, 60 * 60 * 24 * 30)
         last_seen = random.randint(first_seen, first_seen + (60 * 60 * 24 * 30))
+        times_seen = 98765
 
         culprit = make_culprit(random)
         level = random.choice(list(LOG_LEVELS.keys()))
@@ -110,6 +111,7 @@ def make_group_generator(random, project):
             message=message,
             first_seen=to_datetime(first_seen),
             last_seen=to_datetime(last_seen),
+            times_seen=times_seen,
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
@@ -333,7 +335,7 @@ def alert(request):
 def release_alert(request):
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
-    project = Project(id=1, slug="example", name="Example", organization=org)
+    project = Project(id=1, slug="example", name="Example", organization=org, platform="python")
 
     random = get_random(request)
     group = next(make_group_generator(random, project))
@@ -357,6 +359,8 @@ def release_alert(request):
     # Prevent CI screenshot from constantly changing
     event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
     event_type = get_event_type(event.data)
+    # In non-debug context users_seen we get users_seen from group.count_users_seen()
+    users_seen = random.randint(0, 100 * 1000)
 
     group.message = event.search_message
     group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
@@ -377,57 +381,30 @@ def release_alert(request):
             "body": text_body,
         }
 
+    contexts = event.data["contexts"].items() if "contexts" in event.data else None
+    event_user = event.data["event_user"] if "event_user" in event.data else None
+
     return MailPreview(
         html_template="sentry/emails/release_alert.html",
         text_template="sentry/emails/release_alert.txt",
         context={
-            "rule": rule,
             "rules": get_rules([rule], org, project),
             "group": group,
             "event": event,
+            "event_user": event_user,
             "timezone": pytz.timezone("Europe/Vienna"),
-            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
-            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interfaces,
             "tags": event.tags,
+            "contexts": contexts,
+            "users_seen": users_seen,
             "project": project,
-            "release": {
-                "version": "13.9.1",
+            "last_release": {
+                "version": "13.9.2",
             },
+            "last_release_link": f"http://testserver/organizations/{org.slug}/releases/13.9.2/?project={project.id}",
             "environment": "production",
-            "commits": [
-                {
-                    "repository": {
-                        "status": "active",
-                        "name": "Example Repo",
-                        "url": "https://github.com/example/example",
-                        "dateCreated": "2018-02-28T23:39:22.402Z",
-                        "provider": {"id": "github", "name": "GitHub"},
-                        "id": "1",
-                    },
-                    "score": 2,
-                    "subject": "feat: Do something to raven/base.py",
-                    "message": "feat: Do something to raven/base.py\naptent vivamus vehicula tempus volutpat hac tortor",
-                    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
-                    "shortId": "1b17483",
-                    "author": {
-                        "username": "dcramer@gmail.com",
-                        "isManaged": False,
-                        "lastActive": "2018-03-01T18:25:28.149Z",
-                        "id": "1",
-                        "isActive": True,
-                        "has2fa": False,
-                        "name": "dcramer@gmail.com",
-                        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
-                        "dateJoined": "2018-02-27T22:04:32.847Z",
-                        "emails": [{"is_verified": False, "id": "1", "email": "dcramer@gmail.com"}],
-                        "avatar": {"avatarUuid": None, "avatarType": "letter_avatar"},
-                        "lastLogin": "2018-02-27T22:04:32.847Z",
-                        "email": "dcramer@gmail.com",
-                    },
-                }
-            ],
+            "regression": False,
         },
     ).render(request)
 
@@ -768,8 +745,9 @@ def org_delete_confirm(request):
 def render_preview_email_for_notification(
     notification: BaseNotification, recipient: User | Team
 ) -> MutableMapping[str, Any]:
+    shared_context = notification.get_context()
+    basic_args = get_builder_args(notification, recipient, shared_context)
     # remove unneeded fields
-    basic_args = get_builder_args(notification, recipient)
     args = {k: v for k, v in basic_args.items() if k not in ["headers", "reference", "subject"]}
     # convert subject back to a string
     args["subject"] = basic_args["subject"].decode("utf-8")

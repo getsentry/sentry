@@ -3,15 +3,14 @@ import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
-import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 import {PanelTable} from 'sentry/components/panels';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -54,7 +53,7 @@ function OrganizationApiKeysList({
   const action = (
     <Button
       priority="primary"
-      size="small"
+      size="sm"
       icon={<IconAdd size="xs" isCircled />}
       busy={busy}
       disabled={busy}
@@ -107,9 +106,9 @@ function OrganizationApiKeysList({
                   <Link to={apiDetailsUrl}>{label}</Link>
                 </Cell>
 
-                <div>
-                  <AutoSelectTextInput readOnly>{key}</AutoSelectTextInput>
-                </div>
+                <TextCopyInput size="sm" monospace>
+                  {key}
+                </TextCopyInput>
 
                 <Cell>
                   <LinkWithConfirmation
@@ -133,10 +132,6 @@ function OrganizationApiKeysList({
 const Cell = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const AutoSelectTextInput = styled(AutoSelectText)<{readOnly: boolean}>`
-  ${p => inputStyles(p)}
 `;
 
 export default OrganizationApiKeysList;

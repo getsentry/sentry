@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
@@ -15,7 +16,12 @@ import {t} from 'sentry/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
@@ -161,7 +167,7 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
+        tooltipFormatter(transaction.aggregate_range_1, 'duration'),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -181,7 +187,7 @@ function getIntervalLine(
         '<div>',
         `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
         // p50() coerces the axis to be time based
-        tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
+        tooltipFormatter(transaction.aggregate_range_2, 'duration'),
         '</div>',
         '</div>',
         '<div class="tooltip-arrow"></div>',
@@ -310,22 +316,41 @@ export function Chart({
     transaction?.aggregate_range_1 || Number.MAX_SAFE_INTEGER,
     transaction?.aggregate_range_2 || Number.MAX_SAFE_INTEGER
   );
+
+  const smoothedSeries = smoothedResults
+    ? smoothedResults.map(values => {
+        return {
+          ...values,
+          color: lineColor.default,
+          lineStyle: {
+            opacity: 1,
+          },
+        };
+      })
+    : [];
+
+  const intervalSeries = getIntervalLine(theme, smoothedResults || [], 0.5, transaction);
+
   const yDiff = yMax - yMin;
   const yMargin = yDiff * 0.1;
+  const series = [...smoothedSeries, ...intervalSeries];
+
+  const durationUnit = getDurationUnit(series);
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
     tooltip: {
       valueFormatter: (value, seriesName) => {
-        return tooltipFormatter(value, seriesName);
+        return tooltipFormatter(value, aggregateOutputType(seriesName));
       },
     },
     yAxis: {
       min: Math.max(0, yMin - yMargin),
       max: yMax + yMargin,
+      minInterval: durationUnit,
       axisLabel: {
         color: theme.chartLabel,
-        // p50() coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
       },
     },
   };
@@ -339,25 +364,6 @@ export function Chart({
       utc={utc === 'true'}
     >
       {zoomRenderProps => {
-        const smoothedSeries = smoothedResults
-          ? smoothedResults.map(values => {
-              return {
-                ...values,
-                color: lineColor.default,
-                lineStyle: {
-                  opacity: 1,
-                },
-              };
-            })
-          : [];
-
-        const intervalSeries = getIntervalLine(
-          theme,
-          smoothedResults || [],
-          0.5,
-          transaction
-        );
-
         return (
           <TransitionChart loading={loading} reloading={reloading}>
             <TransparentLoadingMask visible={reloading} />
@@ -368,7 +374,7 @@ export function Chart({
                   {...zoomRenderProps}
                   {...chartOptions}
                   onLegendSelectChanged={handleLegendSelectChanged}
-                  series={[...smoothedSeries, ...intervalSeries]}
+                  series={series}
                   seriesOptions={{
                     showSymbol: false,
                   }}

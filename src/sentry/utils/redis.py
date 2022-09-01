@@ -19,7 +19,6 @@ from rediscluster.exceptions import ClusterError
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
-from sentry.utils.compat import map
 from sentry.utils.imports import import_string
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -207,6 +206,10 @@ class _RedisCluster:
         hosts = config.get("hosts")
         hosts = list(hosts.values()) if isinstance(hosts, dict) else hosts
 
+        # support for scaling reads using the readonly mode
+        # https://redis.io/docs/reference/cluster-spec/#scaling-reads-using-replica-nodes
+        readonly_mode = config.get("readonly_mode", False)
+
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
@@ -224,6 +227,7 @@ class _RedisCluster:
                     skip_full_coverage_check=True,
                     max_connections=16,
                     max_connections_per_node=True,
+                    readonly_mode=readonly_mode,
                 )
             else:
                 host = hosts[0].copy()
@@ -288,14 +292,15 @@ def get_cluster_from_options(setting, options, cluster_manager=clusters):
         if cluster_option_name in options:
             raise InvalidConfiguration(
                 "Cannot provide both named cluster ({!r}) and cluster configuration ({}) options.".format(
-                    cluster_option_name, ", ".join(map(repr, cluster_constructor_option_names))
+                    cluster_option_name,
+                    ", ".join(repr(name) for name in cluster_constructor_option_names),
                 )
             )
         else:
             warnings.warn(
                 DeprecatedSettingWarning(
                     "{} parameter of {}".format(
-                        ", ".join(map(repr, cluster_constructor_option_names)), setting
+                        ", ".join(repr(name) for name in cluster_constructor_option_names), setting
                     ),
                     f'{setting}["{cluster_option_name}"]',
                     removed_in_version="8.5",
@@ -324,9 +329,11 @@ def validate_dynamic_cluster(is_redis_cluster, cluster):
     try:
         if is_redis_cluster:
             cluster.ping()
+            cluster.connection_pool.disconnect()
         else:
             with cluster.all() as client:
                 client.ping()
+            cluster.disconnect_pools()
     except Exception as e:
         raise InvalidConfiguration(str(e))
 
@@ -335,6 +342,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
     try:
         with cluster.all() as client:
             results = client.info()
+        cluster.disconnect_pools()
     except Exception as e:
         # Any connection issues should be caught here.
         raise InvalidConfiguration(str(e))
@@ -345,7 +353,7 @@ def check_cluster_versions(cluster, required, recommended=None, label=None):
         # NOTE: This assumes there is no routing magic going on here, and
         # all requests to this host are being served by the same database.
         key = f"{host.host}:{host.port}"
-        versions[key] = Version(map(int, info["redis_version"].split(".", 3)))
+        versions[key] = Version([int(part) for part in info["redis_version"].split(".", 3)])
 
     check_versions(
         "Redis" if label is None else f"Redis ({label})", versions, required, recommended

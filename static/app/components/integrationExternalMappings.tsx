@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
@@ -8,6 +9,7 @@ import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -24,7 +26,6 @@ import {
   Organization,
 } from 'sentry/types';
 import {getIntegrationIcon, isExternalActorMapping} from 'sentry/utils/integrationUtil';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type CodeOwnersAssociationMappings = {
   [projectSlug: string]: {
@@ -169,7 +170,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
           customTitle={
             <Button
               borderless
-              size="small"
+              size="sm"
               icon={<IconEllipsisVertical size="sm" />}
               disabled={!hasAccess}
               aria-label={t('Actions')}
@@ -196,7 +197,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         <Button
           disabled
           borderless
-          size="small"
+          size="sm"
           icon={<IconQuestion size="sm" />}
           aria-label={t(
             `This ${type} mapping suggestion was generated from a CODEOWNERS file`
@@ -234,7 +235,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                       <AddButton
                         data-test-id="add-mapping-button"
                         onClick={() => onCreate()}
-                        size="xsmall"
+                        size="xs"
                         icon={<IconAdd size="xs" isCircled />}
                         disabled={!hasAccess}
                       >

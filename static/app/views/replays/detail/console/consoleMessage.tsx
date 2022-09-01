@@ -12,11 +12,11 @@ import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils'
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {
-  breadcrumb: BreadcrumbTypeDefault;
+  breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
 }
 
 /**
@@ -39,6 +39,15 @@ function renderString(arg: string | number | boolean | Object) {
  */
 export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
   let logMessage = '';
+
+  if (!breadcrumb.data?.arguments) {
+    // There is a possibility that we don't have arguments as we could be receiving an exception type breadcrumb.
+    // In these cases we just need the message prop.
+
+    // There are cases in which our prop message is an array, we want to force it to become a string
+    logMessage = breadcrumb.message?.toString() || '';
+    return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
+  }
 
   // Browser's console formatter only works on the first arg
   const [message, ...args] = breadcrumb.data?.arguments;
@@ -105,15 +114,19 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 interface ConsoleMessageProps extends MessageFormatterProps {
   hasOccurred: boolean;
   isActive: boolean;
+  isCurrent: boolean;
   isLast: boolean;
-  startTimestamp: number;
+  isOcurring: boolean;
+  startTimestampMs: number;
 }
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
+  isOcurring = false,
   hasOccurred,
   isLast,
-  startTimestamp = 0,
+  isCurrent,
+  startTimestampMs = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
@@ -122,39 +135,50 @@ function ConsoleMessage({
 
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
-  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
+  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
   const handleOnClick = () => setCurrentTime(diff);
   const handleOnMouseOver = () => setCurrentHoverTime(diff);
   const handleOnMouseOut = () => setCurrentHoverTime(undefined);
+
+  const timeHandlers = {
+    isActive,
+    isCurrent,
+    isOcurring,
+    hasOccurred,
+  };
 
   return (
     <Fragment>
       <Icon
         isLast={isLast}
         level={breadcrumb.level}
-        isActive={isActive}
-        hasOccurred={hasOccurred}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
+        {...timeHandlers}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
+      <Message
+        isLast={isLast}
+        level={breadcrumb.level}
+        onMouseOver={handleOnMouseOver}
+        onMouseOut={handleOnMouseOut}
+        aria-current={isCurrent}
+        {...timeHandlers}
+      >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
       </Message>
-      <ConsoleTimestamp
-        isLast={isLast}
-        level={breadcrumb.level}
-        hasOccurred={hasOccurred}
-      >
+      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
-          <div
+          <ConsoleTimestampButton
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
           >
-            {showPlayerTime(breadcrumb.timestamp || '', startTimestamp)}
-          </div>
+            {showPlayerTime(breadcrumb.timestamp || '', startTimestampMs)}
+          </ConsoleTimestampButton>
         </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
@@ -162,9 +186,12 @@ function ConsoleMessage({
 }
 
 const Common = styled('div')<{
+  isActive: boolean;
+  isCurrent: boolean;
   isLast: boolean;
   level: string;
   hasOccurred?: boolean;
+  isOcurring?: boolean;
 }>`
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
@@ -181,18 +208,49 @@ const Common = styled('div')<{
 
     return 'inherit';
   }};
-  ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
+
   transition: color 0.5s ease;
+
+  border-bottom: ${p => {
+    if (p.isCurrent) {
+      return `1px solid ${p.theme.purple300}`;
+    }
+
+    if (p.isActive && !p.isOcurring) {
+      return `1px solid ${p.theme.purple200}`;
+    }
+
+    if (p.isLast) {
+      return 'none';
+    }
+
+    return `1px solid ${p.theme.innerBorder}`;
+  }};
 `;
 
-const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
+const ConsoleTimestamp = styled(Common)`
   padding: ${space(0.25)} ${space(1)};
-  cursor: pointer;
 `;
 
-const Icon = styled(Common)<{isActive: boolean}>`
+const ConsoleTimestampButton = styled('button')`
+  background: none;
+  border: none;
+`;
+
+const Icon = styled(Common)<{isOcurring?: boolean}>`
   padding: ${space(0.5)} ${space(1)};
-  border-left: 4px solid ${p => (p.isActive ? p.theme.focus : 'transparent')};
+  position: relative;
+
+  &:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    height: 100%;
+    width: ${space(0.5)};
+    background-color: ${p => (p.isOcurring ? p.theme.focus : 'transparent')};
+  }
 `;
 const Message = styled(Common)`
   padding: ${space(0.25)} 0;

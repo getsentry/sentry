@@ -9,7 +9,7 @@ from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
-from sentry import features, roles
+from sentry import features, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -19,7 +19,7 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializer,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
-from sentry.app import quotas
+from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -33,6 +33,7 @@ from sentry.constants import (
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
+    RESERVED_ORGANIZATION_SLUGS,
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
@@ -57,6 +58,35 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+
+
+class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+    name = serializers.CharField(max_length=64)
+    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
+
+    def validate_slug(self, value: str) -> str:
+        # Historically, the only check just made sure there was more than 1
+        # character for the slug, but since then, there are many slugs that
+        # fit within this new imposed limit. We're not fixing existing, but
+        # just preventing new bad values.
+        if len(value) < 3:
+            raise serializers.ValidationError(
+                f'This slug "{value}" is too short. Minimum of 3 characters.'
+            )
+        if value in RESERVED_ORGANIZATION_SLUGS:
+            raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
+        qs = Organization.objects.filter(slug=value)
+        if "organization" in self.context:
+            qs = qs.exclude(id=self.context["organization"].id)
+        if qs.exists():
+            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+
+        contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
+        if contains_whitespace:
+            raise serializers.ValidationError(
+                f'The slug "{value}" should not contain any whitespace.'
+            )
+        return value
 
 
 class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
@@ -112,6 +142,11 @@ class _Status(TypedDict):
     name: str
 
 
+class _Links(TypedDict):
+    organizationUrl: str
+    regionUrl: str
+
+
 class OrganizationSerializerResponse(TypedDict):
     id: str
     slug: str
@@ -123,6 +158,7 @@ class OrganizationSerializerResponse(TypedDict):
     requireEmailVerification: bool
     avatar: Any  # TODO replace with Avatar
     features: Any  # TODO
+    links: _Links
 
 
 @register(Organization)
@@ -203,6 +239,9 @@ class OrganizationSerializer(Serializer):  # type: ignore
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_list.add("shared-issues")
 
+        if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
+            feature_list.remove("mep-rollout-flag")
+
         return {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -217,6 +256,10 @@ class OrganizationSerializer(Serializer):  # type: ignore
             ),
             "avatar": avatar,
             "features": feature_list,
+            "links": {
+                "organizationUrl": generate_organization_url(obj.slug),
+                "regionUrl": generate_region_url(),
+            },
         }
 
 

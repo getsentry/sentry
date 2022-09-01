@@ -9,11 +9,13 @@ from freezegun import freeze_time
 from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def result_sorted(result):
@@ -135,16 +137,16 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_unknown_field(self):
-        response = self.do_request({"field": ["summ(sessin)"]})
+        response = self.do_request({"field": ["summ(session)"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid field: "summ(sessin)"'}
+        assert response.data == {"detail": 'Invalid field: "summ(session)"'}
 
     def test_unknown_groupby(self):
-        response = self.do_request({"field": ["sum(session)"], "groupBy": ["envriomnent"]})
+        response = self.do_request({"field": ["sum(session)"], "groupBy": ["environment_"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
+        assert response.data == {"detail": 'Invalid groupBy: "environment_"'}
 
     def test_illegal_groupby(self):
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["issue.id"]})
@@ -1087,7 +1089,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class OrganizationSessionsEndpointMetricsTest(
-    SessionMetricsTestCase, OrganizationSessionsEndpointTest
+    BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
     """Repeat all tests with metrics backend"""
 
@@ -1537,7 +1539,7 @@ class OrganizationSessionsEndpointMetricsTest(
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
+class SessionsMetricsSortReleaseTimestampTest(BaseMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
@@ -2032,7 +2034,7 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
     "sentry.api.endpoints.organization_sessions.release_health",
     DuplexReleaseHealthBackend(datetime.datetime(2022, 4, 28, 16, 0, tzinfo=datetime.timezone.utc)),
 )
-class DuplexTestCase(SessionMetricsTestCase, APITestCase):
+class DuplexTestCase(BaseMetricsTestCase, APITestCase):
     """Tests specific to the duplex backend"""
 
     def do_request(self, query, user=None, org=None):

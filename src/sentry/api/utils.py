@@ -1,8 +1,10 @@
 import logging
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from django.utils import timezone
 
+from sentry import options
 from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember
@@ -38,6 +40,48 @@ def default_start_end_dates(now=None, default_stats_period=MAX_STATS_PERIOD):
 
 def get_date_range_from_params(params, optional=False, default_stats_period=MAX_STATS_PERIOD):
     """
+    A wrapper function for `get_date_range_from_stats_period` that allows us
+    to alias `statsPeriod` to ensure backward compatibility.
+
+    If `timeframe` is passed then convert to a time delta and make sure it
+    fits within our min/max period length. Values are in the format
+    <number><period_type>, where period type is one of `s` (seconds),
+    `m` (minutes), `h` (hours) or `d` (days).
+
+    Similarly, `timeframeStart` and `timeframeEnd` allow for selecting a
+    relative range, for example: 15 days ago through 8 days ago. This uses the same
+    format as `statsPeriod`.
+
+    :param params:
+    If `start` end `end` are passed, validate them, convert to `datetime` and
+    returns them if valid.
+    :param optional: When True, if no params passed then return `(None, None)`.
+    :param default_stats_period: When set, this becomes the interval upon which default start
+    and end dates are defined
+    :return: A length 2 tuple containing start/end or raises an `InvalidParams`
+    exception
+    """
+    timeframe = params.get("timeframe")
+    timeframe_start = params.get("timeframeStart")
+    timeframe_end = params.get("timeframeEnd")
+
+    if timeframe is not None:
+        params["statsPeriod"] = timeframe
+
+    elif timeframe_start or timeframe_end:
+        if not all([timeframe_start, timeframe_end]):
+            raise InvalidParams("timeframeStart and timeframeEnd are both required")
+        else:
+            params["statsPeriodStart"] = timeframe_start
+            params["statsPeriodEnd"] = timeframe_end
+
+    return get_date_range_from_stats_period(
+        params, optional=optional, default_stats_period=default_stats_period
+    )
+
+
+def get_date_range_from_stats_period(params, optional=False, default_stats_period=MAX_STATS_PERIOD):
+    """
     Gets a date range from standard date range params we pass to the api.
 
     If `statsPeriod` is passed then convert to a time delta and make sure it
@@ -53,7 +97,7 @@ def get_date_range_from_params(params, optional=False, default_stats_period=MAX_
     If `start` end `end` are passed, validate them, convert to `datetime` and
     returns them if valid.
     :param optional: When True, if no params passed then return `(None, None)`.
-    :param default_stats_period: When set, this becomes the interval upon which default start and
+    :param default_stats_period: When set, this becomes the interval upon which default start
     and end dates are defined
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
@@ -111,3 +155,30 @@ def is_member_disabled_from_limit(request, organization):
         return False
     else:
         return member.flags["member-limit:restricted"]
+
+
+def generate_organization_hostname(org_slug: str) -> str:
+    url_prefix_hostname = urlparse(options.get("system.url-prefix")).netloc
+    org_base_hostname_template = options.get("system.organization-base-hostname")
+    if not org_base_hostname_template:
+        return url_prefix_hostname
+    has_org_slug_placeholder = "{slug}" in org_base_hostname_template
+    if not has_org_slug_placeholder:
+        return url_prefix_hostname
+    org_hostname = org_base_hostname_template.replace("{slug}", org_slug)
+    return org_hostname
+
+
+def generate_organization_url(org_slug: str) -> str:
+    org_url_template = options.get("system.organization-url-template")
+    if not org_url_template:
+        return options.get("system.url-prefix")
+    return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
+
+
+def generate_region_url() -> str:
+    region_url_template = options.get("system.region-api-url-template")
+    region = options.get("system.region") or None
+    if not region_url_template or not region:
+        return options.get("system.url-prefix")
+    return region_url_template.replace("{region}", region)

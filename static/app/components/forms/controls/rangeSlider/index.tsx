@@ -1,7 +1,7 @@
 import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
 import {useId} from '@react-aria/utils';
 
-import Input from 'sentry/components/forms/controls/input';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
@@ -187,6 +187,7 @@ function RangeSlider({
           max={max}
           step={step}
           disabled={disabled}
+          onChange={handleInput}
           onInput={handleInput}
           onMouseUp={handleBlur}
           onKeyUp={handleBlur}

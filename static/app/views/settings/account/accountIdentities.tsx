@@ -8,13 +8,13 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -97,11 +97,11 @@ class AccountIdentities extends AsyncView<Props, State> {
           </Fragment>
         }
       >
-        <Button size="small">{t('Disconnect')}</Button>
+        <Button size="sm">{t('Disconnect')}</Button>
       </Confirm>
     ) : (
       <Button
-        size="small"
+        size="sm"
         disabled
         title={
           identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH

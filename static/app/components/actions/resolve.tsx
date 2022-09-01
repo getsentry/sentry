@@ -7,16 +7,16 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
+  GroupStatusResolution,
   Organization,
   Release,
   ResolutionStatus,
   ResolutionStatusDetails,
-  UpdateResolutionStatus,
 } from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -30,7 +30,7 @@ const defaultProps = {
 
 type Props = {
   hasRelease: boolean;
-  onUpdate: (data: UpdateResolutionStatus) => void;
+  onUpdate: (data: GroupStatusResolution) => void;
   orgSlug: string;
   organization: Organization;
   confirmMessage?: React.ReactNode;
@@ -110,11 +110,13 @@ class ResolveActions extends Component<Props> {
       >
         <Button
           priority="primary"
-          size="xsmall"
+          size="xs"
           icon={<IconCheckmark size="xs" />}
           aria-label={t('Unresolve')}
           disabled={isAutoResolved}
-          onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
+          onClick={() =>
+            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+          }
         />
       </Tooltip>
     );
@@ -156,7 +158,7 @@ class ResolveActions extends Component<Props> {
         label: t('The next release'),
         details: actionTitle,
         onAction: () => onActionOrConfirm(this.handleNextReleaseResolution),
-        showDividers: !hasRelease,
+        showDividers: !actionTitle,
       },
       {
         key: 'current-release',
@@ -165,31 +167,34 @@ class ResolveActions extends Component<Props> {
           : t('The current release'),
         details: actionTitle,
         onAction: () => onActionOrConfirm(this.handleCurrentReleaseResolution),
-        showDividers: !hasRelease,
+        showDividers: !actionTitle,
       },
       {
         key: 'another-release',
         label: t('Another existing release\u2026'),
         onAction: () => this.openCustomReleaseModal(),
+        showDividers: !actionTitle,
       },
       {
         key: 'a-commit',
         label: t('A commit\u2026'),
         onAction: () => this.openCustomCommitModal(),
+        showDividers: !actionTitle,
       },
     ];
 
     const isDisabled = !projectSlug ? disabled : disableDropdown;
 
     return (
-      <DropdownMenuControlV2
+      <DropdownMenuControl
+        size="sm"
         items={items}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('More resolve options')}
-            size="xsmall"
+            size="xs"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -253,7 +258,7 @@ class ResolveActions extends Component<Props> {
     const onResolve = () =>
       openConfirmModal({
         bypass: !shouldConfirm,
-        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED}),
+        onConfirm: () => onUpdate({status: ResolutionStatus.RESOLVED, statusDetails: {}}),
         message: confirmMessage,
         confirmText: confirmLabel,
       });
@@ -262,7 +267,7 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            size="xsmall"
+            size="xs"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}

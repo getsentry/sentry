@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 
@@ -16,7 +17,8 @@ import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {WebVital} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
@@ -241,7 +243,7 @@ export function _VitalChart(props: _VitalChartProps) {
       valueFormatter: (value: number, seriesName?: string) => {
         return tooltipFormatter(
           value,
-          vitalFields[0] === WebVital.CLS ? seriesName : yAxis
+          aggregateOutputType(vitalFields[0] === WebVital.CLS ? seriesName : yAxis)
         );
       },
     },
@@ -253,7 +255,8 @@ export function _VitalChart(props: _VitalChartProps) {
       axisLabel: {
         color: theme.chartLabel,
         showMaxLabel: false,
-        formatter: (value: number) => axisLabelFormatter(value, yAxis),
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType(yAxis)),
       },
     },
     utc,

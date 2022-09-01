@@ -10,7 +10,6 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
 from hashlib import sha1
-from operator import itemgetter
 from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 from urllib.parse import urlparse
 
@@ -37,8 +36,8 @@ from sentry.models import (
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
-from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 
 logger = logging.getLogger(__name__)
@@ -122,6 +121,7 @@ DATASETS = {
     Dataset.Discover: DISCOVER_COLUMN_MAP,
     Dataset.Sessions: SESSIONS_SNUBA_MAP,
     Dataset.Metrics: METRICS_COLUMN_MAP,
+    Dataset.PerformanceMetrics: METRICS_COLUMN_MAP,
 }
 
 # Store the internal field names to save work later on.
@@ -442,10 +442,10 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
         # Otherwise infer the project_ids from any related models
         with timer("get_related_project_ids"):
             ids = [
-                get_related_project_ids(k, query_params.filter_keys[k])
+                set(get_related_project_ids(k, query_params.filter_keys[k]))
                 for k in query_params.filter_keys
             ]
-            project_ids = list(set.union(*map(set, ids)))
+            project_ids = list(set.union(*ids))
     elif query_params.conditions:
         project_ids = []
         for cond in query_params.conditions:
@@ -523,6 +523,7 @@ def _prepare_query_params(query_params):
         Dataset.Discover,
         Dataset.Sessions,
         Dataset.Transactions,
+        Dataset.Replays,
     ]:
         (organization_id, params_to_update) = get_query_params_to_update_for_projects(
             query_params, with_org=query_params.dataset == Dataset.Sessions
@@ -726,7 +727,7 @@ def bulk_raw_query(
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
-    params = map(_prepare_query_params, snuba_param_list)
+    params = [_prepare_query_params(param) for param in snuba_param_list]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -736,6 +737,7 @@ def _apply_cache_and_build_results(
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
     headers = {}
+    validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
 
@@ -761,7 +763,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers)
+        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -770,7 +772,7 @@ def _apply_cache_and_build_results(
     # Sort so that we get the results back in the original param list order
     results.sort()
     # Drop the sort order val
-    return map(itemgetter(1), results)
+    return [result[1] for result in results]
 
 
 def _bulk_snuba_query(
@@ -1199,109 +1201,6 @@ def resolve_complex_column(col, resolve_func, ignored):
             args[i] = resolve_func(args[i])
 
 
-def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None):
-    resolved = snuba_filter.clone()
-    translated_columns = {}
-    derived_columns = set()
-    aggregations = resolved.aggregations
-
-    if function_translations:
-        for snuba_name, sentry_name in function_translations.items():
-            derived_columns.add(snuba_name)
-            translated_columns[snuba_name] = sentry_name
-
-    selected_columns = resolved.selected_columns
-    aggregation_aliases = [aggregation[-1] for aggregation in aggregations]
-    if selected_columns:
-        for (idx, col) in enumerate(selected_columns):
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    # Add the name from columns, and remove project backticks so its not treated as a new col
-                    derived_columns.add(col[2].strip("`"))
-                # Equations use aggregation aliases as arguments, and we don't want those resolved since they'll resolve
-                # as tags instead
-                resolve_complex_column(col, resolve_func, aggregation_aliases)
-            else:
-                name = resolve_func(col)
-                selected_columns[idx] = name
-                translated_columns[name] = col
-
-        resolved.selected_columns = selected_columns
-
-    groupby = resolved.groupby
-    if groupby:
-        for (idx, col) in enumerate(groupby):
-            name = col
-            if isinstance(col, (list, tuple)):
-                if len(col) == 3:
-                    name = col[2]
-            elif col not in derived_columns:
-                name = resolve_func(col)
-
-            groupby[idx] = name
-        resolved.groupby = groupby
-
-    # need to get derived_columns first, so that they don't get resolved as functions
-    derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
-    for aggregation in aggregations or []:
-        if isinstance(aggregation[1], str):
-            aggregation[1] = resolve_func(aggregation[1])
-        elif isinstance(aggregation[1], (set, tuple, list)):
-            formatted = []
-            for argument in aggregation[1]:
-                # The aggregation has another function call as its parameter
-                func_index = get_function_index(argument)
-                if func_index is not None:
-                    # Resolve the columns on the nested function, and add a wrapping
-                    # list to become a valid query expression.
-                    resolved_args = []
-                    for col in argument[1]:
-                        if col is None or isinstance(col, float):
-                            resolved_args.append(col)
-                        elif isinstance(col, list):
-                            resolve_complex_column(col, resolve_func, aggregation_aliases)
-                            resolved_args.append(col)
-                        else:
-                            resolved_args.append(resolve_func(col))
-                    formatted.append([argument[0], resolved_args])
-                else:
-                    # Parameter is a list of fields.
-                    formatted.append(
-                        resolve_func(argument)
-                        if not isinstance(argument, (set, tuple, list))
-                        and argument not in derived_columns
-                        else argument
-                    )
-            aggregation[1] = formatted
-    resolved.aggregations = aggregations
-
-    conditions = resolved.conditions
-    if conditions:
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, resolve_func)
-            conditions[i] = replacement
-        resolved.conditions = [c for c in conditions if c]
-
-    orderby = resolved.orderby
-    if orderby:
-        orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-        resolved_orderby = []
-
-        for field_with_order in orderby:
-            if isinstance(field_with_order, str):
-                field = field_with_order.lstrip("-")
-                resolved_orderby.append(
-                    "{}{}".format(
-                        "-" if field_with_order.startswith("-") else "",
-                        field if field in derived_columns else resolve_func(field),
-                    )
-                )
-            else:
-                resolved_orderby.append(field_with_order)
-        resolved.orderby = resolved_orderby
-    return resolved, translated_columns
-
-
 JSON_TYPE_MAP = {
     "UInt8": "boolean",
     "UInt16": "integer",
@@ -1545,6 +1444,14 @@ def is_duration_measurement(key):
         "measurements.ttfb.requesttime",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
+    ]
+
+
+def is_percentage_measurement(key):
+    return key in [
+        "measurements.frames_slow_rate",
+        "measurements.frames_frozen_rate",
+        "measurements.stall_percentage",
     ]
 
 

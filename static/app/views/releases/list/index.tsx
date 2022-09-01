@@ -8,6 +8,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -45,7 +46,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
@@ -289,6 +289,15 @@ class ReleasesList extends AsyncView<Props, State> {
     return this.renderBody();
   }
 
+  get shouldShowQuickstart() {
+    const {releases} = this.state;
+
+    const selectedProject = this.getSelectedProject();
+    const hasReleasesSetup = selectedProject?.features.includes('releases');
+
+    return !releases?.length && !hasReleasesSetup && selectedProject;
+  }
+
   renderEmptyMessage() {
     const {location} = this.props;
     const {statsPeriod, start, end} = location.query;
@@ -438,13 +447,8 @@ class ReleasesList extends AsyncView<Props, State> {
       return this.renderEmptyMessage();
     }
 
-    if (!releases?.length && !hasReleasesSetup) {
-      return (
-        <ReleasesPromo
-          organization={organization}
-          projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
-        />
-      );
+    if (this.shouldShowQuickstart) {
+      return <ReleasesPromo organization={organization} project={selectedProject!} />;
     }
 
     return (
@@ -530,49 +534,52 @@ class ReleasesList extends AsyncView<Props, State> {
               <EnvironmentPageFilter />
               <DatePageFilter
                 alignDropdown="left"
+                disallowArbitraryRelativeRanges
                 hint={t('Changing this date range will recalculate the release metrics.')}
               />
             </ReleasesPageFilterBar>
 
-            <SortAndFilterWrapper>
-              <GuideAnchor
-                target="releases_search"
-                position="bottom"
-                disabled={!hasReleasesSetup}
-              >
-                <StyledSmartSearchBar
-                  searchSource="releases"
-                  query={this.getQuery()}
-                  placeholder={t('Search by version, build, package, or stage')}
-                  maxSearchItems={5}
-                  hasRecentSearches={false}
-                  supportedTags={{
-                    ...SEMVER_TAGS,
-                    release: {
-                      key: 'release',
-                      name: 'release',
-                    },
-                  }}
-                  supportedTagType={ItemType.PROPERTY}
-                  onSearch={this.handleSearch}
-                  onGetTagValues={this.getTagValues}
+            {this.shouldShowQuickstart ? null : (
+              <SortAndFilterWrapper>
+                <GuideAnchor
+                  target="releases_search"
+                  position="bottom"
+                  disabled={!hasReleasesSetup}
+                >
+                  <StyledSmartSearchBar
+                    searchSource="releases"
+                    query={this.getQuery()}
+                    placeholder={t('Search by version, build, package, or stage')}
+                    hasRecentSearches={false}
+                    supportedTags={{
+                      ...SEMVER_TAGS,
+                      release: {
+                        key: 'release',
+                        name: 'release',
+                      },
+                    }}
+                    maxMenuHeight={500}
+                    supportedTagType={ItemType.PROPERTY}
+                    onSearch={this.handleSearch}
+                    onGetTagValues={this.getTagValues}
+                  />
+                </GuideAnchor>
+                <ReleasesStatusOptions
+                  selected={activeStatus}
+                  onSelect={this.handleStatus}
                 />
-              </GuideAnchor>
-              <ReleasesStatusOptions
-                selected={activeStatus}
-                onSelect={this.handleStatus}
-              />
-              <ReleasesSortOptions
-                selected={activeSort}
-                selectedDisplay={activeDisplay}
-                onSelect={this.handleSortBy}
-                environments={selection.environments}
-              />
-              <ReleasesDisplayOptions
-                selected={activeDisplay}
-                onSelect={this.handleDisplay}
-              />
-            </SortAndFilterWrapper>
+                <ReleasesSortOptions
+                  selected={activeSort}
+                  selectedDisplay={activeDisplay}
+                  onSelect={this.handleSortBy}
+                  environments={selection.environments}
+                />
+                <ReleasesDisplayOptions
+                  selected={activeDisplay}
+                  onSelect={this.handleDisplay}
+                />
+              </SortAndFilterWrapper>
+            )}
 
             {!reloading &&
               activeStatus === ReleasesStatusOption.ARCHIVED &&

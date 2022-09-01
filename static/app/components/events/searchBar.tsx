@@ -9,16 +9,18 @@ import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   Field,
   FIELD_TAGS,
-  getFieldDoc,
   isAggregateField,
   isEquation,
   isMeasurement,
   SEMVER_TAGS,
+  SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
+import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
@@ -28,9 +30,65 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 
+const getFunctionTags = (fields: Readonly<Field[]>) =>
+  Object.fromEntries(
+    fields
+      .filter(
+        item => !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+      )
+      .map(item => [
+        item.field,
+        {key: item.field, name: item.field, kind: FieldKind.FUNCTION},
+      ])
+  );
+
+const getFieldTags = () =>
+  Object.fromEntries(
+    Object.keys(FIELD_TAGS).map(key => [
+      key,
+      {
+        ...FIELD_TAGS[key],
+        kind: FieldKind.FIELD,
+      },
+    ])
+  );
+
+const getMeasurementTags = (
+  measurements: Parameters<
+    React.ComponentProps<typeof Measurements>['children']
+  >[0]['measurements']
+) =>
+  Object.fromEntries(
+    Object.keys(measurements).map(key => [
+      key,
+      {
+        ...measurements[key],
+        kind: FieldKind.MEASUREMENT,
+      },
+    ])
+  );
+
+const getSpanTags = () => {
+  return Object.fromEntries(
+    SPAN_OP_BREAKDOWN_FIELDS.map(key => [key, {key, name: key, kind: FieldKind.METRICS}])
+  );
+};
+
+const getSemverTags = () =>
+  Object.fromEntries(
+    Object.keys(SEMVER_TAGS).map(key => [
+      key,
+      {
+        ...SEMVER_TAGS[key],
+        kind: FieldKind.FIELD,
+      },
+    ])
+  );
+
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
+  customMeasurements?: CustomMeasurementCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   /**
@@ -52,6 +110,7 @@ function SearchBar(props: SearchBarProps) {
     projectIds,
     includeSessionTagsValues,
     maxMenuHeight,
+    customMeasurements,
   } = props;
 
   const api = useApi();
@@ -103,30 +162,44 @@ function SearchBar(props: SearchBarProps) {
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
   ) => {
-    const functionTags = fields
-      ? Object.fromEntries(
-          fields
-            .filter(
-              item =>
-                !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
-            )
-            .map(item => [item.field, {key: item.field, name: item.field}])
-        )
-      : {};
+    const functionTags = getFunctionTags(fields ?? []);
+    const fieldTags = getFieldTags();
+    const measurementsWithKind = getMeasurementTags(measurements);
+    const spanTags = getSpanTags();
+    const semverTags = getSemverTags();
 
-    const fieldTags = organization.features.includes('performance-view')
-      ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
-      : omit(FIELD_TAGS, TRACING_FIELDS);
+    const orgHasPerformanceView = organization.features.includes('performance-view');
 
-    const combined = assign({}, tags, fieldTags, SEMVER_TAGS);
-    combined.has = {
-      key: 'has',
+    const combinedTags: TagCollection = orgHasPerformanceView
+      ? Object.assign({}, measurementsWithKind, spanTags, fieldTags, functionTags)
+      : omit(fieldTags, TRACING_FIELDS);
+
+    const tagsWithKind = Object.fromEntries(
+      Object.keys(tags).map(key => [
+        key,
+        {
+          ...tags[key],
+          kind: FieldKind.TAG,
+        },
+      ])
+    );
+
+    assign(combinedTags, tagsWithKind, fieldTags, semverTags);
+
+    const sortedTagKeys = Object.keys(combinedTags);
+    sortedTagKeys.sort((a, b) => {
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+
+    combinedTags.has = {
+      key: FieldKey.HAS,
       name: 'Has property',
-      values: Object.keys(combined),
+      values: sortedTagKeys,
       predefined: true,
+      kind: FieldKind.FIELD,
     };
 
-    return omit(combined, omitTags ?? []);
+    return omit(combinedTags, omitTags ?? []);
   };
 
   return (
@@ -136,7 +209,7 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
+          supportedTags={getTagList({...measurements, ...(customMeasurements ?? {})})}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
@@ -144,7 +217,6 @@ function SearchBar(props: SearchBarProps) {
           maxSearchItems={maxSearchItems}
           excludeEnvironment
           maxMenuHeight={maxMenuHeight ?? 300}
-          getFieldDoc={getFieldDoc}
           {...props}
         />
       )}

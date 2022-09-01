@@ -1,6 +1,7 @@
 from functools import partial
 from typing import List, Union
 
+from sentry import features
 from sentry.api.event_search import AggregateFilter, SearchConfig, SearchValue, default_config
 from sentry.api.event_search import parse_search_query as base_parse_query
 from sentry.exceptions import InvalidSearchQuery
@@ -13,7 +14,7 @@ from sentry.search.utils import (
     parse_status_value,
     parse_user_value,
 )
-from sentry.utils.compat import map
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory, GroupType
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
@@ -93,6 +94,30 @@ def convert_status_value(value, projects, user, environments):
     return parsed
 
 
+def convert_category_value(value, projects, user, environments):
+    """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
+    if features.has("organizations:performance-issues", projects[0].organization):
+        results = []
+        for category in value:
+            group_category = getattr(GroupCategory, category.upper(), None)
+            if not group_category:
+                raise InvalidSearchQuery(f"Invalid category value of '{category}'")
+            results.extend([type.value for type in GROUP_CATEGORY_TO_TYPES.get(group_category, [])])
+        return results
+
+
+def convert_type_value(value, projects, user, environments):
+    """Convert a value like 'error' or 'performance_n_plus_one' to the GroupType value for issue lookup"""
+    if features.has("organizations:performance-issues", projects[0].organization):
+        results = []
+        for type in value:
+            group_type = getattr(GroupType, type.upper(), None)
+            if not group_type:
+                raise InvalidSearchQuery(f"Invalid type value of '{type}'")
+            results.append(group_type.value)
+        return results
+
+
 value_converters = {
     "assigned_or_suggested": convert_actor_or_none_value,
     "assigned_to": convert_actor_or_none_value,
@@ -102,6 +127,8 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
+    "category": convert_category_value,
+    "type": convert_type_value,
 }
 
 
@@ -135,4 +162,4 @@ def convert_query_values(search_filters, projects, user, environments):
             )
         return search_filter
 
-    return map(convert_search_filter, search_filters)
+    return [convert_search_filter(search_filter) for search_filter in search_filters]

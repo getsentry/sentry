@@ -9,7 +9,7 @@ import pytz
 from django.core import mail
 from django.utils import timezone
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import GroupStatus, Project, UserOption
@@ -46,7 +46,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome
 
 
-@pytest.yield_fixture(scope="module")
+@pytest.fixture(scope="module")
 def interval():
     stop = datetime(2016, 9, 12, tzinfo=pytz.utc)
     yield stop - timedelta(days=7), stop

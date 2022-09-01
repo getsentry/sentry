@@ -6,8 +6,8 @@ import pytz
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
-from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     Environment,
@@ -828,6 +828,79 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id == org.id
+
+    def test_commits_patchset_character_limit_255(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], organization=org)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(
+            url,
+            data={
+                "commits": [
+                    {
+                        "id": "a" * 40,
+                        "patch_set": [{"path": "/a/really/long/path/" + ("z" * 255), "type": "A"}],
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        rc_list = list(
+            ReleaseCommit.objects.filter(release=release)
+            .select_related("commit", "commit__author")
+            .order_by("order")
+        )
+        assert len(rc_list) == 1
+        for rc in rc_list:
+            assert rc.organization_id == org.id
+
+    def test_commits_patchset_character_limit_reached(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], organization=org)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(
+            url,
+            data={
+                "commits": [
+                    {
+                        "id": "a" * 40,
+                        "patch_set": [{"path": "z" * (255 * 2 + 1), "type": "A"}],
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 400, (response.status_code, response.content)
 
     def test_commits_lock_conflict(self):
         user = self.create_user(is_staff=False, is_superuser=False)

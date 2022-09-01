@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {ToolboxComponentOption} from 'echarts';
@@ -17,6 +18,7 @@ import {
   ReleaseWithHealth,
 } from 'sentry/types';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -212,7 +214,7 @@ function ReleaseEventsChart({
                   return '';
                 }
 
-                return tooltipFormatter(val, getYAxis());
+                return tooltipFormatter(val, aggregateOutputType(getYAxis()));
               },
             } as ToolboxComponentOption,
           }}

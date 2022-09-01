@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.shared_integrations.exceptions import ApiError
 
-from ..client import JiraApiClient, JiraCloud
+from ..client import JiraCloudClient
 
 if TYPE_CHECKING:
     from sentry.models import Integration
@@ -18,10 +18,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _get_client(integration: Integration) -> JiraApiClient:
-    return JiraApiClient(
+def _get_client(integration: Integration) -> JiraCloudClient:
+    return JiraCloudClient(
         integration.metadata["base_url"],
-        JiraCloud(integration.metadata["shared_secret"]),
+        integration.metadata["shared_secret"],
         verify_ssl=True,
     )
 

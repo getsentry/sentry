@@ -7,6 +7,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Field from 'sentry/components/forms/field';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -17,7 +18,6 @@ import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {
@@ -152,7 +152,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
               <Button
                 data-test-id="new-service-hook"
                 to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
-                size="small"
+                size="sm"
                 priority="primary"
                 icon={<IconAdd size="xs" isCircled />}
               >

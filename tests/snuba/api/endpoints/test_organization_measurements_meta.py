@@ -1,15 +1,18 @@
 from datetime import timedelta
 
+import pytest
 from django.urls import reverse
 
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
+pytestmark = pytest.mark.sentry_metrics
+
 
 class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-measurements-meta"
     METRIC_STRINGS = [
-        "d:custom/measurements.something_custom@millisecond",
+        "d:transactions/measurements.something_custom@millisecond",
     ]
 
     def setUp(self):
@@ -30,10 +33,10 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_simple(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
             entity="metrics_distributions",
             timestamp=self.day_ago + timedelta(hours=1, minutes=0),
         )
@@ -64,10 +67,10 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
         }
 
     def test_metric_outside_query_daterange(self):
-        self.store_metric(
+        self.store_transaction_metric(
             1,
             metric="measurements.something_custom",
-            internal_metric="d:custom/measurements.something_custom@millisecond",
+            internal_metric="d:transactions/measurements.something_custom@millisecond",
             entity="metrics_distributions",
             timestamp=self.day_ago - timedelta(days=15, minutes=0),
         )

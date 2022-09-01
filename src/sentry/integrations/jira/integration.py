@@ -32,10 +32,11 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
+from sentry.tasks.integrations import migrate_issues
 from sentry.utils.decorators import classproperty
 from sentry.utils.http import absolute_uri
 
-from .client import JiraApiClient, JiraCloud
+from .client import JiraCloudClient
 from .utils import build_user_choice
 
 logger = logging.getLogger("sentry.integrations.jira")
@@ -342,9 +343,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
-        return JiraApiClient(
+        return JiraCloudClient(
             self.model.metadata["base_url"],
-            JiraCloud(self.model.metadata["shared_secret"]),
+            self.model.metadata["shared_secret"],
             verify_ssl=True,
             logging_context=logging_context,
         )
@@ -956,6 +957,14 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return ResolveSyncAction.from_resolve_unresolve(
             should_resolve=c_to in done_statuses and c_from not in done_statuses,
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
+        )
+
+    def migrate_issues(self):
+        migrate_issues.apply_async(
+            kwargs={
+                "integration_id": self.model.id,
+                "organization_id": self.organization_id,
+            }
         )
 
 

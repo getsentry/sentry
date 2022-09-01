@@ -3,8 +3,9 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.models import Organization, Project
+from sentry.models import Organization
 from sentry.search.events.constants import METRIC_FUNCTION_LIST_BY_TYPE
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_custom_measurements
 
 
@@ -19,10 +20,11 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):  # type: ign
 
         with self.handle_query_errors():
             metric_meta = get_custom_measurements(
-                projects=Project.objects.filter(id__in=params["project_id"]),
-                organization=organization,
+                project_ids=params["project_id"],
+                organization_id=organization.id,
                 start=params["start"],
                 end=params["end"],
+                use_case_id=UseCaseKey.PERFORMANCE,
             )
 
         with start_span(op="transform", description="metric meta"):

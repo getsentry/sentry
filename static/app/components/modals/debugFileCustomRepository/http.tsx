@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ActionButton from 'sentry/components/actions/button';
 import Button from 'sentry/components/button';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
 import SelectField from 'sentry/components/forms/selectField';
+import Input from 'sentry/components/input';
 import {
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
@@ -196,7 +196,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             <ClearPasswordButton
               onClick={handleClearPassword}
               icon={<IconClose size="14px" />}
-              size="xsmall"
+              size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
               borderless

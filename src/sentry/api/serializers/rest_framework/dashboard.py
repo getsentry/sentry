@@ -5,8 +5,9 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from sentry.api.issue_search import parse_search_query
-from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.api.serializers.rest_framework import CamelSnakeSerializer, ListField
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -296,8 +297,56 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
     id = serializers.CharField(required=False)
     title = serializers.CharField(required=False, max_length=255)
     widgets = DashboardWidgetSerializer(many=True, required=False)
+    projects = ListField(child=serializers.IntegerField(), required=False, default=[])
+    environment = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    period = serializers.CharField(required=False, allow_null=True)
+    start = serializers.DateTimeField(required=False, allow_null=True)
+    end = serializers.DateTimeField(required=False, allow_null=True)
+    filters = serializers.DictField(required=False)
+    utc = serializers.BooleanField(required=False)
 
     validate_id = validate_id
+
+    def validate_projects(self, projects):
+        from sentry.api.validators import validate_project_ids
+
+        return validate_project_ids(projects, {project.id for project in self.context["projects"]})
+
+    def validate(self, data):
+        start = data.get("start")
+        end = data.get("end")
+
+        if start and end and start >= end:
+            raise serializers.ValidationError("start must be before end")
+
+        return data
+
+    def update_dashboard_filters(self, instance, validated_data):
+        page_filter_keys = ["environment", "period", "start", "end", "utc"]
+        dashboard_filter_keys = ["release", "release_id"]
+
+        filters = {}
+
+        if "projects" in validated_data:
+            if validated_data["projects"] == ALL_ACCESS_PROJECTS:
+                filters["all_projects"] = True
+                instance.projects.clear()
+            else:
+                if instance.filters and instance.filters.get("all_projects"):
+                    filters["all_projects"] = False
+                instance.projects.set(validated_data["projects"])
+
+        for key in page_filter_keys:
+            if key in validated_data:
+                filters[key] = validated_data[key]
+
+        for key in dashboard_filter_keys:
+            if "filters" in validated_data and key in validated_data["filters"]:
+                filters[key] = validated_data["filters"][key]
+
+        if filters:
+            instance.filters = filters
+            instance.save()
 
     def create(self, validated_data):
         """
@@ -314,6 +363,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if "widgets" in validated_data:
             self.update_widgets(self.instance, validated_data["widgets"])
+
+        self.update_dashboard_filters(self.instance, validated_data)
 
         return self.instance
 
@@ -334,6 +385,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
 
         if "widgets" in validated_data:
             self.update_widgets(instance, validated_data["widgets"])
+
+        self.update_dashboard_filters(instance, validated_data)
 
         return instance
 

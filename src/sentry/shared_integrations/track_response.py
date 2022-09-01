@@ -45,7 +45,7 @@ class TrackResponseMixin:
         metrics.incr(
             f"{self.datadog_prefix}.http_response",
             sample_rate=1.0,
-            tags={self.integration_type: self.name, "status": code},
+            tags={str(self.integration_type): self.name, "status": code},
         )
 
         try:

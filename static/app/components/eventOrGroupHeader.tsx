@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -185,7 +186,7 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
         `
       : css`
           > a:first-child {
-            display: flex;
+            display: inline-flex;
             min-height: ${space(3)};
           }
         `}

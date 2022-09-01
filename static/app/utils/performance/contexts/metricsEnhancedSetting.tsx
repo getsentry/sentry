@@ -1,19 +1,22 @@
-import {Dispatch, ReactNode, useReducer} from 'react';
+import {Dispatch, ReactNode, useCallback, useReducer} from 'react';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
+import {Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {createDefinedContext} from './utils';
 
 export interface MetricsEnhancedSettingContext {
   autoSampleState: AutoSampleState;
-  hideSinceMetricsOnly: boolean;
   memoizationKey: string;
   metricSettingState: MEPState | null;
   setAutoSampleState: Dispatch<AutoSampleState>;
   setMetricSettingState: Dispatch<MEPState>;
+  shouldQueryProvideMEPAutoParams: boolean;
   shouldQueryProvideMEPMetricParams: boolean;
-  shouldQueryProvideMEPParams: boolean;
   shouldQueryProvideMEPTransactionParams: boolean;
 }
 
@@ -43,6 +46,9 @@ export enum MEPState {
   transactionsOnly = 'transactionsOnly',
 }
 
+export const METRIC_SETTING_PARAM = 'metricSetting';
+export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
+
 const storageKey = 'performance.metrics-enhanced-setting';
 export class MEPSetting {
   static get(): MEPState | null {
@@ -62,22 +68,75 @@ export class MEPSetting {
   }
 }
 
+export function canUseMetricsDevUI(organization: Organization) {
+  return organization.features.includes('performance-use-metrics');
+}
+
+export function canUseMetricsData(organization: Organization) {
+  const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
+  const isInternalViewOn = organization.features.includes(
+    'performance-transaction-name-only-search'
+  ); // TODO: Swap this flag out.
+
+  const samplingRolloutFlag = organization.features.includes('server-side-sampling');
+  const isRollingOut =
+    samplingRolloutFlag && organization.features.includes('mep-rollout-flag');
+
+  return isDevFlagOn || isInternalViewOn || isRollingOut;
+}
+
 export const MEPSettingProvider = ({
   children,
+  location,
   _hasMEPState,
+  forceTransactions,
 }: {
   children: ReactNode;
   _hasMEPState?: MEPState;
+  forceTransactions?: boolean;
+  location?: Location;
 }) => {
   const organization = useOrganization();
-  const canUseMEP = organization.features.includes('performance-use-metrics');
+
+  const canUseMEP = canUseMetricsData(organization);
+
+  const allowedStates = [MEPState.metricsOnly, MEPState.transactionsOnly];
+  const _metricSettingFromParam = location
+    ? decodeScalar(location.query[METRIC_SETTING_PARAM])
+    : MEPState.metricsOnly;
+  let defaultMetricsState = MEPState.metricsOnly;
+
+  if (forceTransactions) {
+    defaultMetricsState = MEPState.transactionsOnly;
+  }
+
+  const metricSettingFromParam =
+    allowedStates.find(s => s === _metricSettingFromParam) ?? defaultMetricsState;
 
   const isControlledMEP = typeof _hasMEPState !== 'undefined';
 
-  const [_metricSettingState, setMetricSettingState] = useReducer(
+  const [_metricSettingState, _setMetricSettingState] = useReducer(
     (_: MEPState, next: MEPState) => next,
-    MEPState.auto
+    metricSettingFromParam
   );
+
+  const setMetricSettingState = useCallback(
+    (settingState: MEPState) => {
+      if (!location) {
+        return;
+      }
+      browserHistory.replace({
+        ...location,
+        query: {
+          ...location.query,
+          [METRIC_SETTING_PARAM]: settingState,
+        },
+      });
+      _setMetricSettingState(settingState);
+    },
+    [location, _setMetricSettingState]
+  );
+
   const [autoSampleState, setAutoSampleState] = useReducer(
     (_: AutoSampleState, next: AutoSampleState) => next,
     AutoSampleState.unset
@@ -85,10 +144,8 @@ export const MEPSettingProvider = ({
 
   const metricSettingState = isControlledMEP ? _hasMEPState : _metricSettingState;
 
-  const hideSinceMetricsOnly =
-    canUseMEP &&
-    (metricSettingState === MEPState.metricsOnly || metricSettingState === MEPState.auto); // TODO(k-fish): Change this so auto includes data state.
-  const shouldQueryProvideMEPParams = canUseMEP && metricSettingState === MEPState.auto;
+  const shouldQueryProvideMEPAutoParams =
+    canUseMEP && metricSettingState === MEPState.auto;
   const shouldQueryProvideMEPMetricParams =
     canUseMEP && metricSettingState === MEPState.metricsOnly;
   const shouldQueryProvideMEPTransactionParams =
@@ -101,8 +158,7 @@ export const MEPSettingProvider = ({
       value={{
         autoSampleState,
         metricSettingState,
-        hideSinceMetricsOnly,
-        shouldQueryProvideMEPParams,
+        shouldQueryProvideMEPAutoParams,
         shouldQueryProvideMEPMetricParams,
         shouldQueryProvideMEPTransactionParams,
         memoizationKey,

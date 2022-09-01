@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {t} from 'sentry/locale';
 import {
+  EntryType,
   Event,
   Frame,
   PlatformType,
@@ -15,7 +15,7 @@ import {
   Thread,
 } from 'sentry/types';
 
-import {TraceEventDataSection} from '../traceEventDataSection';
+import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
 
 import Exception from './crashContent/exception';
 import StackTrace from './crashContent/stackTrace';
@@ -34,17 +34,18 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
   };
   event: Event;
   projectId: Project['id'];
-  type: string;
 };
 
 type State = {
   activeThread?: Thread;
 };
 
-function getIntendedStackView(thread: Thread, event: Event) {
-  const exception = getThreadException(event, thread);
+function getIntendedStackView(
+  thread: Thread,
+  exception: ReturnType<typeof getThreadException>
+): STACK_VIEW {
   if (exception) {
-    return !!exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+    return exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
       ? STACK_VIEW.APP
       : STACK_VIEW.FULL;
   }
@@ -58,14 +59,13 @@ function Threads({
   data,
   event,
   projectId,
-  type,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
 }: Props) {
   const threads = data.values ?? [];
 
   const [state, setState] = useState<State>(() => {
-    const thread = !!threads.length ? findBestThread(threads) : undefined;
+    const thread = threads.length ? findBestThread(threads) : undefined;
     return {activeThread: thread};
   });
 
@@ -73,8 +73,18 @@ function Threads({
   const {activeThread} = state;
 
   const hasMoreThanOneThread = threads.length > 1;
+
   const exception = getThreadException(event, activeThread);
-  const stackView = activeThread ? getIntendedStackView(activeThread, event) : undefined;
+
+  const entryIndex = exception
+    ? event.entries.findIndex(entry => entry.type === EntryType.EXCEPTION)
+    : event.entries.findIndex(entry => entry.type === EntryType.THREADS);
+
+  const meta = event._meta?.entries?.[entryIndex]?.data?.values;
+
+  const stackView = activeThread
+    ? getIntendedStackView(activeThread, exception)
+    : undefined;
 
   function getPlatform(): PlatformType {
     let exceptionFramePlatform: Frame | undefined = undefined;
@@ -149,6 +159,7 @@ function Threads({
           values={exception.values}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          meta={meta}
         />
       );
     }
@@ -174,6 +185,7 @@ function Threads({
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}
           hasHierarchicalGrouping={hasHierarchicalGrouping}
+          meta={meta}
           nativeV2
         />
       );
@@ -186,41 +198,36 @@ function Threads({
     );
   }
 
-  function getTitle() {
-    if (hasMoreThanOneThread && activeThread) {
-      return (
-        <ThreadSelector
-          threads={threads}
-          activeThread={activeThread}
-          event={event}
-          onChange={thread => {
-            setState({
-              ...state,
-              activeThread: thread,
-            });
-          }}
-          exception={exception}
-          fullWidth
-        />
-      );
-    }
-
-    return <Title>{t('Stack Trace')}</Title>;
-  }
-
   const platform = getPlatform();
 
   return (
     <TraceEventDataSection
-      type={type}
+      type={EntryType.THREADS}
       stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
       eventId={event.id}
       recentFirst={isStacktraceNewestFirst()}
       fullStackTrace={stackView === STACK_VIEW.FULL}
-      title={getTitle()}
+      title={
+        hasMoreThanOneThread && activeThread ? (
+          <ThreadSelector
+            threads={threads}
+            activeThread={activeThread}
+            event={event}
+            onChange={thread => {
+              setState({
+                ...state,
+                activeThread: thread,
+              });
+            }}
+            exception={exception}
+            fullWidth
+          />
+        ) : (
+          <PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>
+        )
+      }
       platform={platform}
-      showPermalink={!hasMoreThanOneThread}
       hasMinified={
         !!exception?.values?.find(value => value.rawStacktrace) ||
         !!activeThread?.rawStacktrace
@@ -275,7 +282,3 @@ function Threads({
 }
 
 export default Threads;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-`;

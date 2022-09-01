@@ -1,19 +1,20 @@
 import {createContext} from 'react';
 
 import {Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 
 export type WidgetViewerContextProps = {
   setData: (data: {
-    issuesData?: TableDataRow[];
     pageLinks?: string;
     seriesData?: Series[];
+    seriesResultsType?: Record<string, AggregationOutputType>;
     tableData?: TableDataWithTitle[];
     totalIssuesCount?: string;
   }) => void;
-  issuesData?: TableDataRow[];
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };

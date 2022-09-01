@@ -11,6 +11,18 @@ class StubJiraApiClient(StubService):
             response["projects"][0]["id"] = "10001"
         return response["projects"][0]
 
+    def get_issue_fields(self, project_id, issue_type_id):
+        return self._get_stub_data("issue_fields_response.json")
+
+    def get_issue_types(self, project_id):
+        return self._get_stub_data("issue_types_response.json")
+
+    def get_priorities(self):
+        return self._get_stub_data("priorities_response.json")
+
+    def get_versions(self, project_id):
+        return self._get_stub_data("versions_response.json")
+
     def get_projects_list(self):
         return self._get_stub_data("project_list_response.json")
 

@@ -4,11 +4,11 @@ import sentry_sdk
 from snuba_sdk import Function
 
 from sentry.discover.models import TeamKeyTransaction
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.models import Project, ProjectTeam
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import SelectType
-from sentry.sentry_metrics import indexer
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -44,12 +44,19 @@ def resolve_team_key_transaction_alias(
         ]
     )
 
-    count = len(team_key_transactions)
     if resolve_metric_index:
-        team_key_transactions = [
-            (project, indexer.resolve(org_id, transaction))
-            for project, transaction in team_key_transactions
-        ]
+        team_key_transactions_list = []
+        # Its completely possible that a team_key_transaction never existed in the metrics dataset
+        for project, transaction in team_key_transactions:
+            try:
+                resolved_transaction = builder.resolve_tag_value(transaction)
+            except IncompatibleMetricsQuery:
+                continue
+            if resolved_transaction:
+                team_key_transactions_list.append((project, resolved_transaction))
+        team_key_transactions = team_key_transactions_list
+
+    count = len(team_key_transactions)
 
     # NOTE: this raw count is not 100% accurate because if it exceeds
     # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected

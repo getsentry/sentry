@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -12,6 +12,7 @@ from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
+from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -23,19 +24,26 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.silo import SiloLimit, SiloMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import capture_exception
+from sentry.utils.sdk import capture_exception, set_measurement
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
-__all__ = ["Endpoint", "EnvironmentMixin", "StatsMixin"]
+__all__ = [
+    "Endpoint",
+    "EnvironmentMixin",
+    "StatsMixin",
+    "control_silo_endpoint",
+    "customer_silo_endpoint",
+]
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -76,7 +84,8 @@ def allow_cors_options(func):
         response["Access-Control-Allow-Methods"] = allow
         response["Access-Control-Allow-Headers"] = (
             "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
-            "Content-Type, Authentication, Authorization, Content-Encoding"
+            "Content-Type, Authentication, Authorization, Content-Encoding, "
+            "sentry-trace, baggage"
         )
         response["Access-Control-Expose-Headers"] = "X-Sentry-Error, Retry-After"
 
@@ -327,9 +336,14 @@ class Endpoint(APIView):
         default_per_page=100,
         max_per_page=100,
         cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
         **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
+
+        if response_kwargs is None:
+            response_kwargs = {}
 
         per_page = self.get_per_page(request, default_per_page, max_per_page)
 
@@ -344,6 +358,7 @@ class Endpoint(APIView):
                 description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
+                set_measurement("query.per_page", per_page)
                 sentry_sdk.set_tag("query.per_page", per_page)
                 sentry_sdk.set_tag(
                     "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
@@ -362,7 +377,7 @@ class Endpoint(APIView):
         else:
             results = cursor_result.results
 
-        response = Response(results)
+        response = response_cls(results, **response_kwargs)
 
         self.add_cursor_headers(request, response, cursor_result)
 
@@ -468,3 +483,63 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+def resolve_region(request: Request):
+    subdomain = getattr(request, "subdomain", None)
+    if subdomain is None:
+        return None
+    if subdomain in {"us", "eu"}:
+        return subdomain
+    return None
+
+
+class EndpointSiloLimit(SiloLimit):
+    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+        dispatch_override = self.create_override(decorated_class.dispatch)
+        return type(
+            decorated_class.__name__,
+            (decorated_class,),
+            {
+                "dispatch": dispatch_override,
+                "__silo_limit": self,  # For internal tooling only
+            },
+        )
+
+    def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
+        return self.create_override(decorated_method)
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Received {request.method} request at {request.path!r} to server in "
+                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+            )
+            if settings.FAIL_ON_UNAVAILABLE_API_CALL:
+                raise self.AvailabilityError(message)
+            else:
+                logger.warning(message)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+
+        return handle
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if not issubclass(decorated_obj, Endpoint):
+                raise ValueError("`@EndpointSiloLimit` can decorate only Endpoint subclasses")
+            return self.modify_endpoint_class(decorated_obj)
+
+        if callable(decorated_obj):
+            return self.modify_endpoint_method(decorated_obj)
+
+        raise TypeError("`@EndpointSiloLimit` must decorate a class or method")
+
+
+control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
+customer_silo_endpoint = EndpointSiloLimit(SiloMode.CUSTOMER)

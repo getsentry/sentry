@@ -1,14 +1,18 @@
-import {TokenResult} from '../searchSyntax/parser';
+import {FieldKind} from 'sentry/utils/fields';
+
+import {Token, TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
   TAG_KEY = 'tag-key',
   TAG_VALUE = 'tag-value',
+  TAG_VALUE_ISO_DATE = 'tag-value-iso-date',
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
+  LINK = 'link',
 }
 
 export type SearchGroup = {
@@ -26,13 +30,25 @@ export type SearchItem = {
    * Call a callback instead of setting a value in the search query
    */
   callback?: () => void;
-  children?: React.ReactNode[];
+  /**
+   * Child search items, we only support 1 level of nesting though.
+   */
+  children?: SearchItem[];
+  deprecated?: boolean;
   desc?: string;
   documentation?: React.ReactNode;
+  /**
+   * The feature flag gating the search item
+   */
+  featureFlag?: string;
   ignoreMaxSearchItems?: boolean;
+  kind?: FieldKind;
   title?: string;
   type?: ItemType;
-  value?: string;
+  /**
+   * A value of null means that this item is not selectable in the search dropdown
+   */
+  value?: string | null;
 };
 
 export type Tag = {
@@ -51,7 +67,7 @@ export enum ShortcutType {
 
 export type Shortcut = {
   canRunShortcut: (
-    token: TokenResult<any> | null | undefined,
+    token: TokenResult<Token> | null | undefined,
     filterTokenCount: number
   ) => boolean;
   icon: React.ReactNode;
@@ -59,6 +75,13 @@ export type Shortcut = {
   text: string;
   hotkeys?: {
     actual: string[] | string;
-    display: string[] | string;
+    display?: string[] | string;
   };
+};
+
+export type AutocompleteGroup = {
+  recentSearchItems: SearchItem[] | undefined;
+  searchItems: SearchItem[];
+  tagName: string;
+  type: ItemType;
 };

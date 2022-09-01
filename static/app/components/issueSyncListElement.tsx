@@ -3,13 +3,15 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {Hovercard} from 'sentry/components/hovercard';
+import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
+  disabled?: boolean;
   externalIssueDisplayName?: string | null;
   externalIssueId?: string | null;
   externalIssueKey?: string | null;
@@ -66,6 +68,7 @@ class IssueSyncListElement extends Component<Props> {
       <IntegrationLink
         href={this.props.externalIssueLink || undefined}
         onClick={!this.isLinked() ? this.props.onOpen : undefined}
+        disabled={this.props.disabled}
       >
         {this.getText()}
       </IntegrationLink>
@@ -83,7 +86,7 @@ class IssueSyncListElement extends Component<Props> {
       return this.props.externalIssueKey;
     }
 
-    return `Link ${this.getPrettyName()} Issue`;
+    return `${this.getPrettyName()} Issue`;
   }
 
   render() {
@@ -91,7 +94,7 @@ class IssueSyncListElement extends Component<Props> {
       <IssueSyncListElementContainer>
         <ClassNames>
           {({css}) => (
-            <Hovercard
+            <StyledHovercard
               containerClassName={css`
                 display: flex;
                 align-items: center;
@@ -104,15 +107,19 @@ class IssueSyncListElement extends Component<Props> {
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}
               bodyClassName="issue-list-body"
-              show={this.props.showHoverCard}
+              forceVisible={this.props.showHoverCard}
             >
               {this.getIcon()}
               {this.getLink()}
-            </Hovercard>
+            </StyledHovercard>
           )}
         </ClassNames>
         {(this.props.onClose || this.props.onOpen) && (
-          <StyledIcon onClick={this.handleIconClick}>
+          <StyledIcon
+            role="button"
+            aria-label={this.isLinked() ? t('Close') : t('Add')}
+            onClick={this.handleIconClick}
+          >
             {this.isLinked() ? <IconClose /> : this.props.onOpen ? <IconAdd /> : null}
           </StyledIcon>
         )}
@@ -132,21 +139,25 @@ export const IssueSyncListElementContainer = styled('div')`
   }
 `;
 
-export const IntegrationLink = styled('a')`
+export const IntegrationLink = styled('a')<{disabled?: boolean}>`
   text-decoration: none;
-  padding-bottom: ${space(0.25)};
   margin-left: ${space(1)};
   color: ${p => p.theme.textColor};
-  border-bottom: 1px solid ${p => p.theme.textColor};
   cursor: pointer;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
-  &,
   &:hover {
-    border-bottom: 1px solid ${p => p.theme.blue300};
+    color: ${({disabled, theme}) => (disabled ? theme.disabled : theme.blue300)};
+  }
+`;
+
+const StyledHovercard = styled(Hovercard)`
+  ${Body} {
+    max-height: 300px;
+    overflow-y: auto;
   }
 `;
 

@@ -16,7 +16,8 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -219,7 +220,7 @@ class VitalCard extends Component<Props, State> {
         <Description>{description}</Description>
         <div>
           <Button
-            size="xsmall"
+            size="xs"
             to={newEventView
               .withColumns([{kind: 'field', field: column}])
               .withSorts([{kind: 'desc', field: column}])

@@ -5,13 +5,14 @@ import {divide, flattenSpans} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 type Props = {
   /**
    * Duration, in milliseconds, of the timeline
    */
-  duration: number;
+  durationMs: number;
 
   /**
    * The spans to render into the timeline
@@ -21,7 +22,7 @@ type Props = {
   /**
    * Timestamp when the timeline begins, in milliseconds
    */
-  startTimestamp: number;
+  startTimestampMs: number;
 
   /**
    * Extra classNames
@@ -29,16 +30,16 @@ type Props = {
   className?: string;
 };
 
-function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Props) {
+function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: Props) {
   const flattenedSpans = flattenSpans(spans);
+  const {setActiveTab} = useActiveReplayTab();
 
-  const startMs = startTimestamp * 1000;
   return (
     <Spans className={className}>
       {flattenedSpans.map((span, i) => {
-        const sinceStart = span.startTimestamp - startMs;
-        const startPct = divide(sinceStart, duration);
-        const widthPct = divide(span.duration, duration);
+        const sinceStart = span.startTimestamp - startTimestampMs;
+        const startPct = divide(sinceStart, durationMs);
+        const widthPct = divide(span.duration, durationMs);
 
         const requestsCount = tn(
           '%s network request',
@@ -57,8 +58,13 @@ function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Prop
             }
             skipWrapper
             disableForVisualTest
+            position="bottom"
           >
-            <Span startPct={startPct} widthPct={widthPct} />
+            <Span
+              startPct={startPct}
+              widthPct={widthPct}
+              onClick={() => setActiveTab('network')}
+            />
           </Tooltip>
         );
       })}
@@ -72,20 +78,22 @@ const Spans = styled('ul')`
   margin: 0;
   padding: 0;
 
-  height: ${space(3)};
+  height: ${space(1.5)};
+  margin-bottom: ${space(0.5)};
   position: relative;
   pointer-events: none;
 `;
-// TODO(replay): sync colors like #865189 with chartPalette so there is consistency
+
 const Span = styled('li')<{startPct: number; widthPct: number}>`
+  cursor: pointer;
   display: block;
   position: absolute;
-  top: 0;
   left: ${p => p.startPct * 100}%;
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: #865189; /* plucked from static/app/constants/chartPalette.tsx */
+  background: ${p => p.theme.charts.colors[0]};
+  border-radius: 2px;
   pointer-events: auto;
 `;
 

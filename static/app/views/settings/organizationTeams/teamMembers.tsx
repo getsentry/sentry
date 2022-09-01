@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -11,23 +11,25 @@ import {
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import IdBadge from 'sentry/components/idBadge';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelHeader, PanelItem} from 'sentry/components/panels';
-import {IconSubtract, IconUser} from 'sentry/icons';
+import Pagination from 'sentry/components/pagination';
+import {Panel, PanelHeader} from 'sentry/components/panels';
+import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Config, Member, Organization} from 'sentry/types';
+import {Config, Member, Organization, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import AsyncView from 'sentry/views/asyncView';
+
+import TeamMembersRow from './teamMembersRow';
 
 type RouteParams = {
   orgId: string;
@@ -44,37 +46,25 @@ type State = {
   dropdownBusy: boolean;
   error: boolean;
   loading: boolean;
-  orgMemberList: Member[];
-  teamMemberList: Member[];
-};
+  orgMembers: Member[];
+  teamMembers: TeamMember[];
+} & AsyncView['state'];
 
-class TeamMembers extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    error: false,
-    dropdownBusy: false,
-    teamMemberList: [],
-    orgMemberList: [],
-  };
-
-  componentDidMount() {
-    this.fetchData();
+class TeamMembers extends AsyncView<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      loading: true,
+      error: false,
+      dropdownBusy: false,
+      teamMembers: [],
+      orgMembers: [],
+    };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    const params = this.props.params;
-    if (
-      nextProps.params.teamId !== params.teamId ||
-      nextProps.params.orgId !== params.orgId
-    ) {
-      this.setState(
-        {
-          loading: true,
-          error: false,
-        },
-        this.fetchData
-      );
-    }
+  componentDidMount() {
+    // Initialize "add member" dropdown with data
+    this.fetchMembersRequest('');
   }
 
   debouncedFetchMembersRequest = debounce(
@@ -82,30 +72,6 @@ class TeamMembers extends Component<Props, State> {
       this.setState({dropdownBusy: true}, () => this.fetchMembersRequest(query)),
     200
   );
-
-  removeMember(member: Member) {
-    const {params} = this.props;
-    leaveTeam(
-      this.props.api,
-      {
-        orgId: params.orgId,
-        teamId: params.teamId,
-        memberId: member.id,
-      },
-      {
-        success: () => {
-          this.setState({
-            teamMemberList: this.state.teamMemberList.filter(m => m.id !== member.id),
-          });
-          addSuccessMessage(t('Successfully removed member from team.'));
-        },
-        error: () =>
-          addErrorMessage(
-            t('There was an error while trying to remove a member from the team.')
-          ),
-      }
-    );
-  }
 
   fetchMembersRequest = async (query: string) => {
     const {params, api} = this.props;
@@ -116,7 +82,7 @@ class TeamMembers extends Component<Props, State> {
         query: {query},
       });
       this.setState({
-        orgMemberList: data,
+        orgMembers: data,
         dropdownBusy: false,
       });
     } catch (_err) {
@@ -130,30 +96,22 @@ class TeamMembers extends Component<Props, State> {
     }
   };
 
-  fetchData = async () => {
-    const {api, params} = this.props;
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    const {params} = this.props;
 
-    try {
-      const data = await api.requestPromise(
-        `/teams/${params.orgId}/${params.teamId}/members/`
-      );
-      this.setState({
-        teamMemberList: data,
-        loading: false,
-        error: false,
-      });
-    } catch (err) {
-      this.setState({
-        loading: false,
-        error: true,
-      });
-    }
-
-    this.fetchMembersRequest('');
-  };
+    return [
+      [
+        'teamMembers',
+        `/teams/${params.orgId}/${params.teamId}/members/`,
+        {},
+        {paginate: true},
+      ],
+    ];
+  }
 
   addTeamMember = (selection: Item) => {
     const {params} = this.props;
+    const {orgMembers, teamMembers} = this.state;
 
     this.setState({loading: true});
 
@@ -169,27 +127,73 @@ class TeamMembers extends Component<Props, State> {
       },
       {
         success: () => {
-          const orgMember = this.state.orgMemberList.find(
-            member => member.id === selection.value
-          );
+          const orgMember = orgMembers.find(member => member.id === selection.value);
           if (orgMember === undefined) {
             return;
           }
           this.setState({
             loading: false,
             error: false,
-            teamMemberList: this.state.teamMemberList.concat([orgMember]),
+            teamMembers: teamMembers.concat([orgMember as TeamMember]),
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
-          this.setState({
-            loading: false,
-          });
+          this.setState({loading: false});
           addErrorMessage(t('Unable to add team member.'));
         },
       }
     );
+  };
+
+  removeTeamMember = (member: Member) => {
+    const {params} = this.props;
+    const {teamMembers} = this.state;
+    leaveTeam(
+      this.props.api,
+      {
+        orgId: params.orgId,
+        teamId: params.teamId,
+        memberId: member.id,
+      },
+      {
+        success: () => {
+          this.setState({
+            teamMembers: teamMembers.filter(m => m.id !== member.id),
+          });
+          addSuccessMessage(t('Successfully removed member from team.'));
+        },
+        error: () =>
+          addErrorMessage(
+            t('There was an error while trying to remove a member from the team.')
+          ),
+      }
+    );
+  };
+
+  updateTeamMemberRole = (member: Member, newRole: string) => {
+    const {orgId, teamId} = this.props.params;
+    const endpoint = `/organizations/${orgId}/members/${member.id}/teams/${teamId}/`;
+
+    this.props.api.request(endpoint, {
+      method: 'PUT',
+      data: {teamRole: newRole},
+      success: data => {
+        const teamMembers: any = [...this.state.teamMembers];
+        const i = teamMembers.findIndex(m => m.id === member.id);
+        teamMembers[i] = {
+          ...member,
+          teamRole: data.teamRole,
+        };
+        this.setState({teamMembers});
+        addSuccessMessage(t('Successfully changed role for team member.'));
+      },
+      error: () => {
+        addErrorMessage(
+          t('There was an error while trying to change the roles for a team member.')
+        );
+      },
+    });
   };
 
   /**
@@ -204,14 +208,15 @@ class TeamMembers extends Component<Props, State> {
 
   renderDropdown(hasWriteAccess: boolean) {
     const {organization, params} = this.props;
-    const existingMembers = new Set(this.state.teamMemberList.map(member => member.id));
+    const {orgMembers} = this.state;
+    const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
 
     // members can add other members to a team if the `Open Membership` setting is enabled
     // otherwise, `org:write` or `team:admin` permissions are required
     const hasOpenMembership = !!organization?.openMembership;
     const canAddMembers = hasOpenMembership || hasWriteAccess;
 
-    const items = (this.state.orgMemberList || [])
+    const items = (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
       .map(m => ({
         searchKey: `${m.name} ${m.email}`,
@@ -258,24 +263,11 @@ class TeamMembers extends Component<Props, State> {
         onClose={() => this.debouncedFetchMembersRequest('')}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xsmall" data-test-id="add-member">
+          <DropdownButton isOpen={isOpen} size="xs" data-test-id="add-member">
             {t('Add Member')}
           </DropdownButton>
         )}
       </DropdownAutoComplete>
-    );
-  }
-
-  removeButton(member: Member) {
-    return (
-      <Button
-        size="small"
-        icon={<IconSubtract size="xs" isCircled />}
-        onClick={() => this.removeMember(member)}
-        aria-label={t('Remove')}
-      >
-        {t('Remove')}
-      </Button>
     );
   }
 
@@ -288,41 +280,45 @@ class TeamMembers extends Component<Props, State> {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {params, organization, config} = this.props;
+    const {organization, config} = this.props;
+    const {teamMembersPageLinks} = this.state;
     const {access} = organization;
     const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
 
     return (
-      <Panel>
-        <PanelHeader hasButtons>
-          <div>{t('Members')}</div>
-          <div style={{textTransform: 'none'}}>{this.renderDropdown(hasWriteAccess)}</div>
-        </PanelHeader>
-        {this.state.teamMemberList.length ? (
-          this.state.teamMemberList.map(member => {
-            const isSelf = member.email === config.user.email;
-            const canRemoveMember = hasWriteAccess || isSelf;
-            return (
-              <StyledMemberContainer key={member.id}>
-                <IdBadge avatarSize={36} member={member} useLink orgId={params.orgId} />
-                {canRemoveMember && this.removeButton(member)}
-              </StyledMemberContainer>
-            );
-          })
-        ) : (
-          <EmptyMessage icon={<IconUser size="xl" />} size="large">
-            {t('This team has no members')}
-          </EmptyMessage>
-        )}
-      </Panel>
+      <Fragment>
+        <Panel>
+          <PanelHeader hasButtons>
+            <div>{t('Members')}</div>
+            <div style={{textTransform: 'none'}}>
+              {this.renderDropdown(hasWriteAccess)}
+            </div>
+          </PanelHeader>
+          {this.state.teamMembers.length ? (
+            this.state.teamMembers.map(member => {
+              return (
+                <TeamMembersRow
+                  key={member.id}
+                  hasWriteAccess={hasWriteAccess}
+                  member={member}
+                  organization={organization}
+                  removeMember={this.removeTeamMember}
+                  updateMemberRole={this.updateTeamMemberRole}
+                  user={config.user}
+                />
+              );
+            })
+          ) : (
+            <EmptyMessage icon={<IconUser size="xl" />} size="large">
+              {t('This team has no members')}
+            </EmptyMessage>
+          )}
+        </Panel>
+        <Pagination pageLinks={teamMembersPageLinks} />
+      </Fragment>
     );
   }
 }
-
-const StyledMemberContainer = styled(PanelItem)`
-  justify-content: space-between;
-  align-items: center;
-`;
 
 const StyledUserListElement = styled('div')`
   display: grid;

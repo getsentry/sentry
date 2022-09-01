@@ -9,7 +9,7 @@ import type {
 } from 'sentry/views/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
-import type {BaseRelease} from './release';
+import type {BaseRelease, Release} from './release';
 import type {User} from './user';
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
@@ -94,6 +94,10 @@ export type Committer = {
   author: User;
   commits: Commit[];
 };
+
+export interface ReleaseCommitter extends Committer {
+  release: Release;
+}
 
 export type CommitAuthor = {
   email?: string;
@@ -208,6 +212,7 @@ export type SentryAppComponent = {
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
+  error?: boolean;
 };
 
 export type SentryAppWebhookRequest = {
@@ -274,16 +279,16 @@ type IntegrationAspects = {
   removal_dialog?: IntegrationDialog;
 };
 
-type BaseIntegrationProvider = {
+interface BaseIntegrationProvider {
   canAdd: boolean;
   canDisable: boolean;
   features: string[];
   key: string;
   name: string;
   slug: string;
-};
+}
 
-export type IntegrationProvider = BaseIntegrationProvider & {
+export interface IntegrationProvider extends BaseIntegrationProvider {
   metadata: {
     aspects: IntegrationAspects;
     author: string;
@@ -294,13 +299,13 @@ export type IntegrationProvider = BaseIntegrationProvider & {
     source_url: string;
   };
   setupDialog: {height: number; url: string; width: number};
-};
+}
 
-type OrganizationIntegrationProvider = BaseIntegrationProvider & {
+export interface OrganizationIntegrationProvider extends BaseIntegrationProvider {
   aspects: IntegrationAspects;
-};
+}
 
-export type Integration = {
+export interface Integration {
   accountType: string;
   domainName: string;
   gracePeriodEnd: string;
@@ -319,7 +324,7 @@ export type Integration = {
     };
   };
   scopes?: string[];
-};
+}
 
 type ConfigData = {
   installationType?: string;
@@ -342,10 +347,10 @@ export type OrganizationIntegration = {
 };
 
 // we include the configOrganization when we need it
-export type IntegrationWithConfig = Integration & {
+export interface IntegrationWithConfig extends Integration {
   configData: ConfigData;
   configOrganization: Field[];
-};
+}
 
 /**
  * Integration & External issue links
@@ -359,9 +364,9 @@ export type IntegrationExternalIssue = {
   url: string;
 };
 
-export type GroupIntegration = Integration & {
+export interface GroupIntegration extends Integration {
   externalIssues: IntegrationExternalIssue[];
-};
+}
 
 export type PlatformExternalIssue = {
   displayName: string;
@@ -497,7 +502,7 @@ export type FilesByRepository = {
   };
 };
 
-type BaseRepositoryProjectPathConfig = {
+interface BaseRepositoryProjectPathConfig {
   id: string;
   projectId: string;
   projectSlug: string;
@@ -506,18 +511,18 @@ type BaseRepositoryProjectPathConfig = {
   sourceRoot: string;
   stackRoot: string;
   defaultBranch?: string;
-};
+}
 
-export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
+export interface RepositoryProjectPathConfig extends BaseRepositoryProjectPathConfig {
   integrationId: string | null;
   provider: BaseIntegrationProvider | null;
-};
+}
 
-export type RepositoryProjectPathConfigWithIntegration =
-  BaseRepositoryProjectPathConfig & {
-    integrationId: string;
-    provider: BaseIntegrationProvider;
-  };
+export interface RepositoryProjectPathConfigWithIntegration
+  extends BaseRepositoryProjectPathConfig {
+  integrationId: string;
+  provider: BaseIntegrationProvider;
+}
 
 export type ServerlessFunction = {
   enabled: boolean;
@@ -525,4 +530,17 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   runtime: string;
   version: number;
+};
+
+export type SentryFunction = {
+  author: string;
+  code: string;
+  name: string;
+  slug: string;
+  env_variables?: Array<{
+    name: string;
+    value: string;
+  }>;
+  events?: string[];
+  overview?: string;
 };

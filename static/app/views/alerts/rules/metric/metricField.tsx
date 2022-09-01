@@ -4,16 +4,11 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import FormField from 'sentry/components/forms/formField';
-import FormModel from 'sentry/components/forms/model';
-import Tooltip from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {
   Aggregation,
   AGGREGATIONS,
-  ColumnType,
   explodeFieldString,
-  FIELDS,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
 import {
@@ -31,7 +26,6 @@ import {
   OptionConfig,
   transactionFieldConfig,
 } from './constants';
-import {PRESET_AGGREGATES} from './presets';
 import {Dataset} from './types';
 
 type Props = Omit<FormField['props'], 'children'> & {
@@ -76,53 +70,23 @@ export const getFieldOptionConfig = ({
     })
   );
 
-  const fields = Object.fromEntries<ColumnType>(
-    config.fields.map(key => {
-      // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
-      // tags[sentry:user].
-      if (key === 'user') {
-        return ['tags[sentry:user]', 'string'];
-      }
+  const fieldKeys = config.fields.map(key => {
+    // XXX(epurkhiser): Temporary hack while we handle the translation of user ->
+    // tags[sentry:user].
+    if (key === 'user') {
+      return 'tags[sentry:user]';
+    }
 
-      return [key, FIELDS[key]];
-    })
-  );
+    return key;
+  });
 
   const {measurementKeys} = config;
 
   return {
-    fieldOptionsConfig: {aggregations, fields, measurementKeys},
+    fieldOptionsConfig: {aggregations, fieldKeys, measurementKeys},
     hidePrimarySelector,
     hideParameterSelector,
   };
-};
-
-const help = ({name, model}: {model: FormModel; name: string}) => {
-  const aggregate = model.getValue(name) as string;
-
-  const presets = PRESET_AGGREGATES.filter(preset =>
-    preset.validDataset.includes(model.getValue('dataset') as Dataset)
-  )
-    .map(preset => ({...preset, selected: preset.match.test(aggregate)}))
-    .map((preset, i, list) => (
-      <Fragment key={preset.name}>
-        <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
-          <PresetButton
-            type="button"
-            onClick={() => model.setValue(name, preset.default)}
-            disabled={preset.selected}
-          >
-            {preset.name}
-          </PresetButton>
-        </Tooltip>
-        {i + 1 < list.length && ', '}
-      </Fragment>
-    ));
-
-  return tct(
-    'Choose an aggregate function. Not sure what to select, try a preset: [presets]',
-    {presets}
-  );
 };
 
 const MetricField = ({
@@ -132,7 +96,7 @@ const MetricField = ({
   alertType,
   ...props
 }: Props) => (
-  <FormField help={help} {...props}>
+  <FormField {...props}>
     {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
 

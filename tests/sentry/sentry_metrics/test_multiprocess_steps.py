@@ -3,31 +3,34 @@ import time
 from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, MutableMapping, Sequence, Union
-from unittest import mock
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, call
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Topic
 
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.consumers.indexer.batch import invalid_metric_tags, valid_metric_name
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
     DuplicateMessage,
     MetricsBatchBuilder,
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
-from sentry.sentry_metrics.consumers.indexer.processing import (
-    invalid_metric_tags,
-    process_messages,
-    valid_metric_name,
-)
+from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+pytestmark = pytest.mark.sentry_metrics
+
+MESSAGE_PROCESSOR = MessageProcessor(
+    get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
+)
 
 
 def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
@@ -54,6 +57,7 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 def compare_message_batches_ignoring_metadata(
     actual: Sequence[Message], expected: Sequence[Message]
 ) -> None:
+    assert len(actual) == len(expected)
     for (a, e) in zip(actual, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
@@ -260,8 +264,7 @@ def __translated_payload(
     return payload
 
 
-@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
-def test_process_messages(mock_indexer) -> None:
+def test_process_messages() -> None:
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
@@ -276,7 +279,7 @@ def test_process_messages(mock_indexer) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    new_batch = process_messages(use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message)
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     expected_new_batch = [
         Message(
             m.partition,
@@ -293,9 +296,8 @@ def test_process_messages(mock_indexer) -> None:
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
-@patch("sentry.sentry_metrics.consumers.indexer.processing.get_indexer", return_value=MockIndexer())
-def test_transform_step(mock_indexer) -> None:
-    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
+def test_transform_step() -> None:
+    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.POSTGRES)
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
 
@@ -416,13 +418,8 @@ def test_process_messages_invalid_messages(
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    with caplog.at_level(logging.ERROR), mock.patch(
-        "sentry.sentry_metrics.consumers.indexer.processing.get_indexer",
-        return_value=MockIndexer(),
-    ):
-        new_batch = process_messages(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
-        )
+    with caplog.at_level(logging.ERROR):
+        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
@@ -440,6 +437,70 @@ def test_process_messages_invalid_messages(
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert error_text in caplog.text
+
+
+def test_process_messages_rate_limited(caplog, settings) -> None:
+    """
+    Test handling of `None`-values coming from the indexer service, which
+    happens when postgres writes are being rate-limited.
+    """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    rate_limited_payload = deepcopy(distribution_payload)
+    rate_limited_payload["tags"]["custom_tag"] = "rate_limited_test"
+
+    rate_limited_payload2 = deepcopy(distribution_payload)
+    rate_limited_payload2["name"] = "rate_limited_test"
+
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            0,
+            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+            datetime.now(),
+        ),
+        Message(
+            Partition(Topic("topic"), 0),
+            1,
+            KafkaPayload(None, json.dumps(rate_limited_payload).encode("utf-8"), []),
+            datetime.now(),
+        ),
+        Message(
+            Partition(Topic("topic"), 0),
+            2,
+            KafkaPayload(None, json.dumps(rate_limited_payload2).encode("utf-8"), []),
+            datetime.now(),
+        ),
+    ]
+    # the outer message uses the last message's partition, offset, and timestamp
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    message_processor = MessageProcessor(
+        get_ingest_config(UseCaseKey.RELEASE_HEALTH, IndexerStorage.MOCK)
+    )
+    # Insert a None-value into the mock-indexer to simulate a rate-limit.
+    message_processor._indexer.indexer._strings[1]["rate_limited_test"] = None
+
+    with caplog.at_level(logging.ERROR):
+        new_batch = message_processor.process_messages(outer_message=outer_message)
+
+    # we expect just the counter_payload msg to be left, as that one didn't
+    # cause/depend on string writes that have been rate limited
+    expected_msg = message_batch[0]
+    expected_new_batch = [
+        Message(
+            expected_msg.partition,
+            expected_msg.offset,
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
+                [("metric_type", "c")],
+            ),
+            expected_msg.timestamp,
+        )
+    ]
+    compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
+    assert "dropped_message" in caplog.text
 
 
 def test_valid_metric_name() -> None:

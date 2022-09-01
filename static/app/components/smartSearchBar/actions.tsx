@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -6,11 +7,11 @@ import {pinSearch, unpinSearch} from 'sentry/actionCreators/savedSearches';
 import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import MenuItem from 'sentry/components/menuItem';
+import CreateSavedSearchModal from 'sentry/components/modals/createSavedSearchModal';
 import {IconAdd, IconPin, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SavedSearch, SavedSearchType} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import CreateSavedSearchModal from 'sentry/views/issueList/createSavedSearchModal';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import SmartSearchBar from './index';
 import {removeSpace} from './utils';
@@ -53,16 +54,14 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
 
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
 
-      trackAnalyticsEvent({
-        eventKey: 'search.pin',
-        eventName: 'Search: Pin',
-        organization_id: organization.id,
-        action: !!pinnedSearch ? 'unpin' : 'pin',
+      trackAdvancedAnalyticsEvent('search.pin', {
+        organization,
+        action: pinnedSearch ? 'unpin' : 'pin',
         search_type: savedSearchType === SavedSearchType.ISSUE ? 'issues' : 'events',
         query: pinnedSearch?.query ?? query,
       });
 
-      if (!!pinnedSearch) {
+      if (pinnedSearch) {
         unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
           browserHistory.push({
             ...location,
@@ -96,7 +95,7 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
       });
     };
 
-    const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
+    const pinTooltip = pinnedSearch ? t('Unpin this search') : t('Pin this search');
 
     return menuItemVariant ? (
       <MenuItem
@@ -105,7 +104,7 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
         icon={<IconPin isSolid={!!pinnedSearch} size="xs" />}
         onClick={onTogglePinnedSearch}
       >
-        {!!pinnedSearch ? t('Unpin Search') : t('Pin Search')}
+        {pinnedSearch ? t('Unpin Search') : t('Pin Search')}
       </MenuItem>
     ) : (
       <ActionButton
@@ -143,19 +142,32 @@ export function makeSaveSearchAction({sort}: SaveSearchActionOpts) {
 
     return (
       <Access organization={organization} access={['org:write']}>
-        {menuItemVariant ? (
-          <MenuItem withBorder icon={<IconAdd size="xs" />} onClick={onClick}>
-            {t('Create Saved Search')}
-          </MenuItem>
-        ) : (
-          <ActionButton
-            onClick={onClick}
-            data-test-id="save-current-search"
-            icon={<IconAdd size="xs" />}
-            title={t('Add to organization saved searches')}
-            aria-label={t('Add to organization saved searches')}
-          />
-        )}
+        {({hasAccess}) => {
+          const title = hasAccess
+            ? t('Add to organization saved searches')
+            : t('You do not have permission to create a saved search');
+
+          return menuItemVariant ? (
+            <MenuItem
+              onClick={onClick}
+              disabled={!hasAccess}
+              icon={<IconAdd size="xs" />}
+              title={!hasAccess ? title : undefined}
+              withBorder
+            >
+              {t('Create Saved Search')}
+            </MenuItem>
+          ) : (
+            <ActionButton
+              onClick={onClick}
+              disabled={!hasAccess}
+              icon={<IconAdd size="xs" />}
+              title={title}
+              aria-label={title}
+              data-test-id="save-current-search"
+            />
+          );
+        }}
       </Access>
     );
   };

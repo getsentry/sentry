@@ -10,13 +10,12 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconClose, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CodeOwner, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-
-import SidebarSection from '../sidebarSection';
 
 type Props = {
   codeowners: CodeOwner[];
@@ -31,7 +30,7 @@ const CodeOwnersCTA = HookOrDefault({
   hookName: 'component:codeowners-cta',
   defaultComponent: ({organization, project}) => (
     <SetupButton
-      size="xsmall"
+      size="xs"
       priority="primary"
       to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
       onClick={() =>
@@ -63,10 +62,10 @@ const OwnershipRules = ({
   const createRuleButton = (
     <Access access={['project:write']}>
       {({hasAccess}) => (
-        <GuideAnchor target="owners" position="bottom" offset={space(3)}>
+        <GuideAnchor target="owners" position="bottom" offset={20}>
           <Button
             onClick={handleOpenCreateOwnershipRule}
-            size="small"
+            size="sm"
             disabled={!hasAccess}
             title={t("You don't have permission to create ownership rules.")}
             tooltipProps={{disabled: hasAccess}}
@@ -97,7 +96,7 @@ const OwnershipRules = ({
       <ButtonBar gap={1}>
         <CodeOwnersCTA organization={organization} project={project} />
         <Button
-          size="xsmall"
+          size="xs"
           external
           href="https://docs.sentry.io/product/issues/issue-owners/#code-owners"
           onClick={() =>
@@ -115,8 +114,8 @@ const OwnershipRules = ({
   );
 
   return (
-    <SidebarSection
-      title={
+    <SidebarSection.Wrap>
+      <SidebarSection.Title>
         <Fragment>
           {t('Ownership Rules')}
           <ClassNames>
@@ -143,15 +142,16 @@ const OwnershipRules = ({
                   align-items: center;
                 `}
               >
-                <StyledIconQuestion size="xs" color="gray200" />
+                <StyledIconQuestion size="sm" color="gray200" />
               </Hovercard>
             )}
           </ClassNames>
         </Fragment>
-      }
-    >
-      {showCTA ? codeOwnersCTA : createRuleButton}
-    </SidebarSection>
+      </SidebarSection.Title>
+      <SidebarSection.Content>
+        {showCTA ? codeOwnersCTA : createRuleButton}
+      </SidebarSection.Content>
+    </SidebarSection.Wrap>
   );
 };
 

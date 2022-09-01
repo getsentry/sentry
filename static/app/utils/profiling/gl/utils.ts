@@ -1,3 +1,4 @@
+import Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -160,26 +161,23 @@ export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
   return needResize;
 }
 
-export const Transform = {
-  betweenRect(from: Rect, to: Rect): Rect {
-    return new Rect(to.x, to.y, to.width / from.width, to.height / from.height);
-  },
+export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
+  return mat3.fromValues(
+    to.width / from.width,
+    0,
+    0,
+    0,
+    to.height / from.height,
+    0,
+    to.x - from.x * (to.width / from.width),
+    to.y - from.y * (to.height / from.height),
+    1
+  );
+}
 
-  transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
-    return mat3.fromValues(
-      to.width / from.width,
-      0,
-      0,
-      0,
-      to.height / from.height,
-      0,
-      to.x - from.x * (to.width / from.width),
-      to.y - from.y * (to.height / from.height),
-      1
-    );
-  },
-};
-
+// Utility class to manipulate a virtual rect element. Some of the implementations are based off
+// speedscope, however they are not 100% accurate and we've made some changes. It is important to
+// note that contructing a lot of these objects at draw time is expensive and should be avoided.
 export class Rect {
   origin: vec2;
   size: vec2;
@@ -308,7 +306,24 @@ export class Rect {
   }
 
   containsRect(rect: Rect): boolean {
-    return this.left <= rect.left && rect.right <= this.right;
+    return (
+      // left bound
+      this.left <= rect.left &&
+      // right bound
+      rect.right <= this.right &&
+      // top bound
+      this.top <= rect.top &&
+      // bottom bound
+      rect.bottom <= this.bottom
+    );
+  }
+
+  leftOverlapsWith(rect: Rect): boolean {
+    return rect.left <= this.left && rect.right >= this.left;
+  }
+
+  rightOverlapsWith(rect: Rect): boolean {
+    return this.right >= rect.left && this.right <= rect.right;
   }
 
   overlapsX(other: Rect): boolean {
@@ -439,8 +454,8 @@ function getContext(canvas: HTMLCanvasElement, context: string): RenderingContex
   return ctx;
 }
 
-// Exporting this like this instead of writing export function for each overload as
-// it breaks the lines and makes it harder to read.
+// Exported separately as writing export function for each overload as
+// breaks the line width rules and makes it harder to read.
 export {getContext};
 
 export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rect {
@@ -460,18 +475,14 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
   );
 }
 
-/** Find closest min and max value to target */
+// Taken from speedscope, computes min/max by halving the high/low end
+// of the range on each iteration as long as range precision is greater than the given precision.
 export function findRangeBinarySearch(
   {low, high}: {high: number; low: number},
   fn: (val: number) => number,
   target: number,
   precision = 1
 ): [number, number] {
-  if (target < low || target > high) {
-    throw new Error(
-      `Target has to be in range of low <= target <= high, got ${low} <= ${target} <= ${high}`
-    );
-  }
   // eslint-disable-next-line
   while (true) {
     if (high - low <= precision) {
@@ -509,6 +520,8 @@ type TrimTextCenter = {
   start: number;
   text: string;
 };
+
+// Similar to speedscope's implementation, utility fn to trim text in the center with a small bias towards prefixes.
 export function trimTextCenter(text: string, low: number): TrimTextCenter {
   if (low >= text.length) {
     return {
@@ -518,14 +531,13 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
       length: 0,
     };
   }
+
   const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis
-  // and favor displaying the prefix
+  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
   const start = prefixLength;
   const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
-
   const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
 
   return {
@@ -536,6 +548,8 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
   };
 }
 
+// Utility function to compute a clamped view. This is essentially a bounds check
+// to ensure that zoomed viewports stays in the bounds and does not escape the view.
 export function computeClampedConfigView(
   newConfigView: Rect,
   {width, height}: {height: {max: number; min: number}; width: {max: number; min: number}}
@@ -555,30 +569,20 @@ export function computeClampedConfigView(
   return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
 }
 
-function isBetween(num: number, low: number, high: number) {
-  return num >= low && num <= high;
-}
-
-export type Bounds = [number, number];
-
 /**
  * computeHighlightedBounds determines if a supplied boundary should be reduced in size
  * or shifted based on the results of a trim operation
  */
 export function computeHighlightedBounds(
-  bounds: Bounds,
+  bounds: Fuse.RangeTuple,
   trim: TrimTextCenter
-): Bounds | null {
-  const [boundStart, boundEnd] = bounds;
-  const {start: trimStart, end: trimEnd, length: trimLength} = trim;
-
-  const isNotTrimmed = trimLength === 0;
-  if (isNotTrimmed) {
+): Fuse.RangeTuple {
+  if (!trim.length) {
     return bounds;
   }
 
-  const isStartBetweenTrim = isBetween(boundStart, trimStart, trimEnd);
-  const isEndBetweenTrim = isBetween(boundEnd, trimStart, trimEnd);
+  const isStartBetweenTrim = bounds[0] >= trim.start && bounds[0] <= trim.end;
+  const isEndBetweenTrim = bounds[1] >= trim.start && bounds[1] <= trim.end;
   const isFullyTruncated = isStartBetweenTrim && isEndBetweenTrim;
 
   // example:
@@ -587,40 +591,94 @@ export function computeHighlightedBounds(
   // "smooth" in "-[UIScrollView _…ScrollDisplayLink:]"
   //                              ^^
   if (isFullyTruncated) {
-    return [trimStart, trimStart + 1];
+    return [trim.start, trim.start + 1];
   }
 
-  if (boundStart < trimStart) {
+  if (bounds[0] < trim.start) {
     // "ScrollView" in '-[UIScrollView _sm…rollDisplayLink:]'
     //                      ^--------^
-    if (boundEnd < trimStart) {
-      return bounds;
+    if (bounds[1] < trim.start) {
+      return [bounds[0], bounds[1]];
     }
 
     // "smoothScroll" in -[UIScrollView _smooth…DisplayLink:]'
     //                                   ^-----^
     if (isEndBetweenTrim) {
-      return [boundStart, trimStart + 1];
+      return [bounds[0], trim.start + 1];
     }
 
     // "smoothScroll" in -[UIScrollView _sm…llDisplayLink:]'
     //                                   ^---^
-    if (boundEnd > trimEnd) {
-      return [boundStart, boundEnd - trimLength + 1];
+    if (bounds[1] > trim.end) {
+      return [bounds[0], bounds[1] - trim.length + 1];
     }
   }
 
   // "smoothScroll" in -[UIScrollView _…scrollDisplayLink:]'
   //                                   ^-----^
-  if (isStartBetweenTrim && boundEnd > trimEnd) {
-    return [trimStart, boundEnd - trimLength + 1];
+  if (isStartBetweenTrim && bounds[1] > trim.end) {
+    return [trim.start, bounds[1] - trim.length + 1];
   }
 
   // "display" in -[UIScrollView _…scrollDisplayLink:]'
   //                                     ^-----^
-  if (boundStart > trimEnd) {
-    return [boundStart - trimLength + 1, boundEnd - trimLength + 1];
+  if (bounds[0] > trim.end) {
+    return [bounds[0] - trim.length + 1, bounds[1] - trim.length + 1];
   }
 
-  return null;
+  throw new Error(`Unhandled case: ${JSON.stringify(bounds)} ${trim}`);
+}
+
+// Utility function to allow zooming into frames using a specific strategy. Supports
+// min zooming and exact strategy. Min zooming means we will zoom into a frame by doing
+// the minimal number of moves to get a frame into view - for example, if the view is large
+// enough and the frame we are zooming to is just outside of the viewport to the right,
+// we will only move the viewport to the right until the frame is in view. Exact strategy
+// means we will zoom into the frame by moving the viewport to the exact location of the frame
+// and setting the width of the view to that of the frame.
+export function computeConfigViewWithStategy(
+  strategy: 'min' | 'exact',
+  view: Rect,
+  frame: Rect
+): Rect {
+  if (strategy === 'exact') {
+    return frame.withHeight(view.height);
+  }
+
+  if (strategy === 'min') {
+    if (view.width <= frame.width) {
+      // If view width <= frame width, we need to zoom out, so the behavior is the
+      // same as if we were using 'exact'
+      return frame.withHeight(view.height);
+    }
+
+    if (view.containsRect(frame)) {
+      // If frame is in view, do nothing
+      return view;
+    }
+
+    let offset = view.clone();
+    if (frame.left < view.left) {
+      // If frame is to the left of the view, translate it left
+      // to frame.x so that start of the frame is in the view
+      offset = offset.withX(frame.x);
+    } else if (frame.right > view.right) {
+      // If the right boundary of a frame is outside of the view, translate the view
+      // by the difference between the right edge of the frame and the right edge of the view
+      offset = view.withX(offset.x + frame.right - offset.right);
+    }
+
+    if (frame.bottom < view.top) {
+      // If frame is above the view, translate view to top of frame
+      offset = offset.withY(frame.top);
+    } else if (frame.bottom > view.bottom) {
+      // If frame is below the view, translate view by the difference
+      // of the bottom edge of the frame and the view
+      offset = offset.translateY(offset.y + frame.bottom - offset.bottom);
+    }
+
+    return offset;
+  }
+
+  return frame.withHeight(view.height);
 }

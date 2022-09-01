@@ -31,6 +31,7 @@ from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
+from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import Dataset, bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
@@ -254,7 +255,7 @@ def query_trace_data(
         referrer="api.trace-view.get-events",
     )
     transformed_results = [
-        discover.transform_results(result, query.function_alias_map, {}, None)["data"]
+        discover.transform_results(result, query, {}, None)["data"]
         for result, query in zip(results, [transaction_query, error_query])
     ]
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
@@ -318,6 +319,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             sentry_sdk.set_tag(
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
+            set_measurement("trace_view.transactions", len_transactions)
             projects: Set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
@@ -325,6 +327,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
             sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
+            set_measurement("trace_view.projects", len_projects)
 
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
@@ -362,7 +365,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                {"extra_roots": len(roots), **warning_extra},
+                extra={"extra_roots": len(roots), **warning_extra},
             )
 
         return Response(
@@ -478,7 +481,13 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
             spans: NodeSpans = nodestore_event.data.get("spans", [])
             # Need to include the transaction as a span as well
-            spans.append({"span_id": snuba_event["trace.span"]})
+            #
+            # Important that we left pad the span id with 0s because
+            # the span id is stored as an UInt64 and converted into
+            # a hex string when quering. However, the conversion does
+            # not ensure that the final span id is 16 chars long since
+            # it's a naive base 10 to base 16 conversion.
+            spans.append({"span_id": snuba_event["trace.span"].rjust(16, "0")})
 
             for span in spans:
                 if span["span_id"] in error_map:
@@ -598,8 +607,15 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 previous_event.nodestore_event = nodestore_event
 
                 spans: NodeSpans = nodestore_event.data.get("spans", [])
+
                 # Need to include the transaction as a span as well
-                spans.append({"span_id": previous_event.event["trace.span"]})
+                #
+                # Important that we left pad the span id with 0s because
+                # the span id is stored as an UInt64 and converted into
+                # a hex string when quering. However, the conversion does
+                # not ensure that the final span id is 16 chars long since
+                # it's a naive base 10 to base 16 conversion.
+                spans.append({"span_id": previous_event.event["trace.span"].rjust(16, "0")})
 
                 for child in spans:
                     if child["span_id"] in error_map:

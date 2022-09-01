@@ -52,6 +52,8 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TRACE_PARENT_SPAN_ALIAS,
+    TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
@@ -75,7 +77,6 @@ from sentry.search.events.fields import (
     SnQLStringArg,
     normalize_count_if_value,
     normalize_percentile_alias,
-    reflective_result_type,
     with_default,
 )
 from sentry.search.events.filter import (
@@ -119,6 +120,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
+            TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
         }
 
     @property
@@ -266,7 +268,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         NumberRange("percentile", 0, 1),
                     ],
                     snql_aggregate=self._resolve_percentile,
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                     combinators=[
@@ -279,7 +281,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -289,7 +291,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -299,7 +301,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -309,7 +311,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -319,7 +321,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -370,6 +372,27 @@ class DiscoverDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="duration",
+                ),
+                SnQLFunction(
+                    "random_number",
+                    snql_aggregate=lambda args, alias: Function(
+                        "rand",
+                        [],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
+                ),
+                SnQLFunction(
+                    "modulo",
+                    required_args=[SnQLStringArg("column"), NumberRange("factor", None, None)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "modulo",
+                        [Column(args["column"]), args["factor"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                    private=True,
                 ),
                 SnQLFunction(
                     "avg_range",
@@ -488,7 +511,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "min",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -496,7 +519,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "max",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                     combinators=[
@@ -507,7 +530,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "avg",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -549,7 +572,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "sum",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     combinators=[
                         SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
@@ -560,7 +583,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[SnQLFieldColumn("column")],
                     # Not actually using `any` so that this function returns consistent results
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
@@ -677,6 +700,84 @@ class DiscoverDatasetConfig(DatasetConfig):
                     private=True,
                 ),
                 SnQLFunction(
+                    "spans_count_histogram",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        # the bucket_size and start_offset should already be adjusted
+                        # using the multiplier before it is passed here
+                        NumberRange("bucket_size", 0, None),
+                        NumberRange("start_offset", 0, None),
+                        NumberRange("multiplier", 1, None),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        "plus",
+                        [
+                            Function(
+                                "multiply",
+                                [
+                                    Function(
+                                        "floor",
+                                        [
+                                            Function(
+                                                "divide",
+                                                [
+                                                    Function(
+                                                        "minus",
+                                                        [
+                                                            Function(
+                                                                "multiply",
+                                                                [
+                                                                    Function(
+                                                                        "length",
+                                                                        [
+                                                                            Function(
+                                                                                "arrayFilter",
+                                                                                [
+                                                                                    Lambda(
+                                                                                        [
+                                                                                            "x",
+                                                                                        ],
+                                                                                        Function(
+                                                                                            "equals",
+                                                                                            [
+                                                                                                Identifier(
+                                                                                                    "x"
+                                                                                                ),
+                                                                                                args[
+                                                                                                    "spans_op"
+                                                                                                ],
+                                                                                            ],
+                                                                                        ),
+                                                                                    ),
+                                                                                    Column(
+                                                                                        "spans.op"
+                                                                                    ),
+                                                                                ],
+                                                                            )
+                                                                        ],
+                                                                    ),
+                                                                    args["multiplier"],
+                                                                ],
+                                                            ),
+                                                            args["start_offset"],
+                                                        ],
+                                                    ),
+                                                    args["bucket_size"],
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                    args["bucket_size"],
+                                ],
+                            ),
+                            args["start_offset"],
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
+                    private=False,
+                ),
+                SnQLFunction(
                     "spans_histogram",
                     required_args=[
                         SnQLStringArg("spans_op", True, True),
@@ -778,6 +879,43 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="number",
                     private=True,
+                ),
+                SnQLFunction(
+                    "fn_span_count",
+                    required_args=[
+                        SnQLStringArg("spans_op", True, True),
+                        SnQLStringArg("fn"),
+                    ],
+                    snql_column=lambda args, alias: Function(
+                        args["fn"],
+                        [
+                            Function(
+                                "length",
+                                [
+                                    Function(
+                                        "arrayFilter",
+                                        [
+                                            Lambda(
+                                                [
+                                                    "x",
+                                                ],
+                                                Function(
+                                                    "equals",
+                                                    [
+                                                        Identifier("x"),
+                                                        args["spans_op"],
+                                                    ],
+                                                ),
+                                            ),
+                                            Column("spans.op"),
+                                        ],
+                                    )
+                                ],
+                                "span_count",
+                            )
+                        ],
+                        alias,
+                    ),
                 ),
                 SnQLFunction(
                     "fn_span_exclusive_time",
@@ -1091,17 +1229,48 @@ class DiscoverDatasetConfig(DatasetConfig):
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:
         if args["satisfaction"]:
-            function_args = [self.builder.column("transaction.duration"), int(args["satisfaction"])]
+            column = self.builder.column("transaction.duration")
+            satisfaction = int(args["satisfaction"])
         else:
-            function_args = [
-                self._project_threshold_multi_if_function(),
+            column = self._project_threshold_multi_if_function()
+            satisfaction = Function(
+                "tupleElement",
+                [self.builder.resolve_field_alias("project_threshold_config"), 2],
+            )
+        count_satisfaction = Function(  # countIf(column<satisfaction)
+            "countIf", [Function("lessOrEquals", [column, satisfaction])]
+        )
+        count_tolerable = Function(  # countIf(satisfaction<column<=satisfacitonx4)
+            "countIf",
+            [
                 Function(
-                    "tupleElement",
-                    [self.builder.resolve_field_alias("project_threshold_config"), 2],
-                ),
-            ]
+                    "and",
+                    [
+                        Function("greater", [column, satisfaction]),
+                        Function("lessOrEquals", [column, Function("multiply", [satisfaction, 4])]),
+                    ],
+                )
+            ],
+        )
+        count_tolerable_div_2 = Function("divide", [count_tolerable, 2])
+        count_total = Function(  # Only count if the column exists (doing >=0 covers that)
+            "countIf", [Function("greaterOrEquals", [column, 0])]
+        )
 
-        return Function("apdex", function_args, alias)
+        return self.builder.resolve_division(  # (satisfied + tolerable/2)/(total)
+            Function(
+                "plus",
+                [
+                    count_satisfaction,
+                    count_tolerable_div_2,
+                ],
+            ),
+            count_total,
+            alias,
+            # TODO(zerofill): This behaviour is incorrect if we remove zerofilling
+            # But need to do something reasonable here since we'll get a null row otherwise
+            fallback=0,
+        )
 
     def _resolve_web_vital_function(
         self, args: Mapping[str, str | Column], alias: str
@@ -1186,11 +1355,13 @@ class DiscoverDatasetConfig(DatasetConfig):
         return Function("uniqIf", [col, Function("greater", [lhs, rhs])], alias)
 
     def _resolve_user_misery_function(self, args: Mapping[str, str], alias: str) -> SelectType:
-        if args["satisfaction"]:
+        if satisfaction := args["satisfaction"]:
+            column = self.builder.column("transaction.duration")
             count_miserable_agg = self.builder.resolve_function(
-                f"count_miserable(user,{args['satisfaction']})"
+                f"count_miserable(user,{satisfaction})"
             )
         else:
+            column = self._project_threshold_multi_if_function()
             count_miserable_agg = self.builder.resolve_function("count_miserable(user)")
 
         return Function(
@@ -1210,7 +1381,17 @@ class DiscoverDatasetConfig(DatasetConfig):
                             "plus",
                             [
                                 Function(
-                                    "nullIf", [Function("uniq", [self.builder.column("user")]), 0]
+                                    "nullIf",
+                                    [
+                                        Function(  # Only count if the column exists (doing >=0 covers that)
+                                            "uniqIf",
+                                            [
+                                                self.builder.column("user"),
+                                                Function("greater", [column, 0]),
+                                            ],
+                                        ),
+                                        0,
+                                    ],
                                 ),
                                 args["parameter_sum"],
                             ],
@@ -1307,6 +1488,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 0,
             )
 
+    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            return Condition(
+                Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
+                Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                1,
+            )
+        else:
+            return self.builder.get_default_converter()(search_filter)
+
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter
     ) -> Optional[WhereType]:
@@ -1391,8 +1582,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         Parses a release stage search and returns a snuba condition to filter to the
         requested releases.
         """
-        # TODO: Filter by project here as well. It's done elsewhere, but could critcally limit versions
-        # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+        # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
+        # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
 
         if "organization_id" not in self.builder.params:
             raise ValueError("organization_id is a required param")

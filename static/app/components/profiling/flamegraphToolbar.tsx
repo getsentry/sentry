@@ -10,6 +10,6 @@ export const FlamegraphToolbar = styled('div')<FlamegraphToolbarProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: ${space(1)} ${space(4)};
+  margin: ${space(1)};
   gap: ${space(1)};
 `;

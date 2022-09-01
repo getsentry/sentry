@@ -16,8 +16,10 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
@@ -58,11 +60,14 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: `-crash_free_rate(${SessionField.SESSION})`,
 };
 
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-07-12');
+
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  enableEquations: false,
   disableSortOptions,
   getTableRequest: (
     api: Client,
@@ -88,6 +93,9 @@ export const ReleasesConfig: DatasetConfig<
   getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterAggregateParams,
+  filterYAxisAggregateParams: (_fieldValue: QueryFieldValue, _displayType: DisplayType) =>
+    filterAggregateParams,
+  filterYAxisOptions,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
@@ -221,6 +229,14 @@ function filterAggregateParams(option: FieldValueOption) {
   return option.value.kind === FieldValueKind.METRICS;
 }
 
+function filterYAxisOptions(_displayType: DisplayType) {
+  return (option: FieldValueOption) => {
+    return [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+      option.value.kind
+    );
+  };
+}
+
 function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
   const disableSortBy = widgetQuery.columns.includes('session.status');
   if (disableSortBy) {
@@ -316,7 +332,7 @@ export function transformSessionsResponseToSeries(
       // derived status metrics through the Sessions API,
       // they are injected into the payload and need to be
       // stripped.
-      if (!!!injectedFields.includes(derivedMetricsToField(field))) {
+      if (!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
           data: data.intervals.map((interval, index) => ({
@@ -374,6 +390,33 @@ function getReleasesRequest(
   const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
 
+  let showIncompleteDataAlert: boolean = false;
+
+  if (start) {
+    let startDate: Date | undefined = undefined;
+    if (typeof start === 'string') {
+      startDate = new Date(start);
+    } else {
+      startDate = start;
+    }
+    showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+  } else if (period) {
+    const periodInDays = statsPeriodToDays(period);
+    const current = new Date();
+    const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
+    showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+  }
+
+  if (showIncompleteDataAlert) {
+    return Promise.reject(
+      new Error(
+        t(
+          'Releases data is only available from Jul 12. Please retry your query with a more recent date range.'
+        )
+      )
+    );
+  }
+
   // Only time we need to use sessions API is when session.status is requested
   // as a group by.
   const useSessionAPI = query.columns.includes('session.status');
@@ -421,7 +464,7 @@ function getReleasesRequest(
   let requester;
   if (useSessionAPI) {
     const sessionAggregates = aggregates.filter(
-      agg => !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+      agg => !Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
     );
     requestData = {
       field: sessionAggregates,
@@ -467,12 +510,12 @@ function getReleasesRequest(
 
     if (
       rawOrderby &&
-      !!!unsupportedOrderby &&
-      !!!aggregates.includes(rawOrderby) &&
-      !!!columns.includes(rawOrderby)
+      !unsupportedOrderby &&
+      !aggregates.includes(rawOrderby) &&
+      !columns.includes(rawOrderby)
     ) {
       requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
-      if (!!!injectedFields.includes(rawOrderby)) {
+      if (!injectedFields.includes(rawOrderby)) {
         injectedFields.push(rawOrderby);
       }
     }

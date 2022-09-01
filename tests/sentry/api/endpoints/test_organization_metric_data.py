@@ -1,15 +1,17 @@
 import time
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Optional
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
     TransactionMetricKey,
@@ -22,8 +24,15 @@ from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
 
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
+def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
+
+
+perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
+rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
+
+
+pytestmark = [pytest.mark.sentry_metrics]
 
 
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
@@ -34,17 +43,31 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.project2 = self.create_project()
         self.login_as(user=self.user)
 
-        self.transaction_lcp_metric = _indexer_record(
+        self.transaction_lcp_metric = perf_indexer_record(
             self.project.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
         org_id = self.organization.id
-        self.session_metric = _indexer_record(org_id, SessionMRI.SESSION.value)
-        self.session_error_metric = _indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
 
     def test_missing_field(self):
         response = self.get_response(self.project.organization.slug)
         assert response.status_code == 400
         assert response.json()["detail"] == 'Request is missing a "field"'
+
+    def test_incorrect_use_case_id_value(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field="sum(sentry.sessions.session)",
+            groupBy="environment",
+            useCase="unknown",
+        )
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "Invalid useCase parameter. Please use one of: release-health, performance"
+        )
 
     def test_invalid_field(self):
         for field in ["", "(*&%", "foo(session", "foo(session)"]:
@@ -52,7 +75,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             assert response.status_code == 400
 
     def test_groupby_single(self):
-        _indexer_record(self.project.organization_id, "environment")
+        rh_indexer_record(self.project.organization_id, "environment")
         response = self.get_response(
             self.project.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -114,7 +137,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_valid_filter(self):
         self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
-            _indexer_record(self.project.organization_id, tag)
+            rh_indexer_record(self.project.organization_id, tag)
         query = "release:latest"
         response = self.get_success_response(
             self.project.organization.slug,
@@ -128,7 +151,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_validate_include_meta_not_enabled_by_default(self):
         self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
-            _indexer_record(self.project.organization_id, tag)
+            rh_indexer_record(self.project.organization_id, tag)
         response = self.get_success_response(
             self.project.organization.slug,
             project=self.project.id,
@@ -482,39 +505,60 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         # Request for single project gives a counter of one:
         assert count_sessions(project_id=self.project2.id) == 1
 
-    def test_orderby(self):
-        # Record some strings
-        org_id = self.organization.id
-        k_transaction = _indexer_record(org_id, "transaction")
-        v_foo = _indexer_record(org_id, "/foo")
-        v_bar = _indexer_record(org_id, "/bar")
-        v_baz = _indexer_record(org_id, "/baz")
-        k_rating = _indexer_record(org_id, "measurement_rating")
-        v_good = _indexer_record(org_id, "good")
-        v_meh = _indexer_record(org_id, "meh")
-        v_poor = _indexer_record(org_id, "poor")
+    def test_max_and_min_on_distributions(self):
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.MEASUREMENTS_LCP.value,
+                tags={"transaction": v_transaction},
+                timestamp=int(time.time()),
+                value=123.4 * count,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "tags": {
-                        k_transaction: v_transaction,
-                        k_rating: v_rating,
-                    },
-                    "type": "d",
-                    "value": count
-                    * [123.4],  # count decides the cardinality of this distribution bucket
-                    "retention_days": 90,
-                }
-                for v_transaction, count in ((v_foo, 1), (v_bar, 3), (v_baz, 2))
-                for v_rating in (v_good, v_meh, v_poor)
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"max({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"min({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             ],
-            entity="metrics_distributions",
+            query="",
+            statsPeriod="1h",
+            interval="1h",
+            per_page=3,
+            useCase="performance",
+            includeSeries="0",
         )
+        groups = response.data["groups"]
+
+        assert len(groups) == 1
+        assert groups == [
+            {
+                "by": {},
+                "totals": {
+                    "max(transaction.measurements.lcp)": 3 * 123.4,
+                    "min(transaction.measurements.lcp)": 1 * 123.4,
+                },
+            }
+        ]
+
+    def test_orderby(self):
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            for v_rating in ("good", "meh", "poor"):
+                # count decides the cardinality of this distribution bucket
+                for value in [123.4] * count:
+                    self.store_metric(
+                        org_id=self.organization.id,
+                        project_id=self.project.id,
+                        type="distribution",
+                        name=TransactionMRI.MEASUREMENTS_LCP.value,
+                        tags={"transaction": v_transaction, "measurement_rating": v_rating},
+                        timestamp=int(time.time()),
+                        value=value,
+                        use_case_id=UseCaseKey.PERFORMANCE,
+                    )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -525,6 +569,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             orderBy=f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=2,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -543,32 +588,74 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count
             }
 
-    def test_orderby_percentile(self):
-        # Record some strings
-        org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
+    def test_multi_field_orderby(self):
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            for v_rating in ("good", "meh", "poor"):
+                # count decides the cardinality of this distribution bucket
+                for value in [123.4] * count:
+                    self.store_metric(
+                        org_id=self.organization.id,
+                        project_id=self.project.id,
+                        type="distribution",
+                        name=TransactionMRI.MEASUREMENTS_LCP.value,
+                        tags={"transaction": v_transaction, "measurement_rating": v_rating},
+                        timestamp=int(time.time()),
+                        value=value,
+                        use_case_id=UseCaseKey.PERFORMANCE,
+                    )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, value1, [4, 5, 6]),
-                    (tag1, value2, [1, 2, 3]),
-                )
+        response = self.get_success_response(
+            self.organization.slug,
+            field=[
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
             ],
-            entity="metrics_distributions",
+            query="measurement_rating:poor",
+            statsPeriod="1h",
+            interval="1h",
+            groupBy="transaction",
+            orderBy=[
+                f"-count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"-count({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+            per_page=2,
+            useCase="performance",
         )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction": expected_transaction}
+            assert group["series"] == {
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_count],
+                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": [0],
+            }
+            assert group["totals"] == {
+                f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_count,
+                f"count({TransactionMetricKey.MEASUREMENTS_FCP.value})": 0,
+            }
+
+    def test_orderby_percentile(self):
+        for tag, value, numbers in (
+            ("tag1", "value1", [4, 5, 6]),
+            ("tag1", "value2", [1, 2, 3]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -577,6 +664,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -596,30 +684,21 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             }
 
     def test_orderby_percentile_with_pagination(self):
-        org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, value1, [4, 5, 6]),
-                    (tag1, value2, [1, 2, 3]),
+        for tag, value, numbers in (
+            ("tag1", "value1", [4, 5, 6]),
+            ("tag1", "value2", [1, 2, 3]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
-            ],
-            entity="metrics_distributions",
-        )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -629,6 +708,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -644,6 +724,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
             cursor=Cursor(0, 1),
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -655,30 +736,22 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when an `orderBy` clause is set, then the paginator limit overrides the
         `limit` parameter
         """
-        org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, value1, [4, 5, 6]),
-                    (tag1, value2, [1, 2, 3]),
+        for tag, value, numbers in (
+            ("tag1", "value1", [4, 5, 6]),
+            ("tag1", "value2", [1, 2, 3]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
-            ],
-            entity="metrics_distributions",
-        )
+
         response = self.get_success_response(
             self.organization.slug,
             field=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
@@ -687,6 +760,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="tag1",
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             per_page=1,
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 1
@@ -700,8 +774,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             TransactionMRI.MEASUREMENTS_FCP.value,
             "transaction",
         ]:
-            _indexer_record(self.organization.id, metric)
-
+            perf_indexer_record(self.organization.id, metric)
         response = self.get_success_response(
             self.organization.slug,
             field=[
@@ -721,50 +794,37 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from the same entity
         """
-        org_id = self.organization.id
-        metric_id_fcp = _indexer_record(org_id, TransactionMRI.MEASUREMENTS_FCP.value)
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [10, 11, 12]),
+            ("transaction", "/bar/", [4, 5, 6]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, [10, 11, 12]),
-                    (transaction_id, transaction_2, [4, 5, 6]),
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [1, 2, 3]),
+            ("transaction", "/bar/", [13, 14, 15]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_FCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
-            ],
-            entity="metrics_distributions",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": metric_id_fcp,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, [1, 2, 3]),
-                    (transaction_id, transaction_2, [13, 14, 15]),
-                )
-            ],
-            entity="metrics_distributions",
-        )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -776,6 +836,115 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar/", 5.0, 14.0),
+            ("/foo/", 11.0, 2.0),
+        ]
+        for (expected_tag_value, expected_lcp_count, expected_fcp_count), group in zip(
+            expected, groups
+        ):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            assert group["totals"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+            }
+            assert group["series"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+            }
+
+    def test_multi_field_orderby_percentile_with_many_fields_one_entity(self):
+        """
+        Test that ensures when transactions are ordered correctly when all the fields requested
+        are from the same entity
+        """
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [10, 11, 12]),
+            ("transaction", "/bar/", [4, 5, 6]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [1, 2, 3]),
+            ("transaction", "/bar/", [13, 14, 15]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_FCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        kwargs = dict(
+            field=[
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+            statsPeriod="1h",
+            interval="1h",
+            groupBy=["project_id", "transaction"],
+            useCase="performance",
+        )
+
+        # Test order by DESC
+        response = self.get_success_response(
+            self.organization.slug,
+            **kwargs,
+            orderBy=[
+                f"-p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"-p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
+        )
+        groups = response.data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/foo/", 11.0, 2.0),
+            ("/bar/", 5.0, 14.0),
+        ]
+        for (expected_tag_value, expected_lcp_count, expected_fcp_count), group in zip(
+            expected, groups
+        ):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction": expected_tag_value, "project_id": self.project.id}
+            assert group["totals"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": expected_lcp_count,
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": expected_fcp_count,
+            }
+            assert group["series"] == {
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})": [expected_lcp_count],
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})": [expected_fcp_count],
+            }
+
+        # Test order by ASC
+        response = self.get_success_response(
+            self.organization.slug,
+            **kwargs,
+            orderBy=[
+                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+            ],
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -803,49 +972,37 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
         """
-        org_id = self.organization.id
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [10, 11, 12]),
+            ("transaction", "/bar/", [4, 5, 6]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, [10, 11, 12]),
-                    (transaction_id, transaction_2, [4, 5, 6]),
+        for tag, value, numbers in (
+            ("transaction", "/foo/", list(range(1))),
+            ("transaction", "/bar/", list(range(5))),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=TransactionMRI.USER.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
-            ],
-            entity="metrics_distributions",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": _indexer_record(org_id, TransactionMRI.USER.value),
-                    "timestamp": int(time.time()),
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, list(range(1))),
-                    (transaction_id, transaction_2, list(range(5))),
-                )
-            ],
-            entity="metrics_sets",
-        )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -857,6 +1014,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -883,55 +1041,42 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when transactions are ordered correctly when all the fields requested
         are from multiple entities
         """
-        org_id = self.organization.id
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, [10, 11, 12]),
-                    (transaction_id, transaction_2, [4, 5, 6]),
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [10, 11, 12]),
+            ("transaction", "/bar/", [4, 5, 6]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
-            ],
-            entity="metrics_distributions",
-        )
-        user_metric = _indexer_record(org_id, TransactionMRI.USER.value)
+
         user_ts = time.time()
         for ts, ranges in [
             (int(user_ts), [range(4, 5), range(6, 11)]),
             (int(user_ts // 60 - 15) * 60, [range(3), range(6)]),
         ]:
-            self._send_buckets(
-                [
-                    {
-                        "org_id": org_id,
-                        "project_id": self.project.id,
-                        "metric_id": user_metric,
-                        "timestamp": ts,
-                        "tags": {tag: value},
-                        "type": "s",
-                        "value": numbers,
-                        "retention_days": 90,
-                    }
-                    for tag, value, numbers in (
-                        (transaction_id, transaction_1, list(ranges[0])),
-                        (transaction_id, transaction_2, list(ranges[1])),
+            for tag, value, numbers in (
+                ("transaction", "/foo/", list(ranges[0])),
+                ("transaction", "/bar/", list(ranges[1])),
+            ):
+                for subvalue in numbers:
+                    self.store_metric(
+                        org_id=self.organization.id,
+                        project_id=self.project.id,
+                        type="set",
+                        name=TransactionMRI.USER.value,
+                        tags={tag: value},
+                        timestamp=ts,
+                        value=subvalue,
+                        use_case_id=UseCaseKey.PERFORMANCE,
                     )
-                ],
-                entity="metrics_sets",
-            )
 
         request_args = {
             "field": [
@@ -944,6 +1089,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "groupBy": ["project_id", "transaction"],
             "orderBy": f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             "per_page": 1,
+            "useCase": "performance",
         }
 
         response = self.get_success_response(self.organization.slug, **request_args)
@@ -1053,30 +1199,22 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         with a different entity than the entity of the field in the order by), then the table gets
         populated accordingly
         """
-        org_id = self.organization.id
-        transaction_id = _indexer_record(org_id, "transaction")
-        transaction_1 = _indexer_record(org_id, "/foo/")
-        transaction_2 = _indexer_record(org_id, "/bar/")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (transaction_id, transaction_1, [10, 11, 12]),
-                    (transaction_id, transaction_2, [4, 5, 6]),
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [10, 11, 12]),
+            ("transaction", "/bar/", [4, 5, 6]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
-            ],
-            entity="metrics_distributions",
-        )
+
         response = self.get_success_response(
             self.organization.slug,
             field=[
@@ -1087,6 +1225,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 2
@@ -1113,51 +1252,32 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         within the limit, and that are also with complete data from across the entities
         """
         org_id = self.organization.id
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            type="counter",
+            name=SessionMRI.SESSION.value,
+            tags={"tag3": "value1"},
+            timestamp=int(time.time()),
+            value=10,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
 
-        fcp_metric = _indexer_record(
-            self.project.organization.id, TransactionMRI.MEASUREMENTS_FCP.value
-        )
-        tag3 = _indexer_record(org_id, "tag3")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
-        value3 = _indexer_record(org_id, "value3")
-        value4 = _indexer_record(org_id, "value4")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": int(time.time()),
-                    "tags": {tag3: value1},
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                }
-            ],
-            entity="metrics_counters",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": fcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": [1],
-                    "tags": {tag3: value},
-                    "retention_days": 90,
-                }
-                for value in (
-                    value2,
-                    value3,
-                    value4,
-                )
-            ],
-            entity="metrics_distributions",
-        )
+        for value in (
+            "value2",
+            "value3",
+            "value4",
+        ):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.MEASUREMENTS_FCP.value,
+                tags={"tag3": value},
+                timestamp=int(time.time()),
+                value=1,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
         response = self.get_success_response(
             self.organization.slug,
             field=[
@@ -1168,6 +1288,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy="tag3",
             per_page=2,
+            useCase="performance",
         )
 
         groups = response.data["groups"]
@@ -1187,72 +1308,54 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        tag1 = _indexer_record(org_id, "tag1")
-        group1 = _indexer_record(org_id, "group1")
-        group2 = _indexer_record(org_id, "group2")
-        group3 = _indexer_record(org_id, "group3")
-        group4 = _indexer_record(org_id, "group4")
-        group5 = _indexer_record(org_id, "group5")
+        for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={tag: tag_value},
+                timestamp=(user_ts // 60 - 4) * 60,
+                value=10,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {tag: tag_value},
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                }
-                for tag, tag_value in ((tag1, group1), (tag1, group2))
-            ],
-            entity="metrics_counters",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_error_metric,
-                    "timestamp": user_ts,
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, group2, list(range(3))),
-                    (tag1, group3, list(range(3, 6))),
+        for tag, tag_value, numbers in (
+            ("tag1", "group2", list(range(3))),
+            ("tag1", "group3", list(range(3, 6))),
+        ):
+            for value in numbers:
+                self.store_metric(
+                    org_id=org_id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.ERROR.value,
+                    tags={tag: tag_value},
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
-            ],
-            entity="metrics_sets",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, group4, list(range(3))),
-                    (tag1, group5, list(range(3, 6))),
+
+        for tag, tag_value, numbers in (
+            ("tag1", "group4", list(range(3))),
+            ("tag1", "group5", list(range(3, 6))),
+        ):
+            for value in numbers:
+                self.store_metric(
+                    org_id=org_id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=SessionMRI.DURATION.value,
+                    tags={tag: tag_value},
+                    timestamp=int(time.time()),
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
-            ],
-            entity="metrics_distributions",
-        )
+
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({SessionMetricKey.DURATION.value})",
                 SessionMetricKey.ERRORED.value,
                 "sum(sentry.sessions.session)",
             ],
@@ -1274,12 +1377,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        tag2 = _indexer_record(org_id, "tag2")
-        b1 = _indexer_record(org_id, "B1")
-        b2 = _indexer_record(org_id, "B2")
-        b3 = _indexer_record(org_id, "B3")
-        c1 = _indexer_record(org_id, "C1")
-        a1 = _indexer_record(org_id, "A1")
+        tag2 = rh_indexer_record(org_id, "tag2")
+        b1 = rh_indexer_record(org_id, "B1")
+        b2 = rh_indexer_record(org_id, "B2")
+        b3 = rh_indexer_record(org_id, "B3")
+        c1 = rh_indexer_record(org_id, "C1")
+        a1 = rh_indexer_record(org_id, "A1")
 
         self._send_buckets(
             [
@@ -1325,8 +1428,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_success_response(
             self.organization.slug,
             field=[
-                f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-                f"p50({TransactionMetricKey.MEASUREMENTS_FCP.value})",
+                f"p50({SessionMetricKey.DURATION.value})",
                 SessionMetricKey.ERRORED.value,
                 "sum(sentry.sessions.session)",
             ],
@@ -1376,7 +1478,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(self.build_session(project_id=self.project.id))
 
         # "foo" is known by indexer, "bar" is not
-        _indexer_record(self.organization.id, "foo")
+        rh_indexer_record(self.organization.id, "foo")
 
         response = self.get_success_response(
             self.organization.slug,
@@ -1406,7 +1508,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     @freeze_time((timezone.now() - timedelta(days=2)).replace(hour=3, minute=21, second=30))
     def test_no_limit_with_series(self):
         """Pagination args do not apply to series"""
-        _indexer_record(self.organization.id, "session.status")
+        rh_indexer_record(self.organization.id, "session.status")
         for minute in range(4):
             self.store_session(
                 self.build_session(
@@ -1468,7 +1570,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_include_series(self):
-        _indexer_record(self.organization.id, "session.status")
+        rh_indexer_record(self.organization.id, "session.status")
         self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
         response = self.get_success_response(
             self.organization.slug,
@@ -1500,32 +1602,34 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         super().setUp()
         self.login_as(user=self.user)
         org_id = self.organization.id
-        self.session_duration_metric = _indexer_record(org_id, SessionMRI.RAW_DURATION.value)
-        self.session_metric = _indexer_record(org_id, SessionMRI.SESSION.value)
-        self.session_user_metric = _indexer_record(org_id, SessionMRI.USER.value)
-        self.session_error_metric = _indexer_record(org_id, SessionMRI.ERROR.value)
-        self.session_status_tag = _indexer_record(org_id, "session.status")
-        self.release_tag = _indexer_record(self.organization.id, "release")
-        self.tx_metric = _indexer_record(org_id, TransactionMRI.DURATION.value)
-        self.tx_status = _indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
-        self.transaction_lcp_metric = _indexer_record(
+        self.session_duration_metric = rh_indexer_record(org_id, SessionMRI.RAW_DURATION.value)
+        self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
+        self.session_user_metric = rh_indexer_record(org_id, SessionMRI.USER.value)
+        self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+        self.session_status_tag = rh_indexer_record(org_id, "session.status")
+        self.release_tag = rh_indexer_record(self.organization.id, "release")
+        self.tx_metric = perf_indexer_record(org_id, TransactionMRI.DURATION.value)
+        self.tx_status = perf_indexer_record(org_id, TransactionTagsKey.TRANSACTION_STATUS.value)
+        self.transaction_lcp_metric = perf_indexer_record(
             self.organization.id, TransactionMRI.MEASUREMENTS_LCP.value
         )
-        self.tx_satisfaction = _indexer_record(
+        self.tx_satisfaction = perf_indexer_record(
             self.organization.id, TransactionTagsKey.TRANSACTION_SATISFACTION.value
         )
-        self.tx_user_metric = _indexer_record(self.organization.id, TransactionMRI.USER.value)
+        self.tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
+    @patch("sentry.snuba.metrics.query.parse_mri")
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query.get_mri")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
-        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri
+        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri, mocked_parse_mri
     ):
         mocked_get_mri.return_value = "crash_free_fake"
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
+        mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.store_session(
@@ -1540,6 +1644,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["crash_free_fake"],
             statsPeriod="6m",
             interval="1m",
+            useCase="release-health",
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
@@ -1678,7 +1783,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored_preaggr"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored_preaggr"),
                     },
                     "type": "c",
                     "value": 10,
@@ -1690,7 +1795,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
+                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
                     },
                     "type": "c",
                     "value": 2,
@@ -1702,7 +1807,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "abnormal"),
+                        self.session_status_tag: rh_indexer_record(org_id, "abnormal"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1714,7 +1819,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "init"),
+                        self.session_status_tag: rh_indexer_record(org_id, "init"),
                     },
                     "type": "c",
                     "value": 15,
@@ -1736,7 +1841,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "retention_days": 90,
                 }
                 for tag, value, numbers in (
-                    (self.release_tag, _indexer_record(org_id, "foo"), list(range(3))),
+                    (self.release_tag, rh_indexer_record(org_id, "foo"), list(range(3))),
                 )
             ],
             entity="metrics_sets",
@@ -1784,8 +1889,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == (
-            "It is not possible to orderBy field session.errored as it does not "
-            "have a direct mapping to a query alias"
+            "Selected 'orderBy' columns must belongs to the same entity"
         )
 
     def test_abnormal_sessions(self):
@@ -1798,8 +1902,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "abnormal"),
-                        self.release_tag: _indexer_record(self.organization.id, "foo"),
+                        self.session_status_tag: rh_indexer_record(
+                            self.organization.id, "abnormal"
+                        ),
+                        self.release_tag: rh_indexer_record(self.organization.id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
@@ -1811,8 +1917,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "abnormal"),
-                        self.release_tag: _indexer_record(self.organization.id, "bar"),
+                        self.session_status_tag: rh_indexer_record(
+                            self.organization.id, "abnormal"
+                        ),
+                        self.release_tag: rh_indexer_record(self.organization.id, "bar"),
                     },
                     "type": "c",
                     "value": 3,
@@ -1848,8 +1956,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "foo"),
+                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
+                        self.release_tag: rh_indexer_record(org_id, "foo"),
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -1861,8 +1969,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "bar"),
+                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
+                        self.release_tag: rh_indexer_record(org_id, "bar"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8, 9, 5],
@@ -1924,7 +2032,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "abnormal")
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "abnormal")
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -1964,7 +2072,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8],
@@ -1976,8 +2084,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
+                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2],
@@ -1989,7 +2097,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@2.0"),
+                        self.release_tag: rh_indexer_record(org_id, "foobar@2.0"),
                     },
                     "type": "s",
                     "value": [3, 5],
@@ -2030,7 +2138,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2, 4, 8],
@@ -2042,8 +2150,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(org_id, "foobar@1.0"),
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
+                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
                     "value": [1, 2],
@@ -2055,7 +2163,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.release_tag: _indexer_record(org_id, "foobar@2.0"),
+                        self.release_tag: rh_indexer_record(org_id, "foobar@2.0"),
                     },
                     "type": "s",
                     "value": [3, 5],
@@ -2075,8 +2183,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "init"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@1.0"),
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "init"),
+                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@1.0"),
                     },
                     "type": "c",
                     "value": 4,
@@ -2088,8 +2196,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@1.0"),
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
+                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@1.0"),
                     },
                     "type": "c",
                     "value": 1,
@@ -2101,8 +2209,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 4) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "init"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@2.0"),
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "init"),
+                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@2.0"),
                     },
                     "type": "c",
                     "value": 4,
@@ -2114,8 +2222,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60 - 2) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: _indexer_record(self.organization.id, "foobar@2.0"),
+                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
+                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@2.0"),
                     },
                     "type": "c",
                     "value": 3,
@@ -2163,8 +2271,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored_preaggr"),
-                        self.release_tag: _indexer_record(org_id, "foo"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored_preaggr"),
+                        self.release_tag: rh_indexer_record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
@@ -2176,8 +2284,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "init"),
-                        self.release_tag: _indexer_record(org_id, "foo"),
+                        self.session_status_tag: rh_indexer_record(org_id, "init"),
+                        self.release_tag: rh_indexer_record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 10,
@@ -2199,7 +2307,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "retention_days": 90,
                 }
                 for tag, value, numbers in (
-                    (self.release_tag, _indexer_record(org_id, "foo"), list(range(3))),
+                    (self.release_tag, rh_indexer_record(org_id, "foo"), list(range(3))),
                 )
             ],
             entity="metrics_sets",
@@ -2226,8 +2334,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": (user_ts // 60) * 60,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored_preaggr"),
-                        self.release_tag: _indexer_record(org_id, "foo"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored_preaggr"),
+                        self.release_tag: rh_indexer_record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 4,
@@ -2239,8 +2347,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "init"),
-                        self.release_tag: _indexer_record(org_id, "foo"),
+                        self.session_status_tag: rh_indexer_record(org_id, "init"),
+                        self.release_tag: rh_indexer_record(org_id, "foo"),
                     },
                     "type": "c",
                     "value": 10,
@@ -2276,7 +2384,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
+                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -2288,7 +2396,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -2300,7 +2408,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "abnormal"),
+                        self.session_status_tag: rh_indexer_record(org_id, "abnormal"),
                     },
                     "type": "s",
                     "value": [99, 3, 6, 8, 9, 5],
@@ -2312,7 +2420,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
                     },
                     "type": "s",
                     "value": [99, 3, 6, 8, 9, 5],
@@ -2324,7 +2432,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
                     },
                     "type": "s",
                     "value": [22, 33, 44],
@@ -2357,7 +2465,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "crashed"),
+                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
                     },
                     "type": "s",
                     "value": [1, 2, 4],
@@ -2397,7 +2505,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "ok"),
+                        self.session_status_tag: rh_indexer_record(org_id, "ok"),
                     },
                     "type": "s",
                     "value": [3],  # 3 was not in init, but still counts
@@ -2409,7 +2517,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
                     },
                     "type": "s",
                     "value": [1, 2, 6],  # 6 was not in init, but still counts
@@ -2441,7 +2549,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: _indexer_record(org_id, "errored"),
+                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
                     },
                     "type": "s",
                     "value": [1],
@@ -2476,72 +2584,30 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_failure_rate_transaction(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: _indexer_record(
-                            self.organization.id, TransactionStatusTagValue.OK.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [3.4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: _indexer_record(
-                            self.organization.id, TransactionStatusTagValue.CANCELLED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: _indexer_record(
-                            self.organization.id, TransactionStatusTagValue.UNKNOWN.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [2.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_status: _indexer_record(
-                            self.organization.id, TransactionStatusTagValue.ABORTED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.5],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
-        )
+
+        for value, tag_value in (
+            (3.4, TransactionStatusTagValue.OK.value),
+            (0.3, TransactionStatusTagValue.CANCELLED.value),
+            (2.3, TransactionStatusTagValue.UNKNOWN.value),
+            (0.5, TransactionStatusTagValue.ABORTED.value),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.failure_rate"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2575,6 +2641,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             field=["transaction.failure_rate"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert response.data["groups"] == [
@@ -2607,59 +2674,40 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_apdex_transactions(self):
         # See https://docs.sentry.io/product/performance/metrics/#apdex
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [3.4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [0.3],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.TOLERATED.value
-                        ),
-                    },
-                    "type": "d",
-                    "value": [2.3],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
+
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            type="distribution",
+            name=TransactionMRI.DURATION.value,
+            tags={
+                TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
+            },
+            timestamp=user_ts,
+            value=3.4,
+            use_case_id=UseCaseKey.PERFORMANCE,
         )
+
+        for subvalue in [0.3, 2.3]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.TOLERATED.value
+                },
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.apdex"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2667,45 +2715,41 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_miserable_users(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 2],
-                    "retention_days": 90,
+
+        for subvalue in [1, 2]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
                 },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [1, 3],  # user 1 had mixed transactions, user 3 only satisfied
-                    "retention_days": 90,
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        for subvalue in [1, 3]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
                 },
-            ],
-            entity="metrics_sets",
-        )
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.miserable_user"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
 
         assert len(response.data["groups"]) == 1
@@ -2713,45 +2757,40 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_user_misery(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.FRUSTRATED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [3, 4],
-                    "retention_days": 90,
+        for subvalue in [3, 4]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
                 },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.tx_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.tx_satisfaction: _indexer_record(
-                            self.organization.id, TransactionSatisfactionTagValue.SATISFIED.value
-                        ),
-                    },
-                    "type": "s",
-                    "value": [5, 6],
-                    "retention_days": 90,
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        for subvalue in [5, 6]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=TransactionMRI.USER.value,
+                tags={
+                    TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
                 },
-            ],
-            entity="metrics_sets",
-        )
+                timestamp=user_ts,
+                value=subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
             field=["transaction.user_misery"],
             statsPeriod="1m",
             interval="1m",
+            useCase="performance",
         )
         assert len(response.data["groups"]) == 1
         assert response.data["groups"][0]["totals"] == {
@@ -2771,7 +2810,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "type": "d",
                     "value": [2, 6, 8],
-                    "tags": {self.session_status_tag: _indexer_record(org_id, "exited")},
+                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "exited")},
                     "retention_days": 90,
                 },
                 {
@@ -2781,7 +2820,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": user_ts,
                     "type": "d",
                     "value": [11, 13, 15],
-                    "tags": {self.session_status_tag: _indexer_record(org_id, "crashed")},
+                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "crashed")},
                     "retention_days": 90,
                 },
             ],
@@ -2803,9 +2842,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_histogram(self):
         # Record some strings
         org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -2850,9 +2889,9 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_histogram_zooming(self):
         # Record some strings
         org_id = self.organization.id
-        tag1 = _indexer_record(org_id, "tag1")
-        value1 = _indexer_record(org_id, "value1")
-        value2 = _indexer_record(org_id, "value2")
+        tag1 = perf_indexer_record(org_id, "tag1")
+        value1 = perf_indexer_record(org_id, "value1")
+        value2 = perf_indexer_record(org_id, "value2")
 
         self._send_buckets(
             [
@@ -2911,7 +2950,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": [4, 5, 6],
-                    "tags": {self.session_status_tag: _indexer_record(org_id, "exited")},
+                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "exited")},
                     "retention_days": 90,
                 },
                 {
@@ -2921,7 +2960,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": [1, 2, 3],
-                    "tags": {self.session_status_tag: _indexer_record(org_id, "exited")},
+                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "exited")},
                     "retention_days": 90,
                 },
                 {
@@ -2931,7 +2970,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "timestamp": int(time.time()),
                     "type": "d",
                     "value": [7, 8, 9],
-                    "tags": {self.session_status_tag: _indexer_record(org_id, "crashed")},
+                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "crashed")},
                     "retention_days": 90,
                 },
             ],

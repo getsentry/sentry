@@ -91,7 +91,8 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
+    grep -E '^(pip|setuptools|wheel)==' requirements-dev-frozen.txt |
+        xargs pip install --upgrade
 }
 
 install-py-dev() {
@@ -106,11 +107,12 @@ install-py-dev() {
         # This saves having to install postgresql on the Developer's machine + using flags
         # https://github.com/psycopg/psycopg2/issues/1286
         pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
-        # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
-        export CPATH="$(brew --prefix librdkafka)/include"
         # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
         export LDFLAGS="-L$(brew --prefix gettext)/lib"
     fi
+
+    # pip doesn't do well with swapping drop-ins
+    pip uninstall -qqy uwsgi
 
     # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
     # Webpacked assets are only necessary for devserver (which does it lazily anyways)
@@ -134,7 +136,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip install -r requirements-dev.txt
+        pip install -r requirements-dev-only-frozen.txt
     fi
     pre-commit install --install-hooks
     echo ""
@@ -198,6 +200,8 @@ create-user() {
 build-platform-assets() {
     echo "--> Building platform assets"
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    # make sure this didn't silently do nothing
+    test -f src/sentry/integration-docs/android.json
 }
 
 bootstrap() {
@@ -233,8 +237,8 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
-    # This ensures that your set up as some data inside of it
-    bin/load-mocks
+    create-user
+    echo "Finished resetting database. To load mock data, run `./bin/load-mocks`"
 }
 
 prerequisites() {

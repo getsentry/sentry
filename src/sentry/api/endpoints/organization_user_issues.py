@@ -5,7 +5,7 @@ from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
+from sentry.api.serializers.models.group_stream import TagBasedStreamGroupSerializer
 from sentry.models import EventUser, Group, ProjectTeam, Team
 
 

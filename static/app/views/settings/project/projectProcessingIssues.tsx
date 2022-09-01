@@ -6,11 +6,11 @@ import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AlertLink from 'sentry/components/alertLink';
-import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -26,7 +26,6 @@ import TimeSince from 'sentry/components/timeSince';
 import formGroups from 'sentry/data/forms/processingIssues';
 import {IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
 import {Organization, ProcessingIssue, ProcessingIssueItem} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -356,9 +355,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
                 "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
               )}
             </label>
-            <AutoSelectTextInput readOnly>
-              curl -sL "{fixLink}" | bash
-            </AutoSelectTextInput>
+            <TextCopyInput monospace>{'curl -sL "{fixLink}" | bash'}</TextCopyInput>
           </PanelBody>
         </Panel>
       );
@@ -385,7 +382,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
           <Access access={['project:write']}>
             {({hasAccess}) => (
               <Button
-                size="small"
+                size="sm"
                 className="pull-right"
                 disabled={!hasAccess}
                 onClick={() => this.discardEvents()}
@@ -471,11 +468,6 @@ class ProjectProcessingIssues extends Component<Props, State> {
 
 const StyledPanelAlert = styled(PanelAlert)`
   grid-column: 1/5;
-`;
-
-const AutoSelectTextInput = styled(AutoSelectText)<{readOnly: boolean}>`
-  font-family: ${p => p.theme.text.familyMono};
-  ${p => inputStyles(p)};
 `;
 
 export {ProjectProcessingIssues};

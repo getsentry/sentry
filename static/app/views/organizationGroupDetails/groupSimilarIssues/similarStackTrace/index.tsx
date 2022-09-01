@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import * as qs from 'query-string';
 
-import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -126,7 +125,7 @@ class SimilarStackTrace extends Component<Props, State> {
       });
     }
 
-    GroupingActions.fetch(reqs);
+    GroupingStore.onFetch(reqs);
   }
 
   handleMerge = () => {
@@ -147,7 +146,7 @@ class SimilarStackTrace extends Component<Props, State> {
       ? this.state.similarItems
       : this.state.filteredSimilarItems;
 
-    GroupingActions.merge({
+    GroupingStore.onMerge({
       params,
       query,
       projectId: firstIssue.issue.project.slug,
@@ -193,10 +192,10 @@ class SimilarStackTrace extends Component<Props, State> {
             <Title>{t('Issues with a similar stack trace')}</Title>
             {hasV2 && (
               <ButtonBar merged active={v2 ? 'new' : 'old'}>
-                <Button barId="old" size="small" onClick={this.toggleSimilarityVersion}>
+                <Button barId="old" size="sm" onClick={this.toggleSimilarityVersion}>
                   {t('Old Algorithm')}
                 </Button>
-                <Button barId="new" size="small" onClick={this.toggleSimilarityVersion}>
+                <Button barId="new" size="sm" onClick={this.toggleSimilarityVersion}>
                   {t('New Algorithm')}
                 </Button>
               </ButtonBar>

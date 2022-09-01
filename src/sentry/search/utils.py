@@ -25,7 +25,6 @@ from sentry.models import (
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
-from sentry.utils.compat import map
 
 
 class InvalidQuery(Exception):
@@ -86,6 +85,43 @@ def parse_duration(value, interval):
     return delta.total_seconds() * 1000.0
 
 
+def parse_size(value, size):
+    """Returns in total bytes"""
+    try:
+        size_value = float(value)
+    except ValueError:
+        raise InvalidQuery(f"{value} is not a valid size value")
+
+    if size == "bit":
+        byte = size_value / 8
+    elif size == "nb":
+        byte = size_value / 2
+    elif size == "bytes":
+        byte = size_value
+    elif size == "kb":
+        byte = size_value * 1024
+    elif size == "mb":
+        byte = size_value * 1024**2
+    elif size == "gb":
+        byte = size_value * 1024**3
+    elif size == "tb":
+        byte = size_value * 1024**4
+    elif size == "pb":
+        byte = size_value * 1024**5
+    elif size == "eb":
+        byte = size_value * 1024**6
+    elif size == "zb":
+        byte = size_value * 1024**7
+    elif size == "yb":
+        byte = size_value * 1024**8
+    else:
+        raise InvalidQuery(
+            f"{size} is not a valid size type, must be bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb"
+        )
+
+    return byte
+
+
 def parse_percentage(value):
     try:
         value = float(value)
@@ -138,26 +174,29 @@ def parse_datetime_range(value):
 
 
 DATE_FORMAT = "%Y-%m-%d"
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
-DATETIME_FORMAT_MICROSECONDS = "%Y-%m-%dT%H:%M:%S.%f"
 
 
 def parse_unix_timestamp(value):
     return datetime.utcfromtimestamp(float(value)).replace(tzinfo=timezone.utc)
 
 
-def parse_datetime_string(value):
-    # timezones are not supported and are assumed UTC
-    if value[-1:] == "Z":
-        value = value[:-1]
-    if len(value) >= 6 and value[-6] == "+":
-        value = value[:-6]
+def parse_iso_timestamp(value):
+    # datetime.fromisoformat does not support parsing 'Z'
+    date = datetime.fromisoformat(value.replace("Z", "+00:00"))
 
-    for format in [DATETIME_FORMAT_MICROSECONDS, DATETIME_FORMAT, DATE_FORMAT]:
-        try:
-            return datetime.strptime(value, format).replace(tzinfo=timezone.utc)
-        except ValueError:
-            pass
+    # Values with no timezone info will default to UTC
+    if not date.tzinfo:
+        date.replace(tzinfo=timezone.utc)
+
+    # Convert to UTC
+    return datetime.fromtimestamp(date.timestamp(), tz=timezone.utc)
+
+
+def parse_datetime_string(value):
+    try:
+        return parse_iso_timestamp(value)
+    except ValueError:
+        pass
 
     try:
         return parse_unix_timestamp(value)
@@ -181,12 +220,6 @@ def parse_datetime_comparison(value):
 
 
 def parse_datetime_value(value):
-    # timezones are not supported and are assumed UTC
-    if value[-1:] == "Z":
-        value = value[:-1]
-    if len(value) >= 6 and value[-6] == "+":
-        value = value[:-6]
-
     result = None
 
     # A value that only specifies the date (without a time component) should be
@@ -199,14 +232,9 @@ def parse_datetime_value(value):
         return ((result, True), (result + timedelta(days=1), False))
 
     # A value that contains the time should converted to an interval.
-    for format in [DATETIME_FORMAT, DATETIME_FORMAT_MICROSECONDS]:
-        try:
-            result = datetime.strptime(value, format).replace(tzinfo=timezone.utc)
-        except ValueError:
-            pass
-        else:
-            break  # avoid entering the else clause below
-    else:
+    try:
+        result = parse_iso_timestamp(value)
+    except ValueError:
         try:
             result = parse_unix_timestamp(value)
         except ValueError:
@@ -458,7 +486,7 @@ def tokenize_query(query):
         query_params[state].append(token)
 
     if "query" in query_params:
-        result["query"] = map(format_query, query_params["query"])
+        result["query"] = [format_query(query) for query in query_params["query"]]
     for tag in query_params["tags"]:
         key, value = format_tag(tag)
         result[key].append(value)

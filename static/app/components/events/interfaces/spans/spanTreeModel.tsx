@@ -186,6 +186,7 @@ class SpanTreeModel {
   getSpansList = (props: {
     addTraceBounds: (bounds: TraceBound) => void;
     continuingTreeDepths: Array<TreeDepthType>;
+    directParent: SpanTreeModel | null;
     event: Readonly<EventTransaction>;
     filterSpans: FilterSpans | undefined;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -200,6 +201,7 @@ class SpanTreeModel {
     spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleNestedSpanGroup: (() => void) | undefined;
     treeDepth: number;
+    focusedSpanIds?: Set<string>;
   }): EnhancedProcessedSpanType[] => {
     const {
       operationNameFilters,
@@ -217,9 +219,9 @@ class SpanTreeModel {
       isNestedSpanGroupExpanded,
       addTraceBounds,
       removeTraceBounds,
+      focusedSpanIds,
     } = props;
     let {treeDepth, continuingTreeDepths} = props;
-
     const parentSpanID = getSpanID(this.span);
     const nextSpanAncestors = new Set(spanAncestors);
     nextSpanAncestors.add(parentSpanID);
@@ -251,7 +253,7 @@ class SpanTreeModel {
       // For a collapsed span group chain to be useful, we prefer span groupings
       // that are two or more spans.
       // Since there is no concept of "backtracking" when constructing the span tree,
-      // we will need to reconstruct the tree depth information. This is only necessary
+      // we will need to reconstruct the tree depth information. This is only neccessary
       // when the span group chain is hidden/collapsed.
       if (spanNestedGrouping.length === 1) {
         const treeDepthEntry = isOrphanSpan(spanNestedGrouping[0].span)
@@ -419,6 +421,8 @@ class SpanTreeModel {
                   : false,
                 addTraceBounds,
                 removeTraceBounds,
+                focusedSpanIds,
+                directParent: this,
               })
             );
 
@@ -428,18 +432,15 @@ class SpanTreeModel {
           return acc;
         }
 
-        // NOTE: I am making the assumption here that grouped sibling spans will not have children.
-        // By making this assumption, I can immediately wrap the grouped spans here without having
-        // to recursively traverse them.
-
-        // This may not be the case, and needs to be looked into later
-
         const key = getSiblingGroupKey(group[0].span, occurrence);
         if (this.expandedSiblingGroups.has(key)) {
           // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
           // In this case, we must add only the specified span into the accumulator's descendants
           group.forEach((spanModel, index) => {
-            if (this.isSpanFilteredOut(props, spanModel)) {
+            if (
+              this.isSpanFilteredOut(props, spanModel) ||
+              (focusedSpanIds && !focusedSpanIds.has(spanModel.span.span_id))
+            ) {
               acc.descendants.push({
                 type: 'filtered_out',
                 span: spanModel.span,
@@ -481,14 +482,16 @@ class SpanTreeModel {
         // if the spans are filtered or out of bounds here
 
         if (this.isSpanFilteredOut(props, group[0])) {
-          group.forEach(spanModel =>
+          group.forEach(spanModel => {
             acc.descendants.push({
               type: 'filtered_out',
               span: spanModel.span,
-            })
-          );
+            });
+          });
           return acc;
         }
+
+        // TODO: Check within the group if any of the focusedSpanIDs are present
 
         const bounds = generateBounds({
           startTimestamp: group[0].span.start_timestamp,
@@ -555,7 +558,10 @@ class SpanTreeModel {
       }
     ).descendants;
 
-    if (this.isSpanFilteredOut(props, this)) {
+    if (
+      this.isSpanFilteredOut(props, this) ||
+      (focusedSpanIds && !focusedSpanIds.has(this.span.span_id))
+    ) {
       return [
         {
           type: 'filtered_out',

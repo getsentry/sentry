@@ -13,8 +13,8 @@ import {
   QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  WebVital,
 } from 'sentry/utils/discover/fields';
+import {WebVital} from 'sentry/utils/fields';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -181,10 +181,15 @@ function EventsContentWrapper(props: ChildProps) {
                 );
               }
 
-              const percentiles: PercentileValues = tableData
-                ?.data?.[0] as any as PercentileValues;
+              const percentileData = tableData?.data?.[0];
+              const percentiles = {
+                p100: percentileData?.['p100()'],
+                p99: percentileData?.['p100()'],
+                p95: percentileData?.['p95()'],
+                p75: percentileData?.['p75()'],
+                p50: percentileData?.['p50()'],
+              } as PercentileValues;
               const filteredEventView = getFilteredEventView(percentiles);
-
               return (
                 <EventsContent
                   totalEventCount={totalEventCount}

@@ -10,11 +10,11 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     BoundedPositiveIntegerField,
-    EncryptedTextField,
     FlexibleForeignKey,
     Model,
     sane_repr,
 )
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.models import SentryApp
 
 SERVICE_HOOK_EVENTS = [
@@ -29,7 +29,7 @@ class ServiceHookProject(Model):
     __include_in_export__ = False
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
 
     class Meta:
         app_label = "sentry"
@@ -47,11 +47,11 @@ class ServiceHook(Model):
     guid = models.CharField(max_length=32, unique=True, null=True)
     # hooks may be bound to an api application, or simply registered by a user
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
-    actor_id = BoundedPositiveIntegerField(db_index=True)
-    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
-    organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    actor_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True, null=True)
+    organization_id = BoundedBigIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
-    secret = EncryptedTextField(default=generate_secret)
+    secret = models.TextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(
         default=0, choices=ObjectStatus.as_choices(), db_index=True

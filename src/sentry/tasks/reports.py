@@ -21,8 +21,8 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
+from sentry import tsdb
 from sentry.api.serializers.snuba import zerofill
-from sentry.app import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import (
@@ -43,7 +43,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 from sentry.utils import json, redis
-from sentry.utils.compat import map
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked
@@ -457,7 +456,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
             value = None
         return (timestamp, value)
 
-    return map(remove_invalid_values, clean_series(start, stop, rollup, series))
+    return [remove_invalid_values(item) for item in clean_series(start, stop, rollup, series)]
 
 
 def build_key_errors(interval, project):
@@ -505,7 +504,7 @@ def build_key_transactions(interval, project):
     query_result = raw_snql_query(request, referrer="reports.key_transactions")
     key_errors = query_result["data"]
 
-    transaction_names = map(lambda p: p["transaction_name"], key_errors)
+    transaction_names = [p["transaction_name"] for p in key_errors]
 
     def query_p95(interval):
         start, stop = interval
@@ -624,7 +623,7 @@ class DummyReportBackend(ReportBackend):
 
     def fetch(self, timestamp, duration, organization, projects):
         assert all(project.organization_id == organization.id for project in projects)
-        return map(partial(self.build, timestamp, duration), projects)
+        return [self.build(timestamp, duration, project) for project in projects]
 
 
 class RedisReportBackend(ReportBackend):
@@ -672,7 +671,7 @@ class RedisReportBackend(ReportBackend):
                 [project.id for project in projects],
             )
 
-        return map(self.__decode, result.value)
+        return [self.__decode(val) for val in result.value]
 
 
 backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
@@ -971,18 +970,18 @@ def build_project_breakdown_series(reports):
     # of values in the series. (This is so when we render the series, the
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
-    selections = map(
-        lambda project__color: (
+    selections = [
+        (
             Key(
-                label=project__color[0].slug,
-                url=project__color[0].get_absolute_url(),
-                color=project__color[1],
-                data=get_legend_data(reports[project__color[0]]),
+                label=project.slug,
+                url=project.get_absolute_url(),
+                color=color,
+                data=get_legend_data(reports[project]),
             ),
-            reports[project__color[0]],
-        ),
-        zip(projects, project_breakdown_colors),
-    )[::-1]
+            reports[project],
+        )
+        for project, color in zip(projects, project_breakdown_colors)
+    ][::-1]
 
     # Collect any reports that weren't in the selection set, merge them
     # together and add it at the top (front) of the stack.
@@ -1040,13 +1039,13 @@ def build_project_breakdown_series(reports):
 def build_key_errors_ctx(key_events, organization):
     # Join with DB
     groups = Group.objects.filter(
-        id__in=map(lambda i: i[0], key_events),
+        id__in=[i[0] for i in key_events],
     ).all()
 
     group_id_to_group_history = defaultdict(lambda: (GroupHistoryStatus.NEW, "New Issue"))
     group_history = (
         GroupHistory.objects.filter(
-            group__id__in=map(lambda i: i[0], key_events), organization=organization
+            group__id__in=[i[0] for i in key_events], organization=organization
         )
         .order_by("date_added")
         .all()

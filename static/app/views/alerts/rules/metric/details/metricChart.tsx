@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
@@ -61,6 +62,7 @@ import {
   isSessionAggregate,
   SESSION_AGGREGATE_TO_FIELD,
 } from '../../../utils';
+import {getMetricDatasetQueryExtras} from '../utils/getMetricDatasetQueryExtras';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 import {TimePeriodType} from './constants';
@@ -227,7 +229,7 @@ class MetricChart extends PureComponent<Props, State> {
         </StyledInlineContainer>
         {!isSessionAggregate(rule.aggregate) && (
           <Feature features={['discover-basic']}>
-            <Button size="small" {...props}>
+            <Button size="sm" {...props}>
               {buttonText}
             </Button>
           </Feature>
@@ -460,7 +462,8 @@ class MetricChart extends PureComponent<Props, State> {
   }
 
   render() {
-    const {api, rule, organization, timePeriod, project, interval, query} = this.props;
+    const {api, rule, organization, timePeriod, project, interval, query, location} =
+      this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
     // Fix for 7 days * 1m interval being over the max number of results from events api
@@ -488,6 +491,13 @@ class MetricChart extends PureComponent<Props, State> {
     const viableEndDate = getUtcDateString(
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
+
+    const queryExtras = getMetricDatasetQueryExtras({
+      organization,
+      location,
+      dataset,
+      newAlertOrQuery: false,
+    });
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
@@ -525,6 +535,7 @@ class MetricChart extends PureComponent<Props, State> {
         includePrevious={false}
         currentSeriesNames={[aggregate]}
         partial={false}
+        queryExtras={queryExtras}
         referrer="api.alerts.alert-rule-chart"
       >
         {({loading, timeseriesData, comparisonTimeseriesData}) =>

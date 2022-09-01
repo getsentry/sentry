@@ -1,7 +1,6 @@
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
 
 import {openSudo, redirectToProject} from 'sentry/actionCreators/modal';
@@ -272,22 +271,18 @@ export class Client {
       }
 
       if (!req?.alive) {
-        return;
+        return undefined;
       }
 
       // Check if API response is a 302 -- means project slug was renamed and user
       // needs to be redirected
       // @ts-expect-error
       if (hasProjectBeenRenamed(...args)) {
-        return;
-      }
-
-      if (isUndefined(func)) {
-        return;
+        return undefined;
       }
 
       // Call success callback
-      return func.apply(req, args); // eslint-disable-line
+      return func?.apply(req, args);
     };
   }
 
@@ -349,7 +344,7 @@ export class Client {
 
     let data = options.data;
 
-    if (!isUndefined(data) && method !== 'GET') {
+    if (data !== undefined && method !== 'GET') {
       data = JSON.stringify(data);
     }
 
@@ -382,7 +377,7 @@ export class Client {
         start: startMarker,
         data: {status: resp?.status},
       });
-      if (!isUndefined(options.success)) {
+      if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
           textStatus,
@@ -448,7 +443,7 @@ export class Client {
       method,
       body,
       headers,
-      credentials: 'same-origin',
+      credentials: 'include',
       signal: aborter?.signal,
     });
 
@@ -551,7 +546,7 @@ export class Client {
     // This *should* get logged to Sentry only if the promise rejection is not handled
     // (since SDK captures unhandled rejections). Ideally we explicitly ignore rejection
     // or handle with a user friendly error message
-    const preservedError = new Error();
+    const preservedError = new Error('API Request Error');
 
     return new Promise((resolve, reject) =>
       this.request(path, {
@@ -567,11 +562,10 @@ export class Client {
         error: (resp: ResponseMeta) => {
           const errorObjectToUse = createRequestError(
             resp,
-            preservedError.stack,
+            preservedError,
             options.method,
             path
           );
-          errorObjectToUse.removeFrames(2);
 
           // Although `this.request` logs all error responses, this error object can
           // potentially be logged by Sentry's unhandled rejection handler

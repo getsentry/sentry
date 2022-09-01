@@ -14,6 +14,7 @@ import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -33,7 +34,6 @@ import space from 'sentry/styles/space';
 import {InternalAppApiToken, Scope, SentryApp} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -284,7 +284,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
           </CreatedDate>
           <Button
             onClick={this.onRemoveToken.bind(this, token)}
-            size="small"
+            size="sm"
             icon={<IconDelete />}
             data-test-id="token-delete"
             type="button"
@@ -441,7 +441,7 @@ export default class SentryApplicationDetails extends AsyncView<Props, State> {
               <PanelHeader hasButtons>
                 {t('Tokens')}
                 <Button
-                  size="xsmall"
+                  size="xs"
                   icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"

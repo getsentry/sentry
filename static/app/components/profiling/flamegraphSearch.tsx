@@ -7,7 +7,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
+import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   FlamegraphFrame,
@@ -16,12 +16,12 @@ import {
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
-type FrameSearchResults = Record<string, FlamegraphSearchResult>;
-
-function sortFrameResults(frames: FrameSearchResults | null): Array<FlamegraphFrame> {
+function sortFrameResults(
+  frames: FlamegraphSearchResults['results']
+): Array<FlamegraphFrame> {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
-  return Object.values(frames ?? {})
+  return [...frames.values()]
     .map(f => f.frame)
     .sort((a, b) =>
       a.start === b.start
@@ -30,14 +30,79 @@ function sortFrameResults(frames: FrameSearchResults | null): Array<FlamegraphFr
     );
 }
 
+function findBestMatchFromFuseMatches(
+  matches: ReadonlyArray<Fuse.FuseResultMatch>
+): Fuse.RangeTuple | null {
+  let bestMatch: Fuse.RangeTuple | null = null;
+  let bestMatchLength = 0;
+  let bestMatchStart = -1;
+
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+
+    for (let j = 0; j < match.indices.length; j++) {
+      const index = match.indices[j];
+      const matchLength = index[1] - index[0];
+
+      if (matchLength < 0) {
+        // Fuse sometimes returns negative indices - we will just skip them for now.
+        continue;
+      }
+
+      // We only override the match if the match is longer than the current best match
+      // or if the matches are the same length, but the start is earlier in the string
+      if (
+        matchLength > bestMatchLength ||
+        (matchLength === bestMatchLength && index[0] > bestMatchStart)
+      ) {
+        // Offset end by 1 else we are always trailing by 1 character.
+        bestMatch = [index[0], index[1] + 1];
+        bestMatchLength = matchLength;
+        bestMatchStart = index[0];
+      }
+    }
+  }
+
+  return bestMatch;
+}
+
+function findBestMatchFromRegexpMatchArray(
+  matches: RegExpMatchArray[]
+): Fuse.RangeTuple | null {
+  let bestMatch: Fuse.RangeTuple | null = null;
+  let bestMatchLength = 0;
+  let bestMatchStart = -1;
+
+  for (let i = 0; i < matches.length; i++) {
+    const index = matches[i].index;
+    if (index === undefined) {
+      continue;
+    }
+
+    // We only override the match if the match is longer than the current best match
+    // or if the matches are the same length, but the start is earlier in the string
+    if (
+      matches[i].length > bestMatchLength ||
+      (matches[i].length === bestMatchLength && index[0] > bestMatchStart)
+    ) {
+      bestMatch = [index, index + matches[i].length];
+      bestMatchLength = matches[i].length;
+      bestMatchStart = index;
+    }
+  }
+
+  return bestMatch;
+}
+
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
 
 function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
   index: Fuse<FlamegraphFrame>
-): FrameSearchResults | null {
-  const results: FrameSearchResults = {};
+): FlamegraphSearchResults['results'] {
+  const results: FlamegraphSearchResults['results'] = new Map();
+
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
 
@@ -53,20 +118,15 @@ function frameSearch(
 
         const re = new RegExp(lookup, flags ?? 'g');
         const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
-        if (reMatches.length > 0) {
+
+        const match = findBestMatchFromRegexpMatchArray(reMatches);
+
+        if (match) {
           const frameId = getFlamegraphFrameSearchId(frame);
-          results[frameId] = {
+          results.set(frameId, {
             frame,
-            matchIndices: reMatches.reduce((acc, match) => {
-              if (typeof match.index === 'undefined') {
-                return acc;
-              }
-
-              acc.push([match.index, match.index + match[0].length]);
-
-              return acc;
-            }, [] as Fuse.RangeTuple[]),
-          };
+            match,
+          });
           matches += 1;
         }
       }
@@ -75,7 +135,7 @@ function frameSearch(
     }
 
     if (matches <= 0) {
-      return null;
+      return results;
     }
 
     return results;
@@ -84,21 +144,21 @@ function frameSearch(
   const fuseResults = index.search(query);
 
   if (fuseResults.length <= 0) {
-    return null;
+    return results;
   }
 
   for (let i = 0; i < fuseResults.length; i++) {
     const fuseFrameResult = fuseResults[i];
     const frame = fuseFrameResult.item;
     const frameId = getFlamegraphFrameSearchId(frame);
-    results[frameId] = {
-      frame,
-      // matches will be defined when using 'includeMatches' in FuseOptions
-      matchIndices: fuseFrameResult.matches!.reduce((acc, val) => {
-        acc.push(...val.indices);
-        return acc;
-      }, [] as Fuse.RangeTuple[]),
-    };
+    const match = findBestMatchFromFuseMatches(fuseFrameResult.matches ?? []);
+
+    if (match) {
+      results.set(frameId, {
+        frame,
+        match,
+      });
+    }
   }
 
   return results;
@@ -150,12 +210,15 @@ function FlamegraphSearch({
       keys: ['frame.name'],
       threshold: 0.3,
       includeMatches: true,
+      findAllMatches: true,
+      ignoreLocation: true,
     });
   }, [allFrames]);
 
   const onZoomIntoFrame = useCallback(
     (frame: FlamegraphFrame) => {
-      canvasPoolManager.dispatch('zoomIntoFrame', [frame]);
+      canvasPoolManager.dispatch('zoom at frame', [frame, 'min']);
+      canvasPoolManager.dispatch('highlight frame', [frame, 'selected']);
     },
     [canvasPoolManager]
   );
@@ -249,6 +312,7 @@ function FlamegraphSearch({
 
   return (
     <StyledSearchBar
+      size="xs"
       placeholder={t('Find Frames')}
       query={search.query}
       onChange={handleChange}
@@ -258,10 +322,6 @@ function FlamegraphSearch({
 }
 
 const StyledSearchBar = styled(SearchBar)`
-  .search-input {
-    height: 28px;
-  }
-
   flex: 1 1 100%;
 `;
 

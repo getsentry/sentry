@@ -5,7 +5,7 @@ import uniq from 'lodash/uniq';
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {alertStyles} from 'sentry/components/alert';
+import Alert from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -264,7 +264,7 @@ class IssueListActions extends Component<Props, State> {
           <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
               onChange={this.handleSelectAll}
-              checked={pageSelected}
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
@@ -295,42 +295,47 @@ class IssueListActions extends Component<Props, State> {
           />
         </StyledFlex>
         {!allResultsVisible && pageSelected && (
-          <SelectAllNotice>
-            {allInQuerySelected ? (
-              queryCount >= BULK_LIMIT ? (
-                tct(
-                  'Selected up to the first [count] issues that match this search query.',
-                  {
-                    count: BULK_LIMIT_STR,
-                  }
+          <Alert type="warning" system>
+            <SelectAllNotice data-test-id="issue-list-select-all-notice">
+              {allInQuerySelected ? (
+                queryCount >= BULK_LIMIT ? (
+                  tct(
+                    'Selected up to the first [count] issues that match this search query.',
+                    {
+                      count: BULK_LIMIT_STR,
+                    }
+                  )
+                ) : (
+                  tct('Selected all [count] issues that match this search query.', {
+                    count: queryCount,
+                  })
                 )
               ) : (
-                tct('Selected all [count] issues that match this search query.', {
-                  count: queryCount,
-                })
-              )
-            ) : (
-              <Fragment>
-                {tn(
-                  '%s issue on this page selected.',
-                  '%s issues on this page selected.',
-                  numIssues
-                )}
-                <SelectAllLink onClick={this.handleApplyToAll}>
-                  {queryCount >= BULK_LIMIT
-                    ? tct(
-                        'Select the first [count] issues that match this search query.',
-                        {
-                          count: BULK_LIMIT_STR,
-                        }
-                      )
-                    : tct('Select all [count] issues that match this search query.', {
-                        count: queryCount,
-                      })}
-                </SelectAllLink>
-              </Fragment>
-            )}
-          </SelectAllNotice>
+                <Fragment>
+                  {tn(
+                    '%s issue on this page selected.',
+                    '%s issues on this page selected.',
+                    numIssues
+                  )}
+                  <SelectAllLink
+                    onClick={this.handleApplyToAll}
+                    data-test-id="issue-list-select-all-notice-link"
+                  >
+                    {queryCount >= BULK_LIMIT
+                      ? tct(
+                          'Select the first [count] issues that match this search query.',
+                          {
+                            count: BULK_LIMIT_STR,
+                          }
+                        )
+                      : tct('Select all [count] issues that match this search query.', {
+                          count: queryCount,
+                        })}
+                  </SelectAllLink>
+                </Fragment>
+              )}
+            </SelectAllNotice>
+          </Alert>
         )}
       </Sticky>
     );
@@ -345,7 +350,6 @@ const Sticky = styled('div')`
 
 const StyledFlex = styled('div')`
   display: flex;
-  box-sizing: border-box;
   min-height: 45px;
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};
@@ -368,15 +372,9 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
 `;
 
 const SelectAllNotice = styled('div')`
-  ${p => alertStyles({theme: p.theme, type: 'warning', system: true, opaque: true})}
-  flex-direction: row;
+  display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  padding: ${space(0.5)} ${space(1.5)};
-  border-top-width: 1px;
-
-  text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
 
   a:not([role='button']) {
     color: ${p => p.theme.linkColor};

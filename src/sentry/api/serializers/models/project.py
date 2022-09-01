@@ -181,6 +181,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     features: List[str]
     firstTransactionEvent: bool
     hasSessions: bool
+    hasProfiles: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
 
@@ -411,6 +412,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "firstEvent": obj.first_event,
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "hasSessions": bool(obj.flags.has_sessions),
+            "hasProfiles": bool(obj.flags.has_profiles),
             "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
@@ -634,6 +636,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             firstEvent=obj.first_event,
             firstTransactionEvent=bool(obj.flags.has_transactions),
             hasSessions=bool(obj.flags.has_sessions),
+            hasProfiles=bool(obj.flags.has_profiles),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -732,6 +735,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:grouping_enhancements_base",
             "sentry:secondary_grouping_config",
             "sentry:secondary_grouping_expiry",
+            "sentry:grouping_auto_update",
             "sentry:fingerprinting_rules",
             "sentry:relay_pii_config",
             "sentry:dynamic_sampling",
@@ -858,6 +862,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "secondaryGroupingConfig": get_value_with_default(
                     "sentry:secondary_grouping_config"
                 ),
+                "groupingAutoUpdate": get_value_with_default("sentry:grouping_auto_update"),
                 "fingerprintingRules": get_value_with_default("sentry:fingerprinting_rules"),
                 "organization": attrs["org"],
                 "plugins": serialize(

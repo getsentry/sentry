@@ -1,28 +1,38 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
-import {
-  Panel as BasePanel,
-  PanelBody as BasePanelBody,
-  PanelHeader as BasePanelHeader,
-} from 'sentry/components/panels';
-import TagsTable from 'sentry/components/tagsTable';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import {KeyValueTable} from 'sentry/components/keyValueTable';
+import {Panel as BasePanel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import TagsTableRow from 'sentry/components/tagsTableRow';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
-type Props = {
-  replay: ReplayReader;
-};
+function TagPanel() {
+  const {replay} = useReplayContext();
+  const replayRecord = replay?.getReplay();
 
-function TagPanel({replay}: Props) {
+  if (!replayRecord) {
+    return <Placeholder height="100%" />;
+  }
+
+  const query = '';
+  const generateUrl = () => '';
+
   return (
     <Panel>
-      <PanelHeader>{t('Tags')}</PanelHeader>
-      <PanelBody>
-        <TagsTable generateUrl={() => ''} event={replay.getEvent()} query="" />
-      </PanelBody>
+      <FluidPanel>
+        <KeyValueTable>
+          {Object.entries(replayRecord.tags).map(([key, value]) => (
+            <TagsTableRow
+              key={key}
+              tag={{key, value}}
+              query={query}
+              generateUrl={generateUrl}
+            />
+          ))}
+        </KeyValueTable>
+      </FluidPanel>
     </Panel>
   );
 }
@@ -31,24 +41,7 @@ const Panel = styled(BasePanel)`
   width: 100%;
   height: 100%;
   overflow: hidden;
-`;
-
-const PanelHeader = styled(BasePanelHeader)`
-  background-color: ${p => p.theme.background};
-  border-bottom: none;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  text-transform: capitalize;
-  padding: ${space(1.5)} ${space(2)} ${space(0.5)};
-`;
-
-const PanelBody = styled(BasePanelBody)`
-  padding: ${space(1.5)};
-  overflow-y: auto;
-  max-height: calc(100% - 34px);
-  ${SectionHeading} {
-    display: none;
-  }
+  margin-bottom: 0;
 `;
 
 export default TagPanel;

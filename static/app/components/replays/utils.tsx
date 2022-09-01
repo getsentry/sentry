@@ -1,17 +1,11 @@
-import moment from 'moment';
+import padStart from 'lodash/padStart';
 
 import {Crumb} from 'sentry/types/breadcrumbs';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 
 function padZero(num: number, len = 2): string {
-  let str = String(num);
-  const threshold = Math.pow(10, len - 1);
-  if (num < threshold) {
-    while (String(threshold).length > str.length) {
-      str = '0' + num;
-    }
-  }
-  return str;
+  const str = String(num);
+  return padStart(str, len, '0');
 }
 
 const SECOND = 1000;
@@ -23,28 +17,51 @@ const HOUR = 60 * MINUTE;
  * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
-export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
-  return moment(timestamp).diff(moment.unix(diffMs)).valueOf();
+export function relativeTimeInMs(
+  timestamp: ConstructorParameters<typeof Date>[0],
+  diffMs: number
+): number {
+  return Math.abs(new Date(timestamp).getTime() - diffMs);
 }
 
-export function showPlayerTime(timestamp: string, relativeTime: number): string {
-  return formatTime(relativeTimeInMs(timestamp, relativeTime));
+export function showPlayerTime(
+  timestamp: ConstructorParameters<typeof Date>[0],
+  relativeTimeMs: number,
+  showMs: boolean = false
+): string {
+  return formatTime(relativeTimeInMs(timestamp, relativeTimeMs), showMs);
 }
 
 // TODO: move into 'sentry/utils/formatters'
-export function formatTime(ms: number): string {
+export function formatTime(ms: number, showMs?: boolean): string {
   if (ms <= 0 || isNaN(ms)) {
-    return '0:00';
+    if (showMs) {
+      return '00:00.000';
+    }
+
+    return '00:00';
   }
+
   const hour = Math.floor(ms / HOUR);
   ms = ms % HOUR;
   const minute = Math.floor(ms / MINUTE);
   ms = ms % MINUTE;
   const second = Math.floor(ms / SECOND);
+
+  let formattedTime = '00:00';
+
   if (hour) {
-    return `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
+    formattedTime = `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
+  } else {
+    formattedTime = `${padZero(minute)}:${padZero(second)}`;
   }
-  return `${padZero(minute)}:${padZero(second)}`;
+
+  if (showMs) {
+    const milliseconds = Math.floor(ms % SECOND);
+    formattedTime = `${formattedTime}.${padZero(milliseconds, 3)}`;
+  }
+
+  return formattedTime;
 }
 
 /**
@@ -55,14 +72,14 @@ export function formatTime(ms: number): string {
  * of time (like every second) but if the duration is long one tick may
  * represent an hour.
  *
- * @param duration The amount of time that we need to chop up into even sections
+ * @param durationMs The amount of time that we need to chop up into even sections
  * @param width Total width available, pixels
  * @param minWidth Minimum space for each column, pixels. Ex: So we can show formatted time like `1:00:00` between major ticks
  * @returns
  */
-export function countColumns(duration: number, width: number, minWidth: number = 50) {
+export function countColumns(durationMs: number, width: number, minWidth: number = 50) {
   let maxCols = Math.floor(width / minWidth);
-  const remainder = duration - maxCols * width > 0 ? 1 : 0;
+  const remainder = durationMs - maxCols * width > 0 ? 1 : 0;
   maxCols -= remainder;
 
   // List of all the possible time granularities to display
@@ -83,7 +100,7 @@ export function countColumns(duration: number, width: number, minWidth: number =
   ];
 
   const timeBasedCols = timeOptions.reduce<Map<number, number>>((map, time) => {
-    map.set(time, Math.floor(duration / time));
+    map.set(time, Math.floor(durationMs / time));
     return map;
   }, new Map());
 
@@ -91,7 +108,7 @@ export function countColumns(duration: number, width: number, minWidth: number =
     .filter(([_span, c]) => c <= maxCols) // Filter for any valid timespan option where all ticks would fit
     .reduce((best, next) => (next[1] > best[1] ? next : best), [0, 0]); // select the timespan option with the most ticks
 
-  const remaining = (duration - timespan * cols) / timespan;
+  const remaining = (durationMs - timespan * cols) / timespan;
   return {timespan, cols, remaining};
 }
 
@@ -105,21 +122,25 @@ export function countColumns(duration: number, width: number, minWidth: number =
  * and the timestamp of the crumb.
  */
 export function getCrumbsByColumn(
-  startTimestamp: number,
-  duration: number,
+  startTimestampMs: number,
+  durationMs: number,
   crumbs: Crumb[],
   totalColumns: number
 ) {
-  const startMilliSeconds = startTimestamp * 1000;
-  const safeDuration = isNaN(duration) ? 1 : duration;
+  const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
   const columnCrumbPairs = crumbs.map(breadcrumb => {
     const {timestamp} = breadcrumb;
     const timestampMilliSeconds = +new Date(String(timestamp));
     const sinceStart = isNaN(timestampMilliSeconds)
       ? 0
-      : timestampMilliSeconds - startMilliSeconds;
-    const column = Math.floor((sinceStart / safeDuration) * (totalColumns - 1)) + 1;
+      : timestampMilliSeconds - startTimestampMs;
+
+    const columnPositionCalc =
+      Math.floor((sinceStart / safeDurationMs) * (totalColumns - 1)) + 1;
+
+    // Should start at minimum in the first column
+    const column = Math.max(1, columnPositionCalc);
 
     return [column, breadcrumb] as [number, Crumb];
   });

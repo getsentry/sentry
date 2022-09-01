@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import pick from 'lodash/pick';
 
@@ -77,7 +78,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   renderNoQueryResults() {
     return (
       <EmptyStateWarning>
-        <p>{t('Sorry, no event attachments match your search query.')}</p>
+        <p>{t('No crash reports found')}</p>
       </EmptyStateWarning>
     );
   }
@@ -85,7 +86,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
   renderEmpty() {
     return (
       <EmptyStateWarning>
-        <p>{t("There don't seem to be any event attachments yet.")}</p>
+        <p>{t('No attachments found')}</p>
       </EmptyStateWarning>
     );
   }

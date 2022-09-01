@@ -15,13 +15,14 @@ import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
 import Button from 'sentry/components/button';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButtonV2';
+import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import SelectControl, {
   ControlProps,
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
+import {FormSize} from 'sentry/utils/theme';
 
 interface TriggerRenderingProps {
   props: Omit<DropdownButtonProps, 'children'>;
@@ -31,6 +32,7 @@ interface TriggerRenderingProps {
 interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> {
   children: (maxHeight: number | string) => React.ReactNode;
   maxMenuHeight?: number;
+  minMenuWidth?: number;
 }
 
 interface Props<OptionType>
@@ -52,6 +54,10 @@ interface Props<OptionType>
    * Tag name for the outer wrap, defaults to `div`
    */
   renderWrapAs?: React.ElementType;
+  /**
+   * Affects the size of the trigger button and menu items.
+   */
+  size?: FormSize;
   /**
    * Optionally replace the trigger button with a different component. Note
    * that the replacement must have the `props` and `ref` (supplied in
@@ -143,6 +149,7 @@ function Menu({
   shouldCloseOnBlur = true,
   isDismissable = true,
   maxMenuHeight = 400,
+  minMenuWidth,
   children,
 }: MenuProps) {
   // Control the overlay's position
@@ -168,27 +175,6 @@ function Menu({
     isOpen: true,
   });
 
-  // Calculate the current trigger element's width. This will be used as
-  // the min width for the menu.
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  // Update triggerWidth when its size changes using useResizeObserver
-  const updateTriggerWidth = useCallback(async () => {
-    // Wait until the trigger element finishes rendering, otherwise
-    // ResizeObserver might throw an infinite loop error.
-    await new Promise(resolve => window.setTimeout(resolve));
-    const newTriggerWidth = targetRef.current?.offsetWidth;
-    newTriggerWidth && setTriggerWidth(newTriggerWidth);
-  }, [targetRef]);
-  useResizeObserver({ref: targetRef, onResize: updateTriggerWidth});
-  // If ResizeObserver is not available, manually update the width
-  // when any of [trigger, triggerLabel, triggerProps] changes.
-  useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
-      return;
-    }
-    updateTriggerWidth();
-  }, [updateTriggerWidth]);
-
   const menuHeight = positionProps.style?.maxHeight
     ? Math.min(+positionProps.style?.maxHeight, maxMenuHeight)
     : 'none';
@@ -196,7 +182,7 @@ function Menu({
   return (
     <Overlay
       ref={overlayRef}
-      minWidth={triggerWidth}
+      minWidth={minMenuWidth}
       {...mergeProps(overlayProps, positionProps)}
     >
       <FocusScope restoreFocus autoFocus>
@@ -225,10 +211,12 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   trigger,
   triggerLabel,
   triggerProps,
+  size = 'md',
   className,
   renderWrapAs,
   closeOnSelect = true,
   menuTitle,
+  onClose,
   ...props
 }: Props<OptionType>) {
   // Manage the dropdown menu's open state
@@ -283,13 +271,35 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     }
   }
 
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
+  const [triggerWidth, setTriggerWidth] = useState<number>();
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => window.setTimeout(resolve));
+    const newTriggerWidth = triggerRef.current?.offsetWidth;
+    newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [triggerRef]);
+  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
+  useEffect(() => {
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
+
   function renderTrigger() {
     if (trigger) {
       return trigger({
         props: {
+          size,
+          isOpen: state.isOpen,
           ...triggerProps,
           ...buttonProps,
-          isOpen: state.isOpen,
         },
         ref: triggerRef,
       });
@@ -297,6 +307,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     return (
       <DropdownButton
         ref={triggerRef}
+        size={size}
         isOpen={state.isOpen}
         {...triggerProps}
         {...buttonProps}
@@ -306,13 +317,23 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     );
   }
 
+  function onMenuClose() {
+    onClose?.();
+    state.close();
+  }
+
   function renderMenu() {
     if (!state.isOpen) {
       return null;
     }
 
     return (
-      <Menu targetRef={triggerRef} onClose={state.close} {...props}>
+      <Menu
+        targetRef={triggerRef}
+        onClose={onMenuClose}
+        minMenuWidth={triggerWidth}
+        {...props}
+      >
         {menuHeight => (
           <SelectControl
             components={{Control: CompactSelectControl, ClearIndicator: null}}
@@ -321,6 +342,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             value={valueProp ?? internalValue}
             multiple={multiple}
             onChange={onValueChange}
+            size={size}
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
@@ -355,6 +377,7 @@ const MenuControlWrap = styled('div')``;
 
 const ButtonLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
+  text-align: left;
 `;
 
 const StyledBadge = styled(Badge)`
@@ -381,7 +404,7 @@ const MenuHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
   z-index: 1;
 `;

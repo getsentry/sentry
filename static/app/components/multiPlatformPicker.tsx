@@ -4,9 +4,11 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   filterAliases,
@@ -14,13 +16,11 @@ import categoryList, {
   popularPlatformCategories,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {IconClose, IconProject, IconSearch} from 'sentry/icons';
+import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
@@ -102,20 +102,13 @@ function PlatformPicker(props: PlatformPickerProps) {
       category === 'all' ||
       (currentCategory?.platforms as undefined | string[])?.includes(platform.id);
 
-    const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
-      // for the all category, put popular ones at the top in the order they appear in the popular list
+    const customCompares = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // the all category and serverless category both require custom sorts
       if (category === 'all') {
-        if (isPopular(a) && isPopular(b)) {
-          // if both popular, maintain ordering from popular list
-          return popularIndex(a) - popularIndex(b);
-        }
-        // if one popular, that one should be first
-        if (isPopular(a) !== isPopular(b)) {
-          return isPopular(a) ? -1 : 1;
-        }
-        // since the all list is coming from a different source (platforms.json)
-        // we can't go off the index of the item in platformCategories.tsx since there is no all list
-        return a.id.localeCompare(b.id);
+        return popularTopOfAllCompare(a, b);
+      }
+      if (category === 'serverless') {
+        return serverlessCompare(a, b);
       }
       // maintain ordering otherwise
       return (
@@ -124,10 +117,42 @@ function PlatformPicker(props: PlatformPickerProps) {
       );
     };
 
+    const popularTopOfAllCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // for the all category, put popular ones at the top in the order they appear in the popular list
+      if (isPopular(a) && isPopular(b)) {
+        // if both popular, maintain ordering from popular list
+        return popularIndex(a) - popularIndex(b);
+      }
+      // if one popular, that one should be first
+      if (isPopular(a) !== isPopular(b)) {
+        return isPopular(a) ? -1 : 1;
+      }
+      // since the all list is coming from a different source (platforms.json)
+      // we can't go off the index of the item in platformCategories.tsx since there is no all list
+      return a.id.localeCompare(b.id);
+    };
+
+    const serverlessCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
+      // for the serverless category, sort by service, then language
+      // the format of the ids is language-service
+      const aProvider = a.id.split('-')[1];
+      const bProvider = b.id.split('-')[1];
+      // if either of the ids are not hyphenated, standard sort
+      if (!aProvider || !bProvider) {
+        return a.id.localeCompare(b.id);
+      }
+      // compare the portions after the hyphen
+      const compareServices = aProvider.localeCompare(bProvider);
+      // if they have the same service provider
+      if (!compareServices) {
+        return a.id.localeCompare(b.id);
+      }
+      return compareServices;
+    };
+
     const filtered = platforms
       .filter(filterLowerCase ? subsetMatch : categoryMatch)
-      .sort(popularTopOfAllCompare);
-
+      .sort(customCompares);
     return props.showOther ? filtered : filtered.filter(({id}) => id !== 'other');
   }
 
@@ -145,7 +170,7 @@ function PlatformPicker(props: PlatformPickerProps) {
     }
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  useEffect(logSearch, [filter]);
+  useEffect(logSearch, [filter, logSearch]);
 
   return (
     <Fragment>
@@ -171,17 +196,12 @@ function PlatformPicker(props: PlatformPickerProps) {
             </ListLink>
           ))}
         </CategoryNav>
-        <SearchBar>
-          <IconSearch size="xs" />
-          <input
-            type="text"
-            value={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={e => {
-              setFilter(e.target.value);
-            }}
-          />
-        </SearchBar>
+        <StyledSearchBar
+          size="sm"
+          query={filter}
+          placeholder={t('Filter Platforms')}
+          onChange={setFilter}
+        />
       </NavContainer>
       <PlatformList className={listClassName} {...listProps}>
         {platformList.map(platform => (
@@ -240,30 +260,10 @@ const NavContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const SearchBar = styled('div')`
-  ${p => inputStyles(p)};
-  padding: 0 8px;
-  color: ${p => p.theme.subText};
-  display: flex;
-  align-items: center;
-  font-size: 15px;
-  margin-top: -${space(0.75)};
-
-  input {
-    border: none;
-    background: none;
-    padding: 2px 4px;
-    width: 100%;
-    /* Ensure a consistent line height to keep the input the desired height */
-    line-height: 24px;
-
-    &:focus {
-      outline: none;
-    }
-  }
-
+const StyledSearchBar = styled(SearchBar)`
   max-width: 300px;
   min-width: 150px;
+  margin-top: -${space(0.25)};
   margin-left: auto;
   flex-shrink: 0;
   flex-basis: 0;
@@ -313,7 +313,7 @@ const ClearButton = styled(Button)`
 ClearButton.defaultProps = {
   icon: <IconClose isCircled size="xs" />,
   borderless: true,
-  size: 'xsmall',
+  size: 'xs',
 };
 
 const PlatformCard = styled(({platform, selected, onClear, ...props}) => (

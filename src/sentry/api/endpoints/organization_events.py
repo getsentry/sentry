@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
@@ -9,136 +8,103 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
+from sentry.snuba.referrer import Referrer
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
 
-METRICS_ENHANCED_REFERRERS = {
-    "api.performance.landing-table",
-}
+METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
 
 ALLOWED_EVENTS_REFERRERS = {
-    "api.organization-events",
-    "api.organization-events-v2",
-    "api.dashboards.tablewidget",
-    "api.dashboards.bignumberwidget",
-    "api.discover.transactions-list",
-    "api.discover.query-table",
-    "api.performance.vitals-cards",
-    "api.performance.landing-table",
-    "api.performance.transaction-summary",
-    "api.performance.transaction-spans",
-    "api.performance.status-breakdown",
-    "api.performance.vital-detail",
-    "api.performance.durationpercentilechart",
-    "api.performance.tag-page",
-    "api.trace-view.span-detail",
-    "api.trace-view.errors-view",
-    "api.trace-view.hover-card",
+    Referrer.API_ORGANIZATION_EVENTS.value,
+    Referrer.API_ORGANIZATION_EVENTS_V2.value,
+    Referrer.API_DASHBOARDS_TABLEWIDGET.value,
+    Referrer.API_DASHBOARDS_BIGNUMBERWIDGET.value,
+    Referrer.API_DISCOVER_TRANSACTIONS_LIST.value,
+    Referrer.API_DISCOVER_QUERY_TABLE.value,
+    Referrer.API_PERFORMANCE_VITALS_CARDS.value,
+    Referrer.API_PERFORMANCE_LANDING_TABLE.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY.value,
+    Referrer.API_PERFORMANCE_TRANSACTION_SPANS.value,
+    Referrer.API_PERFORMANCE_STATUS_BREAKDOWN.value,
+    Referrer.API_PERFORMANCE_VITAL_DETAIL.value,
+    Referrer.API_PERFORMANCE_DURATIONPERCENTILECHART.value,
+    Referrer.API_REPLAY_DETAILS_PAGE.value,
+    Referrer.API_TRACE_VIEW_SPAN_DETAIL.value,
+    Referrer.API_TRACE_VIEW_ERRORS_VIEW.value,
+    Referrer.API_TRACE_VIEW_HOVER_CARD.value,
 }
 
 ALLOWED_EVENTS_GEO_REFERRERS = {
-    "api.organization-events-geo",
-    "api.dashboards.worldmapwidget",
+    Referrer.API_ORGANIZATION_EVENTS_GEO.value,
+    Referrer.API_DASHBOARDS_WORLDMAPWIDGET.value,
 }
 
-API_TOKEN_REFERRER = "api.auth-token.events"
+API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
+
+RATE_LIMIT = 15
+RATE_LIMIT_WINDOW = 1
+CONCURRENT_RATE_LIMIT = 10
+
+DEFAULT_RATE_LIMIT = 50
+DEFAULT_RATE_LIMIT_WINDOW = 1
+DEFAULT_CONCURRENT_RATE_LIMIT = 50
+
+DEFAULT_EVENTS_RATE_LIMIT_CONFIG = {
+    "GET": {
+        RateLimitCategory.IP: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+        RateLimitCategory.USER: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+        RateLimitCategory.ORGANIZATION: RateLimit(
+            DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+        ),
+    }
+}
 
 
-class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    """Deprecated in favour of OrganizationEventsEndpoint"""
-
-    @deprecated(
-        datetime.fromisoformat("2022-07-21T00:00:00+00:00:00"),
-        suggested_api="api/0/organizations/{organization_slug}/events/",
-    )
-    def get(self, request: Request, organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        try:
-            params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response([])
-        except InvalidParams as err:
-            raise ParseError(err)
-
-        referrer = request.GET.get("referrer")
-        use_metrics = features.has(
-            "organizations:performance-use-metrics", organization=organization, actor=request.user
-        ) or features.has(
-            "organizations:dashboards-mep", organization=organization, actor=request.user
-        )
-        performance_dry_run_mep = features.has(
-            "organizations:performance-dry-run-mep", organization=organization, actor=request.user
-        )
-
-        # This param will be deprecated in favour of dataset
-        if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-        else:
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
-
-        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
-        allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
-
-        referrer = (
-            referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events-v2"
-        )
-
-        def data_fn(offset, limit):
-            query_details = {
-                "selected_columns": self.get_field_list(organization, request),
-                "query": request.GET.get("query"),
-                "params": params,
-                "equations": self.get_equation_list(organization, request),
-                "orderby": self.get_orderby(request),
-                "offset": offset,
-                "limit": limit,
-                "referrer": referrer,
-                "auto_fields": True,
-                "auto_aggregations": True,
-                "use_aggregate_conditions": True,
-                "allow_metric_aggregates": allow_metric_aggregates,
+def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs) -> RateLimitConfig:
+    try:
+        organization = Organization.objects.get_from_cache(slug=organization_slug)
+    except Organization.DoesNotExist:
+        return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
+    # Check for feature flag to enforce rate limit otherwise use default rate limit
+    if features.has("organizations:discover-events-rate-limit", organization, actor=request.user):
+        return {
+            "GET": {
+                RateLimitCategory.IP: RateLimit(
+                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+                ),
+                RateLimitCategory.USER: RateLimit(
+                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+                ),
+                RateLimitCategory.ORGANIZATION: RateLimit(
+                    RATE_LIMIT, RATE_LIMIT_WINDOW, CONCURRENT_RATE_LIMIT
+                ),
             }
-            if not metrics_enhanced and performance_dry_run_mep:
-                sentry_sdk.set_tag("query.mep_compatible", False)
-                metrics_enhanced_performance.query(dry_run=True, **query_details)
-            return dataset.query(**query_details)
-
-        with self.handle_query_errors():
-            # Don't include cursor headers if the client won't be using them
-            if request.GET.get("noPagination"):
-                return Response(
-                    self.handle_results_with_meta(
-                        request,
-                        organization,
-                        params["project_id"],
-                        data_fn(0, self.get_per_page(request)),
-                    )
-                )
-            else:
-                return self.paginate(
-                    request=request,
-                    paginator=GenericOffsetPaginator(data_fn=data_fn),
-                    on_results=lambda results: self.handle_results_with_meta(
-                        request, organization, params["project_id"], results
-                    ),
-                )
+        }
+    return DEFAULT_EVENTS_RATE_LIMIT_CONFIG
 
 
 @extend_schema(tags=["Discover"])
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     public = {"GET"}
+
+    enforce_rate_limit = True
+
+    def rate_limits(*args, **kwargs) -> RateLimitConfig:
+        return rate_limit_events(*args, **kwargs)
 
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
@@ -227,22 +193,33 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             raise ParseError(err)
 
         referrer = request.GET.get("referrer")
-        use_metrics = features.has(
-            "organizations:performance-use-metrics", organization=organization, actor=request.user
-        ) or features.has(
-            "organizations:dashboards-mep", organization=organization, actor=request.user
+        use_metrics = (
+            (
+                features.has(
+                    "organizations:mep-rollout-flag", organization=organization, actor=request.user
+                )
+                and features.has(
+                    "organizations:server-side-sampling",
+                    organization=organization,
+                    actor=request.user,
+                )
+            )
+            or features.has(
+                "organizations:performance-use-metrics",
+                organization=organization,
+                actor=request.user,
+            )
+            or features.has(
+                "organizations:dashboards-mep", organization=organization, actor=request.user
+            )
         )
+
         performance_dry_run_mep = features.has(
             "organizations:performance-dry-run-mep", organization=organization, actor=request.user
         )
 
-        # This param will be deprecated in favour of dataset
-        if "metricsEnhanced" in request.GET:
-            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
-            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
-        else:
-            dataset = self.get_dataset(request) if use_metrics else discover
-            metrics_enhanced = dataset != discover
+        dataset = self.get_dataset(request) if use_metrics else discover
+        metrics_enhanced = dataset != discover
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -250,7 +227,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         if request.auth:
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
-            referrer = "api.organization-events"
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def data_fn(offset, limit):
             query_details = {
@@ -322,7 +299,9 @@ class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
 
         referrer = request.GET.get("referrer")
         referrer = (
-            referrer if referrer in ALLOWED_EVENTS_GEO_REFERRERS else "api.organization-events-geo"
+            referrer
+            if referrer in ALLOWED_EVENTS_GEO_REFERRERS
+            else Referrer.API_ORGANIZATION_EVENTS_GEO.value
         )
 
         def data_fn(offset, limit):

@@ -8,14 +8,15 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 
 import TableView from './tableView';
@@ -134,7 +135,7 @@ class Table extends PureComponent<TableProps, TableState> {
         const tableData = shouldUseEvents
           ? {
               ...data,
-              meta: {...fields, nonFieldsMeta},
+              meta: {...fields, ...nonFieldsMeta},
             }
           : data;
 
@@ -192,16 +193,21 @@ class Table extends PureComponent<TableProps, TableState> {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
 
             return (
-              <TableView
-                {...this.props}
-                isLoading={isLoading}
-                isFirstPage={isFirstPage}
-                error={error}
-                eventView={eventView}
-                tableData={tableData}
-                measurementKeys={measurementKeys}
-                spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
-              />
+              <CustomMeasurementsContext.Consumer>
+                {contextValue => (
+                  <TableView
+                    {...this.props}
+                    isLoading={isLoading}
+                    isFirstPage={isFirstPage}
+                    error={error}
+                    eventView={eventView}
+                    tableData={tableData}
+                    measurementKeys={measurementKeys}
+                    spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
+                    customMeasurements={contextValue?.customMeasurements ?? undefined}
+                  />
+                )}
+              </CustomMeasurementsContext.Consumer>
             );
           }}
         </Measurements>

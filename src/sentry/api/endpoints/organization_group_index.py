@@ -21,8 +21,8 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
@@ -220,7 +220,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
-            start, end = get_date_range_from_params(request.GET)
+            start, end = get_date_range_from_stats_period(request.GET)
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 

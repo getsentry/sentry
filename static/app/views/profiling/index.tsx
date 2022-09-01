@@ -11,20 +11,16 @@ type Props = {
 };
 
 function ProfilingContainer({organization, children}: Props) {
-  function renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
-
   return (
     <Feature
       hookName="feature-disabled:profiling-page"
       features={['profiling']}
       organization={organization}
-      renderDisabled={renderNoAccess}
+      renderDisabled={() => (
+        <PageContent>
+          <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+        </PageContent>
+      )}
     >
       {children}
     </Feature>

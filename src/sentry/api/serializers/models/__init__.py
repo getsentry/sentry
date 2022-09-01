@@ -27,6 +27,7 @@ from .exporteddata import *  # noqa: F401,F403
 from .external_actor import *  # noqa: F401,F403
 from .filechange import *  # noqa: F401,F403
 from .group import *  # noqa: F401,F403
+from .group_stream import *  # noqa: F401,F403
 from .grouprelease import *  # noqa: F401,F403
 from .groupseen import *  # noqa: F401,F403
 from .grouptombstone import *  # noqa: F401,F403
@@ -65,6 +66,7 @@ from .relay import *  # noqa: F401,F403
 from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403
+from .releaseactivity import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .repository_project_path_config import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
@@ -74,6 +76,7 @@ from .sentry_app import *  # noqa: F401,F403
 from .sentry_app_avatar import *  # noqa: F401,F403
 from .sentry_app_component import *  # noqa: F401,F403
 from .sentry_app_installation import *  # noqa: F401,F403
+from .sentry_function import *  # noqa: F401,F403
 from .servicehook import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403
 from .team import *  # noqa: F401,F403

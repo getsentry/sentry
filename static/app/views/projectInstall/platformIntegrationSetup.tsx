@@ -18,7 +18,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import FirstEventFooter from 'sentry/views/onboarding/components/firstEventFooter';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
-import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
+import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 
@@ -140,13 +140,13 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
                   onAddIntegration={this.handleAddIntegration}
                   organization={organization}
                   priority="primary"
-                  size="small"
+                  size="sm"
                   analyticsParams={{view: 'project_creation', already_installed: false}}
                   modalParams={{projectId: project.id}}
                   aria-label={t('Add integration')}
                 />
                 <Button
-                  size="small"
+                  size="sm"
                   to={{
                     pathname: window.location.pathname,
                     query: {manual: '1'},

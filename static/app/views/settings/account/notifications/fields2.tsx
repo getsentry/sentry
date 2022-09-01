@@ -1,3 +1,6 @@
+import {Fragment} from 'react';
+
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Field} from 'sentry/components/forms/type';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -13,6 +16,20 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['never', t('Off')],
     ],
     help: t('Notifications sent from Alert rules that your team has set up.'),
+  },
+  activeRelease: {
+    name: 'activeRelease',
+    type: 'select',
+    label: (
+      <Fragment>
+        {t('Release Issues')} <FeatureBadge type="alpha" />
+      </Fragment>
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ],
+    help: t('Notifications sent for issues likely caused by your code changes.'),
   },
   workflow: {
     name: 'workflow',
@@ -31,7 +48,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     label: t('Deploys'),
     choices: [
       ['always', t('On')],
-      ['committed_only', t('Only Committed Issues')],
+      ['committed_only', t('Releases with My Commits')],
       ['never', t('Off')],
     ],
     help: t('Release, environment, and commit overviews.'),
@@ -41,10 +58,18 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     type: 'select',
     label: t('Delivery Method'),
     choices: [
-      ['email', t('Send to Email')],
-      ['slack', t('Send to Slack')],
-      ['email+slack', t('Send to Email and Slack')],
+      ['email', t('Email')],
+      ['slack', t('Slack')],
+      ['msteams', t('Microsoft Teams')],
     ],
+    multiple: true,
+    onChange: val => {
+      // This is a little hack to prevent this field from being empty.
+      // TODO(nisanthan): need to prevent showing the clearable on. the multi-select when its only 1 value.
+      if (!val || val.length === 0) {
+        throw Error('Invalid selection. Field cannot be empty.');
+      }
+    },
   },
   approval: {
     name: 'approval',

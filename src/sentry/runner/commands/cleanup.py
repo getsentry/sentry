@@ -151,11 +151,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         from django.db import router as db_router
 
-        from sentry import models
-        from sentry.app import nodestore
+        from sentry import models, nodestore
         from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery
+        from sentry.replays import models as replay_models
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -186,6 +186,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         # (model, datetime_field, order_by)
         DELETES = [
             (models.EventAttachment, "date_added", "date_added"),
+            (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead

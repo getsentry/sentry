@@ -3,6 +3,7 @@ import {t} from 'sentry/locale';
 export const ALL_PROVIDERS = {
   email: 'default',
   slack: 'never',
+  msteams: 'never',
 };
 export const ALL_PROVIDER_NAMES = Object.keys(ALL_PROVIDERS);
 
@@ -28,6 +29,7 @@ export type NotificationSettingsObject = {
 
 export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',
+  'activeRelease',
   'workflow',
   'deploy',
   'approval',

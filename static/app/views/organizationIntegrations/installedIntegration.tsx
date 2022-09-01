@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 
-import AddIntegrationButton from './addIntegrationButton';
+import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 type Props = {
@@ -138,7 +138,7 @@ export default class InstalledIntegration extends Component<Props> {
                       organization={organization}
                       provider={provider}
                       priority="primary"
-                      size="small"
+                      size="sm"
                     />
                   )}
                   <StyledButton

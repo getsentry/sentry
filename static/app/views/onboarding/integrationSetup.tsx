@@ -20,7 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import AddIntegrationButton from 'sentry/views/organizationIntegrations/addIntegrationButton';
+import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
 import FirstEventFooter from './components/firstEventFooter';
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
@@ -176,12 +176,12 @@ class IntegrationSetup extends Component<Props, State> {
               onAddIntegration={this.handleAddIntegration}
               organization={organization}
               priority="primary"
-              size="small"
+              size="sm"
               analyticsParams={{view: 'onboarding', already_installed: false}}
               modalParams={{projectId: project.id}}
             />
             <Button
-              size="small"
+              size="sm"
               to={{
                 pathname: window.location.pathname,
                 query: {manual: '1'},

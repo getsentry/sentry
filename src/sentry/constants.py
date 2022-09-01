@@ -7,7 +7,7 @@ import logging
 import os.path
 from collections import OrderedDict, namedtuple
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 import sentry_relay
 from django.conf import settings
@@ -29,7 +29,7 @@ def get_all_languages() -> List[str]:
     return results
 
 
-MODULE_ROOT = os.path.dirname(__import__("sentry").__file__)
+MODULE_ROOT = os.path.dirname(cast(str, __import__("sentry").__file__))
 DATA_ROOT = os.path.join(MODULE_ROOT, "data")
 
 BAD_RELEASE_CHARS = "\r\n\f\x0c\t/\\"
@@ -468,6 +468,19 @@ class SentryAppStatus:
             return cls.INTERNAL_STR
         elif status == cls.PUBLISH_REQUEST_INPROGRESS:
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
+        else:
+            return None
+
+    @classmethod
+    def as_int(cls, status: str) -> Optional[int]:
+        if status == cls.UNPUBLISHED_STR:
+            return cls.UNPUBLISHED
+        elif status == cls.PUBLISHED_STR:
+            return cls.PUBLISHED
+        elif status == cls.INTERNAL_STR:
+            return cls.INTERNAL
+        elif status == cls.PUBLISH_REQUEST_INPROGRESS_STR:
+            return cls.PUBLISH_REQUEST_INPROGRESS
         else:
             return None
 

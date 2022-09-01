@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -16,7 +17,6 @@ import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
 import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = RouteComponentProps<{orgId: string; teamId: string}, {}> & {
   organization: Organization;
@@ -150,7 +150,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
               message={t('Are you sure you want to remove this Slack team link?')}
             >
               <Button
-                size="small"
+                size="sm"
                 icon={<IconDelete size="md" />}
                 aria-label={t('delete')}
                 disabled={!hasAccess}

@@ -1,6 +1,7 @@
 import {CSSProperties, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
@@ -13,8 +14,9 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, SelectValue} from 'sentry/types';
 import usePrevious from 'sentry/utils/usePrevious';
-import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
+import {DashboardFilters, DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
 
+import {getDashboardFiltersFromURL} from '../../utils';
 import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
 import {displayTypes} from '../utils';
 
@@ -22,11 +24,14 @@ import {BuildStep} from './buildStep';
 
 interface Props {
   displayType: DisplayType;
+  location: Location;
   onChange: (displayType: DisplayType) => void;
   organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   error?: string;
+  noDashboardsMEPProvider?: boolean;
 }
 
 export function VisualizationStep({
@@ -36,6 +41,9 @@ export function VisualizationStep({
   error,
   onChange,
   widget,
+  noDashboardsMEPProvider,
+  dashboardFilters,
+  location,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -100,6 +108,7 @@ export function VisualizationStep({
           organization={organization}
           selection={pageFilters}
           widget={debouncedWidget}
+          dashboardFilters={getDashboardFiltersFromURL(location) ?? dashboardFilters}
           isEditing={false}
           widgetLimitReached={false}
           renderErrorMessage={errorMessage =>
@@ -111,6 +120,7 @@ export function VisualizationStep({
           currentWidgetDragging={false}
           noLazyLoad
           showStoredAlert
+          noDashboardsMEPProvider={noDashboardsMEPProvider}
         />
       </VisualizationWrapper>
     </BuildStep>

@@ -38,7 +38,9 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         for member in members:
             self.set_member_in_cache(member)
         # convert members to users
-        return map(lambda member: member.user, members)
+        user_map: Iterable[User] = map(lambda member: member.user, members)
+        # convert to list from an interterator
+        return list(user_map)
 
     @abstractmethod
     def determine_member_recipients(self) -> Iterable[OrganizationMember]:
@@ -58,5 +60,5 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         recipient_member = self.get_member(recipient)
         return (
             "You are receiving this notification because you're listed as an organization "
-            f"{self.get_role_string(recipient_member)} | <{settings_url}|Notification Settings>"
+            f"{self.get_role_string(recipient_member)} | {settings_url}"
         )

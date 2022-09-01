@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -10,7 +11,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Project, Scope} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -90,9 +91,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'metric',
         type: 'select',
         label: t('Calculation Method'),
-        choices: [
-          ['duration', t('Transaction Duration')],
-          ['lcp', t('Largest Contentful Paint')],
+        options: [
+          {value: 'duration', label: t('Transaction Duration')},
+          {value: 'lcp', label: t('Largest Contentful Paint')},
         ],
         help: tct(
           'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
@@ -136,10 +137,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
   renderBody() {
     const {organization, project} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
+    const requiredScopes: Scope[] = ['project:write'];
+
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
-        <PermissionAlert />
+        <PermissionAlert access={requiredScopes} />
         <Form
           saveOnBlur
           allowUndo
@@ -160,17 +163,22 @@ class ProjectPerformance extends AsyncView<Props, State> {
             this.setState({threshold: resp});
           }}
         >
-          <JsonForm
-            title={t('General')}
-            fields={this.formFields}
-            renderFooter={() => (
-              <Actions>
-                <Button type="button" onClick={() => this.handleDelete()}>
-                  {t('Reset All')}
-                </Button>
-              </Actions>
+          <Access access={requiredScopes}>
+            {({hasAccess}) => (
+              <JsonForm
+                title={t('General')}
+                fields={this.formFields}
+                disabled={!hasAccess}
+                renderFooter={() => (
+                  <Actions>
+                    <Button type="button" onClick={() => this.handleDelete()}>
+                      {t('Reset All')}
+                    </Button>
+                  </Actions>
+                )}
+              />
             )}
-          />
+          </Access>
         </Form>
       </Fragment>
     );

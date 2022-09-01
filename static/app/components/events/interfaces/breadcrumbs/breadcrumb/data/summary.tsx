@@ -1,14 +1,28 @@
 import styled from '@emotion/styled';
 
 import ContextData from 'sentry/components/contextData';
+import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 type Props = {
   children: React.ReactNode;
-  kvData?: Record<string, any>;
+  kvData?: Record<string, any> | null;
+  meta?: Record<any, any>;
 };
 
-function Summary({kvData, children}: Props) {
+function Summary({kvData, children, meta}: Props) {
+  if (meta?.data?.[''] && !defined(kvData)) {
+    return (
+      <Wrapper>
+        {children && <StyledCode>{children}</StyledCode>}
+        <ContextDataWrapper>
+          <AnnotatedText value={kvData} meta={meta?.data?.['']} />
+        </ContextDataWrapper>
+      </Wrapper>
+    );
+  }
+
   if (!kvData || !Object.keys(kvData).length) {
     if (!children) {
       return <div />;

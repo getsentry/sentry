@@ -6,6 +6,7 @@ import startCase from 'lodash/startCase';
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
@@ -30,7 +31,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
@@ -109,6 +109,12 @@ class AbstractIntegrationDetailedView<
   get integrationName(): string {
     // Allow children to implement this
     throw new Error('Not implemented');
+  }
+
+  // Checks to see if integration requires admin access to install, doc integrations don't
+  get requiresAccess(): boolean {
+    // default is integration requires access to install
+    return true;
   }
 
   // Returns an array of RawIntegrationFeatures which is used in feature gating
@@ -266,7 +272,7 @@ class AbstractIntegrationDetailedView<
                   title={t(
                     'You must be an organization owner, manager or admin to install this.'
                   )}
-                  disabled={hasAccess}
+                  disabled={hasAccess || !this.requiresAccess}
                 >
                   {!hideButtonIfDisabled && disabled ? (
                     <div />

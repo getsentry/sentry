@@ -33,6 +33,7 @@ function IssueList(props: Props) {
   const {selection} = usePageFilters();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
+  const [loadingIssueData, setLoadingIssueData] = useState(false);
   const [issuesById, setIssuesById] = useState<Record<string, Group>>({});
   const [issueStatsById, setIssuesStatsById] = useState<Record<string, Group>>({});
 
@@ -52,6 +53,7 @@ function IssueList(props: Props) {
 
   const fetchIssueData = useCallback(async () => {
     let issues;
+    setLoadingIssueData(true);
     try {
       issues = await api.requestPromise(`/organizations/${organization.slug}/issues/`, {
         includeAllArgs: true,
@@ -64,6 +66,7 @@ function IssueList(props: Props) {
       setIssuesById(keyBy(issues[0], 'id'));
     } catch (error) {
       setIssuesById({});
+      setLoadingIssueData(false);
       return;
     }
 
@@ -82,6 +85,8 @@ function IssueList(props: Props) {
       setIssuesStatsById(keyBy(issuesResults[0], 'id'));
     } catch (error) {
       setIssuesStatsById({});
+    } finally {
+      setLoadingIssueData(false);
     }
   }, [api, organization.slug, props.replayId, props.projectId]);
 
@@ -153,13 +158,14 @@ function IssueList(props: Props) {
       location={location}
       orgSlug={organization.slug}
       limit={15}
+      useEvents
     >
       {data => {
         return (
           <StyledPanelTable
             isEmpty={data.tableData?.data.length === 0}
             emptyMessage={t('No related Issues found.')}
-            isLoading={data.isLoading}
+            isLoading={data.isLoading || loadingIssueData}
             headers={
               isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
             }

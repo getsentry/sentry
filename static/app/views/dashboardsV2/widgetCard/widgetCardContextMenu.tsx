@@ -6,17 +6,19 @@ import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
+import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -37,12 +39,12 @@ type Props = {
   widgetLimitReached: boolean;
   index?: string;
   isPreview?: boolean;
-  issuesData?: TableDataRow[];
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
@@ -65,9 +67,9 @@ function WidgetCardContextMenu({
   index,
   seriesData,
   tableData,
-  issuesData,
   pageLinks,
   totalIssuesCount,
+  seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -94,7 +96,16 @@ function WidgetCardContextMenu({
       <WidgetViewerContext.Consumer>
         {({setData}) => (
           <ContextWrapper>
-            <StyledDropdownMenuControlV2
+            <Feature organization={organization} features={['dashboards-mep']}>
+              {isMetricsData === false && (
+                <SampledTag
+                  tooltipText={t('This widget is only applicable to indexed events.')}
+                >
+                  {t('Indexed')}
+                </SampledTag>
+              )}
+            </Feature>
+            <StyledDropdownMenuControl
               items={[
                 {
                   key: 'preview',
@@ -105,7 +116,7 @@ function WidgetCardContextMenu({
               ]}
               triggerProps={{
                 'aria-label': t('Widget actions'),
-                size: 'xsmall',
+                size: 'xs',
                 borderless: true,
                 showChevron: false,
                 icon: <IconEllipsis direction="down" size="sm" />,
@@ -120,13 +131,13 @@ function WidgetCardContextMenu({
                 size="zero"
                 icon={<IconExpand size="xs" />}
                 onClick={() => {
-                  (seriesData || tableData || issuesData) &&
+                  (seriesData || tableData) &&
                     setData({
                       seriesData,
                       tableData,
-                      issuesData,
                       pageLinks,
                       totalIssuesCount,
+                      seriesResultsType,
                     });
                   openWidgetViewerPath(index);
                 }}
@@ -144,10 +155,27 @@ function WidgetCardContextMenu({
   ) {
     // Open Widget in Discover
     if (widget.queries.length) {
-      const discoverPath = getWidgetDiscoverUrl(widget, selection, organization);
+      const discoverPath = getWidgetDiscoverUrl(
+        widget,
+        selection,
+        organization,
+        0,
+        isMetricsData
+      );
       menuOptions.push({
         key: 'open-in-discover',
-        label: t('Open in Discover'),
+        label: usingCustomMeasurements ? (
+          <Tooltip
+            skipWrapper
+            title={t(
+              'Widget using custom performance metrics cannot be opened in Discover.'
+            )}
+          >
+            {t('Open in Discover')}
+          </Tooltip>
+        ) : (
+          t('Open in Discover')
+        ),
         to:
           !usingCustomMeasurements && widget.queries.length === 1
             ? discoverPath
@@ -166,7 +194,7 @@ function WidgetCardContextMenu({
               organization,
               widget_type: widget.displayType,
             });
-            openDashboardWidgetQuerySelectorModal({organization, widget});
+            openDashboardWidgetQuerySelectorModal({organization, widget, isMetricsData});
           }
         },
       });
@@ -221,24 +249,24 @@ function WidgetCardContextMenu({
         <ContextWrapper>
           <Feature organization={organization} features={['dashboards-mep']}>
             {isMetricsData === false && (
-              <StoredTag
-                tooltipText={t('This widget is only applicable to stored event data.')}
+              <SampledTag
+                tooltipText={t('This widget is only applicable to indexed events.')}
               >
-                {t('Stored')}
-              </StoredTag>
+                {t('Indexed')}
+              </SampledTag>
             )}
           </Feature>
-          <StyledDropdownMenuControlV2
+          <StyledDropdownMenuControl
             items={menuOptions}
             triggerProps={{
               'aria-label': t('Widget actions'),
-              size: 'xsmall',
+              size: 'xs',
               borderless: true,
               showChevron: false,
               icon: <IconEllipsis direction="down" size="sm" />,
             }}
             placement="bottom right"
-            disabledKeys={disabledKeys}
+            disabledKeys={[...disabledKeys]}
           />
           {showWidgetViewerButton && (
             <OpenWidgetViewerButton
@@ -250,9 +278,9 @@ function WidgetCardContextMenu({
                 setData({
                   seriesData,
                   tableData,
-                  issuesData,
                   pageLinks,
                   totalIssuesCount,
+                  seriesResultsType,
                 });
                 openWidgetViewerPath(widget.id ?? index);
               }}
@@ -273,7 +301,7 @@ const ContextWrapper = styled('div')`
   margin-left: ${space(1)};
 `;
 
-const StyledDropdownMenuControlV2 = styled(DropdownMenuControlV2)`
+const StyledDropdownMenuControl = styled(DropdownMenuControl)`
   & > button {
     z-index: auto;
   }
@@ -289,6 +317,6 @@ const OpenWidgetViewerButton = styled(Button)`
   }
 `;
 
-const StoredTag = styled(Tag)`
+const SampledTag = styled(Tag)`
   margin-right: ${space(0.5)};
 `;

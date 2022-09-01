@@ -2,16 +2,17 @@ import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import Confirm from 'sentry/components/confirm';
-import Input from 'sentry/components/forms/controls/input';
 import Field from 'sentry/components/forms/field';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 
-type Props = Omit<React.ComponentProps<typeof Confirm>, 'renderConfirmMessage'> & {
+interface Props
+  extends Omit<React.ComponentProps<typeof Confirm>, 'renderConfirmMessage'> {
   /**
    * The string that the user must enter to confirm the deletion
    */
   confirmInput: string;
-};
+}
 
 const ConfirmDelete = ({message, confirmInput, ...props}: Props) => (
   <Confirm

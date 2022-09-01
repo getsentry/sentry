@@ -2,6 +2,7 @@ import {Children, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconAdd, IconSubtract} from 'sentry/icons';
+import {t} from 'sentry/locale';
 
 type Props = {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ function Toggle({highUp, wrapClassName, children}: Props) {
   return (
     <span>
       <IconWrapper
+        aria-label={isExpanded ? t('Collapse') : t('Expand')}
         isExpanded={isExpanded}
         onClick={evt => {
           setIsExpanded(!isExpanded);

@@ -10,7 +10,9 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 
 import {Flamegraph} from '../flamegraph';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {Rect, Transform} from '../gl/utils';
+import {Rect, transformMatrixBetweenRect} from '../gl/utils';
+import androidTrace from '../profile/formats/android/trace.json';
+import ios from '../profile/formats/ios/trace.json';
 import typescriptTrace from '../profile/formats/typescript/trace.json';
 import {importProfile} from '../profile/importProfile';
 
@@ -42,10 +44,14 @@ function benchmark(name: string, callback: () => void) {
 global.window = {devicePixelRatio: 1};
 
 const makeDrawFullScreen = (renderer: TextRenderer, flamegraph: Flamegraph) => {
-  const transform = Transform.transformMatrixBetweenRect(
-    flamegraph.configSpace,
-    new Rect(0, 0, 1000, 1000)
-  );
+  const configView = new Rect(
+    0,
+    0,
+    flamegraph.configSpace.width, // 50% width
+    1000
+  ).withY(0);
+
+  const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
   return (searchResults?: FlamegraphSearch) => {
     renderer.draw(flamegraph.configSpace, transform, searchResults);
   };
@@ -57,11 +63,8 @@ const makeDrawCenterScreen = (renderer: TextRenderer, flamegraph: Flamegraph) =>
     0,
     flamegraph.configSpace.width * 0.5, // 50% width
     1000
-  );
-  const transform = Transform.transformMatrixBetweenRect(
-    configView,
-    new Rect(0, 0, 1000, 1000)
-  );
+  ).withY(0);
+  const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
     renderer.draw(configView, transform, searchResults);
@@ -74,11 +77,8 @@ const makeDrawRightSideOfScreen = (renderer: TextRenderer, flamegraph: Flamegrap
     0,
     flamegraph.configSpace.width * 0.25, // 25% width
     1000
-  );
-  const transform = Transform.transformMatrixBetweenRect(
-    configView,
-    new Rect(0, 0, 1000, 1000)
-  );
+  ).withY(0);
+  const transform = transformMatrixBetweenRect(configView, new Rect(0, 0, 1000, 1000));
 
   return (searchResults?: FlamegraphSearch) => {
     renderer.draw(configView, transform, searchResults);
@@ -91,82 +91,114 @@ const tsFlamegraph = new Flamegraph(tsProfile.profiles[0], 0, {
   leftHeavy: false,
 });
 
-const typescriptRenderer = new TextRenderer(
+const androidProfile = importProfile(androidTrace as any, '');
+const androidFlamegraph = new Flamegraph(
+  androidProfile.profiles[androidProfile.activeProfileIndex] as any,
+  0,
   {
-    clientWidth: 1000,
-    clientHeight: 1000,
-    clientLeft: 0,
-    clientTop: 0,
-    getContext: () => {
-      return {
-        fillRect: () => {},
-        fillText: () => {},
-        measureText: (t: string) => {
-          return {
-            width: t.length,
-          };
-        },
-      };
-    },
-  },
-  tsFlamegraph,
-  LightFlamegraphTheme
+    inverted: false,
+    leftHeavy: false,
+  }
 );
+
+const iosProfile = importProfile(ios as any, '');
+const iosFlamegraph = new Flamegraph(
+  iosProfile.profiles[iosProfile.activeProfileIndex] as any,
+  0,
+  {
+    inverted: false,
+    leftHeavy: false,
+  }
+);
+
+const makeTextRenderer = flamegraph =>
+  new TextRenderer(
+    {
+      clientWidth: 1000,
+      clientHeight: 1000,
+      clientLeft: 0,
+      clientTop: 0,
+      getContext: () => {
+        return {
+          fillRect: () => {},
+          fillText: () => {},
+          measureText: (t: string) => {
+            return {
+              width: t.length,
+            };
+          },
+        };
+      },
+    },
+    flamegraph,
+    LightFlamegraphTheme
+  );
 
 interface FramePartitionData {
   count: number;
   frames: Set<FlamegraphFrame>;
 }
 
-const framesPartitionedByWords = tsFlamegraph.frames.reduce((acc, frame) => {
-  const words = frame.frame.name.split(' ');
-  words.forEach(w => {
-    if (!acc[w]) {
-      acc[w] = {
-        count: 0,
-        frames: new Set(),
-      };
-    }
-    const node = acc[w];
-    node.count++;
-    node.frames.add(frame);
-  });
-  return acc;
-}, {} as Record<string, FramePartitionData>);
-
-const [word, data] = maxBy(
-  Object.entries(framesPartitionedByWords),
-  ([_, partitionData]) => {
-    return partitionData.frames.size;
-  }
-)!;
-
-const searchResults: FlamegraphSearch = {
-  results: Array.from(data.frames.values()).reduce((acc, frame) => {
-    acc[getFlamegraphFrameSearchId(frame)] = frame;
+const makeSearchResults = (flamegraph: Flamegraph): FlamegraphSearch => {
+  const framesPartitionedByWords = flamegraph.frames.reduce((acc, frame) => {
+    const words = frame.frame.name.split(' ');
+    words.forEach(w => {
+      if (!acc[w]) {
+        acc[w] = {
+          count: 0,
+          frames: new Set(),
+        };
+      }
+      const node = acc[w];
+      node.count++;
+      node.frames.add(frame);
+    });
     return acc;
-  }, {}),
-  query: word,
+  }, {} as Record<string, FramePartitionData>);
+
+  const [word, data] = maxBy(
+    Object.entries(framesPartitionedByWords),
+    ([_, partitionData]) => {
+      return partitionData.frames.size;
+    }
+  )!;
+
+  return {
+    results: Array.from(data.frames.values()).reduce((acc, frame) => {
+      acc[getFlamegraphFrameSearchId(frame)] = frame;
+      return acc;
+    }, {}),
+    query: word,
+  };
 };
 
-benchmark('typescript (full profile)', () =>
-  makeDrawFullScreen(typescriptRenderer, tsFlamegraph)()
-);
-benchmark('typescript (center half)', () =>
-  makeDrawCenterScreen(typescriptRenderer, tsFlamegraph)()
-);
-benchmark('typescript (right quarter)', () =>
-  makeDrawRightSideOfScreen(typescriptRenderer, tsFlamegraph)()
-);
+const suite = (name: string, textRenderer: TextRenderer, flamegraph: Flamegraph) => {
+  const results = makeSearchResults(flamegraph);
+  benchmark(`${name} (full profile)`, () =>
+    makeDrawFullScreen(textRenderer, flamegraph)(new Map())
+  );
+  benchmark(`${name} (center half)`, () =>
+    makeDrawCenterScreen(textRenderer, flamegraph)(new Map())
+  );
+  benchmark(`${name} (right quarter)`, () =>
+    makeDrawRightSideOfScreen(textRenderer, flamegraph)(new Map())
+  );
 
-benchmark(
-  `typescript (full profile, w/ search matching ${data.frames.size} of ${tsFlamegraph.frames.length})`,
-  () => makeDrawFullScreen(typescriptRenderer, tsFlamegraph)(searchResults)
-);
+  benchmark(
+    `${name} (full profile, w/ search matching ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
+    () => makeDrawFullScreen(textRenderer, flamegraph)(results)
+  );
 
-benchmark('typescript (center half, w/ search)', () =>
-  makeDrawCenterScreen(typescriptRenderer, tsFlamegraph)(searchResults)
-);
-benchmark('typescript (right quarter, w/ search)', () =>
-  makeDrawRightSideOfScreen(typescriptRenderer, tsFlamegraph)(searchResults)
-);
+  benchmark(
+    `${name} (center half, w/ search ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
+    () => makeDrawCenterScreen(textRenderer, flamegraph)(results)
+  );
+  benchmark(
+    `${name} (right quarter, w/ search ${flamegraph.frames.length} of ${flamegraph.frames.length})`,
+    () => makeDrawRightSideOfScreen(textRenderer, flamegraph)(results)
+  );
+};
+
+suite('typescript', makeTextRenderer(tsFlamegraph), tsFlamegraph);
+suite('android', makeTextRenderer(androidFlamegraph), androidFlamegraph);
+suite('ios', makeTextRenderer(iosFlamegraph), iosFlamegraph);

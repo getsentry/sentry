@@ -1,0 +1,74 @@
+import {Fragment} from 'react';
+
+import {t} from 'sentry/locale';
+import type {Member, Team} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
+import {CHANGE_ALERT_CONDITION_IDS} from 'sentry/views/alerts/utils/constants';
+
+/**
+ * Translate Issue Alert Conditions to text
+ */
+export function TextCondition({
+  condition,
+}: {
+  condition: IssueAlertRule['conditions'][number];
+}) {
+  if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
+    if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
+      return (
+        <Fragment>
+          {t(
+            // Double %% escapes
+            'Number of events in an issue is %s%% higher in %s compared to %s ago',
+            condition.value,
+            condition.comparisonInterval,
+            condition.interval
+          )}
+        </Fragment>
+      );
+    }
+
+    return (
+      <Fragment>
+        {t(
+          'Number of events in an issue is more than %s in %s',
+          condition.value,
+          condition.interval
+        )}
+      </Fragment>
+    );
+  }
+
+  return <Fragment>{condition.name}</Fragment>;
+}
+
+// TODO(scttcper): Remove the teams/memberList prop drilling
+export function TextAction({
+  action,
+  memberList,
+  teams,
+}: {
+  action: IssueAlertRule['actions'][number];
+  memberList: Member[];
+  teams: Team[];
+}) {
+  if (action.targetType === 'Member') {
+    const user = memberList.find(
+      member => member.user.id === `${action.targetIdentifier}`
+    );
+    return <Fragment>{t('Send a notification to %s', user?.email)}</Fragment>;
+  }
+
+  if (action.targetType === 'Team') {
+    const team = teams.find(tm => tm.id === `${action.targetIdentifier}`);
+    return <Fragment>{t('Send a notification to #%s', team?.name)}</Fragment>;
+  }
+
+  if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
+    // Remove (optionally, an ID: XXX) from slack action
+    return <Fragment>{action.name.replace(/\(optionally.*\)/, '')}</Fragment>;
+  }
+
+  return <Fragment>{action.name}</Fragment>;
+}

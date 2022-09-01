@@ -14,7 +14,6 @@ from django.utils.functional import cached_property
 
 from bitfield import BitField
 from sentry import features, roles
-from sentry.app import locks
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
@@ -23,12 +22,16 @@ from sentry.constants import (
 )
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
+
+SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
 
 class OrganizationStatus(IntEnum):
@@ -36,7 +39,7 @@ class OrganizationStatus(IntEnum):
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
-    # alias
+    # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
 
     def __str__(self):
@@ -110,7 +113,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -186,11 +189,22 @@ class Organization(Model):
         return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
+        slugify_target = None
         if not self.slug:
+            slugify_target = self.name
+        elif not self.id:
+            slugify_target = self.slug
+        if slugify_target is not None:
             lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-            super().save(*args, **kwargs)
+                slugify_target = slugify_target.replace("_", "-").strip("-")
+                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
+
+        if SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "organization_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+            )
         else:
             super().save(*args, **kwargs)
 

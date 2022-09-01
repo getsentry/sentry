@@ -9,13 +9,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    EncryptedJsonField,
-    Model,
-    UUIDField,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, Model, UUIDField, sane_repr
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.jsonfield import JSONField
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -126,8 +122,8 @@ class Monitor(Model):
     __include_in_export__ = True
 
     guid = UUIDField(unique=True, auto_add=True)
-    organization_id = BoundedPositiveIntegerField(db_index=True)
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     name = models.CharField(max_length=128)
     status = BoundedPositiveIntegerField(
         default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
@@ -136,7 +132,7 @@ class Monitor(Model):
         default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
-    config = EncryptedJsonField(default=dict)
+    config = JSONField(default=dict)
     next_checkin = models.DateTimeField(null=True)
     last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)

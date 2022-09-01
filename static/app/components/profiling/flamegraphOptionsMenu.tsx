@@ -55,14 +55,14 @@ function FlamegraphOptionsMenu({
 
   return (
     <Fragment>
-      <Button size="xsmall" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
+      <Button size="xs" onClick={() => canvasPoolManager.dispatch('reset zoom', [])}>
         {t('Reset Zoom')}
       </Button>
       <CompositeSelect
         triggerLabel={t('Options')}
         triggerProps={{
           icon: <IconSliders size="xs" />,
-          size: 'xsmall',
+          size: 'xs',
         }}
         placement="bottom right"
         sections={options}
@@ -81,6 +81,7 @@ const COLOR_CODINGS: Record<FlamegraphPreferences['colorCoding'], string> = {
   'by library': t('By Library'),
   'by system / application': t('By System / Application'),
   'by recursion': t('By Recursion'),
+  'by frequency': t('By Frequency'),
 };
 
 export {FlamegraphOptionsMenu};

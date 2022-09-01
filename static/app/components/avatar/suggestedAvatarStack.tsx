@@ -8,25 +8,23 @@ import {Actor} from 'sentry/types';
 type Props = {
   owners: Actor[];
 } & BaseAvatar['props'] &
-  Omit<ActorAvatar['props'], 'actor' | 'hasTooltip'>;
+  Omit<React.ComponentProps<typeof ActorAvatar>, 'actor' | 'hasTooltip'>;
 
 // Constrain the number of visible suggestions
-const MAX_SUGGESTIONS = 5;
+const MAX_SUGGESTIONS = 3;
 
 const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props) => {
-  const backgroundAvatarProps = {
-    ...props,
-    round: owners[0].type === 'user',
-    suggested: true,
-  };
+  const [firstSuggestion, ...suggestedOwners] = owners;
   const numAvatars = Math.min(owners.length, MAX_SUGGESTIONS);
   return (
-    <AvatarStack>
-      {[...Array(numAvatars - 1)].map((_, i) => (
-        <BackgroundAvatar
-          {...backgroundAvatarProps}
+    <AvatarStack data-test-id="suggested-avatar-stack">
+      {suggestedOwners.slice(0, numAvatars - 1).map((owner, i) => (
+        <Avatar
+          {...props}
+          suggested
+          round={firstSuggestion.type === 'user'}
+          actor={owner}
           key={i}
-          type="background"
           index={i}
           hasTooltip={false}
         />
@@ -34,7 +32,7 @@ const SuggestedAvatarStack = ({owners, tooltip, tooltipOptions, ...props}: Props
       <Avatar
         {...props}
         suggested
-        actor={owners[0]}
+        actor={firstSuggestion}
         index={numAvatars - 1}
         tooltip={tooltip}
         tooltipOptions={{...tooltipOptions, skipWrapper: true}}
@@ -54,10 +52,6 @@ const translateStyles = (props: {index: number}) => css`
 `;
 
 const Avatar = styled(ActorAvatar)<{index: number}>`
-  ${translateStyles}
-`;
-
-const BackgroundAvatar = styled(BaseAvatar)<{index: number}>`
   ${translateStyles}
 `;
 

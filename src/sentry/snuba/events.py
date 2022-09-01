@@ -26,6 +26,16 @@ class Columns(Enum):
         discover_name="group_id",
         alias="issue.id",
     )
+    # This is needed to query transactions by group id
+    # in the Issue Details page. This will not be
+    # exposed to users through discover search.
+    GROUP_IDS = Column(
+        group_name=None,
+        event_name="group_ids",
+        transaction_name="group_ids",
+        discover_name=None,
+        alias="performance.issue_ids",
+    )
     PROJECT_ID = Column(
         group_name="events.project_id",
         event_name="project_id",
@@ -462,6 +472,13 @@ class Columns(Enum):
         discover_name="transaction_status",
         alias="transaction.status",
     )
+    TRANSACTION_SOURCE = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="transaction_source",
+        discover_name="transaction_source",
+        alias="transaction.source",
+    )
     MEASUREMENTS_KEYS = Column(
         group_name=None,
         event_name=None,
@@ -541,4 +558,11 @@ class Columns(Enum):
         transaction_name="contexts[reprocessing.original_issue_id]",
         discover_name="contexts[reprocessing.original_issue_id]",
         alias="reprocessing.original_issue_id",
+    )
+    TRACE_SAMPLE_RATE = Column(
+        group_name="events.contexts[trace.client_sample_rate]",
+        event_name="contexts[trace.client_sample_rate]",
+        transaction_name="contexts[trace.client_sample_rate]",
+        discover_name="contexts[trace.client_sample_rate]",
+        alias="trace.client_sample_rate",
     )

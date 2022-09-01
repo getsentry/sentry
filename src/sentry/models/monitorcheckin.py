@@ -3,13 +3,14 @@ from django.utils import timezone
 
 from sentry.db.models import (
     BaseManager,
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    EncryptedJsonField,
     FlexibleForeignKey,
     Model,
     UUIDField,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import JSONField
 
 
 class CheckInStatus:
@@ -34,13 +35,13 @@ class MonitorCheckIn(Model):
     __include_in_export__ = False
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True)
     monitor = FlexibleForeignKey("sentry.Monitor")
     location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
     status = BoundedPositiveIntegerField(
         default=0, choices=CheckInStatus.as_choices(), db_index=True
     )
-    config = EncryptedJsonField(default=dict)
+    config = JSONField(default=dict)
     duration = BoundedPositiveIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(default=timezone.now)

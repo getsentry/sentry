@@ -1,5 +1,6 @@
-import {Component} from 'react';
+import React, {Component} from 'react';
 import LazyLoad from 'react-lazyload';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
@@ -10,25 +11,27 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {statsPeriodToDays} from 'sentry/utils/dates';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {DisplayType, Widget, WidgetType} from '../types';
+import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
+import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -47,11 +50,13 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   widgetLimitReached: boolean;
+  dashboardFilters?: DashboardFilters;
   draggableProps?: DraggableProps;
   hideToolbar?: boolean;
   index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
+  noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -65,14 +70,22 @@ type Props = WithRouterProps & {
 };
 
 type State = {
-  issuesData?: TableDataRow[];
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
 
-const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-04-12');
+type SearchFilterKey = {key?: {value: string}};
+
+const ERROR_FIELDS = [
+  'error.handled',
+  'error.unhandled',
+  'error.mechanism',
+  'error.type',
+  'error.value',
+];
 
 class WidgetCard extends Component<Props, State> {
   state: State = {};
@@ -96,7 +109,7 @@ class WidgetCard extends Component<Props, State> {
         <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
           {!isMobile && (
             <GrabbableButton
-              size="xsmall"
+              size="xs"
               aria-label={t('Drag Widget')}
               icon={<IconGrabbable />}
               borderless
@@ -108,14 +121,14 @@ class WidgetCard extends Component<Props, State> {
           <Button
             data-test-id="widget-edit"
             aria-label={t('Edit Widget')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={onEdit}
             icon={<IconEdit />}
           />
           <Button
             aria-label={t('Duplicate Widget')}
-            size="xsmall"
+            size="xs"
             borderless
             onClick={onDuplicate}
             icon={<IconCopy />}
@@ -124,7 +137,7 @@ class WidgetCard extends Component<Props, State> {
             data-test-id="widget-delete"
             aria-label={t('Delete Widget')}
             borderless
-            size="xsmall"
+            size="xs"
             onClick={onDelete}
             icon={<IconDelete />}
           />
@@ -151,7 +164,8 @@ class WidgetCard extends Component<Props, State> {
       index,
     } = this.props;
 
-    const {seriesData, tableData, issuesData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
+      this.state;
 
     if (isEditing) {
       return null;
@@ -173,8 +187,8 @@ class WidgetCard extends Component<Props, State> {
         location={location}
         index={index}
         seriesData={seriesData}
+        seriesResultsType={seriesResultsType}
         tableData={tableData}
-        issuesData={issuesData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
       />
@@ -184,22 +198,22 @@ class WidgetCard extends Component<Props, State> {
   setData = ({
     tableResults,
     timeseriesResults,
-    issuesResults,
     totalIssuesCount,
     pageLinks,
+    timeseriesResultsTypes,
   }: {
-    issuesResults?: TableDataRow[];
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
     this.setState({
       seriesData: timeseriesResults,
       tableData: tableResults,
-      issuesData: issuesResults,
       totalIssuesCount,
       pageLinks,
+      seriesResultsType: timeseriesResultsTypes,
     });
   };
 
@@ -215,26 +229,10 @@ class WidgetCard extends Component<Props, State> {
       windowWidth,
       noLazyLoad,
       showStoredAlert,
+      noDashboardsMEPProvider,
+      dashboardFilters,
     } = this.props;
 
-    const {start, period} = selection.datetime;
-    let showIncompleteDataAlert: boolean = false;
-    if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
-      if (start) {
-        let startDate: Date | undefined = undefined;
-        if (typeof start === 'string') {
-          startDate = new Date(start);
-        } else {
-          startDate = start;
-        }
-        showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
-      } else if (period) {
-        const periodInDays = statsPeriodToDays(period);
-        const current = new Date();
-        const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
-        showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
-      }
-    }
     if (widget.displayType === DisplayType.TOP_N) {
       const queries = widget.queries.map(query => ({
         ...query,
@@ -246,36 +244,44 @@ class WidgetCard extends Component<Props, State> {
       widget.queries = queries;
       widget.limit = DEFAULT_RESULTS_LIMIT;
     }
+
+    function conditionalWrapWithDashboardsMEPProvider(component: React.ReactNode) {
+      if (noDashboardsMEPProvider) {
+        return component;
+      }
+      return <DashboardsMEPProvider>{component}</DashboardsMEPProvider>;
+    }
+    const widgetContainsErrorFields = widget.queries.some(
+      ({columns, aggregates, conditions}) =>
+        ERROR_FIELDS.some(
+          errorField =>
+            columns.includes(errorField) ||
+            aggregates.some(aggregate =>
+              parseFunction(aggregate)?.arguments.includes(errorField)
+            ) ||
+            parseSearch(conditions)?.some(
+              filter => (filter as SearchFilterKey).key?.value === errorField
+            )
+        )
+    );
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
-        <DashboardsMEPProvider>
-          <WidgetCardPanel isDragging={false}>
-            <WidgetHeader>
-              <Tooltip
-                title={widget.title}
-                containerDisplayMode="grid"
-                showOnlyOnOverflow
-              >
-                <WidgetTitle>{widget.title}</WidgetTitle>
-              </Tooltip>
-              {this.renderContextMenu()}
-            </WidgetHeader>
-            {noLazyLoad ? (
-              <WidgetCardChartContainer
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-                onDataFetched={this.setData}
-              />
-            ) : (
-              <LazyLoad once resize height={200}>
+        {conditionalWrapWithDashboardsMEPProvider(
+          <React.Fragment>
+            <WidgetCardPanel isDragging={false}>
+              <WidgetHeader>
+                <Tooltip
+                  title={widget.title}
+                  containerDisplayMode="grid"
+                  showOnlyOnOverflow
+                >
+                  <WidgetTitle>{widget.title}</WidgetTitle>
+                </Tooltip>
+                {this.renderContextMenu()}
+              </WidgetHeader>
+              {noLazyLoad ? (
                 <WidgetCardChartContainer
                   api={api}
                   organization={organization}
@@ -286,42 +292,74 @@ class WidgetCard extends Component<Props, State> {
                   tableItemLimit={tableItemLimit}
                   windowWidth={windowWidth}
                   onDataFetched={this.setData}
+                  dashboardFilters={dashboardFilters}
                 />
-              </LazyLoad>
-            )}
-            {this.renderToolbar()}
-          </WidgetCardPanel>
-          <Feature organization={organization} features={['dashboards-mep']}>
-            <DashboardsMEPConsumer>
-              {({isMetricsData}) =>
-                showStoredAlert &&
-                widget.widgetType === WidgetType.DISCOVER &&
-                isMetricsData === false && (
-                  <StoredDataAlert showIcon>
-                    {tct(
-                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                      {
-                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                      }
-                    )}
-                  </StoredDataAlert>
-                )
-              }
-            </DashboardsMEPConsumer>
-          </Feature>
-          <Feature organization={organization} features={['dashboards-releases']}>
-            {showIncompleteDataAlert && (
-              <StoredDataAlert showIcon>
-                {tct(
-                  'Releases data is only available from [date]. Data may be incomplete as a result.',
-                  {
-                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
+              ) : (
+                <LazyLoad once resize height={200}>
+                  <WidgetCardChartContainer
+                    api={api}
+                    organization={organization}
+                    selection={selection}
+                    widget={widget}
+                    isMobile={isMobile}
+                    renderErrorMessage={renderErrorMessage}
+                    tableItemLimit={tableItemLimit}
+                    windowWidth={windowWidth}
+                    onDataFetched={this.setData}
+                    dashboardFilters={dashboardFilters}
+                  />
+                </LazyLoad>
+              )}
+              {this.renderToolbar()}
+            </WidgetCardPanel>
+            <Feature organization={organization} features={['dashboards-mep']}>
+              <DashboardsMEPConsumer>
+                {({isMetricsData}) => {
+                  if (
+                    showStoredAlert &&
+                    isMetricsData === false &&
+                    widget.widgetType === WidgetType.DISCOVER
+                  ) {
+                    if (isCustomMeasurementWidget(widget)) {
+                      return (
+                        <StoredDataAlert showIcon type="error">
+                          {tct(
+                            'You have inputs that are incompatible with [customPerformanceMetrics: custom performance metrics]. See all compatible fields and functions [here: here]. Update your inputs or remove any custom performance metrics.',
+                            {
+                              customPerformanceMetrics: (
+                                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/metrics/#custom-performance-measurements" />
+                              ),
+                              here: (
+                                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#properties-table" />
+                              ),
+                            }
+                          )}
+                          <FeatureBadge type="beta" />
+                        </StoredDataAlert>
+                      );
+                    }
+                    if (!widgetContainsErrorFields) {
+                      return (
+                        <StoredDataAlert showIcon>
+                          {tct(
+                            "Your selection is only applicable to [indexedData: indexed event data]. We've automatically adjusted your results.",
+                            {
+                              indexedData: (
+                                <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#errors--transactions" />
+                              ),
+                            }
+                          )}
+                          <FeatureBadge type="beta" />
+                        </StoredDataAlert>
+                      );
+                    }
                   }
-                )}
-              </StoredDataAlert>
-            )}
-          </Feature>
-        </DashboardsMEPProvider>
+                  return null;
+                }}
+              </DashboardsMEPConsumer>
+            </Feature>
+          </React.Fragment>
+        )}
       </ErrorBoundary>
     );
   }

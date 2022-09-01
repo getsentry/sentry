@@ -6,7 +6,6 @@
  */
 import type {getInterval} from 'sentry/components/charts/utils';
 import {MenuListItemProps} from 'sentry/components/menuListItem';
-import type {InternalTooltipProps} from 'sentry/components/tooltip';
 import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
@@ -46,13 +45,10 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 /**
  * The option format used by react-select based components
  */
-export type SelectValue<T> = MenuListItemProps & {
+export interface SelectValue<T> extends MenuListItemProps {
   label: string | number | React.ReactElement;
   value: T;
-  disabled?: boolean;
-  tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
-};
+}
 
 /**
  * The 'other' option format used by checkboxes, radios and more.
@@ -72,6 +68,7 @@ export enum DataCategory {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
+  TRANSACTIONS_PROCESSED = 'transactions_processed',
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

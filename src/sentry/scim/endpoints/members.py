@@ -126,11 +126,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             )
 
     def _should_delete_member(self, operation):
-        if operation["op"].lower() == MemberPatchOps.REPLACE:
-            if isinstance(operation["value"], dict) and operation["value"]["active"] is False:
+        if operation.get("op").lower() == MemberPatchOps.REPLACE:
+            if (
+                isinstance(operation.get("value"), dict)
+                and operation.get("value").get("active") is False
+            ):
                 # how okta sets active to false
                 return True
-            elif operation["path"] == "active" and operation["value"] is False:
+            elif operation.get("path") == "active" and operation.get("value") is False:
                 # how other idps set active to false
                 return True
         return False
@@ -362,7 +365,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         Create a new Organization Member via a SCIM Users POST Request.
         - `userName` should be set to the SAML field used for email, and active should be set to `true`.
         - Sentry's SCIM API doesn't currently support setting users to inactive,
-        and the member will be deleted if inactive is set to `false`.
+        and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.
         """
 

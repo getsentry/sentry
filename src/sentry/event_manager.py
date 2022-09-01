@@ -2,6 +2,7 @@ import copy
 import ipaddress
 import logging
 import random
+import re
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -9,6 +10,7 @@ from io import BytesIO
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
@@ -76,9 +78,13 @@ from sentry.models import (
     get_crashreport_key,
 )
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
+from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
+from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -308,6 +314,7 @@ class EventManager:
         start_time=None,
         cache_key=None,
         skip_send_first_transaction=False,
+        auto_upgrade_grouping=False,
     ):
         """
         After normalizing and processing an event, save adjacent models such as
@@ -435,19 +442,9 @@ class EventManager:
 
         _materialize_metadata_many(jobs)
 
-        kwargs = {
-            "platform": job["platform"],
-            "message": job["event"].search_message,
-            "culprit": job["culprit"],
-            "logger": job["logger_name"],
-            "level": LOG_LEVELS_MAP.get(job["level"]),
-            "last_seen": job["event"].datetime,
-            "first_seen": job["event"].datetime,
-            "active_at": job["event"].datetime,
-        }
+        kwargs = _create_kwargs(job)
 
-        if job["release"]:
-            kwargs["first_release"] = job["release"]
+        kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
@@ -478,26 +475,9 @@ class EventManager:
         job["event"].data.bind_ref(job["event"])
 
         _get_or_create_environment_many(jobs, projects)
-
-        if job["group"]:
-            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
-                group_id=job["group"].id,
-                environment_id=job["environment"].id,
-                defaults={"first_release": job["release"] or None},
-            )
-        else:
-            job["is_new_group_environment"] = False
-
+        _get_or_create_group_environment_many(jobs, projects)
         _get_or_create_release_associated_models(jobs, projects)
-
-        if job["release"] and job["group"]:
-            job["grouprelease"] = GroupRelease.get_or_create(
-                group=job["group"],
-                release=job["release"],
-                environment=job["environment"],
-                datetime=job["event"].datetime,
-            )
-
+        _get_or_create_group_release_many(jobs, projects)
         _tsdb_record_all_metrics(jobs)
 
         if job["group"]:
@@ -585,7 +565,31 @@ class EventManager:
 
         self._data = job["event"].data.data
 
+        # Check if the project is configured for auto upgrading and we need to upgrade
+        # to the latest grouping config.
+        if (
+            auto_upgrade_grouping
+            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
+            and project.get_option("sentry:grouping_auto_update")
+        ):
+            _auto_update_grouping(project)
+
         return job["event"]
+
+
+def _auto_update_grouping(project):
+    old_grouping = project.get_option("sentry:grouping_config")
+    new_grouping = DEFAULT_GROUPING_CONFIG
+
+    # update to latest grouping config but not if a user is already on
+    # beta.
+    if old_grouping != new_grouping and old_grouping != BETA_GROUPING_CONFIG:
+        project.update_option("sentry:secondary_grouping_config", old_grouping)
+        project.update_option(
+            "sentry:secondary_grouping_expiry",
+            int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE,
+        )
+        project.update_option("sentry:grouping_config", new_grouping)
 
 
 @metrics.wraps("event_manager.background_grouping")
@@ -662,6 +666,53 @@ def _pull_out_data(jobs, projects):
         )
 
 
+def _is_commit_sha(version: str):
+    return re.match(r"[0-9a-f]{40}", version) is not None
+
+
+def _associate_commits_with_release(release: Release, project: Project):
+    previous_release = release.get_previous_release(project)
+    possible_repos = (
+        RepositoryProjectPathConfig.objects.select_related(
+            "repository", "organization_integration", "organization_integration__integration"
+        )
+        .filter(project=project, repository__provider="integrations:github")
+        .all()
+    )
+    if possible_repos:
+        # If it does exist, kick off a task to look if the commit exists in the repository
+        target_repo = None
+        for repo_proj_path_model in possible_repos:
+            integration_installation = (
+                repo_proj_path_model.organization_integration.integration.get_installation(
+                    organization_id=project.organization.id
+                )
+            )
+            repo_client = integration_installation.get_client()
+            try:
+                repo_client.get_commit(
+                    repo=repo_proj_path_model.repository.name, sha=release.version
+                )
+                target_repo = repo_proj_path_model.repository
+                break
+            except ApiError as exc:
+                if exc.code != 404:
+                    raise
+
+        if target_repo is not None:
+            # If it does exist, fetch the commits for that repo
+            fetch_commits.apply_async(
+                kwargs={
+                    "release_id": release.id,
+                    "user_id": None,
+                    "refs": [{"repository": target_repo.name, "commit": release.version}],
+                    "prev_release_id": previous_release.id
+                    if previous_release is not None
+                    else None,
+                }
+            )
+
+
 @metrics.wraps("save_event.get_or_create_release_many")
 def _get_or_create_release_many(jobs, projects):
     jobs_with_releases = {}
@@ -679,26 +730,42 @@ def _get_or_create_release_many(jobs, projects):
             release_date_added[release_key] = new_datetime
 
     for (project_id, version), jobs_to_update in jobs_with_releases.items():
-        release = Release.get_or_create(
-            project=projects[project_id],
-            version=version,
-            date_added=release_date_added[(project_id, version)],
-        )
+        try:
+            release = Release.get_or_create(
+                project=projects[project_id],
+                version=version,
+                date_added=release_date_added[(project_id, version)],
+            )
+        except ValidationError:
+            release = None
+            logger.exception(
+                "Failed creating Release due to ValidationError",
+                extra={
+                    "project": projects[project_id],
+                    "version": version,
+                },
+            )
 
-        for job in jobs_to_update:
-            # Don't allow a conflicting 'release' tag
-            data = job["data"]
-            pop_tag(data, "release")
-            set_tag(data, "sentry:release", release.version)
+        if release:
+            if features.has(
+                "projects:auto-associate-commits-to-release", projects[project_id]
+            ) and _is_commit_sha(release.version):
+                safe_execute(_associate_commits_with_release, release, projects[project_id])
 
-            job["release"] = release
+            for job in jobs_to_update:
+                # Don't allow a conflicting 'release' tag
+                data = job["data"]
+                pop_tag(data, "release")
+                set_tag(data, "sentry:release", release.version)
 
-            if job["dist"]:
-                job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+                job["release"] = release
 
-                # don't allow a conflicting 'dist' tag
-                pop_tag(job["data"], "dist")
-                set_tag(job["data"], "sentry:dist", job["dist"].name)
+                if job["dist"]:
+                    job["dist"] = job["release"].add_dist(job["dist"], job["event"].datetime)
+
+                    # don't allow a conflicting 'dist' tag
+                    pop_tag(job["data"], "dist")
+                    set_tag(job["data"], "sentry:dist", job["dist"].name)
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -772,12 +839,42 @@ def _materialize_metadata_many(jobs):
         job["culprit"] = data["culprit"]
 
 
+def _create_kwargs(job):
+    kwargs = {
+        "platform": job["platform"],
+        "message": job["event"].search_message,
+        "logger": job["logger_name"],
+        "level": LOG_LEVELS_MAP.get(job["level"]),
+        "last_seen": job["event"].datetime,
+        "first_seen": job["event"].datetime,
+        "active_at": job["event"].datetime,
+    }
+
+    if job["release"]:
+        kwargs["first_release"] = job["release"]
+
+    return kwargs
+
+
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs, projects):
     for job in jobs:
         job["environment"] = Environment.get_or_create(
             project=projects[job["project_id"]], name=job["environment"]
         )
+
+
+@metrics.wraps("save_event.get_or_create_group_environment_many")
+def _get_or_create_group_environment_many(jobs, projects):
+    for job in jobs:
+        if job["group"]:
+            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
+                group_id=job["group"].id,
+                environment_id=job["environment"].id,
+                defaults={"first_release": job["release"] or None},
+            )
+        else:
+            job["is_new_group_environment"] = False
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -801,6 +898,18 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
+
+
+@metrics.wraps("save_event.get_or_create_group_release_many")
+def _get_or_create_group_release_many(jobs, projects):
+    for job in jobs:
+        if job["release"] and job["group"]:
+            job["grouprelease"] = GroupRelease.get_or_create(
+                group=job["group"],
+                release=job["release"],
+                environment=job["environment"],
+                datetime=job["event"].datetime,
+            )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -889,7 +998,6 @@ def _eventstream_insert_many(jobs):
             )
 
         eventstream.insert(
-            group=job["group"],
             event=job["event"],
             is_new=job["is_new"],
             is_regression=job["is_regression"],
@@ -1009,7 +1117,6 @@ def materialize_metadata(data, event_type, event_metadata):
     """Returns the materialized metadata to be merged with group or
     event data.  This currently produces the keys `type`, `culprit`,
     `metadata`, `title` and `location`.
-
     """
 
     # XXX(markus): Ideally this wouldn't take data or event_type, and instead
@@ -1116,31 +1223,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
 
             if existing_grouphash is None:
 
-                try:
-                    short_id = project.next_short_id()
-                except OperationalError:
-                    metrics.incr(
-                        "next_short_id.timeout",
-                        tags={"platform": event.platform or "unknown"},
-                    )
-                    sentry_sdk.capture_message("short_id.timeout")
-                    raise HashDiscarded("Timeout when getting next_short_id")
-
-                # it's possible the release was deleted between
-                # when we queried for the release and now, so
-                # make sure it still exists
-                first_release = kwargs.pop("first_release", None)
-
-                group = Group.objects.create(
-                    project=project,
-                    short_id=short_id,
-                    first_release_id=Release.objects.filter(id=first_release.id)
-                    .values_list("id", flat=True)
-                    .first()
-                    if first_release
-                    else None,
-                    **kwargs,
-                )
+                group = _create_group(project, event, **kwargs)
 
                 if root_hierarchical_grouphash is not None:
                     new_hashes = [root_hierarchical_grouphash]
@@ -1290,6 +1373,34 @@ def _find_existing_grouphash(
             raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
 
     return None, root_hierarchical_hash
+
+
+def _create_group(project, event, **kwargs):
+    try:
+        short_id = project.next_short_id()
+    except OperationalError:
+        metrics.incr(
+            "next_short_id.timeout",
+            tags={"platform": event.platform or "unknown"},
+        )
+        sentry_sdk.capture_message("short_id.timeout")
+        raise HashDiscarded("Timeout when getting next_short_id")
+
+    # it's possible the release was deleted between
+    # when we queried for the release and now, so
+    # make sure it still exists
+    first_release = kwargs.pop("first_release", None)
+
+    return Group.objects.create(
+        project=project,
+        short_id=short_id,
+        first_release_id=Release.objects.filter(id=first_release.id)
+        .values_list("id", flat=True)
+        .first()
+        if first_release
+        else None,
+        **kwargs,
+    )
 
 
 def _handle_regression(group, event, release):

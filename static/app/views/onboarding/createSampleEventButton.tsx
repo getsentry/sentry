@@ -26,7 +26,7 @@ type State = {
   creating: boolean;
 };
 
-const EVENT_POLL_RETRIES = 15;
+const EVENT_POLL_RETRIES = 30;
 const EVENT_POLL_INTERVAL = 1000;
 
 async function latestEventAvailable(
@@ -170,7 +170,6 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     return (
       <Button
         {...props}
-        data-test-id="create-sample-event"
         disabled={props.disabled || creating}
         onClick={this.createSampleGroup}
       />

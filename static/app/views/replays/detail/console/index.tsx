@@ -1,76 +1,85 @@
-import {Fragment, useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
-
-import ConsoleMessage from './consoleMessage';
-import {filterBreadcrumbs} from './utils';
+import type {
+  BreadcrumbLevelType,
+  BreadcrumbTypeDefault,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
+import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
+import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
-  breadcrumbs: BreadcrumbTypeDefault[];
-  startTimestamp: number;
+  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+  startTimestampMs: number;
 }
 
-const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
+const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
-function Console({breadcrumbs, startTimestamp = 0}: Props) {
+function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useCurrentItemScroller(containerRef);
 
   const filteredBreadcrumbs = useMemo(
     () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
 
-  const activeConsoleBounds = useMemo(() => {
-    if (filteredBreadcrumbs.length <= 0 || currentHoverTime === undefined) {
-      return [-1, -1];
+  const currentUserAction = getPrevBreadcrumb({
+    crumbs: breadcrumbs,
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowExact: true,
+    allowEqual: true,
+  });
+
+  const closestUserAction =
+    currentHoverTime !== undefined
+      ? getPrevBreadcrumb({
+          crumbs: breadcrumbs,
+          targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
+          allowExact: true,
+          allowEqual: true,
+        })
+      : undefined;
+
+  const isOcurring = (breadcrumb: Crumb, closestBreadcrumb?: Crumb): boolean => {
+    if (!defined(currentHoverTime) || !defined(closestBreadcrumb)) {
+      return false;
     }
 
-    let indexUpperBound = 0;
-    const finalBreadCrumbIndex = filteredBreadcrumbs.length - 1;
-    const finalBreadcrumbTimestamp =
-      filteredBreadcrumbs[finalBreadCrumbIndex].timestamp || '';
+    const isCurrentBreadcrumb = closestBreadcrumb.id === breadcrumb.id;
 
-    if (currentHoverTime >= relativeTimeInMs(finalBreadcrumbTimestamp, startTimestamp)) {
-      indexUpperBound = finalBreadCrumbIndex;
-    } else {
-      indexUpperBound =
-        filteredBreadcrumbs.findIndex(
-          breadcrumb =>
-            relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
-            (currentHoverTime || 0)
-        ) - 1;
-    }
+    // We don't want to hightlight the breadcrumb if it's more than 1 second away from the current hover time
+    const isMoreThanASecondOfDiff =
+      Math.trunc(currentHoverTime / 1000) >
+      Math.trunc(
+        relativeTimeInMs(closestBreadcrumb.timestamp || '', startTimestampMs) / 1000
+      );
 
-    const activeMessageBoundary = showPlayerTime(
-      filteredBreadcrumbs[indexUpperBound]?.timestamp || '',
-      startTimestamp
-    );
-
-    const indexLowerBound = filteredBreadcrumbs.findIndex(
-      breadcrumb =>
-        showPlayerTime(breadcrumb.timestamp || '', startTimestamp) ===
-        activeMessageBoundary
-    );
-
-    return [indexLowerBound, indexUpperBound];
-  }, [currentHoverTime, filteredBreadcrumbs, startTimestamp]);
+    return isCurrentBreadcrumb && !isMoreThanASecondOfDiff;
+  };
 
   return (
-    <Fragment>
+    <ConsoleContainer>
       <ConsoleFilters>
         <CompactSelect
           triggerProps={{
@@ -84,34 +93,53 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
           onChange={selections =>
             setLogLevel(selections.map(selection => selection.value))
           }
+          size="sm"
         />
-        <SearchBar onChange={handleSearch} placeholder={t('Search console logs...')} />
+        <SearchBar
+          onChange={handleSearch}
+          placeholder={t('Search console logs...')}
+          size="sm"
+        />
       </ConsoleFilters>
-
-      {filteredBreadcrumbs.length > 0 ? (
-        <ConsoleTable>
-          {filteredBreadcrumbs.map((breadcrumb, i) => {
-            return (
-              <ConsoleMessage
-                isActive={i >= activeConsoleBounds[0] && i <= activeConsoleBounds[1]}
-                startTimestamp={startTimestamp}
-                key={i}
-                isLast={i === breadcrumbs.length - 1}
-                breadcrumb={breadcrumb}
-                hasOccurred={
-                  currentTime >=
-                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestamp)
-                }
-              />
-            );
-          })}
-        </ConsoleTable>
-      ) : (
-        <StyledEmptyMessage title={t('No results found.')} />
-      )}
-    </Fragment>
+      <ConsoleMessageContainer ref={containerRef}>
+        {filteredBreadcrumbs.length > 0 ? (
+          <ConsoleTable>
+            {filteredBreadcrumbs.map((breadcrumb, i) => {
+              return (
+                <ConsoleMessage
+                  isActive={closestUserAction?.id === breadcrumb.id}
+                  isCurrent={currentUserAction?.id === breadcrumb.id}
+                  isOcurring={isOcurring(breadcrumb, closestUserAction)}
+                  startTimestampMs={startTimestampMs}
+                  key={breadcrumb.id}
+                  isLast={i === breadcrumbs.length - 1}
+                  breadcrumb={breadcrumb}
+                  hasOccurred={
+                    currentTime >=
+                    relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMs)
+                  }
+                />
+              );
+            })}
+          </ConsoleTable>
+        ) : (
+          <StyledEmptyMessage title={t('No results found.')} />
+        )}
+      </ConsoleMessageContainer>
+    </ConsoleContainer>
   );
 }
+
+const ConsoleContainer = styled(FluidHeight)`
+  height: 100%;
+`;
+
+const ConsoleMessageContainer = styled(FluidHeight)`
+  overflow: auto;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: ${p => p.theme.dropShadowLight};
+`;
 
 const ConsoleFilters = styled('div')`
   display: grid;
@@ -134,6 +162,9 @@ const ConsoleTable = styled(Panel)`
   width: 100%;
   font-family: ${p => p.theme.text.familyMono};
   font-size: 0.8em;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 0;
 `;
 
 export default Console;

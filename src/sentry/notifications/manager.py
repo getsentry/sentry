@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet, Sequence
+from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, MutableSet, Sequence, Union
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -290,7 +290,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def filter_to_accepting_recipients(
         self,
-        parent: Project,
+        parent: Union[Organization, Project],
         recipients: Iterable[Team | User],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
@@ -303,6 +303,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
             notification_settings, recipients
         )
+
         mapping = defaultdict(set)
         for recipient in recipients:
             providers = where_should_recipient_be_notified(

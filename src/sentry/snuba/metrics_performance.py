@@ -6,7 +6,6 @@ from snuba_sdk import AliasedExpression
 
 from sentry import features
 from sentry.discover.arithmetic import categorize_columns
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -14,14 +13,18 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba import discover
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import Dataset, SnubaTSResult
 
 
 def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}
+    # no-op if they're already strings
+    if query_definition.tag_values_are_strings:
+        return results
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
         for column in query_definition.columns:
@@ -31,11 +34,16 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
                 and column.alias
             ):
                 tags.append(column.alias)
+            # transaction is a special case since we use a transform null & unparam
+            if column.alias in ["transaction", "title"]:
+                tags.append(column.alias)
 
         for tag in tags:
             for row in results["data"]:
                 if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(row[tag])
+                    resolved_tag = indexer.reverse_resolve(
+                        UseCaseKey.PERFORMANCE, query_definition.organization_id, row[tag]
+                    )
                     cached_resolves[row[tag]] = resolved_tag
                 row[tag] = cached_resolves[row[tag]]
             if tag in results["meta"]:
@@ -79,6 +87,7 @@ def query(
             offset=offset,
             dry_run=dry_run,
             use_metric_layer=features.has("organizations:use-metrics-layer"),
+            dataset=Dataset.PerformanceMetrics,
         )
         if dry_run:
             metrics_referrer = referrer + ".dry-run"
@@ -91,18 +100,17 @@ def query(
             return {}
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         translated_columns = {}
-        function_alias_map = metrics_query.function_alias_map
         if transform_alias_to_input_format:
             translated_columns = {
                 column: function_details.field
                 for column, function_details in metrics_query.function_alias_map.items()
             }
-            function_alias_map = {
+            metrics_query.function_alias_map = {
                 translated_columns.get(column): function_details
                 for column, function_details in metrics_query.function_alias_map.items()
             }
 
-        results = discover.transform_results(results, function_alias_map, translated_columns, None)
+        results = discover.transform_results(results, metrics_query, translated_columns, None)
         results = resolve_tags(results, metrics_query)
         results["meta"]["isMetricsData"] = True
         sentry_sdk.set_tag("performance.dataset", "metrics")
@@ -131,80 +139,51 @@ def timeseries_query(
         metrics_compatible = True
 
     if metrics_compatible or dry_run:
-        try:
-            with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
-                metrics_query = TimeseriesMetricQueryBuilder(
-                    params,
-                    rollup,
-                    query=query,
-                    selected_columns=columns,
-                    functions_acl=functions_acl,
-                    allow_metric_aggregates=allow_metric_aggregates,
-                    dry_run=dry_run,
-                )
-                if dry_run:
-                    metrics_referrer = referrer + ".dry-run"
-                else:
-                    metrics_referrer = referrer + ".metrics-enhanced"
-                result = metrics_query.run_query(metrics_referrer)
-                if dry_run:
-                    # Query has to reach here to be considered compatible
-                    sentry_sdk.set_tag("query.mep_compatible", True)
-                    return
-            with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-                result = discover.transform_results(
-                    result, metrics_query.function_alias_map, {}, None
-                )
-                result["data"] = (
-                    discover.zerofill(
-                        result["data"],
-                        params["start"],
-                        params["end"],
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"]
-                )
-                sentry_sdk.set_tag("performance.dataset", "metrics")
-                return SnubaTSResult(
-                    {"data": result["data"], "isMetricsData": True},
+        with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
+            metrics_query = TimeseriesMetricQueryBuilder(
+                params,
+                rollup,
+                dataset=Dataset.PerformanceMetrics,
+                query=query,
+                selected_columns=columns,
+                functions_acl=functions_acl,
+                allow_metric_aggregates=allow_metric_aggregates,
+                dry_run=dry_run,
+            )
+            if dry_run:
+                metrics_referrer = referrer + ".dry-run"
+            else:
+                metrics_referrer = referrer + ".metrics-enhanced"
+            result = metrics_query.run_query(metrics_referrer)
+            if dry_run:
+                # Query has to reach here to be considered compatible
+                sentry_sdk.set_tag("query.mep_compatible", True)
+                return
+        with sentry_sdk.start_span(op="mep", description="query.transform_results"):
+            result = discover.transform_results(result, metrics_query, {}, None)
+            result["data"] = (
+                discover.zerofill(
+                    result["data"],
                     params["start"],
                     params["end"],
                     rollup,
+                    "time",
                 )
-        # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery as error:
-            if not dry_run:
-                raise error
-            else:
-                sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-        # any remaining errors mean we should try again with discover
-        except IncompatibleMetricsQuery as error:
-            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
-            metrics_compatible = False
-        except Exception as error:
-            if dry_run:
-                return
-            else:
-                raise error
-
-    if dry_run:
-        return {}
-
-    # This isn't a query we can enhance with metrics
-    if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.timeseries_query(
-            selected_columns,
-            query,
-            params,
-            rollup,
-            referrer,
-            zerofill_results,
-            comparison_delta,
-            functions_acl,
-        )
+                if zerofill_results
+                else result["data"]
+            )
+            sentry_sdk.set_tag("performance.dataset", "metrics")
+            result["meta"]["isMetricsData"] = True
+            return SnubaTSResult(
+                {
+                    "data": result["data"],
+                    "isMetricsData": True,
+                    "meta": result["meta"],
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
     return SnubaTSResult()
 
 
@@ -268,6 +247,7 @@ def histogram_query(
     builder = HistogramMetricQueryBuilder(
         histogram_params,
         # Arguments for QueryBuilder
+        dataset=Dataset.PerformanceMetrics,
         params=params,
         query=user_query,
         selected_columns=[f"histogram({field})" for field in fields],

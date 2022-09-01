@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -17,7 +18,16 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
+import {
+  AutocompleteGroup,
+  ItemType,
+  SearchGroup,
+  SearchItem,
+  Shortcut,
+  ShortcutType,
+} from './types';
+import {TagCollection} from 'sentry/types';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -56,7 +66,7 @@ export function getQueryTerms(query: string, cursor: number) {
 
 function getTitleForType(type: ItemType) {
   if (type === ItemType.TAG_VALUE) {
-    return t('Tag Values');
+    return t('Values');
   }
 
   if (type === ItemType.RECENT_SEARCH) {
@@ -75,7 +85,7 @@ function getTitleForType(type: ItemType) {
     return t('Properties');
   }
 
-  return t('Tags');
+  return t('Keys');
 }
 
 function getIconForTypeAndTag(type: ItemType, tagName: string) {
@@ -103,16 +113,12 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
   }
 }
 
-export function createSearchGroups(
+const filterSearchItems = (
   searchItems: SearchItem[],
-  recentSearchItems: SearchItem[] | undefined,
-  tagName: string,
-  type: ItemType,
-  maxSearchItems: number | undefined,
+  recentSearchItems?: SearchItem[],
+  maxSearchItems?: number,
   queryCharsLeft?: number
-) {
-  const activeSearchItem = 0;
-
+) => {
   if (maxSearchItems && maxSearchItems > 0) {
     searchItems = searchItems.filter(
       (value: SearchItem, index: number) =>
@@ -121,32 +127,70 @@ export function createSearchGroups(
   }
 
   if (queryCharsLeft || queryCharsLeft === 0) {
+    searchItems = searchItems.flatMap(item => {
+      if (!item.children) {
+        if (!item.value || item.value.length <= queryCharsLeft) {
+          return [item];
+        }
+        return [];
+      }
+
+      const newItem = {
+        ...item,
+        children: item.children.filter(
+          child => !child.value || child.value.length <= queryCharsLeft
+        ),
+      };
+
+      if (newItem.children.length === 0) {
+        return [];
+      }
+
+      return [newItem];
+    });
     searchItems = searchItems.filter(
-      (value: SearchItem) =>
-        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
+      (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
     );
+
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) =>
-          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
+        (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
       );
     }
   }
+
+  return {searchItems, recentSearchItems};
+};
+
+export function createSearchGroups(
+  searchItems: SearchItem[],
+  recentSearchItems: SearchItem[] | undefined,
+  tagName: string,
+  type: ItemType,
+  maxSearchItems?: number,
+  queryCharsLeft?: number,
+  isDefaultState?: boolean
+) {
+  const fieldDefinition = getFieldDefinition(tagName);
+
+  const activeSearchItem = 0;
+  const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
+    filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
 
   const searchGroup: SearchGroup = {
     title: getTitleForType(type),
     type: type === ItemType.INVALID_TAG ? type : 'header',
     icon: getIconForTypeAndTag(type, tagName),
-    children: [...searchItems],
+    children: [...filteredSearchItems],
   };
 
   const recentSearchGroup: SearchGroup | undefined =
-    recentSearchItems && recentSearchItems.length > 0
+    filteredRecentSearchItems && filteredRecentSearchItems.length > 0
       ? {
           title: t('Recent Searches'),
           type: 'header',
           icon: <IconClock size="xs" />,
-          children: [...recentSearchItems],
+          children: [...filteredRecentSearchItems],
         }
       : undefined;
 
@@ -156,38 +200,46 @@ export function createSearchGroups(
     };
   }
 
-  return {
-    searchGroups: [searchGroup, ...(recentSearchGroup ? [recentSearchGroup] : [])],
-    flatSearchItems: [...searchItems, ...(recentSearchItems ? recentSearchItems : [])],
-    activeSearchItem: -1,
-  };
-}
-
-/**
- * Items is a list of dropdown groups that have a `children` field. Only the
- * `children` are selectable, so we need to find which child is selected given
- * an index that is in range of the sum of all `children` lengths
- *
- * @return Returns a tuple of [groupIndex, childrenIndex]
- */
-export function filterSearchGroupsByIndex(items: SearchGroup[], index: number) {
-  let _index = index;
-  let foundSearchItem: [number?, number?] = [undefined, undefined];
-
-  items.find(({children}, i) => {
-    if (!children || !children.length) {
-      return false;
+  const flatSearchItems = filteredSearchItems.flatMap(item => {
+    if (item.children) {
+      if (!item.value) {
+        return [...item.children];
+      }
+      return [item, ...item.children];
     }
-    if (_index < children.length) {
-      foundSearchItem = [i, _index];
-      return true;
-    }
-
-    _index -= children.length;
-    return false;
+    return [item];
   });
 
-  return foundSearchItem;
+  if (fieldDefinition?.valueType === FieldValueType.DATE) {
+    if (type === ItemType.TAG_OPERATOR) {
+      return {
+        searchGroups: [],
+        flatSearchItems: [],
+        activeSearchItem: -1,
+      };
+    }
+  }
+
+  if (isDefaultState) {
+    // Recent searches first in default state.
+    return {
+      searchGroups: [...(recentSearchGroup ? [recentSearchGroup] : []), searchGroup],
+      flatSearchItems: [
+        ...(recentSearchItems ? recentSearchItems : []),
+        ...flatSearchItems,
+      ],
+      activeSearchItem: -1,
+    };
+  }
+
+  return {
+    searchGroups: [searchGroup, ...(recentSearchGroup ? [recentSearchGroup] : [])],
+    flatSearchItems: [
+      ...flatSearchItems,
+      ...(recentSearchItems ? recentSearchItems : []),
+    ],
+    activeSearchItem: -1,
+  };
 }
 
 export function generateOperatorEntryMap(tag: string) {
@@ -264,48 +316,274 @@ export const shortcuts: Shortcut[] = [
     text: 'Delete',
     shortcutType: ShortcutType.Delete,
     hotkeys: {
-      actual: 'option+backspace',
-      display: 'option+backspace',
+      actual: 'ctrl+option+backspace',
     },
     icon: <IconDelete size="xs" color="gray300" />,
-    canRunShortcut: tok => {
-      return tok?.type === Token.Filter;
+    canRunShortcut: token => {
+      return token?.type === Token.Filter;
     },
   },
   {
     text: 'Exclude',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: ['option+1'],
-      display: 'option+!',
+      actual: 'ctrl+option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
-    canRunShortcut: tok => {
-      return tok?.type === Token.Filter;
+    canRunShortcut: token => {
+      return token?.type === Token.Filter && !token.negated;
     },
   },
+  {
+    text: 'Include',
+    shortcutType: ShortcutType.Negate,
+    hotkeys: {
+      actual: 'ctrl+option+1',
+    },
+    icon: <IconExclamation size="xs" color="gray300" />,
+    canRunShortcut: token => {
+      return token?.type === Token.Filter && token.negated;
+    },
+  },
+
   {
     text: 'Previous',
     shortcutType: ShortcutType.Previous,
     hotkeys: {
-      actual: ['option+left'],
-      display: 'option+left',
+      actual: 'ctrl+option+left',
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
-    canRunShortcut: (tok, count) => {
-      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    canRunShortcut: (token, count) => {
+      return count > 1 || (count > 0 && token?.type !== Token.Filter);
     },
   },
   {
     text: 'Next',
     shortcutType: ShortcutType.Next,
     hotkeys: {
-      actual: ['option+right'],
-      display: 'option+right',
+      actual: 'ctrl+option+right',
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
-    canRunShortcut: (tok, count) => {
-      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    canRunShortcut: (token, count) => {
+      return count > 1 || (count > 0 && token?.type !== Token.Filter);
     },
   },
 ];
+
+const getItemTitle = (key: string, kind: FieldKind) => {
+  if (kind === FieldKind.FUNCTION) {
+    // Replace the function innards with ... for cleanliness
+    return key.replace(/\(.*\)/g, '(...)');
+  }
+
+  return key;
+};
+
+/**
+ * Groups tag keys based on the "." character in their key.
+ * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
+ * The parent will become interactive if there exists a key "device".
+ */
+export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
+  return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
+    const keyWithColon = `${key}:`;
+    const sections = key.split('.');
+
+    const definition =
+      supportedTags[key]?.kind === FieldKind.FUNCTION
+        ? getFieldDefinition(key.split('(')[0])
+        : getFieldDefinition(key);
+    const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
+
+    const item: SearchItem = {
+      value: keyWithColon,
+      title: getItemTitle(key, kind),
+      documentation: definition?.desc ?? '-',
+      kind,
+      deprecated: definition?.deprecated,
+      featureFlag: definition?.featureFlag,
+    };
+
+    const lastGroup = groups.at(-1);
+
+    const [title] = sections;
+
+    if (kind !== FieldKind.FUNCTION && lastGroup) {
+      if (lastGroup.children && lastGroup.title === title) {
+        lastGroup.children.push(item);
+        return groups;
+      }
+
+      if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
+        if (lastGroup.title === title) {
+          return [
+            ...groups.slice(0, -1),
+            {
+              title,
+              value: lastGroup.value,
+              documentation: lastGroup.documentation,
+              kind: lastGroup.kind,
+              children: [item],
+            },
+          ];
+        }
+
+        // Add a blank parent if the last group's full key is not the same as the title
+        return [
+          ...groups.slice(0, -1),
+          {
+            title,
+            value: null,
+            documentation: '-',
+            kind: lastGroup.kind,
+            children: [lastGroup, item],
+          },
+        ];
+      }
+    }
+
+    return [...groups, item];
+  }, []);
+};
+
+/**
+ * Sets an item as active within a search group array and returns new search groups without mutating.
+ * the item is compared via value, so this function assumes that each value is unique.
+ */
+export const getSearchGroupWithItemMarkedActive = (
+  searchGroups: SearchGroup[],
+  currentItem: SearchItem,
+  active: boolean
+) => {
+  return searchGroups.map(group => ({
+    ...group,
+    children: group.children?.map(item => {
+      if (item.value === currentItem.value) {
+        return {
+          ...item,
+          active,
+        };
+      }
+
+      if (item.children && item.children.length > 0) {
+        return {
+          ...item,
+          children: item.children.map(child => {
+            if (child.value === currentItem.value) {
+              return {
+                ...child,
+                active,
+              };
+            }
+
+            return child;
+          }),
+        };
+      }
+
+      return item;
+    }),
+  }));
+};
+
+/**
+ * Filter tag keys based on the query and the key, description, and associated keywords of each tag.
+ */
+export const filterKeysFromQuery = (tagKeys: string[], searchTerm: string): string[] =>
+  tagKeys
+    .flatMap(key => {
+      const keyWithoutFunctionPart = key.replaceAll(/\(.*\)/g, '');
+      const definition = getFieldDefinition(keyWithoutFunctionPart);
+      const lowerCasedSearchTerm = searchTerm.toLocaleLowerCase();
+
+      const combinedKeywords = [
+        ...(definition?.desc ? [definition.desc] : []),
+        ...(definition?.keywords ?? []),
+      ]
+        .join(' ')
+        .toLocaleLowerCase();
+
+      const matchedInKey = keyWithoutFunctionPart.includes(lowerCasedSearchTerm);
+      const matchedInKeywords = combinedKeywords.includes(lowerCasedSearchTerm);
+
+      if (!matchedInKey && !matchedInKeywords) {
+        return [];
+      }
+
+      return [{matchedInKey, matchedInKeywords, key}];
+    })
+    .sort((a, b) => {
+      // Sort by matched in key first, then by matched in keywords
+      if (a.matchedInKey && !b.matchedInKey) {
+        return -1;
+      }
+
+      if (b.matchedInKey && !a.matchedInKey) {
+        return 1;
+      }
+
+      return a.key < b.key ? -1 : 1;
+    })
+    .map(({key}) => key);
+
+const DATE_SUGGESTED_VALUES = [
+  {
+    title: t('Last hour'),
+    value: '-1h',
+    desc: '-1h',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 24 hours'),
+    value: '-24h',
+    desc: '-24h',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 7 days'),
+    value: '-7d',
+    desc: '-7d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 14 days'),
+    value: '-14d',
+    desc: '-14d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('Last 30 days'),
+    value: '-30d',
+    desc: '-30d',
+    type: ItemType.TAG_VALUE,
+  },
+  {
+    title: t('After a custom datetime'),
+    value: '>',
+    desc: '>YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+  {
+    title: t('Before a custom datetime'),
+    value: '<',
+    desc: '<YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+  {
+    title: t('At a custom datetime'),
+    value: '=',
+    desc: '=YYYY-MM-DDThh:mm:ss',
+    type: ItemType.TAG_VALUE_ISO_DATE,
+  },
+];
+
+export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup[] => {
+  return [
+    {
+      searchItems: DATE_SUGGESTED_VALUES,
+      recentSearchItems: [],
+      tagName,
+      type: ItemType.TAG_VALUE,
+    },
+  ];
+};

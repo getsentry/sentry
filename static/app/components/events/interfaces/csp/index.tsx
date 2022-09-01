@@ -1,22 +1,36 @@
-import {Component} from 'react';
+import {useState} from 'react';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EventDataSection from 'sentry/components/events/eventDataSection';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 
-import Content from './content';
-import Help from './help';
+import Help, {HelpProps} from './help';
 
-function getView(view, data) {
+type View = 'report' | 'raw' | 'help';
+
+function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   switch (view) {
     case 'report':
-      return <Content data={data} />;
+      return (
+        <KeyValueList
+          data={Object.entries(data).map(([key, value]) => {
+            return {
+              key,
+              subject: key,
+              value,
+              meta: meta?.[key]?.[''],
+            };
+          })}
+          isContextData
+        />
+      );
     case 'raw':
       return <pre>{JSON.stringify({'csp-report': data}, null, 2)}</pre>;
     case 'help':
-      return <Help data={data} />;
+      return <Help data={data as HelpProps['data']} />;
     default:
       throw new TypeError(`Invalid view: ${view}`);
   }
@@ -27,63 +41,43 @@ type Props = {
   event: Event;
 };
 
-type State = {
-  view: string;
-};
+export function Csp({data, event}: Props) {
+  const [view, setView] = useState<View>('report');
 
-class CspInterface extends Component<Props, State> {
-  state: State = {view: 'report'};
+  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.CSP);
+  const meta = event._meta?.entries?.[entryIndex]?.data;
 
-  toggleView = value => {
-    this.setState({
-      view: value,
-    });
-  };
+  const cleanData =
+    data.original_policy !== 'string'
+      ? data
+      : {
+          ...data,
+          // Hide the report-uri since this is redundant and silly
+          original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
+        };
 
-  render() {
-    const {view} = this.state;
-    const {data} = this.props;
+  const actions = (
+    <ButtonBar merged active={view}>
+      <Button barId="report" size="xs" onClick={() => setView('report')}>
+        {t('Report')}
+      </Button>
+      <Button barId="raw" size="xs" onClick={() => setView('raw')}>
+        {t('Raw')}
+      </Button>
+      <Button barId="help" size="xs" onClick={() => setView('help')}>
+        {t('Help')}
+      </Button>
+    </ButtonBar>
+  );
 
-    const cleanData =
-      data.original_policy !== 'string'
-        ? data
-        : {
-            ...data,
-            // Hide the report-uri since this is redundant and silly
-            original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
-          };
-
-    const actions = (
-      <ButtonBar merged active={view}>
-        <Button
-          barId="report"
-          size="xsmall"
-          onClick={this.toggleView.bind(this, 'report')}
-        >
-          {t('Report')}
-        </Button>
-        <Button barId="raw" size="xsmall" onClick={this.toggleView.bind(this, 'raw')}>
-          {t('Raw')}
-        </Button>
-        <Button barId="help" size="xsmall" onClick={this.toggleView.bind(this, 'help')}>
-          {t('Help')}
-        </Button>
-      </ButtonBar>
-    );
-
-    const children = getView(view, cleanData);
-
-    return (
-      <EventDataSection
-        type="csp"
-        title={<h3>{t('CSP Report')}</h3>}
-        actions={actions}
-        wrapTitle={false}
-      >
-        {children}
-      </EventDataSection>
-    );
-  }
+  return (
+    <EventDataSection
+      type="csp"
+      title={<h3>{t('CSP Report')}</h3>}
+      actions={actions}
+      wrapTitle={false}
+    >
+      {getView(view, cleanData, meta)}
+    </EventDataSection>
+  );
 }
-
-export default CspInterface;

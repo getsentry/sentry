@@ -48,6 +48,7 @@ import {
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
 import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
+import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -287,7 +288,7 @@ class Dashboard extends Component<Props, State> {
     }
 
     onUpdate(nextList);
-    if (!!!isEditing) {
+    if (!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -300,7 +301,7 @@ class Dashboard extends Component<Props, State> {
 
     onUpdate(nextList);
 
-    if (!!!isEditing) {
+    if (!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -317,7 +318,7 @@ class Dashboard extends Component<Props, State> {
     nextList = generateWidgetsAfterCompaction(nextList);
 
     onUpdate(nextList);
-    if (!!!isEditing) {
+    if (!isEditing) {
       handleUpdateWidgetList(nextList);
     }
   };
@@ -389,7 +390,8 @@ class Dashboard extends Component<Props, State> {
 
   renderWidget(widget: Widget, index: number) {
     const {isMobile, windowWidth} = this.state;
-    const {isEditing, organization, widgetLimitReached, isPreview} = this.props;
+    const {isEditing, organization, widgetLimitReached, isPreview, dashboard, location} =
+      this.props;
 
     const widgetProps = {
       widget,
@@ -399,6 +401,7 @@ class Dashboard extends Component<Props, State> {
       onEdit: this.handleEditWidget(widget, index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
+      dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
     };
 
     if (organization.features.includes('dashboard-grid-layout')) {
@@ -559,7 +562,7 @@ class Dashboard extends Component<Props, State> {
             aria-label={t('Resize Widget')}
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
-            size="xsmall"
+            size="xs"
             borderless
             icon={<IconResize size="xs" />}
           />
@@ -568,7 +571,7 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {isEditing && !!!widgetLimitReached && (
+        {isEditing && !widgetLimitReached && (
           <AddWidgetWrapper
             key={ADD_WIDGET_BUTTON_DRAG_ID}
             data-grid={this.addWidgetLayout}
@@ -613,7 +616,7 @@ class Dashboard extends Component<Props, State> {
         <WidgetContainer>
           <SortableContext items={items} strategy={rectSortingStrategy}>
             {widgets.map((widget, index) => this.renderWidget(widget, index))}
-            {isEditing && !!!widgetLimitReached && (
+            {isEditing && !widgetLimitReached && (
               <AddWidget onAddWidget={this.handleStartAdd} />
             )}
           </SortableContext>

@@ -651,12 +651,6 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
-    // On mobile views org stats dropdowns overlap
-    orgStats: {
-      dataCategory: 2,
-      timeRange: 1,
-    },
-
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 1,
@@ -731,19 +725,19 @@ const commonTheme = {
    * Should be used to ensure consistent sizing among form elements.
    */
   form: {
-    default: {
+    md: {
       height: 40,
       minHeight: 40,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    small: {
+    sm: {
       height: 34,
       minHeight: 34,
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    xsmall: {
+    xs: {
       height: 28,
       minHeight: 28,
       fontSize: '0.75rem',
@@ -755,23 +749,47 @@ const commonTheme = {
    * Padding for buttons
    */
   buttonPadding: {
-    default: {
-      paddingTop: 10,
-      paddingBottom: 10,
+    md: {
       paddingLeft: 16,
       paddingRight: 16,
+      paddingTop: 10,
+      paddingBottom: 10,
     },
-    small: {
-      paddingTop: 8,
-      paddingBottom: 8,
+    sm: {
       paddingLeft: 12,
       paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
     },
-    xsmall: {
-      paddingTop: 6,
-      paddingBottom: 6,
+    xs: {
       paddingLeft: 8,
       paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+  },
+
+  /**
+   * Padding for form inputs
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
     },
   },
 
@@ -867,6 +885,7 @@ export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
 export type IconSize = keyof typeof iconSizes;
+export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 

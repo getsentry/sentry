@@ -2,6 +2,7 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import ConfirmDelete from 'sentry/components/confirmDelete';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -31,7 +32,7 @@ const getListItemDescription = (rule: Rule) => {
   );
 
   if (rule.method === MethodType.REPLACE && rule.placeholder) {
-    descriptionDetails.push(` with [${rule.placeholder}]`);
+    descriptionDetails.push(`with [${rule.placeholder}]`);
   }
 
   return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
@@ -45,26 +46,43 @@ const Rules = forwardRef(function RulesList(
     <List ref={ref} isDisabled={disabled} data-test-id="advanced-data-scrubbing-rules">
       {rules.map(rule => {
         const {id} = rule;
+        const ruleDescription = getListItemDescription(rule);
         return (
           <ListItem key={id}>
-            <TextOverflow>{getListItemDescription(rule)}</TextOverflow>
+            <TextOverflow>{ruleDescription}</TextOverflow>
             {onEditRule && (
               <Button
                 aria-label={t('Edit Rule')}
-                size="small"
+                size="sm"
                 onClick={onEditRule(id)}
                 icon={<IconEdit />}
                 disabled={disabled}
+                title={
+                  disabled ? t('You do not have permission to edit rules') : undefined
+                }
               />
             )}
             {onDeleteRule && (
-              <Button
-                aria-label={t('Delete Rule')}
-                size="small"
-                onClick={onDeleteRule(id)}
-                icon={<IconDelete />}
+              <ConfirmDelete
+                message={t('Are you sure you wish to delete this rule?')}
+                priority="danger"
+                onConfirm={() => {
+                  onDeleteRule(id)();
+                }}
+                confirmInput={ruleDescription}
                 disabled={disabled}
-              />
+                stopPropagation
+              >
+                <Button
+                  aria-label={t('Delete Rule')}
+                  size="sm"
+                  icon={<IconDelete />}
+                  disabled={disabled}
+                  title={
+                    disabled ? t('You do not have permission to delete rules') : undefined
+                  }
+                />
+              </ConfirmDelete>
             )}
           </ListItem>
         );

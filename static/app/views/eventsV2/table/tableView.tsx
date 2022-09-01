@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   isFieldSortable,
@@ -27,7 +28,6 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   Column,
   fieldAlignment,
-  getAggregateAlias,
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
@@ -66,6 +66,7 @@ export type TableViewProps = {
   tableData: TableData | null | undefined;
 
   title: string;
+  customMeasurements?: CustomMeasurementCollection;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -254,7 +255,8 @@ class TableView extends Component<TableViewProps> {
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
-    let cell = fieldRenderer(dataRow, {organization, location});
+    const unit = tableData.meta.units?.[columnKey];
+    let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
       const eventSlug = generateEventSlug(dataRow);
@@ -292,7 +294,7 @@ class TableView extends Component<TableViewProps> {
       }
     }
 
-    const fieldName = getAggregateAlias(columnKey);
+    const fieldName = columnKey;
     const value = dataRow[fieldName];
     if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
       return (
@@ -330,8 +332,13 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleEditColumns = () => {
-    const {organization, eventView, measurementKeys, spanOperationBreakdownKeys} =
-      this.props;
+    const {
+      organization,
+      eventView,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+      customMeasurements,
+    } = this.props;
 
     const hasBreakdownFeature = organization.features.includes(
       'performance-ops-breakdown'
@@ -348,6 +355,7 @@ class TableView extends Component<TableViewProps> {
           }
           columns={eventView.getColumns().map(col => col.column)}
           onApply={this.handleUpdateColumns}
+          customMeasurements={customMeasurements}
         />
       ),
       {modalCss, backdrop: 'static'}

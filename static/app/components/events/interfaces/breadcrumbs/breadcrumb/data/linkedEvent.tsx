@@ -31,7 +31,7 @@ const errorMessage = t(
   'An error occurred while fetching the data of the breadcrumb event link'
 );
 
-function LinkedEvent({orgSlug, eventId, route, router}: Props) {
+export function LinkedEvent({orgSlug, eventId, route, router}: Props) {
   const [storedLinkedEvent, setStoredLinkedEvent, removeStoredLinkedEvent] =
     useSessionStorage<undefined | StoredLinkedEvent>(eventId);
 
@@ -54,7 +54,7 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
   }
 
   async function fetchEventById() {
-    if (!!storedLinkedEvent) {
+    if (storedLinkedEvent) {
       return;
     }
 
@@ -123,8 +123,6 @@ function LinkedEvent({orgSlug, eventId, route, router}: Props) {
     />
   );
 }
-
-export default LinkedEvent;
 
 const StyledShortId = styled(ShortId)`
   font-weight: 700;

@@ -215,6 +215,7 @@ def determine_eligible_recipients(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
+    release_dry_run: bool | None = False,
 ) -> Iterable[Team | User]:
     """
     Either get the individual recipient from the target type/id or the
@@ -234,7 +235,7 @@ def determine_eligible_recipients(
             return {team}
 
     elif target_type == ActionTargetType.RELEASE_MEMBERS:
-        return get_release_committers(project, event)
+        return get_release_committers(project, event, release_dry_run)
 
     else:
         return get_owners(project, event)
@@ -242,10 +243,9 @@ def determine_eligible_recipients(
     return set()
 
 
-def get_release_committers(project: Project, event: Event) -> Sequence[User]:
-    from sentry.api.serializers import Author, get_users_for_commits
-    from sentry.utils.committers import _get_commits
-
+def get_release_committers(
+    project: Project, event: Event, release_dry_run: bool | None = False
+) -> Sequence[User]:
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
@@ -263,28 +263,32 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
     if not last_release:
         return []
 
-    commits: Sequence[Commit] = _get_commits([last_release])
+    return _get_release_committers(last_release, release_dry_run)
+
+
+def _get_release_committers(
+    release: Release, release_dry_run: bool | None = False
+) -> Sequence[User]:
+    from sentry.api.serializers import Author, get_users_for_commits
+    from sentry.utils.committers import _get_commits
+
+    commits: Sequence[Commit] = _get_commits([release])
     if not commits:
         return []
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
 
-    # XXX(gilbert): this is inefficient since this evaluates flagr once per user
-    # it should be ok since this method should only be called for projects within sentry
-    # do not copy this unless you know the risk; you've been warned!
-    return list(
-        filter(
-            lambda u: features.has(
-                "organizations:active-release-notification-opt-in", project.organization, actor=u
-            ),
-            list(
-                User.objects.filter(
-                    id__in={au["id"] for au in author_users.values() if au.get("id")}
-                )
-            ),
-        )
+    release_committers = list(
+        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
     )
+    # TODO(scttcper): Remove this after the experiment
+    if release_dry_run:
+        return release_committers
+
+    if features.has("organizations:active-release-notifications-enable", release.organization):
+        return release_committers
+    return []
 
 
 def get_send_to(
@@ -292,9 +296,10 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: int | None = None,
     event: Event | None = None,
+    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> Mapping[ExternalProviders, set[Team | User]]:
     recipients = determine_eligible_recipients(project, target_type, target_identifier, event)
-    return get_recipients_by_provider(project, recipients)
+    return get_recipients_by_provider(project, recipients, notification_type)
 
 
 def get_user_from_identifier(project: Project, target_identifier: str | int | None) -> User | None:
@@ -369,13 +374,17 @@ def combine_recipients_by_provider(
 
 
 def get_recipients_by_provider(
-    project: Project, recipients: Iterable[Team | User]
+    project: Project,
+    recipients: Iterable[Team | User],
+    notification_type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> Mapping[ExternalProviders, set[Team | User]]:
     """Get the lists of recipients that should receive an Issue Alert by ExternalProvider."""
     teams, users = partition_recipients(recipients)
 
     # First evaluate the teams.
-    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(project, teams)
+    teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+        project, teams, notification_type
+    )
 
     # Teams cannot receive emails so omit EMAIL settings.
     teams_by_provider = {
@@ -388,6 +397,8 @@ def get_recipients_by_provider(
     users = set(users).union(get_users_from_team_fall_back(teams, teams_by_provider))
 
     # Repeat for users.
-    users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(project, users)
+    users_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+        project, users, notification_type
+    )
 
     return combine_recipients_by_provider(teams_by_provider, users_by_provider)

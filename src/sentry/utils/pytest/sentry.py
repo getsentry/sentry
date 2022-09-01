@@ -3,10 +3,12 @@ from __future__ import annotations
 import collections
 import os
 import random
+from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
 from unittest import mock
 
+import freezegun
 import pytest
 from django.conf import settings
 from sentry_sdk import Hub
@@ -19,6 +21,8 @@ V = TypeVar("V")
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
+
+TEST_REDIS_DB = 9
 
 
 def pytest_configure(config):
@@ -111,10 +115,15 @@ def pytest_configure(config):
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
+    settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
+
+    # Disable internal error collection during tests.
+    settings.SENTRY_PROJECT = None
+    settings.SENTRY_PROJECT_KEY = None
 
     settings.SENTRY_ENCRYPTION_SCHEMES = ()
 
@@ -136,11 +145,14 @@ def pytest_configure(config):
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
-            "system.customer-base-hostname": "{slug}.{region}.testserver",
+            "system.organization-base-hostname": "{slug}.testserver",
+            "system.organization-url-template": "http://{hostname}",
+            "system.region-api-url-template": "http://{region}.testserver",
+            "system.region": "us",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -169,6 +181,9 @@ def pytest_configure(config):
     )
 
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+    settings.SENTRY_USE_BIG_INTS = True
+
+    settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
 
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"
@@ -214,6 +229,8 @@ def pytest_configure(config):
     from sentry.celery import app  # NOQA
 
     http.DISALLOWED_IPS = set()
+
+    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])
 
 
 def register_extensions():

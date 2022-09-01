@@ -17,7 +17,7 @@ export function generateProfileSummaryRoute({
   return `/organizations/${orgSlug}/profiling/summary/${projectSlug}/`;
 }
 
-export function generateProfileFlamegraphRoute({
+export function generateProfileFlamechartRoute({
   orgSlug,
   projectSlug,
   profileId,
@@ -26,7 +26,7 @@ export function generateProfileFlamegraphRoute({
   profileId: Trace['id'];
   projectSlug: Project['slug'];
 }): string {
-  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamegraph/`;
+  return `/organizations/${orgSlug}/profiling/profile/${projectSlug}/${profileId}/flamechart/`;
 }
 
 export function generateProfileDetailsRoute({
@@ -84,7 +84,7 @@ export function generateProfileSummaryRouteWithQuery({
   };
 }
 
-export function generateProfileFlamegraphRouteWithQuery({
+export function generateProfileFlamechartRouteWithQuery({
   location,
   orgSlug,
   projectSlug,
@@ -97,7 +97,11 @@ export function generateProfileFlamegraphRouteWithQuery({
   location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateProfileFlamegraphRoute({orgSlug, projectSlug, profileId});
+  const pathname = generateProfileFlamechartRoute({
+    orgSlug,
+    projectSlug,
+    profileId,
+  });
   return {
     pathname,
     query: {

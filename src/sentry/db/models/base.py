@@ -1,14 +1,25 @@
-from typing import Any, Callable, Mapping, Tuple, cast
+from __future__ import annotations
+
+from typing import Any, Callable, Iterable, Mapping, Tuple, cast
 
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
+from sentry.silo import SiloLimit, SiloMode
+
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
 from .query import update
 
-__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr")
+__all__ = (
+    "BaseModel",
+    "Model",
+    "DefaultFieldsModel",
+    "sane_repr",
+    "control_silo_model",
+    "customer_silo_model",
+)
 
 
 def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
@@ -129,3 +140,71 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
 signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
+
+
+class ModelSiloLimit(SiloLimit):
+    def __init__(
+        self,
+        *modes: SiloMode,
+        read_only: SiloMode | Iterable[SiloMode] = (),
+    ) -> None:
+        super().__init__(*modes)
+        self.read_only = frozenset([read_only] if isinstance(read_only, SiloMode) else read_only)
+
+    @staticmethod
+    def _recover_model_name(obj: Any) -> str | None:
+        # obj may be a model, manager, or queryset
+        if isinstance(obj, Model):
+            return type(obj).__name__
+        model_attr = getattr(obj, "model", None)
+        if model_attr and isinstance(model_attr, type) and issubclass(model_attr, Model):
+            return model_attr.__name__
+        return None
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, *args: Any, **kwargs: Any) -> None:
+            model_name = self._recover_model_name(obj)
+            method_name = (model_name + "." if model_name else "") + original_method.__name__
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Called `{method_name}` on server in {current_mode} mode. "
+                f"{model_name or 'The model'} is available only in: {mode_str}"
+            )
+            raise self.AvailabilityError(message)
+
+        return handle
+
+    def __call__(self, model_class: Any) -> type:
+        if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
+            raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
+        assert isinstance(model_class.objects, BaseManager)
+
+        model_class.objects = model_class.objects.create_silo_limited_copy(self, self.read_only)
+
+        # On the model (not manager) class itself, find all methods that are tagged
+        # with the `alters_data` meta-attribute and replace them with overrides.
+        for model_attr_name in dir(model_class):
+            model_attr = getattr(model_class, model_attr_name)
+            if callable(model_attr) and getattr(model_attr, "alters_data", False):
+                override = self.create_override(model_attr)
+                override.alters_data = True  # type: ignore
+
+                # We have to resort to monkey-patching here. Dynamically extending
+                # and replacing the model class is not an option, because that would
+                # trigger hooks in Django's ModelBase metaclass a second time.
+                setattr(model_class, model_attr_name, override)
+
+        # For internal tooling only. Having any production logic depend on this is
+        # strongly discouraged.
+        model_class._meta.__silo_limit = self
+
+        return model_class
+
+
+control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.CUSTOMER)
+customer_silo_model = ModelSiloLimit(SiloMode.CUSTOMER)

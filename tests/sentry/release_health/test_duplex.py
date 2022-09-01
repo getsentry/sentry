@@ -535,6 +535,7 @@ def test_get_sessionsv2_schema():
     assert schema["avg(session.duration)"] == FixedList(22 * [Ct.Quantile] + 2 * [Ct.Ignore])
 
 
+@freeze_time("2022-05-02 15:17")
 def test_sessionsv2_config():
     with Feature("organizations:release-health-return-metrics"):
         backend = DuplexReleaseHealthBackend(datetime(2022, 4, 28, 16, 0, tzinfo=timezone.utc))

@@ -11,7 +11,11 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Series} from 'sentry/types/echarts';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  getDurationUnit,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 
@@ -58,36 +62,6 @@ function Content({
     );
   }
 
-  const chartOptions: Omit<LineChartProps, 'series'> = {
-    grid: {
-      left: '10px',
-      right: '10px',
-      top: '40px',
-      bottom: '0px',
-    },
-    seriesOptions: {
-      showSymbol: false,
-    },
-    tooltip: {
-      trigger: 'axis',
-      valueFormatter: (value: number | null) => tooltipFormatter(value, 'p50()'),
-    },
-    xAxis: timeFrame
-      ? {
-          min: timeFrame.start,
-          max: timeFrame.end,
-        }
-      : undefined,
-    yAxis: {
-      min: 0,
-      axisLabel: {
-        color: theme.chartLabel,
-        // p50() coerces the axis to be time based
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    },
-  };
-
   const series = data
     ? data
         .map(values => {
@@ -102,6 +76,39 @@ function Content({
         })
         .reverse()
     : [];
+
+  const durationUnit = getDurationUnit(series, legend);
+
+  const chartOptions: Omit<LineChartProps, 'series'> = {
+    grid: {
+      left: '10px',
+      right: '10px',
+      top: '40px',
+      bottom: '0px',
+    },
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (value: number | null) => tooltipFormatter(value, 'duration'),
+    },
+    xAxis: timeFrame
+      ? {
+          min: timeFrame.start,
+          max: timeFrame.end,
+        }
+      : undefined,
+    yAxis: {
+      min: 0,
+      minInterval: durationUnit,
+      axisLabel: {
+        color: theme.chartLabel,
+        formatter: (value: number) =>
+          axisLabelFormatter(value, 'duration', undefined, durationUnit),
+      },
+    },
+  };
 
   const {smoothedResults} = transformEventStatsSmoothed(data, t('Smoothed'));
 

@@ -6,7 +6,9 @@ import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
+import {getFormattedTimeRangeWithLeadingZero} from 'sentry/components/events/interfaces/spans/utils';
 import Link from 'sentry/components/links/link';
 import {
   ErrorDot,
@@ -17,7 +19,7 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconAnchor} from 'sentry/icons';
+import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -101,7 +103,7 @@ class TransactionDetail extends Component<Props> {
     );
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Event')}
       </StyledButton>
     );
@@ -118,7 +120,7 @@ class TransactionDetail extends Component<Props> {
     });
 
     return (
-      <StyledButton size="xsmall" to={target}>
+      <StyledButton size="xs" to={target}>
         {t('View Summary')}
       </StyledButton>
     );
@@ -174,6 +176,8 @@ class TransactionDetail extends Component<Props> {
     const {location, organization, transaction} = this.props;
     const startTimestamp = Math.min(transaction.start_timestamp, transaction.timestamp);
     const endTimestamp = Math.max(transaction.start_timestamp, transaction.timestamp);
+    const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
+      getFormattedTimeRangeWithLeadingZero(startTimestamp, endTimestamp);
     const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
@@ -187,7 +191,14 @@ class TransactionDetail extends Component<Props> {
                   onClick={this.scrollBarIntoView(transaction.event_id)}
                 >
                   {t('Event ID')}
-                  <StyledIconAnchor />
+                  <Clipboard
+                    value={`${window.location.href.replace(
+                      window.location.hash,
+                      ''
+                    )}#txn-${transaction.event_id}`}
+                  >
+                    <StyledIconLink />
+                  </Clipboard>
                 </TransactionIdTitle>
               }
               extra={this.renderGoToTransactionButton()}
@@ -206,7 +217,7 @@ class TransactionDetail extends Component<Props> {
                 value: (
                   <Fragment>
                     <DateTime date={startTimestamp * 1000} />
-                    {` (${startTimestamp})`}
+                    {` (${startTimeWithLeadingZero})`}
                   </Fragment>
                 ),
               })}
@@ -217,7 +228,7 @@ class TransactionDetail extends Component<Props> {
                 value: (
                   <Fragment>
                     <DateTime date={endTimestamp * 1000} />
-                    {` (${endTimestamp})`}
+                    {` (${endTimeWithLeadingZero})`}
                   </Fragment>
                 ),
               })}
@@ -261,7 +272,7 @@ const TransactionIdTitle = styled('a')`
   }
 `;
 
-const StyledIconAnchor = styled(IconAnchor)`
+const StyledIconLink = styled(IconLink)`
   display: block;
   color: ${p => p.theme.gray300};
   margin-left: ${space(1)};

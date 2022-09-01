@@ -45,49 +45,24 @@ class Create extends Component<Props, State> {
 
   getInitialState(): State {
     const {organization, location, project, params, router} = this.props;
-    const {
-      createFromDiscover,
-      createFromWizard,
-      aggregate,
-      dataset,
-      eventTypes,
-      createFromDuplicate,
-    } = location?.query ?? {};
-    let alertType = AlertRuleType.ISSUE;
+    const {aggregate, dataset, eventTypes, createFromDuplicate} = location?.query ?? {};
+    const alertType = params.alertType || AlertRuleType.METRIC;
 
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-
-    // Alerts can only be created via create from discover or alert wizard, until alert-wizard-v3 is fully implemented
-    if (hasAlertWizardV3) {
-      alertType = params.alertType || AlertRuleType.METRIC;
-
-      // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
-      if (
-        alertType === AlertRuleType.METRIC &&
-        !(aggregate && dataset && eventTypes) &&
-        !createFromDuplicate
-      ) {
-        router.replace({
-          ...location,
-          pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
-          query: {
-            ...location.query,
-            ...DEFAULT_WIZARD_TEMPLATE,
-            project: project.slug,
-          },
-        });
-      }
-    } else if (createFromDiscover) {
-      alertType = AlertRuleType.METRIC;
-    } else if (createFromWizard) {
-      if (aggregate && dataset && eventTypes) {
-        alertType = AlertRuleType.METRIC;
-      } else {
-        // Just to be explicit
-        alertType = AlertRuleType.ISSUE;
-      }
-    } else {
-      router.replace(`/organizations/${organization.slug}/alerts/${project.slug}/wizard`);
+    // TODO(taylangocmen): Remove redirect with aggregate && dataset && eventTypes, init from template
+    if (
+      alertType === AlertRuleType.METRIC &&
+      !(aggregate && dataset && eventTypes) &&
+      !createFromDuplicate
+    ) {
+      router.replace({
+        ...location,
+        pathname: `/organizations/${organization.slug}/alerts/new/${alertType}`,
+        query: {
+          ...location.query,
+          ...DEFAULT_WIZARD_TEMPLATE,
+          project: project.slug,
+        },
+      });
     }
 
     return {alertType};
@@ -96,15 +71,13 @@ class Create extends Component<Props, State> {
   componentDidMount() {
     const {organization, project} = this.props;
 
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-
     trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
       organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
       duplicate_rule: this.isDuplicateRule ? 'true' : 'false',
-      wizard_v3: hasAlertWizardV3 ? 'true' : 'false',
+      wizard_v3: 'true',
     });
   }
 
@@ -112,12 +85,9 @@ class Create extends Component<Props, State> {
   sessionId = uniqueId();
 
   get isDuplicateRule(): boolean {
-    const {location, organization} = this.props;
+    const {location} = this.props;
     const createFromDuplicate = location?.query.createFromDuplicate === 'true';
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
-    return (
-      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
-    );
+    return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
   render() {
@@ -164,60 +134,66 @@ class Create extends Component<Props, State> {
             </Layout.Title>
           </StyledHeaderContent>
         </Layout.Header>
-        <Layout.Body>
-          <StyledLayoutMain fullWidth>
-            <Teams provideUserTeams>
-              {({teams, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <Fragment>
-                    {(!hasMetricAlerts || alertType === 'issue') && (
-                      <IssueRuleEditor
+        <Body>
+          <Teams provideUserTeams>
+            {({teams, initiallyLoaded}) =>
+              initiallyLoaded ? (
+                <Fragment>
+                  {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+                    <IssueRuleEditor
+                      {...this.props}
+                      project={project}
+                      userTeamIds={teams.map(({id}) => id)}
+                    />
+                  )}
+
+                  {hasMetricAlerts &&
+                    alertType === AlertRuleType.METRIC &&
+                    (this.isDuplicateRule ? (
+                      <MetricRulesDuplicate
                         {...this.props}
+                        eventView={eventView}
+                        wizardTemplate={wizardTemplate}
+                        sessionId={this.sessionId}
                         project={project}
                         userTeamIds={teams.map(({id}) => id)}
                       />
-                    )}
-
-                    {hasMetricAlerts &&
-                      alertType === AlertRuleType.METRIC &&
-                      (this.isDuplicateRule ? (
-                        <MetricRulesDuplicate
-                          {...this.props}
-                          eventView={eventView}
-                          wizardTemplate={wizardTemplate}
-                          sessionId={this.sessionId}
-                          project={project}
-                          userTeamIds={teams.map(({id}) => id)}
-                        />
-                      ) : (
-                        <MetricRulesCreate
-                          {...this.props}
-                          eventView={eventView}
-                          wizardTemplate={wizardTemplate}
-                          sessionId={this.sessionId}
-                          project={project}
-                          userTeamIds={teams.map(({id}) => id)}
-                        />
-                      ))}
-                  </Fragment>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
-          </StyledLayoutMain>
-        </Layout.Body>
+                    ) : (
+                      <MetricRulesCreate
+                        {...this.props}
+                        eventView={eventView}
+                        wizardTemplate={wizardTemplate}
+                        sessionId={this.sessionId}
+                        project={project}
+                        userTeamIds={teams.map(({id}) => id)}
+                      />
+                    ))}
+                </Fragment>
+              ) : (
+                <LoadingIndicator />
+              )
+            }
+          </Teams>
+        </Body>
       </Fragment>
     );
   }
 }
 
-const StyledLayoutMain = styled(Layout.Main)`
-  max-width: 1000px;
-`;
-
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
+`;
+
+const Body = styled(Layout.Body)`
+  && {
+    padding: 0;
+    gap: 0;
+  }
+  grid-template-rows: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    grid-template-columns: minmax(100px, auto) 400px;
+  }
 `;
 
 export default Create;

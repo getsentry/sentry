@@ -12,34 +12,41 @@ import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();
   if (!replay) {
-    return <UrlCopyInput disabled>{''}</UrlCopyInput>;
+    return (
+      <UrlCopyInput size="sm" disabled>
+        {''}
+      </UrlCopyInput>
+    );
   }
 
-  const event = replay.getEvent();
+  const replayRecord = replay.getReplay();
   const crumbs = replay.getRawCrumbs();
 
-  return <UrlCopyInput>{getCurrentUrl(event, crumbs, currentTime)}</UrlCopyInput>;
+  return (
+    <UrlCopyInput size="sm">
+      {getCurrentUrl(replayRecord, crumbs, currentTime)}
+    </UrlCopyInput>
+  );
 }
 
 const UrlCopyInput = styled(TextCopyInput)`
-  ${StyledInput} {
-    background: ${p => p.theme.background};
-    border: none;
-    padding: 0 ${space(0.75)};
-    font-size: ${p => p.theme.fontSizeMedium};
-    border-bottom-left-radius: 0;
-    height: ${space(4)};
-  }
-  ${StyledInput}[disabled] {
-    border: none;
-  }
+  font-size: ${p => p.theme.fontSizeMedium};
+  column-gap: ${space(1)};
 
+  ${StyledInput} {
+    border-right-width: 1px;
+    border-radius: 0.25em;
+    background-color: ${p => p.theme.background};
+    border-right-color: ${p => p.theme.border};
+
+    &:hover,
+    &:focus {
+      border-right-width: 1px;
+      background-color: ${p => p.theme.background};
+    }
+  }
   ${StyledCopyButton} {
-    border-top: none;
-    border-right: none;
-    border-bottom: none;
-    height: ${space(4)};
-    min-height: ${space(4)};
+    border-radius: 0.25em;
   }
 `;
 

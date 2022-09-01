@@ -1,34 +1,35 @@
 import {PureComponent} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import Filter from './filter';
+import TraceErrorList from './traceErrorList';
 import TraceView from './traceView';
 import {ParsedTraceType} from './types';
-import {parseTrace, scrollToSpan} from './utils';
+import {getCumulativeAlertLevelFromErrors, parseTrace, scrollToSpan} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
   event: EventTransaction;
   organization: Organization;
+  affectedSpanIds?: string[];
 } & WithRouterProps;
 
 type State = {
@@ -39,7 +40,7 @@ type State = {
 class SpansInterface extends PureComponent<Props, State> {
   state: State = {
     parsedTrace: parseTrace(this.props.event),
-    waterfallModel: new WaterfallModel(this.props.event),
+    waterfallModel: new WaterfallModel(this.props.event, this.props.affectedSpanIds),
   };
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
@@ -50,7 +51,7 @@ class SpansInterface extends PureComponent<Props, State> {
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
-      waterfallModel: new WaterfallModel(props.event),
+      waterfallModel: new WaterfallModel(props.event, props.affectedSpanIds),
     };
   }
 
@@ -91,64 +92,25 @@ class SpansInterface extends PureComponent<Props, State> {
             errors.length
           );
 
-    // mapping from span ids to the span op and the number of errors in that span
-    const errorsMap: {
-      [spanId: string]: {errorsCount: number; operation: string};
-    } = {};
-
-    errors.forEach(error => {
-      if (!errorsMap[error.span]) {
-        // first check of the error belongs to the root span
-        if (parsedTrace.rootSpanID === error.span) {
-          errorsMap[error.span] = {
-            operation: parsedTrace.op,
-            errorsCount: 0,
-          };
-        } else {
-          // since it does not belong to the root span, check if it belongs
-          // to one of the other spans in the transaction
-          const span = parsedTrace.spans.find(s => s.span_id === error.span);
-          if (!span?.op) {
-            return;
-          }
-
-          errorsMap[error.span] = {
-            operation: span.op,
-            errorsCount: 0,
-          };
-        }
-      }
-
-      errorsMap[error.span].errorsCount++;
-    });
-
     return (
       <AlertContainer>
-        <Alert type="error">
+        <Alert type={getCumulativeAlertLevelFromErrors(errors)}>
           <ErrorLabel>{label}</ErrorLabel>
+
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (
-              <List symbol="bullet">
-                {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
-                  <ListItem key={spanId}>
-                    {tct('[errors] [link]', {
-                      errors: tn('%s error in ', '%s errors in ', errorsCount),
-                      link: (
-                        <ErrorLink
-                          onClick={scrollToSpan(
-                            spanId,
-                            scrollToHash,
-                            this.props.location,
-                            this.props.organization
-                          )}
-                        >
-                          {operation}
-                        </ErrorLink>
-                      ),
-                    })}
-                  </ListItem>
-                ))}
-              </List>
+              <TraceErrorList
+                trace={parsedTrace}
+                errors={errors}
+                onClickSpan={(event, spanId) => {
+                  return scrollToSpan(
+                    spanId,
+                    scrollToHash,
+                    this.props.location,
+                    this.props.organization
+                  )(event);
+                }}
+              />
             )}
           </AnchorLinkManager.Consumer>
         </Alert>
@@ -179,9 +141,6 @@ class SpansInterface extends PureComponent<Props, State> {
                         operationNameFilter={waterfallModel.operationNameFilters}
                         toggleOperationNameFilter={
                           waterfallModel.toggleOperationNameFilter
-                        }
-                        toggleAllOperationNameFilters={
-                          waterfallModel.toggleAllOperationNameFilters
                         }
                       />
                       <StyledSearchBar
@@ -235,17 +194,12 @@ const Container = styled('div')<{hasErrors: boolean}>`
   `}
 `;
 
-const ErrorLink = styled('a')`
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
-
 const Search = styled('div')`
-  display: flex;
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: max-content 1fr;
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

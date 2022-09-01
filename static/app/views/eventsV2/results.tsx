@@ -14,11 +14,11 @@ import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Confirm from 'sentry/components/confirm';
-import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -32,6 +32,8 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
@@ -68,13 +70,15 @@ type State = {
   error: string;
   errorCode: number;
   eventView: EventView;
-  incompatibleAlertNotice: React.ReactNode;
   needConfirmation: boolean;
   showTags: boolean;
   totalValues: null | number;
   savedQuery?: SavedQuery;
+  showMetricsAlert?: boolean;
+  showUnparameterizedBanner?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
+const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 function readShowTagsState() {
   const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
@@ -116,11 +120,24 @@ class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    incompatibleAlertNotice: null,
   };
 
   componentDidMount() {
     const {organization, selection, location} = this.props;
+    if (location.query.fromMetric) {
+      this.setState({showMetricsAlert: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, fromMetric: undefined},
+      });
+    }
+    if (location.query[SHOW_UNPARAM_BANNER]) {
+      this.setState({showUnparameterizedBanner: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, [SHOW_UNPARAM_BANNER]: undefined},
+      });
+    }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
@@ -431,28 +448,6 @@ class Results extends Component<Props, State> {
     return url;
   };
 
-  handleIncompatibleQuery: React.ComponentProps<
-    typeof CreateAlertFromViewButton
-  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
-    const {organization} = this.props;
-    const {eventView} = this.state;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.create_alert_clicked',
-      eventName: 'Discoverv2: Create alert clicked',
-      status: 'error',
-      query: eventView.query,
-      errors,
-      organization_id: organization.id,
-      url: window.location.href,
-    });
-
-    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
-      this.setState({incompatibleAlertNotice: null})
-    );
-
-    this.setState({incompatibleAlertNotice});
-  };
-
   renderError(error: string) {
     if (!error) {
       return null;
@@ -468,15 +463,41 @@ class Results extends Component<Props, State> {
     this.setState({error, errorCode});
   };
 
+  renderMetricsFallbackBanner() {
+    if (this.state.showMetricsAlert) {
+      return (
+        <Alert type="info" showIcon>
+          {t(
+            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
+          )}
+        </Alert>
+      );
+    }
+    if (this.state.showUnparameterizedBanner) {
+      return (
+        <Alert type="info" showIcon>
+          {tct(
+            'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/#parameterized-transaction-names" />
+              ),
+            }
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   render() {
-    const {organization, location, router} = this.props;
+    const {organization, location, router, selection} = this.props;
     const {
       eventView,
       error,
       errorCode,
       totalValues,
       showTags,
-      incompatibleAlertNotice,
       confirmedQuery,
       savedQuery,
     } = this.state;
@@ -496,78 +517,87 @@ class Results extends Component<Props, State> {
               organization={organization}
               location={location}
               eventView={eventView}
-              onIncompatibleAlertQuery={this.handleIncompatibleQuery}
               yAxis={yAxisArray}
               router={router}
             />
             <Layout.Body>
-              {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
-              <Top fullWidth>
-                {this.renderError(error)}
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
-                </StyledPageFilterBar>
-                <StyledSearchBar
-                  searchSource="eventsv2"
-                  organization={organization}
-                  projectIds={eventView.project}
-                  query={query}
-                  fields={fields}
-                  onSearch={this.handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
-                <ResultsChart
-                  router={router}
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  onAxisChange={this.handleYAxisChange}
-                  onDisplayChange={this.handleDisplayChange}
-                  onTopEventsChange={this.handleTopEventsChange}
-                  total={totalValues}
-                  confirmedQuery={confirmedQuery}
-                  yAxis={yAxisArray}
-                />
-              </Top>
-              <Layout.Main fullWidth={!showTags}>
-                <Table
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  title={title}
-                  setError={this.setError}
-                  onChangeShowTags={this.handleChangeShowTags}
-                  showTags={showTags}
-                  confirmedQuery={confirmedQuery}
-                />
-              </Layout.Main>
-              {showTags ? this.renderTagsTable() : null}
-              <Confirm
-                priority="primary"
-                header={<strong>{t('May lead to thumb twiddling')}</strong>}
-                confirmText={t('Do it')}
-                cancelText={t('Nevermind')}
-                onConfirm={this.handleConfirmed}
-                onCancel={this.handleCancelled}
-                message={
-                  <p>
-                    {tct(
-                      `You've created a query that will search for events made
+              <CustomMeasurementsProvider
+                organization={organization}
+                selection={selection}
+              >
+                <Top fullWidth>
+                  {this.renderMetricsFallbackBanner()}
+                  {this.renderError(error)}
+                  <StyledPageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter alignDropdown="left" />
+                  </StyledPageFilterBar>
+                  <CustomMeasurementsContext.Consumer>
+                    {contextValue => (
+                      <StyledSearchBar
+                        searchSource="eventsv2"
+                        organization={organization}
+                        projectIds={eventView.project}
+                        query={query}
+                        fields={fields}
+                        onSearch={this.handleSearch}
+                        maxQueryLength={MAX_QUERY_LENGTH}
+                        customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      />
+                    )}
+                  </CustomMeasurementsContext.Consumer>
+                  <ResultsChart
+                    router={router}
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    onAxisChange={this.handleYAxisChange}
+                    onDisplayChange={this.handleDisplayChange}
+                    onTopEventsChange={this.handleTopEventsChange}
+                    total={totalValues}
+                    confirmedQuery={confirmedQuery}
+                    yAxis={yAxisArray}
+                  />
+                </Top>
+                <Layout.Main fullWidth={!showTags}>
+                  <Table
+                    organization={organization}
+                    eventView={eventView}
+                    location={location}
+                    title={title}
+                    setError={this.setError}
+                    onChangeShowTags={this.handleChangeShowTags}
+                    showTags={showTags}
+                    confirmedQuery={confirmedQuery}
+                  />
+                </Layout.Main>
+                {showTags ? this.renderTagsTable() : null}
+                <Confirm
+                  priority="primary"
+                  header={<strong>{t('May lead to thumb twiddling')}</strong>}
+                  confirmText={t('Do it')}
+                  cancelText={t('Nevermind')}
+                  onConfirm={this.handleConfirmed}
+                  onCancel={this.handleCancelled}
+                  message={
+                    <p>
+                      {tct(
+                        `You've created a query that will search for events made
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                      {
-                        dayLimit: <strong />,
-                        projectLimit: <strong />,
-                      }
-                    )}
-                  </p>
-                }
-              >
-                {this.setOpenFunction}
-              </Confirm>
+                        {
+                          dayLimit: <strong />,
+                          projectLimit: <strong />,
+                        }
+                      )}
+                    </p>
+                  }
+                >
+                  {this.setOpenFunction}
+                </Confirm>
+              </CustomMeasurementsProvider>
             </Layout.Body>
           </NoProjectMessage>
         </StyledPageContent>

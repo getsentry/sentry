@@ -8,6 +8,7 @@ import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -20,7 +21,6 @@ import {Organization, Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 
 type Props = {
@@ -159,7 +159,7 @@ class TeamProjects extends Component<Props, State> {
             title={t('You do not have enough permission to change project association.')}
           >
             <Button
-              size="small"
+              size="sm"
               disabled={!canWrite}
               icon={<IconSubtract isCircled size="xs" />}
               aria-label={t('Remove')}
@@ -208,7 +208,7 @@ class TeamProjects extends Component<Props, State> {
                 <DropdownButton
                   disabled
                   title={t('You do not have enough permission to associate a project.')}
-                  size="xsmall"
+                  size="xs"
                 >
                   {t('Add Project')}
                 </DropdownButton>
@@ -221,7 +221,7 @@ class TeamProjects extends Component<Props, State> {
                   alignMenu="right"
                 >
                   {({isOpen}) => (
-                    <DropdownButton isOpen={isOpen} size="xsmall">
+                    <DropdownButton isOpen={isOpen} size="xs">
                       {t('Add Project')}
                     </DropdownButton>
                   )}

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {DataZoomComponentOption} from 'echarts';
@@ -9,9 +10,10 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 
-import {Widget, WidgetType} from '../types';
+import {DashboardFilters, Widget, WidgetType} from '../types';
 
 import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
@@ -25,15 +27,16 @@ type Props = WithRouterProps & {
   selection: PageFilters;
   widget: Widget;
   chartZoomOptions?: DataZoomComponentOption;
+  dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
   noPadding?: boolean;
   onDataFetched?: (results: {
-    issuesResults?: TableDataRow[];
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -55,6 +58,7 @@ export function WidgetCardChartContainer({
   organization,
   selection,
   widget,
+  dashboardFilters,
   isMobile,
   renderErrorMessage,
   tableItemLimit,
@@ -77,8 +81,9 @@ export function WidgetCardChartContainer({
         selection={selection}
         limit={tableItemLimit}
         onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
       >
-        {({transformedResults, errorMessage, loading}) => {
+        {({tableResults, errorMessage, loading}) => {
           return (
             <Fragment>
               {typeof renderErrorMessage === 'function'
@@ -86,7 +91,7 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} />
               <IssueWidgetCard
-                transformedResults={transformedResults}
+                transformedResults={tableResults?.[0].data ?? []}
                 loading={loading}
                 errorMessage={errorMessage}
                 widget={widget}
@@ -110,6 +115,7 @@ export function WidgetCardChartContainer({
         selection={selection}
         limit={widget.limit ?? tableItemLimit}
         onDataFetched={onDataFetched}
+        dashboardFilters={dashboardFilters}
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => {
           return (
@@ -150,8 +156,15 @@ export function WidgetCardChartContainer({
       selection={selection}
       limit={tableItemLimit}
       onDataFetched={onDataFetched}
+      dashboardFilters={dashboardFilters}
     >
-      {({tableResults, timeseriesResults, errorMessage, loading}) => {
+      {({
+        tableResults,
+        timeseriesResults,
+        errorMessage,
+        loading,
+        timeseriesResultsTypes,
+      }) => {
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
@@ -176,6 +189,7 @@ export function WidgetCardChartContainer({
               showSlider={showSlider}
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}
+              timeseriesResultsTypes={timeseriesResultsTypes}
             />
           </Fragment>
         );
