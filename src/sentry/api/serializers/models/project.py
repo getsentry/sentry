@@ -420,6 +420,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "isMember": attrs["is_member"],
             "hasAccess": attrs["has_access"],
             "avatar": avatar,
+            "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
         }
         if "stats" in attrs:
             context["stats"] = attrs["stats"]
@@ -518,9 +519,16 @@ class OrganizationProjectResponse(
     hasUserReports: bool
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
+    relayPiiConfig: Optional[str]
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
+    OPTION_KEYS = frozenset(
+        [
+            "sentry:relay_pii_config",
+        ]
+    )
+
     def get_deploys_by_project(self, item_list):
         cursor = connection.cursor()
         cursor.execute(
@@ -604,12 +612,19 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             for release in bulk_fetch_project_latest_releases(item_list)
         }
 
+        queryset = ProjectOption.objects.filter(project__in=item_list, key__in=self.OPTION_KEYS)
+
+        options_by_project = defaultdict(dict)
+        for option in queryset.iterator():
+            options_by_project[option.project_id][option.key] = option.value
+
         deploys_by_project = None
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
 
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
+            attrs[item]["options"] = options_by_project[item.id]
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
@@ -641,6 +656,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
+            relayPiiConfig=attrs["options"].get("sentry:relay_pii_config"),
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
