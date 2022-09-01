@@ -26,7 +26,7 @@ class DetectorType(Enum):
     LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
-    N_PLUS_ONE_DB_SPANS = "n_plus_one_db"
+    N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -101,7 +101,7 @@ def get_default_detection_settings():
                 "allowed_span_ops": ["http.client"],
             }
         ],
-        DetectorType.N_PLUS_ONE_DB_SPANS: {
+        DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": 5,
             "duration_threshold": 500.0,  # ms
         },
@@ -123,7 +123,7 @@ def _detect_performance_issue(data: Event, sdk_span: Any):
             detection_settings, data
         ),
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
-        DetectorType.N_PLUS_ONE_DB_SPANS: NPlusOneDBSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
     }
 
     for span in spans:
@@ -603,7 +603,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "n_spans",
     )
 
-    settings_key = DetectorType.N_PLUS_ONE_DB_SPANS
+    settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
 
     def init(self):
         self.stored_issues = {}
@@ -724,9 +724,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.n_spans[0].get("hash", None),
         )
         if fingerprint not in self.stored_issues:
+            spans_involved = [self.source_span] + self.n_spans
             self.stored_issues[fingerprint] = PerformanceSpanProblem(
                 fingerprint=fingerprint,
-                spans_involved=self.n_spans,
+                spans_involved=spans_involved,
                 # Not used anymore
                 span_id=self.n_spans[0].get("span_id", None),
                 allowed_op="db",
