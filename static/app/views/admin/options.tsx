@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 import {
   BooleanField,
   EmailField,
+  NumberField,
   RadioBooleanField,
   TextField,
 } from 'sentry/components/forms';
@@ -19,13 +20,16 @@ type Field = {
   label: React.ReactNode;
   allowEmpty?: boolean;
   component?: React.ComponentType<any>;
-  defaultValue?: () => string | false;
+  defaultValue?: () => string | number | false;
   disabled?: boolean;
   disabledReason?: string;
   help?: React.ReactNode;
+  max?: number;
+  min?: number;
   noLabel?: string;
   placeholder?: string;
   required?: boolean;
+  step?: number;
   yesFirst?: boolean;
   yesLabel?: string;
 };
@@ -184,6 +188,18 @@ const definitions: Field[] = [
     component: BooleanField,
     defaultValue: () => false,
   },
+  {
+    key: 'store.use-ingest-performance-detection-only',
+    label: t('Performance issue detection rate'),
+    help: t(
+      'Controls the rate at which performance issues are detected across the entire system. A value of 0 will disable performance issue detection, and a value of 1.0 turns on detection for every ingested transaction.'
+    ),
+    defaultValue: () => '0',
+    component: NumberField,
+    min: 0.0,
+    max: 1.0,
+    step: 0.0001,
+  },
 ];
 
 const definitionsMap = keyBy(definitions, def => def.key);
@@ -198,7 +214,7 @@ export function getOption(option: string): Field {
   return definitionsMap[option];
 }
 
-export function getOptionDefault(option: string): string | false | undefined {
+export function getOptionDefault(option: string): string | number | false | undefined {
   const meta = getOption(option);
   return meta.defaultValue ? meta.defaultValue() : undefined;
 }

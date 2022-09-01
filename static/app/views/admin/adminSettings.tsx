@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import {Form} from 'sentry/components/forms';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -16,6 +17,7 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'store.use-ingest-performance-detection-only',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -87,6 +89,13 @@ export default class AdminSettings extends AsyncView<{}, State> {
             <PanelHeader>Beacon</PanelHeader>
             {fields['beacon.anonymous']}
           </Panel>
+
+          <Feature features={['organizations:performance-issues']}>
+            <Panel>
+              <PanelHeader>Performance</PanelHeader>
+              {fields['store.use-ingest-performance-detection-only']}
+            </Panel>
+          </Feature>
         </Form>
       </div>
     );
