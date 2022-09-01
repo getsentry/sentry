@@ -97,6 +97,7 @@ export function UniformRateModal({
     recommendedSdkUpgrades,
     affectedProjects,
     isProjectIncompatible,
+    isProjectOnOldSDK,
     loading: sdkUpgradesLoading,
   } = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
@@ -121,9 +122,11 @@ export function UniformRateModal({
     );
 
     setActiveStep(
-      clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
+      clientDiscard || !isProjectOnOldSDK
+        ? Step.SET_UNIFORM_SAMPLE_RATE
+        : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
-  }, [loading, projectStats30d.data]);
+  }, [loading, projectStats30d.data, isProjectOnOldSDK]);
 
   const shouldUseConservativeSampleRate =
     hasFirstBucketsEmpty(projectStats30d.data, 27) &&

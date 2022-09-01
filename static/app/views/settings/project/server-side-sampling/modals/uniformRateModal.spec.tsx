@@ -263,10 +263,26 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display "Specify client rate modal" content as a first step', async function () {
+    const {organization, project} = getMockData();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      method: 'GET',
+      body: [TestStubs.Project({id: project.id, slug: project.slug})],
+    });
+
     ServerSideSamplingStore.fetchProjectStats30dSuccess(outcomesWithoutClientDiscarded);
     ServerSideSamplingStore.fetchProjectStats48hSuccess(outcomesWithoutClientDiscarded);
-
-    const {organization, project} = getMockData();
+    ServerSideSamplingStore.fetchSdkVersionsSuccess([
+      {
+        isSendingSampleRate: false,
+        isSendingSource: false,
+        isSupportedPlatform: true,
+        latestSDKName: 'abc',
+        latestSDKVersion: '999',
+        project: project.slug,
+      },
+    ]);
 
     render(<GlobalModal />);
 
