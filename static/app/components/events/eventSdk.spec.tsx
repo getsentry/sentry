@@ -24,7 +24,7 @@ describe('event sdk', function () {
       },
       _meta: {
         sdk: {
-          version: {'': {rem: [['project:2', 'x']]}},
+          version: {'': {rem: [['organization:0', 'x']]}},
         },
       },
     };
@@ -48,7 +48,7 @@ describe('event sdk', function () {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Removed because of the PII rule [Mask] [Credit card numbers] from [$message] in the settings of the organization org-slug'
+          'Removed because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
         )
       )
     ).toBeInTheDocument(); // tooltip description
