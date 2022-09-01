@@ -57,6 +57,18 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         assert response.data["data"][1]["segmentId"] == 1
         assert response.data["data"][2]["segmentId"] == 2
 
+    def test_index_404(self):
+        self.login_as(user=self.user)
+
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, 4242424242),
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(url)
+            assert response.status_code == 404
+
 
 class DownloadSegmentsTestCase(TransactionTestCase):
     # have to use TransactionTestCase because we're using threadpools

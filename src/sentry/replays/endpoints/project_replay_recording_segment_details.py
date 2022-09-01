@@ -31,7 +31,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         try:
             segment = ReplayRecordingSegment.objects.filter(
                 project_id=project.id,
-                replay_id=replay_id.replace("-", ""),
+                replay_id=replay_id,
                 segment_id=segment_id,
             ).get()
         except ReplayRecordingSegment.DoesNotExist:
