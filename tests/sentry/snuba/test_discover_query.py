@@ -1938,12 +1938,12 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             self.store_event(data=data, project_id=self.project.id)
 
         queries = [
-            ("", [[0], [1], [None]]),
-            ("error.handled:true", [[1], [None]]),
-            ("!error.handled:true", [[0]]),
-            ("has:error.handled", [[1], [None]]),
-            ("has:error.handled error.handled:true", [[1], [None]]),
-            ("error.handled:false", [[0]]),
+            ("", [0, 1, 1]),
+            ("error.handled:true", [1, 1]),
+            ("!error.handled:true", [0]),
+            ("has:error.handled", [1, 1]),
+            ("has:error.handled error.handled:true", [1, 1]),
+            ("error.handled:false", [0]),
             ("has:error.handled error.handled:false", []),
         ]
 
@@ -1960,9 +1960,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             )
 
             data = result["data"]
-            data = sorted(
-                data, key=lambda k: (k["error.handled"][0] is None, k["error.handled"][0])
-            )
+            data = sorted(data, key=lambda k: (k["error.handled"] is None, k["error.handled"]))
 
             assert len(data) == len(expected_data)
             assert [item["error.handled"] for item in data] == expected_data

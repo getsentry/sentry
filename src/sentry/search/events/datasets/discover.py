@@ -136,6 +136,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
             PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
+            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
@@ -1175,6 +1176,9 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         return field_aliases.resolve_team_key_transaction_alias(self.builder)
+
+    def _resolve_error_handled_alias(self, _: str) -> SelectType:
+        return Function("isHandled", [], ERROR_HANDLED_ALIAS)
 
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)

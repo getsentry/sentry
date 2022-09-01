@@ -1833,14 +1833,10 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         data = response.data
 
-        assert len(data) == 3
-
-        results = data[""]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 19}], [{"count": 6}]]
-        assert results["order"] == 0
+        assert len(data) == 2
 
         results = data["1"]
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
+        assert [attrs for time, attrs in results["data"]] == [[{"count": 20}], [{"count": 6}]]
 
         results = data["0"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
