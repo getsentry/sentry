@@ -163,11 +163,10 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
-    formatted_perf_problems = [
+    return [
         prepare_problem_for_grouping(problem, data, detector_type)
         for problem, detector_type in truncated_problems
     ]
-    return list(filter(None, formatted_perf_problems))
 
 
 def prepare_problem_for_grouping(
