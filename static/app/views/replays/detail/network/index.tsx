@@ -239,7 +239,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       <NetworkFilters>
         <CompactSelect
           triggerProps={{
-            prefix: t('Resource Type'),
+            prefix: t('Type'),
           }}
           triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
           multiple
