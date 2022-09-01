@@ -260,6 +260,7 @@ def _grouped_unique_scalar_value(
 replay_url_parser_config = SearchConfig(
     numeric_keys={"duration", "countErrors", "countSegments"},
     allowed_keys={
+        "id",
         "projectId",
         "platform",
         "release",
@@ -292,6 +293,7 @@ class ReplayQueryConfig(QueryConfig):
     count_segments = Number(name="countSegments")
 
     # String filters.
+    replay_id = String(field_alias="id")
     platform = String()
     agg_environment = String(field_alias="environment")
     release = String()
