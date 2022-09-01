@@ -8,7 +8,7 @@ import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePrev
 import StrictClick from 'sentry/components/strictClick';
 import {IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -163,7 +163,7 @@ export class Line extends Component<Props, State> {
 
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
-      DebugMetaActions.updateFilter(
+      DebugMetaStore.updateFilter(
         makeFilter(instructionAddr, addrMode, this.props.image)
       );
     }
