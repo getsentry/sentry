@@ -22,13 +22,6 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...apiResponse,
     ...(apiResponse.startedAt ? {startedAt: new Date(apiResponse.startedAt)} : {}),
     ...(apiResponse.finishedAt ? {finishedAt: new Date(apiResponse.finishedAt)} : {}),
-    user: {
-      email: apiResponse.user.email || '',
-      id: apiResponse.user.id || '',
-      ip_address: apiResponse.user.ip_address || '',
-      name: apiResponse.user.name || '',
-      username: '',
-    },
   };
 }
 
