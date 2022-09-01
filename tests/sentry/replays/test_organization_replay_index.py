@@ -357,7 +357,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                f"id:[{replay1_id}, {uuid.uuid4().hex}]",
+                f"id:{replay1_id} OR id:{uuid.uuid4().hex} OR id:{uuid.uuid4().hex}",
+                f"id:[{replay1_id},{uuid.uuid4().hex}]",
                 "platform:javascript",
                 "duration:>15",
                 "user.id:123",

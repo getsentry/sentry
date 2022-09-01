@@ -1,8 +1,9 @@
 """Dynamic query parsing library."""
-from typing import Any, Generator, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Op
+from snuba_sdk.conditions import And, Or
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchFilter
@@ -115,8 +116,14 @@ class QueryConfig:
 
 def generate_valid_conditions(
     query: List[SearchFilter], query_config: QueryConfig
-) -> Generator[None, None, Condition]:
+) -> List[Condition]:
+    result = []
+    look_back = None
     for search_filter in query:
+        if search_filter in ("AND", "OR"):
+            look_back = search_filter
+            continue
+
         # Validate field exists and is filterable.
         field_alias = search_filter.key.name
         field = query_config.get(field_alias)
@@ -135,7 +142,25 @@ def generate_valid_conditions(
         if errors:
             raise ParseError(f"Invalid value specified: {field_alias}.")
 
-        yield Condition(Column(field.query_alias or field.attribute_name), operator, value)
+        condition = Condition(Column(field.query_alias or field.attribute_name), operator, value)
+
+        if look_back == "AND":
+            attempt_compressed_condition(result, rhs=condition, condition_type=And)
+            look_back = None
+        elif look_back == "OR":
+            attempt_compressed_condition(result, rhs=condition, condition_type=Or)
+            look_back = None
+        else:
+            result.append(condition)
+
+    return result
+
+
+def attempt_compressed_condition(result, rhs, condition_type):
+    if isinstance(result[-1], condition_type):
+        result[-1].conditions.append(rhs)
+    else:
+        result.append(condition_type([result.pop(), rhs]))
 
 
 def get_valid_sort_commands(
