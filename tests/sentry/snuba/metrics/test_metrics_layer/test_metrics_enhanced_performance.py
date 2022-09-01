@@ -1,4 +1,6 @@
-import time
+"""
+Metrics Service Layer Tests for Performance
+"""
 from datetime import timedelta
 from unittest import mock
 
@@ -16,44 +18,8 @@ from sentry.testutils.helpers.datetime import before_now
 pytestmark = pytest.mark.sentry_metrics
 
 
-class DataSourceTestCase(TestCase, BaseMetricsTestCase):
-    def test_valid_filter_include_meta(self):
-        self.create_release(version="foo", project=self.project)
-        self.store_session(
-            self.build_session(
-                project_id=self.project.id, started=(time.time() // 60), release="foo"
-            )
-        )
-
-        query_params = MultiValueDict(
-            {
-                "query": [
-                    "release:staging"
-                ],  # weird release but we need a string existing in mock indexer
-                "groupBy": ["environment", "release"],
-                "field": [
-                    "sum(sentry.sessions.session)",
-                ],
-            }
-        )
-        query = QueryDefinition([self.project], query_params)
-        data = get_series(
-            [self.project],
-            query.to_metrics_query(),
-            include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
-        )
-        assert data["meta"] == sorted(
-            [
-                {"name": "environment", "type": "string"},
-                {"name": "release", "type": "string"},
-                {"name": "sum(sentry.sessions.session)", "type": "Float64"},
-                {"name": "bucketed_time", "type": "DateTime('Universal')"},
-            ],
-            key=lambda elem: elem["name"],
-        )
-
-    def test_valid_filter_include_meta_for_transactions_derived_metrics(self):
+class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
+    def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
             {
                 "field": [
@@ -84,29 +50,8 @@ class DataSourceTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_validate_include_meta_only_non_composite_derived_metrics_and_in_select(self):
-        query_params = MultiValueDict(
-            {
-                "field": [
-                    "session.errored",
-                    "session.healthy",
-                ],
-                "includeSeries": "0",
-            }
-        )
-        query = QueryDefinition([self.project], query_params)
-        assert (
-            get_series(
-                [self.project],
-                query.to_metrics_query(),
-                include_meta=True,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )["meta"]
-            == []
-        )
 
-
-class GetCustomMeasurementsTest(MetricsEnhancedPerformanceTestCase):
+class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
         "d:transactions/measurements.something_custom@millisecond",
         "d:transactions/measurements.something_else@byte",
