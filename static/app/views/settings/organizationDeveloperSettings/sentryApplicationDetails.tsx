@@ -82,6 +82,32 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
   return undefined;
 };
 
+/**
+ * We need to map the API response errors to the actual form fields.
+ * We do this by pulling out scopes and mapping each scope error to the correct input.
+ */
+function mapFormErrors(responseJSON?: any) {
+  if (!responseJSON) {
+    return responseJSON;
+  }
+  const formErrors = omit(responseJSON, ['scopes']);
+  if (responseJSON.scopes) {
+    responseJSON.scopes.forEach((message: string) => {
+      // find the scope from the error message of a specific format
+      const matches = message.match(/Requested permission of (\w+:\w+)/);
+      if (matches) {
+        const scope = matches[1];
+        const resource = getResourceFromScope(scope as Scope);
+        // should always match but technically resource can be undefined
+        if (resource) {
+          formErrors[`${resource}--permission`] = [message];
+        }
+      }
+    });
+  }
+  return formErrors;
+}
+
 class SentryAppFormModel extends FormModel {
   /**
    * Filter out Permission input field values.
@@ -104,33 +130,6 @@ class SentryAppFormModel extends FormModel {
       return data;
     }, {});
   }
-
-  /**
-   * We need to map the API response errors to the actual form fields.
-   * We do this by pulling out scopes and mapping each scope error to the correct input.
-   * @param {Object} responseJSON
-   */
-  mapFormErrors(responseJSON?: any) {
-    if (!responseJSON) {
-      return responseJSON;
-    }
-    const formErrors = omit(responseJSON, ['scopes']);
-    if (responseJSON.scopes) {
-      responseJSON.scopes.forEach((message: string) => {
-        // find the scope from the error message of a specific format
-        const matches = message.match(/Requested permission of (\w+:\w+)/);
-        if (matches) {
-          const scope = matches[1];
-          const resource = getResourceFromScope(scope as Scope);
-          // should always match but technically resource can be undefined
-          if (resource) {
-            formErrors[`${resource}--permission`] = [message];
-          }
-        }
-      });
-    }
-    return formErrors;
-  }
 }
 
 type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}>;
@@ -141,7 +140,7 @@ type State = AsyncView['state'] & {
 };
 
 export default class SentryApplicationDetails extends AsyncView<Props, State> {
-  form = new SentryAppFormModel();
+  form = new SentryAppFormModel({mapFormErrors});
 
   getDefaultState(): State {
     return {

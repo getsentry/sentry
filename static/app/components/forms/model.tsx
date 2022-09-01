@@ -35,6 +35,10 @@ export type FormOptions = {
    */
   initialData?: Record<string, FieldValue>;
   /**
+   * Custom transformer function to map error response JSON to form errors
+   */
+  mapFormErrors?: (responseJSON?: any) => any;
+  /**
    * Callback triggered when a field changes value
    */
   onFieldChange?: (id: string, finalValue: FieldValue) => void;
@@ -59,6 +63,10 @@ export type FormOptions = {
    * Should the form save on blur?
    */
   saveOnBlur?: boolean;
+  /**
+   * Custom transformer function used before the API request
+   */
+  transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
 };
 
 class FormModel {
@@ -310,12 +318,14 @@ class FormModel {
   getTransformedData() {
     const form = this.getData();
 
-    return Object.keys(form)
+    const data = Object.keys(form)
       .map(id => [id, this.getTransformedValue(id)])
-      .reduce((acc, [id, value]) => {
+      .reduce<Record<string, any>>((acc, [id, value]) => {
         acc[id] = value;
         return acc;
       }, {});
+
+    return this.options.transformData ? this.options.transformData(data, this) : data;
   }
 
   getError(id: string) {
@@ -762,12 +772,10 @@ class FormModel {
 
   submitError(err: {responseJSON?: any}) {
     this.formState = FormState.ERROR;
-    this.formErrors = this.mapFormErrors(err.responseJSON);
+    this.formErrors = this.options.mapFormErrors
+      ? this.options.mapFormErrors(err.responseJSON)
+      : err.responseJSON;
     this.handleErrorResponse({responseJSON: this.formErrors});
-  }
-
-  mapFormErrors(responseJSON?: any) {
-    return responseJSON;
   }
 }
 
