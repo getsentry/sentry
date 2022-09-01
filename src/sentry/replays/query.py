@@ -177,9 +177,17 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="device_model"),
         _grouped_unique_scalar_value(column_name="sdk_name"),
         _grouped_unique_scalar_value(column_name="sdk_version"),
-        _grouped_unique_scalar_value(column_name="tags.key"),
-        _grouped_unique_scalar_value(column_name="tags.value"),
         # Flatten array of arrays.
+        Function(
+            "groupArrayArray",
+            parameters=[Column("tags.key")],
+            alias="tk",
+        ),
+        Function(
+            "groupArrayArray",
+            parameters=[Column("tags.value")],
+            alias="tv",
+        ),
         Function(
             "arrayMap",
             parameters=[

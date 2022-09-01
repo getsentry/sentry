@@ -26,7 +26,7 @@ def generate_normalized_output(
         item["id"] = item.pop("replay_id")
         item["longestTransaction"] = 0
         item["environment"] = item.pop("agg_environment")
-        item["tags"] = dict(zip(item.pop("tags.key") or [], item.pop("tags.value") or []))
+        item["tags"] = dict(zip(item.pop("tk") or [], item.pop("tv") or []))
         item["user"] = {
             "id": item.pop("user_id"),
             "name": item.pop("user_name"),
