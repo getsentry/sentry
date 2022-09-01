@@ -9,7 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:performance-extraneous-spans-poc"]
+    FEATURES = ["organizations:performance-issues"]
     URL = "sentry-api-0-organization-events-spans-count-histogram"
 
     def setUp(self):

@@ -34,9 +34,7 @@ class OrganizationEventsSpansCountHistogramEndpoint(OrganizationEventsV2Endpoint
     private = True
 
     def has_feature(self, organization, request):
-        return features.has(
-            "organizations:performance-extraneous-spans-poc", organization, actor=request.user
-        )
+        return features.has("organizations:performance-issues", organization, actor=request.user)
 
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):

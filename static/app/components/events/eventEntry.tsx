@@ -155,7 +155,7 @@ function EventEntry({
         />
       );
     case EntryType.SPANTREE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+      if (!organization.features?.includes('performance-issues')) {
         return null;
       }
 
@@ -173,7 +173,7 @@ function EventEntry({
         />
       );
     case EntryType.PERFORMANCE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+      if (!organization.features?.includes('performance-issues')) {
         return null;
       }
 
