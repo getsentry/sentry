@@ -222,15 +222,6 @@ class RuleProcessor:
         if not updated:
             return
 
-        if randrange(10) == 0:
-            analytics.record(
-                "issue_alert.fired",
-                issue_id=self.group.id,
-                project_id=rule.project.id,
-                organization_id=rule.project.organization.id,
-                rule_id=rule.id,
-            )
-
         history.record(rule, self.group)
 
         for action in rule.data.get("actions", ()):
@@ -320,6 +311,49 @@ class RuleProcessor:
             )
             for future in results or ():
                 safe_execute(future.callback, self.event, None, _with_transaction=False)
+
+    def send_analytics(
+        self,
+        rule: Rule,
+    ):
+        if randrange(10) == 0:
+            analytics.record(
+                "issue_alert.fired",
+                issue_id=self.group.id,
+                project_id=rule.project.id,
+                organization_id=rule.project.organization.id,
+                rule_id=rule.id,
+            )
+            new_event_condition = next(
+                (
+                    item
+                    for item in rule.data.get("conditions", [])
+                    if item["id"]
+                    == "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+                ),
+                None,
+            )
+            email_or_slack_action = next(
+                (
+                    action
+                    for action in rule.data.get("actions", [])
+                    if action["id"]
+                    in [
+                        "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                        "sentry.mail.actions.NotifyEmailAction",
+                    ]
+                ),
+                None,
+            )
+
+            if new_event_condition and email_or_slack_action:
+                analytics.record(
+                    "issue_alert.new_issue.sent_notification",
+                    issue_id=self.group.id,
+                    project_id=rule.project.id,
+                    organization_id=rule.project.organization.id,
+                    rule_id=rule.id,
+                )
 
     def apply(
         self,
