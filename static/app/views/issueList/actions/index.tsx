@@ -296,7 +296,7 @@ class IssueListActions extends Component<Props, State> {
         </StyledFlex>
         {!allResultsVisible && pageSelected && (
           <Alert type="warning" system>
-            <SelectAllNotice>
+            <SelectAllNotice data-test-id="issue-list-select-all-notice">
               {allInQuerySelected ? (
                 queryCount >= BULK_LIMIT ? (
                   tct(
@@ -317,7 +317,10 @@ class IssueListActions extends Component<Props, State> {
                     '%s issues on this page selected.',
                     numIssues
                   )}
-                  <SelectAllLink onClick={this.handleApplyToAll}>
+                  <SelectAllLink
+                    onClick={this.handleApplyToAll}
+                    data-test-id="issue-list-select-all-notice-link"
+                  >
                     {queryCount >= BULK_LIMIT
                       ? tct(
                           'Select the first [count] issues that match this search query.',

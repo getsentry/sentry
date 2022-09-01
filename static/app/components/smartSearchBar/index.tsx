@@ -37,7 +37,7 @@ import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import space from 'sentry/styles/space';
-import {Organization, SavedSearchType, Tag, User} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -251,7 +251,7 @@ type Props = WithRouterProps & {
   /**
    * Map of tags
    */
-  supportedTags?: {[key: string]: Tag};
+  supportedTags?: TagCollection;
   /**
    * Wrap the input with a form. Useful if search bar is used within a parent
    * form
@@ -309,7 +309,6 @@ class SmartSearchBar extends Component<Props, State> {
     defaultQuery: '',
     query: null,
     onSearch: function () {},
-    excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
@@ -1062,7 +1061,14 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags);
+    const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
+
+    // Filter out search items that are behind feature flags
+    const tagItems = allTagItems.filter(
+      item =>
+        item.featureFlag === undefined ||
+        this.props.organization.features.includes(item.featureFlag)
+    );
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
