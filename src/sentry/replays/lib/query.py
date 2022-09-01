@@ -50,30 +50,32 @@ class Field:
         else:
             return op, []
 
-    def deserialize_value(self, value: Union[List[str], str]) -> Tuple[Any, List[str]]:
-        if isinstance(value, list):
-            values, errors = [], []
-            for v in value:
-                value, errs = self.deserialize_value(v)
-                values.append(value)
-                errors.extend(errs)
-
+    def deserialize_values(self, values: List[str]) -> Tuple[Any, List[str]]:
+        parsed_values = []
+        for value in values:
+            parsed_value, errors = self.deserialize_value(value)
             if errors:
                 return None, errors
-            else:
-                return values, []
-        else:
-            try:
-                typed_value = self._python_type(value)
-            except ValueError:
-                return None, ["Invalid value specified."]
 
-            for validator in self.validators:
-                error = validator(typed_value)
-                if error:
-                    return None, [error]
+            parsed_values.append(parsed_value)
 
-            return typed_value, []
+        return parsed_values, []
+
+    def deserialize_value(self, value: Union[List[str], str]) -> Tuple[Any, List[str]]:
+        if isinstance(value, list):
+            return self.deserialize_values(value)
+
+        try:
+            typed_value = self._python_type(value)
+        except ValueError:
+            return None, ["Invalid value specified."]
+
+        for validator in self.validators:
+            error = validator(typed_value)
+            if error:
+                return None, [error]
+
+        return typed_value, []
 
 
 class String(Field):
