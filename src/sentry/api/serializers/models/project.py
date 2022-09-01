@@ -184,6 +184,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasProfiles: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
+    relayPiiConfig: Optional[str]
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
