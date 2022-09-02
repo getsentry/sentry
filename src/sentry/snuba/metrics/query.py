@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Literal, Optional, Sequence, Set, Union
 
-from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
+from snuba_sdk import Column, Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
@@ -134,16 +134,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for condition in self.where:
             if (
                 isinstance(condition, Condition)
-                and isinstance(condition.lhs, Function)
-                and condition.lhs.function == "ifNull"
+                and isinstance(condition.lhs, Column)
+                and condition.lhs.name in UNALLOWED_TAGS
             ):
-                parameter = condition.lhs.parameters[0]
-                if isinstance(parameter, Column) and parameter.name.startswith(
-                    ("tags_raw[", "tags[")
-                ):
-                    tag_name = parameter.name.split("[")[1].split("]")[0]
-                    if tag_name in UNALLOWED_TAGS:
-                        raise InvalidParams(f"Tag name {tag_name} is not a valid query filter")
+                raise InvalidParams(f"Tag name {condition.lhs.name} is not a valid query filter")
 
     def validate_orderby(self) -> None:
         if not self.orderby:

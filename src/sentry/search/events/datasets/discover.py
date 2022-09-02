@@ -96,6 +96,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         "count_miserable(user)",
         "user_misery()",
     }
+    non_nullable_keys = {"event.type"}
 
     def __init__(self, builder: QueryBuilder):
         self.builder = builder
