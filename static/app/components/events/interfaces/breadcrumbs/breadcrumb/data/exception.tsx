@@ -1,6 +1,6 @@
 import omit from 'lodash/omit';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';

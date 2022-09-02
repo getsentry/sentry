@@ -2,11 +2,13 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import Threads from 'sentry/components/events/interfaces/threads';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Threads', () => {
   const entries = TestStubs.Entries()[0];
   const event = TestStubs.Event({entries});
   const organization = TestStubs.Organization();
+  const router = TestStubs.router();
   const exceptionEntry = entries[0];
   const data = exceptionEntry.data;
   const type = exceptionEntry.type;
@@ -52,13 +54,22 @@ describe('Threads', () => {
 
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
-        <Threads
-          type={type}
-          data={data}
-          orgId="org-slug"
-          projectId="project-id"
-          event={newEvent}
-        />
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <Threads
+            type={type}
+            data={data}
+            orgId="org-slug"
+            projectId="project-id"
+            event={newEvent}
+          />
+        </RouteContext.Provider>
       </OrganizationContext.Provider>
     );
 
@@ -73,26 +84,37 @@ describe('Threads', () => {
   it('Display no frame', () => {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
-        <Threads
-          type={type}
-          data={{...data, values: [{...data.values[0], stacktrace: null}]}}
-          orgId="org-slug"
-          projectId="project-id"
-          event={{
-            ...event,
-            entries: [
-              {
-                ...event.entries[0],
-                data: {
-                  ...event.entries[0].data,
-                  values: [{...event.entries[0].data.values[0], id: 0, stacktrace: null}],
-                },
-              },
-              event.entries[1],
-              event.entries[2],
-            ],
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
           }}
-        />
+        >
+          <Threads
+            type={type}
+            data={{...data, values: [{...data.values[0], stacktrace: null}]}}
+            orgId="org-slug"
+            projectId="project-id"
+            event={{
+              ...event,
+              entries: [
+                {
+                  ...event.entries[0],
+                  data: {
+                    ...event.entries[0].data,
+                    values: [
+                      {...event.entries[0].data.values[0], id: 0, stacktrace: null},
+                    ],
+                  },
+                },
+                event.entries[1],
+                event.entries[2],
+              ],
+            }}
+          />
+        </RouteContext.Provider>
       </OrganizationContext.Provider>
     );
 
@@ -106,13 +128,22 @@ describe('Threads', () => {
     it('Displays the exception stacktrace', () => {
       const wrapper = mountWithTheme(
         <OrganizationContext.Provider value={organization}>
-          <Threads
-            type={threadsEntry.type}
-            data={threadsEntry.data}
-            orgId="org-slug"
-            projectId="project-id"
-            event={event}
-          />
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <Threads
+              type={threadsEntry.type}
+              data={threadsEntry.data}
+              orgId="org-slug"
+              projectId="project-id"
+              event={event}
+            />
+          </RouteContext.Provider>
         </OrganizationContext.Provider>
       );
 
@@ -123,26 +154,35 @@ describe('Threads', () => {
     it('Displays the the active thread stacktrace', () => {
       const wrapper = mountWithTheme(
         <OrganizationContext.Provider value={organization}>
-          <Threads
-            type={threadsEntry.type}
-            data={threadsEntry.data}
-            orgId="org-slug"
-            projectId="project-id"
-            event={{
-              ...event,
-              entries: [
-                {
-                  ...event.entries[0],
-                  data: {
-                    ...event.entries[0].data,
-                    values: [{...event.entries[0].data.values[0], stacktrace: null}],
-                  },
-                },
-                event.entries[1],
-                event.entries[2],
-              ],
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
             }}
-          />
+          >
+            <Threads
+              type={threadsEntry.type}
+              data={threadsEntry.data}
+              orgId="org-slug"
+              projectId="project-id"
+              event={{
+                ...event,
+                entries: [
+                  {
+                    ...event.entries[0],
+                    data: {
+                      ...event.entries[0].data,
+                      values: [{...event.entries[0].data.values[0], stacktrace: null}],
+                    },
+                  },
+                  event.entries[1],
+                  event.entries[2],
+                ],
+              }}
+            />
+          </RouteContext.Provider>
         </OrganizationContext.Provider>
       );
 

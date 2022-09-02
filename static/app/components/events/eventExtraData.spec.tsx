@@ -1,6 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventExtraData from 'sentry/components/events/eventExtraData';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('EventExtraData', function () {
   it('display redacted data', async function () {
@@ -23,13 +27,13 @@ describe('EventExtraData', function () {
           'sys.argv': {
             '0': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 49,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -37,13 +41,13 @@ describe('EventExtraData', function () {
             },
             '1': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 17,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -51,13 +55,13 @@ describe('EventExtraData', function () {
             },
             '2': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 12,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -65,13 +69,13 @@ describe('EventExtraData', function () {
             },
             '3': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -79,13 +83,13 @@ describe('EventExtraData', function () {
             },
             '4': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 30,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -93,13 +97,13 @@ describe('EventExtraData', function () {
             },
             '5': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -107,13 +111,13 @@ describe('EventExtraData', function () {
             },
             '6': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 18,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -121,13 +125,13 @@ describe('EventExtraData', function () {
             },
             '7': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -135,13 +139,13 @@ describe('EventExtraData', function () {
             },
             '8': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 26,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -149,13 +153,13 @@ describe('EventExtraData', function () {
             },
             '9': {
               '': {
-                rem: [['project:3', 's', 0, 0]],
+                rem: [['organization:2', 's', 0, 0]],
                 len: 8,
                 chunks: [
                   {
                     type: 'redaction',
                     text: '',
-                    rule_id: 'project:3',
+                    rule_id: 'organization:2',
                     remark: 's',
                   },
                 ],
@@ -168,14 +172,40 @@ describe('EventExtraData', function () {
         },
       },
     };
-    render(<EventExtraData event={event} />);
 
-    expect(screen.getAllByText(/redacted/)).toHaveLength(10);
+    const {organization, router} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+      },
+    });
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <EventExtraData event={event} />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
+    );
+
+    expect(await screen.findAllByText(/redacted/)).toHaveLength(10);
 
     userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
-      await screen.findByText('Replaced because of PII rule "project:3"')
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Replaced because of the PII rule [Replace] [[a-zA-Z0-9]+] with [Placeholder] from [$message] in the settings of the organization org-slug'
+        )
+      )
     ).toBeInTheDocument(); // tooltip description
 
     expect(screen.getByText('isNewer')).toBeInTheDocument(); // key

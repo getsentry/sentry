@@ -1,9 +1,21 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventPackageData} from 'sentry/components/events/packageData';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('EventPackageData', function () {
   it('display redacted data', async function () {
+    const {organization, router} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+      },
+    });
+
     const event = {
       ...TestStubs.Event(),
       packages: {
@@ -18,18 +30,36 @@ describe('EventPackageData', function () {
       },
       _meta: {
         packages: {
-          certifi: {'': {rem: [['project:1', 'x']]}},
+          certifi: {'': {rem: [['organization:1', 'x']]}},
         },
       },
     };
-    render(<EventPackageData event={event} />);
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <EventPackageData event={event} />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
+    );
 
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
 
     userEvent.hover(screen.getByText(/redacted/));
 
     expect(
-      await screen.findByText('Removed because of PII rule "project:1"')
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Removed because of the PII rule [Mask] [Credit card numbers] from [$message] in the settings of the organization org-slug'
+        )
+      )
     ).toBeInTheDocument(); // tooltip description
   });
 });

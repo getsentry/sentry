@@ -3,7 +3,7 @@ import sortBy from 'lodash/sortBy';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Edit from 'sentry/views/settings/components/dataScrubbing/modals/edit';
 import submitRules from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';

@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import {Query} from 'history';
 import * as qs from 'query-string';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';
 import Version from 'sentry/components/version';

@@ -1,6 +1,12 @@
 import {t} from 'sentry/locale';
 
-import {MethodType, RuleType, SourceSuggestion, SourceSuggestionType} from './types';
+import {
+  MethodType,
+  Rule,
+  RuleType,
+  SourceSuggestion,
+  SourceSuggestionType,
+} from './types';
 
 function getRuleLabel(type: RuleType) {
   switch (type) {
@@ -173,3 +179,23 @@ export {
   unarySuggestions,
   valueSuggestions,
 };
+
+export function getRuleDescription(rule: Rule) {
+  const {method, type, source} = rule;
+  const methodLabel = getMethodLabel(method);
+  const typeLabel = getRuleLabel(type);
+
+  const descriptionDetails: Array<string> = [];
+
+  descriptionDetails.push(`[${methodLabel.label}]`);
+
+  descriptionDetails.push(
+    rule.type === RuleType.PATTERN ? `[${rule.pattern}]` : `[${typeLabel}]`
+  );
+
+  if (rule.method === MethodType.REPLACE && rule.placeholder) {
+    descriptionDetails.push(`with [${rule.placeholder}]`);
+  }
+
+  return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
+}

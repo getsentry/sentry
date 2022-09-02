@@ -5,7 +5,7 @@ import moment from 'moment';
 
 import Button from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
