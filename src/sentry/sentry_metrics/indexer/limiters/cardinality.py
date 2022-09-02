@@ -26,7 +26,6 @@ TMessageKey = TypeVar("TMessageKey")
 class CardinalityLimiterState(Generic[TMessageKey]):
     _cardinality_limiter: CardinalityLimiter
     _use_case_id: UseCaseKey
-    _requests: Sequence[RequestedQuota]
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
     keys_to_remove: Sequence[TMessageKey]
@@ -108,14 +107,13 @@ class TimeseriesCardinalityLimiter:
         return CardinalityLimiterState(
             _cardinality_limiter=self.rate_limiter,
             _use_case_id=use_case_id,
-            _requests=requested_quotas,
             _grants=grants,
             _timestamp=timestamp,
             keys_to_remove=list(keys_to_remove.values()),
         )
 
     def apply_cardinality_limits(self, state: CardinalityLimiterState[Any]) -> None:
-        state._cardinality_limiter.use_quotas(state._requests, state._grants, state._timestamp)
+        state._cardinality_limiter.use_quotas(state._grants, state._timestamp)
 
 
 class TimeseriesCardinalityLimiterFactory:
