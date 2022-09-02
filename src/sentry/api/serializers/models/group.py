@@ -859,7 +859,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             else []
         )
 
-    def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
+    def _seen_stats_error(
+        self, error_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
                 item_list=error_issue_list,

@@ -725,7 +725,7 @@ class SnubaTagStorage(TagStorage):
     def get_perf_groups_user_counts(
         self, project_ids, group_ids, environment_ids, start=None, end=None
     ):
-        filters_keys = {"project_id": project_ids, "array_join_group_id": group_ids}
+        filters_keys = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
             filters_keys["environment"] = environment_ids
 
@@ -735,10 +735,10 @@ class SnubaTagStorage(TagStorage):
             end=start,
             filter_keys=filters_keys,
             aggregations=[
-                ["arrayJoin", ["group_ids"], "array_join_group_id"],
+                ["arrayJoin", ["group_ids"], "group_id"],
                 ["uniq", "tags[sentry:user]", "user_counts"],
             ],
-            groupby=["array_join_group_id"],
+            groupby=["group_id"],
             referrer="tagstore.get_perf_groups_user_counts",
         )
 
