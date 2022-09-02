@@ -53,7 +53,7 @@ class Columns(Enum):
     TIME = Column(
         group_name="events.time",
         event_name="time",
-        transaction_name="bucketed_end",
+        transaction_name=None,
         discover_name="time",
         alias="time",
     )

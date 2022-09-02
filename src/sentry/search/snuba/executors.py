@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
+from collections import defaultdict
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -36,6 +38,8 @@ from sentry.models import Environment, Group, Optional, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
+from sentry.snuba.dataset import Dataset
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -95,12 +99,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def dataset(self) -> snuba.Dataset:
-        """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
     def sort_strategies(self) -> Mapping[str, str]:
         raise NotImplementedError
 
@@ -139,7 +137,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         sort_field: str,
         organization_id: int,
         cursor: Optional[Cursor] = None,
-        group_ids: Optional[Sequence[int]] = None,
+        group_ids_and_type: Optional[Sequence[Tuple[int, GroupType]]] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         get_sample: bool = False,
@@ -162,20 +160,26 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 ).values_list("name", flat=True)
             )
 
-        if group_ids:
-            filters["group_id"] = sorted(group_ids)
+        if group_ids_and_type:
+            id_type_category: Sequence[Tuple[int, GroupType, GroupCategory]] = [
+                (id_and_type[0], id_and_type[1], GROUP_TYPE_TO_CATEGORY[id_and_type[1]])
+                for id_and_type in group_ids_and_type
+            ]
+            category_grouped_ids: Mapping[GroupCategory, List[int]] = defaultdict(list)
+            for _id, _type, _cat in id_type_category:
+                category_grouped_ids[_cat].append(_id)
+
+            # TODO: need to conditionally split these group_ids up and pass them downstream to the category-specific
+            # filter map
+            filters["group_id"] = sorted(id_and_type[0] for id_and_type in group_ids_and_type)
 
         conditions = []
         having = []
-        for search_filter in search_filters:
-            if (
-                # Don't filter on postgres fields here, they're not available
-                search_filter.key.name in self.postgres_only_fields
-                or
-                # We special case date
-                search_filter.key.name == "date"
-            ):
-                continue
+        for search_filter in filter(
+            # Don't filter on postgres fields here, they're not available, We special case date
+            lambda sf: not (sf.key.name in self.postgres_only_fields or sf.key.name == "date"),
+            search_filters,
+        ):
             converted_filter = convert_search_filter_to_snuba_query(
                 search_filter,
                 params={
@@ -222,38 +226,65 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         else:
             # Get the top matching groups by score, i.e. the actual search results
             # in the order that we want them.
-            orderby = [
-                f"-{sort_field}",
-                "group_id",
-            ]  # ensure stable sort within the same score
+            orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
             referrer = "search"
 
-        snuba_results = snuba.aliased_query(
-            dataset=self.dataset,
+        # we need to do dual querying for Dataset.Events and Dataset.Transactions and merge the results together
+
+        query_partial = functools.partial(
+            snuba.aliased_query,
             start=start,
             end=end,
-            selected_columns=selected_columns,
             groupby=["group_id"],
+            limit=limit,
+            offset=offset,
+            totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+            turbo=get_sample,  # Turn off FINAL when in sampling mode
+            sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+        )
+
+        snuba_error_results = query_partial(
+            dataset=Dataset.Events,
+            selected_columns=selected_columns,
             conditions=conditions,
             having=having,
             filter_keys=filters,
             aggregations=aggregations,
             orderby=orderby,
             referrer=referrer,
-            limit=limit,
-            offset=offset,
-            totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
-            turbo=get_sample,  # Turn off FINAL when in sampling mode
-            sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
             condition_resolver=snuba.get_snuba_column_name,
         )
-        rows = snuba_results["data"]
-        total = snuba_results["totals"]["total"]
+
+        # TODO: need to filter out and/or map the error-specific parameters in the following parameters to the
+        #       transaction-specific ones
+        mod_agg = aggregations.copy() if aggregations else []
+        mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
+        snuba_transaction_results = query_partial(
+            dataset=Dataset.Transactions,
+            selected_columns=selected_columns,
+            conditions=conditions,
+            having=having,
+            filter_keys=filters,
+            aggregations=mod_agg,
+            orderby=orderby,
+            referrer=referrer,
+            condition_resolver=functools.partial(
+                snuba.get_snuba_column_name, dataset=Dataset.Transactions
+            ),
+        )
+
+        error_rows = snuba_error_results["data"]
+        error_total = snuba_error_results["totals"]["total"]
+
+        tx_rows = snuba_transaction_results["data"]
+        tx_total = snuba_transaction_results["totals"]["total"]
 
         if not get_sample:
-            metrics.timing("snuba.search.num_result_groups", len(rows))
+            metrics.timing("snuba.search.num_result_groups", len(error_rows) + len(tx_rows))
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total
+        return [(row["group_id"], row[sort_field]) for row in error_rows] + [
+            (row["group_id"], row[sort_field]) for row in tx_rows
+        ], (error_total + tx_total)
 
     def _transform_converted_filter(
         self,
@@ -318,10 +349,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "user_count": ["uniq", "tags[sentry:user]"],
         "trend": trend_aggregation,
     }
-
-    @property
-    def dataset(self) -> snuba.Dataset:
-        return snuba.Dataset.Events
 
     def query(
         self,
@@ -403,19 +430,22 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
 
         with sentry_sdk.start_span(op="snuba_group_query") as span:
-            group_ids = list(
-                group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
-            )
+            group_ids_and_type = [
+                (id_and_type[0], GroupType(id_and_type[1]))
+                for id_and_type in list(
+                    group_queryset.using_replica().values_list("id", "type")[: max_candidates + 1]
+                )
+            ]
             span.set_data("Max Candidates", max_candidates)
-            span.set_data("Result Size", len(group_ids))
-        metrics.timing("snuba.search.num_candidates", len(group_ids))
+            span.set_data("Result Size", len(group_ids_and_type))
+        metrics.timing("snuba.search.num_candidates", len(group_ids_and_type))
 
         too_many_candidates = False
-        if not group_ids:
+        if not group_ids_and_type:
             # no matches could possibly be found from this point on
             metrics.incr("snuba.search.no_candidates", skip_internal=False)
             return self.empty_result
-        elif len(group_ids) > max_candidates:
+        elif len(group_ids_and_type) > max_candidates:
             # If the pre-filter query didn't include anything to significantly
             # filter down the number of results (from 'first_release', 'status',
             # 'bookmarked_by', 'assigned_to', 'unassigned', or 'subscribed_by')
@@ -426,7 +456,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # post-filtering.
             metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
             too_many_candidates = True
-            group_ids = []
+            group_ids_and_type = []
 
         sort_field = self.sort_strategies[sort_by]
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -435,18 +465,18 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         offset = 0
         num_chunks = 0
         hits = self.calculate_hits(
-            group_ids,
+            group_ids_and_type,
             too_many_candidates,
             sort_field,
             projects,
-            retention_window_start,
+            # retention_window_start,
             group_queryset,
             environments,
-            sort_by,
-            limit,
+            # sort_by,
+            # limit,
             cursor,
             count_hits,
-            paginator_options,
+            # paginator_options,
             search_filters,
             start,
             end,
@@ -475,7 +505,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # and weird queries, up to a max size
             chunk_limit = min(int(chunk_limit * chunk_growth), max_chunk_size)
             # but if we have group_ids always query for at least that many items
-            chunk_limit = max(chunk_limit, len(group_ids))
+            chunk_limit = max(chunk_limit, len(group_ids_and_type))
 
             # {group_id: group_score, ...}
             snuba_groups, total = self.snuba_search(
@@ -486,7 +516,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 cursor=cursor,
-                group_ids=group_ids,
+                group_ids_and_type=group_ids_and_type,
                 limit=chunk_limit,
                 offset=offset,
                 search_filters=search_filters,
@@ -499,7 +529,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             if not snuba_groups:
                 break
 
-            if group_ids:
+            if group_ids_and_type:
                 # pre-filtered candidates were passed down to Snuba, so we're
                 # finished with filtering and these are the only results. Note
                 # that because we set the chunk size to at least the size of
@@ -538,7 +568,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 [(score, id) for (id, score) in result_groups], reverse=True, **paginator_options
             ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
 
-            if group_ids or len(paginator_results.results) >= limit or not more_results:
+            if group_ids_and_type or len(paginator_results.results) >= limit or not more_results:
                 break
 
         # HACK: We're using the SequencePaginator to mask the complexities of going
@@ -569,18 +599,14 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     def calculate_hits(
         self,
-        group_ids: Sequence[int],
+        group_ids_and_type: Sequence[Tuple[int, GroupType]],
         too_many_candidates: bool,
         sort_field: str,
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
-        group_queryset: Query,
+        group_queryset: BaseQuerySet,
         environments: Sequence[Environment],
-        sort_by: str,
-        limit: int,
         cursor: Cursor | None,
         count_hits: bool,
-        paginator_options: Mapping[str, Any],
         search_filters: Sequence[SearchFilter],
         start: datetime,
         end: datetime,
@@ -626,7 +652,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             # +/-10% @ 95% confidence.
 
             sample_size = options.get("snuba.search.hits-sample-size")
-            kwargs = dict(
+            search_func = functools.partial(
+                self.snuba_search,
                 start=start,
                 end=end,
                 project_ids=[p.id for p in projects],
@@ -638,22 +665,22 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 get_sample=True,
                 search_filters=search_filters,
             )
-            if not too_many_candidates:
-                kwargs["group_ids"] = group_ids
 
-            snuba_groups, snuba_total = self.snuba_search(**kwargs)
+            snuba_groups, snuba_total = (
+                search_func()
+                if too_many_candidates
+                else search_func(group_ids_and_type=group_ids_and_type)
+            )
             snuba_count = len(snuba_groups)
             if snuba_count == 0:
                 # Maybe check for 0 hits and return EMPTY_RESULT in ::query? self.empty_result
                 return 0
-            else:
-                filtered_count = group_queryset.filter(
-                    id__in=[gid for gid, _ in snuba_groups]
-                ).count()
 
-                hit_ratio = filtered_count / float(snuba_count)
-                hits = int(hit_ratio * snuba_total)
-                return hits
+            filtered_count = group_queryset.filter(id__in=[gid for gid, _ in snuba_groups]).count()
+
+            hit_ratio = filtered_count / float(snuba_count)
+            hits = int(hit_ratio * snuba_total)
+            return hits
 
 
 class InvalidQueryForExecutor(Exception):
