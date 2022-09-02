@@ -90,6 +90,7 @@ def get_ingest_config(
                 internal_metrics_tag="release-health-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
+                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
             )
         )
 
@@ -104,6 +105,7 @@ def get_ingest_config(
                 internal_metrics_tag="perf-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
+                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
             )
         )
 
@@ -118,6 +120,7 @@ def get_ingest_config(
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options={},
                 writes_limiter_namespace="test-namespace",
+                cardinality_limiter_cluster_options={},
             )
         )
 
