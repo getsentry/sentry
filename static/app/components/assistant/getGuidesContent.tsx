@@ -199,7 +199,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
           ),
-          nextText: t('Sounds Good'),
+          nextText: t('Sounds good'),
         },
         {
           title: t('Pin your filters'),
@@ -207,7 +207,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             "Want to keep the same filters between searches and sessions? Click this button. Don't want to? Don't click this button."
           ),
-          nextText: t('Got It'),
+          nextText: t('Got it'),
         },
       ],
     },
@@ -222,7 +222,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: t(
             'Want to know how your latest release is doing? Monitor release health and crash rates in Dashboards.'
           ),
-          nextText: t('Sounds Good'),
+          nextText: t('Sounds good'),
         },
       ],
     },
