@@ -1120,8 +1120,6 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
-    # Enable performance issue view
-    "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1144,7 +1142,7 @@ SENTRY_FEATURES = {
     # Enable the new native stack trace design
     "organizations:native-stack-trace-v2": False,
     # Enable performance issues
-    "organizations:performance-issue": False,
+    "organizations:performance-issues": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1168,6 +1166,8 @@ SENTRY_FEATURES = {
     "organizations:team-insights": True,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
+    # Enable snowflake ids
+    "organizations:enable-snowflake-id": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1481,6 +1481,8 @@ SENTRY_METRICS_SKIP_INTERNAL_PREFIXES = []  # Order this by most frequent prefix
 SENTRY_METRICS_INDEXER = "sentry.sentry_metrics.indexer.postgres.postgres_v2.PostgresIndexer"
 SENTRY_METRICS_INDEXER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CACHE_TTL = 3600 * 2
+
+SENTRY_METRICS_INDEXER_SPANNER_OPTIONS = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
@@ -2002,9 +2004,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
-            # We cross-build arm64 images on GH's Apple Intel runners
-            else "ghcr.io/getsentry/snuba-arm64-dev:latest",
+            "image": "ghcr.io/getsentry/snuba:latest",
             "pull": True,
             "ports": {"1218/tcp": 1218},
             "command": ["devserver"],
@@ -2081,7 +2081,7 @@ SENTRY_DEVSERVICES = {
     ),
     "cdc": lambda settings, options: (
         {
-            "image": "getsentry/cdc:nightly",
+            "image": "ghcr.io/getsentry/cdc:latest",
             "pull": True,
             "only_if": settings.SENTRY_USE_CDC_DEV,
             "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
@@ -2379,7 +2379,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
@@ -2427,6 +2427,11 @@ KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 
+# topic for testing multiple indexer backends in parallel
+# in production. So far just testing backends for the perf data,
+# not release helth
+KAFKA_SNUBA_GENERICS_METRICS_CS = "snuba-metrics-generics-cloudspanner"
+
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
     "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
@@ -2465,6 +2470,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
+    # Metrics Testing Topics
+    KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
 }
 
 
@@ -2769,7 +2776,7 @@ SENTRY_FUNCTIONS_PROJECT_NAME = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
-SERVER_COMPONENT_MODE = os.environ.get("SENTRY_SERVER_COMPONENT_MODE", None)
+SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
 
 DISALLOWED_CUSTOMER_DOMAINS = []

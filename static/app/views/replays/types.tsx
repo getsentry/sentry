@@ -66,11 +66,11 @@ export type ReplayRecord = {
   traceIds: string[];
   urls: string[];
   user: {
-    email: string;
-    id: string;
-    ip_address: string;
-    name: string;
-    username: string;
+    displayName: null | string;
+    email: null | string;
+    id: null | string;
+    ip_address: null | string;
+    name: null | string;
   };
   userAgent: string;
 };

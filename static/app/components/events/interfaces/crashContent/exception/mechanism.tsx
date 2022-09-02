@@ -4,7 +4,7 @@ import forOwn from 'lodash/forOwn';
 import isNil from 'lodash/isNil';
 import isObject from 'lodash/isObject';
 
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pill from 'sentry/components/pill';

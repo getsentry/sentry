@@ -24,7 +24,6 @@ function Gravatar({
   onError,
   onLoad,
   suggested,
-  grayscale,
 }: Props) {
   const isMounted = useRef(false);
   const [MD5, setMD5] = useState<HasherHelper>();
@@ -70,7 +69,6 @@ function Gravatar({
       onLoad={onLoad}
       onError={onError}
       suggested={suggested}
-      grayscale={grayscale}
     />
   );
 }
