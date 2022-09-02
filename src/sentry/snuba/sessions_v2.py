@@ -5,13 +5,12 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
-from snuba_sdk import Column, Condition, Function, Limit, Op
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
-from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
+from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
-from sentry.utils.snuba import Dataset
+from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
 logger = logging.getLogger(__name__)
 
@@ -242,10 +241,6 @@ class InvalidField(Exception):
     pass
 
 
-class ZeroIntervalsException(Exception):
-    pass
-
-
 class QueryDefinition:
     """
     This is the definition of the query the user wants to execute.
@@ -267,7 +262,6 @@ class QueryDefinition:
         self.raw_orderby = query.getlist("orderBy")  # only respected by metrics implementation
         self.limit = limit
         self.offset = offset
-        self._query_config = query_config
 
         if len(raw_fields) == 0:
             raise InvalidField('Request is missing a "field"')
@@ -317,49 +311,28 @@ class QueryDefinition:
             query_groupby.update(groupby.get_snuba_groupby())
         self.query_groupby = list(query_groupby)
 
-    def to_query_builder_dict(self, orderby=None):
-        num_intervals = len(get_timestamps(self))
-        if num_intervals == 0:
-            raise ZeroIntervalsException
+        # the `params` are:
+        # project_id, organization_id, environment;
+        # also: start, end; but we got those ourselves.
+        snuba_filter = get_filter(self.query, params)
 
-        max_groups = SNUBA_LIMIT // num_intervals
+        # this makes sure that literals in complex queries are properly quoted,
+        # and unknown fields are raised as errors
+        if query_config.allow_session_status_query:
+            # NOTE: "''" is added because we use the event search parser, which
+            # resolves "session.status" to ifNull(..., "''")
+            column_resolver = lambda col: resolve_column(col, ["session.status", "''"])
+        else:
+            column_resolver = resolve_column
 
-        query_builder_dict = {
-            "dataset": Dataset.Sessions,
-            "params": {
-                **self.params,
-                "start": self.start,
-                "end": self.end,
-            },
-            "selected_columns": self.query_columns,
-            "groupby_columns": self.query_groupby,
-            "query": self.query,
-            "orderby": orderby,
-            "limit": max_groups,
-            "auto_aggregations": True,
-            "granularity": self.rollup,
+        conditions = [resolve_condition(c, column_resolver) for c in snuba_filter.conditions]
+        filter_keys = {
+            resolve_filter_key(key): value for key, value in snuba_filter.filter_keys.items()
         }
-        if self._query_config.allow_session_status_query:
-            query_builder_dict.update({"extra_filter_allowlist_fields": ["session.status"]})
-        return query_builder_dict
 
-    def get_filter_conditions(self):
-        """
-        Returns filter conditions for the query to be used for metrics queries, and hence excluding timestamp and
-        organization id condition that are later added by the metrics layer.
-        """
-        conditions = SessionsV2QueryBuilder(**self.to_query_builder_dict()).where
-        filter_conditions = []
-        for condition in conditions:
-            # Exclude sessions "started" timestamp condition and org_id condition, as it is not needed for metrics queries.
-            if (
-                isinstance(condition, Condition)
-                and isinstance(condition.lhs, Column)
-                and condition.lhs.name in ["started", "org_id"]
-            ):
-                continue
-            filter_conditions.append(condition)
-        return filter_conditions
+        self.aggregations = snuba_filter.aggregations
+        self.conditions = conditions
+        self.filter_keys = filter_keys
 
     def __repr__(self):
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
@@ -492,51 +465,65 @@ def _run_sessions_query(query):
     `totals` and again for the actual time-series data grouped by the requested
     interval.
     """
+
+    num_intervals = len(get_timestamps(query))
+    if num_intervals == 0:
+        return [], []
+
     # We only return the top-N groups, based on the first field that is being
     # queried, assuming that those are the most relevant to the user.
     # In a future iteration we might expose an `orderBy` query parameter.
     orderby = [f"-{query.primary_column}"]
+    max_groups = SNUBA_LIMIT // num_intervals
 
-    try:
-        query_builder_dict = query.to_query_builder_dict(orderby=orderby)
-    except ZeroIntervalsException:
-        return [], []
+    result_totals = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=query.query_columns,
+        groupby=query.query_groupby,
+        aggregations=query.aggregations,
+        conditions=query.conditions,
+        filter_keys=query.filter_keys,
+        start=query.start,
+        end=query.end,
+        rollup=query.rollup,
+        orderby=orderby,
+        limit=max_groups,
+        referrer="sessions.totals",
+    )
 
-    result_totals = SessionsV2QueryBuilder(**query_builder_dict).run_query("sessions.totals")[
-        "data"
-    ]
-    if not result_totals:
+    totals = result_totals["data"]
+    if not totals:
         # No need to query time series if totals is already empty
         return [], []
 
     # We only get the time series for groups which also have a total:
     if query.query_groupby:
         # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
-        groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
-
-        extra_conditions = [
-            Condition(
-                Function("tuple", [Column(col) for col in query.query_groupby]),
-                Op.IN,
-                Function("tuple", list(groups)),
-            )
-        ] + [
-            Condition(
-                Column(column),
-                Op.IN,
-                Function("tuple", list({row[column] for row in result_totals})),
-            )
+        groups = {tuple(row[column] for column in query.query_groupby) for row in totals}
+        extra_conditions = [[["tuple", query.query_groupby], "IN", groups]] + [
+            # This condition is redundant but might lead to better query performance
+            # Eg. [release IN [1, 3]], [environment IN [2, 4]]
+            [column, "IN", {row[column] for row in totals}]
             for column in query.query_groupby
         ]
     else:
         extra_conditions = []
 
-    timeseries_query_builder = TimeseriesSessionsV2QueryBuilder(**query_builder_dict)
-    timeseries_query_builder.where.extend(extra_conditions)
-    timeseries_query_builder.limit = Limit(SNUBA_LIMIT)
-    result_timeseries = timeseries_query_builder.run_query("sessions.timeseries")["data"]
+    result_timeseries = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[TS_COL] + query.query_columns,
+        groupby=[TS_COL] + query.query_groupby,
+        aggregations=query.aggregations,
+        conditions=query.conditions + extra_conditions,
+        filter_keys=query.filter_keys,
+        start=query.start,
+        end=query.end,
+        rollup=query.rollup,
+        limit=SNUBA_LIMIT,
+        referrer="sessions.timeseries",
+    )
 
-    return result_totals, result_timeseries
+    return totals, result_timeseries["data"]
 
 
 def massage_sessions_result(
