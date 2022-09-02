@@ -1,10 +1,12 @@
 import time
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Collection, Optional, Sequence, Tuple
+from typing import Collection, Iterator, Optional, Sequence, Tuple
 
+from sentry.utils import redis
 from sentry.utils.services import Service
 
-Hash = str
+Hash = int
 Timestamp = int
 
 
@@ -29,6 +31,29 @@ class Quota:
 
     def __post__init__(self) -> None:
         assert self.window_seconds % self.granularity_seconds == 0
+
+    def iter_window(self, request_timestamp: int) -> Iterator[int]:
+        """
+        Iterate over the quota's window, yielding timestamps representing each granule.
+
+        This function is used to calculate keys for storing the number of
+        requests made in each granule.
+
+        The iteration is done in reverse-order (newest timestamp to oldest),
+        starting with the key to which a currently-processed request should be
+        added. That request's timestamp is `request_timestamp`.
+
+        * `request_timestamp / self.granularity_seconds`
+        * `request_timestamp / self.granularity_seconds - 1`
+        * `request_timestamp / self.granularity_seconds - 2`
+        * ...
+        """
+        value = request_timestamp // self.granularity_seconds
+
+        for granule_i in range(self.window_seconds // self.granularity_seconds):
+            value -= 1
+            assert value >= 0, value
+            yield value
 
 
 @dataclass(frozen=True)
@@ -132,3 +157,158 @@ class CardinalityLimiter(Service):
             indicates how much quota should actually be consumed.
         """
         pass
+
+
+class RedisCardinalityLimiter(CardinalityLimiter):
+    def __init__(self, cluster: str = "default", cluster_shard_factor: int = 3) -> None:
+        self.client = redis.redis_clusters.get(cluster)
+        self.cluster_shard_factor = cluster_shard_factor
+        super().__init__()
+
+    @staticmethod
+    def _get_timeseries_key(request: RequestedQuota, hash: Hash):
+        return f"cardinality-counter-{request.prefix}-{hash}"
+
+    def _get_read_sets_keys(self, request: RequestedQuota, quota: Quota, timestamp: Timestamp):
+        oldest_time_bucket = list(quota.iter_window(timestamp))[-1]
+        return [
+            f"cardinality-sets-{request.prefix}-{shard}-{oldest_time_bucket}"
+            for shard in range(self.cluster_shard_factor)
+        ]
+
+    def _get_write_sets_keys(
+        self, request: RequestedQuota, quota: Quota, timestamp: Timestamp, hash: Hash
+    ):
+        shard = hash % self.cluster_shard_factor
+        return [
+            f"cardinality-sets-{request.prefix}-{shard}-{time_bucket}"
+            for time_bucket in quota.iter_window(timestamp)
+        ]
+
+    def check_within_quotas(
+        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
+    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+        if timestamp is None:
+            timestamp = int(time.time())
+        else:
+            timestamp = int(timestamp)
+
+        unit_keys_to_get = []
+        set_keys_to_count = []
+
+        for request in requests:
+            if request.quotas:
+                for hash in request.unit_hashes:
+                    unit_keys_to_get.append(self._get_timeseries_key(request, hash))
+
+            for quota in request.quotas:
+                set_keys_to_count.extend(self._get_read_sets_keys(request, quota, timestamp))
+
+        if not unit_keys_to_get and not set_keys_to_count:
+            return timestamp, [
+                GrantedQuota(
+                    request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
+                )
+                for request in requests
+            ]
+
+        with self.client.pipeline(transaction=False) as pipeline:
+            pipeline.mget(unit_keys_to_get)
+            # O(self.cluster_shard_factor * len(requests)), assuming there's
+            # only one per-org quota
+            for key in set_keys_to_count:
+                pipeline.scard(key)
+
+            results = iter(pipeline.execute())
+            unit_keys = dict(zip(unit_keys_to_get, next(results)))
+            set_counts = dict(zip(set_keys_to_count, results))
+
+        grants = []
+        for request in requests:
+            if not request.quotas:
+                grants.append(
+                    GrantedQuota(
+                        request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
+                    )
+                )
+                continue
+
+            granted_hashes = []
+
+            quotas_by_remaining_limit = defaultdict(list)
+            for quota in request.quotas:
+                remaining_limit = max(
+                    0,
+                    quota.limit
+                    - sum(
+                        set_counts[k] for k in self._get_read_sets_keys(request, quota, timestamp)
+                    ),
+                )
+                quotas_by_remaining_limit[remaining_limit].append(quota)
+
+            smallest_remaining_limit = min(quotas_by_remaining_limit)
+            smallest_remaining_limit_running = smallest_remaining_limit
+            reached_quotas = []
+
+            for hash in request.unit_hashes:
+                if unit_keys[self._get_timeseries_key(request, hash)]:
+                    granted_hashes.append(hash)
+                elif smallest_remaining_limit_running > 0:
+                    granted_hashes.append(hash)
+                    smallest_remaining_limit_running -= 1
+                else:
+                    reached_quotas = quotas_by_remaining_limit[smallest_remaining_limit]
+                    break
+
+            grants.append(
+                GrantedQuota(
+                    request=request,
+                    granted_unit_hashes=granted_hashes,
+                    reached_quotas=reached_quotas,
+                )
+            )
+
+        return timestamp, grants
+
+    def use_quotas(
+        self,
+        grants: Sequence[GrantedQuota],
+        timestamp: Timestamp,
+    ) -> None:
+        unit_keys_to_set = {}
+        set_keys_to_add = defaultdict(set)
+        set_keys_ttl = {}
+
+        for grant in grants:
+            if not grant.request.quotas:
+                continue
+
+            key_ttl = max(quota.window_seconds for quota in grant.request.quotas)
+
+            for hash in grant.granted_unit_hashes:
+                unit_key = self._get_timeseries_key(grant.request, hash)
+                unit_keys_to_set[unit_key] = key_ttl
+
+                for quota in grant.request.quotas:
+                    for set_key in self._get_write_sets_keys(grant.request, quota, timestamp, hash):
+                        set_keys_ttl[set_key] = quota.window_seconds
+                        set_keys_to_add[set_key].add(hash)
+
+        if not set_keys_to_add and not unit_keys_to_set:
+            return
+
+        with self.client.pipeline(transaction=False) as pipeline:
+            for key, ttl in unit_keys_to_set.items():
+                pipeline.setex(key, ttl, 1)
+
+            for key, items in set_keys_to_add.items():
+                items_list = list(items)
+                while items_list:
+                    # SADD can take multiple arguments, but if you provide too
+                    # many you end up with very long-running redis commands.
+                    pipeline.sadd(key, *items_list[:200])
+                    items_list = items_list[200:]
+
+                pipeline.expire(key, set_keys_ttl[key])
+
+            pipeline.execute()
