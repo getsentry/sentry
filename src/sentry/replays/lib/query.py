@@ -154,8 +154,10 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     # Validate field exists and is filterable.
     field_alias = search_filter.key.name
     field = query_config.get(field_alias)
-    if field is None or not field.is_filterable:
+    if field is None:
         raise ParseError(f"Invalid field specified: {field_alias}.")
+    elif not field.is_filterable:
+        raise ParseError(f'"{field_alias}" is not filterable.')
 
     # Validate strategy is correct.
     query_operator = search_filter.operator
