@@ -23,10 +23,7 @@ from django.conf import settings
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.indexer.limiters.cardinality import (
-    CardinalityLimiterState,
-    cardinality_limiter,
-)
+from sentry.sentry_metrics.indexer.limiters.cardinality import CardinalityLimiterState
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -102,11 +99,8 @@ class IndexerBatch:
                 continue
 
     @metrics.wraps("process_messages.limit_messages")
-    def limit_messages(self) -> None:
-        self.cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
-            self.use_case_id, self.parsed_payloads_by_offset
-        )
-        for offset in self.cardinality_limiter_state.keys_to_remove:
+    def limit_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
+        for offset in keys_to_remove:
             metrics.incr(
                 "sentry_metrics.indexer.process_messages.dropped_message",
                 tags={
@@ -333,11 +327,6 @@ class IndexerBatch:
                 timestamp=message.timestamp,
             )
             new_messages.append(new_message)
-
-        # TODO: move cardinality limits to separate thread
-        # Cardinality limiter state is optional such that it can be skipped in unit tests.
-        if self.cardinality_limiter_state is not None:
-            cardinality_limiter.apply_cardinality_limits(self.cardinality_limiter_state)
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

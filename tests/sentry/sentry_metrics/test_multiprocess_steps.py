@@ -20,7 +20,10 @@ from sentry.sentry_metrics.consumers.indexer.common import (
 )
 from sentry.sentry_metrics.consumers.indexer.multiprocess import TransformStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
-from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter
+from sentry.sentry_metrics.indexer.limiters.cardinality import (
+    TimeseriesCardinalityLimiter,
+    cardinality_limiter_factory,
+)
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -517,7 +520,9 @@ def test_process_messages_cardinality_limited(caplog, settings, monkeypatch) -> 
             return 123, []
 
     monkeypatch.setitem(
-        cardinality_limiter.rate_limiters, UseCaseKey.RELEASE_HEALTH, MockCardinalityLimiter()
+        cardinality_limiter_factory.rate_limiters,
+        "releasehealth",
+        TimeseriesCardinalityLimiter("releasehealth", MockCardinalityLimiter()),
     )
 
     message_payloads = [counter_payload, distribution_payload, set_payload]

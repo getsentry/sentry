@@ -13,7 +13,7 @@ from sentry.ratelimits.cardinality import (
     RequestedQuota,
     Timestamp,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
 
@@ -32,11 +32,11 @@ class CardinalityLimiterState(Generic[TMessageKey]):
     keys_to_remove: Sequence[TMessageKey]
 
 
-def _build_quota_key(use_case_id: UseCaseKey, org_id: Optional[OrgId]) -> str:
+def _build_quota_key(namespace: str, org_id: Optional[OrgId]) -> str:
     if org_id is not None:
-        return f"metrics-indexer-cardinality-{use_case_id}-org-{org_id}"
+        return f"metrics-indexer-cardinality-{namespace}-org-{org_id}"
     else:
-        return f"metrics-indexer-cardinality-{use_case_id}-global"
+        return f"metrics-indexer-cardinality-{namespace}-global"
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
@@ -70,20 +70,13 @@ class InboundMessage(TypedDict):
 
 
 class TimeseriesCardinalityLimiter:
-    def __init__(self) -> None:
-        self.rate_limiters: MutableMapping[UseCaseKey, CardinalityLimiter] = {}
-
-    def _get_rate_limiter(self, use_case_id: UseCaseKey) -> CardinalityLimiter:
-        if use_case_id not in self.rate_limiters:
-            options = get_ingest_config(use_case_id).cardinality_limiter_cluster_options
-            self.rate_limiters[use_case_id] = RedisCardinalityLimiter(**options)
-
-        return self.rate_limiters[use_case_id]
+    def __init__(self, namespace: str, rate_limiter: CardinalityLimiter) -> None:
+        self.namespace = namespace
+        self.rate_limiter: CardinalityLimiter = rate_limiter
 
     def check_cardinality_limits(
         self, use_case_id: UseCaseKey, messages: Mapping[TMessageKey, InboundMessage]
     ) -> CardinalityLimiterState[TMessageKey]:
-        limiter = self._get_rate_limiter(use_case_id)
         request_hashes = defaultdict(set)
         keys_to_remove = {}
         for key, message in messages.items():
@@ -95,7 +88,7 @@ class TimeseriesCardinalityLimiter:
                     message["tags"],
                 ]
             )
-            prefix = _build_quota_key(use_case_id, org_id)
+            prefix = _build_quota_key(self.namespace, org_id)
             keys_to_remove[prefix, message_hash] = key
             request_hashes[prefix].add(message_hash)
 
@@ -106,14 +99,14 @@ class TimeseriesCardinalityLimiter:
                 RequestedQuota(prefix=prefix, unit_hashes=hashes, quotas=configured_quotas)
             )
 
-        timestamp, grants = limiter.check_within_quotas(requested_quotas)
+        timestamp, grants = self.rate_limiter.check_within_quotas(requested_quotas)
 
         for grant in grants:
             for hash in grant.granted_unit_hashes:
                 del keys_to_remove[prefix, hash]
 
         return CardinalityLimiterState(
-            _cardinality_limiter=limiter,
+            _cardinality_limiter=self.rate_limiter,
             _use_case_id=use_case_id,
             _requests=requested_quotas,
             _grants=grants,
@@ -125,4 +118,30 @@ class TimeseriesCardinalityLimiter:
         state._cardinality_limiter.use_quotas(state._requests, state._grants, state._timestamp)
 
 
-cardinality_limiter = TimeseriesCardinalityLimiter()
+class TimeseriesCardinalityLimiterFactory:
+    """
+    The TimeseriesCardinalityLimiterFactory is in charge of initializing the
+    TimeseriesCardinalityLimiter based on a configuration's namespace and
+    options. Ideally this logic would live in the initialization of the
+    backends (postgres, cloudspanner etc) but since each backend supports
+    multiple use cases dynamically we just keep the mapping of rate limiters in
+    this factory.
+
+    [Copied from sentry.sentry_metrics.indexer.limiters.writes]
+    """
+
+    def __init__(self) -> None:
+        self.rate_limiters: MutableMapping[str, TimeseriesCardinalityLimiter] = {}
+
+    def get_ratelimiter(self, config: MetricsIngestConfiguration) -> TimeseriesCardinalityLimiter:
+        namespace = config.writes_limiter_namespace
+        if namespace not in self.rate_limiters:
+            writes_rate_limiter = TimeseriesCardinalityLimiter(
+                namespace, RedisCardinalityLimiter(**config.writes_limiter_cluster_options)
+            )
+            self.rate_limiters[namespace] = writes_rate_limiter
+
+        return self.rate_limiters[namespace]
+
+
+cardinality_limiter_factory = TimeseriesCardinalityLimiterFactory()
