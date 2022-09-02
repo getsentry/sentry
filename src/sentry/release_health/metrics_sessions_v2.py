@@ -40,6 +40,7 @@ from snuba_sdk import (
     Op,
 )
 from snuba_sdk.conditions import ConditionGroup
+from snuba_sdk.legacy import json_to_snql
 
 from sentry.api.utils import InvalidParams as UtilsInvalidParams
 from sentry.models import Release
@@ -53,6 +54,7 @@ from sentry.release_health.base import (
     SessionsQueryValue,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
 from sentry.snuba.metrics.query import MetricField, MetricsQuery, OrderBy
@@ -413,8 +415,7 @@ def run_sessions_query(
     if not intervals:
         return _empty_result(query)
 
-    conditions = query.get_filter_conditions()
-
+    conditions = _get_filter_conditions(query.conditions)
     where, status_filter = _extract_status_filter_from_conditions(conditions)
     if status_filter == frozenset():
         # There was a condition that cannot be met, such as 'session:status:foo'
@@ -432,7 +433,10 @@ def run_sessions_query(
     if not fields:
         return _empty_result(query)
 
-    project_ids = query.params["project_id"]
+    filter_keys = query.filter_keys.copy()
+    project_ids = filter_keys.pop("project_id")
+    assert not filter_keys
+
     limit = Limit(query.limit) if query.limit else None
 
     ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
@@ -696,6 +700,14 @@ def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
         "intervals": intervals,
         "query": query.query,
     }
+
+
+def _get_filter_conditions(conditions: Any) -> ConditionGroup:
+    """Translate given conditions to snql"""
+    dummy_entity = EntityKey.MetricsSets.value
+    return json_to_snql(
+        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
+    ).query.where
 
 
 def _extract_status_filter_from_conditions(

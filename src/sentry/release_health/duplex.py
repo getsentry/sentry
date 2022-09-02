@@ -973,7 +973,7 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
         relative_hours = math.ceil((query.end - now).total_seconds() / 3600)
         sentry_tags = {"run_sessions_query.rel_end": f"{relative_hours}h"}
 
-        project_ids = query.params.get("project_id")
+        project_ids = query.filter_keys.get("project_id")
         if project_ids and len(project_ids) == 1:
             project_id = project_ids[0]
             sentry_tags["run_sessions_query.project_id"] = str(project_id)

@@ -160,7 +160,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid search filter: foo"
+        assert response.data == {"detail": 'Invalid query field: "foo"'}
 
         response = self.do_request(
             {
@@ -173,14 +173,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         # TODO: it would be good to provide a better error here,
         # since its not obvious where `message` comes from.
-        assert response.data["detail"] == "Invalid search filter: message"
+        assert response.data == {"detail": 'Invalid query field: "message"'}
 
     def test_illegal_query(self):
         response = self.do_request(
             {"statsPeriod": "1d", "field": ["sum(session)"], "query": ["issue.id:123"]}
         )
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "Invalid search filter: issue.id"
+        assert response.data == {"detail": 'Invalid query field: "group_id"'}
 
     def test_too_many_points(self):
         # default statsPeriod is 90d
@@ -1074,16 +1074,17 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 
     @freeze_time(MOCK_DATETIME)
     def test_mix_known_and_unknown_strings(self):
-        response = self.do_request(
-            {
-                "project": self.project.id,  # project without users
-                "statsPeriod": "1d",
-                "interval": "1d",
-                "field": ["count_unique(user)", "sum(session)"],
-                "query": "environment:[production,foo]",
-            }
-        )
-        assert response.status_code == 200, response.data
+        for query_string in ("environment:[production,foo]",):
+            response = self.do_request(
+                {
+                    "project": self.project.id,  # project without users
+                    "statsPeriod": "1d",
+                    "interval": "1d",
+                    "field": ["count_unique(user)", "sum(session)"],
+                    "query": query_string,
+                }
+            )
+            assert response.status_code == 200, response.data
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
