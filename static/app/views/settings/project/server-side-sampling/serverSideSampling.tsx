@@ -121,7 +121,11 @@ export function ServerSideSampling({project}: Props) {
 
   const {projectStats48h} = useProjectStats();
 
-  const {recommendedSdkUpgrades, isProjectIncompatible} = useRecommendedSdkUpgrades({
+  const {
+    recommendedSdkUpgrades,
+    isProjectIncompatible,
+    loading: loadingRecommendedSdkUpgrades,
+  } = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
     projectId: project.id,
   });
@@ -551,6 +555,7 @@ export function ServerSideSampling({project}: Props) {
                       grabAttributes={attributes}
                       dragging={dragging}
                       sorting={sorting}
+                      loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
                     />
                   </RulesPanelLayout>
                 );
