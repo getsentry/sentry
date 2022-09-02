@@ -90,11 +90,13 @@ const TableSubject = styled('td')<{wide?: boolean}>`
 `;
 
 const Tablevalue = styled('div')`
-  pre > pre {
-    display: inline-block;
+  pre {
     && {
       word-break: break-all;
     }
+  }
+  pre > pre {
+    display: inline-block;
   }
 `;
 const ValueWithButtonContainer = styled('div')`
