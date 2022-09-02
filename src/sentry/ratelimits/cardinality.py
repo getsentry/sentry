@@ -117,7 +117,6 @@ class CardinalityLimiter(Service):
 
     def use_quotas(
         self,
-        requests: Sequence[RequestedQuota],
         grants: Sequence[GrantedQuota],
         timestamp: Timestamp,
     ) -> None:
