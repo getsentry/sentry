@@ -54,23 +54,23 @@ const initialState: State = {
 };
 
 interface ServerSideSamplingStoreDefinition extends CommonStoreDefinition<State> {
-  fetchDistribution(): void;
-  fetchDistributionError(error: string): void;
-  fetchDistributionSuccess(data: SamplingDistribution): void;
+  distributionRequestError(error: string): void;
+  distributionRequestLoading(): void;
+  distributionRequestSuccess(data: SamplingDistribution): void;
 
-  fetchProjectStats30d(): void;
-  fetchProjectStats30dError: (error: string) => void;
-  fetchProjectStats30dSuccess: (data: SeriesApi) => void;
+  projectStats30dRequestError: (error: string) => void;
+  projectStats30dRequestLoading(): void;
+  projectStats30dRequestSuccess: (data: SeriesApi) => void;
 
-  fetchProjectStats48h(): void;
-  fetchProjectStats48hError: (error: string) => void;
-  fetchProjectStats48hSuccess: (data: SeriesApi) => void;
-
-  fetchSdkVersions(): void;
-  fetchSdkVersionsError(error: string): void;
-  fetchSdkVersionsSuccess(data: SamplingSdkVersion[]): void;
+  projectStats48hRequestError: (error: string) => void;
+  projectStats48hRequestLoading(): void;
+  projectStats48hRequestSuccess: (data: SeriesApi) => void;
 
   reset(): void;
+
+  sdkVersionsRequestError(error: string): void;
+  sdkVersionsRequestLoading(): void;
+  sdkVersionsRequestSuccess(data: SamplingSdkVersion[]): void;
 }
 
 const storeConfig: ServerSideSamplingStoreDefinition = {
@@ -85,7 +85,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     return this.state;
   },
 
-  fetchProjectStats48h() {
+  projectStats48hRequestLoading() {
     this.state = {
       ...this.state,
       projectStats48h: {
@@ -97,7 +97,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchProjectStats48hSuccess(data: SeriesApi) {
+  projectStats48hRequestSuccess(data: SeriesApi) {
     this.state = {
       ...this.state,
       projectStats48h: {
@@ -109,7 +109,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchProjectStats48hError(error: string) {
+  projectStats48hRequestError(error: string) {
     this.state = {
       ...this.state,
       projectStats48h: {
@@ -121,7 +121,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchProjectStats30d() {
+  projectStats30dRequestLoading() {
     this.state = {
       ...this.state,
       projectStats30d: {
@@ -133,7 +133,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchProjectStats30dSuccess(data: SeriesApi) {
+  projectStats30dRequestSuccess(data: SeriesApi) {
     this.state = {
       ...this.state,
       projectStats30d: {
@@ -145,7 +145,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchProjectStats30dError(error: string) {
+  projectStats30dRequestError(error: string) {
     this.state = {
       ...this.state,
       projectStats30d: {
@@ -157,7 +157,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchDistribution() {
+  distributionRequestLoading() {
     this.state = {
       ...this.state,
       distribution: {
@@ -169,7 +169,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchDistributionSuccess(data: SamplingDistribution) {
+  distributionRequestSuccess(data: SamplingDistribution) {
     this.state = {
       ...this.state,
       distribution: {
@@ -181,7 +181,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchDistributionError(error: string) {
+  distributionRequestError(error: string) {
     this.state = {
       ...this.state,
       distribution: {
@@ -193,7 +193,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchSdkVersions() {
+  sdkVersionsRequestLoading() {
     this.state = {
       ...this.state,
       sdkVersions: {
@@ -205,7 +205,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchSdkVersionsSuccess(data: SamplingSdkVersion[]) {
+  sdkVersionsRequestSuccess(data: SamplingSdkVersion[]) {
     this.state = {
       ...this.state,
       sdkVersions: {
@@ -217,7 +217,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  fetchSdkVersionsError(error: string) {
+  sdkVersionsRequestError(error: string) {
     this.state = {
       ...this.state,
       sdkVersions: {

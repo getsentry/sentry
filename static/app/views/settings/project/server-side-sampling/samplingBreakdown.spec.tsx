@@ -33,7 +33,7 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
       projectBreakdown!.map(p => TestStubs.Project({id: p.project_id, slug: p.project}))
     );
 
-    ServerSideSamplingStore.fetchDistributionSuccess(mockedSamplingDistribution);
+    ServerSideSamplingStore.distributionRequestSuccess(mockedSamplingDistribution);
 
     render(<SamplingBreakdown orgSlug={organization.slug} />);
 
