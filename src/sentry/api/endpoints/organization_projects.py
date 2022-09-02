@@ -73,6 +73,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                         "hasProfiles": True,
                         "latestRelease": None,
                         "hasUserReports": False,
+                        "relayPiiConfig": None,
                     }
                 ],
             )
