@@ -4,7 +4,7 @@ from typing import Any, Collection, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
-Hash = int
+Hash = str
 Timestamp = int
 
 
@@ -117,7 +117,6 @@ class CardinalityLimiter(Service):
 
     def use_quotas(
         self,
-        requests: Sequence[RequestedQuota],
         grants: Sequence[GrantedQuota],
         timestamp: Timestamp,
     ) -> None:
