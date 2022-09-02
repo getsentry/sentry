@@ -326,6 +326,15 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
                         self._build_redis_key(request=request, quota=quota, granule=granule)
                     )
 
+        # Stabilize the iteration order of `keys_to_fetch` by converting it
+        # into a list, because the next line will iterate over keys_to_fetch
+        # twice.
+        #
+        # While CPython 3.8 does not change the iteration order of a set as
+        # long as it is not being modified
+        # (https://stackoverflow.com/a/3812600/1544347), there are no formal
+        # guarantees about it.
+        keys_to_fetch = list(keys_to_fetch)
         redis_results = dict(zip(keys_to_fetch, self.client.mget(keys_to_fetch)))
 
         results = []
