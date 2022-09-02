@@ -6,7 +6,7 @@ from snuba_sdk import Column, Condition, Op
 from snuba_sdk.conditions import And, Or
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import ParenExpression, SearchFilter
 
 # Interface.
 
@@ -115,48 +115,71 @@ class QueryConfig:
 
 
 def generate_valid_conditions(
-    query: List[SearchFilter], query_config: QueryConfig
+    query: List[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
 ) -> List[Condition]:
+    """Convert search filters to snuba conditions."""
     result = []
     look_back = None
     for search_filter in query:
-        if search_filter in ("AND", "OR"):
+        # SearchFilters are appended to the result set.  If they are top level filters they are
+        # implicitly And'ed in the WHERE/HAVING clause.
+        if isinstance(search_filter, SearchFilter):
+            condition = filter_to_condition(search_filter, query_config)
+            if look_back == "AND":
+                look_back = None
+                attempt_compressed_condition(result, condition, And)
+            elif look_back == "OR":
+                look_back = None
+                attempt_compressed_condition(result, condition, Or)
+            else:
+                result.append(condition)
+        # ParenExpressions are recursively computed.  If more than one condition is returned then
+        # those conditions are And'ed.
+        elif isinstance(search_filter, ParenExpression):
+            conditions = generate_valid_conditions(search_filter.children, query_config)
+            if len(conditions) < 2:
+                result.extend(conditions)
+            else:
+                result.append(And(conditions))
+        # String types are limited to AND and OR... I think?  In the case where its not a valid
+        # look-back it is implicitly ignored.
+        elif isinstance(search_filter, str):
             look_back = search_filter
-            continue
-
-        # Validate field exists and is filterable.
-        field_alias = search_filter.key.name
-        field = query_config.get(field_alias)
-        if field is None or not field.is_filterable:
-            raise ParseError(f"Invalid field specified: {field_alias}.")
-
-        # Validate strategy is correct.
-        query_operator = search_filter.operator
-        operator, errors = field.deserialize_operator(query_operator)
-        if errors:
-            raise ParseError(f"Invalid operator specified: {field_alias}.")
-
-        # Deserialize value to its correct type or error.
-        query_value = search_filter.value.value
-        value, errors = field.deserialize_value(query_value)
-        if errors:
-            raise ParseError(f"Invalid value specified: {field_alias}.")
-
-        condition = Condition(Column(field.query_alias or field.attribute_name), operator, value)
-
-        if look_back == "AND":
-            attempt_compressed_condition(result, rhs=condition, condition_type=And)
-            look_back = None
-        elif look_back == "OR":
-            attempt_compressed_condition(result, rhs=condition, condition_type=Or)
-            look_back = None
-        else:
-            result.append(condition)
 
     return result
 
 
+def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) -> Condition:
+    """Coerce SearchFilter syntax to snuba Condtion syntax."""
+    # Validate field exists and is filterable.
+    field_alias = search_filter.key.name
+    field = query_config.get(field_alias)
+    if field is None or not field.is_filterable:
+        raise ParseError(f"Invalid field specified: {field_alias}.")
+
+    # Validate strategy is correct.
+    query_operator = search_filter.operator
+    operator, errors = field.deserialize_operator(query_operator)
+    if errors:
+        raise ParseError(f"Invalid operator specified: {field_alias}.")
+
+    # Deserialize value to its correct type or error.
+    query_value = search_filter.value.value
+    value, errors = field.deserialize_value(query_value)
+    if errors:
+        raise ParseError(f"Invalid value specified: {field_alias}.")
+
+    return Condition(Column(field.query_alias or field.attribute_name), operator, value)
+
+
 def attempt_compressed_condition(result, rhs, condition_type):
+    """Unnecessary query optimization.
+
+    Improves the legibility of for query debugging. Clickhouse would flatten these nested OR
+    statements internally anyway.
+
+    (block OR block) OR block => (block OR block OR block)
+    """
     if isinstance(result[-1], condition_type):
         result[-1].conditions.append(rhs)
     else:
