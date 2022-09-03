@@ -23,8 +23,11 @@ def get_profiles_consumer(
 class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
     def process_message(
         self, message: Message
-    ) -> Tuple[Optional[int], Optional[MutableMapping[str, Any]]]:
+    ) -> Optional[Tuple[Optional[int], Optional[MutableMapping[str, Any]]]]:
         message = msgpack.unpackb(message.value(), use_list=False)
+        if not message["payload"]:
+            return None
+
         profile = cast(Dict[str, Any], json.loads(message["payload"]))
         profile.update(
             {
