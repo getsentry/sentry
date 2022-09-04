@@ -194,7 +194,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       dateThreshold: new Date('2022-04-05'),
       steps: [
         {
-          title: t('Selection filters here now!'),
+          title: t('Selection filters here now'),
           target: 'new_page_filter_button',
           description: t(
             "Selection filters were at the top of the page. Now they're here. Because this is what's getting filtered. Obvi."
@@ -217,7 +217,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       dateThreshold: new Date('2022-06-22'),
       steps: [
         {
-          title: t('Releases are here!'),
+          title: t('Releases are here'),
           target: 'releases_widget',
           description: t(
             'Want to know how your latest release is doing? Monitor release health and crash rates in Dashboards.'
