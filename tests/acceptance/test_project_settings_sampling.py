@@ -1,10 +1,14 @@
 from datetime import datetime, timedelta
 
+import pytest
 import pytz
+import requests
+from django.conf import settings
 
 from sentry.constants import DataCategory
 from sentry.testutils import AcceptanceTestCase
-from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.skips import requires_snuba
+from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
 FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
@@ -51,10 +55,10 @@ specific_rule_with_all_current_trace_conditions = {
 }
 
 
-class ProjectSettingsSamplingTest(OutcomesSnubaTest, AcceptanceTestCase):
+@pytest.mark.snuba
+@requires_snuba
+class ProjectSettingsSamplingTest(AcceptanceTestCase):
     def setUp(self):
-        # super(OutcomesSnubaTest, self).setUp()
-        # super(AcceptanceTestCase, self).setUp()
         super().setUp()
         self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=pytz.utc)
         self.user = self.create_user("foo@example.com")
@@ -71,6 +75,21 @@ class ProjectSettingsSamplingTest(OutcomesSnubaTest, AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling/"
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+
+    def store_outcomes(self, outcome, num_times=1):
+        outcomes = []
+        for _ in range(num_times):
+            outcome_copy = outcome.copy()
+            outcome_copy["timestamp"] = outcome_copy["timestamp"].strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            outcomes.append(outcome_copy)
+
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+            ).status_code
+            == 200
+        )
 
     def wait_until_page_loaded(self):
         self.browser.get(self.path)
