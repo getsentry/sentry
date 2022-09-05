@@ -80,12 +80,15 @@ class TimeseriesCardinalityLimiter:
         keys_to_remove = {}
         for key, message in messages.items():
             org_id = message["org_id"]
-            message_hash = hash_values(
-                [
-                    message["name"],
-                    message["type"],
-                    message["tags"],
-                ]
+            message_hash = int(
+                hash_values(
+                    [
+                        message["name"],
+                        message["type"],
+                        message["tags"],
+                    ]
+                ),
+                16,
             )
             prefix = _build_quota_key(self.namespace, org_id)
             keys_to_remove[prefix, message_hash] = key
