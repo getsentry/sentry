@@ -1495,6 +1495,13 @@ SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
+# Cardinality limits during metric bucket ingestion.
+# Which cluster to use. Example: {"cluster": "default"}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = (
+    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
+)
+
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
