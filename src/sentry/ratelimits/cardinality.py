@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Collection, Iterator, Optional, Sequence, Tuple
+from typing import Collection, Iterator, List, Optional, Sequence, Tuple
 
 from sentry.utils import redis
 from sentry.utils.services import Service
@@ -166,10 +166,12 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         super().__init__()
 
     @staticmethod
-    def _get_timeseries_key(request: RequestedQuota, hash: Hash):
+    def _get_timeseries_key(request: RequestedQuota, hash: Hash) -> str:
         return f"cardinality-counter-{request.prefix}-{hash}"
 
-    def _get_read_sets_keys(self, request: RequestedQuota, quota: Quota, timestamp: Timestamp):
+    def _get_read_sets_keys(
+        self, request: RequestedQuota, quota: Quota, timestamp: Timestamp
+    ) -> Sequence[str]:
         oldest_time_bucket = list(quota.iter_window(timestamp))[-1]
         return [
             f"cardinality-sets-{request.prefix}-{shard}-{oldest_time_bucket}"
@@ -178,7 +180,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
 
     def _get_write_sets_keys(
         self, request: RequestedQuota, quota: Quota, timestamp: Timestamp, hash: Hash
-    ):
+    ) -> Sequence[str]:
         shard = hash % self.cluster_shard_factor
         return [
             f"cardinality-sets-{request.prefix}-{shard}-{time_bucket}"
@@ -193,8 +195,8 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         else:
             timestamp = int(timestamp)
 
-        unit_keys_to_get = []
-        set_keys_to_count = []
+        unit_keys_to_get: List[str] = []
+        set_keys_to_count: List[str] = []
 
         for request in requests:
             if request.quotas:
