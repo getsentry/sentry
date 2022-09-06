@@ -179,19 +179,18 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
                 project_id=project.id,
             )
 
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            # Event in different group
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "d" * 32,
-                    "timestamp": one_min_ago,
-                    "start_timestamp": one_min_ago,
-                    "environment": "production",
-                    "tags": {"environment": "production"},
-                },
-                project_id=project.id,
-            )
+        # Event in different group
+        self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "d" * 32,
+                "timestamp": one_min_ago,
+                "start_timestamp": one_min_ago,
+                "environment": "production",
+                "tags": {"environment": "production"},
+            },
+            project_id=project.id,
+        )
 
         self.group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
         self.prev_transaction_event.group = self.group
