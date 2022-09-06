@@ -12,6 +12,8 @@ export interface ISortConfig {
   getValue: (row: NetworkSpan) => any;
 }
 
+export const UNKNOWN_STATUS = 'unknown';
+
 export function sortNetwork(
   network: NetworkSpan[],
   sortConfig: ISortConfig
@@ -34,3 +36,19 @@ export function sortNetwork(
     return valueB > valueA ? 1 : -1;
   });
 }
+
+export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
+  Array.from(
+    new Set<string>(
+      networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')).sort()
+    )
+  );
+
+export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
+  Array.from(
+    new Set<string | number>(
+      networkSpans
+        .map(networkSpan => networkSpan.data?.statusCode ?? UNKNOWN_STATUS)
+        .sort()
+    )
+  );
