@@ -14,12 +14,14 @@ import {
 } from 'sentry/utils/replays/hooks/useReplayList';
 
 type State = Awaited<ReturnType<typeof fetchReplayList>>;
+
 type Options = {
   api: Client;
   eventsWithReplaysView: EventView;
   location: Location;
   organization: Organization;
 };
+
 function useReplaysFromTransaction({
   api,
   eventsWithReplaysView,
@@ -86,8 +88,7 @@ async function fetchReplayIds({
       eventView.getEventsAPIPayload(location)
     );
 
-    const replayIds = data.data.map(record => String(record.replayId));
-    return replayIds;
+    return data.data.map(record => String(record.replayId));
   } catch (err) {
     return null;
   }
