@@ -29,13 +29,15 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.javascript.nextjs",  # Next.js
         "sentry.javascript.remix",  # RemixJS
         "sentry.javascript.node",  # Node, Express, koa
+        "sentry.javascript.react-native",  # React Native
         "sentry.javascript.serverless",  # AWS Lambda Node
         "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
         "sentry.python.serverless",  # AWS Lambda
         "sentry.cocoa",  # iOS
-        "sentry.java.android",  # Android
     )
 )
+# We want sentry.java.android, sentry.java.android.timber, and all others to match
+ALLOWED_SDK_NAMES_PREFIXES = frozenset(("sentry.java.android",))
 
 
 class QueryBoundsException(Exception):
@@ -192,7 +194,9 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         project_to_sdk_version_to_info_dict: Dict[Any, Any] = {}
         for row in data:
             project = row["project"]
-            sdk_name = row["sdk.name"]
+            sdk_name = (
+                row["sdk.name"] or ""
+            )  # Defaulting to string just to be sure because we are later using startswith
             sdk_version = row["sdk.version"]
             # Filter 1: Discard any sdk name that accounts less than or equal to the value
             # `SDK_NAME_FILTER_THRESHOLD` of total count per project
@@ -210,7 +214,8 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
                     "latestSDKVersion": sdk_version,
                     "isSendingSampleRate": bool(row[f"equation|{avg_sample_rate_equation}"]),
                     "isSendingSource": bool(row[f"equation|{avg_transaction_source_equation}"]),
-                    "isSupportedPlatform": (sdk_name in ALLOWED_SDK_NAMES),
+                    "isSupportedPlatform": (sdk_name in ALLOWED_SDK_NAMES)
+                    or (sdk_name.startswith(tuple(ALLOWED_SDK_NAMES_PREFIXES))),
                 }
 
         # Essentially for each project, we fetch all the SDK versions from the previously

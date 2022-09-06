@@ -1,7 +1,9 @@
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 interface InternalDefinition {
   /**
@@ -15,7 +17,9 @@ interface InternalDefinition {
   records: Map<string, boolean>;
 }
 
-interface SelectedGroupStoreDefinition extends StoreDefinition, InternalDefinition {
+interface SelectedGroupStoreDefinition
+  extends CommonStoreDefinition<Map<string, boolean>>,
+    InternalDefinition {
   add(ids: string[]): void;
   allSelected(): boolean;
   anySelected(): boolean;
@@ -48,6 +52,10 @@ const storeConfig: SelectedGroupStoreDefinition = {
   reset() {
     this.records = new Map();
     this.lastSelected = null;
+  },
+
+  getState() {
+    return this.records;
   },
 
   onGroupChange(itemIds) {
