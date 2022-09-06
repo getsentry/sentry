@@ -511,23 +511,6 @@ class EventManager:
         _nodestore_save_many(jobs)
         save_unprocessed_event(project, job["event"].event_id)
 
-        if job["release"]:
-            if job["is_new"]:
-                buffer_incr(
-                    ReleaseProject,
-                    {"new_groups": 1},
-                    {"release_id": job["release"].id, "project_id": project.id},
-                )
-            if job["is_new_group_environment"]:
-                buffer_incr(
-                    ReleaseProjectEnvironment,
-                    {"new_issues_count": 1},
-                    {
-                        "project_id": project.id,
-                        "release_id": job["release"].id,
-                        "environment_id": job["environment"].id,
-                    },
-                )
         if not raw:
             if not project.first_event:
                 project.update(first_event=job["event"].datetime)
@@ -908,13 +891,36 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
+        rp_new_groups = 0
+        rpe_new_groups = 0
+        for group_info in job["groups"]:
+            if group_info.is_new:
+                rp_new_groups += 1
+            if group_info.is_new_group_environment:
+                rpe_new_groups += 1
+        if rp_new_groups:
+            buffer_incr(
+                ReleaseProject,
+                {"new_groups": rp_new_groups},
+                {"release_id": release.id, "project_id": project.id},
+            )
+        if rpe_new_groups:
+            buffer_incr(
+                ReleaseProjectEnvironment,
+                {"new_issues_count": rpe_new_groups},
+                {
+                    "project_id": project.id,
+                    "release_id": release.id,
+                    "environment_id": environment.id,
+                },
+            )
 
 
 @metrics.wraps("save_event.get_or_create_group_release_many")
 def _get_or_create_group_release_many(jobs, projects):
     for job in jobs:
         if job["release"]:
-            for group_info in jobs["groups"]:
+            for group_info in job["groups"]:
                 group_info.group_release = GroupRelease.get_or_create(
                     group=group_info.group,
                     release=job["release"],
@@ -1012,6 +1018,8 @@ def _eventstream_insert_many(jobs):
 
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
+        if not job["groups"]:
+            continue
         group_info = job["groups"][0]
 
         eventstream.insert(
@@ -1944,6 +1952,8 @@ def save_transaction_events(jobs, projects):
             job["project_id"] = job["data"]["project"]
             job["raw"] = False
             job["group"] = None
+            # XXX: Temporary hack so that `groups` is always present
+            job["groups"] = []
             job["is_new"] = False
             job["is_regression"] = False
             job["is_new_group_environment"] = False
