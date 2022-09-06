@@ -141,12 +141,8 @@ function Actions({
           }
           anchorRight
         >
-          <MenuItemActionLink title={t('Configure')} onClick={onEdit}>
-            {t('Configure')}
-          </MenuItemActionLink>
-          {renderConfirmDelete(
-            <MenuItemActionLink title={t('Delete')}>{t('Delete')}</MenuItemActionLink>
-          )}
+          <MenuItemActionLink onClick={onEdit}>{t('Configure')}</MenuItemActionLink>
+          {renderConfirmDelete(<MenuItemActionLink>{t('Delete')}</MenuItemActionLink>)}
         </DropdownLink>
       </DropDownWrapper>
     </StyledButtonBar>

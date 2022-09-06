@@ -220,7 +220,7 @@ function ActionSet({
           shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
           message={confirm(ConfirmAction.MERGE, false)}
           confirmLabel={label('merge')}
-          title={t('Merge Selected Issues')}
+          aria-label={t('Merge Selected Issues')}
         >
           {t('Merge')}
         </ActionLink>
