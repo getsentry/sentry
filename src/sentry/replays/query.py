@@ -368,7 +368,7 @@ def _strip_uuid_dashes(
 # TODO
 
 
-def filter_tag_value(key: str, value: str, operator):
+def filter_tag_by_value(key: str, value: str, operator) -> Condition:
     return Condition(
         Function(
             "arrayElement",
