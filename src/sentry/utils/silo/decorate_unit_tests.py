@@ -199,7 +199,3 @@ class TestCaseMatch:
         with open(self.path, mode="w") as f:
             f.write(new_code)
         return True
-
-
-# Do `pytest --collect-only > pytest-collect.txt` to speed up repeated local runs
-LOCAL_SAVE = "pytest-collect.txt"
