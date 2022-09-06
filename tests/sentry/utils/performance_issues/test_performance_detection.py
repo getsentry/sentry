@@ -67,7 +67,8 @@ class PerformanceDetectionTest(unittest.TestCase):
     def test_options_enabled(self, mock):
         event = {}
         with override_options({"store.use-ingest-performance-detection-only": 1.0}):
-            detect_performance_problems(event)
+            with override_options({"performance.issues.all.problem-detection": 1.0}):
+                detect_performance_problems(event)
         assert mock.call_count == 1
 
     def test_calls_detect_duplicate(self):
@@ -450,7 +451,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["no-issue-in-django-detail-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
