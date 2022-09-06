@@ -42,8 +42,8 @@ def test_basic(request):
         max_batch_size=1,
         max_batch_time=1,
         processes=1,
-        input_block_size=1,
-        output_block_size=1,
+        input_block_size=1024,
+        output_block_size=1024,
         config=MetricsIngestConfiguration(
             db_backend=IndexerStorage.MOCK,
             db_backend_options={},
