@@ -1060,8 +1060,20 @@ header + .alert {
 .nav-tabs {
   border-bottom: 0;
   margin: 0 0 20px;
+  display: flex;
+  overflow: scroll;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  margin-left: -30px;
+  padding-left: 30px;
+  width: calc(100% + 60px);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   > li {
+    flex-shrink: 0;
     margin-right: 20px;
 
     > li.pull-right {
