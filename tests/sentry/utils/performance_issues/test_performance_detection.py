@@ -61,7 +61,8 @@ class PerformanceDetectionTest(unittest.TestCase):
     def test_options_enabled(self, mock):
         event = {}
         with override_options({"store.use-ingest-performance-detection-only": 1.0}):
-            detect_performance_issue(event)
+            with override_options({"performance.issues.all.problem-detection": 1.0}):
+                detect_performance_issue(event)
         assert mock.call_count == 1
 
     def test_calls_detect_duplicate(self):
