@@ -826,7 +826,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
         return hashlib.sha1(
-            (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
+            (
+                str(DetectorType.N_PLUS_ONE_DB_QUERIES)
+                + str(parent_op)
+                + str(parent_hash)
+                + str(source_hash)
+                + str(n_hash)
+            ).encode("utf8"),
         ).hexdigest()
 
 
