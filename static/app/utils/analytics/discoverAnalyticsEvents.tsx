@@ -3,7 +3,7 @@ export type DiscoverEventParameters = {
   'discover_v2.build_new_query': {};
   'discover_v2.change_sort': {sort: string};
   'discover_v2.facet_map.clicked': {tag: string};
-  'discover_v2.prebuilt_query_click': {query_name: string | undefined};
+  'discover_v2.prebuilt_query_click': {query_name?: string};
   'discover_v2.saved_query_click': {};
   'discover_v2.tour.advance': {duration: number; step: number};
   'discover_v2.tour.close': {duration: number; step: number};
