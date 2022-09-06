@@ -26,11 +26,13 @@ class MessageProcessor:
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
 
-    def __getstate__(self):
+    def __getstate__(self) -> MetricsIngestConfiguration:
         return self._config
 
-    def __setstate__(self, config):
-        self.__init__(config)
+    def __setstate__(self, config: MetricsIngestConfiguration) -> None:
+        # mypy: "cannot access init directly"
+        # yes I can, watch me.
+        self.__init__(config)  # type: ignore
 
     def process_messages(
         self,
