@@ -646,7 +646,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
-            project.update_option("sentry:dynamic_sampling", fixed_rules)
+            if project.update_option("sentry:dynamic_sampling", fixed_rules):
+                changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
 
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
