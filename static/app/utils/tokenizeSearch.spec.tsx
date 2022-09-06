@@ -349,6 +349,14 @@ describe('utils/tokenizeSearch', function () {
       results = new MutableSearch(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
       results.removeFilter('b');
       expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
+
+      results = new MutableSearch(['a:a', '!b:b']);
+      results.removeFilter('b');
+      expect(results.formatString()).toEqual('a:a');
+
+      results = new MutableSearch(['a:a', '(b:b1', 'OR', 'b:b2', 'OR', 'b:b3)', 'c:c']);
+      results.removeFilter('b');
+      expect(results.formatString()).toEqual('a:a c:c');
     });
 
     it('can return the tag keys', function () {
