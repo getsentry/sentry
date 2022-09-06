@@ -2,12 +2,15 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {Panel} from 'sentry/components/panels';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
   FIELD_FORMATTERS,
@@ -20,6 +23,7 @@ type Props = {
   event: Event;
   location: Location;
   organization: Organization;
+  fromPerformance?: boolean;
 };
 
 function isNotMarkMeasurement(field: string) {
@@ -30,6 +34,7 @@ export default function EventCustomPerformanceMetrics({
   event,
   location,
   organization,
+  fromPerformance,
 }: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -53,6 +58,7 @@ export default function EventCustomPerformanceMetrics({
               name={name}
               location={location}
               organization={organization}
+              fromPerformance={fromPerformance}
             />
           );
         })}
@@ -88,6 +94,7 @@ function EventCustomPerformanceMetric({
   name,
   location,
   organization,
+  fromPerformance,
 }: EventCustomPerformanceMetricProps) {
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
@@ -103,12 +110,63 @@ function EventCustomPerformanceMetric({
       )
     : value;
 
+  function generateDiscoverLinkWithQuery(query: string) {
+    const eventView = EventView.fromSavedQuery({
+      query,
+      fields: [],
+      id: undefined,
+      name: '',
+      projects: [],
+      version: 1,
+    });
+    if (fromPerformance) {
+      return eventView.getPerformanceTransactionEventsViewUrlTarget(
+        organization.slug,
+        {}
+      );
+    }
+    return eventView.getResultsViewUrlTarget(organization.slug);
+  }
   return (
     <StyledPanel>
-      <div>{name}</div>
-      <ValueRow>
-        <Value>{rendered}</Value>
-      </ValueRow>
+      <div>
+        <div>{name}</div>
+        <ValueRow>
+          <Value>{rendered}</Value>
+        </ValueRow>
+      </div>
+      <StyledDropdownMenuControl
+        items={[
+          {
+            key: 'includeEvents',
+            label: t('Show events with this value'),
+            to: generateDiscoverLinkWithQuery(`measurements.${name}:${value}`),
+          },
+          {
+            key: 'excludeEvents',
+            label: t('Hide events with this value'),
+            to: generateDiscoverLinkWithQuery(`!measurements.${name}:${value}`),
+          },
+          {
+            key: 'includeGreaterThanEvents',
+            label: t('Show events with values greater than'),
+            to: generateDiscoverLinkWithQuery(`measurements.${name}:>${value}`),
+          },
+          {
+            key: 'includeLessThanEvents',
+            label: t('Show events with values less than'),
+            to: generateDiscoverLinkWithQuery(`measurements.${name}:<${value}`),
+          },
+        ]}
+        triggerProps={{
+          'aria-label': t('Widget actions'),
+          size: 'xs',
+          borderless: true,
+          showChevron: false,
+          icon: <IconEllipsis direction="down" size="sm" />,
+        }}
+        placement="bottom right"
+      />
     </StyledPanel>
   );
 }
@@ -126,6 +184,7 @@ const Container = styled('div')`
 const StyledPanel = styled(Panel)`
   padding: ${space(1)} ${space(1.5)};
   margin-bottom: ${space(1)};
+  display: flex;
 `;
 
 const ValueRow = styled('div')`
@@ -135,4 +194,8 @@ const ValueRow = styled('div')`
 
 const Value = styled('span')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const StyledDropdownMenuControl = styled(DropdownMenuControl)`
+  margin-left: auto;
 `;

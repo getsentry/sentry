@@ -255,6 +255,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           event={event}
                           location={location}
                           organization={organization}
+                          fromPerformance
                         />
                       )}
                       <TagsTable
