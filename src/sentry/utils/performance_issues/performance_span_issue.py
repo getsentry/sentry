@@ -1,7 +1,7 @@
 from typing import List
 
 
-class PerformanceSpanIssue:
+class PerformanceSpanProblem:
     __slots__ = ("span_id", "allowed_op", "spans_involved", "fingerprint")
     """
     A class representing a detected performance issue caused by a performance span
