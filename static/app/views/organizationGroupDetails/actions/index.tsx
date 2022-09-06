@@ -322,7 +322,35 @@ class Actions extends Component<Props, State> {
     );
   };
 
-  openDiscardModal = () => {
+  openDeleteModal = (isPerformanceIssue: boolean) => {
+    if (isPerformanceIssue) {
+      return;
+    }
+
+    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+      <Fragment>
+        <Body>
+          {t('Deleting this issue is permanent. Are you sure you wish to continue?')}
+        </Body>
+        <Footer>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            style={{marginLeft: space(1)}}
+            priority="primary"
+            onClick={this.onDelete}
+          >
+            {t('Delete')}
+          </Button>
+        </Footer>
+      </Fragment>
+    ));
+  };
+
+  openDiscardModal = (isPerformanceIssue: boolean) => {
+    if (isPerformanceIssue) {
+      return;
+    }
+
     const {organization} = this.props;
 
     openModal(this.renderDiscardModal);
@@ -355,6 +383,9 @@ class Actions extends Component<Props, State> {
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
+
+    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
+    const isPerformanceIssue = !!event?.contexts?.performance_issue;
 
     return (
       <Wrapper>
@@ -447,33 +478,16 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  onAction: () =>
-                    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-                      <Fragment>
-                        <Body>
-                          {t(
-                            'Deleting this issue is permanent. Are you sure you wish to continue?'
-                          )}
-                        </Body>
-                        <Footer>
-                          <Button onClick={closeModal}>{t('Cancel')}</Button>
-                          <Button
-                            style={{marginLeft: space(1)}}
-                            priority="primary"
-                            onClick={this.onDelete}
-                          >
-                            {t('Delete')}
-                          </Button>
-                        </Footer>
-                      </Fragment>
-                    )),
+                  disabled: isPerformanceIssue,
+                  onAction: () => this.openDeleteModal(isPerformanceIssue),
                 },
                 {
                   key: 'delete-and-discard',
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  onAction: () => this.openDiscardModal(),
+                  disabled: isPerformanceIssue,
+                  onAction: () => this.openDiscardModal(isPerformanceIssue),
                 },
               ]}
             />
