@@ -163,7 +163,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         for _, detector in detectors.items():
             detector.visit_span(span)
     for _, detector in detectors.items():
-        detector.visited_all_spans()
+        detector.on_complete()
 
     report_metrics_for_detectors(event_id, detectors, sdk_span)
 
@@ -295,7 +295,7 @@ class PerformanceDetector(ABC):
     def visit_span(self, span: Span) -> None:
         raise NotImplementedError
 
-    def visited_all_spans(self) -> None:
+    def on_complete(self) -> None:
         pass
 
     @property
@@ -726,7 +726,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             # Maybe this DB span starts a whole new N+1!
             self._maybe_use_as_source(span)
 
-    def visited_all_spans(self) -> None:
+    def on_complete(self) -> None:
         self._maybe_store_problem()
 
     def _contains_complete_query(self, span: Span) -> bool:
