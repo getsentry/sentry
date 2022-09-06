@@ -4,10 +4,11 @@ from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_migrate
 
-from sentry.db.models import ArrayField, DefaultFieldsModel, sane_repr
+from sentry.db.models import ArrayField, DefaultFieldsModel, customer_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
+@customer_silo_model
 class UserRole(DefaultFieldsModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
@@ -37,6 +38,7 @@ class UserRole(DefaultFieldsModel):
         )
 
 
+@customer_silo_model
 class UserRoleUser(DefaultFieldsModel):
     __include_in_export__ = True
 

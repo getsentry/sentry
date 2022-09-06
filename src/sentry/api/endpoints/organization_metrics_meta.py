@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import metrics_performance
@@ -10,6 +11,7 @@ COUNT_HAS_TXN = "count_has_transaction_name()"
 COUNT_NULL = "count_null_transactions()"
 
 
+@customer_silo_endpoint
 class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     """Metrics data can contain less than great data like null or unparameterized transactions
 
@@ -74,6 +76,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
         return Response(data)
 
 
+@customer_silo_endpoint
 class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     """Return the total sum of metrics data, the null transactions and unparameterized transactions
 

@@ -5,6 +5,7 @@ from sentry.incidents.endpoints.organization_alert_rule_available_action_index i
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import Integration, PagerDutyService
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 SERVICES = [
     {
@@ -16,6 +17,7 @@ SERVICES = [
 ]
 
 
+@customer_silo_test
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
     email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)

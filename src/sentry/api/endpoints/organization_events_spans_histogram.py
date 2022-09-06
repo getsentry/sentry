@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import Span
 from sentry.snuba import discover
@@ -32,6 +33,7 @@ class SpansHistogramSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(e))
 
 
+@customer_silo_endpoint
 class OrganizationEventsSpansHistogramEndpoint(OrganizationEventsV2EndpointBase):
     private = True
 

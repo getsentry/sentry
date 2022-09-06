@@ -9,10 +9,12 @@ from fixtures.page_objects.issue_details import IssueDetailsPage
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
+@customer_silo_test
 class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

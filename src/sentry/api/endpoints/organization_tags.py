@@ -3,12 +3,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
 
 
+@customer_silo_endpoint
 class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         try:

@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, RelaxedSearchPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -19,6 +20,7 @@ class SavedSearchSerializer(serializers.Serializer):
     isUserDefault = serializers.BooleanField(required=False)
 
 
+@customer_silo_endpoint
 class ProjectSearchDetailsEndpoint(ProjectEndpoint):
     permission_classes = (RelaxedSearchPermission,)
 

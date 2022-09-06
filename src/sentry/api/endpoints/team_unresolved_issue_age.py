@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models import Group, GroupStatus, Team
@@ -24,6 +24,7 @@ buckets = (
 OLDEST_LABEL = "> 1 year"
 
 
+@customer_silo_endpoint
 class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
     def get(self, request: Request, team: Team) -> Response:
         """

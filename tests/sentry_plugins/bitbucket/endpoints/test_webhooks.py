@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models import Commit, CommitAuthor, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry_plugins.bitbucket.testutils import PUSH_EVENT_EXAMPLE
 
 BAD_IP = "109.111.111.10"
@@ -61,6 +62,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 401
 
 
+@customer_silo_test
 class PushEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation

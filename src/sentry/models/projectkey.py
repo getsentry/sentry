@@ -17,6 +17,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -59,6 +60,7 @@ class ProjectKeyManager(BaseManager):
         )
 
 
+@customer_silo_model
 class ProjectKey(Model):
     __include_in_export__ = True
 

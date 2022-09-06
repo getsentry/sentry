@@ -6,8 +6,10 @@ from sentry.models import Environment, GroupInboxReason, Release
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_multiple_environments(self):
         group = self.create_group()

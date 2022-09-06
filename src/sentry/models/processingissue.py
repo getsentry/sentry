@@ -4,7 +4,14 @@ from django.db import models
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, GzippedDictField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    GzippedDictField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 
 
 def get_processing_issue_checksum(scope, object):
@@ -87,6 +94,7 @@ class ProcessingIssueManager(BaseManager):
         EventProcessingIssue.objects.get_or_create(raw_event=raw_event, processing_issue=issue)
 
 
+@customer_silo_model
 class ProcessingIssue(Model):
     __include_in_export__ = False
 
@@ -114,6 +122,7 @@ class ProcessingIssue(Model):
         return self.data["_object"]
 
 
+@customer_silo_model
 class EventProcessingIssue(Model):
     __include_in_export__ = False
 

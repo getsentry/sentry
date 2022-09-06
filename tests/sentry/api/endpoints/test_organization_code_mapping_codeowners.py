@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.models import Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 GITHUB_CODEOWNER = {
     "filepath": "CODEOWNERS",
@@ -12,6 +13,7 @@ GITHUB_CODEOWNER = {
 }
 
 
+@customer_silo_test
 class OrganizationCodeMappingCodeOwnersTest(APITestCase):
     def setUp(self):
         super().setUp()

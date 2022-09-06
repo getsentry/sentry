@@ -15,6 +15,8 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    control_silo_model,
+    customer_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.types.integrations import ExternalProviders
@@ -32,6 +34,7 @@ class IdentityStatus:
     INVALID = 2
 
 
+@control_silo_model
 class IdentityProvider(Model):
     """
     An IdentityProvider is an instance of a provider.
@@ -171,6 +174,7 @@ class IdentityManager(BaseManager):
         return identity_model
 
 
+@customer_silo_model
 class Identity(Model):
     """
     A verified link between a user and a third party identity.

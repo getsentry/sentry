@@ -5,8 +5,10 @@ from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrgLevelOrganizationSearchesListTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
 
@@ -95,6 +97,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
         self.check_results(included)
 
 
+@customer_silo_test
 class CreateOrganizationSearchesTest(APITestCase):
     endpoint = "sentry-api-0-organization-searches"
     method = "post"

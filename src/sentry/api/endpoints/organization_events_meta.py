@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import search
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
@@ -16,6 +16,7 @@ from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover, metrics_performance
 
 
+@customer_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         try:
@@ -34,6 +35,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         return Response({"count": result["data"][0]["count"]})
 
 
+@customer_silo_endpoint
 class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
     """Metrics data can contain less than great data like null or unparameterized transactions
 
@@ -121,6 +123,7 @@ class OrganizationEventsMetricsCompatiblity(OrganizationEventsEndpointBase):
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
+@customer_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
     def get(self, request: Request, organization) -> Response:
         try:

@@ -2,11 +2,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.models import RelayUsage
 
 
+@customer_silo_endpoint
 class OrganizationRelayUsage(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
 

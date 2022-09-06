@@ -9,6 +9,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 
@@ -70,6 +71,7 @@ class OrganizationOnboardingTaskManager(BaseManager):
         return False
 
 
+@customer_silo_model
 class OrganizationOnboardingTask(Model):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.

@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 
@@ -28,6 +30,7 @@ class OrganizationProjectsTestBase(APITestCase):
         self.check_valid_response(response, [project])
 
 
+@customer_silo_test
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def setUp(self):
         super().setUp()
@@ -195,6 +198,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.check_valid_response(response, foo_user_projects)
 
 
+@customer_silo_test
 class OrganizationProjectsCountTest(APITestCase):
     endpoint = "sentry-api-0-organization-projects-count"
 

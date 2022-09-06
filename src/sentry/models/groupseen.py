@@ -2,9 +2,10 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model, sane_repr
 
 
+@customer_silo_model
 class GroupSeen(Model):
     """
     Track when a group is last seen by a user.

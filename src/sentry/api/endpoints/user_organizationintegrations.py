@@ -1,12 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ObjectStatus, OrganizationIntegration
 
 
+@customer_silo_endpoint
 class UserOrganizationIntegrationsEndpoint(UserEndpoint):
     def get(self, request: Request, user) -> Response:
         """

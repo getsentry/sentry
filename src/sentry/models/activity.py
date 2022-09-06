@@ -13,6 +13,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.tasks import activity
@@ -74,6 +75,7 @@ class ActivityManager(BaseManager):
         return activity
 
 
+@customer_silo_model
 class Activity(Model):
     __include_in_export__ = False
 

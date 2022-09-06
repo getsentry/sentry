@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import BitField
-from sentry.db.models import ArrayField, FlexibleForeignKey, Model
+from sentry.db.models import ArrayField, FlexibleForeignKey, Model, customer_silo_model
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
@@ -18,6 +18,7 @@ def generate_code():
     return uuid4().hex
 
 
+@customer_silo_model
 class ApiGrant(Model):
     """
     A grant represents a token with a short lifetime that can

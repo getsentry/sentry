@@ -1,8 +1,10 @@
 from django.test.client import RequestFactory
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class GroupTagKeyValuesDocs(APIDocsTestCase):
     def setUp(self):
         key, value = "foo", "bar"

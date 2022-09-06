@@ -3,12 +3,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.lang.native.applecrashreport import AppleCrashReport
 from sentry.utils.safe import get_path
 
 
+@customer_silo_endpoint
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
         """

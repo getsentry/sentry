@@ -2,7 +2,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import ReleaseAnalyticsMixin
+from sentry.api.base import ReleaseAnalyticsMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -16,6 +16,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
+@customer_silo_endpoint
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
     permission_classes = (ProjectReleasePermission,)
 

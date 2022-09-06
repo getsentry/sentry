@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
@@ -16,6 +17,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.functional import extract_lazy_object
 
 
+@customer_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value).select_related(

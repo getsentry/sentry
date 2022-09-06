@@ -4,11 +4,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
 
+@customer_silo_endpoint
 class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
     VITALS = {
         "measurements.lcp": {"thresholds": [0, 2500, 4000]},

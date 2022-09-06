@@ -20,6 +20,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -360,6 +361,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
         assert resp.data == serialize(alert_rule, self.user)
 
 
+@customer_silo_test
 class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-organization-combined-rules"
 

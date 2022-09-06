@@ -9,9 +9,11 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_test
 class GroupInboxTestCase(TestCase):
     @patch("sentry.signals.inbox_in.send_robust")
     def test_add_to_inbox(self, inbox_in):

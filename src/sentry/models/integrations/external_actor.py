@@ -3,12 +3,18 @@ import logging
 from django.db import models, transaction
 from django.db.models.signals import post_delete, post_save
 
-from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    customer_silo_model,
+)
 from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
 
 
+@customer_silo_model
 class ExternalActor(DefaultFieldsModel):
     __include_in_export__ = False
 

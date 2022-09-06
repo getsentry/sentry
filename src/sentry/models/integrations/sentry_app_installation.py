@@ -14,6 +14,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     ParanoidManager,
     ParanoidModel,
+    customer_silo_model,
 )
 
 if TYPE_CHECKING:
@@ -98,6 +99,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
         return grouped_sentry_app_installations
 
 
+@customer_silo_model
 class SentryAppInstallation(ParanoidModel):
     __include_in_export__ = True
 

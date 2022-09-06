@@ -4,8 +4,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models import Environment
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class StreamGroupSerializerTestCase(TestCase):
     def test_environment(self):
         group = self.group

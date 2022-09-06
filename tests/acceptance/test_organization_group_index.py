@@ -9,10 +9,12 @@ from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
 from sentry.models.groupinbox import add_group_to_inbox
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 
 
+@customer_silo_test
 class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

@@ -1,8 +1,10 @@
 from sentry.models import GroupShare
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class SharedGroupDetailsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

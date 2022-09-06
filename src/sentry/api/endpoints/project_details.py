@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
 from sentry import audit_log, features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -390,6 +391,7 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+@customer_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
     permission_classes = [RelaxedProjectPermission]
 

@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, release_health
-from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
+from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, customer_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -207,6 +207,7 @@ def debounce_update_release_health_data(organization, project_ids):
     cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
+@customer_silo_endpoint
 class OrganizationReleasesEndpoint(
     OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
 ):
@@ -564,6 +565,7 @@ class OrganizationReleasesEndpoint(
             return Response(serializer.errors, status=400)
 
 
+@customer_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     def get(self, request: Request, organization) -> Response:
         """

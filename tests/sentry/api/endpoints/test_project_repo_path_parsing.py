@@ -2,6 +2,7 @@ from django.urls import reverse
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
 class BaseStacktraceLinkTest(APITestCase):
@@ -24,6 +25,7 @@ class BaseStacktraceLinkTest(APITestCase):
         return self.client.post(url, data={"sourceUrl": source_url, "stackPath": stack_path})
 
 
+@customer_silo_test
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
@@ -133,6 +135,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
         }
 
 
+@customer_silo_test
 class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()

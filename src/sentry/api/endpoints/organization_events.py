@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
@@ -98,6 +99,7 @@ def rate_limit_events(request: Request, organization_slug=None, *args, **kwargs)
 
 
 @extend_schema(tags=["Discover"])
+@customer_silo_endpoint
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     public = {"GET"}
 
@@ -276,6 +278,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
+@customer_silo_endpoint
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
     def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)

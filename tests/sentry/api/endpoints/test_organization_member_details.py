@@ -17,6 +17,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import customer_silo_test
 
 
 class OrganizationMemberTestBase(APITestCase):
@@ -27,6 +28,7 @@ class OrganizationMemberTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@customer_silo_test
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_me(self):
         response = self.get_success_response(self.organization.slug, "me")
@@ -131,6 +133,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         assert role_ids == ["contributor", "admin"]
 
 
+@customer_silo_test
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
     method = "put"
 
@@ -408,6 +411,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         assert response.status_code == 403
 
 
+@customer_silo_test
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
 
@@ -534,6 +538,7 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         ).exists()
 
 
+@customer_silo_test
 class ResetOrganizationMember2faTest(APITestCase):
     def setUp(self):
         self.owner = self.create_user()

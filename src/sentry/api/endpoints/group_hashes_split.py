@@ -10,6 +10,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import eventstore, features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.grouping.variants import ComponentVariant
@@ -17,6 +18,7 @@ from sentry.models import Group, GroupHash
 from sentry.utils import snuba
 
 
+@customer_silo_endpoint
 class GroupHashesSplitEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
         """

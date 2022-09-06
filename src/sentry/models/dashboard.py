@@ -1,11 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.jsonfield import JSONField
 
 
+@customer_silo_model
 class DashboardProject(Model):
     __include_in_export__ = False
 
@@ -18,6 +19,7 @@ class DashboardProject(Model):
         unique_together = (("project", "dashboard"),)
 
 
+@customer_silo_model
 class Dashboard(Model):
     """
     A dashboard.
@@ -62,6 +64,7 @@ class Dashboard(Model):
         return None
 
 
+@customer_silo_model
 class DashboardTombstone(Model):
     """
     A tombstone to indicate that a pre-built dashboard

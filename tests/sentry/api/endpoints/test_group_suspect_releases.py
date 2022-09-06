@@ -5,8 +5,10 @@ from sentry.models import Environment
 from sentry.models.deploy import Deploy
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class GroupSuspectReleasesTest(APITestCase, SnubaTestCase):
     def test_no_suspect_releases(self):
         self.login_as(user=self.user)

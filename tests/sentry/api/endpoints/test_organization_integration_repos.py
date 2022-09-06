@@ -2,8 +2,10 @@ from unittest.mock import patch
 
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIntegrationReposTest(APITestCase):
     def setUp(self):
         super().setUp()

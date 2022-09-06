@@ -5,8 +5,10 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models import ProjectOwnership
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectOwnershipEndpointTestCase(APITestCase):
     endpoint = "sentry-api-0-project-ownership"
     method = "put"

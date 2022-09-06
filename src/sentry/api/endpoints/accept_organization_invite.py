@@ -3,12 +3,13 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, customer_silo_endpoint
 from sentry.api.invite_helper import ApiInviteHelper, add_invite_cookie, remove_invite_cookie
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.utils import auth
 
 
+@customer_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
     # Disable authentication and permission requirements.
     permission_classes = []

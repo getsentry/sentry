@@ -5,9 +5,11 @@ from django.urls import reverse
 
 from sentry.models import Project
 from sentry.testutils import APITestCase, PermissionTestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.signing import sign
 
 
+@customer_silo_test
 class AcceptTransferProjectPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -18,6 +20,7 @@ class AcceptTransferProjectPermissionTest(PermissionTestCase):
         self.assert_team_admin_cannot_access(self.path)
 
 
+@customer_silo_test
 class AcceptTransferProjectTest(APITestCase):
     def setUp(self):
         super().setUp()

@@ -14,7 +14,14 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, FlexibleForeignKey, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BaseModel,
+    BoundedAutoField,
+    FlexibleForeignKey,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.models import LostPasswordHash
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -108,6 +115,7 @@ class UserManager(BaseManager, DjangoUserManager):
         return self.filter(emails__is_verified=True, is_active=True, **kwargs)
 
 
+@customer_silo_model
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 

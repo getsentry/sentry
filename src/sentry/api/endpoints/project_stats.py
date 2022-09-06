@@ -2,13 +2,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import EnvironmentMixin, StatsMixin
+from sentry.api.base import EnvironmentMixin, StatsMixin, customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.models import Environment
 
 
+@customer_silo_endpoint
 class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
     def get(self, request: Request, project) -> Response:
         """

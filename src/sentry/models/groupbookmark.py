@@ -2,9 +2,10 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, customer_silo_model, sane_repr
 
 
+@customer_silo_model
 class GroupBookmark(Model):
     """
     Identifies a bookmark relationship between a user and an

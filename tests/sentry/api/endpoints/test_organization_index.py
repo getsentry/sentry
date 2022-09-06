@@ -3,6 +3,7 @@ import re
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
 class OrganizationIndexTest(APITestCase):
@@ -169,6 +170,7 @@ class OrganizationsCreateTest(OrganizationIndexTest):
             self.get_success_response(**data)
 
 
+@customer_silo_test
 class OrganizationIndex2faTest(TwoFactorAPITestCase):
     endpoint = "sentry-organization-home"
 
@@ -213,6 +215,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.get_success_response(self.org_2fa.slug)
 
 
+@customer_silo_test
 class OrganizationIndexMemberLimitTest(APITestCase):
     endpoint = "sentry-organization-index"
 

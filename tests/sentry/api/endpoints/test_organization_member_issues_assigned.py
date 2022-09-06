@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import GroupAssignee, OrganizationMemberTeam, ProjectStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationMemberIssuesAssignedTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-issues-assigned"
 

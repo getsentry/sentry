@@ -9,6 +9,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 
@@ -29,6 +30,7 @@ def format_scim_token_actor_name(actor):
     return "SCIM Internal Integration (" + uuid_prefix + ")"
 
 
+@customer_silo_model
 class AuditLogEntry(Model):
     __include_in_export__ = False
 

@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
@@ -43,6 +43,7 @@ class TeamProjectPermission(TeamPermission):
     }
 
 
+@customer_silo_endpoint
 class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     permission_classes = (TeamProjectPermission,)
 

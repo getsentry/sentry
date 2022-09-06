@@ -29,6 +29,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.silo import customer_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 
@@ -49,6 +50,7 @@ class EventMatcher:
         return matching_id
 
 
+@customer_silo_test
 class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.tasks.servicehooks.process_service_hook")
@@ -647,6 +649,7 @@ class PostProcessGroupTest(TestCase):
             )
 
 
+@customer_silo_test
 class PostProcessGroupAssignmentTest(TestCase):
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()

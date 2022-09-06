@@ -2,8 +2,10 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationEventIDLookupDocs(APIDocsTestCase):
     def setUp(self):
         event = self.create_event("a", message="oh no")

@@ -17,6 +17,7 @@ from sentry.digests.notifications import (
 from sentry.models import Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
 class RewriteRecordTestCase(TestCase):
@@ -60,6 +61,7 @@ class RewriteRecordTestCase(TestCase):
         )
 
 
+@customer_silo_test
 class GroupRecordsTestCase(TestCase):
     @fixture
     def rule(self):

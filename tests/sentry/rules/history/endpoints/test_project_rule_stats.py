@@ -9,6 +9,7 @@ from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 
 class TimeSeriesValueSerializerTest(TestCase):
@@ -24,6 +25,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 
 
 @freeze_time()
+@customer_silo_test
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 

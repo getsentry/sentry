@@ -1,12 +1,14 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.helpers.environments import environment_visibility_filter_options
 from sentry.api.serializers import serialize
 from sentry.models import Environment, EnvironmentProject
 
 
+@customer_silo_endpoint
 class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         visibility = request.GET.get("visibility", "visible")

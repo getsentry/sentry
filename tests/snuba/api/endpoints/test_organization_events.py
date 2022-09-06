@@ -22,6 +22,7 @@ from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.testutils.skips import requires_not_arm64
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -30,6 +31,7 @@ from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
+@customer_silo_test
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"

@@ -13,8 +13,10 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationMemberSerializerTest(TestCase):
     def test_valid(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
@@ -71,6 +73,7 @@ class OrganizationMemberListTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@customer_silo_test
 class OrganizationMemberListTest(OrganizationMemberListTestBase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug)
@@ -342,6 +345,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert member.role == "admin"
 
 
+@customer_silo_test
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
     method = "post"
 
@@ -477,6 +481,7 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
         )
 
 
+@customer_silo_test
 class OrganizationMemberListPostTest(OrganizationMemberListTestBase):
     method = "post"
 

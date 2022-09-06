@@ -7,6 +7,7 @@ from packaging import version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.snuba import discover
@@ -61,6 +62,7 @@ def serialize(data, projects):
     return [update for update in updates_list if len(update["suggestions"]) > 0]
 
 
+@customer_silo_endpoint
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)

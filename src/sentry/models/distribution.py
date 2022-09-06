@@ -1,9 +1,16 @@
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 
 
+@customer_silo_model
 class Distribution(Model):
     __include_in_export__ = False
 

@@ -9,8 +9,10 @@ from sentry.rules.history.base import RuleGroupHistory
 from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupHistorySerializer
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class RuleGroupHistorySerializerTest(TestCase):
     def test(self):
         current_date = datetime.now()
@@ -26,6 +28,7 @@ class RuleGroupHistorySerializerTest(TestCase):
 
 
 @freezegun.freeze_time()
+@customer_silo_test
 class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-group-history-index"
 

@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
@@ -13,6 +14,7 @@ from sentry.models import ExternalActor, Team
 logger = logging.getLogger(__name__)
 
 
+@customer_silo_endpoint
 class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
     def convert_args(
         self,

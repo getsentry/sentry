@@ -5,7 +5,13 @@ from django.utils import timezone
 
 from bitfield import BitField
 from sentry import options
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.db.models.fields.jsonfield import JSONField
 
 logger = logging.getLogger("sentry.authprovider")
@@ -17,6 +23,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 )
 
 
+@customer_silo_model
 class AuthProviderDefaultTeams(Model):
     __include_in_export__ = False
 
@@ -29,6 +36,7 @@ class AuthProviderDefaultTeams(Model):
         unique_together = (("authprovider", "team"),)
 
 
+@customer_silo_model
 class AuthProvider(Model):
     __include_in_export__ = True
 

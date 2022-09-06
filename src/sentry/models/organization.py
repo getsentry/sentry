@@ -20,7 +20,13 @@ from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
     RESERVED_PROJECT_SLUGS,
 )
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.roles.manager import Role
@@ -113,6 +119,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
+@customer_silo_model
 class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.

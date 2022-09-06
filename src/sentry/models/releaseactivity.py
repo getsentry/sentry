@@ -2,10 +2,16 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+)
 from sentry.types.releaseactivity import CHOICES
 
 
+@customer_silo_model
 class ReleaseActivity(Model):
     __include_in_export__ = False
 

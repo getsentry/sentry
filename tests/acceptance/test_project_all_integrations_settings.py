@@ -1,6 +1,8 @@
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectAllIntegrationsSettingsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

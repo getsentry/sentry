@@ -9,7 +9,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, Model, UUIDField, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    Model,
+    UUIDField,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.jsonfield import JSONField
 
@@ -118,6 +124,7 @@ class ScheduleType:
         return dict(cls.as_choices())[value]
 
 
+@customer_silo_model
 class Monitor(Model):
     __include_in_export__ = True
 

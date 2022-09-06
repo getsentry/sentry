@@ -2,9 +2,11 @@ from unittest.mock import call, patch
 
 from sentry.mediators.sentry_app_components import Preparer
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class TestPreparerIssueLink(TestCase):
     def setUp(self):
         super().setUp()

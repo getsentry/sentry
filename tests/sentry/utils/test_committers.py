@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.models import Commit, CommitAuthor, CommitFileChange, GroupRelease, Release, Repository
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.committers import (
     _get_commit_file_changes,
     _match_commits_path,
@@ -237,6 +238,7 @@ class GetPreviousReleasesTestCase(TestCase):
         assert releases[1] == release1
 
 
+@customer_silo_test
 class GetEventFileCommitters(CommitTestCase):
     def setUp(self):
         super().setUp()

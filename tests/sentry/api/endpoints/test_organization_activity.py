@@ -1,9 +1,11 @@
 from sentry.models import Activity
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.types.activity import ActivityType
 
 
+@customer_silo_test
 class OrganizationActivityTest(APITestCase):
     endpoint = "sentry-api-0-organization-activity"
 

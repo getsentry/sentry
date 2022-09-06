@@ -8,9 +8,11 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class GitHubIssueBasicTest(TestCase):
     @fixture
     def request(self):

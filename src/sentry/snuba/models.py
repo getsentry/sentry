@@ -4,7 +4,7 @@ from enum import Enum
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.manager import BaseManager
 
@@ -20,6 +20,7 @@ query_aggregation_to_snuba = {
 }
 
 
+@customer_silo_model
 class SnubaQuery(Model):
     __include_in_export__ = True
 
@@ -47,6 +48,7 @@ class SnubaQuery(Model):
         return [type.event_type for type in self.snubaqueryeventtype_set.all()]
 
 
+@customer_silo_model
 class SnubaQueryEventType(Model):
     __include_in_export__ = True
 
@@ -68,6 +70,7 @@ class SnubaQueryEventType(Model):
         return self.EventType(self.type)
 
 
+@customer_silo_model
 class QuerySubscription(DefaultFieldsModel):
     __include_in_export__ = True
 

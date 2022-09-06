@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import integrations
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.models import SentryApp
 from sentry.notifications.notifications.organization_request.integration_request import (
@@ -38,6 +39,7 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
     return None
 
 
+@customer_silo_endpoint
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
     def post(self, request: Request, organization) -> Response:
         """

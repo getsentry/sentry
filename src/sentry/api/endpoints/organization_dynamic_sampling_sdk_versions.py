@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry_relay.processing import compare_version as compare_version_relay
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.snuba import discover
 from sentry.utils.dates import ensure_aware
@@ -44,6 +45,7 @@ class QueryBoundsException(Exception):
     pass
 
 
+@customer_silo_endpoint
 class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
     private = True
 

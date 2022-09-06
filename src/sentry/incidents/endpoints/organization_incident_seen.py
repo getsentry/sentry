@@ -1,10 +1,12 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.incident import IncidentEndpoint, IncidentPermission
 from sentry.incidents.logic import set_incident_seen
 
 
+@customer_silo_endpoint
 class OrganizationIncidentSeenEndpoint(IncidentEndpoint):
     permission_classes = (IncidentPermission,)
 

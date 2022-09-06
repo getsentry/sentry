@@ -1,6 +1,12 @@
 from django.db import models
 
-from sentry.db.models import BaseManager, DefaultFieldsModel, EncryptedJsonField, FlexibleForeignKey
+from sentry.db.models import (
+    BaseManager,
+    DefaultFieldsModel,
+    EncryptedJsonField,
+    FlexibleForeignKey,
+    customer_silo_model,
+)
 from sentry.db.models.fields.array import ArrayField
 
 
@@ -10,6 +16,7 @@ class SentryFunctionManager(BaseManager):
         return functions
 
 
+@customer_silo_model
 class SentryFunction(DefaultFieldsModel):
     __include_in_export__ = False
 

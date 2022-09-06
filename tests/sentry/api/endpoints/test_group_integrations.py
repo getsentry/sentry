@@ -1,7 +1,9 @@
 from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class GroupIntegrationsTest(APITestCase):
     def test_simple_get(self):
         self.login_as(user=self.user)

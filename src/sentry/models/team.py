@@ -13,6 +13,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
@@ -127,6 +128,7 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
+@customer_silo_model
 class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.

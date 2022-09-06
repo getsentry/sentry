@@ -1,7 +1,9 @@
 from sentry.models import ProjectRedirect
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectRedirectTest(TestCase):
     def test_record(self):
         org = self.create_organization()

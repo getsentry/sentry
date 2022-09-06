@@ -2,10 +2,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.tasks.reprocessing2 import reprocess_group
 
 
+@customer_silo_endpoint
 class GroupReprocessingEndpoint(GroupEndpoint):
     def post(self, request: Request, group) -> Response:
         """

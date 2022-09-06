@@ -1,7 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, EnvironmentMixin
+from sentry.api.base import Endpoint, EnvironmentMixin, customer_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import (
     SharedEventSerializer,
@@ -12,6 +12,7 @@ from sentry.api.serializers import (
 from sentry.models import Group
 
 
+@customer_silo_endpoint
 class SharedGroupDetailsEndpoint(Endpoint, EnvironmentMixin):
     permission_classes = ()
 

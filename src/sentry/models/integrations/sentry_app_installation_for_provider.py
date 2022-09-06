@@ -1,8 +1,9 @@
 from django.db import models
 
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, customer_silo_model
 
 
+@customer_silo_model
 class SentryAppInstallationForProvider(DefaultFieldsModel):
     """Connects a sentry app installation to an organization and a provider."""
 

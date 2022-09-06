@@ -27,6 +27,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.eventstore.models import Event
@@ -354,6 +355,7 @@ class GroupManager(BaseManager):
         }
 
 
+@customer_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.

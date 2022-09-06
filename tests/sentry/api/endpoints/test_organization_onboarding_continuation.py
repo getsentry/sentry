@@ -1,8 +1,10 @@
 from unittest import mock
 
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationOnboardingContinuation(APITestCase):
     endpoint = "sentry-api-0-organization-onboarding-continuation-email"
     method = "post"

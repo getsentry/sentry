@@ -9,10 +9,12 @@ from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
 
 
+@customer_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

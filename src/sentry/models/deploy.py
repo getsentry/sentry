@@ -1,3 +1,5 @@
+from sentry.db.models import customer_silo_model
+
 """
 sentry.models.deploy
 ~~~~~~~~~~~~~~~~~~~~
@@ -20,6 +22,7 @@ from sentry.types.releaseactivity import ReleaseActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
+@customer_silo_model
 class Deploy(Model):
     __include_in_export__ = False
 

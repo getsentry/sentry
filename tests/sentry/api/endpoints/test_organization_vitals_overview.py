@@ -1,8 +1,10 @@
 from unittest import mock
 
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationVitalsOverviewTest(APITestCase):
     endpoint = "sentry-api-0-organization-vitals-overview"
 

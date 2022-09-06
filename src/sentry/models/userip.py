@@ -3,10 +3,11 @@ from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model, sane_repr
 from sentry.utils.geo import geo_by_addr
 
 
+@customer_silo_model
 class UserIP(Model):
     __include_in_export__ = True
 

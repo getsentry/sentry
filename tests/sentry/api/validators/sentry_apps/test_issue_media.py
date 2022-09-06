@@ -2,8 +2,10 @@ import unittest
 
 from fixtures.schema_validation import invalid_schema
 from sentry.api.validators.sentry_apps.schema import validate_component
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class TestIssueMediaSchemaValidation(unittest.TestCase):
     def setUp(self):
         self.schema = {

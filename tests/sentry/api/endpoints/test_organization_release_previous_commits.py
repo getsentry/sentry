@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import Commit, Release, ReleaseCommit, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationReleasePreviousCommitsTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(is_staff=False, is_superuser=False)

@@ -2,13 +2,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import TagBasedStreamGroupSerializer
 from sentry.models import EventUser, Group, ProjectTeam, Team
 
 
+@customer_silo_endpoint
 class OrganizationUserIssuesEndpoint(OrganizationEndpoint, EnvironmentMixin):
     def get(self, request: Request, organization, user_id) -> Response:
         limit = request.GET.get("limit", 100)

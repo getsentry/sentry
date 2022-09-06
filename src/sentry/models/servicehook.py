@@ -12,6 +12,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
@@ -25,6 +26,7 @@ SERVICE_HOOK_EVENTS = [
 ]
 
 
+@customer_silo_model
 class ServiceHookProject(Model):
     __include_in_export__ = False
 
@@ -41,6 +43,7 @@ def generate_secret():
     return uuid4().hex + uuid4().hex
 
 
+@customer_silo_model
 class ServiceHook(Model):
     __include_in_export__ = True
 

@@ -10,6 +10,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.request import Request as SnubaRequest
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
@@ -45,6 +46,7 @@ class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
 
+@customer_silo_endpoint
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     private = True
     permission_classes = (DynamicSamplingPermission,)

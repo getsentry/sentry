@@ -7,10 +7,12 @@ from django.urls import reverse
 from sentry import options
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@customer_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):

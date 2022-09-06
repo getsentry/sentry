@@ -4,7 +4,7 @@ from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, customer_silo_model, sane_repr
 
 if TYPE_CHECKING:
     from sentry.models import Team
@@ -32,6 +32,7 @@ class ProjectTeamManager(BaseManager):
         return project_teams
 
 
+@customer_silo_model
 class ProjectTeam(Model):
     __include_in_export__ = True
 

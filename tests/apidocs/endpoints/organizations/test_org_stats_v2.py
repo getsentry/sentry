@@ -7,9 +7,11 @@ from django.urls import reverse
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.outcomes import Outcome
 
 
+@customer_silo_test
 class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()

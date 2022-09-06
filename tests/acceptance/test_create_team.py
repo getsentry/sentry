@@ -2,8 +2,10 @@ from selenium.webdriver.common.by import By
 
 from sentry.models import Team
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class CreateTeamTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

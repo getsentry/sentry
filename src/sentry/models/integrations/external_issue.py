@@ -6,7 +6,14 @@ from django.db import models
 from django.db.models import QuerySet
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
@@ -46,6 +53,7 @@ class ExternalIssueManager(BaseManager):
         return self.get_linked_issues(event, integration).exists()
 
 
+@customer_silo_model
 class ExternalIssue(Model):
     __include_in_export__ = False
 

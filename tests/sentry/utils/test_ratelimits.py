@@ -3,6 +3,7 @@ from random import randint
 from sentry import ratelimits
 from sentry.models import ApiToken, Organization, User
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 # Produce faster tests by reducing the limits so we don't have to generate so many.
 RELAXED_CONFIG = {
@@ -12,6 +13,7 @@ RELAXED_CONFIG = {
 }
 
 
+@customer_silo_test
 class ForOrganizationMemberTestCase(TestCase):
     def test_by_email(self):
         organization = Organization(id=1)

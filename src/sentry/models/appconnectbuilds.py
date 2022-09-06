@@ -1,3 +1,5 @@
+from sentry.db.models import customer_silo_model
+
 """Database models to keep track of the App Store Connect builds for a project.
 
 If a project enables the App Store Connect source to download dSYMs directly from Apple we
@@ -10,6 +12,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model
 
 
+@customer_silo_model
 class AppConnectBuild(Model):
     """A single build that exists or has existed on App Store Connect.
 

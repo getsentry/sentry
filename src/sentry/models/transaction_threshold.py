@@ -2,7 +2,7 @@ from enum import Enum
 
 from django.db import models
 
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, customer_silo_model
 
 
 class TransactionMetric(Enum):
@@ -16,6 +16,7 @@ TRANSACTION_METRICS = {
 }
 
 
+@customer_silo_model
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
     __include_in_export__ = False
 
@@ -35,6 +36,7 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
         unique_together = (("project", "transaction"),)
 
 
+@customer_silo_model
 class ProjectTransactionThreshold(DefaultFieldsModel):
     __include_in_export__ = False
 

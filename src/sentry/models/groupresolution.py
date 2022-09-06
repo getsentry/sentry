@@ -4,11 +4,18 @@ from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 from sentry_relay.processing import compare_version as compare_version_relay
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.models.release import DB_VERSION_LENGTH, Release, follows_semver_versioning_scheme
 from sentry.utils import metrics
 
 
+@customer_silo_model
 class GroupResolution(Model):
     """
     Describes when a group was marked as resolved.

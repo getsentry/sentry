@@ -5,8 +5,10 @@ from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
 from sentry.models.savedsearch import SavedSearch, SortOptions
 from sentry.models.search_common import SearchType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class CreateOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "put"
@@ -123,6 +125,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert "not a valid SearchType" in resp.data["type"][0]
 
 
+@customer_silo_test
 class DeleteOrganizationPinnedSearchTest(APITestCase):
     endpoint = "sentry-api-0-organization-pinned-searches"
     method = "delete"

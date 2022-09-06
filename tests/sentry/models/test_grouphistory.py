@@ -1,7 +1,9 @@
 from sentry.models import GroupAssignee, GroupHistory, GroupHistoryStatus, get_prev_history
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class FilterToTeamTest(TestCase):
     def test(self):
         GroupAssignee.objects.assign(self.group, self.user)

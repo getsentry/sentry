@@ -3,8 +3,10 @@ from django.utils import timezone
 from sentry.models import ProjectPlatform
 from sentry.tasks.collect_project_platforms import collect_project_platforms
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class CollectProjectPlatformsTest(TestCase):
     def test_simple(self):
         now = timezone.now()

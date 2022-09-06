@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
 from sentry import analytics
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
@@ -37,6 +38,7 @@ def get_link(
     return link, attempted_url, error
 
 
+@customer_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
     Returns valid links for source code providers so that

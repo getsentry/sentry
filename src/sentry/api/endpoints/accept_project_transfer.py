@@ -6,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
-from sentry.api.base import Endpoint, SessionAuthentication
+from sentry.api.base import Endpoint, SessionAuthentication, customer_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
@@ -21,6 +21,7 @@ class InvalidPayload(Exception):
     pass
 
 
+@customer_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)

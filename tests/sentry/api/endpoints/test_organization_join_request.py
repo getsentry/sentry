@@ -8,9 +8,11 @@ from sentry.models import AuthProvider, InviteStatus, OrganizationMember, Organi
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
     endpoint = "sentry-api-0-organization-join-request"
     method = "post"

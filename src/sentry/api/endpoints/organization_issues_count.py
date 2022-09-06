@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
 from sentry.api.issue_search import convert_query_values, parse_search_query
@@ -16,6 +17,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
+@customer_silo_endpoint
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
     enforce_rate_limit = True
     rate_limits = {

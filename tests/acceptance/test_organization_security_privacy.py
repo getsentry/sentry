@@ -1,7 +1,9 @@
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class OrganizationSecurityAndPrivacyTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

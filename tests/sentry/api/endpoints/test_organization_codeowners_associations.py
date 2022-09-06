@@ -3,8 +3,10 @@ from rest_framework import status
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
     method = "GET"
     endpoint = "sentry-api-0-organization-codeowners-associations"

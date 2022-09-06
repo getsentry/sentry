@@ -1,10 +1,12 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.integrations.mixins import IssueSyncMixin
 
 
+@customer_silo_endpoint
 class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint):
     private = True
 

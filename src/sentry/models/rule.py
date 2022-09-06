@@ -8,6 +8,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager import BaseManager
@@ -22,6 +23,7 @@ class RuleStatus:
     DELETION_IN_PROGRESS = 3
 
 
+@customer_silo_model
 class Rule(Model):
     __include_in_export__ = True
 
@@ -101,6 +103,7 @@ class RuleActivityType(Enum):
     DISABLED = 5
 
 
+@customer_silo_model
 class RuleActivity(Model):
     __include_in_export__ = True
 

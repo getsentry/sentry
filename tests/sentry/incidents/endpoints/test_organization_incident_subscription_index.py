@@ -3,6 +3,7 @@ from exam import fixture
 from sentry.incidents.logic import subscribe_to_incident
 from sentry.incidents.models import IncidentSubscription
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
 class BaseOrganizationSubscriptionEndpointTest:
@@ -34,6 +35,7 @@ class BaseOrganizationSubscriptionEndpointTest:
             assert resp.status_code == 403
 
 
+@customer_silo_test
 class OrganizationIncidentSubscribeEndpointTest(
     BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):
@@ -52,6 +54,7 @@ class OrganizationIncidentSubscribeEndpointTest(
         assert sub.user == self.user
 
 
+@customer_silo_test
 class OrganizationIncidentUnsubscribeEndpointTest(
     BaseOrganizationSubscriptionEndpointTest, APITestCase
 ):

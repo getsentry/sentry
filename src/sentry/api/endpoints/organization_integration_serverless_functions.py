@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
@@ -15,6 +16,7 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
     target = serializers.CharField()
 
 
+@customer_silo_endpoint
 class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """

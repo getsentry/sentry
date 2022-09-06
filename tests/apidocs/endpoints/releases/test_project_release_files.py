@@ -3,8 +3,10 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectReleaseFilesListDocsTest(APIDocsTestCase):
     def setUp(self):
         project = self.create_project(name="foo")

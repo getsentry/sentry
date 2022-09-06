@@ -1,6 +1,8 @@
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationIntegrationRequestTest(APITestCase):
     """Unit tests for emailing organization owners asking them to install an integration."""
 

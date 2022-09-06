@@ -2,6 +2,7 @@ import responses
 
 from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.helpers import get_response_text
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 from . import BaseEventTest
@@ -47,6 +48,7 @@ MESSAGE_IM_BOT_EVENT = """{
 }"""
 
 
+@customer_silo_test
 class MessageIMEventTest(BaseEventTest):
     def get_block_section_text(self, data):
         blocks = data["blocks"]

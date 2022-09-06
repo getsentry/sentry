@@ -1,8 +1,10 @@
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class GroupTestSnuba(TestCase, SnubaTestCase):
     def test_get_oldest_latest_for_environments(self):
         project = self.create_project()

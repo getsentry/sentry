@@ -2,9 +2,11 @@ from django.urls import reverse
 
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class ProjectCreateSampleTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)

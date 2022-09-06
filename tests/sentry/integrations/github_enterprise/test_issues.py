@@ -7,9 +7,11 @@ from exam import fixture
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models import ExternalIssue, Integration
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils import json
 
 
+@customer_silo_test
 class GitHubEnterpriseIssueBasicTest(TestCase):
     @fixture
     def request(self):

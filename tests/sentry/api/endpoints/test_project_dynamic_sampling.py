@@ -13,6 +13,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import customer_silo_test
 
 
 def mocked_query_builder_query(referrer):
@@ -187,6 +188,7 @@ def mocked_discover_query(referrer):
     raise Exception("Something went wrong!")
 
 
+@customer_silo_test
 class ProjectDynamicSamplingTest(APITestCase):
     @property
     def endpoint(self):

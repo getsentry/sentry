@@ -12,6 +12,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.utils import json
@@ -22,6 +23,7 @@ from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 logger = logging.getLogger(__name__)
 
 
+@customer_silo_model
 class ExportedData(Model):
     """
     Stores references to asynchronous data export jobs
@@ -137,6 +139,7 @@ class ExportedData(Model):
     __repr__ = sane_repr("query_type", "query_info")
 
 
+@customer_silo_model
 class ExportedDataBlob(Model):
     __include_in_export__ = False
 

@@ -1,6 +1,7 @@
 from sentry.api.bases.project import ProjectPermission
 from sentry.models import ApiKey
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
 class ProjectPermissionBase(TestCase):
@@ -18,6 +19,7 @@ class ProjectPermissionBase(TestCase):
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
 
+@customer_silo_test
 class ProjectPermissionTest(ProjectPermissionBase):
     def test_regular_user(self):
         user = self.create_user(is_superuser=False)
@@ -151,6 +153,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("GET", project, user=user)
 
 
+@customer_silo_test
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
         super().setUp()

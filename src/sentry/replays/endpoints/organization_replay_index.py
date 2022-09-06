@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
@@ -13,6 +14,7 @@ from sentry.replays.query import query_replays_collection, replay_url_parser_con
 from sentry.replays.serializers import ReplaySerializer
 
 
+@customer_silo_endpoint
 class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
     private = True
 

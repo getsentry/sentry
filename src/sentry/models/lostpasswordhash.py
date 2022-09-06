@@ -5,11 +5,12 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, customer_silo_model, sane_repr
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 
+@customer_silo_model
 class LostPasswordHash(Model):
     __include_in_export__ = False
 

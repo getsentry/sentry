@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import (
     OrganizationEndpoint,
     SentryAppBaseEndpoint,
@@ -27,6 +28,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
         )
 
 
+@customer_silo_endpoint
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:

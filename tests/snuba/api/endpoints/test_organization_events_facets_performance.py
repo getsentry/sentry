@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -34,6 +35,7 @@ class BaseOrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITest
             return self.client.get(self.url, query, format="json")
 
 
+@customer_silo_test
 class OrganizationEventsFacetsPerformanceEndpointTest(
     BaseOrganizationEventsFacetsPerformanceEndpointTest
 ):

@@ -5,7 +5,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, customer_silo_model, sane_repr
 from sentry.models.apiscopes import HasApiScopes
 
 DEFAULT_EXPIRATION = timedelta(days=30)
@@ -19,6 +19,7 @@ def generate_token():
     return uuid4().hex + uuid4().hex
 
 
+@customer_silo_model
 class ApiToken(Model, HasApiScopes):
     __include_in_export__ = True
 

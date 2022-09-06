@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectPluginsTest(APITestCase):
     def test_get(self):
         project = self.create_project()

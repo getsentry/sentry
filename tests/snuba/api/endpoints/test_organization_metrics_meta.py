@@ -3,10 +3,12 @@ from django.urls import reverse
 
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@customer_silo_test
 class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()
@@ -137,6 +139,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         assert response.data["compatible_projects"] == []
 
 
+@customer_silo_test
 class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()

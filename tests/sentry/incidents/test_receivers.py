@@ -11,8 +11,10 @@ from sentry.incidents.models import (
 )
 from sentry.models import Organization
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class AddProjectToIncludeAllRulesTest(TestCase):
     def test_include_all_projects_enabled(self):
         alert_rule = self.create_alert_rule(include_all_projects=True)

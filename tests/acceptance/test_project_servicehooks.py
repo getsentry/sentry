@@ -1,7 +1,9 @@
 from sentry.models import ServiceHook
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectServiceHooksTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

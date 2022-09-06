@@ -1,8 +1,11 @@
 from unittest.mock import patch
 
+from sentry.testutils.silo import customer_silo_test
+
 from . import BaseEventTest
 
 
+@customer_silo_test
 class UrlVerificationEventTest(BaseEventTest):
     challenge = "3eZbrw1aBm2rZgRNFdxV2595E9CY3gmdALWMmHkvFXO7tYXAYM8P"
 

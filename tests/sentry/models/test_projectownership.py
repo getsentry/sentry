@@ -1,9 +1,11 @@
 from sentry.models import ActorTuple, ProjectOwnership, Team, User
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_actors
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.cache import cache
 
 
+@customer_silo_test
 class ProjectOwnershipTestCase(TestCase):
     def tearDown(self):
         cache.delete(ProjectOwnership.get_cache_key(self.project.id))

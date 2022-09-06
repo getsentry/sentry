@@ -11,6 +11,7 @@ from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
@@ -510,6 +511,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             )
 
 
+@customer_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
         self,
@@ -561,6 +563,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         return on_results
 
 
+@customer_silo_endpoint
 class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
         self,

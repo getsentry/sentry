@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import ProjectKey
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -33,6 +35,7 @@ class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.snapshot("project keys")
 
 
+@customer_silo_test
 class ProjectKeyDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

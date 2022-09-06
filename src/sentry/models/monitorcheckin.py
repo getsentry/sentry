@@ -8,6 +8,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     UUIDField,
+    customer_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import JSONField
@@ -31,6 +32,7 @@ class CheckInStatus:
         )
 
 
+@customer_silo_model
 class MonitorCheckIn(Model):
     __include_in_export__ = False
 

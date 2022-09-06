@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.organization_request_change import OrganizationRequestChangeEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.utils.email import MessageBuilder
@@ -13,6 +14,7 @@ class OrganizationRequestProjectCreationSerializer(CamelSnakeSerializer):
     target_user_email = serializers.EmailField(required=True)
 
 
+@customer_silo_endpoint
 class OrganizationRequestProjectCreation(OrganizationRequestChangeEndpoint):
     def post(self, request: Request, organization) -> Response:
         """

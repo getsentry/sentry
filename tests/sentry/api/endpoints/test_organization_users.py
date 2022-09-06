@@ -1,7 +1,9 @@
 from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationMemberListTest(APITestCase):
     endpoint = "sentry-api-0-organization-users"
 

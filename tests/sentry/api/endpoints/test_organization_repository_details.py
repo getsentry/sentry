@@ -7,8 +7,10 @@ from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository, ScheduledDeletion
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationRepositoryDeleteTest(APITestCase):
     def assert_rename_pending_delete(self, response, repo, external_id=None):
         assert response.data["status"] == "pending_deletion"

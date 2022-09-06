@@ -1,7 +1,9 @@
 from sentry.models import ProjectPlatform
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectPlatformsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

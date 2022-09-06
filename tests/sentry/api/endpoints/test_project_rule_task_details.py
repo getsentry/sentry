@@ -2,8 +2,10 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectRuleTaskDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-task-details"
 

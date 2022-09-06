@@ -1,8 +1,10 @@
 from sentry import tsdb
 from sentry.models import ServiceHook
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ProjectServiceHookStatsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

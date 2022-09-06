@@ -2,7 +2,7 @@ import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, customer_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -10,6 +10,7 @@ from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSeri
 from sentry.models import GroupRelease, ReleaseEnvironment, ReleaseProject
 
 
+@customer_silo_endpoint
 class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
     def _get_current_release(self, group, environments):
         release_projects = ReleaseProject.objects.filter(project_id=group.project_id).values_list(

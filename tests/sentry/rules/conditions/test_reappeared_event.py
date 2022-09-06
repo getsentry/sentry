@@ -1,7 +1,9 @@
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ReappearedEventConditionTest(RuleTestCase):
     rule_cls = ReappearedEventCondition
 

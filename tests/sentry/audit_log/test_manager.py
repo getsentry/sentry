@@ -10,8 +10,10 @@ from sentry.audit_log import (
 )
 from sentry.models import AuditLogEntry
 from sentry.testutils import TestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class AuditLogEventManagerTest(TestCase):
     def test_audit_log_manager(self):
         test_manager = AuditLogEventManager()

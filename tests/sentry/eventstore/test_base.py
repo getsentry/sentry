@@ -8,9 +8,11 @@ from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.samples import load_data
 
 
+@customer_silo_test
 class EventStorageTest(TestCase):
     def setUp(self):
         self.eventstorage = EventStorage()

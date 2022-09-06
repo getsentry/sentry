@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import customer_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.models.transaction_threshold import (
@@ -38,6 +39,7 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
         return threshold
 
 
+@customer_silo_endpoint
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
     permission_classes = (ProjectSettingPermission,)
 

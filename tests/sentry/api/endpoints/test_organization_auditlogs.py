@@ -6,8 +6,10 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.models import AuditLogEntry
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class OrganizationAuditLogsTest(APITestCase):
     endpoint = "sentry-api-0-organization-audit-logs"
 

@@ -1,9 +1,10 @@
 from django.db import models, transaction
 from django.db.models.signals import post_save
 
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, customer_silo_model
 
 
+@customer_silo_model
 class RepositoryProjectPathConfig(DefaultFieldsModel):
     __include_in_export__ = False
 

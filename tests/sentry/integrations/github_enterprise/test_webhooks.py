@@ -12,6 +12,7 @@ from fixtures.github_enterprise import (
 )
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
 class WebhookTest(APITestCase):
@@ -98,6 +99,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
 
+@customer_silo_test
 class PushEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github_enterprise.client.get_jwt")
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
@@ -335,6 +337,7 @@ class PushEventWebhookTest(APITestCase):
         assert len(commit_list) == 0
 
 
+@customer_silo_test
 class PullRequestEventWebhook(APITestCase):
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_opened(self, mock_get_installation_metadata):

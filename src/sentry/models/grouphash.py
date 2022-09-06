@@ -1,9 +1,15 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    customer_silo_model,
+)
 
 
+@customer_silo_model
 class GroupHash(Model):
     __include_in_export__ = False
 

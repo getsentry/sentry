@@ -10,11 +10,13 @@ from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.samples import load_data
 
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
 @apply_feature_flag_on_cls("organizations:release-committer-assignees")
+@customer_silo_test
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

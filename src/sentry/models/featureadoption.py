@@ -5,7 +5,14 @@ from django.utils import timezone
 
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
-from sentry.db.models import BaseManager, FlexibleForeignKey, JSONField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+    customer_silo_model,
+    sane_repr,
+)
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
@@ -195,6 +202,7 @@ class FeatureAdoptionManager(BaseManager):
         ).first()
 
 
+@customer_silo_model
 class FeatureAdoption(Model):
     __include_in_export__ = False
 

@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import ProjectKey
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import customer_silo_test
 
 
+@customer_silo_test
 class ListProjectKeysTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
@@ -19,6 +21,7 @@ class ListProjectKeysTest(APITestCase):
         assert response.data[0]["public"] == key.public_key
 
 
+@customer_silo_test
 class CreateProjectKeyTest(APITestCase):
     def test_simple(self):
         project = self.create_project()

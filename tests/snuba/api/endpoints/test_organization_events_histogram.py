@@ -9,6 +9,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import customer_silo_test
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import get_array_column_alias
 
@@ -19,6 +20,7 @@ HistogramSpec = namedtuple("HistogramSpec", ["start", "end", "fields"])
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
+@customer_silo_test
 class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1021,6 +1023,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == self.as_response_data(expected)
 
 
+@customer_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
