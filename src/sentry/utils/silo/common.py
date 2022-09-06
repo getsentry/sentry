@@ -69,19 +69,16 @@ class Keywords:
     include_words: Iterable[str]
     exclude_words: Iterable[str] = ()
 
+    def check(self, name: str) -> bool:
+        words_in_name = set(re.findall(".[a-z]*", name))
+        has_included_word = any(word in words_in_name for word in self.include_words)
+        has_excluded_word = any(word in words_in_name for word in self.exclude_words)
+        return has_included_word and not has_excluded_word
+
 
 def has_customer_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
-    customer_keywords = keywords.get("customer")
-    return any(re.search(word, name) for word in customer_keywords.include_words) and not any(
-        re.search(word, name) for word in customer_keywords.exclude_words
-    )
+    return keywords["customer"].check(name)
 
 
 def has_control_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
-    if has_customer_name(name, keywords):
-        return False
-
-    control_keywords = keywords.get("control")
-    return any(re.search(word, name) for word in control_keywords.include_words) and not any(
-        re.search(word, name) for word in control_keywords.exclude_words
-    )
+    return (not has_customer_name(name, keywords)) and keywords["control"].check(name)
