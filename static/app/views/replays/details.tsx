@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
+import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 
@@ -29,6 +30,7 @@ function ReplayDetails({
   },
   params: {orgId: orgSlug, replaySlug},
 }: Props) {
+  useReplayPageview();
   const {fetching, onRetry, replay, fetchError} = useReplayData({
     replaySlug,
     orgSlug,
