@@ -15,6 +15,7 @@ import type {
   BreadcrumbTypeDefault,
   Crumb,
 } from 'sentry/types/breadcrumbs';
+import {defined} from 'sentry/utils';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
@@ -43,20 +44,39 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     [logLevel, searchTerm, breadcrumbs]
   );
 
+  const currentUserAction = getPrevBreadcrumb({
+    crumbs: breadcrumbs,
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowExact: true,
+    allowEqual: true,
+  });
+
   const closestUserAction =
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
           crumbs: breadcrumbs,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
+          allowEqual: true,
         })
       : undefined;
 
-  const currentUserAction = getPrevBreadcrumb({
-    crumbs: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowExact: true,
-  });
+  const isOcurring = (breadcrumb: Crumb, closestBreadcrumb?: Crumb): boolean => {
+    if (!defined(currentHoverTime) || !defined(closestBreadcrumb)) {
+      return false;
+    }
+
+    const isCurrentBreadcrumb = closestBreadcrumb.id === breadcrumb.id;
+
+    // We don't want to hightlight the breadcrumb if it's more than 1 second away from the current hover time
+    const isMoreThanASecondOfDiff =
+      Math.trunc(currentHoverTime / 1000) >
+      Math.trunc(
+        relativeTimeInMs(closestBreadcrumb.timestamp || '', startTimestampMs) / 1000
+      );
+
+    return isCurrentBreadcrumb && !isMoreThanASecondOfDiff;
+  };
 
   return (
     <ConsoleContainer>
@@ -89,6 +109,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
                 <ConsoleMessage
                   isActive={closestUserAction?.id === breadcrumb.id}
                   isCurrent={currentUserAction?.id === breadcrumb.id}
+                  isOcurring={isOcurring(breadcrumb, closestUserAction)}
                   startTimestampMs={startTimestampMs}
                   key={breadcrumb.id}
                   isLast={i === breadcrumbs.length - 1}
