@@ -1,6 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {RuntimeEventContext} from 'sentry/components/events/contexts/runtime';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 export const runtimeMockData = {
   version: '1.7.13',
@@ -37,13 +41,29 @@ const event = {
 
 describe('runtime event context', function () {
   it('display redacted data', async function () {
-    render(<RuntimeEventContext event={event} data={runtimeMockData} />);
+    const {organization, router} = initializeOrg();
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <RuntimeEventContext event={event} data={runtimeMockData} />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
+    );
 
     expect(screen.getByText('Name')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
     userEvent.hover(screen.getByText(/redacted/));
     expect(
-      await screen.findByText('Removed because of PII rule "project:0"')
+      await screen.findByText(
+        textWithMarkupMatcher('Removed because of the PII rule project:0') // Fall back case
+      )
     ).toBeInTheDocument(); // tooltip description
   });
 });

@@ -490,3 +490,22 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[]
 
 # A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
 register("store.use-ingest-performance-detection-only", default=0.0)
+
+# Performance issue options to change both detection (which we can monitor with metrics),
+# and the creation of performance problems, which will eventually get turned into issues.
+register("performance.issues.all.problem-detection", default=0.0)
+register("performance.issues.all.problem-creation", default=0.0)
+
+# Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
+register("performance.issues.duplicates.problem-detection", default=0.0)
+register("performance.issues.duplicates.problem-creation", default=0.0)
+register("performance.issues.n_plus_one.problem-detection", default=0.0)
+register("performance.issues.n_plus_one.problem-creation", default=0.0)
+register("performance.issues.slow_span.problem-detection", default=0.0)
+register("performance.issues.slow_span.problem-creation", default=0.0)
+register("performance.issues.sequential.problem-detection", default=0.0)
+register("performance.issues.sequential.problem-creation", default=0.0)
+register("performance.issues.long_task.problem-detection", default=0.0)
+register("performance.issues.long_task.problem-creation", default=0.0)
+register("performance.issues.render_blocking_assets.problem-detection", default=0.0)
+register("performance.issues.render_blocking_assets.problem-creation", default=0.0)

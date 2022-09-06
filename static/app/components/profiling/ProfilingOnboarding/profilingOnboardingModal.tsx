@@ -449,7 +449,7 @@ function PreviousStepButton(props: StepButtonProps) {
 
 function DocsLink() {
   return (
-    <Button external href="https://docs.sentry.io/">
+    <Button external href="https://docs.sentry.io/product/profiling/">
       {t('Read Docs')}
     </Button>
   );

@@ -5,7 +5,7 @@ import {sprintf, vsprintf} from 'sprintf-js';
 
 import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
@@ -116,11 +116,13 @@ interface ConsoleMessageProps extends MessageFormatterProps {
   isActive: boolean;
   isCurrent: boolean;
   isLast: boolean;
+  isOcurring: boolean;
   startTimestampMs: number;
 }
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
+  isOcurring = false,
   hasOccurred,
   isLast,
   isCurrent,
@@ -138,35 +140,37 @@ function ConsoleMessage({
   const handleOnMouseOver = () => setCurrentHoverTime(diff);
   const handleOnMouseOut = () => setCurrentHoverTime(undefined);
 
+  const timeHandlers = {
+    isActive,
+    isCurrent,
+    isOcurring,
+    hasOccurred,
+  };
+
   return (
     <Fragment>
       <Icon
         isLast={isLast}
         level={breadcrumb.level}
-        isActive={isActive}
-        hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
+        {...timeHandlers}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
       <Message
         isLast={isLast}
         level={breadcrumb.level}
-        hasOccurred={hasOccurred}
         onMouseOver={handleOnMouseOver}
         onMouseOut={handleOnMouseOut}
         aria-current={isCurrent}
+        {...timeHandlers}
       >
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
       </Message>
-      <ConsoleTimestamp
-        isLast={isLast}
-        level={breadcrumb.level}
-        hasOccurred={hasOccurred}
-      >
+      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
           <ConsoleTimestampButton
             onClick={handleOnClick}
@@ -182,9 +186,12 @@ function ConsoleMessage({
 }
 
 const Common = styled('div')<{
+  isActive: boolean;
+  isCurrent: boolean;
   isLast: boolean;
   level: string;
   hasOccurred?: boolean;
+  isOcurring?: boolean;
 }>`
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
@@ -201,9 +208,24 @@ const Common = styled('div')<{
 
     return 'inherit';
   }};
-  ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
 
   transition: color 0.5s ease;
+
+  border-bottom: ${p => {
+    if (p.isCurrent) {
+      return `1px solid ${p.theme.purple300}`;
+    }
+
+    if (p.isActive && !p.isOcurring) {
+      return `1px solid ${p.theme.purple200}`;
+    }
+
+    if (p.isLast) {
+      return 'none';
+    }
+
+    return `1px solid ${p.theme.innerBorder}`;
+  }};
 `;
 
 const ConsoleTimestamp = styled(Common)`
@@ -215,7 +237,7 @@ const ConsoleTimestampButton = styled('button')`
   border: none;
 `;
 
-const Icon = styled(Common)<{isActive: boolean}>`
+const Icon = styled(Common)<{isOcurring?: boolean}>`
   padding: ${space(0.5)} ${space(1)};
   position: relative;
 
@@ -227,7 +249,7 @@ const Icon = styled(Common)<{isActive: boolean}>`
     z-index: 1;
     height: 100%;
     width: ${space(0.5)};
-    background-color: ${p => (p.isActive ? p.theme.focus : 'transparent')};
+    background-color: ${p => (p.isOcurring ? p.theme.focus : 'transparent')};
   }
 `;
 const Message = styled(Common)`

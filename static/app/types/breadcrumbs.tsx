@@ -100,11 +100,17 @@ export type RawCrumb =
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-export type Crumb = RawCrumb & {
+interface BaseCrumb {
   color: Color;
   description: string;
   id: number;
-};
+}
+
+interface NavigationCrumb extends BaseCrumb, BreadcrumbTypeNavigation {}
+interface HTTPCrumb extends BaseCrumb, BreadcrumbTypeHTTP {}
+interface DefaultCrumb extends BaseCrumb, BreadcrumbTypeDefault {}
+
+export type Crumb = NavigationCrumb | HTTPCrumb | DefaultCrumb;
 
 export function isBreadcrumbTypeDefault(
   breadcrumb: Crumb
