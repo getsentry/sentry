@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
+import DetailedError from 'sentry/components/errors/detailedError';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
@@ -26,6 +27,7 @@ type Props = {
   replays: undefined | ReplayListRecord[];
   showProjectColumn: boolean;
   sort: Sort;
+  fetchError?: Error;
 };
 
 type RowProps = {
@@ -72,46 +74,78 @@ function SortableHeader({
   );
 }
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}: Props) {
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
+
+  const tableHeaders = [
+    t('Session'),
+    showProjectColumn && minWidthIsSmall ? (
+      <SortableHeader
+        key="projectId"
+        sort={sort}
+        fieldName="projectId"
+        label={t('Project')}
+      />
+    ) : null,
+    <SortableHeader
+      key="startedAt"
+      sort={sort}
+      fieldName="startedAt"
+      label={t('Start Time')}
+    />,
+    <SortableHeader
+      key="duration"
+      sort={sort}
+      fieldName="duration"
+      label={t('Duration')}
+    />,
+    <SortableHeader
+      key="countErrors"
+      sort={sort}
+      fieldName="countErrors"
+      label={t('Errors')}
+    />,
+    t('Activity'),
+  ].filter(Boolean);
+
+  if (fetchError && !isFetching) {
+    const reasons = [
+      t('The search parameters you selected are invalid in some way'),
+      t('There is an internal systems error or active issue'),
+    ];
+
+    return (
+      <StyledPanelTable
+        headers={tableHeaders}
+        showProjectColumn={showProjectColumn}
+        isLoading={false}
+      >
+        <StyledDetailedError
+          hideSupportLinks
+          heading={t('Sorry, the list of replays could not be found.')}
+          message={
+            <div>
+              <p>{t('This could be due to a handful of reasons:')}</p>
+              <ol className="detailed-error-list">
+                {reasons.map((reason, i) => (
+                  <li key={i}>{reason}</li>
+                ))}
+              </ol>
+            </div>
+          }
+        />
+      </StyledPanelTable>
+    );
+  }
 
   return (
     <StyledPanelTable
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
       showProjectColumn={showProjectColumn}
-      headers={[
-        t('Session'),
-        showProjectColumn && minWidthIsSmall ? (
-          <SortableHeader
-            key="projectId"
-            sort={sort}
-            fieldName="projectId"
-            label={t('Project')}
-          />
-        ) : null,
-        <SortableHeader
-          key="startedAt"
-          sort={sort}
-          fieldName="startedAt"
-          label={t('Start Time')}
-        />,
-        <SortableHeader
-          key="duration"
-          sort={sort}
-          fieldName="duration"
-          label={t('Duration')}
-        />,
-        <SortableHeader
-          key="countErrors"
-          sort={sort}
-          fieldName="countErrors"
-          label={t('Errors')}
-        />,
-        t('Activity'),
-      ].filter(Boolean)}
+      headers={tableHeaders}
     >
       {replays?.map(replay => (
         <ReplayTableRow
@@ -213,6 +247,14 @@ const TimeSinceWrapper = styled('div')`
 const StyledIconCalendarWrapper = styled(IconCalendar)`
   position: relative;
   top: -1px;
+`;
+
+const StyledDetailedError = styled(DetailedError)`
+  width: 100%;
+  border-top: 1px solid ${p => p.theme.border};
+  grid-column-start: span 99;
+  position: relative;
+  bottom: 0.5px;
 `;
 
 export default ReplayTable;
