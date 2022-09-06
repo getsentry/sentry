@@ -15,7 +15,7 @@ function HTMLCode({code}: Props) {
 
   useEffect(() => {
     Prism.highlightElement(codeRef.current, false);
-  }, []);
+  }, [code]);
 
   return (
     <CodeWrapper>
