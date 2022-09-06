@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Duration from 'sentry/components/duration';
-import DetailedError from 'sentry/components/errors/detailedError';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
@@ -111,31 +111,16 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
   ].filter(Boolean);
 
   if (fetchError && !isFetching) {
-    const reasons = [
-      t('The search parameters you selected are invalid in some way'),
-      t('There is an internal systems error or active issue'),
-    ];
-
     return (
       <StyledPanelTable
         headers={tableHeaders}
         showProjectColumn={showProjectColumn}
         isLoading={false}
       >
-        <StyledDetailedError
-          hideSupportLinks
-          heading={t('Sorry, the list of replays could not be found.')}
-          message={
-            <div>
-              <p>{t('This could be due to a handful of reasons:')}</p>
-              <ol className="detailed-error-list">
-                {reasons.map((reason, i) => (
-                  <li key={i}>{reason}</li>
-                ))}
-              </ol>
-            </div>
-          }
-        />
+        <StyledAlert type="error" showIcon>
+          Sorry, the list of replays could not be loaded. This could be due to invalid
+          search parameters or an internal systems error.
+        </StyledAlert>
       </StyledPanelTable>
     );
   }
@@ -249,12 +234,11 @@ const StyledIconCalendarWrapper = styled(IconCalendar)`
   top: -1px;
 `;
 
-const StyledDetailedError = styled(DetailedError)`
-  width: 100%;
-  border-top: 1px solid ${p => p.theme.border};
-  grid-column-start: span 99;
+const StyledAlert = styled(Alert)`
   position: relative;
   bottom: 0.5px;
+  grid-column-start: span 99;
+  margin-bottom: 0;
 `;
 
 export default ReplayTable;
