@@ -61,7 +61,9 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         get the files associated with the segment range requested. prefetch the files
         in a threadpool.
         """
-        recording_segment_files = File.objects.filter(id__in=[r.file_id for r in results])
+        recording_segment_files = File.objects.filter(
+            id__in=[r.file_id for r in results]
+        ).prefetch_related("blobs")
         # TODO: deflate files as theyre fetched, instead of having
         # to wait untill all of them are complete before starting work.
         with ThreadPoolExecutor(max_workers=4) as exe:
