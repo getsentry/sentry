@@ -104,8 +104,7 @@ export const Header = styled('div')<{noActionWrap?: boolean}>`
  * Styled Nav Tabs for use inside a Layout.Header component
  */
 export const HeaderNavTabs = styled(NavTabs)`
-  margin: 0;
-  border-bottom: 0 !important;
+  border-bottom: none !important;
 
   & > li {
     margin-right: ${space(3)};
