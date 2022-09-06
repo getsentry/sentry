@@ -264,7 +264,7 @@ class IssueListActions extends Component<Props, State> {
           <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
             <Checkbox
               onChange={this.handleSelectAll}
-              checked={pageSelected}
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
               disabled={displayReprocessingActions}
             />
           </ActionsCheckbox>
@@ -296,7 +296,7 @@ class IssueListActions extends Component<Props, State> {
         </StyledFlex>
         {!allResultsVisible && pageSelected && (
           <Alert type="warning" system>
-            <SelectAllNotice>
+            <SelectAllNotice data-test-id="issue-list-select-all-notice">
               {allInQuerySelected ? (
                 queryCount >= BULK_LIMIT ? (
                   tct(
@@ -317,7 +317,10 @@ class IssueListActions extends Component<Props, State> {
                     '%s issues on this page selected.',
                     numIssues
                   )}
-                  <SelectAllLink onClick={this.handleApplyToAll}>
+                  <SelectAllLink
+                    onClick={this.handleApplyToAll}
+                    data-test-id="issue-list-select-all-notice-link"
+                  >
                     {queryCount >= BULK_LIMIT
                       ? tct(
                           'Select the first [count] issues that match this search query.',
@@ -347,7 +350,6 @@ const Sticky = styled('div')`
 
 const StyledFlex = styled('div')`
   display: flex;
-  box-sizing: border-box;
   min-height: 45px;
   padding-top: ${space(1)};
   padding-bottom: ${space(1)};

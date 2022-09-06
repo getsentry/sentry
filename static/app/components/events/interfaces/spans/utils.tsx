@@ -23,7 +23,6 @@ import {Theme} from 'sentry/utils/theme';
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import {
   EnhancedSpan,
-  FocusedSpanIDMap,
   GapSpanType,
   OrphanSpanType,
   OrphanTreeDepth,
@@ -873,13 +872,6 @@ export class SpansInViewMap {
   }
 }
 
-export function isSpanIdFocused(spanId: string, focusedSpanIds: FocusedSpanIDMap) {
-  return (
-    spanId in focusedSpanIds ||
-    Object.values(focusedSpanIds).some(relatedSpans => relatedSpans.has(spanId))
-  );
-}
-
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level'>[]
 ): keyof Theme['alert'] | undefined {
@@ -913,3 +905,41 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   sample: 2,
   info: 1,
 };
+
+/**
+ * Formats start and end unix timestamps by inserting a leading zero if needed, so they can have the same length
+ */
+export function getFormattedTimeRangeWithLeadingZero(start: number, end: number) {
+  const startStrings = String(start).split('.');
+  const endStrings = String(end).split('.');
+
+  if (startStrings.length !== endStrings.length) {
+    return {
+      start: String(start),
+      end: String(end),
+    };
+  }
+
+  const newTimestamps = startStrings.reduce(
+    (acc, startString, index) => {
+      if (startString.length > endStrings[index].length) {
+        acc.start.push(startString);
+        acc.end.push(endStrings[index].padStart(startString.length, '0'));
+        return acc;
+      }
+
+      acc.start.push(startString.padStart(endStrings[index].length, '0'));
+      acc.end.push(endStrings[index]);
+      return acc;
+    },
+    {start: [], end: []} as {
+      end: string[];
+      start: string[];
+    }
+  );
+
+  return {
+    start: newTimestamps.start.join('.'),
+    end: newTimestamps.end.join('.'),
+  };
+}

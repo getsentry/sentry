@@ -1,7 +1,8 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {fetchProjectStats} from 'sentry/actionCreators/serverSideSampling';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -20,15 +21,15 @@ import {t, tct} from 'sentry/locale';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Project, SeriesApi} from 'sentry/types';
+import {Project} from 'sentry/types';
 import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
+import useApi from 'sentry/utils/useApi';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {
   getClientSampleRates,
   isValidSampleRate,
@@ -39,7 +40,7 @@ import {
 import {hasFirstBucketsEmpty} from '../utils/hasFirstBucketsEmpty';
 import {projectStatsToPredictedSeries} from '../utils/projectStatsToPredictedSeries';
 import {projectStatsToSeries} from '../utils/projectStatsToSeries';
-import useProjectStats from '../utils/useProjectStats';
+import {useProjectStats} from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {RecommendedStepsModal, RecommendedStepsModalProps} from './recommendedStepsModal';
@@ -66,7 +67,6 @@ type Props = Omit<
   onSubmit: UniformModalsSubmit;
   project: Project;
   rules: SamplingRule[];
-  projectStats?: SeriesApi;
 };
 
 export function UniformRateModal({
@@ -75,13 +75,13 @@ export function UniformRateModal({
   Footer,
   closeModal,
   organization,
-  projectStats,
   project,
   uniformRule,
   onSubmit,
   onReadDocs,
   ...props
 }: Props) {
+  const api = useApi();
   const [rules, setRules] = useState(props.rules);
   const [specifiedClientRate, setSpecifiedClientRate] = useState<undefined | number>(
     undefined
@@ -91,50 +91,55 @@ export function UniformRateModal({
 
   const modalStore = useLegacyStore(ModalStore);
 
+  const {projectStats30d, projectStats48h} = useProjectStats();
+
   const {
-    onRefetch: onRefetch30d,
-    projectStats: projectStats30d,
-    error: error30d,
-    loading: loading30d,
-  } = useProjectStats({
+    recommendedSdkUpgrades,
+    affectedProjects,
+    isProjectIncompatible,
+    isProjectOnOldSDK,
+    loading: sdkUpgradesLoading,
+  } = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
     projectId: project.id,
-    interval: '1d',
-    statsPeriod: '30d',
-    groupBy: useMemo(() => ['outcome', 'reason'], []),
   });
 
-  const {recommendedSdkUpgrades, affectedProjects, isProjectIncompatible} =
-    useRecommendedSdkUpgrades({
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+  const loading =
+    projectStats30d.loading || projectStats48h.loading || sdkUpgradesLoading;
 
-  const loading = loading30d || !projectStats;
+  const error = projectStats30d.error || projectStats48h.error;
 
   useEffect(() => {
-    if (loading || !projectStats30d) {
+    if (loading || !projectStats30d.data) {
       return;
     }
 
-    if (!projectStats30d.groups.length) {
+    if (!projectStats30d.data.groups.length) {
       setActiveStep(Step.SET_UNIFORM_SAMPLE_RATE);
       return;
     }
 
-    const clientDiscard = projectStats30d.groups.some(
+    const clientDiscard = projectStats30d.data.groups.some(
       g => g.by.outcome === Outcome.CLIENT_DISCARD
     );
 
     setActiveStep(
-      clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
+      clientDiscard || !isProjectOnOldSDK
+        ? Step.SET_UNIFORM_SAMPLE_RATE
+        : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
-  }, [loading, projectStats30d]);
+  }, [loading, projectStats30d.data, isProjectOnOldSDK]);
 
   const shouldUseConservativeSampleRate =
-    hasFirstBucketsEmpty(projectStats30d, 27) &&
-    hasFirstBucketsEmpty(projectStats, 3) &&
+    hasFirstBucketsEmpty(projectStats30d.data, 27) &&
+    hasFirstBucketsEmpty(projectStats48h.data, 3) &&
     !defined(specifiedClientRate);
+
+  const isWithoutTransactions =
+    projectStats30d.data?.groups.reduce(
+      (acc, group) => acc + group.totals['sum(quantity)'],
+      0
+    ) === 0;
 
   useEffect(() => {
     // updated or created rules will always have a new id,
@@ -169,7 +174,7 @@ export function UniformRateModal({
   const uniformSampleRate = uniformRule?.sampleRate;
 
   const {recommended: recommendedClientSampling, current: currentClientSampling} =
-    getClientSampleRates(projectStats, specifiedClientRate);
+    getClientSampleRates(projectStats48h.data, specifiedClientRate);
 
   const currentServerSampling =
     defined(uniformSampleRate) && !isNaN(uniformSampleRate)
@@ -259,18 +264,26 @@ export function UniformRateModal({
     });
   }
 
-  if (activeStep === undefined || loading || error30d) {
+  async function handleRefetchProjectStats() {
+    await fetchProjectStats({api, orgSlug: organization.slug, projId: project.id});
+  }
+
+  if (activeStep === undefined || loading || error) {
     return (
       <Fragment>
         <Header closeButton>
-          {error30d ? (
+          {error ? (
             <h4>{t('Set a global sample rate')}</h4>
           ) : (
             <Placeholder height="22px" />
           )}
         </Header>
         <Body>
-          {error30d ? <LoadingError onRetry={onRefetch30d} /> : <LoadingIndicator />}
+          {error ? (
+            <LoadingError onRetry={handleRefetchProjectStats} />
+          ) : (
+            <LoadingIndicator />
+          )}
         </Body>
         <Footer>
           <FooterActions>
@@ -283,7 +296,7 @@ export function UniformRateModal({
             </Button>
             <ButtonBar gap={1}>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
-              {error30d ? (
+              {error ? (
                 <Button
                   priority="primary"
                   title={t('There was an error loading data')}
@@ -364,9 +377,9 @@ export function UniformRateModal({
           <UniformRateChart
             series={
               selectedStrategy === Strategy.CURRENT
-                ? projectStatsToSeries(projectStats30d, specifiedClientRate)
+                ? projectStatsToSeries(projectStats30d.data, specifiedClientRate)
                 : projectStatsToPredictedSeries(
-                    projectStats30d,
+                    projectStats30d.data,
                     client,
                     server,
                     specifiedClientRate
@@ -532,13 +545,7 @@ export function UniformRateModal({
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingProjectIncompatibleAlert
-            organization={organization}
-            projectId={project.id}
-            isProjectIncompatible={isProjectIncompatible}
-          />
-
-          {shouldUseConservativeSampleRate && (
+          {!isWithoutTransactions && shouldUseConservativeSampleRate && (
             <Alert type="info" showIcon>
               {t(
                 "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
@@ -546,7 +553,7 @@ export function UniformRateModal({
             </Alert>
           )}
 
-          {affectedProjects.length > 0 && (
+          {!isProjectIncompatible && affectedProjects.length > 0 && (
             <Alert
               data-test-id="affected-sdk-alert"
               type="info"
@@ -602,10 +609,15 @@ export function UniformRateModal({
                 saving ||
                 !isValid ||
                 selectedStrategy === Strategy.CURRENT ||
-                isProjectIncompatible
+                isProjectIncompatible ||
+                isWithoutTransactions
               }
               title={
-                selectedStrategy === Strategy.CURRENT
+                isProjectIncompatible
+                  ? t('Your project is currently incompatible with Server-Side Sampling.')
+                  : isWithoutTransactions
+                  ? t('You need at least one transaction to set up Server-Side Sampling.')
+                  : selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
                   : !isValid
                   ? t('Sample rate is not valid')

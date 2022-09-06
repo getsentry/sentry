@@ -166,7 +166,7 @@ class GroupDetails extends Component<Props, State> {
 
     const spanTreeEntry: EntrySpanTree = {
       data: {
-        focusedSpanIds: performanceData.spans,
+        affectedSpanIds: performanceData.spans,
       },
       type: EntryType.SPANTREE,
     };
@@ -205,7 +205,7 @@ class GroupDetails extends Component<Props, State> {
 
       // add extra perf issue specific entries like span tree and duration and span count charts
       if (
-        organization.features.includes('performance-extraneous-spans-poc') &&
+        organization.features.includes('performance-issues') &&
         event.contexts.performance_issue
       ) {
         const updatedEvent = this.addPerformanceSpecificEntries(event);

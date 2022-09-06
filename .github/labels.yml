@@ -264,6 +264,11 @@
   color: 'e99695'
   description: Accept for Hacktoberfest - will merge later
 
+# Hackweek
+- name: 'Hackweek :zap:'
+  color: 'F91A8A'
+  description: ''
+
 # Impacts
 - name: 'Impact: Large'
   color: 'C83852'
