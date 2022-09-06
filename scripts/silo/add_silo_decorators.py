@@ -17,11 +17,11 @@ Instructions for use:
 
 SILO_KEYWORDS = {
     "control": Keywords(
-        include_words=["Organization", "Project", "Team", "Group", "Event", "Issue"],
-        exclude_words=["JiraIssue"],
+        include_words=["User", "Auth", "Identity"],
+        exclude_words=[],
     ),
     "customer": Keywords(
-        include_words=["User", "Auth", "Identity"],
+        include_words=["Organization", "Project", "Team", "Group", "Event", "Issue"],
         exclude_words=["JiraIssue"],
     ),
 }
