@@ -10,7 +10,7 @@ import {PageContent} from 'sentry/styles/organization';
 import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useReplayList, {
   DEFAULT_SORT,
   REPLAY_LIST_FIELDS,
@@ -31,16 +31,16 @@ type Props = {
   projects: Project[];
 };
 
+function renderNoAccess() {
+  return (
+    <PageContent>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </PageContent>
+  );
+}
+
 function TransactionReplays(props: Props) {
   const {location, organization, projects} = props;
-
-  function renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
 
   return (
     <Feature
@@ -67,6 +67,8 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
+  console.log({eventView});
+
   const {replays, pageLinks, isFetching, fetchError} = useReplayList({
     organization,
     eventView,
@@ -115,26 +117,25 @@ function generateEventView({
   location: Location;
   transactionName: string;
 }) {
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-
-  conditions.setFilterValues('transaction', [transactionName]);
-
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
+  console.log({
+    'location.query': location.query,
+    transactionName,
   });
 
+  // get events for transaction
+  // timebox?
+  // get replays with events
+  // timebox?
+  const conditions = new MutableSearch('');
+  conditions.addFilterValues('transaction', [transactionName]);
   return EventView.fromNewQueryWithLocation(
     {
       id: '',
-      name: transactionName,
+      name: 'Replays in transaction',
       version: 2,
       fields: REPLAY_LIST_FIELDS,
       projects: [],
       query: conditions.formatString(),
-      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     },
     location
   );

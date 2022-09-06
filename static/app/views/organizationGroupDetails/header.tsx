@@ -51,7 +51,7 @@ type Props = WithRouterProps & {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  replaysCount: number | null;
+  replaysCount: number | undefined;
   event?: Event;
 };
 
@@ -133,8 +133,15 @@ class GroupHeader extends Component<Props, State> {
   }
 
   getErrorIssueTabs() {
-    const {baseUrl, currentTab, project, organization, group, location, replaysCount} =
-      this.props;
+    const {
+      baseUrl,
+      currentTab,
+      project,
+      organization,
+      group,
+      location,
+      replaysCount: _,
+    } = this.props;
     const disabledTabs = this.getDisabledTabs();
 
     const projectFeatures = new Set(project ? project.features : []);
@@ -230,7 +237,13 @@ class GroupHeader extends Component<Props, State> {
             to={`${baseUrl}replays/${location.search}`}
             isActive={() => currentTab === Tab.REPLAYS}
           >
-            {t('Replays')} <Badge text={replaysCount ?? ''} />
+            {t('Replays')}{' '}
+            {/*
+            TODO(replays): Hide the count for now.
+            The count can be larger than the number of rows in the table, somehow
+            errors can reference replays that don't exist.
+            {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
+            */}
             <ReplaysFeatureBadge noTooltip />
           </ListLink>
         </Feature>
