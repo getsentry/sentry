@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -8,6 +8,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {
+  useResizableDrawer,
+  UseResizableDrawerOptions,
+} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
@@ -29,9 +33,46 @@ export function ProfileDetails(props: ProfileDetailsProps) {
   }, []);
 
   const flamegraphPreferences = useFlamegraphPreferencesValue();
+  const isResizableDetailsBar =
+    flamegraphPreferences.layout === 'table left' ||
+    flamegraphPreferences.layout === 'table right';
+
+  const detailsBarRef = useRef<HTMLDivElement>(null);
+
+  const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
+    const initialDimensions: [number, number] | undefined =
+      flamegraphPreferences.layout === 'table bottom' ? [260, 200] : undefined;
+
+    const onResize = (newDimensions: [number, number]) => {
+      if (!detailsBarRef.current) {
+        return;
+      }
+
+      if (
+        flamegraphPreferences.layout === 'table left' ||
+        flamegraphPreferences.layout === 'table right'
+      ) {
+        detailsBarRef.current.style.width = `100%`;
+        detailsBarRef.current.style.height = newDimensions[1] + 'px';
+      } else {
+        detailsBarRef.current.style.height = ``;
+        detailsBarRef.current.style.width = ``;
+      }
+    };
+
+    return {
+      initialDimensions,
+      onResize,
+      direction:
+        flamegraphPreferences.layout === 'table bottom' ? 'horizontal-ltr' : 'vertical',
+      min: [0, 26],
+    };
+  }, [flamegraphPreferences.layout]);
+
+  const {onMouseDown} = useResizableDrawer(resizableOptions);
 
   return (
-    <ProfileDetailsBar layout={flamegraphPreferences.layout}>
+    <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
       <ProfilingDetailsFrameTabs>
         <ProfilingDetailsListItem
           size="sm"
@@ -59,6 +100,13 @@ export function ProfileDetails(props: ProfileDetailsProps) {
             {t('Device')}
           </Button>
         </ProfilingDetailsListItem>
+        <ProfilingDetailsListItem
+          style={{
+            flex: '1 1 100%',
+            cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
+          }}
+          onMouseDown={isResizableDetailsBar ? onMouseDown : undefined}
+        />
       </ProfilingDetailsFrameTabs>
 
       {detailsTab === 'device' ? (

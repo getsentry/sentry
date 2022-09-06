@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 
 export interface UseResizableDrawerOptions {
   direction: 'horizontal-ltr' | 'horizontal-rtl' | 'vertical';
-  initialDimensions: [number, number];
   min: [number, number];
   onResize: (newDimensions: [number, number]) => void;
+  initialDimensions?: [number, number];
 }
 
 export function useResizableDrawer(options: UseResizableDrawerOptions): {
@@ -14,14 +14,15 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const rafIdRef = useRef<number | null>(null);
   const startResizeVectorRef = useRef<[number, number] | null>(null);
   const [dimensions, setDimensions] = useState<[number, number]>([
-    options.initialDimensions[0],
-    options.initialDimensions[1],
+    options.initialDimensions ? options.initialDimensions[0] : 0,
+    options.initialDimensions ? options.initialDimensions[1] : 0,
   ]);
 
   // We intentionally fire this once at mount to ensure the dimensions are set and
-  // any potentional values set by CSS will be overriden.
-  useEffect(() => {
-    options.onResize(options.initialDimensions);
+  // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
+  // invoke the onResize callback with the previously stored dimensions.
+  useLayoutEffect(() => {
+    options.onResize(options.initialDimensions ?? dimensions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
@@ -89,7 +90,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     [onMouseMove, onMouseUp]
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     return () => {
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
