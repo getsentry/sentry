@@ -1,10 +1,14 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
 import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
@@ -14,6 +18,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import useProjects from 'sentry/utils/useProjects';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './frameStack';
 
@@ -44,6 +49,9 @@ interface ProfileDetailsProps {
 
 export function ProfileDetails(props: ProfileDetailsProps) {
   const [detailsTab, setDetailsTab] = useState<'device' | 'transaction'>('transaction');
+
+  const organizations = useLegacyStore(OrganizationsStore);
+  const {projects} = useProjects();
 
   const onDeviceTabClick = useCallback(() => {
     setDetailsTab('device');
@@ -136,33 +144,57 @@ export function ProfileDetails(props: ProfileDetailsProps) {
 
       {detailsTab === 'device' ? (
         <DetailsContainer>
-          <DetailsRow>
-            {Object.entries(DEVICE_DETAILS_KEY).map(([label, key]) => {
-              const value = props.profileGroup.metadata[key];
-              return (
-                <DetailsRow key={key}>
-                  <span>
-                    <strong>{label}</strong>:
-                  </span>{' '}
-                  <span>{renderValue(key, value, props.profileGroup)}</span>
-                </DetailsRow>
-              );
-            })}
-          </DetailsRow>
+          {Object.entries(DEVICE_DETAILS_KEY).map(([label, key]) => {
+            const value = props.profileGroup.metadata[key];
+            return (
+              <DetailsRow key={key}>
+                <strong>{label}:</strong>
+                <span>{renderValue(key, value, props.profileGroup)}</span>
+              </DetailsRow>
+            );
+          })}
         </DetailsContainer>
       ) : (
         <DetailsContainer>
           {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
             const value = props.profileGroup.metadata[key];
 
+            if (key === 'organizationID') {
+              const org = organizations.find(o => o.id === String(value));
+              if (org) {
+                return (
+                  <DetailsRow key={key}>
+                    <strong>{label}:</strong>
+                    <span>
+                      <OrganizationAvatar size={12} organization={org} /> {org.name}
+                    </span>
+                  </DetailsRow>
+                );
+              }
+            }
+            if (key === 'projectID') {
+              const project = projects.find(p => p.id === String(value));
+              if (project) {
+                return (
+                  <DetailsRow key={key}>
+                    <strong>{label}:</strong>
+                    <FlexRow>
+                      <ProjectAvatar project={project} size={12} /> {project.name}
+                    </FlexRow>
+                  </DetailsRow>
+                );
+              }
+            }
             return (
               <DetailsRow key={key}>
-                <strong>{label}</strong>:{' '}
+                <strong>{label}:</strong>
                 <span>
-                  {renderValue(key, value, props.profileGroup)}
                   {key === 'platform' ? (
-                    <PlatformIcon size={12} platform={value ?? 'unknown'} />
+                    <Fragment>
+                      <PlatformIcon size={12} platform={value ?? 'unknown'} />{' '}
+                    </Fragment>
                   ) : null}
+                  {renderValue(key, value, props.profileGroup)}
                 </span>
               </DetailsRow>
             );
@@ -197,14 +229,36 @@ const DEVICE_DETAILS_KEY: Record<string, string> = {
   [t('locale')]: 'deviceLocale',
 };
 
+// ProjectAvatar is contained in a div
+const FlexRow = styled('span')`
+  display: inline-flex;
+  align-items: center;
+
+  > div {
+    margin-right: ${space(0.5)};
+  }
+`;
+
 const DetailsRow = styled('div')`
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
+
+  > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  > strong {
+    margin-right: ${space(0.5)};
+  }
 `;
 
-const DetailsContainer = styled('ul')`
+const DetailsContainer = styled('div')`
   padding: ${space(1)};
   margin: 0;
   overflow: auto;
