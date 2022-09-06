@@ -349,6 +349,11 @@ const NoteInputForm = styled('form')<{error?: string}>`
   transition: padding 0.2s ease-in-out;
 
   ${p => getNoteInputErrorStyles(p)}
+
+  .nav-tabs {
+    margin-left: 0;
+    width: 100%;
+  }
 `;
 
 const NoteInputBody = styled('div')`
@@ -412,8 +417,10 @@ const MarkdownTab = styled(NoteInputNavTab)`
     align-items: center;
     margin-right: 0;
     color: ${p => p.theme.subText};
-
-    float: right;
+    align-self: center;
+    margin-left: auto;
+    position: relative;
+    top: -${space(0.5)};
   }
 `;
 
