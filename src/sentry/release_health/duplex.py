@@ -30,6 +30,7 @@ from sentry_sdk import (
 )
 
 from sentry import features
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization, Project
 from sentry.release_health.base import (
     CrashFreeBreakdown,
@@ -811,9 +812,10 @@ class DuplexReleaseHealthBackend(ReleaseHealthBackend):
             try:
                 with timer("releasehealth.metrics.duration", tags=tags, sample_rate=1.0):
                     metrics_result = metrics_fn(*args)
-            except InvalidParams:
-                # This is a valid result from metrics, not a crash
-                # -> no need to fall back to session_fn, just re-raise
+            except (InvalidParams, InvalidSearchQuery):
+                # This is a valid result from metrics, not a crash -> no need to fall back to session_fn, just re-raise
+                # There is no need to also send an issue to Sentry on InvalidSearchQuery exception instances as these
+                # are not crashes, and just the result of incompatible search filters.
                 raise
             except Exception:
                 capture_exception()
