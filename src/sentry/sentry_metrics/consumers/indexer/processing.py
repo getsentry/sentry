@@ -26,6 +26,12 @@ class MessageProcessor:
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
 
+    def __getstate__(self):
+        return self._config
+
+    def __setstate__(self, config):
+        self.__init__(config)
+
     def process_messages(
         self,
         outer_message: Message[MessageBatch],
