@@ -1,6 +1,19 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Match,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import sentry_sdk
 from django.utils import timezone
@@ -1165,7 +1178,7 @@ class QueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
-            and name != "event.type"
+            and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
@@ -1645,10 +1658,76 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class SessionsQueryBuilder(QueryBuilder):
+    # ToDo(ahmed): Rename this to AlertsSessionsQueryBuilder as it is exclusively used for crash rate alerts
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
         return conditions
+
+
+class SessionsV2QueryBuilder(QueryBuilder):
+    filter_allowlist_fields = {"project", "project_id", "environment", "release"}
+
+    def __init__(
+        self,
+        *args: Any,
+        granularity: Optional[int] = None,
+        extra_filter_allowlist_fields: Optional[Sequence[str]] = None,
+        **kwargs: Any,
+    ):
+        self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
+        self.granularity = Granularity(granularity) if granularity is not None else None
+        super().__init__(*args, **kwargs)
+
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
+        return conditions
+
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+        """
+        The default QueryBuilder `resolve_groupby` function needs to be overridden here because, it only adds the
+        columns in the groupBy clause to the query if the query has `aggregates` present in it. For this specific case
+        of the `sessions` dataset, the session fields are aggregates but these aggregate definitions are hidden away in
+        snuba so if we rely on the default QueryBuilder `resolve_groupby` method, then it won't add the requested
+        groupBy columns as it does not consider these fields as aggregates, and so we end up with clickhouse error that
+        the column is not under an aggregate function or in the `groupBy` basically.
+        """
+        if groupby_columns is None:
+            return []
+        return list({self.resolve_column(column) for column in groupby_columns})
+
+    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        if name in self.filter_allowlist_fields or name in self._extra_filter_allowlist_fields:
+            return super()._default_filter_converter(search_filter)
+        raise InvalidSearchQuery(f"Invalid search filter: {name}")
+
+
+class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
+    time_column = "bucketed_started"
+
+    def get_snql_query(self) -> Request:
+        self.validate_having_clause()
+
+        return Request(
+            dataset=self.dataset.value,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value, sample=self.sample_rate),
+                select=[Column(self.time_column)] + self.columns,
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=[Column(self.time_column)] + self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                granularity=self.granularity,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
+        )
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -1913,6 +1992,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        if self.dry_run:
+            return -1
         if value not in self._indexer_cache:
             if self.is_performance:
                 use_case_id = UseCaseKey.PERFORMANCE
@@ -1944,7 +2025,7 @@ class MetricsQueryBuilder(QueryBuilder):
             lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
-        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable in ["tags", "tags_raw"]
         if is_tag:
             if isinstance(value, list):
                 resolved_value = []
@@ -1987,8 +2068,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def _resolve_environment_filter_value(self, value: str) -> int:
-        value_id: Optional[int] = self.config.resolve_value(f"{value}")
+    def _resolve_environment_filter_value(self, value: str) -> Union[int, str]:
+        value_id: Optional[Union[int, str]] = self.resolve_tag_value(f"{value}")
         if value_id is None:
             raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
 
@@ -2004,9 +2085,15 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(
-            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
-        )
+        values = []
+        for value in values_set:
+            if value:
+                values.append(self._resolve_environment_filter_value(value))
+            elif self.tag_values_are_strings:
+                values.append("")
+            else:
+                values.append(0)
+        values.sort()
         environment = self.column("environment")
         if len(values) == 1:
             operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
@@ -2152,7 +2239,10 @@ class MetricsQueryBuilder(QueryBuilder):
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
-            if (isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags") or (
+            if (
+                isinstance(orderby.exp, Column)
+                and orderby.exp.subscriptable in ["tags", "tags_raw"]
+            ) or (
                 isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
             ):
                 raise IncompatibleMetricsQuery("Can't orderby tags")

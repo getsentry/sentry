@@ -1,7 +1,7 @@
 docker>=3.7.0,<3.8.0
 exam>=0.10.6
 freezegun>=1.1.0
-honcho>=1.0.0,<1.1.0
+honcho>=1.1.0
 openapi-core>=0.14.2
 pytest>=6.1.0
 pytest-cov>=3.0.0
