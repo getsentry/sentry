@@ -49,12 +49,14 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Sequence[Quota]:
     if use_case_id == UseCaseKey.PERFORMANCE:
         return [
             Quota(**args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.performance.per-org")
+            for args in options.get("sentry-metrics.cardinality-limiter.limits.performance.per-org")
         ]
     elif use_case_id == UseCaseKey.RELEASE_HEALTH:
         return [
             Quota(**args)
-            for args in options.get("sentry-metrics.writes-limiter.limits.releasehealth.per-org")
+            for args in options.get(
+                "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org"
+            )
         ]
     else:
         raise ValueError(use_case_id)
@@ -64,14 +66,13 @@ class InboundMessage(TypedDict):
     # Note: This is only the subset of fields we access in this file.
     org_id: int
     name: str
-    type: str
     tags: Mapping[str, str]
 
 
 class TimeseriesCardinalityLimiter:
     def __init__(self, namespace: str, rate_limiter: CardinalityLimiter) -> None:
         self.namespace = namespace
-        self.rate_limiter: CardinalityLimiter = rate_limiter
+        self.backend: CardinalityLimiter = rate_limiter
 
     def check_cardinality_limits(
         self, use_case_id: UseCaseKey, messages: Mapping[TMessageKey, InboundMessage]
@@ -100,14 +101,14 @@ class TimeseriesCardinalityLimiter:
                 RequestedQuota(prefix=prefix, unit_hashes=hashes, quotas=configured_quotas)
             )
 
-        timestamp, grants = self.rate_limiter.check_within_quotas(requested_quotas)
+        timestamp, grants = self.backend.check_within_quotas(requested_quotas)
 
         for grant in grants:
             for hash in grant.granted_unit_hashes:
-                del keys_to_remove[prefix, hash]
+                del keys_to_remove[grant.request.prefix, hash]
 
         return CardinalityLimiterState(
-            _cardinality_limiter=self.rate_limiter,
+            _cardinality_limiter=self.backend,
             _use_case_id=use_case_id,
             _grants=grants,
             _timestamp=timestamp,
