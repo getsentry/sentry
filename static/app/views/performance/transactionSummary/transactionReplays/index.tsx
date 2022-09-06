@@ -9,13 +9,9 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useReplayList, {
-  DEFAULT_SORT,
-  REPLAY_LIST_FIELDS,
-} from 'sentry/utils/replays/hooks/useReplayList';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_SORT} from 'sentry/utils/replays/hooks/useReplayList';
+import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -24,6 +20,7 @@ import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
 
 import ReplaysContent from './content';
+import useReplaysFromTransaction from './useReplaysFromTransaction';
 
 type Props = {
   location: Location<ReplayListLocationQuery>;
@@ -31,16 +28,16 @@ type Props = {
   projects: Project[];
 };
 
+function renderNoAccess() {
+  return (
+    <PageContent>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </PageContent>
+  );
+}
+
 function TransactionReplays(props: Props) {
   const {location, organization, projects} = props;
-
-  function renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
 
   return (
     <Feature
@@ -67,9 +64,12 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
-  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
+  const api = useApi();
+  const {replays, pageLinks, isFetching, fetchError} = useReplaysFromTransaction({
+    api,
+    eventsWithReplaysView: eventView,
+    location,
     organization,
-    eventView,
   });
 
   useEffect(() => {
@@ -115,25 +115,14 @@ function generateEventView({
   location: Location;
   transactionName: string;
 }) {
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-
-  conditions.setFilterValues('transaction', [transactionName]);
-
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
   return EventView.fromNewQueryWithLocation(
     {
       id: '',
-      name: transactionName,
+      name: `Replay events within a transaction`,
       version: 2,
-      fields: REPLAY_LIST_FIELDS,
+      fields: ['replayId', 'count()'],
+      query: `transaction:${transactionName} !replayId:""`,
       projects: [],
-      query: conditions.formatString(),
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     },
     location

@@ -36,6 +36,42 @@ type State = {
 
 type Result = State;
 
+export async function fetchReplayList({
+  api,
+  organization,
+  location,
+  eventView,
+}): Promise<Result> {
+  try {
+    const path = `/organizations/${organization.slug}/replays/`;
+
+    const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
+      includeAllArgs: true,
+      query: {
+        ...eventView.getEventsAPIPayload(location),
+        cursor: location.query.cursor,
+      },
+    });
+
+    const pageLinks = resp?.getResponseHeader('Link') ?? '';
+
+    return {
+      fetchError: undefined,
+      isFetching: false,
+      pageLinks,
+      replays: records.map(mapResponseToReplayRecord),
+    };
+  } catch (error) {
+    Sentry.captureException(error);
+    return {
+      fetchError: error,
+      isFetching: false,
+      pageLinks: null,
+      replays: [],
+    };
+  }
+}
+
 function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
@@ -48,39 +84,17 @@ function useReplayList({eventView, organization}: Options): Result {
   });
 
   const init = useCallback(async () => {
-    try {
-      setData(prev => ({
-        ...prev,
-        isFetching: true,
-      }));
-
-      const path = `/organizations/${organization.slug}/replays/`;
-
-      const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
-        includeAllArgs: true,
-        query: {
-          ...eventView.getEventsAPIPayload(location),
-          cursor: location.query.cursor,
-        },
-      });
-
-      const pageLinks = resp?.getResponseHeader('Link') ?? '';
-
-      setData({
-        fetchError: undefined,
-        isFetching: false,
-        pageLinks,
-        replays: records.map(mapResponseToReplayRecord),
-      });
-    } catch (error) {
-      Sentry.captureException(error);
-      setData({
-        fetchError: error,
-        isFetching: false,
-        pageLinks: null,
-        replays: [],
-      });
-    }
+    setData(prev => ({
+      ...prev,
+      isFetching: true,
+    }));
+    const response = await fetchReplayList({
+      api,
+      organization,
+      location,
+      eventView,
+    });
+    setData(response);
   }, [api, organization, location, eventView]);
 
   useEffect(() => {

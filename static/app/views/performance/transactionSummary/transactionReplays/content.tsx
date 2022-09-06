@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import first from 'lodash/first';
 import omit from 'lodash/omit';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -76,7 +77,7 @@ function ReplaysContent({
         isFetching={isFetching}
         replays={replays}
         showProjectColumn={false}
-        sort={eventView.sorts[0]}
+        sort={first(eventView.sorts) || {field: 'createdAt', kind: 'asc'}}
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>
