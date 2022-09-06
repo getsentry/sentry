@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from enum import Enum
+from typing import TYPE_CHECKING, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -17,6 +18,34 @@ if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
 
 
+class AssignedReasonType(Enum):
+    CODEOWNERS = "codeowners"
+    PROJECT_OWNERSHIP = "projectOwnership"
+    INTERNAL_INTEGRATION = "internalIntegration"
+    SLACK = "slack"
+    MSTEAMS = "msteams"
+
+
+class Matcher(TypedDict):
+    type: str
+    pattern: str
+
+
+class AssignedReasonCodeowners(TypedDict):
+    type: AssignedReasonType.CODEOWNERS.value | AssignedReasonType.PROJECT_OWNERSHIP.value
+    matcher: Matcher
+
+
+class AssignedReasonInternalIntegration(TypedDict):
+    type: AssignedReasonType.INTERNAL_INTEGRATION.value
+    name: str
+
+
+class AssignedReasonIntegration(TypedDict):
+    type: AssignedReasonType.SLACK.value | AssignedReasonType.MSTEAMS.value
+    actingUser: str
+
+
 class GroupAssigneeManager(BaseManager):
     def assign(
         self,
@@ -24,6 +53,10 @@ class GroupAssigneeManager(BaseManager):
         assigned_to: Team | User,
         acting_user: User | None = None,
         create_only: bool = False,
+        reason: AssignedReasonCodeowners
+        | AssignedReasonInternalIntegration
+        | AssignedReasonIntegration
+        | None = None,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -59,15 +92,18 @@ class GroupAssigneeManager(BaseManager):
             )
 
         if affected:
+            data = {
+                "assignee": str(assigned_to.id),
+                "assigneeEmail": getattr(assigned_to, "email", None),
+                "assigneeType": assignee_type,
+            }
+            if reason:
+                data["reason"] = reason
             Activity.objects.create_group_activity(
                 group,
                 ActivityType.ASSIGNED,
                 user=acting_user,
-                data={
-                    "assignee": str(assigned_to.id),
-                    "assigneeEmail": getattr(assigned_to, "email", None),
-                    "assigneeType": assignee_type,
-                },
+                data=data,
             )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
