@@ -50,7 +50,6 @@ class MessageProcessor:
         using the indexer.
         """
         batch = IndexerBatch(self._config.use_case_id, outer_message)
-        batch.extract_messages()
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)

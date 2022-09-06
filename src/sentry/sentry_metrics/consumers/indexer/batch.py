@@ -79,8 +79,10 @@ class IndexerBatch:
         self.outer_message = outer_message
         self.cardinality_limiter_state: Optional[CardinalityLimiterState[PartitionIdxOffset]] = None
 
+        self._extract_messages()
+
     @metrics.wraps("process_messages.extract_messages")
-    def extract_messages(self) -> None:
+    def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
         self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
