@@ -92,9 +92,17 @@ SESSIONS_FIELD_LIST = [
     "project_id",
     "org_id",
     "environment",
+    "session.status",
+    "users_errored",
+    "users_abnormal",
+    "sessions_errored",
+    "sessions_abnormal",
+    "duration_quantiles",
+    "duration_avg",
 ]
 
 SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+SESSIONS_SNUBA_MAP.update({"timestamp": "started"})
 
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly

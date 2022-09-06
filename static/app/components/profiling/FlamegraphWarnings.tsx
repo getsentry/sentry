@@ -12,6 +12,12 @@ interface FlamegraphWarningProps {
 export function FlamegraphWarnings(props: FlamegraphWarningProps) {
   const params = useParams();
 
+  // A profile may be empty while we are fetching it from the network; while that is happening an empty profile is
+  // passed down to the view so that all the components can be loaded and initialized ahead of time.
+  if (props.flamegraph.profile.isEmpty()) {
+    return null;
+  }
+
   if (props.flamegraph.profile.samples.length === 0) {
     return (
       <Overlay>
