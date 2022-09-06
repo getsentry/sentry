@@ -1,8 +1,10 @@
 import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import {fetchProjectDetails} from 'sentry/actionCreators/project';
 import {PageFilters} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -18,8 +20,20 @@ type Props = {
 function OrganizationGroupDetails({selection, ...props}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const api = useApi();
 
-  const {params} = props;
+  const {params, location} = props;
+
+  const projectId = location.query.project;
+  const project = projects.find(proj => proj.id === projectId);
+
+  useEffect(() => {
+    if (!project?.slug) {
+      return;
+    }
+
+    fetchProjectDetails({api, orgSlug: organization.slug, projSlug: project.slug});
+  }, [api, organization.slug, project?.slug]);
 
   useEffect(() => {
     analytics('issue_page.viewed', {

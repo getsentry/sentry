@@ -14,26 +14,51 @@ type SaveSnapshot = (() => number) | null;
 export type FieldValue = string | number | boolean | Choice | undefined; // is undefined valid here?
 
 export type FormOptions = {
+  /**
+   * Does the form support undo?
+   */
   allowUndo?: boolean;
+  /**
+   * API endpoint use when saving the form model
+   */
   apiEndpoint?: string;
+  /**
+   * API method used to save the form model
+   */
   apiMethod?: APIRequestMethod;
+  /**
+   * Options passed to the API Client
+   */
+  apiOptions?: ConstructorParameters<typeof Client>[0];
+  /**
+   * Initial form data
+   */
+  initialData?: Record<string, FieldValue>;
+  /**
+   * Callback triggered when a field changes value
+   */
   onFieldChange?: (id: string, finalValue: FieldValue) => void;
+  /**
+   * Callback triggered when form submission fails
+   */
   onSubmitError?: (error: any, instance: FormModel, id?: string) => void;
+  /**
+   * Callback triggered when the form is successfully submitted
+   */
   onSubmitSuccess?: (
     response: any,
     instance: FormModel,
     id?: string,
     change?: {new: FieldValue; old: FieldValue}
   ) => void;
+  /**
+   * Should the form reset when an error occurs?
+   */
   resetOnError?: boolean;
+  /**
+   * Should the form save on blur?
+   */
   saveOnBlur?: boolean;
-};
-
-type ClientOptions = ConstructorParameters<typeof Client>[0];
-
-type OptionsWithInitial = FormOptions & {
-  apiOptions?: ClientOptions;
-  initialData?: Record<string, FieldValue>;
 };
 
 class FormModel {
@@ -80,11 +105,13 @@ class FormModel {
 
   api: Client;
 
+  // TODO(epurkhiser): it looks like this can goa away, along with mapFormErrors,
+  // unclear why this is part of the form model
   formErrors: any;
 
   options: FormOptions;
 
-  constructor({initialData, apiOptions, ...options}: OptionsWithInitial = {}) {
+  constructor({initialData, apiOptions, ...options}: FormOptions = {}) {
     makeObservable(this, {
       fields: observable,
       errors: observable,

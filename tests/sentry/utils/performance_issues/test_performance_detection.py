@@ -425,6 +425,14 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_does_not_detect_issues_in_fast_transaction(self):
+        n_plus_one_event = EVENTS["no-issue-in-django-detail-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
     def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()

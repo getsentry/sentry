@@ -51,6 +51,8 @@ export enum FieldKey {
   ID = 'id',
   IS = 'is',
   ISSUE = 'issue',
+  ISSUE_CATEGORY = 'issue.category',
+  ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
   LOCATION = 'location',
@@ -179,6 +181,10 @@ export interface FieldDefinition {
    * Description of the field
    */
   desc?: string;
+  /**
+   * Feature flag that indicates gating of the field from use
+   */
+  featureFlag?: string;
   /**
    * Additional keywords used when filtering via autocomplete
    */
@@ -432,7 +438,7 @@ type AllFieldKeys =
   | keyof typeof SPAN_OP_FIELDS
   | FieldKey;
 
-export const FIELDS: Record<AllFieldKeys, FieldDefinition> = {
+const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
@@ -618,6 +624,19 @@ export const FIELDS: Record<AllFieldKeys, FieldDefinition> = {
     desc: t('The issue identification code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ISSUE_CATEGORY]: {
+    desc: t('The category of issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['error', 'performance'],
+    featureFlag: 'performance-issues',
+  },
+  [FieldKey.ISSUE_TYPE]: {
+    desc: t('The type of issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    featureFlag: 'performance-issues',
   },
   [FieldKey.LAST_SEEN]: {
     desc: t('Issues last seen at a given time'),
@@ -893,6 +912,8 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
@@ -1014,5 +1035,5 @@ export const DISCOVER_FIELDS = [
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {
-  return FIELDS[key] ?? null;
+  return FIELD_DEFINITIONS[key] ?? null;
 };
