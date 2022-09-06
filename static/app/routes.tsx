@@ -67,6 +67,269 @@ export function makeLazyloadComponent<C extends ComponentType>(
 // Shorthand to avoid extra line wrapping
 const make = makeLazyloadComponent;
 
+const _ = [
+  '/',
+  '/accept/:memberId/:token/',
+  '/accept-transfer/',
+  '/extensions/external-install/:integrationSlug/:installationId',
+  '/extensions/:integrationSlug/link/',
+  '/sentry-apps/:sentryAppSlug/external-install/',
+  '/share/issue/:shareId/',
+  '/organizations/new/',
+  '/organizations/:orgId/data-export/:dataExportId',
+  '/organizations/:orgId/disabled-member/',
+  '/join-request/:orgId/',
+  '/onboarding/:orgId/',
+  '/onboarding/:orgId/:step/',
+  '/settings/',
+  '/settings/account/',
+  '/settings/account/details/',
+  '/settings/account/notifications/',
+  '/settings/account/notifications/:fineTuneType/',
+  '/settings/account/emails/',
+  '/settings/account/authorizations/',
+  '/settings/account/security/',
+  '/settings/account/security/session-history/',
+  '/settings/account/security/mfa/:authId/',
+  '/settings/account/security/mfa/:authId/enroll/',
+  '/settings/account/subscriptions/',
+  '/settings/account/identities/',
+  '/settings/account/api/',
+  '/settings/account/api/auth-tokens/',
+  '/settings/account/api/auth-tokens/new-token/',
+  '/settings/account/api/applications/',
+  '/settings/account/api/applications/:appId/',
+  '/settings/account/api/mobile-app/',
+  '/settings/account/close-account/',
+  '/settings/:orgId/',
+  '/settings/:orgId/billing/',
+  '/settings/:orgId/billing/checkout/',
+  '/settings/:orgId/billing/cancel/',
+  '/settings/:orgId/billing/overview/',
+  '/settings/:orgId/billing/usage/',
+  '/settings/:orgId/billing/receipts/',
+  '/settings/:orgId/billing/details/',
+  '/settings/:orgId/billing/usage-log/',
+  '/settings/:orgId/billing/receipts/:invoiceGuid/',
+  '/settings/:orgId/subscription/',
+  '/settings/:orgId/subscription/quota-management/',
+  '/settings/:orgId/subscription/quota-management/new/',
+  '/settings/:orgId/subscription/quota-management/:projectSlug/edit',
+  '/settings/:orgId/subscription/spend-visibility',
+  '/settings/:orgId/subscription/redeem-code/',
+  '/settings/:orgId/legal/',
+  '/settings/:orgId/support/',
+  '/settings/:orgId/projects/',
+  '/settings/:orgId/api-keys/',
+  '/settings/:orgId/api-keys/:apiKey/',
+  '/settings/:orgId/audit-log/',
+  '/settings/:orgId/auth/',
+  '/settings/:orgId/members/',
+  '/settings/:orgId/members/:memberId/',
+  '/settings/:orgId/rate-limits/',
+  '/settings/:orgId/relay/',
+  '/settings/:orgId/repos/',
+  '/settings/:orgId/settings/',
+  '/settings/:orgId/security-and-privacy/',
+  '/settings/:orgId/teams/',
+  '/settings/:orgId/teams/:teamId/',
+  '/settings/:orgId/teams/:teamId/members/',
+  '/settings/:orgId/teams/:teamId/notifications/',
+  '/settings/:orgId/teams/:teamId/projects/',
+  '/settings/:orgId/teams/:teamId/settings/',
+  '/settings/:orgId/plugins/',
+  '/settings/:orgId/plugins/:integrationSlug/',
+  '/settings/:orgId/sentry-apps/',
+  '/settings/:orgId/sentry-apps/:integrationSlug',
+  '/settings/:orgId/document-integrations/',
+  '/settings/:orgId/document-integrations/:integrationSlug',
+  '/settings/:orgId/integrations/',
+  '/settings/:orgId/integrations/:integrationSlug',
+  '/settings/:orgId/integrations/:providerKey/:integrationId/',
+  '/settings/:orgId/developer-settings/',
+  '/settings/:orgId/developer-settings/new-public/',
+  '/settings/:orgId/developer-settings/new-internal/',
+  '/settings/:orgId/developer-settings/:appSlug/',
+  '/settings/:orgId/developer-settings/:appSlug/dashboard/',
+  '/settings/:orgId/developer-settings/sentry-functions/',
+  '/settings/:orgId/developer-settings/sentry-functions/new/',
+  '/settings/:orgId/developer-settings/sentry-functions/:functionSlug/',
+  '/settings/:orgId/projects/:projectId/',
+  '/settings/:orgId/projects/:projectId/teams/',
+  '/settings/:orgId/projects/:projectId/alerts/',
+  '/settings/:orgId/projects/:projectId/environments/',
+  '/settings/:orgId/projects/:projectId/environments/hidden/',
+  '/settings/:orgId/projects/:projectId/tags/',
+  '/settings/:orgId/projects/:projectId/release-tracking/',
+  '/settings/:orgId/projects/:projectId/ownership/',
+  '/settings/:orgId/projects/:projectId/data-forwarding/',
+  '/settings/:orgId/projects/:projectId/security-and-privacy/',
+  '/settings/:orgId/projects/:projectId/debug-symbols/',
+  '/settings/:orgId/projects/:projectId/proguard/',
+  '/settings/:orgId/projects/:projectId/performance/',
+  '/settings/:orgId/projects/:projectId/source-maps/',
+  '/settings/:orgId/projects/:projectId/source-maps/:name/',
+  '/settings/:orgId/projects/:projectId/processing-issues/',
+  '/settings/:orgId/projects/:projectId/filters/',
+  '/settings/:orgId/projects/:projectId/filters/:filterType/',
+  '/settings/:orgId/projects/:projectId/server-side-sampling/',
+  '/settings/:orgId/projects/:projectId/issue-grouping/',
+  '/settings/:orgId/projects/:projectId/hooks/',
+  '/settings/:orgId/projects/:projectId/hooks/new/',
+  '/settings/:orgId/projects/:projectId/hooks/:hookId/',
+  '/settings/:orgId/projects/:projectId/keys/',
+  '/settings/:orgId/projects/:projectId/keys/:keyId/',
+  '/settings/:orgId/projects/:projectId/user-feedback/',
+  '/settings/:orgId/projects/:projectId/security-headers/',
+  '/settings/:orgId/projects/:projectId/security-headers/csp/',
+  '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
+  '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
+  '/settings/:orgId/projects/:projectId/plugins/',
+  '/settings/:orgId/projects/:projectId/plugins/:pluginId/',
+  '/settings/:orgId/projects/:projectId/install/',
+  '/settings/:orgId/projects/:projectId/install/:platform/',
+  '/organizations/:orgId/projects/',
+  '/organizations/:orgId/projects/new/',
+  '/organizations/:orgId/projects/:projectId/getting-started/',
+  '/organizations/:orgId/projects/:projectId/getting-started/:platform/',
+  '/organizations/:orgId/projects/:projectId/',
+  '/organizations/:orgId/projects/:projectId/events/:eventId/',
+  '/organizations/:orgId/dashboards/',
+  '/organizations/:orgId/dashboards/new/',
+  '/organizations/:orgId/dashboards/new/widget/:widgetIndex/edit/',
+  '/organizations/:orgId/dashboards/new/widget/new/',
+  '/organizations/:orgId/dashboards/new/:templateId',
+  '/organizations/:orgId/dashboards/new/:templateId/widget/:widgetId/',
+  '/organizations/:orgId/dashboard/:dashboardId/',
+  '/organizations/:orgId/dashboard/:dashboardId/widget/:widgetIndex/edit/',
+  '/organizations/:orgId/dashboard/:dashboardId/widget/new/',
+  '/organizations/:orgId/dashboard/:dashboardId/widget/:widgetId/',
+  '/organizations/:orgId/user-feedback/',
+  '/organizations/:orgId/issues/',
+  '/organizations/:orgId/issues/searches/:searchId/',
+  '/organizations/:orgId/issues/:groupId/',
+  '/organizations/:orgId/issues/:groupId/replays/',
+  '/organizations/:orgId/issues/:groupId/activity/',
+  '/organizations/:orgId/issues/:groupId/events/',
+  '/organizations/:orgId/issues/:groupId/tags/',
+  '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
+  '/organizations/:orgId/issues/:groupId/feedback/',
+  '/organizations/:orgId/issues/:groupId/attachments/',
+  '/organizations/:orgId/issues/:groupId/similar/',
+  '/organizations/:orgId/issues/:groupId/merged/',
+  '/organizations/:orgId/issues/:groupId/grouping/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/replays/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/activity/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/events/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/similar/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/tags/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/tags/:tagKey/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/feedback/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/attachments/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/merged/',
+  '/organizations/:orgId/issues/:groupId/events/:eventId/grouping/',
+  '/organizations/:orgId/alerts/',
+  '/organizations/:orgId/alerts/rules/',
+  '/organizations/:orgId/alerts/rules/details/:ruleId/',
+  '/organizations/:orgId/alerts/rules/:projectId/',
+  '/organizations/:orgId/alerts/rules/:projectId/:ruleId/',
+  '/organizations/:orgId/alerts/rules/:projectId/:ruleId/details/',
+  '/organizations/:orgId/alerts/metric-rules/',
+  '/organizations/:orgId/alerts/metric-rules/:projectId/',
+  '/organizations/:orgId/alerts/metric-rules/:projectId/:ruleId/',
+  '/organizations/:orgId/alerts/wizard/',
+  '/organizations/:orgId/alerts/new/',
+  '/organizations/:orgId/alerts/new/:alertType/',
+  '/organizations/:orgId/alerts/:alertId/',
+  '/organizations/:orgId/alerts/:projectId/',
+  '/organizations/:orgId/alerts/:projectId/new/',
+  '/organizations/:orgId/alerts/:projectId/wizard/',
+  '/organizations/:orgId/monitors/',
+  '/organizations/:orgId/monitors/organizations/:orgId/monitors/create/',
+  '/organizations/:orgId/monitors/organizations/:orgId/monitors/:monitorId/',
+  '/organizations/:orgId/monitors/organizations/:orgId/monitors/:monitorId/edit/',
+  '/organizations/:orgId/replays/',
+  '/organizations/:orgId/replays/:replaySlug/',
+  '/organizations/:orgId/releases/',
+  '/organizations/:orgId/releases/:release/',
+  '/organizations/:orgId/releases/:release/commits/',
+  '/organizations/:orgId/releases/:release/files-changed/',
+  '/organizations/:orgId/activity/',
+  '/organizations/:orgId/stats/',
+  '/organizations/:orgId/stats/issues/',
+  '/organizations/:orgId/stats/health/',
+  '/organizations/:orgId/discover/',
+  '/organizations/:orgId/discover/queries/',
+  '/organizations/:orgId/discover/results/',
+  '/organizations/:orgId/discover/:eventSlug/',
+  '/organizations/:orgId/performance/',
+  '/organizations/:orgId/performance/trends/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/replays/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/vitals/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/tags/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/events/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/anomalies/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/spans/',
+  '/organizations/:orgId/performance/organizations/:orgId/performance/summary/spans/:spanSlug/',
+  '/organizations/:orgId/performance/vitaldetail/',
+  '/organizations/:orgId/performance/trace/:traceSlug/',
+  '/organizations/:orgId/performance/:eventSlug/',
+  '/organizations/:orgId/profiling/',
+  '/organizations/:orgId/profiling/summary/:projectId/',
+  '/organizations/:orgId/profiling/profile/:projectId/:eventId',
+  '/organizations/:orgId/profiling/profile/:projectId/:eventId/details/',
+  '/organizations/:orgId/profiling/profile/:projectId/:eventId/flamechart/',
+  '/manage/',
+  '/manage/buffer/',
+  '/manage/relays/',
+  '/manage/organizations/',
+  '/manage/projects/',
+  '/manage/queue/',
+  '/manage/quotas/',
+  '/manage/settings/',
+  '/manage/users/',
+  '/manage/users/:id',
+  '/manage/status/mail/',
+  '/manage/status/environment/',
+  '/manage/status/packages/',
+  '/manage/status/warnings/',
+  '/organizations/:orgId/',
+  '/organizations/:orgId/billing/',
+  '/organizations/:orgId/billing/checkout/',
+  '/organizations/:orgId/billing/cancel/',
+  '/organizations/:orgId/billing/overview/',
+  '/organizations/:orgId/billing/usage/',
+  '/organizations/:orgId/billing/receipts/',
+  '/organizations/:orgId/billing/details/',
+  '/organizations/:orgId/billing/usage-log/',
+  '/organizations/:orgId/billing/receipts/:invoiceGuid/',
+  '/organizations/:orgId/subscription/',
+  '/organizations/:orgId/subscription/quota-management/',
+  '/organizations/:orgId/subscription/quota-management/new/',
+  '/organizations/:orgId/subscription/quota-management/:projectSlug/edit',
+  '/organizations/:orgId/subscription/spend-visibility',
+  '/organizations/:orgId/subscription/redeem-code/',
+  '/organizations/:orgId/legal/',
+  '/organizations/:orgId/support/',
+  '/:orgId/:projectId/getting-started/',
+  '/:orgId/:projectId/getting-started/:platform/',
+  '/:orgId/:projectId/',
+  '/:orgId/:projectId/issues/',
+  '/:orgId/:projectId/dashboard/',
+  '/:orgId/:projectId/user-feedback/',
+  '/:orgId/:projectId/releases/',
+  '/:orgId/:projectId/releases/:version/',
+  '/:orgId/:projectId/releases/:version/new-events/',
+  '/:orgId/:projectId/releases/:version/all-events/',
+  '/:orgId/:projectId/releases/:version/commits/',
+  '/:orgId/',
+  '/:orgId/:projectId/settings/',
+  '/:orgId/:projectId/events/:eventId/',
+  '/*',
+];
+
 function buildRoutes() {
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
@@ -148,6 +411,43 @@ function buildRoutes() {
     </Route>
   ) : null;
 
+  /*
+    This component mounts existing routes with a lower precedence than the new
+    custom domain routes. It will also redirect to the new routes if the
+    custom domains feature flag is turned on for this organization. Replacements look like:
+
+    sentry.io/organizations/{slug}/issues/ -> {slug}.sentry.io/issues/
+    sentry.io/settings/{slug}/ -> {slug}.sentry.io/settings/
+    sentry.io/onboarding/{slug}/{step} -> {slug}.sentry.io/onboarding/{step}
+    sentry.io/settings/{slug}/projects/{projectslug}/ -> {slug}.sentry.io/settings/projects/{project.slug}/
+  */
+  const orgScopedCustomDomainRoute = originalRoute => {
+    const newPath = originalRoute.props.path
+      .replace(/organizations\/:orgId\/?/, '')
+      .replace(/:orgId\/?/, '');
+    const customDomainRoute = (
+      <Route path={newPath} component={originalRoute.component} />
+    );
+    const config = window.__initialData;
+    const {regionUrl} = config.links;
+
+    // TODO: Typing seems wrong on config.features. Needs a cast?
+    const shouldUseLegacyRoute =
+      !regionUrl || !config.features.includes('customer-domains');
+    const flaggedOriginalRoute = shouldUseLegacyRoute ? (
+      originalRoute
+    ) : (
+      <Redirect from={originalRoute.path} to={newPath} />
+    );
+
+    return (
+      <Fragment>
+        {customDomainRoute}
+        {flaggedOriginalRoute}
+      </Fragment>
+    );
+  };
+
   const rootRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/app/root'))} />
@@ -181,14 +481,18 @@ function buildRoutes() {
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      <Route
-        path="/organizations/:orgId/data-export/:dataExportId"
-        component={make(() => import('sentry/views/dataExport/dataDownload'))}
-      />
-      <Route
-        path="/organizations/:orgId/disabled-member/"
-        component={make(() => import('sentry/views/disabledMember'))}
-      />
+      {orgScopedCustomDomainRoute(
+        <Route
+          path="/organizations/:orgId/data-export/:dataExportId"
+          component={make(() => import('sentry/views/dataExport/dataDownload'))}
+        />
+      )}
+      {orgScopedCustomDomainRoute(
+        <Route
+          path="/organizations/:orgId/disabled-member/"
+          component={make(() => import('sentry/views/disabledMember'))}
+        />
+      )}
       <Route
         path="/join-request/:orgId/"
         component={make(() => import('sentry/views/organizationJoinRequest'))}
@@ -852,15 +1156,17 @@ function buildRoutes() {
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
       <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
-      <Route name={t('Organization')} path=":orgId/">
-        {orgSettingsRoutes}
-        {projectSettingsRoutes}
-        {legacySettingsRedirects}
-      </Route>
+      {orgScopedCustomDomainRoute(
+        <Route name={t('Organization')} path=":orgId/">
+          {orgSettingsRoutes}
+          {projectSettingsRoutes}
+          {legacySettingsRedirects}
+        </Route>
+      )}
     </Route>
   );
 
-  const projectsRoutes = (
+  const projectsRoutes = orgScopedCustomDomainRoute(
     <Route path="/organizations/:orgId/projects/">
       <IndexRoute component={make(() => import('sentry/views/projectsDashboard'))} />
       <Route
@@ -894,59 +1200,69 @@ function buildRoutes() {
 
   const dashboardRoutes = (
     <Fragment>
-      <Route
-        path="/organizations/:orgId/dashboards/"
-        component={make(() => import('sentry/views/dashboardsV2'))}
-      >
-        <IndexRoute component={make(() => import('sentry/views/dashboardsV2/manage'))} />
-      </Route>
-      <Route
-        path="/organizations/:orgId/dashboards/new/"
-        component={make(() => import('sentry/views/dashboardsV2/create'))}
-      >
+      {orgScopedCustomDomainRoute(
         <Route
-          path="widget/:widgetIndex/edit/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
+          path="/organizations/:orgId/dashboards/"
+          component={make(() => import('sentry/views/dashboardsV2'))}
+        >
+          <IndexRoute
+            component={make(() => import('sentry/views/dashboardsV2/manage'))}
+          />
+        </Route>
+      )}
+      {orgScopedCustomDomainRoute(
         <Route
-          path="widget/new/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-      </Route>
-      <Route
-        path="/organizations/:orgId/dashboards/new/:templateId"
-        component={make(() => import('sentry/views/dashboardsV2/create'))}
-      >
-        <Route
-          path="widget/:widgetId/"
+          path="/organizations/:orgId/dashboards/new/"
           component={make(() => import('sentry/views/dashboardsV2/create'))}
-        />
-      </Route>
+        >
+          <Route
+            path="widget/:widgetIndex/edit/"
+            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+          />
+          <Route
+            path="widget/new/"
+            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+          />
+        </Route>
+      )}
+      {orgScopedCustomDomainRoute(
+        <Route
+          path="/organizations/:orgId/dashboards/new/:templateId"
+          component={make(() => import('sentry/views/dashboardsV2/create'))}
+        >
+          <Route
+            path="widget/:widgetId/"
+            component={make(() => import('sentry/views/dashboardsV2/create'))}
+          />
+        </Route>
+      )}
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
       />
-      <Route
-        path="/organizations/:orgId/dashboard/:dashboardId/"
-        component={make(() => import('sentry/views/dashboardsV2/view'))}
-      >
+      {orgScopedCustomDomainRoute(
         <Route
-          path="widget/:widgetIndex/edit/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-        <Route
-          path="widget/new/"
-          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-        />
-        <Route
-          path="widget/:widgetId/"
+          path="/organizations/:orgId/dashboard/:dashboardId/"
           component={make(() => import('sentry/views/dashboardsV2/view'))}
-        />
-      </Route>
+        >
+          <Route
+            path="widget/:widgetIndex/edit/"
+            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+          />
+          <Route
+            path="widget/new/"
+            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+          />
+          <Route
+            path="widget/:widgetId/"
+            component={make(() => import('sentry/views/dashboardsV2/view'))}
+          />
+        </Route>
+      )}
     </Fragment>
   );
 
-  const alertRoutes = (
+  const alertRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/alerts/"
       component={make(() => import('sentry/views/alerts'))}
@@ -1025,7 +1341,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const monitorsRoutes = (
+  const monitorsRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/monitors/"
       component={make(() => import('sentry/views/monitors'))}
@@ -1046,7 +1362,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const replayRoutes = (
+  const replayRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/replays/"
       component={make(() => import('sentry/views/replays'))}
@@ -1059,7 +1375,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const releasesRoutes = (
+  const releasesRoutes = orgScopedCustomDomainRoute(
     <Route path="/organizations/:orgId/releases/">
       <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
       <Route
@@ -1087,14 +1403,14 @@ function buildRoutes() {
     </Route>
   );
 
-  const activityRoutes = (
+  const activityRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/activity/"
       component={make(() => import('sentry/views/organizationActivity'))}
     />
   );
 
-  const statsRoutes = (
+  const statsRoutes = orgScopedCustomDomainRoute(
     <Route path="/organizations/:orgId/stats/">
       <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
       <Route
@@ -1126,7 +1442,7 @@ function buildRoutes() {
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
   // /discover/queries and not /discover
-  const discoverRoutes = (
+  const discoverRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
@@ -1147,7 +1463,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const performanceRoutes = (
+  const performanceRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/performance/"
       component={make(() => import('sentry/views/performance'))}
@@ -1227,14 +1543,14 @@ function buildRoutes() {
     </Route>
   );
 
-  const userFeedbackRoutes = (
+  const userFeedbackRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/user-feedback/"
       component={make(() => import('sentry/views/userFeedback'))}
     />
   );
 
-  const issueListRoutes = (
+  const issueListRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/issues/"
       component={errorHandler(IssueListContainer)}
@@ -1247,7 +1563,7 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueDetailsRoutes = (
+  const issueDetailsRoutes = orgScopedCustomDomainRoute(
     <Route
       path="/organizations/:orgId/issues/:groupId/"
       component={make(() => import('sentry/views/organizationGroupDetails'))}
@@ -1590,6 +1906,7 @@ function buildRoutes() {
   // XXX(epurkhiser): These also exist in the legacyOrganizationRootRoutes. Not
   // sure which one here is more correct.
   const legacyGettingStartedRoutes = (
+    // TODO: needs orgScopedCustomDomainRoute?
     <Route
       path="/:orgId/:projectId/getting-started/"
       component={make(() => import('sentry/views/projectInstall/gettingStarted'))}
@@ -1612,6 +1929,7 @@ function buildRoutes() {
   // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
   // or do these need to be nested into the OrganizationDetails tree?
   const legacyOrgRedirects = (
+    // TODO: needs orgScopedCustomDomainRoute?
     <Route path="/:orgId/:projectId/">
       <IndexRoute
         component={errorHandler(
@@ -1745,6 +2063,7 @@ function buildRoutes() {
   );
 
   const legacyRedirectRoutes = (
+    // TODO: needs orgScopedCustomDomainRoute?
     <Route path="/:orgId/">
       <IndexRedirect to="/organizations/:orgId/" />
       <Route path=":projectId/settings/">
@@ -1890,7 +2209,62 @@ function buildRoutes() {
     </Route>
   );
 
+  let paths = [];
+  if (Array.isArray(appRoutes)) {
+    appRoutes.forEach(r => {
+      paths = paths.concat(extractRoute(r, ''));
+    });
+  } else {
+    paths = paths.concat(extractRoute(appRoutes));
+  }
+  console.log(paths);
+
   return appRoutes;
+}
+
+function extractChildRoutes(route, prefix) {
+  let paths = [];
+  const childRoutes =
+    route.props && route.props.children ? route.props.children : route.childRoutes;
+  if (childRoutes) {
+    if (Array.isArray(childRoutes)) {
+      childRoutes.forEach(r => {
+        if (r === null) {
+          return;
+        }
+        paths = paths.concat(extractRoute(r, prefix));
+      });
+    } else {
+      paths = paths.concat(extractRoute(childRoutes, prefix));
+    }
+  }
+  return paths;
+}
+
+function extractRoute(route, prefix) {
+  const path = route.props && route.props.path ? route.props.path : route.path;
+  let paths = [];
+
+  if (!path) {
+    if (Array.isArray(route)) {
+      route.forEach(r => {
+        if (r === null) {
+          return;
+        }
+        paths = paths.concat(extractRoute(r, prefix));
+      });
+
+      return paths;
+    }
+    return extractChildRoutes(route, prefix);
+  }
+  const currentPath = `${prefix || ''}${path}`.replace(/\/+/g, '/');
+
+  // if (!/:|\*/.test(currentPath)) {
+  paths.push(`${currentPath.startsWith('/') ? '' : '/'}${currentPath}`);
+  paths = paths.concat(extractChildRoutes(route, `${currentPath}/`));
+  // }
+  return paths;
 }
 
 // We load routes both when initlaizing the SDK (for routing integrations) and
