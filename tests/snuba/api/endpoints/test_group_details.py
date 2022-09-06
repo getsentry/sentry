@@ -218,5 +218,5 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert int(response.data["id"]) == event.group.id
-        assert response.data["issue"]["type"] == "error"
-        assert response.data["issue"]["category"] == "error"
+        assert response.data["issueType"] == "error"
+        assert response.data["issueCategory"] == "error"
