@@ -3,7 +3,10 @@ import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 export interface UseResizableDrawerOptions {
   direction: 'horizontal-ltr' | 'horizontal-rtl' | 'vertical';
   min: [number, number];
-  onResize: (newDimensions: [number, number]) => void;
+  onResize: (
+    newDimensions: [number, number],
+    maybeOldDimensions?: [number, number]
+  ) => void;
   initialDimensions?: [number, number];
 }
 
@@ -22,7 +25,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   // any potentional values set by CSS will be overriden. If no initialDimensions are provided,
   // invoke the onResize callback with the previously stored dimensions.
   useLayoutEffect(() => {
-    options.onResize(options.initialDimensions ?? dimensions);
+    options.onResize(options.initialDimensions ?? [0, 0], dimensions);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 

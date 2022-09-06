@@ -40,10 +40,13 @@ export function ProfileDetails(props: ProfileDetailsProps) {
   const detailsBarRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
-    const initialDimensions: [number, number] | undefined =
-      flamegraphPreferences.layout === 'table bottom' ? [260, 200] : undefined;
+    const initialDimensions: [number, number] | [undefined, number] =
+      flamegraphPreferences.layout === 'table bottom' ? [260, 200] : [0, 200];
 
-    const onResize = (newDimensions: [number, number]) => {
+    const onResize = (
+      newDimensions: [number, number],
+      maybeOldDimensions?: [number, number]
+    ) => {
       if (!detailsBarRef.current) {
         return;
       }
@@ -53,7 +56,8 @@ export function ProfileDetails(props: ProfileDetailsProps) {
         flamegraphPreferences.layout === 'table right'
       ) {
         detailsBarRef.current.style.width = `100%`;
-        detailsBarRef.current.style.height = newDimensions[1] + 'px';
+        detailsBarRef.current.style.height =
+          (maybeOldDimensions?.[1] ?? newDimensions[1]) + 'px';
       } else {
         detailsBarRef.current.style.height = ``;
         detailsBarRef.current.style.width = ``;
