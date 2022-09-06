@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -327,7 +326,8 @@ class TransactionHeader extends Component<Props> {
                 isActive={() => currentTab === Tab.Replays}
                 onClick={this.trackTabClick(Tab.Replays)}
               >
-                {t('Replays')} <ReplaysFeatureBadge noTooltip />
+                {t('Replays')}
+                <ReplaysFeatureBadge noTooltip />
               </ListLink>
             </Feature>
           </StyledNavTabs>
