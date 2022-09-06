@@ -3,11 +3,17 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 from sentry.testutils.helpers import override_options
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
-    _detect_performance_issue,
-    detect_performance_issue,
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    PerformanceProblem,
+    _detect_performance_problems,
+    detect_performance_problems,
+    prepare_problem_for_grouping,
 )
+from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
 from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "events")
@@ -51,17 +57,18 @@ def create_event(spans, event_id="a" * 16):
 
 
 class PerformanceDetectionTest(unittest.TestCase):
-    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_issue")
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
         event = {}
-        detect_performance_issue(event)
+        detect_performance_problems(event)
         assert mock.call_count == 0
 
-    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_issue")
+    @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
         event = {}
         with override_options({"store.use-ingest-performance-detection-only": 1.0}):
-            detect_performance_issue(event)
+            with override_options({"performance.issues.all.problem-detection": 1.0}):
+                detect_performance_problems(event)
         assert mock.call_count == 1
 
     def test_calls_detect_duplicate(self):
@@ -71,13 +78,13 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(no_duplicate_event, sdk_span_mock)
+        _detect_performance_problems(no_duplicate_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(duplicate_not_allowed_op_event, sdk_span_mock)
+        _detect_performance_problems(duplicate_not_allowed_op_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(duplicate_event, sdk_span_mock)
+        _detect_performance_problems(duplicate_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -108,10 +115,10 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(no_duplicate_event, sdk_span_mock)
+        assert _detect_performance_problems(no_duplicate_event, sdk_span_mock) == []
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(duplicate_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(duplicate_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -133,6 +140,21 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_DUPLICATE_SPANS-4691ce1ec85e08c8870ab4494afedfc86cdfc65d",
+                op="http",
+                desc="http://example.com/slow?q=1",
+                type=GroupType.PERFORMANCE_DUPLICATE_SPANS,
+                spans_involved=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+            )
+        ]
 
     def test_calls_detect_slow_span(self):
         no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
@@ -141,13 +163,13 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(no_slow_span_event, sdk_span_mock)
+        _detect_performance_problems(no_slow_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(slow_not_allowed_op_span_event, sdk_span_mock)
+        _detect_performance_problems(slow_not_allowed_op_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(slow_span_event, sdk_span_mock)
+        _detect_performance_problems(slow_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -171,7 +193,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(span_event, sdk_span_mock)
+        _detect_performance_problems(span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -198,10 +220,10 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(http_span_event, sdk_span_mock)
+        _detect_performance_problems(http_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(db_span_event, sdk_span_mock)
+        _detect_performance_problems(db_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
 
     def test_calls_n_plus_one_spans_calls(self):
@@ -227,7 +249,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
@@ -260,10 +282,10 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(no_sequential_event, sdk_span_mock)
+        _detect_performance_problems(no_sequential_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(sequential_event, sdk_span_mock)
+        _detect_performance_problems(sequential_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -299,10 +321,10 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(tolerable_long_task_spans_event, sdk_span_mock)
+        _detect_performance_problems(tolerable_long_task_spans_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(long_task_span_event, sdk_span_mock)
+        _detect_performance_problems(long_task_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -323,7 +345,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock.reset_mock()
 
-        _detect_performance_issue(multiple_long_task_span_event, sdk_span_mock)
+        _detect_performance_problems(multiple_long_task_span_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -397,16 +419,16 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(non_render_blocking_asset_event, sdk_span_mock)
+        _detect_performance_problems(non_render_blocking_asset_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(short_render_blocking_asset_event, sdk_span_mock)
+        _detect_performance_problems(short_render_blocking_asset_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(no_fcp_event, sdk_span_mock)
+        _detect_performance_problems(no_fcp_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        _detect_performance_issue(render_blocking_asset_event, sdk_span_mock)
+        _detect_performance_problems(render_blocking_asset_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -429,7 +451,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["no-issue-in-django-detail-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
@@ -437,7 +459,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
@@ -471,7 +493,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         new_n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
 
         sdk_span_mock = Mock()
-        _detect_performance_issue(index_n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(index_n_plus_one_event, sdk_span_mock)
         index_fingerprint = None
         for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
             if args[0][0] == "_pi_n_plus_one_db_fp":
@@ -479,7 +501,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert index_fingerprint
 
         sdk_span_mock.reset_mock()
-        _detect_performance_issue(new_n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(new_n_plus_one_event, sdk_span_mock)
         new_fingerprint = None
         for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
             if args[0][0] == "_pi_n_plus_one_db_fp":
@@ -492,7 +514,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         fast_n_plus_one_event = EVENTS["fast-n-plus-one-in-django-new-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(fast_n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(fast_n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
@@ -500,7 +522,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         query_waterfall_event = EVENTS["query-waterfall-in-django-random-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(query_waterfall_event, sdk_span_mock)
+        _detect_performance_problems(query_waterfall_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
@@ -518,7 +540,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_issue(n_plus_one_event, sdk_span_mock)
+        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
@@ -531,3 +553,30 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_slow_span", "9f31e1ee4ef94970"),
             ]
         )
+
+
+class PrepareProblemForGroupingTest(unittest.TestCase):
+    def test(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        assert prepare_problem_for_grouping(
+            PerformanceSpanProblem(
+                "97b250f72d59f230", "http.client", ["b3fdeea42536dbf1", "b2d4826e7b618f1b"], "hello"
+            ),
+            n_plus_one_event,
+            DetectorType.N_PLUS_ONE_SPANS,
+        ) == PerformanceProblem(
+            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE-562b149a55f0c195bd0a5fb5d7d9f9baea86ecea",
+            op="db",
+            type=GroupType.PERFORMANCE_N_PLUS_ONE,
+            desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            spans_involved=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
+        )
+
+
+class DetectorTypeToGroupTypeTest(unittest.TestCase):
+    def test(self):
+        # Make sure we don't forget to include a mapping to `GroupType`
+        for detector_type in DetectorType:
+            assert (
+                detector_type in DETECTOR_TYPE_TO_GROUP_TYPE
+            ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
