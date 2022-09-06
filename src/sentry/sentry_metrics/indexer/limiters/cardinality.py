@@ -84,7 +84,6 @@ class TimeseriesCardinalityLimiter:
                 hash_values(
                     [
                         message["name"],
-                        message["type"],
                         message["tags"],
                     ]
                 ),
