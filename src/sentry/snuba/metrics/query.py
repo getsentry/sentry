@@ -32,6 +32,7 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
+    params: Optional[Sequence[Union[str, int, float]]] = None
 
     def __str__(self) -> str:
         return f"{self.op}({self.metric_name})" if self.op else self.metric_name
@@ -80,13 +81,6 @@ class MetricsQuery(MetricsQueryValidationRunner):
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
-
-    # TODO(ahmed): These should be properties of the Histogram field. We need to extend MetricField
-    #  to accept params and we should pass histogram fields as params on a specific instance of
-    #  MetricField rather than them living on an instance of MetricsQuery
-    histogram_buckets: int = 100
-    histogram_from: Optional[float] = None
-    histogram_to: Optional[float] = None
 
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:

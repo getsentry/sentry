@@ -253,9 +253,6 @@ class QueryDefinition:
             limit=self.limit,
             offset=self.offset,
             granularity=Granularity(self.rollup),
-            histogram_buckets=self.histogram_buckets,
-            histogram_from=self.histogram_from,
-            histogram_to=self.histogram_to,
         )
 
     @staticmethod
@@ -495,7 +492,8 @@ class SnubaQueryBuilder:
 
         for field in self._metrics_query.select:
             metric_mri = get_mri(field.metric_name)
-            metric_field_obj = metric_object_factory(field.op, metric_mri)
+            # ToDo remove field.params and try again
+            metric_field_obj = metric_object_factory(field.op, metric_mri, field.params)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
             # and validate especially in the case of SingularEntityDerivedMetric that it is
             # actually composed of metrics that belong to the same entity
@@ -535,8 +533,8 @@ class SnubaQueryBuilder:
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
-            metric_mri_to_obj_dict[(field.op, metric_mri)] = metric_field_obj
-            fields_in_entities.setdefault(entity, []).append((field.op, metric_mri))
+            metric_mri_to_obj_dict[(field.op, metric_mri, field.params)] = metric_field_obj
+            fields_in_entities.setdefault(entity, []).append((field.op, metric_mri, field.params))
 
         where = self._build_where()
         groupby = self._build_groupby()
@@ -549,7 +547,6 @@ class SnubaQueryBuilder:
                 metric_field_obj = metric_mri_to_obj_dict[field]
                 select += metric_field_obj.generate_select_statements(
                     projects=self._projects,
-                    metrics_query=self._metrics_query,
                     use_case_id=self._use_case_id,
                 )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(
@@ -606,9 +603,9 @@ class SnubaResultConverter:
         self._metrics_query = metrics_query
         self._use_case_id = use_case_id
 
-        # This is a set of all the `(op, metric_mri)` combinations passed in the metrics_query
+        # This is a set of all the `(op, metric_mri, params)` combinations passed in the metrics_query
         self._metrics_query_fields_set = {
-            (field.op, get_mri(field.metric_name)) for field in metrics_query.select
+            (field.op, get_mri(field.metric_name), field.params) for field in metrics_query.select
         }
         # This is a set of all queryable `(op, metric_mri)` combinations. Queryable can mean it
         # includes one of the following: AggregatedRawMetric (op, metric_mri), instance of
@@ -651,10 +648,10 @@ class SnubaResultConverter:
         # We query the union of the metrics_query fields, and the fields_in_entities from the
         # QueryBuilder necessary as it contains the constituent instances of
         # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
-        for op, metric_mri in self._set_of_constituent_queries:
+        for op, metric_mri, params in self._set_of_constituent_queries:
             key = f"{op}({metric_mri})" if op is not None else metric_mri
             default_null_value = metric_object_factory(
-                op, metric_mri
+                op, metric_mri, params
             ).generate_default_null_values()
 
             try:
@@ -715,14 +712,17 @@ class SnubaResultConverter:
             totals = group.get("totals")
             series = group.get("series")
 
-            for op, metric_mri in self._bottom_up_dependency_tree:
-                metric_obj = metric_object_factory(op=op, metric_mri=metric_mri)
+            for op, metric_mri, params in self._bottom_up_dependency_tree:
+                metric_obj = metric_object_factory(op=op, metric_mri=metric_mri, params=params)
+
+                # XXX(ahmed): This could lead to naming collisions as it does not factor in the params sent for a
+                # specific expressions for example requesting histogram data for same metric with different buckets
+                # sizes. This will be handled in subsequent PRs where we introduce aliasing for metrics expressions to
+                # disambiguate equivalent expressions with different params
                 grp_key = f"{op}({metric_mri})" if op is not None else metric_mri
 
                 if totals is not None:
-                    totals[grp_key] = metric_obj.run_post_query_function(
-                        totals, metrics_query=self._metrics_query
-                    )
+                    totals[grp_key] = metric_obj.run_post_query_function(totals)
 
                 if series is not None:
                     # Series
@@ -732,7 +732,7 @@ class SnubaResultConverter:
                             [metric_obj.generate_default_null_values()] * len(self._intervals),
                         )
                         series[grp_key][idx] = metric_obj.run_post_query_function(
-                            series, metrics_query=self._metrics_query, idx=idx
+                            series, idx=idx
                         )
 
         # Remove the extra fields added due to the constituent metrics that were added
@@ -745,7 +745,12 @@ class SnubaResultConverter:
 
             for key in set(totals or ()) | set(series or ()):
                 operation, metric_mri = parse_expression(key)
-                if (operation, metric_mri) not in self._metrics_query_fields_set:
+
+                # Construct list with only op and metric name as we have not yet introduced aliasing
+                # XXX(ahmed): Remove this once we introduce aliasing
+                final_fields_set = {(op, metric_mri) for op, metric_mri, _ in self._metrics_query_fields_set}
+
+                if (operation, metric_mri) not in final_fields_set:
                     if totals is not None:
                         del totals[key]
                     if series is not None:

@@ -1,24 +1,32 @@
 """
 Metrics Service Layer Tests for Performance
 """
+import time
 from datetime import timedelta
 from unittest import mock
 
 import pytest
 from django.utils.datastructures import MultiValueDict
+from snuba_sdk import Granularity, Limit, Offset
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import MetricField, MetricsQuery
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
+from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import BaseMetricsTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
+class PerformanceMetricsLayerTestCase(MetricsEnhancedPerformanceTestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
             {
@@ -49,6 +57,108 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             ],
             key=lambda elem: elem["name"],
         )
+
+    def test_histogram_transaction_duration(self):
+        print("Okaaaaayyyy")
+        from django.utils import timezone
+
+        now = timezone.now()
+
+        for tag, value, numbers in (
+            ("tag1", "value1", [4, 5, 6]),
+            ("tag1", "value2", [1, 2, 3]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        class hashabledict(dict):
+            def __hash__(self):
+                return hash(tuple(sorted(self.items())))
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="histogram",
+                    # ToDo(ahmed): Replace this with MRI once we make MetricsQuery accept MRI
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    params=hashabledict(
+                        {
+                            "histogram_from": 2,
+                            "histogram_to": None,
+                            "histogram_buckets": 2,
+                        }
+                    ),
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
+            }
+        ]
+
+    # def test_rate_epm_hour_rollup(self):
+    #     event_counts = [6, 0, 6, 3, 0, 3]
+    #     for hour, count in enumerate(event_counts):
+    #         for minute in range(count):
+    #             self.store_transaction_metric(
+    #                 1, timestamp=self.day_ago + timedelta(hours=hour, minutes=minute)
+    #             )
+    #     metrics_query = MetricsQuery(
+    #         org_id=14,
+    #         project_ids=[13],
+    #         select=[
+    #             MetricField(
+    #                 op="rate",
+    #                 # ToDo(ahmed): Replace this with MRI once we make MetricsQuery accept MRI
+    #                 metric_name="transaction.duration",
+    #                 args=[3600, 60],
+    #             ),
+    #         ],
+    #         start=self.day_ago,
+    #         end=self.day_ago + timedelta(hours=6),
+    #         granularity=Granularity(granularity=3600),
+    #         limit=Limit(limit=51),
+    #         offset=Offset(offset=0),
+    #         include_series=False,
+    #     )
+    #     data = get_series(
+    #         [self.project],
+    #         metrics_query=metrics_query,
+    #         include_meta=True,
+    #         use_case_id=UseCaseKey.PERFORMANCE,
+    #     )
+    #
+    #     rows = data[0:6]
+    #     for test in zip(event_counts, rows):
+    #         assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):

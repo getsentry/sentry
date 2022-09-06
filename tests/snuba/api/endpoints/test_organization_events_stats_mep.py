@@ -63,6 +63,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 },
             )
             assert response.status_code == 200, response.content
+            print(response.data)
             data = response.data["data"]
             assert len(data) == 6
             assert response.data["isMetricsData"]
