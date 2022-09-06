@@ -17,6 +17,27 @@ import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './frameStack';
 
+function renderValue(
+  key: string,
+  value: number | string | undefined,
+  profileGroup: ProfileGroup
+) {
+  if (key === 'durationNS' && typeof value === 'number') {
+    return nsFormatter(value);
+  }
+  if (key === 'threads') {
+    return profileGroup.profiles.length;
+  }
+  if (key === 'received') {
+    return <DateTime date={value} />;
+  }
+  if (value === undefined || value === '') {
+    return t('ø');
+  }
+
+  return value;
+}
+
 interface ProfileDetailsProps {
   profileGroup: ProfileGroup;
 }
@@ -123,13 +144,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
                   <span>
                     <strong>{label}</strong>:
                   </span>{' '}
-                  <span>
-                    {key === 'durationNS'
-                      ? nsFormatter(value)
-                      : value === undefined || value === ''
-                      ? t('ø')
-                      : value}
-                  </span>
+                  <span>{renderValue(key, value, props.profileGroup)}</span>
                 </DetailsRow>
               );
             })}
@@ -144,17 +159,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
               <DetailsRow key={key}>
                 <strong>{label}</strong>:{' '}
                 <span>
-                  {key === 'durationNS' ? (
-                    nsFormatter(value)
-                  ) : key === 'threads' ? (
-                    props.profileGroup.profiles.length
-                  ) : key === 'received' ? (
-                    <DateTime date={value} />
-                  ) : value === undefined || value === '' ? (
-                    t('ø')
-                  ) : (
-                    value
-                  )}
+                  {renderValue(key, value, props.profileGroup)}
                   {key === 'platform' ? (
                     <PlatformIcon size={12} platform={value ?? 'unknown'} />
                   ) : null}
