@@ -564,13 +564,14 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 def metrics_streaming_consumer(**options):
     import sentry_sdk
 
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
     from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
+    db_backend = IndexerStorage(options["indexer_db"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, options["indexer_db"])
+    ingest_config = get_ingest_config(use_case, db_backend)
 
     streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -604,13 +605,14 @@ def metrics_streaming_consumer(**options):
 def metrics_parallel_consumer(**options):
     import sentry_sdk
 
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
     from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
+    db_backend = IndexerStorage(options["indexer_db"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, options["db_backend"])
+    ingest_config = get_ingest_config(use_case, db_backend)
 
     streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -658,11 +660,13 @@ def replays_recordings_consumer(**options):
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
     from sentry.utils.metrics import global_tags
 
-    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]), options["indexer_db"])
+    ingest_config = get_ingest_config(
+        UseCaseKey(options["ingest_profile"]), IndexerStorage(options["indexer_db"])
+    )
 
     consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 

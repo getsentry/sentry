@@ -27,8 +27,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
 
     const {container} = render(<GlobalModal />);
 
@@ -151,8 +151,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('render done button', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...TestStubs.Outcomes(),
       groups: [],
     });
@@ -226,8 +226,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('cancel flow', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...TestStubs.Outcomes(),
       groups: [],
     });
@@ -263,10 +263,26 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display "Specify client rate modal" content as a first step', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(outcomesWithoutClientDiscarded);
-    ServerSideSamplingStore.fetchProjectStats48hSuccess(outcomesWithoutClientDiscarded);
-
     const {organization, project} = getMockData();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      method: 'GET',
+      body: [TestStubs.Project({id: project.id, slug: project.slug})],
+    });
+
+    ServerSideSamplingStore.projectStats30dRequestSuccess(outcomesWithoutClientDiscarded);
+    ServerSideSamplingStore.projectStats48hRequestSuccess(outcomesWithoutClientDiscarded);
+    ServerSideSamplingStore.sdkVersionsRequestSuccess([
+      {
+        isSendingSampleRate: false,
+        isSendingSource: false,
+        isSupportedPlatform: true,
+        latestSDKName: 'abc',
+        latestSDKVersion: '999',
+        project: project.slug,
+      },
+    ]);
 
     render(<GlobalModal />);
 
@@ -283,14 +299,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Specify current client(SDK) sample rate',
+        name: 'Current SDK Sample Rate',
       })
     ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
-
-    // Enter valid specified client-sample rate
-    userEvent.type(screen.getByRole('spinbutton'), '0.2{enter}');
 
     userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
@@ -299,10 +310,10 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     ).toBeInTheDocument();
 
     // Content
-    expect(screen.getByText('20%')).toBeInTheDocument(); // Current client-side sample rate
+    expect(screen.getByText('10%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(100); // Suggested client-side sample rate
-    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(20); // Suggested server-side sample rate
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue(10); // Suggested server-side sample rate
 
     // Footer
     expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
@@ -311,7 +322,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
     // Specified sample rate has to still be there
-    expect(screen.getByRole('spinbutton')).toHaveValue(0.2);
+    expect(screen.getByRole('spinbutton')).toHaveValue(0.1);
 
     // Close Modal
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
@@ -319,8 +330,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('does not display "Specify client rate modal" if no groups', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...outcomesWithoutClientDiscarded,
       groups: [],
     });
@@ -350,9 +361,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display request error message', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dError('some error');
+    ServerSideSamplingStore.projectStats30dRequestError('some error');
 
-    ServerSideSamplingStore.fetchProjectStats48hError('some error');
+    ServerSideSamplingStore.projectStats48hRequestError('some error');
 
     const {organization, project} = getMockData();
 

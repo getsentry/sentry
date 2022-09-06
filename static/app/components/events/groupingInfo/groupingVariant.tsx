@@ -294,7 +294,7 @@ const GroupingTree = styled('div')`
 const TextWithQuestionTooltip = styled('div')`
   display: grid;
   align-items: center;
-  grid-template-columns: max-content min-content;
+  grid-template-columns: auto 1fr;
   gap: ${space(0.5)};
 `;
 

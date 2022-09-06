@@ -3,13 +3,11 @@ import TextareaAutosize from 'react-autosize-textarea';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {inputStyles} from 'sentry/styles/input';
-import space from 'sentry/styles/space';
+import {inputStyles, InputStylesProps} from 'sentry/components/input';
 
-type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
 export interface TextAreaProps
   extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'>,
-    InputProps {
+    InputStylesProps {
   /**
    * Enable autosizing of the textarea.
    */
@@ -25,7 +23,7 @@ export interface TextAreaProps
 }
 
 const TextAreaControl = forwardRef(function TextAreaControl(
-  {autosize, rows, maxRows, ...p}: TextAreaProps,
+  {autosize, rows, maxRows, size: _size, ...p}: TextAreaProps,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
   return autosize ? (
@@ -37,21 +35,12 @@ const TextAreaControl = forwardRef(function TextAreaControl(
 
 TextAreaControl.displayName = 'TextAreaControl';
 
-const propFilter = (p: string) =>
-  ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p);
-
-const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
+const TextArea = styled(TextAreaControl, {
+  shouldForwardProp: (p: string) =>
+    ['autosize', 'rows', 'maxRows'].includes(p) || isPropValid(p),
+})`
   ${inputStyles};
-  min-height: 40px;
-  padding: calc(${space(1)} - 1px) ${space(1)};
-  line-height: 1.5em;
-  ${p =>
-    p.autosize &&
-    `
-      height: auto;
-      padding: calc(${space(1)} - 2px) ${space(1)};
-      line-height: 1.6em;
-    `}
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
 export default TextArea;

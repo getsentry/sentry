@@ -58,8 +58,10 @@ export class Profile {
     this.unit = unit;
   }
 
-  static Empty() {
-    return new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
+  static Empty = new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
+
+  isEmpty(): boolean {
+    return this === Profile.Empty;
   }
 
   trackSampleStats(duration: number) {
