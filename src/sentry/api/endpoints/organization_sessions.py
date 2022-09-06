@@ -11,6 +11,7 @@ from sentry import release_health
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, InvalidParams, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
@@ -80,7 +81,7 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
             # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
             with super().handle_query_errors():
                 yield
-        except (InvalidField, InvalidParams, NoProjects) as error:
+        except (InvalidField, InvalidParams, NoProjects, InvalidSearchQuery) as error:
             raise ParseError(detail=str(error))
 
 

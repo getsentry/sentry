@@ -24,7 +24,7 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.servermode import ModeLimited, ServerComponentMode
+from sentry.silo import SiloLimit, SiloMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -494,7 +494,7 @@ def resolve_region(request: Request):
     return None
 
 
-class ApiAvailableOn(ModeLimited):
+class EndpointSiloLimit(SiloLimit):
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         return type(
@@ -502,21 +502,18 @@ class ApiAvailableOn(ModeLimited):
             (decorated_class,),
             {
                 "dispatch": dispatch_override,
-                "__mode_limit": self,  # For internal tooling only
+                "__silo_limit": self,  # For internal tooling only
             },
         )
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
 
-    class ApiAvailabilityError(Exception):
-        pass
-
     def handle_when_unavailable(
         self,
         original_method: Callable[..., Any],
-        current_mode: ServerComponentMode,
-        available_modes: Iterable[ServerComponentMode],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
         def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
             mode_str = ", ".join(str(m) for m in available_modes)
@@ -525,7 +522,7 @@ class ApiAvailableOn(ModeLimited):
                 f"{current_mode} mode. This endpoint is available only in: {mode_str}"
             )
             if settings.FAIL_ON_UNAVAILABLE_API_CALL:
-                raise self.ApiAvailabilityError(message)
+                raise self.AvailabilityError(message)
             else:
                 logger.warning(message)
                 return HttpResponse(status=status.HTTP_404_NOT_FOUND)
@@ -535,14 +532,14 @@ class ApiAvailableOn(ModeLimited):
     def __call__(self, decorated_obj: Any) -> Any:
         if isinstance(decorated_obj, type):
             if not issubclass(decorated_obj, Endpoint):
-                raise ValueError("`@ApiAvailableOn` can decorate only Endpoint subclasses")
+                raise ValueError("`@EndpointSiloLimit` can decorate only Endpoint subclasses")
             return self.modify_endpoint_class(decorated_obj)
 
         if callable(decorated_obj):
             return self.modify_endpoint_method(decorated_obj)
 
-        raise TypeError("`@ApiAvailableOn` must decorate a class or method")
+        raise TypeError("`@EndpointSiloLimit` must decorate a class or method")
 
 
-control_silo_endpoint = ApiAvailableOn(ServerComponentMode.CONTROL)
-customer_silo_endpoint = ApiAvailableOn(ServerComponentMode.CUSTOMER)
+control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
+customer_silo_endpoint = EndpointSiloLimit(SiloMode.CUSTOMER)
