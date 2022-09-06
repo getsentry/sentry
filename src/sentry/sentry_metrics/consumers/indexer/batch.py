@@ -100,8 +100,8 @@ class IndexerBatch:
                 )
                 continue
 
-    @metrics.wraps("process_messages.limit_messages")
-    def limit_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
+    @metrics.wraps("process_messages.filter_messages")
+    def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
         for offset in keys_to_remove:
             metrics.incr(
                 "sentry_metrics.indexer.process_messages.dropped_message",
@@ -124,7 +124,11 @@ class IndexerBatch:
         org_strings = defaultdict(set)
 
         for partition_offset, message in self.parsed_payloads_by_offset.items():
+            if partition_offset in self.skipped_offsets:
+                continue
+
             partition_idx, offset = partition_offset
+
             metric_name = message["name"]
             metric_type = message["type"]
             org_id = message["org_id"]

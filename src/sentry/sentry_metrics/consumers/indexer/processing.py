@@ -57,7 +57,7 @@ class MessageProcessor:
                 batch.use_case_id, batch.parsed_payloads_by_offset
             )
 
-        batch.limit_messages(cardinality_limiter_state.keys_to_remove)
+        batch.filter_messages(cardinality_limiter_state.keys_to_remove)
 
         org_strings = batch.extract_strings()
 
