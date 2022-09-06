@@ -4,7 +4,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Iterable, List, Mapping, Tuple
+from typing import Iterable, Mapping, Tuple
 
 
 class ClassCategory(Enum):
@@ -41,7 +41,7 @@ def apply_decorators(
         else:
             return import_stmt + "\n" + src_code
 
-    def is_module(src_path: str, module_name: str) -> bool:
+    def is_module(src_path: str, module_name: str | None) -> bool:
         if module_name is None:
             return False
         suffix = ".py"
@@ -66,8 +66,8 @@ def apply_decorators(
 
 @dataclass
 class Keywords:
-    include_words: List[str]
-    exclude_words: List[str]
+    include_words: Iterable[str]
+    exclude_words: Iterable[str] = ()
 
 
 def has_customer_name(name: str, keywords: Mapping[str, Keywords]) -> bool:

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List, Mapping, Optional, Type
+from typing import Iterable, Mapping, Optional, Type
 
 import django.apps
-from django.db.models import Model
 from django.db.models.fields.related_descriptors import (
     ForwardManyToOneDescriptor,
     ForwardOneToOneDescriptor,
@@ -20,10 +19,10 @@ from sentry.utils.silo.common import apply_decorators
 @dataclass
 class TargetRelations:
     # Target foreign key relations
-    models: List[Model]
+    models: Iterable[Type[BaseModel]]
 
     # Covers BoundedBigIntegerFields used as soft foreign keys
-    naming_conventions: Mapping[str, Model]
+    naming_conventions: Mapping[str, Type[BaseModel]]
 
 
 def decorate_models_by_relation(
