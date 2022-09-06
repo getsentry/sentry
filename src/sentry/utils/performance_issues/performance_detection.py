@@ -17,7 +17,7 @@ from .performance_span_issue import PerformanceSpanProblem
 
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
-PerformanceProblemsMap = Dict[str, Any]
+PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 
