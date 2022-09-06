@@ -3042,7 +3042,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
-    def test_merge_performance_issues(self):
+    @patch("sentry.api.helpers.group_index.update.uuid4")
+    @patch("sentry.api.helpers.group_index.update.merge_groups")
+    @patch("sentry.api.helpers.group_index.update.eventstream")
+    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
+        mock_uuid4.return_value = self.get_mock_uuid()
         group1 = self.create_group(times_seen=1)
         group1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
         group2 = self.create_group(times_seen=50)
