@@ -309,7 +309,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         from sentry.utils import snuba
 
         if group.issue_category == GroupCategory.PERFORMANCE:
-            return Response(status=403)
+            return Response({"detail": "Cannot delete performance issues."}, status=403)
 
         try:
             delete_group_list(request, group.project, [group], "delete")

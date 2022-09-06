@@ -55,6 +55,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
@@ -3041,6 +3042,22 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
+    def test_merge_performance_issues(self):
+        group1 = self.create_group(times_seen=1)
+        group1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group2 = self.create_group(times_seen=50)
+        group2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group3 = self.create_group(times_seen=2)
+        group3.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_error_response(
+            qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
+        )
+
+        assert response.status_code == 403, response.content
+
     def test_assign(self):
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)
@@ -3280,6 +3297,34 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
+    @patch("sentry.api.helpers.group_index.delete.eventstream")
+    @patch("sentry.eventstream")
+    def test_delete_performance_issue_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = {"event_stream_state": uuid4()}
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        hashes = []
+        for g in group1, group2:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+            g.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:global-views"):
+            response = self.get_response(qs_params={"id": [group1.id, group2.id]})
+
+        assert response.status_code == 403
+
+        assert Group.objects.filter(id=group1.id).exists()
+        assert GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.filter(id=group2.id).exists()
+        assert GroupHash.objects.filter(group_id=group2.id).exists()
+
     def test_bulk_delete(self):
         groups = []
         for i in range(10, 41):
@@ -3326,3 +3371,30 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             for i in range(5):
                 self.get_success_response()
             self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_bulk_delete_performance_issues(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    status=GroupStatus.RESOLVED,
+                )
+            )
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        self.login_as(user=self.user)
+
+        # if query is '' it defaults to is:unresolved
+        response = self.get_response(qs_params={"query": ""})
+        assert response.status_code == 403
+
+        for group in groups:
+            assert Group.objects.filter(id=group.id).exists()
+            assert GroupHash.objects.filter(group_id=group.id).exists()

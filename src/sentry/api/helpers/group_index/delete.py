@@ -11,6 +11,7 @@ from sentry.api.base import audit_logger
 from sentry.models import Group, GroupHash, GroupInbox, GroupStatus, Project
 from sentry.signals import issue_deleted
 from sentry.tasks.deletion import delete_groups as delete_groups_task
+from sentry.types.issues import GroupCategory
 from sentry.utils.audit import create_audit_entry
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
@@ -119,6 +120,9 @@ def delete_groups(
 
     if not group_list:
         return Response(status=204)
+
+    if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
+        return Response({"detail": "Cannot delete performance issues."}, status=403)
 
     groups_by_project_id = defaultdict(list)
     for group in group_list:

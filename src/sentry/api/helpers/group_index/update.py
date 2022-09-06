@@ -72,6 +72,9 @@ def handle_discard(
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
+    if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
+        return Response({"detail": "Cannot discard performance issues."}, status=403)
+
     # grouped by project_id
     groups_to_delete = defaultdict(list)
 
@@ -185,15 +188,6 @@ def update_groups(
             return Response(status=204)
     else:
         group_list = None
-
-    # option 1: return early if perf issues
-    if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
-        return Response(status=204)
-
-    # option 2: pick out perf issues and only process errors
-    group_list = [
-        group for group in group_list if group.issue_category != GroupCategory.PERFORMANCE
-    ]
 
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
@@ -796,6 +790,10 @@ def update_groups(
         # don't allow merging cross project
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
+
+        if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
+            return Response({"detail": "Cannot merge performance issues."}, status=403)
+
         group_list_by_times_seen = sorted(
             group_list, key=lambda g: (g.times_seen, g.id), reverse=True
         )
