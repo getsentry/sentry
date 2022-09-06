@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import sentry_sdk
 
@@ -156,8 +156,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
     }
 
-    # Create performance issues for duplicate spans first
-    used_perf_issue_detectors = {DetectorType.DUPLICATE_SPANS_HASH}
+    # Create performance issues for N+1 DB queries first
+    used_perf_issue_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES}
 
     for span in spans:
         for _, detector in detectors.items():
@@ -182,8 +182,15 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
 
 def prepare_problem_for_grouping(
-    problem: PerformanceSpanProblem, data: Event, detector_type: DetectorType
+    problem: Union[PerformanceProblem, PerformanceSpanProblem],
+    data: Event,
+    detector_type: DetectorType,
 ) -> PerformanceProblem:
+    # Don't transform if the caller has already done the work for us.
+    # (TBD: All detectors should get updated to just return PerformanceProblem directly)
+    if isinstance(problem, PerformanceProblem):
+        return problem
+
     transaction_name = data.get("transaction")
     spans_involved = problem.spans_involved
     first_span_id = spans_involved[0]
@@ -803,12 +810,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         )
         if fingerprint not in self.stored_problems:
             spans_involved = [self.source_span] + self.n_spans
-            self.stored_problems[fingerprint] = PerformanceSpanProblem(
+            span_ids_involved = [span.get("span_id", None) for span in spans_involved]
+            self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
-                spans_involved=spans_involved,
-                # Not used anymore
-                span_id=self.n_spans[0].get("span_id", None),
-                allowed_op="db",
+                op="db",
+                desc=self.source_span.get("description", ""),
+                type=DetectorType.N_PLUS_ONE_DB_QUERIES,
+                spans_involved=span_ids_involved,
             )
 
     def _reset_detection(self):
