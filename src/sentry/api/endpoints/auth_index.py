@@ -95,7 +95,9 @@ class AuthIndexEndpoint(Endpoint):
             return authenticated
         return False
 
-    def _validate_superuser(self, validator, request, verify_authenticator):
+    def _validate_superuser(
+        self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
+    ):
         """
         For a superuser, they need to be validated before we can grant an active superuser session.
         If the user has a password or u2f device, authenticate the password/challenge that was sent is valid.

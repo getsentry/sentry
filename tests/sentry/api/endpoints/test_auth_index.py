@@ -118,8 +118,36 @@ class AuthVerifyEndpointTest(APITestCase):
         assert {"response": "response"} in validate_response.call_args[0]
 
 
-class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTest, APITestCase):
+class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
+
+    def get_auth(self, user):
+        return Authenticator.objects.create(
+            type=3,  # u2f
+            user=user,
+            config={
+                "devices": [
+                    {
+                        "binding": {
+                            "publicKey": "aowekroawker",
+                            "keyHandle": "devicekeyhandle",
+                            "appId": "https://testserver/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Amused Beetle",
+                        "ts": 1512505334,
+                    },
+                    {
+                        "binding": {
+                            "publicKey": "publickey",
+                            "keyHandle": "aowerkoweraowerkkro",
+                            "appId": "https://testserver/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Sentry",
+                        "ts": 1512505334,
+                    },
+                ]
+            },
+        )
 
     @with_feature("organizations:u2f-superuser-form")
     @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
@@ -325,8 +353,8 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, AuthVerifyEndpointTe
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
-            with mock.patch.object(Superuser, "org_id", None), override_settings(
-                SUPERUSER_ORG_ID=None
+            with mock.patch.object(Superuser, "org_id", self.organization.id), override_settings(
+                SUPERUSER_ORG_ID=self.organization.id
             ):
                 self.login_as(user)
                 response = self.client.put(
