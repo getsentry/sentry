@@ -4,8 +4,10 @@ import logging
 import random
 import re
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
+from typing import Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -102,6 +104,15 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
+
+
+@dataclass
+class GroupInfo:
+    group: Group
+    is_new: bool
+    is_regression: bool
+    group_release: Optional[GroupRelease] = None
+    is_new_group_environment: bool = False
 
 
 def pop_tag(data, key):
@@ -346,9 +357,10 @@ class EventManager:
 
         projects = {project.id: project}
 
+        job = {"data": self._data, "project_id": project.id, "raw": raw, "start_time": start_time}
+
         if self._data.get("type") == "transaction":
-            self._data["project"] = int(project_id)
-            job = {"data": self._data, "start_time": start_time}
+            job["data"]["project"] = project.id
             jobs = save_transaction_events([job], projects)
 
             if not project.flags.has_transactions and not skip_send_first_transaction:
@@ -363,7 +375,6 @@ class EventManager:
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
 
-        job = {"data": self._data, "project_id": project_id, "raw": raw, "start_time": start_time}
         jobs = [job]
 
         is_reprocessed = is_reprocessed_event(job["data"])
@@ -457,7 +468,7 @@ class EventManager:
 
         try:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
-                job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
+                group_info = _save_aggregate(
                     event=job["event"],
                     hashes=hashes,
                     release=job["release"],
@@ -465,11 +476,12 @@ class EventManager:
                     received_timestamp=job["received_timestamp"],
                     **kwargs,
                 )
+                job["groups"] = [group_info]
         except HashDiscarded:
             discard_event(job, attachments)
             raise
 
-        job["event"].group = job["group"]
+        job["event"].group = group_info.group
 
         # store a reference to the group id to guarantee validation of isolation
         # XXX(markus): No clue what this does
@@ -481,10 +493,9 @@ class EventManager:
         _get_or_create_group_release_many(jobs, projects)
         _tsdb_record_all_metrics(jobs)
 
-        if job["group"]:
-            UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
-                group_id=job["group"].id, environment_id=job["environment"].id
-            )
+        UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
+            group_id=group_info.group.id, environment_id=job["environment"].id
+        )
 
         with metrics.timer("event_manager.filter_attachments_for_group"):
             attachments = filter_attachments_for_group(attachments, job)
@@ -500,23 +511,6 @@ class EventManager:
         _nodestore_save_many(jobs)
         save_unprocessed_event(project, job["event"].event_id)
 
-        if job["release"]:
-            if job["is_new"]:
-                buffer_incr(
-                    ReleaseProject,
-                    {"new_groups": 1},
-                    {"release_id": job["release"].id, "project_id": project.id},
-                )
-            if job["is_new_group_environment"]:
-                buffer_incr(
-                    ReleaseProjectEnvironment,
-                    {"new_issues_count": 1},
-                    {
-                        "project_id": project.id,
-                        "release_id": job["release"].id,
-                        "environment_id": job["environment"].id,
-                    },
-                )
         if not raw:
             if not project.first_event:
                 project.update(first_event=job["event"].datetime)
@@ -868,14 +862,12 @@ def _get_or_create_environment_many(jobs, projects):
 @metrics.wraps("save_event.get_or_create_group_environment_many")
 def _get_or_create_group_environment_many(jobs, projects):
     for job in jobs:
-        if job["group"]:
-            group_environment, job["is_new_group_environment"] = GroupEnvironment.get_or_create(
-                group_id=job["group"].id,
+        for group_info in job["groups"]:
+            group_info.is_new_group_environment = GroupEnvironment.get_or_create(
+                group_id=group_info.group.id,
                 environment_id=job["environment"].id,
                 defaults={"first_release": job["release"] or None},
-            )
-        else:
-            job["is_new_group_environment"] = False
+            )[1]
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -899,18 +891,42 @@ def _get_or_create_release_associated_models(jobs, projects):
         ReleaseProjectEnvironment.get_or_create(
             project=project, release=release, environment=environment, datetime=date
         )
+        rp_new_groups = 0
+        rpe_new_groups = 0
+        for group_info in job["groups"]:
+            if group_info.is_new:
+                rp_new_groups += 1
+            if group_info.is_new_group_environment:
+                rpe_new_groups += 1
+        if rp_new_groups:
+            buffer_incr(
+                ReleaseProject,
+                {"new_groups": rp_new_groups},
+                {"release_id": release.id, "project_id": project.id},
+            )
+        if rpe_new_groups:
+            buffer_incr(
+                ReleaseProjectEnvironment,
+                {"new_issues_count": rpe_new_groups},
+                {
+                    "project_id": project.id,
+                    "release_id": release.id,
+                    "environment_id": environment.id,
+                },
+            )
 
 
 @metrics.wraps("save_event.get_or_create_group_release_many")
 def _get_or_create_group_release_many(jobs, projects):
     for job in jobs:
-        if job["release"] and job["group"]:
-            job["grouprelease"] = GroupRelease.get_or_create(
-                group=job["group"],
-                release=job["release"],
-                environment=job["environment"],
-                datetime=job["event"].datetime,
-            )
+        if job["release"]:
+            for group_info in job["groups"]:
+                group_info.group_release = GroupRelease.get_or_create(
+                    group=group_info.group,
+                    release=job["release"],
+                    environment=job["environment"],
+                    datetime=job["event"].datetime,
+                )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -929,35 +945,37 @@ def _tsdb_record_all_metrics(jobs):
 
         incrs.append((tsdb.models.project, job["project_id"]))
         event = job["event"]
-        group = job["group"]
         release = job["release"]
         environment = job["environment"]
+        user = job["user"]
 
-        if group:
-            incrs.append((tsdb.models.group, group.id))
+        for group_info in job["groups"]:
+            incrs.append((tsdb.models.group, group_info.group.id))
             frequencies.append(
-                (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: 1}})
+                (
+                    tsdb.models.frequent_environments_by_group,
+                    {group_info.group.id: {environment.id: 1}},
+                )
             )
 
-            if release:
+            if group_info.group_release:
                 frequencies.append(
                     (
                         tsdb.models.frequent_releases_by_group,
-                        {group.id: {job["grouprelease"].id: 1}},
+                        {group_info.group.id: {group_info.group_release.id: 1}},
                     )
+                )
+            if user:
+                records.append(
+                    (tsdb.models.users_affected_by_group, group_info.group.id, (user.tag_value,))
                 )
 
         if release:
             incrs.append((tsdb.models.release, release.id))
 
-        user = job["user"]
-
         if user:
             project_id = job["project_id"]
             records.append((tsdb.models.users_affected_by_project, project_id, (user.tag_value,)))
-
-            if group:
-                records.append((tsdb.models.users_affected_by_group, group.id, (user.tag_value,)))
 
         if incrs:
             tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
@@ -976,7 +994,7 @@ def _nodestore_save_many(jobs):
         # Write the event to Nodestore
         subkeys = {}
 
-        if job["group"]:
+        if job["groups"]:
             event = job["event"]
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
@@ -998,11 +1016,23 @@ def _eventstream_insert_many(jobs):
                 tags={"event_type": job["event"].data.get("type") or "null"},
             )
 
+        # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
+        # to change the format of eventstream to be able to handle data for multiple groups
+        if not job["groups"]:
+            is_new = False
+            is_regression = False
+            is_new_group_environment = False
+        else:
+            group_info = job["groups"][0]
+            is_new = group_info.is_new
+            is_regression = group_info.is_regression
+            is_new_group_environment = group_info.is_new_group_environment
+
         eventstream.insert(
             event=job["event"],
-            is_new=job["is_new"],
-            is_regression=job["is_regression"],
-            is_new_group_environment=job["is_new_group_environment"],
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
             primary_hash=job["event"].get_primary_hash(),
             received_timestamp=job["received_timestamp"],
             # We are choosing to skip consuming the event back
@@ -1139,7 +1169,7 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwargs):
+def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwargs) -> GroupInfo:
     project = event.project
 
     flat_grouphashes = [
@@ -1247,7 +1277,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
                     tags={"platform": event.platform or "unknown"},
                 )
 
-                return group, is_new, is_regression
+                return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
 
@@ -1297,7 +1327,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
         group=group, event=event, data=kwargs, release=release
     )
 
-    return group, is_new, is_regression
+    return GroupInfo(group, is_new, is_regression)
 
 
 def _find_existing_grouphash(
@@ -1928,6 +1958,8 @@ def save_transaction_events(jobs, projects):
             job["project_id"] = job["data"]["project"]
             job["raw"] = False
             job["group"] = None
+            # XXX: Temporary hack so that `groups` is always present
+            job["groups"] = []
             job["is_new"] = False
             job["is_regression"] = False
             job["is_new_group_environment"] = False

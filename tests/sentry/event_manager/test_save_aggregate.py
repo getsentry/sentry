@@ -81,9 +81,9 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
 
     if is_race_free:
         # assert one group is new
-        assert len({rv[0].id for rv in return_values}) == 1
-        assert sum(rv[1] for rv in return_values) == 1
+        assert len({rv.group.id for rv in return_values}) == 1
+        assert sum(rv.is_new for rv in return_values) == 1
     else:
         # assert many groups are new
-        assert 1 < len({rv[0].id for rv in return_values}) <= CONCURRENCY
-        assert 1 < sum(rv[1] for rv in return_values) <= CONCURRENCY
+        assert 1 < len({rv.group.id for rv in return_values}) <= CONCURRENCY
+        assert 1 < sum(rv.is_new for rv in return_values) <= CONCURRENCY
