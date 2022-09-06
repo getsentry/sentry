@@ -4,6 +4,8 @@ from typing import Any, Mapping, Optional, Set
 
 from django.conf import settings
 from django.db.models import Q
+from psycopg2 import OperationalError
+from psycopg2.errorcodes import DEADLOCK_DETECTED
 
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
@@ -47,6 +49,31 @@ class PGStringIndexerV2(StringIndexer):
         query_statement = reduce(or_, conditions)
 
         return self._table(use_case_id).objects.filter(query_statement)
+
+    def _bulk_create_with_retry(self, table, new_records) -> None:
+        retry_count = 0
+        max_retries = 3
+        success = False
+        last_seen_exception = None
+
+        with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
+            # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
+            # records might have be created between when we queried in `bulk_record` and the
+            # attempt to create the rows down below.
+            while not success and retry_count < max_retries:
+                try:
+                    table.objects.bulk_create(new_records, ignore_conflicts=True)
+                    success = True
+                except OperationalError as e:
+                    if e.pgcode == DEADLOCK_DETECTED:
+                        last_seen_exception = e
+                        metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked")
+                        retry_count += 1
+                    else:
+                        raise e
+            if not success:
+                metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked_no_recovery")
+                raise last_seen_exception
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
@@ -106,10 +133,7 @@ class PGStringIndexerV2(StringIndexer):
                 )
 
             with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
-                # records might have be created between when we queried in `bulk_record` and the
-                # attempt to create the rows down below.
-                self._table(use_case_id).objects.bulk_create(new_records, ignore_conflicts=True)
+                self._bulk_create_with_retry(self._table(use_case_id), new_records)
 
         db_write_key_results = KeyResults()
         db_write_key_results.add_key_results(
