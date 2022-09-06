@@ -488,6 +488,32 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         assert index_fingerprint != new_fingerprint
 
+    def test_ignores_fast_n_plus_one(self):
+        fast_n_plus_one_event = EVENTS["fast-n-plus-one-in-django-new-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(fast_n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+    def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self):
+        query_waterfall_event = EVENTS["query-waterfall-in-django-random-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_issue(query_waterfall_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
+                call("_pi_slow_span", "870ada8266466319"),
+            ]
+        )
+
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
