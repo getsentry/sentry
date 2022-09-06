@@ -6,8 +6,7 @@ import google.api_core.exceptions
 from django.conf import settings
 from google.cloud import spanner
 
-from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config, \
-    IndexerStorage
+from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     KeyCollection,
