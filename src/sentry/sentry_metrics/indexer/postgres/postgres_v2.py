@@ -51,6 +51,13 @@ class PGStringIndexerV2(StringIndexer):
         return self._table(use_case_id).objects.filter(query_statement)
 
     def _bulk_create_with_retry(self, table, new_records) -> None:
+        """
+        With multiple instances of the Postgres indexer running, we found that
+        rather than direct insert conflicts we were actually observing deadlocks
+        on insert. Here we surround bulk_create with a catch for the deadlock error
+        specifically so that we don't interrupt processing or raise an error for a
+        fairly normal event.
+        """
         retry_count = 0
         max_retries = 3
         success = False
@@ -60,7 +67,7 @@ class PGStringIndexerV2(StringIndexer):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
             # records might have be created between when we queried in `bulk_record` and the
             # attempt to create the rows down below.
-            while not success and retry_count < max_retries:
+            while not success and retry_count + 1 < max_retries:
                 try:
                     table.objects.bulk_create(new_records, ignore_conflicts=True)
                     success = True
