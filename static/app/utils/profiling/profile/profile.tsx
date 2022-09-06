@@ -3,6 +3,8 @@ import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
+import {ProfileGroup} from './importProfile';
+
 interface ProfileStats {
   discardedSamplesCount: number;
   negativeSamplesCount: number;
@@ -27,6 +29,8 @@ export class Profile {
   unit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
+
+  platform: ProfileGroup['metadata']['platform'];
 
   appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
