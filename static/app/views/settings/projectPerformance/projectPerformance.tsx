@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -18,6 +19,7 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
+type RouteParams = {orgId: string; projectId: string};
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
   project: Project;
@@ -41,12 +43,17 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return routeTitleGen(t('Performance'), projectId, false);
   }
 
+  getProjectEndpoint({orgId, projectId}: RouteParams) {
+    return `/projects/${orgId}/${projectId}/`;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
     const {orgId, projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['threshold', `/projects/${orgId}/${projectId}/transaction-threshold/configure/`],
+      ['project', `/projects/${orgId}/${projectId}/`],
     ];
 
     return endpoints;
@@ -125,6 +132,21 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return fields;
   }
 
+  get performanceIssueFormFields(): Field[] {
+    return [
+      {
+        name: 'performanceIssueCreationRate',
+        type: 'range',
+        label: t('Performance Issue Creation Rate'),
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        defaultValue: 0,
+        help: t('This determines the rate at which performance issues are created.'),
+      },
+    ];
+  }
+
   get initialData() {
     const {threshold} = this.state;
 
@@ -135,9 +157,11 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {organization, project, params} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
     const requiredScopes: Scope[] = ['project:write'];
+
+    const projectEndpoint = this.getProjectEndpoint(params);
 
     return (
       <Fragment>
@@ -180,6 +204,28 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
+        <Feature features={['organizations:performance-issues']}>
+          <Form
+            saveOnBlur
+            allowUndo
+            initialData={{
+              performanceIssueCreationRate:
+                this.state.project.performanceIssueCreationRate,
+            }}
+            apiMethod="PUT"
+            apiEndpoint={projectEndpoint}
+          >
+            <Access access={requiredScopes}>
+              {({hasAccess}) => (
+                <JsonForm
+                  title={t('Performance Issues')}
+                  fields={this.performanceIssueFormFields}
+                  disabled={!hasAccess}
+                />
+              )}
+            </Access>
+          </Form>
+        </Feature>
       </Fragment>
     );
   }
