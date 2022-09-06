@@ -406,7 +406,7 @@ class GroupDetails extends Component<Props, State> {
         id: '',
         name: `Errors within replay`,
         version: 2,
-        fields: ['id', 'replayId'],
+        fields: ['replayId', 'count()'],
         query: `issue.id:${groupId} !replayId:""`,
         projects: [],
       },
@@ -420,10 +420,9 @@ class GroupDetails extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
 
-      const ids = data.data.map(record => String(record.replayId));
-      const uniqueIds = Array.from(new Set(ids));
+      const replayIds = data.data.map(record => String(record.replayId));
       this.setState({
-        replayIds: uniqueIds,
+        replayIds,
         loadingReplayIds: false,
       });
     } catch (err) {
@@ -616,7 +615,7 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
           event={event}
           group={group}
-          replaysCount={undefined}
+          replaysCount={replayIds.length}
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
