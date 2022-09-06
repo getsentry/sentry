@@ -6,6 +6,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import HTMLCode from 'sentry/components/htmlCode';
+import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import SearchBar from 'sentry/components/searchBar';
@@ -20,7 +21,6 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 type Props = {
   replay: ReplayReader;
@@ -104,7 +104,7 @@ function DomMutations({replay}: Props) {
         <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
       </MutationFilters>
       {isLoading ? (
-        <LoadingIndicator />
+        <Placeholder height="200px" />
       ) : (
         <MutationList>
           {filteredDomMutations.map((mutation, i) => (

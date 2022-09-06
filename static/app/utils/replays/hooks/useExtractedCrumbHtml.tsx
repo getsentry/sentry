@@ -28,7 +28,7 @@ type HookOpts = {
   replay: ReplayReader;
 };
 
-window.requestIdleCallback =
+const requestIdleCallback =
   window.requestIdleCallback ||
   function (cb) {
     const start = Date.now();
@@ -47,74 +47,79 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
   const [breadcrumbRefs, setBreadcrumbReferences] = useState<Extraction[]>([]);
 
   useEffect(() => {
-    requestIdleCallback(() => {
-      let isMounted = true;
+    requestIdleCallback(
+      () => {
+        let isMounted = true;
 
-      const domRoot = document.createElement('div');
-      domRoot.className = 'sr-block';
-      const {style} = domRoot;
-      style.position = 'fixed';
-      style.inset = '0';
-      style.width = '0';
-      style.height = '0';
-      style.overflow = 'hidden';
+        const domRoot = document.createElement('div');
+        domRoot.className = 'sr-block';
+        const {style} = domRoot;
+        style.position = 'fixed';
+        style.inset = '0';
+        style.width = '0';
+        style.height = '0';
+        style.overflow = 'hidden';
 
-      document.body.appendChild(domRoot);
+        document.body.appendChild(domRoot);
 
-      // Get a list of the breadcrumbs that relate directly to the DOM, for each
-      // crumb we will extract the referenced HTML.
-      const crumbs = replay
-        .getRawCrumbs()
-        .filter(crumb => crumb.data && 'nodeId' in crumb.data);
+        // Get a list of the breadcrumbs that relate directly to the DOM, for each
+        // crumb we will extract the referenced HTML.
+        const crumbs = replay
+          .getRawCrumbs()
+          .filter(crumb => crumb.data && 'nodeId' in crumb.data);
 
-      const rrwebEvents = replay.getRRWebEvents();
+        const rrwebEvents = replay.getRRWebEvents();
 
-      // Grab the last event, but skip the synthetic `replay-end` event that the
-      // ReplayerReader added. RRWeb will skip that event when it comes time to render
-      const lastEvent = rrwebEvents[rrwebEvents.length - 2];
+        // Grab the last event, but skip the synthetic `replay-end` event that the
+        // ReplayerReader added. RRWeb will skip that event when it comes time to render
+        const lastEvent = rrwebEvents[rrwebEvents.length - 2];
 
-      const isLastRRWebEvent = (event: eventWithTime) => lastEvent === event;
+        const isLastRRWebEvent = (event: eventWithTime) => lastEvent === event;
 
-      const replayerRef = new Replayer(rrwebEvents, {
-        root: domRoot,
-        loadTimeout: 1,
-        showWarning: false,
-        blockClass: 'sr-block',
-        speed: 99999,
-        skipInactive: true,
-        triggerFocus: false,
-        plugins: [
-          new BreadcrumbReferencesPlugin({
-            crumbs,
-            isFinished: isLastRRWebEvent,
-            onFinish: rows => {
-              if (isMounted) {
-                setBreadcrumbReferences(rows);
-              }
-              setTimeout(() => {
-                if (document.body.contains(domRoot)) {
-                  document.body.removeChild(domRoot);
+        const replayerRef = new Replayer(rrwebEvents, {
+          root: domRoot,
+          loadTimeout: 1,
+          showWarning: false,
+          blockClass: 'sr-block',
+          speed: 99999,
+          skipInactive: true,
+          triggerFocus: false,
+          plugins: [
+            new BreadcrumbReferencesPlugin({
+              crumbs,
+              isFinished: isLastRRWebEvent,
+              onFinish: rows => {
+                if (isMounted) {
+                  setBreadcrumbReferences(rows);
                 }
-              }, 0);
-            },
-          }),
-        ],
-        mouseTail: false,
-      });
+                setTimeout(() => {
+                  if (document.body.contains(domRoot)) {
+                    document.body.removeChild(domRoot);
+                  }
+                }, 0);
+              },
+            }),
+          ],
+          mouseTail: false,
+        });
 
-      try {
-        // Run the replay to the end, we will capture data as it streams into the plugin
-        replayerRef.pause(replay.getReplay().finishedAt.getTime());
-      } catch (error) {
-        Sentry.captureException(error);
+        try {
+          // Run the replay to the end, we will capture data as it streams into the plugin
+          replayerRef.pause(replay.getReplay().finishedAt.getTime());
+        } catch (error) {
+          Sentry.captureException(error);
+        }
+
+        setIsLoading(false);
+
+        return () => {
+          isMounted = false;
+        };
+      },
+      {
+        timeout: 2500,
       }
-
-      setIsLoading(false);
-
-      return () => {
-        isMounted = false;
-      };
-    });
+    );
   }, [replay]);
 
   return {
