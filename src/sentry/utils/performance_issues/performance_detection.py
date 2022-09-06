@@ -730,7 +730,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self._maybe_store_issue()
 
     def _contains_complete_query(self, span: Span) -> bool:
-        # When relay truncates span description, it adds a "..." suffix (three
+        # When SDKs truncate span description, they add a "..." suffix (three
         # full stops, not an ellipsis).
         query = span.get("description", None)
         return query and not query.endswith("...")
