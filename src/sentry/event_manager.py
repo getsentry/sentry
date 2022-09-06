@@ -1019,14 +1019,20 @@ def _eventstream_insert_many(jobs):
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
-            continue
-        group_info = job["groups"][0]
+            is_new = False
+            is_regression = False
+            is_new_group_environment = False
+        else:
+            group_info = job["groups"][0]
+            is_new = group_info.is_new
+            is_regression = group_info.is_regression
+            is_new_group_environment = group_info.is_new_group_environment
 
         eventstream.insert(
             event=job["event"],
-            is_new=group_info.is_new,
-            is_regression=group_info.is_regression,
-            is_new_group_environment=group_info.is_new_group_environment,
+            is_new=is_new,
+            is_regression=is_regression,
+            is_new_group_environment=is_new_group_environment,
             primary_hash=job["event"].get_primary_hash(),
             received_timestamp=job["received_timestamp"],
             # We are choosing to skip consuming the event back
