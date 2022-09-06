@@ -329,6 +329,8 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
+            "issueType": obj.issue_type.name.lower(),
+            "issueCategory": obj.issue_category.name.lower(),
         }
 
         # This attribute is currently feature gated
