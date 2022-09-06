@@ -29,9 +29,10 @@ import {useProfileGroup} from './profileGroupProvider';
 
 const LoadingGroup: ProfileGroup = {
   name: 'Loading',
-  traceID: '',
   activeProfileIndex: 0,
   profiles: [Profile.Empty()],
+  metadata: {},
+  traceID: '',
 };
 
 function ProfileFlamegraph(): React.ReactElement {
