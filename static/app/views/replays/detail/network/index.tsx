@@ -1,27 +1,40 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import FileSize from 'sentry/components/fileSize';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {ColorOrAlias} from 'sentry/utils/theme';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
+  getResourceTypes,
+  getStatusTypes,
   ISortConfig,
   NetworkSpan,
   sortNetwork,
+  UNKNOWN_STATUS,
 } from 'sentry/views/replays/detail/network/utils';
+import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   networkSpans: NetworkSpan[];
   replayRecord: ReplayRecord;
 };
+
+enum FilterTypesEnum {
+  RESOURCE_TYPE = 'resourceType',
+  STATUS = 'status',
+}
 
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
@@ -31,6 +44,21 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     asc: true,
     getValue: row => row[sortConfig.by],
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Filters<NetworkSpan>>({});
+
+  const filteredNetworkSpans = useMemo(
+    () =>
+      getFilteredItems({
+        items: networkSpans,
+        filters,
+        searchTerm,
+        searchProp: 'description',
+      }),
+    [filters, networkSpans, searchTerm]
+  );
+
+  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
 
   const handleMouseEnter = useCallback(
     (timestamp: number) => {
@@ -79,8 +107,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   }
 
   const networkData = useMemo(
-    () => sortNetwork(networkSpans, sortConfig),
-    [networkSpans, sortConfig]
+    () => sortNetwork(filteredNetworkSpans, sortConfig),
+    [filteredNetworkSpans, sortConfig]
   );
 
   const sortArrow = (sortedBy: string) => {
@@ -92,6 +120,28 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       />
     ) : null;
   };
+
+  const handleFilters = useCallback(
+    (
+      selectedValues: (string | number)[],
+      key: string,
+      filter: (network: NetworkSpan) => boolean
+    ) => {
+      const filtersCopy = {...filters};
+
+      if (selectedValues.length === 0) {
+        delete filtersCopy[key];
+        setFilters(filtersCopy);
+        return;
+      }
+
+      setFilters({
+        ...filters,
+        [key]: filter,
+      });
+    },
+    [filters]
+  );
 
   const columns = [
     <SortItem key="status">
@@ -185,18 +235,95 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   return (
-    <StyledPanelTable
-      columns={columns.length}
-      isEmpty={networkData.length === 0}
-      emptyMessage={t('No related network requests found.')}
-      headers={columns}
-      disablePadding
-      stickyHeaders
-    >
-      {networkData.map(renderTableRow) || null}
-    </StyledPanelTable>
+    <NetworkContainer>
+      <NetworkFilters>
+        <CompactSelect
+          triggerProps={{
+            prefix: t('Status'),
+          }}
+          triggerLabel={!filters[FilterTypesEnum.STATUS] ? t('Any') : null}
+          multiple
+          options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
+            value: networkSpanStatusType,
+            label: networkSpanStatusType,
+          }))}
+          size="sm"
+          onChange={selections => {
+            const selectedValues = selections.map(selection => selection.value);
+
+            handleFilters(
+              selectedValues,
+              FilterTypesEnum.STATUS,
+              (networkSpan: NetworkSpan) => {
+                if (
+                  selectedValues.includes(UNKNOWN_STATUS) &&
+                  !defined(networkSpan.data.statusCode)
+                ) {
+                  return true;
+                }
+
+                return selectedValues.includes(networkSpan.data.statusCode);
+              }
+            );
+          }}
+        />
+        <CompactSelect
+          triggerProps={{
+            prefix: t('Type'),
+          }}
+          triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
+          multiple
+          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
+            value: networkSpanResourceType,
+            label: networkSpanResourceType,
+          }))}
+          size="sm"
+          onChange={selections => {
+            const selectedValues = selections.map(selection => selection.value);
+
+            handleFilters(
+              selectedValues,
+              FilterTypesEnum.RESOURCE_TYPE,
+              (networkSpan: NetworkSpan) => {
+                return selectedValues.includes(networkSpan.op.replace('resource.', ''));
+              }
+            );
+          }}
+        />
+        <SearchBar
+          size="sm"
+          onChange={handleSearch}
+          placeholder={t('Search Network...')}
+        />
+      </NetworkFilters>
+      <StyledPanelTable
+        columns={columns.length}
+        isEmpty={networkData.length === 0}
+        emptyMessage={t('No related network requests found.')}
+        headers={columns}
+        disablePadding
+        stickyHeaders
+      >
+        {networkData.map(renderTableRow) || null}
+      </StyledPanelTable>
+    </NetworkContainer>
   );
 }
+
+const NetworkContainer = styled(FluidHeight)`
+  height: 100%;
+`;
+
+const NetworkFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content max-content 1fr;
+  margin-bottom: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin-top: ${space(1)};
+  }
+`;
 
 const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
   display: flex;

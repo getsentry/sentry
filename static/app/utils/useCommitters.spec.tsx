@@ -39,7 +39,6 @@ describe('useCommitters hook', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    CommitterStore.teardown();
   });
 
   it('returns committers', async () => {

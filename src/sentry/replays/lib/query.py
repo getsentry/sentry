@@ -1,5 +1,5 @@
 """Dynamic query parsing library."""
-from typing import Any, Generator, List, Optional, Tuple
+from typing import Any, Generator, List, Optional, Tuple, Union
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Op
@@ -17,6 +17,7 @@ OPERATOR_MAP = {
     ">=": Op.GTE,
     "<": Op.LT,
     "<=": Op.LTE,
+    "IN": Op.IN,
 }
 
 
@@ -49,7 +50,21 @@ class Field:
         else:
             return op, []
 
-    def deserialize_value(self, value: str) -> Tuple[Any, List[str]]:
+    def deserialize_values(self, values: List[str]) -> Tuple[Any, List[str]]:
+        parsed_values = []
+        for value in values:
+            parsed_value, errors = self.deserialize_value(value)
+            if errors:
+                return None, errors
+
+            parsed_values.append(parsed_value)
+
+        return parsed_values, []
+
+    def deserialize_value(self, value: Union[List[str], str]) -> Tuple[Any, List[str]]:
+        if isinstance(value, list):
+            return self.deserialize_values(value)
+
         try:
             typed_value = self._python_type(value)
         except ValueError:
@@ -64,12 +79,12 @@ class Field:
 
 
 class String(Field):
-    _operators = [Op.EQ, Op.NEQ]
+    _operators = [Op.EQ, Op.NEQ, Op.IN]
     _python_type = str
 
 
 class Number(Field):
-    _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE]
+    _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN]
     _python_type = int
 
 
