@@ -134,12 +134,12 @@ class TimeseriesCardinalityLimiterFactory:
         self.rate_limiters: MutableMapping[str, TimeseriesCardinalityLimiter] = {}
 
     def get_ratelimiter(self, config: MetricsIngestConfiguration) -> TimeseriesCardinalityLimiter:
-        namespace = config.writes_limiter_namespace
+        namespace = config.cardinality_limiter_namespace
         if namespace not in self.rate_limiters:
-            writes_rate_limiter = TimeseriesCardinalityLimiter(
-                namespace, RedisCardinalityLimiter(**config.writes_limiter_cluster_options)
+            limiter = TimeseriesCardinalityLimiter(
+                namespace, RedisCardinalityLimiter(**config.cardinality_limiter_cluster_options)
             )
-            self.rate_limiters[namespace] = writes_rate_limiter
+            self.rate_limiters[namespace] = limiter
 
         return self.rate_limiters[namespace]
 

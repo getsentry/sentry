@@ -36,6 +36,7 @@ class MetricsIngestConfiguration:
     writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
     cardinality_limiter_cluster_options: Mapping[str, Any]
+    cardinality_limiter_namespace: str
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
@@ -62,6 +63,7 @@ def get_ingest_config(
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 cardinality_limiter_cluster_options={},
+                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             )
         )
 
@@ -76,6 +78,7 @@ def get_ingest_config(
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
+                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
             )
         )
 
@@ -90,7 +93,8 @@ def get_ingest_config(
                 internal_metrics_tag="release-health-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
-                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
+                cardinality_limiter_cluster_options={},
+                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             )
         )
 
@@ -106,6 +110,7 @@ def get_ingest_config(
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
                 writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
+                cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
             )
         )
 
@@ -121,6 +126,7 @@ def get_ingest_config(
                 writes_limiter_cluster_options={},
                 writes_limiter_namespace="test-namespace",
                 cardinality_limiter_cluster_options={},
+                cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             )
         )
 
