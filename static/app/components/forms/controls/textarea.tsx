@@ -46,8 +46,8 @@ const TextArea = styled(TextAreaControl, {
   ${p =>
     p.autosize &&
     `
-      height: auto;
-      min-height: auto;
+      height: unset;
+      min-height: unset;
     `}
 `;
 
