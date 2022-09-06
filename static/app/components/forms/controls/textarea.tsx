@@ -41,6 +41,14 @@ const TextArea = styled(TextAreaControl, {
 })`
   ${inputStyles};
   line-height: ${p => p.theme.text.lineHeightBody};
+
+  /** Allow react-autosize-textarea to freely control height based on props. */
+  ${p =>
+    p.autosize &&
+    `
+      height: unset;
+      min-height: unset;
+    `}
 `;
 
 export default TextArea;
