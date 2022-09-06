@@ -42,6 +42,16 @@ export enum SavedSearchType {
   SESSION = 2,
 }
 
+export enum IssueCategory {
+  PERFORMANCE = 'performance',
+  ERROR = 'error',
+}
+
+export enum IssueType {
+  ERROR = 'error',
+  PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
+}
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
@@ -423,6 +433,8 @@ export interface BaseGroup extends GroupRelease {
   isPublic: boolean;
   isSubscribed: boolean;
   isUnhandled: boolean;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
   lastSeen: string;
   latestEvent: Event;
   level: Level;
