@@ -20,6 +20,7 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 type Props = {
   replay: ReplayReader;
@@ -70,11 +71,7 @@ function DomMutations({replay}: Props) {
     [filters]
   );
 
-  if (isLoading) {
-    return null;
-  }
-
-  if (actions.length === 0) {
+  if (actions.length === 0 && !isLoading) {
     return (
       <EmptyStateWarning withIcon={false} small>
         {t('No DOM Events recorded')}
@@ -106,39 +103,43 @@ function DomMutations({replay}: Props) {
 
         <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
       </MutationFilters>
-      <MutationList>
-        {filteredDomMutations.map((mutation, i) => (
-          <MutationListItem
-            key={i}
-            onMouseEnter={() => handleMouseEnter(mutation.crumb)}
-            onMouseLeave={() => handleMouseLeave(mutation.crumb)}
-          >
-            {i < actions.length - 1 && <StepConnector />}
-            <IconWrapper color={mutation.crumb.color}>
-              <BreadcrumbIcon type={mutation.crumb.type} />
-            </IconWrapper>
-            <MutationContent>
-              <MutationDetailsContainer>
-                <div>
-                  <TitleContainer>
-                    <Title>{getDetails(mutation.crumb).title}</Title>
-                  </TitleContainer>
-                  <MutationMessage>{mutation.crumb.message}</MutationMessage>
-                </div>
-                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
-                  <PlayerRelativeTime
-                    relativeTimeMs={startTimestampMs}
-                    timestamp={mutation.crumb.timestamp}
-                  />
-                </UnstyledButton>
-              </MutationDetailsContainer>
-              <CodeContainer>
-                <HTMLCode code={mutation.html} />
-              </CodeContainer>
-            </MutationContent>
-          </MutationListItem>
-        ))}
-      </MutationList>
+      {isLoading ? (
+        <LoadingIndicator />
+      ) : (
+        <MutationList>
+          {filteredDomMutations.map((mutation, i) => (
+            <MutationListItem
+              key={i}
+              onMouseEnter={() => handleMouseEnter(mutation.crumb)}
+              onMouseLeave={() => handleMouseLeave(mutation.crumb)}
+            >
+              {i < actions.length - 1 && <StepConnector />}
+              <IconWrapper color={mutation.crumb.color}>
+                <BreadcrumbIcon type={mutation.crumb.type} />
+              </IconWrapper>
+              <MutationContent>
+                <MutationDetailsContainer>
+                  <div>
+                    <TitleContainer>
+                      <Title>{getDetails(mutation.crumb).title}</Title>
+                    </TitleContainer>
+                    <MutationMessage>{mutation.crumb.message}</MutationMessage>
+                  </div>
+                  <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+                    <PlayerRelativeTime
+                      relativeTimeMs={startTimestampMs}
+                      timestamp={mutation.crumb.timestamp}
+                    />
+                  </UnstyledButton>
+                </MutationDetailsContainer>
+                <CodeContainer>
+                  <HTMLCode code={mutation.html} />
+                </CodeContainer>
+              </MutationContent>
+            </MutationListItem>
+          ))}
+        </MutationList>
+      )}
     </MutationContainer>
   );
 }
