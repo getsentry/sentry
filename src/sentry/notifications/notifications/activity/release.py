@@ -52,7 +52,7 @@ class ReleaseActivityNotification(ActivityNotification):
             return
 
         self.projects = set(self.release.projects.all())
-        self.commit_list = Commit.objects.get_for_release(self.release)
+        self.commit_list = list(Commit.objects.get_for_release(self.release))
         self.email_list = {c.author.email for c in self.commit_list if c.author}
         users = UserEmail.objects.get_users_by_emails(self.email_list, self.organization)
         self.user_ids = {u.id for u in users.values()}

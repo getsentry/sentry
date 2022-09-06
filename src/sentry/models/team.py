@@ -111,7 +111,7 @@ class TeamManager(BaseManager):
                 update_code_owners_schema.apply_async(
                     kwargs={
                         "organization": instance.organization,
-                        "projects": instance.get_projects(),
+                        "projects": list(instance.get_projects()),
                     }
                 )
             except (Organization.DoesNotExist, Project.DoesNotExist):
