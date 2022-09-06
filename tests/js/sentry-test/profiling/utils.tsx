@@ -76,7 +76,8 @@ export const makeFlamegraph = (
   return new Flamegraph(
     EventedProfile.FromProfile(
       trace ? {...base, ...trace} : base,
-      createFrameIndex(frames ?? [{name: 'f0'}])
+      createFrameIndex(frames ?? [{name: 'f0'}]),
+      {}
     ),
     0,
     {inverted: false, leftHeavy: false}

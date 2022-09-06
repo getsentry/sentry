@@ -1,6 +1,7 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 import {stackMarkerToHumanReadable} from './../formatters/stackMarkerToHumanReadable';
 import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
@@ -10,7 +11,8 @@ import {createFrameIndex} from './utils';
 export class JSSelfProfile extends Profile {
   static FromProfile(
     profile: JSSelfProfiling.Trace,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    metadata: ProfileGroup['metadata']
   ): JSSelfProfile {
     // In the case of JSSelfProfiling, we need to index the abstract marker frames
     // as they will otherwise not be present in the ProfilerStack.
@@ -39,14 +41,15 @@ export class JSSelfProfile extends Profile {
     const startedAt = profile.samples[0].timestamp;
     const endedAt = lastOfArray(profile.samples).timestamp;
 
-    const jsSelfProfile = new JSSelfProfile(
-      endedAt - startedAt,
+    const jsSelfProfile = new JSSelfProfile({
+      duration: endedAt - startedAt,
       startedAt,
       endedAt,
-      'JSSelfProfiling',
-      'milliseconds',
-      0
-    );
+      name: 'JSSelfProfiling',
+      unit: 'milliseconds',
+      threadId: 0,
+      platform: metadata.platform ?? 'javascript',
+    });
 
     // Because JS self profiling takes an initial sample when we call new Profiler(),
     // it means that the first sample weight will always be zero. We want to append the sample with 0 weight,

@@ -1,5 +1,6 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
@@ -12,16 +13,18 @@ import {createFrameIndex} from './utils';
 export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    metadata: ProfileGroup['metadata']
   ): Profile {
-    const profile = new SampledProfile(
-      sampledProfile.endValue - sampledProfile.startValue,
-      sampledProfile.startValue,
-      sampledProfile.endValue,
-      sampledProfile.name,
-      sampledProfile.unit,
-      sampledProfile.threadID
-    );
+    const profile = new SampledProfile({
+      duration: sampledProfile.endValue - sampledProfile.startValue,
+      startedAt: sampledProfile.startValue,
+      endedAt: sampledProfile.endValue,
+      name: sampledProfile.name,
+      unit: sampledProfile.unit,
+      threadId: sampledProfile.threadID,
+      platform: metadata.platform,
+    });
 
     if (sampledProfile.samples.length !== sampledProfile.weights.length) {
       throw new Error(

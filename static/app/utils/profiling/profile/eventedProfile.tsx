@@ -1,6 +1,7 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
@@ -13,16 +14,18 @@ export class EventedProfile extends Profile {
 
   static FromProfile(
     eventedProfile: Profiling.EventedProfile,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createFrameIndex>,
+    metadata: ProfileGroup['metadata']
   ): EventedProfile {
-    const profile = new EventedProfile(
-      eventedProfile.endValue - eventedProfile.startValue,
-      eventedProfile.startValue,
-      eventedProfile.endValue,
-      eventedProfile.name,
-      eventedProfile.unit,
-      eventedProfile.threadID
-    );
+    const profile = new EventedProfile({
+      duration: eventedProfile.endValue - eventedProfile.startValue,
+      startedAt: eventedProfile.startValue,
+      endedAt: eventedProfile.endValue,
+      name: eventedProfile.name,
+      unit: eventedProfile.unit,
+      threadId: eventedProfile.threadID,
+      platform: metadata.platform,
+    });
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.

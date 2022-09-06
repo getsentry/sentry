@@ -74,7 +74,15 @@ describe('Profile', () => {
   });
 
   it('forEach - iterates over a single sample', () => {
-    const profile = new Profile(1000, 0, 1000, 'profile', 'ms', 0);
+    const profile = new Profile({
+      duration: 1000,
+      startedAt: 0,
+      endedAt: 1000,
+      name: 'profile',
+      unit: 'ms',
+      threadId: 0,
+      platform: undefined,
+    });
 
     // Frames
     const f0 = f('f0', 0);
@@ -102,7 +110,15 @@ describe('Profile', () => {
   });
 
   it('forEach - opens new frames when stack is shared', () => {
-    const profile = new Profile(1000, 0, 1000, 'profile', 'ms', 0);
+    const profile = new Profile({
+      duration: 1000,
+      startedAt: 0,
+      endedAt: 1000,
+      name: 'profile',
+      unit: 'ms',
+      threadId: 0,
+      platform: undefined,
+    });
 
     // Frames
     const f0 = f('f0', 0);
@@ -136,7 +152,15 @@ describe('Profile', () => {
   });
 
   it('forEach - closes frames one by one when stack is shared', () => {
-    const profile = new Profile(1000, 0, 1000, 'profile', 'ms', 0);
+    const profile = new Profile({
+      duration: 1000,
+      startedAt: 0,
+      endedAt: 1000,
+      name: 'profile',
+      unit: 'ms',
+      threadId: 0,
+      platform: undefined,
+    });
 
     // Instantiate frames
     const f0 = f('f0', 0);
@@ -169,7 +193,15 @@ describe('Profile', () => {
   // In JS land, the stack can be idle which is not the case in other runtimes, e.g. in mobile
   //  the program main is always running, so make sure we support "holes" in the samples
   it('forEach - supports an idle stack', () => {
-    const profile = new Profile(1000, 0, 1000, 'profile', 'ms', 0);
+    const profile = new Profile({
+      duration: 1000,
+      startedAt: 0,
+      endedAt: 1000,
+      name: 'profile',
+      unit: 'ms',
+      threadId: 0,
+      platform: undefined,
+    });
 
     // Instantiate frames
     const f0 = f('f0', 0);

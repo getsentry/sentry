@@ -7,12 +7,17 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {BoundTooltip} from './boundTooltip';
+import {DefaultTooltip} from './defaultTooltip';
+import {PythonTooltip} from './pythonTooltip';
 
-function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
+export function formatWeightToProfileDuration(
+  frame: CallTreeNode,
+  flamegraph: Flamegraph
+) {
   return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
 }
 
@@ -23,7 +28,7 @@ export interface FlamegraphTooltipProps {
   flamegraphRenderer: FlamegraphRenderer;
   flamegraphView: FlamegraphView;
   frame: FlamegraphFrame;
-  platform: 'javascript' | 'python' | 'ios' | 'android';
+  platform: 'javascript' | 'python' | 'ios' | 'android' | string | undefined;
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
@@ -34,36 +39,31 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
       flamegraphCanvas={props.flamegraphCanvas}
       flamegraphView={props.flamegraphView}
     >
-      <HoveredFrameMainInfo>
-        <FrameColorIndicator
-          backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
-        />
-        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
-        {formatWeightToProfileDuration(
-          props.frame.node,
-          props.flamegraphRenderer.flamegraph
-        )}{' '}
-        {props.frame.frame.name}
-      </HoveredFrameMainInfo>
-      <HoveredFrameTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
-      </HoveredFrameTimelineInfo>
+      {props.platform === 'javascript' ? (
+        <DefaultTooltip {...props} />
+      ) : props.platform === 'python' ? (
+        <PythonTooltip {...props} />
+      ) : props.platform === 'ios' ? (
+        <DefaultTooltip {...props} />
+      ) : props.platform === 'android' ? (
+        <DefaultTooltip {...props} />
+      ) : (
+        <DefaultTooltip {...props} />
+      )}
     </BoundTooltip>
   );
 }
 
-const HoveredFrameTimelineInfo = styled('div')`
+export const FlamegraphTooltipTimelineInfo = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const HoveredFrameMainInfo = styled('div')`
+export const FlamegraphTooltipFrameMainInfo = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const FrameColorIndicator = styled('div')<{
+export const FlamegraphTooltipColorIndicator = styled('div')<{
   backgroundColor: React.CSSProperties['backgroundColor'];
 }>`
   width: 12px;

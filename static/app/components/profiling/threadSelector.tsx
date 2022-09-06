@@ -25,19 +25,21 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
   profileGroup,
 }: ThreadSelectorProps) {
   const options: SelectValue<number>[] = useMemo(() => {
-    return [...profileGroup.profiles].sort(compareProfiles).map(profile => ({
-      label: profile.name
-        ? `tid (${profile.threadId}): ${profile.name}`
-        : `tid (${profile.threadId})`,
-      value: profile.threadId,
-      disabled: profile.samples.length === 0,
-      details: (
-        <ThreadLabelDetails
-          duration={makeFormatter(profile.unit)(profile.duration)}
-          samples={profile.samples.length}
-        />
-      ),
-    }));
+    return [...profileGroup.profiles].sort(compareProfiles).map(profile => {
+      return {
+        label: profile.name
+          ? `tid (${profile.threadId}): ${profile.name}`
+          : `tid (${profile.threadId})`,
+        value: profile.threadId,
+        disabled: profile.samples.length === 0,
+        details: (
+          <ThreadLabelDetails
+            duration={makeFormatter(profile.unit)(profile.duration)}
+            samples={profile.samples.length}
+          />
+        ),
+      };
+    });
   }, [profileGroup]);
 
   const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(

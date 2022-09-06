@@ -30,7 +30,7 @@ export class Profile {
   // Name of the profile
   name = 'Unknown';
 
-  platform: ProfileGroup['metadata']['platform'];
+  platform: ProfileGroup['metadata']['platform'] = '';
 
   appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
@@ -46,23 +46,41 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  constructor(
-    duration: number,
-    startedAt: number,
-    endedAt: number,
-    name: string,
-    unit: string,
-    threadId: number
-  ) {
+  constructor({
+    duration,
+    startedAt,
+    endedAt,
+    name,
+    unit,
+    threadId,
+    platform,
+  }: {
+    duration: number;
+    endedAt: number;
+    name: string;
+    platform: ProfileGroup['metadata']['platform'];
+    startedAt: number;
+    threadId: number;
+    unit: string;
+  }) {
     this.threadId = threadId;
     this.duration = duration;
     this.startedAt = startedAt;
     this.endedAt = endedAt;
     this.name = name;
     this.unit = unit;
+    this.platform = platform;
   }
 
-  static Empty = new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
+  static Empty = new Profile({
+    duration: 1000,
+    startedAt: 0,
+    endedAt: 1000,
+    name: 'Empty Profile',
+    unit: 'milliseconds',
+    threadId: 0,
+    platform: undefined,
+  }).build();
 
   isEmpty(): boolean {
     return this === Profile.Empty;

@@ -756,7 +756,7 @@ function FlamegraphZoomView({
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
           canvasBounds={canvasBounds}
-          platform={platform}
+          platform={flamegraph.profile.platform}
         />
       ) : null}
     </CanvasContainer>
