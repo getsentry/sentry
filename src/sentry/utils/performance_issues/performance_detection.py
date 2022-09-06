@@ -704,7 +704,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         if op != "db":
             # This breaks up the N+1 we're currently tracking.
-            self._maybe_store_issue()
+            self._maybe_store_problem()
             self._reset_detection()
             # Treat it as a potential parent as long as it isn't the root span.
             if span.get("parent_span_id", None):
@@ -721,13 +721,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if self._continues_n_plus_1(span):
             self.n_spans.append(span)
         else:
-            self._maybe_store_issue()
+            self._maybe_store_problem()
             self._reset_detection()
             # Maybe this DB span starts a whole new N+1!
             self._maybe_use_as_source(span)
 
     def visited_all_spans(self) -> None:
-        self._maybe_store_issue()
+        self._maybe_store_problem()
 
     def _contains_complete_query(self, span: Span) -> bool:
         # When SDKs truncate span description, they add a "..." suffix (three
@@ -776,7 +776,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
         return last_span_ends > current_span_begins
 
-    def _maybe_store_issue(self):
+    def _maybe_store_problem(self):
         if not self.source_span or not self.n_spans:
             return
 
