@@ -1,7 +1,6 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
 import {stackMarkerToHumanReadable} from './../formatters/stackMarkerToHumanReadable';
 import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
@@ -11,8 +10,7 @@ import {createFrameIndex} from './utils';
 export class JSSelfProfile extends Profile {
   static FromProfile(
     profile: JSSelfProfiling.Trace,
-    frameIndex: ReturnType<typeof createFrameIndex>,
-    metadata: ProfileGroup['metadata']
+    frameIndex: ReturnType<typeof createFrameIndex>
   ): JSSelfProfile {
     // In the case of JSSelfProfiling, we need to index the abstract marker frames
     // as they will otherwise not be present in the ProfilerStack.
@@ -48,7 +46,6 @@ export class JSSelfProfile extends Profile {
       name: 'JSSelfProfiling',
       unit: 'milliseconds',
       threadId: 0,
-      platform: metadata.platform ?? 'javascript',
     });
 
     // Because JS self profiling takes an initial sample when we call new Profiler(),

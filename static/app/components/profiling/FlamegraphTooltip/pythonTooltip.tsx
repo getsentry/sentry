@@ -25,6 +25,10 @@ export function PythonTooltip(props: FlamegraphTooltipProps) {
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
+        {props.frame.frame.file ?? '<unknown file>'}:
+        {props.frame.frame.line ?? '<unknown line>'}
+      </FlamegraphTooltipTimelineInfo>
+      <FlamegraphTooltipTimelineInfo>
         {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
         {' \u2014 '}
         {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}

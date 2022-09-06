@@ -3,8 +3,6 @@ import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
-import {ProfileGroup} from './importProfile';
-
 interface ProfileStats {
   discardedSamplesCount: number;
   negativeSamplesCount: number;
@@ -30,8 +28,6 @@ export class Profile {
   // Name of the profile
   name = 'Unknown';
 
-  platform: ProfileGroup['metadata']['platform'] = '';
-
   appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
 
@@ -53,12 +49,10 @@ export class Profile {
     name,
     unit,
     threadId,
-    platform,
   }: {
     duration: number;
     endedAt: number;
     name: string;
-    platform: ProfileGroup['metadata']['platform'];
     startedAt: number;
     threadId: number;
     unit: string;
@@ -69,7 +63,6 @@ export class Profile {
     this.endedAt = endedAt;
     this.name = name;
     this.unit = unit;
-    this.platform = platform;
   }
 
   static Empty = new Profile({
@@ -79,7 +72,6 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
-    platform: undefined,
   }).build();
 
   isEmpty(): boolean {

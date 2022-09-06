@@ -39,14 +39,8 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
       flamegraphCanvas={props.flamegraphCanvas}
       flamegraphView={props.flamegraphView}
     >
-      {props.platform === 'javascript' ? (
-        <DefaultTooltip {...props} />
-      ) : props.platform === 'python' ? (
+      {props.platform === 'python' ? (
         <PythonTooltip {...props} />
-      ) : props.platform === 'ios' ? (
-        <DefaultTooltip {...props} />
-      ) : props.platform === 'android' ? (
-        <DefaultTooltip {...props} />
       ) : (
         <DefaultTooltip {...props} />
       )}

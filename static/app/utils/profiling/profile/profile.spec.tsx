@@ -81,7 +81,6 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
-      platform: undefined,
     });
 
     // Frames
@@ -117,7 +116,6 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
-      platform: undefined,
     });
 
     // Frames
@@ -159,7 +157,6 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
-      platform: undefined,
     });
 
     // Instantiate frames
@@ -200,7 +197,6 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
-      platform: undefined,
     });
 
     // Instantiate frames

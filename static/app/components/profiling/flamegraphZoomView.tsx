@@ -24,6 +24,7 @@ import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRen
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
@@ -56,6 +57,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const [profileGroup] = useProfileGroup();
   const [flamegraphProfile] = useFlamegraphProfiles();
   const [flamegraphSearch] = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
@@ -756,7 +758,11 @@ function FlamegraphZoomView({
           flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
           canvasBounds={canvasBounds}
-          platform={flamegraph.profile.platform}
+          platform={
+            profileGroup.type === 'resolved'
+              ? profileGroup.data.metadata.platform
+              : undefined
+          }
         />
       ) : null}
     </CanvasContainer>
