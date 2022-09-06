@@ -1,15 +1,25 @@
+from __future__ import annotations
+
 import os
 import re
-from typing import Iterable, Tuple
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Iterable, List, Mapping, Tuple
+
+
+class ClassCategory(Enum):
+    MODEL = auto()
+    ENDPOINT = auto()
 
 
 def apply_decorators(
     decorator_name: str,
     import_stmt: str,
     target_names: Iterable[Tuple[str, str]],
+    path_name: str,
 ) -> None:
     def find_source_paths():
-        for (dirpath, dirnames, filenames) in os.walk("./src/sentry"):
+        for (dirpath, dirnames, filenames) in os.walk(path_name):
             for filename in filenames:
                 if filename.endswith(".py"):
                     yield os.path.join(dirpath, filename)
@@ -54,19 +64,24 @@ def apply_decorators(
                 f.write(new_code)
 
 
-def _parse_camelcase_name(name: str) -> Iterable[str]:
-    return re.findall("[A-Z][a-z]*", name)
+@dataclass
+class Keywords:
+    include_words: List[str]
+    exclude_words: List[str]
 
 
-def has_customer_name(name: str) -> bool:
-    keywords = ("Organization", "Project", "Team", "Group", "Event", "Issue")
-    name_words = _parse_camelcase_name(name)
-    return any(w in name_words for w in keywords) and ("JiraIssue" not in name)
+def has_customer_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
+    customer_keywords = keywords.get("customer")
+    return any(re.search(word, name) for word in customer_keywords.include_words) and not any(
+        re.search(word, name) for word in customer_keywords.exclude_words
+    )
 
 
-def has_control_name(name: str) -> bool:
-    if has_customer_name(name):
+def has_control_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
+    if has_customer_name(name, keywords):
         return False
-    keywords = ("User", "Auth", "Identity")
-    name_words = _parse_camelcase_name(name)
-    return any(w in name_words for w in keywords) and ("JiraIssue" not in name)
+
+    control_keywords = keywords.get("control")
+    return any(re.search(word, name) for word in control_keywords.include_words) and not any(
+        re.search(word, name) for word in control_keywords.exclude_words
+    )
