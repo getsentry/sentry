@@ -62,7 +62,7 @@ stack top -> stack bottom`;
 
 describe('Profile', () => {
   it('Empty profile duration is not infinity', () => {
-    const profile = Profile.Empty();
+    const profile = Profile.Empty;
     expect(profile.duration).toEqual(1000);
     expect(profile.minFrameDuration).toEqual(1000);
   });

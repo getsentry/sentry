@@ -113,8 +113,6 @@ describe('AssigneeSelector', () => {
 
   afterEach(() => {
     Client.clearMockResponses();
-    MemberListStore.teardown();
-    GroupStore.teardown();
     ProjectsStore.teardown();
     TeamStore.teardown();
   });

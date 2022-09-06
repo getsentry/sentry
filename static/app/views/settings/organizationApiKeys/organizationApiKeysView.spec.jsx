@@ -40,7 +40,7 @@ describe('OrganizationApiKeys', function () {
       />
     );
 
-    expect(wrapper.find('AutoSelectTextInput')).toHaveLength(1);
+    expect(wrapper.find('TextCopyInput')).toHaveLength(1);
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
@@ -62,6 +62,6 @@ describe('OrganizationApiKeys', function () {
     wrapper.update();
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('AutoSelectTextInput')).toHaveLength(0);
+    expect(wrapper.find('TextCopyInput')).toHaveLength(0);
   });
 });

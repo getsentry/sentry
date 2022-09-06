@@ -45,10 +45,10 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 /**
  * The option format used by react-select based components
  */
-export type SelectValue<T> = MenuListItemProps & {
+export interface SelectValue<T> extends MenuListItemProps {
   label: string | number | React.ReactElement;
   value: T;
-};
+}
 
 /**
  * The 'other' option format used by checkboxes, radios and more.

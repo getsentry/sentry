@@ -507,7 +507,7 @@ const FirstWordWrapper = styled('span')`
 `;
 
 const TagWrapper = styled('span')`
-  width: 5%;
+  flex-shrink: 0;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -515,18 +515,16 @@ const TagWrapper = styled('span')`
 `;
 
 const Documentation = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-family: ${p => p.theme.text.family};
-  color: ${p => p.theme.gray300};
   display: flex;
   flex: 2;
   padding: 0 ${space(1)};
+  min-width: 0;
 
+  ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.subText};
   white-space: pre;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
 `;
 
 const DropdownFooter = styled(`div`)`
