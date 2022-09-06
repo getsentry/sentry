@@ -51,7 +51,7 @@ type Props = WithRouterProps & {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  replaysCount: number | null;
+  replaysCount: number | undefined;
   event?: Event;
 };
 
@@ -230,7 +230,8 @@ class GroupHeader extends Component<Props, State> {
             to={`${baseUrl}replays/${location.search}`}
             isActive={() => currentTab === Tab.REPLAYS}
           >
-            {t('Replays')} <Badge text={replaysCount ?? ''} />
+            {t('Replays')}{' '}
+            {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
             <ReplaysFeatureBadge noTooltip />
           </ListLink>
         </Feature>
