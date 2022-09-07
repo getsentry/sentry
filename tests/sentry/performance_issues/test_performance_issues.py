@@ -38,36 +38,35 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            with self.feature("projects:performance-suspect-spans-ingestion"):
-                manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-                manager.normalize()
-                event = manager.save(self.project.id)
-                data = event.data
-                assert data["type"] == "transaction"
-                assert data["span_grouping_config"]["id"] == "default:2021-08-25"
-                spans = [{"hash": span["hash"]} for span in data["spans"]]
-                # the basic strategy is to simply use the description
-                assert spans == [
-                    {"hash": hash_values([span["description"]])} for span in data["spans"]
-                ]
-                assert len(event.groups) == 1
-                group = event.groups[0]
-                assert (
-                    group.title
-                    == "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10"
-                )
-                assert group.message == "/books/"
-                assert group.culprit == "/books/"
-                assert group.get_event_type() == "transaction"
-                assert group.get_event_metadata() == {
-                    "location": "/books/",
-                    "title": "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
-                }
-                assert group.location() == "/books/"
-                assert group.level == 40
-                assert group.issue_category == GroupCategory.PERFORMANCE
-                assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            "projects:performance-suspect-spans-ingestion"
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            data = event.data
+            assert data["type"] == "transaction"
+            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            spans = [{"hash": span["hash"]} for span in data["spans"]]
+            # the basic strategy is to simply use the description
+            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
+            assert len(event.groups) == 1
+            group = event.groups[0]
+            assert (
+                group.title
+                == "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10"
+            )
+            assert group.message == "/books/"
+            assert group.culprit == "/books/"
+            assert group.get_event_type() == "transaction"
+            assert group.get_event_metadata() == {
+                "location": "/books/",
+                "title": "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+            }
+            assert group.location() == "/books/"
+            assert group.level == 40
+            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
 
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
@@ -75,38 +74,39 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
-            with self.feature("projects:performance-suspect-spans-ingestion"):
-                manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-                manager.normalize()
-                event = manager.save(self.project.id)
-                group = event.groups[0]
-                assert group.issue_category == GroupCategory.PERFORMANCE
-                assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
-                group.data["metadata"] = {
-                    "location": "hi",
-                    "title": "lol",
-                }
-                group.culprit = "wat"
-                group.message = "nope"
-                group.save()
-                assert group.location() == "hi"
-                assert group.title == "lol"
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            "projects:performance-suspect-spans-ingestion"
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            group = event.groups[0]
+            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            group.data["metadata"] = {
+                "location": "hi",
+                "title": "lol",
+            }
+            group.culprit = "wat"
+            group.message = "nope"
+            group.save()
+            assert group.location() == "hi"
+            assert group.title == "lol"
 
-                manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
-                manager.normalize()
-                with self.tasks():
-                    manager.save(self.project.id)
-                # Make sure the original group is updated via buffers
-                group.refresh_from_db()
-                assert (
-                    group.title
-                    == "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10"
-                )
-                assert group.get_event_metadata() == {
-                    "location": "/books/",
-                    "title": "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
-                }
-                assert group.location() == "/books/"
-                assert group.message == "/books/"
-                assert group.culprit == "/books/"
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            with self.tasks():
+                manager.save(self.project.id)
+            # Make sure the original group is updated via buffers
+            group.refresh_from_db()
+            assert (
+                group.title
+                == "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10"
+            )
+            assert group.get_event_metadata() == {
+                "location": "/books/",
+                "title": "N+1 Query:SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+            }
+            assert group.location() == "/books/"
+            assert group.message == "/books/"
+            assert group.culprit == "/books/"
