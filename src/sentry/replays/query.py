@@ -373,9 +373,9 @@ def filter_tag_by_value(key: str, value: str) -> Condition:
     return Condition(Function("has", parameters=[_all_values_for_tag_key(key), value]), Op.EQ, 1)
 
 
-def filter_tag_by_values(key: str, value: List[str]) -> Condition:
+def filter_tag_by_values(key: str, values: List[str]) -> Condition:
     """Helper function that allows filtering a tag by multiple values."""
-    return Condition(Function("haAny", parameters=[_all_values_for_tag_key(key), value]), Op.EQ, 1)
+    return Condition(Function("haAny", parameters=[_all_values_for_tag_key(key), values]), Op.EQ, 1)
 
 
 def _all_values_for_tag_key(key: str) -> Function:
