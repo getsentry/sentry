@@ -405,6 +405,7 @@ class Group(Model):
         choices=(
             (GroupType.ERROR.value, _("Error")),
             (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
+            (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
             (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
             (GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value, _("Sequential Slow Spans")),
             (GroupType.PERFORMANCE_LONG_TASK_SPANS.value, _("Long Task Span")),
@@ -413,6 +414,7 @@ class Group(Model):
                 _("Render Blocking Asset Span"),
             ),
             (GroupType.PERFORMANCE_DUPLICATE_SPANS.value, _("Duplicate Spans")),
+            # TODO add more group types when detection starts outputting them
         ),
     )
 

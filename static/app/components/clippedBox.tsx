@@ -159,15 +159,7 @@ const Wrapper = styled('div', {
     prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
 })<State & {clipHeight: number}>`
   position: relative;
-  border-top: 1px solid ${p => p.theme.backgroundSecondary};
-  margin-left: -${space(3)};
-  margin-right: -${space(3)};
-  padding: ${space(2)} ${space(3)} 0;
-
-  :first-of-type {
-    margin-top: -${space(2)};
-    border: 0;
-  }
+  padding: ${space(1.5)} 0;
 
   /* For "Show More" animation */
   ${p =>
@@ -186,7 +178,7 @@ const Wrapper = styled('div', {
 `;
 
 const Title = styled('h5')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const ClipFade = styled('div')`

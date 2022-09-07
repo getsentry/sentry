@@ -44,7 +44,7 @@ export function getFormattedTimestamp(
     displayRelativeTime
   );
 
-  const timeWithMilliseconds = parsedTimestamp.format(`${timeFormat}:SSS`);
+  const timeWithMilliseconds = parsedTimestamp.format(`${timeFormat}:SSS z`);
 
   if (!displayRelativeTime) {
     return {
