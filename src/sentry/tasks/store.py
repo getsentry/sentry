@@ -22,7 +22,6 @@ from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
-from sentry.utils.performance_issues.performance_detection import detect_performance_issue
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -702,8 +701,6 @@ def _do_save_event(
                     data = dict(data.items())
                 with metrics.timer("tasks.store.do_save_event.write_processing_cache"):
                     processing.event_processing_store.store(data)
-                if event_type == "transaction":
-                    detect_performance_issue(data)
         except HashDiscarded:
             # Delete the event payload from cache since it won't show up in post-processing.
             if cache_key:
