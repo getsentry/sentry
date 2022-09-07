@@ -451,6 +451,14 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
 
+# Temporary option to be removed after rollout.
+# This sends events for the project IDs being passed here to the KAFKA_NEW_TRANSACTIONS
+# topic (default "transactions") instead of the KAFKA_TRANSACTIONS topic (currently "events").
+# e.g. [{"project_id": 2}, {"project_id": 3}]
+# Once transactions is fully rolled out and KAFKA_TRANSACTIONS is mapped to "transactions" instead
+# of "events" this should be removed.
+register("kafka.send-project-transactions-to-new-topic", default=[])
+
 # Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
 
