@@ -365,16 +365,37 @@ def _strip_uuid_dashes(
     )
 
 
-def filter_tag_by_value(key: str, value: str, operator) -> Condition:
-    """Helper function that allows filtering a tag by its value."""
-    return Condition(
-        Function(
-            "arrayElement",
-            parameters=[
-                Column("tv"),
-                Function("indexOf", parameters=[Column("tk"), key]),
-            ],
-        ),
-        operator,
-        value,
+# Tag Filtering Behavior
+
+
+def filter_tag_by_value(key: str, value: str) -> Condition:
+    """Helper function that allows filtering a tag by a value."""
+    return Condition(Function("has", parameters=[_all_values_for_tag_key(key), value]), Op.EQ, 1)
+
+
+def filter_tag_by_values(key: str, value: List[str]) -> Condition:
+    """Helper function that allows filtering a tag by multiple values."""
+    return Condition(Function("haAny", parameters=[_all_values_for_tag_key(key), value]), Op.EQ, 1)
+
+
+def _all_values_for_tag_key(key: str) -> Function:
+    Function(
+        "arrayFilter",
+        parameters=["(i, x) -> i = 1", _bitmask_on_tag_key(key), Column("tv")],
+    )
+
+
+def _bitmask_on_tag_key(key: str) -> Function:
+    """Create a bit mask.
+
+    Returns an array where the integer 1 represents a match.
+        e.g.: [0, 0, 1, 0, 1, 0]
+    """
+    return Function(
+        "arrayMap",
+        parameters=[
+            f"(i, x) -> x = '{key}'",
+            Function("arrayEnumerate", Column("tk")),
+            Column("tk"),
+        ],
     )
