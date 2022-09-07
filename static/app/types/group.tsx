@@ -58,7 +58,7 @@ export enum IssueType {
  */
 export type IssueCategoryCapabilities = {
   /**
-   * Can the issue be dewleted
+   * Can the issue be deleted
    */
   delete: boolean;
   /**
