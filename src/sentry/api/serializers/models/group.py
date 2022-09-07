@@ -730,6 +730,8 @@ class GroupSerializer(GroupSerializerBase):
             [Sequence[int], Sequence[int], Sequence[int], str, str], Mapping[int, GroupTagValue]
         ],
     ) -> Mapping[Group, SeenStats]:
+        if not issue_list:
+            return {}
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
