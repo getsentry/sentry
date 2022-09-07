@@ -351,6 +351,7 @@ export function UniformRateModal({
         projectId={project.id}
         recommendedSampleRate={!isEdited}
         onSetRules={setRules}
+        specifiedClientRate={specifiedClientRate}
       />
     );
   }
