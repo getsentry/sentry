@@ -10,8 +10,7 @@ def main() -> None:
     with open("requirements-frozen.txt") as reqs_file:
         for lineno, line in enumerate(reqs_file, start=1):
             line = line.strip()
-            line, _, _ = line.partition("#")
-            if not line:
+            if not line or line.startswith(("--", "#")):
                 continue
 
             try:

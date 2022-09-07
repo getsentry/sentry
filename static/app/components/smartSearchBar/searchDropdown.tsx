@@ -5,6 +5,7 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Overlay} from 'sentry/components/overlay';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
@@ -13,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FieldKind} from 'sentry/utils/fields';
 
-import SearchBarFlyout from './searchBarFlyout';
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
@@ -44,7 +44,7 @@ const SearchDropdown = ({
   searchSubstring = '',
   onClick = () => {},
 }: Props) => (
-  <SearchBarFlyout className={className} fullWidth data-test-id="smart-search-dropdown">
+  <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
     {loading ? (
       <LoadingWrapper key="loading" data-test-id="search-autocomplete-loading">
         <LoadingIndicator mini />
@@ -99,7 +99,7 @@ const SearchDropdown = ({
         Read the docs
       </Button>
     </DropdownFooter>
-  </SearchBarFlyout>
+  </SearchDropdownOverlay>
 );
 
 export default SearchDropdown;
@@ -389,6 +389,15 @@ const QueryItem = ({item}: QueryItemProps) => {
     </QueryItemWrapper>
   );
 };
+
+const SearchDropdownOverlay = styled(Overlay)`
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  overflow: hidden;
+  margin-top: ${space(1)};
+`;
 
 const LoadingWrapper = styled('div')`
   display: flex;

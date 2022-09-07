@@ -57,9 +57,9 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  loadingReplaysCount: boolean;
+  loadingReplayIds: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
-  replaysCount: number | null;
+  replayIds: null | string[];
   event?: Event;
 };
 
@@ -80,7 +80,9 @@ class GroupDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData(true);
-    this.fetchReplaysCount();
+    if (this.props.organization.features.includes('session-replay-ui')) {
+      this.fetchReplayIds();
+    }
     this.updateReprocessingProgress();
   }
 
@@ -118,14 +120,14 @@ class GroupDetails extends Component<Props, State> {
     return {
       group: null,
       loading: true,
+      loadingReplayIds: true,
       loadingEvent: true,
       loadingGroup: true,
-      loadingReplaysCount: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
-      replaysCount: null,
+      replayIds: null,
     };
   }
 
@@ -393,20 +395,23 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchReplaysCount() {
+  async fetchReplayIds() {
     const {api, location, organization, params} = this.props;
     const {groupId} = params;
 
-    this.setState({loadingReplaysCount: true});
+    this.setState({loadingReplayIds: true});
 
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: `Replays in issue ${groupId}`,
-      version: 2,
-      fields: ['count()'],
-      query: `issue.id:${groupId}`,
-      projects: [],
-    });
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: '',
+        name: `Errors within replay`,
+        version: 2,
+        fields: ['replayId', 'count()'],
+        query: `issue.id:${groupId} !replayId:""`,
+        projects: [],
+      },
+      location
+    );
 
     try {
       const [data] = await doDiscoverQuery<TableData>(
@@ -415,14 +420,13 @@ class GroupDetails extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
 
-      const replaysCount = data.data[0]['count()'].toString();
-
+      const replayIds = data.data.map(record => String(record.replayId));
       this.setState({
-        replaysCount: parseInt(replaysCount, 10),
-        loadingReplaysCount: false,
+        replayIds,
+        loadingReplayIds: false,
       });
     } catch (err) {
-      this.setState({loadingReplaysCount: false});
+      this.setState({loadingReplayIds: false});
     }
   }
 
@@ -570,7 +574,7 @@ class GroupDetails extends Component<Props, State> {
 
   renderContent(project: AvatarProject, group: Group) {
     const {children, environments, organization} = this.props;
-    const {loadingEvent, eventError, event, replaysCount} = this.state;
+    const {loadingEvent, eventError, event, replayIds} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -600,6 +604,8 @@ class GroupDetails extends Component<Props, State> {
 
     if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
+    } else if (currentTab === Tab.REPLAYS) {
+      childProps = {...childProps, replayIds};
     }
 
     return (
@@ -609,7 +615,7 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
           event={event}
           group={group}
-          replaysCount={replaysCount}
+          replaysCount={replayIds?.length}
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
