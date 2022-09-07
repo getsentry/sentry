@@ -191,6 +191,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSampling = DynamicSamplingSerializer(required=False)
+    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
 
     def validate(self, data):
         max_delay = (
