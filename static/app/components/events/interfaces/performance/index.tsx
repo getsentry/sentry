@@ -2,9 +2,10 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventError, Group, KeyValueListData, Organization} from 'sentry/types';
+import {Event, Group, KeyValueListData, Organization} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
+import {EmbeddedSpanTree} from '../spans/embeddedSpanTree';
 
 export type SpanEvidence = {
   parentSpan: string;
@@ -14,13 +15,21 @@ export type SpanEvidence = {
 };
 
 interface Props {
-  event: EventError;
+  affectedSpanIds: string[];
+  event: Event;
   issue: Group;
   organization: Organization;
+  projectSlug: string;
   spanEvidence: SpanEvidence;
 }
 
-export function PerformanceIssueSection({spanEvidence}: Props) {
+export function SpanEvidenceSection({
+  spanEvidence,
+  event,
+  organization,
+  projectSlug,
+  affectedSpanIds,
+}: Props) {
   const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
 
   const data: KeyValueListData = [
@@ -50,6 +59,12 @@ export function PerformanceIssueSection({spanEvidence}: Props) {
     <Wrapper>
       <h3>{t('Span Evidence')}</h3>
       <KeyValueList data={data} />
+      <EmbeddedSpanTree
+        event={event}
+        organization={organization as Organization}
+        projectSlug={projectSlug}
+        affectedSpanIds={affectedSpanIds}
+      />
     </Wrapper>
   );
 }

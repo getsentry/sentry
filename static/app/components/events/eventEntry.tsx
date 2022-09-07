@@ -8,8 +8,8 @@ import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {
-  PerformanceIssueSection,
   SpanEvidence,
+  SpanEvidenceSection,
 } from 'sentry/components/events/interfaces/performance';
 import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
@@ -19,9 +19,7 @@ import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
-
-import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
+import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -180,15 +178,11 @@ function EventEntry({
 
       return (
         <Fragment>
-          <PerformanceIssueSection
+          <SpanEvidenceSection
             issue={group as Group}
-            event={event as EventError}
-            organization={organization as Organization}
-            spanEvidence={SAMPLE_SPAN_EVIDENCE}
-          />
-          <EmbeddedSpanTree
             event={event}
             organization={organization as Organization}
+            spanEvidence={SAMPLE_SPAN_EVIDENCE}
             projectSlug={INTERNAL_PROJECT}
             affectedSpanIds={affectedSpanIds}
           />
