@@ -15,7 +15,7 @@ import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
-import {EntrySpanTree, EntryType, Event} from 'sentry/types/event';
+import {EntryType, Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -166,21 +166,16 @@ class GroupDetails extends Component<Props, State> {
   addPerformanceSpecificEntries(event: Event) {
     const performanceData = event.contexts.performance_issue;
 
-    const spanTreeEntry: EntrySpanTree = {
+    const performanceEntry = {
       data: {
         affectedSpanIds: performanceData.spans,
       },
-      type: EntryType.SPANTREE,
-    };
-
-    const performanceEntry = {
-      data: {},
       type: EntryType.PERFORMANCE,
     };
 
     const updatedEvent = {
       ...event,
-      entries: [performanceEntry, spanTreeEntry, ...event.entries],
+      entries: [performanceEntry, ...event.entries],
     };
     return updatedEvent;
   }
