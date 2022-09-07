@@ -23,7 +23,6 @@ from django.conf import settings
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import Metadata
-from sentry.sentry_metrics.indexer.limiters.cardinality import CardinalityLimiterState
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -77,7 +76,6 @@ class IndexerBatch:
     def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
-        self.cardinality_limiter_state: Optional[CardinalityLimiterState[PartitionIdxOffset]] = None
 
         self._extract_messages()
 
