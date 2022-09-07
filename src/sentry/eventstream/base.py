@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Literal, Optional, Union
 
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
@@ -60,7 +60,6 @@ class EventStream(Service):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -120,14 +119,14 @@ class EventStream(Service):
 
     def run_post_process_forwarder(
         self,
-        entity,
-        consumer_group,
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
         topic: Optional[str],
-        commit_log_topic,
-        synchronize_commit_group,
-        commit_batch_size=100,
-        commit_batch_timeout_ms=5000,
-        initial_offset_reset="latest",
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

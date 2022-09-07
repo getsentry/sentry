@@ -3,6 +3,20 @@ import sys
 
 from sentry.services.base import Service
 
+PYUWSGI_PROG = """\
+import os
+import sys
+
+orig = sys.getdlopenflags()
+sys.setdlopenflags(orig | os.RTLD_GLOBAL)
+try:
+    import pyuwsgi
+finally:
+    sys.setdlopenflags(orig)
+
+pyuwsgi.run()
+"""
+
 
 def convert_options_to_env(options):
     for k, v in options.items():
@@ -63,6 +77,7 @@ class SentryHTTPServer(Service):
         options.setdefault("ignore-sigpipe", True)
         options.setdefault("ignore-write-errors", True)
         options.setdefault("disable-write-exception", True)
+        options.setdefault("binary-path", sys.executable)
         options.setdefault("virtualenv", sys.prefix)
         options.setdefault("die-on-term", True)
         options.setdefault(
@@ -168,4 +183,6 @@ class SentryHTTPServer(Service):
             httpd = make_server(host, int(port), application)
             httpd.serve_forever()
         else:
-            os.execvp("uwsgi", ("uwsgi",))
+            # TODO: https://github.com/lincolnloop/pyuwsgi-wheels/pull/17
+            cmd = (sys.executable, "-c", PYUWSGI_PROG)
+            os.execvp(cmd[0], cmd)

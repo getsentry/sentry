@@ -189,7 +189,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
-        query = {"field": ["id"], "query": "has:trace.parent_span_id"}
+        query = {"field": ["id"], "query": "has:trace.parent_span"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
@@ -215,7 +215,30 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-        query = {"field": ["id"], "query": "!has:trace.parent_span_id"}
+        query = {"field": ["id"], "query": "!has:trace.parent_span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
+    def test_parent_span_id_in_context(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                        "parent_span_id": "c" * 16,
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id"], "query": f"trace.parent_span:{'c' * 16}"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -784,7 +807,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
-            assert [0] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.handled"]
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -795,8 +818,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert [None] == response.data["data"][0]["error.handled"]
-            assert [1] == response.data["data"][1]["error.handled"]
+            assert 1 == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][1]["error.handled"]
 
     def test_error_unhandled_condition(self):
         prototype = self.load_data(platform="android-ndk")
@@ -822,7 +845,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
-            assert [0] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.handled"]
             assert 1 == response.data["data"][0]["error.unhandled"]
 
         with self.feature("organizations:discover-basic"):
@@ -834,10 +857,51 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert [None] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.handled"]
             assert 0 == response.data["data"][0]["error.unhandled"]
-            assert [1] == response.data["data"][1]["error.handled"]
+            assert 1 == response.data["data"][1]["error.handled"]
             assert 0 == response.data["data"][1]["error.unhandled"]
+
+    def test_groupby_error_handled_and_unhandled(self):
+        prototype = self.load_data(platform="android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.ten_mins_ago
+            self.store_event(data=prototype, project_id=self.project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["error.handled", "count()"],
+                "query": "event.type:error",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert 0 == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["count()"]
+            assert 1 == response.data["data"][1]["error.handled"]
+            assert 2 == response.data["data"][1]["count()"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["error.unhandled", "count()"],
+                "query": "event.type:error",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert 2 == response.data["data"][0]["count()"]
+            assert 1 == response.data["data"][1]["error.unhandled"]
+            assert 1 == response.data["data"][1]["count()"]
 
     def test_implicit_groupby(self):
         self.store_event(

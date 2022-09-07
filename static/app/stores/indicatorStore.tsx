@@ -1,9 +1,7 @@
 import {createStore} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
-import IndicatorActions from 'sentry/actions/indicatorActions';
 import {t} from 'sentry/locale';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -23,7 +21,7 @@ interface IndicatorStoreDefinition
    * @param options Options object
    */
   add(
-    message: string,
+    message: React.ReactNode,
     type?: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
@@ -32,7 +30,7 @@ interface IndicatorStoreDefinition
    * Alias for add()
    */
   addMessage(
-    message: string,
+    message: React.ReactNode,
     type: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
@@ -45,7 +43,7 @@ interface IndicatorStoreDefinition
    * @param options Options object
    */
   append(
-    message: string,
+    message: React.ReactNode,
     type: Indicator['type'],
     options?: Indicator['options']
   ): Indicator;
@@ -63,16 +61,10 @@ interface IndicatorStoreDefinition
 const storeConfig: IndicatorStoreDefinition = {
   items: [],
   lastId: 0,
-  unsubscribeListeners: [],
 
   init() {
     this.items = [];
     this.lastId = 0;
-
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.append, this.append));
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.replace, this.add));
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.remove, this.remove));
-    this.unsubscribeListeners.push(this.listenTo(IndicatorActions.clear, this.clear));
   },
 
   addSuccess(message) {
@@ -144,5 +136,5 @@ const storeConfig: IndicatorStoreDefinition = {
   },
 };
 
-const IndicatorStore = createStore(makeSafeRefluxStore(storeConfig));
+const IndicatorStore = createStore(storeConfig);
 export default IndicatorStore;
