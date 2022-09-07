@@ -1951,7 +1951,6 @@ class Performance_Job(TypedDict, total=False):
 @metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
-    # TODO: batch operations (like rate limiting) so we don't repeat for each job
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
     )
@@ -1961,7 +1960,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
         project = event.project
 
         # General system-wide option
-        rate = options.get("performance.issues.all.problem-creation", 0)
+        rate = options.get("performance.issues.all.problem-creation") or 0
 
         # More granular, per-project option
         per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 0)
