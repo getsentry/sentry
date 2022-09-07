@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Any, Generic, Mapping, MutableMapping, Optional, Sequence, TypedDict, TypeVar
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -14,21 +14,20 @@ from sentry.ratelimits.cardinality import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
 
 OrgId = int
 
-TMessageKey = TypeVar("TMessageKey")
-
 
 @dataclasses.dataclass(frozen=True)
-class CardinalityLimiterState(Generic[TMessageKey]):
+class CardinalityLimiterState:
     _cardinality_limiter: CardinalityLimiter
     _use_case_id: UseCaseKey
     _grants: Sequence[GrantedQuota]
     _timestamp: Timestamp
-    keys_to_remove: Sequence[TMessageKey]
+    keys_to_remove: Sequence[PartitionIdxOffset]
 
 
 def _build_quota_key(namespace: str, org_id: Optional[OrgId]) -> str:
@@ -75,8 +74,8 @@ class TimeseriesCardinalityLimiter:
         self.backend: CardinalityLimiter = rate_limiter
 
     def check_cardinality_limits(
-        self, use_case_id: UseCaseKey, messages: Mapping[TMessageKey, InboundMessage]
-    ) -> CardinalityLimiterState[TMessageKey]:
+        self, use_case_id: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
+    ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
         keys_to_remove = {}
         for key, message in messages.items():

@@ -9,6 +9,7 @@ from sentry.ratelimits.cardinality import (
     Timestamp,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.sentry_metrics.indexer.limiters.cardinality import TimeseriesCardinalityLimiter
 
 
@@ -59,12 +60,12 @@ def test_reject_all(set_sentry_option):
     result = limiter.check_cardinality_limits(
         UseCaseKey.RELEASE_HEALTH,
         {
-            "a": {"org_id": 1, "name": "foo", "tags": {}},
-            "b": {"org_id": 1, "name": "bar", "tags": {}},
+            PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
+            PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
         },
     )
 
-    assert result.keys_to_remove == ["a", "b"]
+    assert result.keys_to_remove == [PartitionIdxOffset(0, 0), PartitionIdxOffset(0, 1)]
 
 
 def test_reject_partial(set_sentry_option):
@@ -83,13 +84,13 @@ def test_reject_partial(set_sentry_option):
     result = limiter.check_cardinality_limits(
         UseCaseKey.RELEASE_HEALTH,
         {
-            "a": {"org_id": 1, "name": "foo", "tags": {}},
-            "b": {"org_id": 1, "name": "bar", "tags": {}},
-            "c": {"org_id": 1, "name": "baz", "tags": {}},
+            PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
+            PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
+            PartitionIdxOffset(0, 2): {"org_id": 1, "name": "baz", "tags": {}},
         },
     )
 
-    assert result.keys_to_remove == ["b", "c"]
+    assert result.keys_to_remove == [PartitionIdxOffset(0, 1), PartitionIdxOffset(0, 2)]
 
 
 def test_accept_all(set_sentry_option):
@@ -101,9 +102,9 @@ def test_accept_all(set_sentry_option):
     result = limiter.check_cardinality_limits(
         UseCaseKey.RELEASE_HEALTH,
         {
-            "a": {"org_id": 1, "name": "foo", "tags": {}},
-            "b": {"org_id": 1, "name": "bar", "tags": {}},
-            "c": {"org_id": 1, "name": "baz", "tags": {}},
+            PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
+            PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
+            PartitionIdxOffset(0, 2): {"org_id": 1, "name": "baz", "tags": {}},
         },
     )
 
