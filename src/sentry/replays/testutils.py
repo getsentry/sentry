@@ -13,7 +13,14 @@ def assert_expected_response(
         assert key in response, key
         response_value = response.pop(key)
 
-        if isinstance(response_value, list):
+        if isinstance(response_value, dict):
+            assert isinstance(value, dict)
+            for k, v in value.items():
+                if isinstance(v, list):
+                    assert sorted(response_value[k]) == sorted(v)
+                else:
+                    assert response_value[k] == v
+        elif isinstance(response_value, list):
             assert len(response_value) == len(value), f'"{response_value}" "{value}"'
             for item in response_value:
                 assert item in value, f"{key}, {item}"
