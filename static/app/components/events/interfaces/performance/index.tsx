@@ -10,6 +10,7 @@ export type SpanEvidence = {
   parentSpan: string;
   repeatingSpan: string;
   sourceSpan: string;
+  transaction: string;
 };
 
 interface Props {
@@ -20,21 +21,26 @@ interface Props {
 }
 
 export function PerformanceIssueSection({spanEvidence}: Props) {
-  const {parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
+  const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
 
   const data: KeyValueListData = [
     {
       key: '0',
+      subject: t('Transaction'),
+      value: transaction,
+    },
+    {
+      key: '1',
       subject: t('Parent Span'),
       value: parentSpan,
     },
     {
-      key: '1',
+      key: '2',
       subject: t('Source Span'),
       value: sourceSpan,
     },
     {
-      key: '2',
+      key: '3',
       subject: t('Repeating Span'),
       value: repeatingSpan,
     },

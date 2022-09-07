@@ -181,6 +181,7 @@ function EventEntry({
 
       // TODO: Replace this with real data from the entry when possible
       const SAMPLE_SPAN_EVIDENCE: SpanEvidence = {
+        transaction: '/api/transaction/00',
         parentSpan: 'index',
         sourceSpan:
           'SELECT "sentry_useroption"."id", "sentry_useroption"."user_id", "sentry_useroption"."project_id", "sentry_useroption"."organization_id", "sentry_useroption"."key", "sentry_useroption"."value" FROM "sentry_useroption" WHERE ("sentry_useroption"."organization_id" IS NULL AND "sentry_useroption"."project_id" IS NULL AND "sentry_useroption"."user_id" = %s) ',
