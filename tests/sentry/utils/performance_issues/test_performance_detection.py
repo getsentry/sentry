@@ -466,13 +466,16 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_sequential",
                     "b409e78a092e642f",
                 ),
-                call("_pi_n_plus_one_db_fp", "7ee87c360a29deca2446e9e3efe74e2c1a197aa9"),
+                call(
+                    "_pi_n_plus_one_db_fp",
+                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                ),
                 call("_pi_n_plus_one_db", "9179e43ae844b174"),
             ]
         )
         assert perf_problems == [
             PerformanceProblem(
-                fingerprint="7ee87c360a29deca2446e9e3efe74e2c1a197aa9",
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
                 desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
