@@ -651,6 +651,14 @@ def test_one_org_limited(caplog, settings):
 
 
 def test_cardinality_limiter(caplog, settings):
+    """
+    Test functionality of the indexer batch related to cardinality-limiting. More concretely, assert that `IndexerBatch.filter_messages`:
+
+    1. removes the messages from the outgoing batch
+    2. prevents strings from filtered messages from being extracted & indexed
+    3. does not crash when strings from filtered messages are not passed into reconstruct_messages
+    4. still extracts strings that exist both in filtered and unfiltered messages (eg "environment")
+    """
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
 
     outer_message = _construct_outer_message(
