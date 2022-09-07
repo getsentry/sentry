@@ -1962,16 +1962,11 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
         project = event.project
 
         # General system-wide option
-        rate = options.get("performance.issues.all.problem-creation")
+        rate = options.get("performance.issues.all.problem-creation", 0)
 
         # More granular, per-project option
-        per_project_rate = project.get_option("sentry:performance_issue_creation_rate")
-        if (
-            rate
-            and rate > random.random()
-            and per_project_rate
-            and per_project_rate > random.random()
-        ):
+        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 0)
+        if rate > random.random() and per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
 

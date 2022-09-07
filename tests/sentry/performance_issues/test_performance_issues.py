@@ -5,6 +5,7 @@ from sentry.event_manager import EventManager
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.types.issues import GroupCategory, GroupType
 from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
@@ -30,40 +31,10 @@ class EventManagerTestMixin:
 class EventManagerTest(TestCase, EventManagerTestMixin):
 
     # GROUPS TESTS
-    @override_options({"performance.issues.all.problem-creation": 1.0})
-    def test_transaction_event_type_and_group(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
-        manager = EventManager(
-            make_event(
-                **{
-                    "transaction": "wait",
-                    "contexts": {
-                        "trace": {
-                            "parent_span_id": "bce14471e0e9654d",
-                            "op": "foobar",
-                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                            "span_id": "bf5be759039ede9a",
-                        }
-                    },
-                    "spans": [],
-                    "timestamp": "2019-06-14T14:01:40Z",
-                    "start_timestamp": "2019-06-14T14:01:40Z",
-                    "type": "transaction",
-                }
-            )
-        )
-        manager.normalize()
-        event = manager.save(self.project.id)
-        data = event.data
-        assert data["type"] == "transaction"
-        group = event.group
-        assert group is not None
-
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
-    def test_transaction_event_span_grouping_and_group(self):
+    def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with self.feature("projects:performance-suspect-spans-ingestion"):
 
@@ -77,3 +48,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             # the basic strategy is to simply use the description
             assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
             assert len(event.groups) == 1
+            group = event.groups[0]
+            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
