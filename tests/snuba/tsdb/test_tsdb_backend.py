@@ -533,7 +533,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
                 email=f"user{r}@sentry.io",
                 # release_version=str(r // 3600) * 10,  # 1 per hour,
                 insert_timestamp=self.now + timedelta(seconds=r),
-                group_ids=[[self.proj1group1.id], [self.proj1group2.id]][(r // 600) % 2],
+                groups=[[self.proj1group1], [self.proj1group2]][(r // 600) % 2],
+                transaction_name=str(r),
             )
 
         self.env1 = Environment.objects.get(name=env1)
@@ -547,13 +548,14 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         user_id: str,
         email: str,
         insert_timestamp: datetime,
-        group_ids: Sequence[int],
+        groups: Sequence[int],
+        transaction_name: str,
     ):
-        def inject_group_ids(jobs, projects, _group_ids=None):
+        def inject_group_ids(jobs, projects, _groups=None):
             _pull_out_data(jobs, projects)
-            if _group_ids:
+            if _groups:
                 for job in jobs:
-                    job["event"].group_ids = _group_ids
+                    job["event"].groups = _groups
             return jobs, projects
 
         event_data = {
@@ -571,12 +573,13 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             "timestamp": insert_timestamp.timestamp(),
             "start_timestamp": insert_timestamp.timestamp(),
+            "transaction": transaction_name,
         }
         with mock.patch(
             "sentry.event_manager._pull_out_data",
             functools.partial(
                 inject_group_ids,
-                _group_ids=group_ids,
+                _groups=groups,
             ),
         ):
             event = self.store_event(
@@ -605,7 +608,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
             assert len(result["data"]) == 1
             assert result["data"][0]["event_id"] == event.event_id
             assert result["data"][0]["project_id"] == event.project_id
-            assert result["data"][0]["group_ids"] == group_ids
+            assert result["data"][0]["group_ids"] == [g.id for g in groups]
             assert result["data"][0]["tags[sentry:user]"] == f"id:{user_id}"
             assert result["data"][0]["environment"] == (environment if environment else None)
             assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
@@ -627,14 +630,15 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         times = 4
         event_ids = []
         events = []
-        for i in range(0, times, 1):
+        for i in range(0, times):
             res = self.__insert_transaction(
                 environment=None,
                 project_id=project.id,
                 user_id="my_user",
                 email="test@email.com",
                 insert_timestamp=now + timedelta(minutes=i * 10),
-                group_ids=[group.id],
+                groups=[group],
+                transaction_name=str(i),
             )
 
             grouped_by_project = aliased_query(
@@ -701,102 +705,104 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
             ]
         }
 
-    # def test_range_groups_mult(self):
-    #     now = (datetime.utcnow() - timedelta(hours=4)).replace(
-    #         hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
-    #     )
-    #     dts = [now + timedelta(hours=i) for i in range(4)]
-    #     project = self.create_project()
-    #     group = self.create_group(project=project)
-    #     ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
-    #     for i, _id in enumerate(ids):
-    #         self.__insert_transaction(
-    #             environment=None,
-    #             project_id=project.id,
-    #             user_id="my_user",
-    #             email="test@email.com",
-    #             insert_timestamp=now + timedelta(minutes=i * 10),
-    #             group_ids=[group.id],
-    #         )
-    #
-    #     assert self.db.get_range(
-    #         TSDBModel.group_performance,
-    #         [group.id],
-    #         dts[0],
-    #         dts[-1],
-    #         rollup=3600,
-    #     ) == {
-    #         group.id: [
-    #             (timestamp(dts[0]), len(ids)),
-    #             (timestamp(dts[1]), 0),
-    #             (timestamp(dts[2]), 0),
-    #             (timestamp(dts[3]), 0),
-    #         ]
-    #     }
-    #
-    # def test_range_groups_simple(self):
-    #     project = self.create_project()
-    #     group = self.create_group(project=project)
-    #     now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC)
-    #     # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
-    #     # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
-    #     ids = ["a", "b", "c", "d", "e"]  # , "f"]
-    #     for r in ids:
-    #         # for r in range(0, 9, 1):
-    #         self.__insert_transaction(
-    #             environment=None,
-    #             project_id=project.id,
-    #             # change every 55 min so some hours have 1 user, some have 2
-    #             user_id=f"user{r}",
-    #             email=f"user{r}@sentry.io",
-    #             # release_version=str(r // 3600) * 10,  # 1 per hour,
-    #             insert_timestamp=now,
-    #             group_ids=[group.id],
-    #         )
-    #
-    #     dts = [now + timedelta(hours=i) for i in range(4)]
-    #     assert self.db.get_range(
-    #         TSDBModel.group_performance,
-    #         [group.id],
-    #         dts[0],
-    #         dts[-1],
-    #         rollup=3600,
-    #     ) == {
-    #         group.id: [
-    #             (timestamp(dts[0]), len(ids)),
-    #             (timestamp(dts[1]), 0),
-    #             (timestamp(dts[2]), 0),
-    #             (timestamp(dts[3]), 0),
-    #         ]
-    #     }
-    #
-    # def test_range_groups(self):
-    #     dts = [self.now + timedelta(hours=i) for i in range(4)]
-    #     # Multiple groups
-    #     assert self.db.get_range(
-    #         TSDBModel.group_performance,
-    #         [self.proj1group1.id, self.proj1group2.id],
-    #         dts[0],
-    #         dts[-1],
-    #         rollup=3600,
-    #     ) == {
-    #         self.proj1group1.id: [
-    #             (timestamp(dts[0]), 3),
-    #             (timestamp(dts[1]), 3),
-    #             (timestamp(dts[2]), 3),
-    #             (timestamp(dts[3]), 3),
-    #         ],
-    #         self.proj1group2.id: [
-    #             (timestamp(dts[0]), 3),
-    #             (timestamp(dts[1]), 3),
-    #             (timestamp(dts[2]), 3),
-    #             (timestamp(dts[3]), 3),
-    #         ],
-    #     }
-    #
-    #     assert (
-    #         self.db.get_range(TSDBModel.group_performance, [], dts[0], dts[-1], rollup=3600) == {}
-    #     )
+    def test_range_groups_mult(self):
+        now = (datetime.utcnow() - timedelta(hours=4)).replace(
+            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        )
+        dts = [now + timedelta(hours=i) for i in range(4)]
+        project = self.create_project()
+        group = self.create_group(project=project)
+        ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
+        for i, _id in enumerate(ids):
+            self.__insert_transaction(
+                environment=None,
+                project_id=project.id,
+                user_id="my_user",
+                email="test@email.com",
+                insert_timestamp=now + timedelta(minutes=i * 10),
+                groups=[group],
+                transaction_name=_id,
+            )
+
+        assert self.db.get_range(
+            TSDBModel.group_performance,
+            [group.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+        ) == {
+            group.id: [
+                (timestamp(dts[0]), 6),
+                (timestamp(dts[1]), 5),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ]
+        }
+
+    def test_range_groups_simple(self):
+        project = self.create_project()
+        group = self.create_group(project=project)
+        now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC)
+        # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
+        # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
+        ids = ["a", "b", "c", "d", "e"]  # , "f"]
+        for r in ids:
+            # for r in range(0, 9, 1):
+            self.__insert_transaction(
+                environment=None,
+                project_id=project.id,
+                # change every 55 min so some hours have 1 user, some have 2
+                user_id=f"user{r}",
+                email=f"user{r}@sentry.io",
+                # release_version=str(r // 3600) * 10,  # 1 per hour,
+                insert_timestamp=now,
+                groups=[group],
+                transaction_name=r,
+            )
+
+        dts = [now + timedelta(hours=i) for i in range(4)]
+        assert self.db.get_range(
+            TSDBModel.group_performance,
+            [group.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+        ) == {
+            group.id: [
+                (timestamp(dts[0]), len(ids)),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ]
+        }
+
+    def test_range_groups(self):
+        dts = [self.now + timedelta(hours=i) for i in range(4)]
+        # Multiple groups
+        assert self.db.get_range(
+            TSDBModel.group_performance,
+            [self.proj1group1.id, self.proj1group2.id],
+            dts[0],
+            dts[-1],
+            rollup=3600,
+        ) == {
+            self.proj1group1.id: [
+                (timestamp(dts[0]), 3),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 3),
+            ],
+            self.proj1group2.id: [
+                (timestamp(dts[0]), 3),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 3),
+            ],
+        }
+
+        assert (
+            self.db.get_range(TSDBModel.group_performance, [], dts[0], dts[-1], rollup=3600) == {}
+        )
 
 
 class AddJitterToSeriesTest(TestCase):
