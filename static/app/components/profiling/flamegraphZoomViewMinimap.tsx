@@ -43,7 +43,7 @@ function FlamegraphZoomViewMinimap({
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | null
   >(null);
 
-  const [dispatch] = useDispatchFlamegraphState();
+  const dispatch = useDispatchFlamegraphState();
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
