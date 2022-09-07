@@ -10,8 +10,7 @@ import {PageContent} from 'sentry/styles/organization';
 import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT} from 'sentry/utils/replays/hooks/useReplayList';
-import useApi from 'sentry/utils/useApi';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
@@ -59,30 +58,30 @@ function TransactionReplays(props: Props) {
 }
 
 function ReplaysContentWrapper({
-  eventView,
+  eventView: eventsWithReplaysView,
   location,
   organization,
   setError,
 }: ChildProps) {
-  const api = useApi();
-  const {replays, pageLinks, isFetching, fetchError} = useReplaysFromTransaction({
-    api,
-    eventsWithReplaysView: eventView,
-    location,
-    organization,
-  });
+  const {eventView, replays, pageLinks, isFetching, fetchError} =
+    useReplaysFromTransaction({
+      eventsWithReplaysView,
+      location,
+      organization,
+    });
 
   useEffect(() => {
     setError(fetchError?.message);
   }, [setError, fetchError]);
 
-  if (isFetching) {
+  if (isFetching || !eventView) {
     return (
       <Layout.Main fullWidth>
         <LoadingIndicator />
       </Layout.Main>
     );
   }
+
   return replays ? (
     <ReplaysContent
       eventView={eventView}
@@ -115,15 +114,19 @@ function generateEventView({
   location: Location;
   transactionName: string;
 }) {
+  const query = decodeScalar(location.query.query, '');
+  const conditions = new MutableSearch(query);
+  conditions.addFilterValues('transaction', [transactionName]);
+  conditions.addFilterValues('!replayId', ['']);
+
   return EventView.fromNewQueryWithLocation(
     {
       id: '',
       name: `Replay events within a transaction`,
       version: 2,
       fields: ['replayId', 'count()'],
-      query: `transaction:${transactionName} !replayId:""`,
+      query: conditions.formatString(),
       projects: [],
-      orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     },
     location
   );

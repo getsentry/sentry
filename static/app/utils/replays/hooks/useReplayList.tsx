@@ -1,76 +1,20 @@
 import {useCallback, useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
-
-export const DEFAULT_SORT = '-startedAt';
-
-export const REPLAY_LIST_FIELDS = [
-  'countErrors',
-  'duration',
-  'finishedAt',
-  'id',
-  'projectId',
-  'startedAt',
-  'urls',
-  'user',
-];
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Options = {
   eventView: EventView;
   organization: Organization;
 };
 
-type State = {
-  fetchError: undefined | RequestError;
-  isFetching: boolean;
-  pageLinks: null | string;
-  replays: undefined | ReplayListRecord[];
-};
+type State = Awaited<ReturnType<typeof fetchReplayList>>;
 
 type Result = State;
-
-export async function fetchReplayList({
-  api,
-  organization,
-  location,
-  eventView,
-}): Promise<Result> {
-  try {
-    const path = `/organizations/${organization.slug}/replays/`;
-
-    const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
-      includeAllArgs: true,
-      query: {
-        ...eventView.getEventsAPIPayload(location),
-        cursor: location.query.cursor,
-      },
-    });
-
-    const pageLinks = resp?.getResponseHeader('Link') ?? '';
-
-    return {
-      fetchError: undefined,
-      isFetching: false,
-      pageLinks,
-      replays: records.map(mapResponseToReplayRecord),
-    };
-  } catch (error) {
-    Sentry.captureException(error);
-    return {
-      fetchError: error,
-      isFetching: false,
-      pageLinks: null,
-      replays: [],
-    };
-  }
-}
 
 function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();

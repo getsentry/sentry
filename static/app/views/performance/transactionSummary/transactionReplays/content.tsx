@@ -77,7 +77,7 @@ function ReplaysContent({
         isFetching={isFetching}
         replays={replays}
         showProjectColumn={false}
-        sort={first(eventView.sorts) || {field: 'createdAt', kind: 'asc'}}
+        sort={first(eventView.sorts) || {field: 'startedAt', kind: 'asc'}}
       />
       <Pagination pageLinks={pageLinks} />
     </Layout.Main>

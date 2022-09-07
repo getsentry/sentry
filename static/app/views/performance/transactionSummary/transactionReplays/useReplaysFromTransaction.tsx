@@ -4,35 +4,37 @@ import {Location} from 'history';
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {
+import fetchReplayList, {
   DEFAULT_SORT,
-  fetchReplayList,
   REPLAY_LIST_FIELDS,
-} from 'sentry/utils/replays/hooks/useReplayList';
+} from 'sentry/utils/replays/fetchReplayList';
+import useApi from 'sentry/utils/useApi';
 
-type State = Awaited<ReturnType<typeof fetchReplayList>>;
+type State = Awaited<ReturnType<typeof fetchReplayList>> & {
+  eventView: undefined | EventView;
+};
 
 type Options = {
-  api: Client;
   eventsWithReplaysView: EventView;
   location: Location;
   organization: Organization;
 };
 
 function useReplaysFromTransaction({
-  api,
   eventsWithReplaysView,
   location,
   organization,
 }: Options) {
+  const api = useApi();
   const [data, setData] = useState<State>({
     fetchError: undefined,
     isFetching: true,
     pageLinks: null,
     replays: [],
+    eventView: undefined,
   });
 
   const load = useCallback(async () => {
@@ -50,17 +52,20 @@ function useReplaysFromTransaction({
         fields: REPLAY_LIST_FIELDS,
         projects: [],
         query: `id:[${String(replayIds)}]`,
-        orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
+    eventView.sorts = fromSorts(decodeScalar(location.query.sort, DEFAULT_SORT));
     const listData = await fetchReplayList({
       api,
       eventView,
       location,
       organization,
     });
-    setData(listData);
+    setData({
+      ...listData,
+      eventView,
+    });
   }, [api, eventsWithReplaysView, location, organization]);
 
   useEffect(() => {
