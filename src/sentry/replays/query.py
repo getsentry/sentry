@@ -365,10 +365,8 @@ def _strip_uuid_dashes(
     )
 
 
-# TODO
-
-
 def filter_tag_by_value(key: str, value: str, operator) -> Condition:
+    """Helper function that allows filtering a tag by its value."""
     return Condition(
         Function(
             "arrayElement",
