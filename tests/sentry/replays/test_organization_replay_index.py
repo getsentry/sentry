@@ -53,7 +53,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
                 ],  # duplicate urls are okay,
-                tags={"test": "hello"},
+                tags={"test": "hello", "other": "hello"},
             )
         )
         self.store_replays(
@@ -63,7 +63,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
-                tags={"test": "world"},
+                tags={"test": "world", "other": "hello"},
             )
         )
 
@@ -89,7 +89,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 count_segments=2,
                 # count_errors=3,
                 count_errors=1,
-                tags={"test": ["hello", "world"]},
+                tags={"other": ["hello"], "test": ["hello", "world"]},
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
