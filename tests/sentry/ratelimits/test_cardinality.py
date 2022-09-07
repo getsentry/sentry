@@ -77,3 +77,31 @@ def test_noop(limiter: RedisCardinalityLimiter):
     helper.quotas = []
     helper.limiter.client = None
     assert helper.add_value(1) == 1
+
+
+def test_sampling(limiter: RedisCardinalityLimiter):
+    limiter.cluster_num_physical_shards = 1
+    limiter.cluster_num_shards = 10
+    helper = LimiterHelper(limiter)
+
+    # when adding "hashes" 0..10 in ascending order, the first hash will fill up the physical shard
+    admissions = [helper.add_value(i) for i in reversed(range(10))]
+    assert admissions == list(reversed(range(10)))
+
+    admissions = [helper.add_value(i) for i in range(100, 110)]
+    assert admissions == [None] * 10
+
+
+def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
+    """
+    test an edgecase of set sampling in the cardinality limiter. it is not
+    exactly desired behavior but a known sampling artifact
+    """
+    limiter.cluster_num_physical_shards = 1
+    limiter.cluster_num_shards = 10
+    helper = LimiterHelper(limiter)
+
+    # when adding "hashes" 0..10 in ascending order, the first hash will fill
+    # up the physical shard, and a total count of 10 is extrapolated from that
+    admissions = [helper.add_value(i) for i in range(10)]
+    assert admissions == [0] + [None] * 9

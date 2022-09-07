@@ -160,32 +160,64 @@ class CardinalityLimiter(Service):
 
 
 class RedisCardinalityLimiter(CardinalityLimiter):
-    def __init__(self, cluster: str = "default", cluster_shard_factor: int = 3) -> None:
+    """
+    The Redis cardinality limiter stores a key per unit hash, and adds the unit
+    hash to a set key prefixed with `RequestedQuota.prefix`. The memory usage
+    grows with the dimensionality of `prefix` and the `unit_hashes` that fit
+    into the limit.
+    """
+
+    def __init__(
+        self,
+        cluster: str = "default",
+        cluster_num_shards: int = 3,
+        cluster_num_physical_shards: int = 3,
+    ) -> None:
+        """
+        :param cluster: Name of the redis cluster to use, to be configured with
+            the `redis.clusters` Sentry option (like any other redis cluster in
+            Sentry).
+        :param cluster_num_shards: The number of logical shards to have. This
+            controls the average set size in Redis.
+        :param cluster_num_physical_shards: The number of actual shards to
+            store. Controls how many keys of type "unordered set" there are in
+            Redis. The ratio `cluster_num_physical_shards / cluster_num_shards`
+            is a sampling rate, the lower it is, the less precise accounting
+            will be.
+        """
         self.client = redis.redis_clusters.get(cluster)
-        self.cluster_shard_factor = cluster_shard_factor
+        assert 0 < cluster_num_physical_shards <= cluster_num_shards
+        self.cluster_num_shards = cluster_num_shards
+        self.cluster_num_physical_shards = cluster_num_physical_shards
         super().__init__()
 
     @staticmethod
     def _get_timeseries_key(request: RequestedQuota, hash: Hash) -> str:
-        return f"cardinality-counter-{request.prefix}-{hash}"
+        return f"cardinality:counter:{request.prefix}-{hash}"
 
     def _get_read_sets_keys(
         self, request: RequestedQuota, quota: Quota, timestamp: Timestamp
     ) -> Sequence[str]:
         oldest_time_bucket = list(quota.iter_window(timestamp))[-1]
         return [
-            f"cardinality-sets-{request.prefix}-{shard}-{oldest_time_bucket}"
-            for shard in range(self.cluster_shard_factor)
+            f"cardinality:sets:{request.prefix}-{shard}-{oldest_time_bucket}"
+            for shard in range(self.cluster_num_physical_shards)
         ]
 
     def _get_write_sets_keys(
         self, request: RequestedQuota, quota: Quota, timestamp: Timestamp, hash: Hash
     ) -> Sequence[str]:
-        shard = hash % self.cluster_shard_factor
-        return [
-            f"cardinality-sets-{request.prefix}-{shard}-{time_bucket}"
-            for time_bucket in quota.iter_window(timestamp)
-        ]
+        shard = hash % self.cluster_num_shards
+        if shard < self.cluster_num_physical_shards:
+            return [
+                f"cardinality:sets:{request.prefix}-{shard}-{time_bucket}"
+                for time_bucket in quota.iter_window(timestamp)
+            ]
+        else:
+            return []
+
+    def _get_set_cardinality_sample_factor(self) -> float:
+        return self.cluster_num_shards / self.cluster_num_physical_shards
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
@@ -229,6 +261,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             set_counts = dict(zip(set_keys_to_count, results))
 
         grants = []
+        cardinality_sample_factor = self._get_set_cardinality_sample_factor()
         for request in requests:
             if not request.quotas:
                 grants.append(
@@ -245,7 +278,8 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                 remaining_limit = max(
                     0,
                     quota.limit
-                    - sum(
+                    - cardinality_sample_factor
+                    * sum(
                         set_counts[k] for k in self._get_read_sets_keys(request, quota, timestamp)
                     ),
                 )
