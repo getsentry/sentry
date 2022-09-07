@@ -716,6 +716,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
 
+        if "performanceIssueCreationRate" in result:
+            if project.update_option(
+                "sentry:performance_issue_creation_rate", result["performanceIssueCreationRate"]
+            ):
+                changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
+                    "performanceIssueCreationRate"
+                ]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})
