@@ -450,6 +450,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :param int digestsMaxDelay:
         :auth: required
         """
+
+        old_data = serialize(project, request.user, DetailedProjectSerializer())
+
         has_project_write = request.access and request.access.has_scope("project:write")
 
         changed_proj_settings = {}
@@ -593,6 +596,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     project.delete_option("sentry:store_crash_reports")
                 else:
                     project.update_option("sentry:store_crash_reports", result["storeCrashReports"])
+
         if result.get("relayPiiConfig") is not None:
             if project.update_option("sentry:relay_pii_config", result["relayPiiConfig"]):
                 changed_proj_settings["sentry:relay_pii_config"] = (
@@ -646,8 +650,70 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
+
             if project.update_option("sentry:dynamic_sampling", fixed_rules):
+
                 changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
+
+                if old_data.get("dynamicSampling") is not None:
+                    old_rules = old_data["dynamicSampling"].get("rules") or []
+                    rules = result["dynamicSampling"].get("rules") or []
+
+                    if len(rules) > len(old_rules):
+                        self.create_audit_entry(
+                            request=request,
+                            organization=project.organization,
+                            target_object=project.id,
+                            event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
+                            data=project.get_audit_log_data(),
+                        )
+                        data = serialize(project, request.user, DetailedProjectSerializer())
+                        return Response(data)
+
+                    if len(rules) < len(old_rules):
+                        self.create_audit_entry(
+                            request=request,
+                            organization=project.organization,
+                            target_object=project.id,
+                            event=audit_log.get_event_id("SAMPLING_RULE_REMOVE"),
+                            data=project.get_audit_log_data(),
+                        )
+                        data = serialize(project, request.user, DetailedProjectSerializer())
+                        return Response(data)
+
+                    for index, rule in enumerate(rules):
+                        if rule["active"] != old_rules[index]["active"]:
+                            if rule["active"] is True:
+                                self.create_audit_entry(
+                                    request=request,
+                                    organization=project.organization,
+                                    target_object=project.id,
+                                    event=audit_log.get_event_id("SAMPLING_RULE_ACTIVATE"),
+                                    data=project.get_audit_log_data(),
+                                )
+                                data = serialize(project, request.user, DetailedProjectSerializer())
+                                return Response(data)
+                            else:
+                                self.create_audit_entry(
+                                    request=request,
+                                    organization=project.organization,
+                                    target_object=project.id,
+                                    event=audit_log.get_event_id("SAMPLING_RULE_DEACTIVATE"),
+                                    data=project.get_audit_log_data(),
+                                )
+                                data = serialize(project, request.user, DetailedProjectSerializer())
+                                return Response(data)
+
+                    self.create_audit_entry(
+                        request=request,
+                        organization=project.organization,
+                        target_object=project.id,
+                        event=audit_log.get_event_id("SAMPLING_RULE_EDIT"),
+                        data={**changed_proj_settings, **project.get_audit_log_data()},
+                    )
+
+                    data = serialize(project, request.user, DetailedProjectSerializer())
+                    return Response(data)
 
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
@@ -760,7 +826,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("PROJECT_EDIT"),
-                data=changed_proj_settings,
+                data={**changed_proj_settings, **project.get_audit_log_data()},
             )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
