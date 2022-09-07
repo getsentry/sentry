@@ -23,7 +23,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {
@@ -46,6 +45,8 @@ import {
   isForReviewQuery,
   Query,
 } from 'sentry/views/issueList/utils';
+
+import {useSelectedGroups} from './selectedGroupContext';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
@@ -89,12 +90,12 @@ function BaseGroupRow({
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
 
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[id];
-
   const {selection} = usePageFilters();
 
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
+
+  const {selectedIds, toggleSelect, shiftToggleItems} = useSelectedGroups();
+  const isSelected = selectedIds.has(id);
 
   const reviewed =
     // Original state had an inbox reason
@@ -173,13 +174,13 @@ function BaseGroupRow({
       }
 
       if (evt.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        shiftToggleItems(group.id);
         window.getSelection()?.removeAllRanges();
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, toggleSelect, shiftToggleItems]
   );
 
   const checkboxToggle = useCallback(
@@ -187,12 +188,12 @@ function BaseGroupRow({
       const mouseEvent = evt.nativeEvent as MouseEvent;
 
       if (mouseEvent.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        shiftToggleItems(group.id);
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, toggleSelect, shiftToggleItems]
   );
 
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {

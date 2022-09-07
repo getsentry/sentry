@@ -30,6 +30,7 @@ import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
+import {SelectedGroupProvider} from 'sentry/components/stream/selectedGroupContext';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -1231,91 +1232,93 @@ class IssueListOverview extends Component<Props, State> {
     };
 
     return (
-      <StyledPageContent>
-        <IssueListHeader
-          organization={organization}
-          query={query}
-          sort={this.getSort()}
-          queryCount={queryCount}
-          queryCounts={queryCounts}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={this.onRealtimeChange}
-          router={router}
-          savedSearchList={savedSearches}
-          onSavedSearchSelect={this.onSavedSearchSelect}
-          onSavedSearchDelete={this.onSavedSearchDelete}
-          displayReprocessingTab={showReprocessingTab}
-          selectedProjectIds={selection.projects}
-        />
-        <Layout.Body {...layoutProps}>
-          <Layout.Main {...layoutProps}>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              savedSearch={savedSearch}
-              sort={this.getSort()}
-              onSearch={this.onSearch}
-              onSidebarToggle={this.onSidebarToggle}
-              isSearchDisabled={isSidebarVisible}
-              tagValueLoader={this.tagValueLoader}
-              tags={tags}
-            />
-
-            <Panel>
-              <IssueListActions
-                selection={selection}
+      <SelectedGroupProvider>
+        <StyledPageContent>
+          <IssueListHeader
+            organization={organization}
+            query={query}
+            sort={this.getSort()}
+            queryCount={queryCount}
+            queryCounts={queryCounts}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={this.onRealtimeChange}
+            router={router}
+            savedSearchList={savedSearches}
+            onSavedSearchSelect={this.onSavedSearchSelect}
+            onSavedSearchDelete={this.onSavedSearchDelete}
+            displayReprocessingTab={showReprocessingTab}
+            selectedProjectIds={selection.projects}
+          />
+          <Layout.Body {...layoutProps}>
+            <Layout.Main {...layoutProps}>
+              <IssueListFilters
+                organization={organization}
                 query={query}
-                queryCount={modifiedQueryCount}
-                displayCount={displayCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onMarkReviewed={this.onMarkReviewed}
-                onActionTaken={this.onActionTaken}
-                onDelete={this.onDelete}
-                statsPeriod={this.getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={this.allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
+                savedSearch={savedSearch}
                 sort={this.getSort()}
-                onSortChange={this.onSortChange}
-              />
-              <PanelBody>
-                <ProcessingIssueList
-                  organization={organization}
-                  projectIds={projectIds}
-                  showProject
-                />
-                <VisuallyCompleteWithData
-                  hasData={this.state.groupIds.length > 0}
-                  id="IssueList-Body"
-                >
-                  {this.renderStreamBody()}
-                </VisuallyCompleteWithData>
-              </PanelBody>
-            </Panel>
-            <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
-              pageLinks={pageLinks}
-              onCursor={this.onCursorChange}
-              paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-            />
-          </Layout.Main>
-          {/* Avoid rendering sidebar until first accessed */}
-          {isSidebarVisible && (
-            <Layout.Side>
-              <IssueListSidebar
-                loading={tagsLoading}
-                tags={tags}
-                query={query}
-                parsedQuery={parseSearch(query) || []}
-                onQueryChange={this.onIssueListSidebarSearch}
+                onSearch={this.onSearch}
+                onSidebarToggle={this.onSidebarToggle}
+                isSearchDisabled={isSidebarVisible}
                 tagValueLoader={this.tagValueLoader}
+                tags={tags}
               />
-            </Layout.Side>
-          )}
-        </Layout.Body>
-      </StyledPageContent>
+
+              <Panel>
+                <IssueListActions
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  displayCount={displayCount}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onMarkReviewed={this.onMarkReviewed}
+                  onActionTaken={this.onActionTaken}
+                  onDelete={this.onDelete}
+                  statsPeriod={this.getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={this.allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
+                />
+                <PanelBody>
+                  <ProcessingIssueList
+                    organization={organization}
+                    projectIds={projectIds}
+                    showProject
+                  />
+                  <VisuallyCompleteWithData
+                    hasData={this.state.groupIds.length > 0}
+                    id="IssueList-Body"
+                  >
+                    {this.renderStreamBody()}
+                  </VisuallyCompleteWithData>
+                </PanelBody>
+              </Panel>
+              <StyledPagination
+                caption={tct('Showing [displayCount] issues', {
+                  displayCount,
+                })}
+                pageLinks={pageLinks}
+                onCursor={this.onCursorChange}
+                paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+              />
+            </Layout.Main>
+            {/* Avoid rendering sidebar until first accessed */}
+            {isSidebarVisible && (
+              <Layout.Side>
+                <IssueListSidebar
+                  loading={tagsLoading}
+                  tags={tags}
+                  query={query}
+                  parsedQuery={parseSearch(query) || []}
+                  onQueryChange={this.onIssueListSidebarSearch}
+                  tagValueLoader={this.tagValueLoader}
+                />
+              </Layout.Side>
+            )}
+          </Layout.Body>
+        </StyledPageContent>
+      </SelectedGroupProvider>
     );
   }
 }

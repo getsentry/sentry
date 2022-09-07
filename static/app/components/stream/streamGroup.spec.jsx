@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
+import {SelectedGroupProvider} from 'sentry/components/stream/selectedGroupContext';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -40,10 +41,16 @@ describe('StreamGroup', function () {
 
   it('renders with anchors', function () {
     const {routerContext, organization} = initializeOrg();
-    const wrapper = render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
-      context: routerContext,
-      organization,
-    });
+    const wrapper = render(
+      <SelectedGroupProvider>
+        {' '}
+        <StreamGroup id="1337" hasGuideAnchor {...routerContext} />
+      </SelectedGroupProvider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
     expect(wrapper.container).toSnapshot();
@@ -52,11 +59,13 @@ describe('StreamGroup', function () {
   it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
     render(
-      <StreamGroup
-        id="1337"
-        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        {...routerContext}
-      />,
+      <SelectedGroupProvider>
+        <StreamGroup
+          id="1337"
+          query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+          {...routerContext}
+        />
+      </SelectedGroupProvider>,
       {context: routerContext, organization}
     );
 
@@ -71,10 +80,15 @@ describe('StreamGroup', function () {
 
   it('marks as resolved', function () {
     const {routerContext, organization} = initializeOrg();
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      context: routerContext,
-      organization,
-    });
+    render(
+      <SelectedGroupProvider>
+        <StreamGroup id="1337" query="is:unresolved" />
+      </SelectedGroupProvider>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
 
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
     const data = {status: 'resolved', statusDetails: {}};
@@ -86,11 +100,13 @@ describe('StreamGroup', function () {
   it('tracks clicks from issues stream', function () {
     const {routerContext, organization} = initializeOrg();
     render(
-      <StreamGroup
-        id="1337"
-        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        {...routerContext}
-      />,
+      <SelectedGroupProvider>
+        <StreamGroup
+          id="1337"
+          query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+          {...routerContext}
+        />
+      </SelectedGroupProvider>,
       {context: routerContext, organization}
     );
 

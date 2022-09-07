@@ -6,10 +6,9 @@ import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
+import {useSelectedGroups} from 'sentry/components/stream/selectedGroupContext';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Group, PageFilters} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
@@ -54,13 +53,15 @@ function IssueListActions({
   const api = useApi();
   const organization = useOrganization();
   const {
-    pageSelected,
-    multiSelected,
-    anySelected,
     allInQuerySelected,
+    allSelected,
+    anySelected,
+    deselectAll,
+    multiSelected,
     selectedIdsSet,
     selectedProjectSlug,
     setAllInQuerySelected,
+    toggleSelectAll,
   } = useSelectedGroupsState();
 
   const numIssues = selectedIdsSet.size;
@@ -71,8 +72,7 @@ function IssueListActions({
       : groupIds.filter(itemId => selectedIdsSet.has(itemId));
 
     callback(selectedIds);
-
-    SelectedGroupStore.deselectAll();
+    deselectAll();
   }
 
   function handleDelete() {
@@ -167,8 +167,8 @@ function IssueListActions({
       <StyledFlex>
         <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
           <Checkbox
-            onChange={() => SelectedGroupStore.toggleSelectAll()}
-            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+            onChange={() => toggleSelectAll()}
+            checked={allSelected || (anySelected ? 'indeterminate' : false)}
             disabled={displayReprocessingActions}
           />
         </ActionsCheckbox>
@@ -185,7 +185,7 @@ function IssueListActions({
             multiSelected={multiSelected}
             selectedProjectSlug={selectedProjectSlug}
             onShouldConfirm={action =>
-              shouldConfirm(action, {pageSelected, selectedIdsSet})
+              shouldConfirm(action, {allSelected, selectedIdsSet})
             }
             onDelete={handleDelete}
             onMerge={handleMerge}
@@ -200,7 +200,7 @@ function IssueListActions({
           isReprocessingQuery={displayReprocessingActions}
         />
       </StyledFlex>
-      {!allResultsVisible && pageSelected && (
+      {!allResultsVisible && allSelected && (
         <Alert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">
             {allInQuerySelected ? (
@@ -248,13 +248,12 @@ function IssueListActions({
 }
 
 function useSelectedGroupsState() {
+  const {selectedIds, ...rest} = useSelectedGroups();
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedIds = useLegacyStore(SelectedGroupStore);
 
-  const selected = SelectedGroupStore.getSelectedIds();
-  const projects = [...selected]
-    .map(id => GroupStore.get(id))
-    .filter((group): group is Group => !!(group && group.project))
+  const projects = [...selectedIds]
+    .map(GroupStore.get)
+    .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
 
   const uniqProjects = uniq(projects);
@@ -263,21 +262,12 @@ function useSelectedGroupsState() {
   // can behave correctly.
   const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
 
-  const pageSelected = SelectedGroupStore.allSelected();
-  const multiSelected = SelectedGroupStore.multiSelected();
-  const anySelected = SelectedGroupStore.anySelected();
-  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
-
-  useEffect(() => {
-    setAllInQuerySelected(false);
-  }, [selectedIds]);
+  useEffect(() => void setAllInQuerySelected(false), [selectedIds]);
 
   return {
-    pageSelected,
-    multiSelected,
-    anySelected,
+    ...rest,
     allInQuerySelected,
-    selectedIdsSet,
+    selectedIdsSet: selectedIds,
     selectedProjectSlug,
     setAllInQuerySelected,
   };
@@ -285,14 +275,14 @@ function useSelectedGroupsState() {
 
 function shouldConfirm(
   action: ConfirmAction,
-  {pageSelected, selectedIdsSet}: {pageSelected: boolean; selectedIdsSet: Set<string>}
+  {allSelected, selectedIdsSet}: {allSelected: boolean; selectedIdsSet: Set<string>}
 ) {
   switch (action) {
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
     case ConfirmAction.IGNORE:
     case ConfirmAction.UNBOOKMARK: {
-      return pageSelected && selectedIdsSet.size > 1;
+      return allSelected && selectedIdsSet.size > 1;
     }
     case ConfirmAction.BOOKMARK:
       return selectedIdsSet.size > 1;
