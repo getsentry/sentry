@@ -1988,18 +1988,23 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             ).select_related("group")
 
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
+            new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
                 granted_quota = issue_rate_limiter.check_and_use_quotas(
                     [
                         RequestedQuota(
                             f"performance-issues:{project.id}",
-                            len(new_grouphashes),
+                            new_grouphashes_count,
                             [PERFORMANCE_ISSUE_QUOTA],
                         )
                     ]
                 )[0]
-                # TODO: Log stats on how many times we're over quota
+
+                # Log how many groups didn't get created because of rate limiting
+                _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted
+                metrics.incr("performance.performance_issue.dropped", _dropped_group_hash_count)
+
                 for new_grouphash in list(new_grouphashes)[: granted_quota.granted]:
 
                     # GROUP DOES NOT EXIST
