@@ -6,6 +6,7 @@ import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from hashlib import md5
 from io import BytesIO
 from typing import Optional, Sequence, TypedDict
 
@@ -1975,7 +1976,10 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             kwargs = _create_kwargs(job)
 
             performance_problems = job["performance_problems"]
-            all_group_hashes = [problem["fingerprint"] for problem in performance_problems]
+            all_group_hashes = [
+                md5(problem.fingerprint.encode("utf-8")).hexdigest()
+                for problem in performance_problems
+            ]
             group_hashes = all_group_hashes[:MAX_GROUPS]
 
             existing_grouphashes = GroupHash.objects.filter(
@@ -1995,7 +1999,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     ]
                 )[0]
                 # TODO: Log stats on how many times we're over quota
-                for new_grouphash in new_grouphashes[: granted_quota.granted]:
+                for new_grouphash in list(new_grouphashes)[: granted_quota.granted]:
 
                     # GROUP DOES NOT EXIST
                     with sentry_sdk.start_span(
@@ -2007,7 +2011,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
                         group = _create_group(project, event, **kwargs)
-                        GroupHash.objects.create(project, new_grouphash, group)
+                        GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
 
                         is_new = True
                         is_regression = False
@@ -2041,7 +2045,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
                     )
 
-            job["event"].group_ids = [groupInfo.group.id for groupInfo in job["groups"]]
+            job["event"].groups = [group_info.group for group_info in job["groups"]]
 
 
 @metrics.wraps("event_manager.save_transaction_events")
