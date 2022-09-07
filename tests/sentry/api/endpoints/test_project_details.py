@@ -1031,7 +1031,17 @@ class ProjectUpdateTest(APITestCase):
             # check that audit entry was created with redacted password
             assert create_audit_entry.called
             call = faux.faux(create_audit_entry)
-            assert call.kwarg_equals("data", {"sentry:symbol_sources": [redacted_source]})
+            assert call.kwarg_equals(
+                "data",
+                {
+                    "sentry:symbol_sources": [redacted_source],
+                    "id": 41,
+                    "slug": "bar",
+                    "name": "Bar",
+                    "status": 0,
+                    "public": False,
+                },
+            )
 
             self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
