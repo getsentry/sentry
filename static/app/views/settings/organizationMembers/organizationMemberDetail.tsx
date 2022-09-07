@@ -10,18 +10,17 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import AutoSelectText from 'sentry/components/autoSelectText';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import Field from 'sentry/components/forms/field';
+import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
@@ -291,9 +290,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                   <InviteSection>
                     <div>
                       <DetailLabel>{t('Invite Link')}</DetailLabel>
-                      <AutoSelectText>
-                        <CodeInput>{inviteLink}</CodeInput>
-                      </AutoSelectText>
+                      <TextCopyInput>{inviteLink}</TextCopyInput>
                       <p className="help-block">
                         {t('This unique invite link may only be used by this member.')}
                       </p>
@@ -427,10 +424,6 @@ const InviteSection = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   margin-top: ${space(2)};
   padding-top: ${space(2)};
-`;
-
-const CodeInput = styled('code')`
-  ${p => inputStyles(p)}; /* Have to do this for typescript :( */
 `;
 
 const InviteActions = styled('div')`
