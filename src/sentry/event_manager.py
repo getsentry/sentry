@@ -2005,6 +2005,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
+                        group_type = next(
+                            (
+                                problem.type
+                                for problem in performance_problems
+                                if problem.fingerprint == new_grouphash
+                            ),
+                            None,
+                        )
+                        kwargs["type"] = group_type
+
                         group = _create_group(project, event, **kwargs)
                         GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
 
