@@ -1975,7 +1975,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                 get_event_type(event.data),
                 dict(job["event_metadata"]),
             )
-            kwargs["data"]["metadata"]["title"] = "lol"
+            kwargs["data"]["metadata"]["title"] = "N+1 Query"
             kwargs["data"]["last_received"] = job["received_timestamp"]
 
             performance_problems = job["performance_problems"]
