@@ -769,8 +769,8 @@ SKIP_SNUBA_FIELDS = frozenset(
         "subscribed_by",
         "first_release",
         "first_seen",
-        "category",
-        "type",
+        "issue.category",
+        "issue.type",
     )
 )
 
