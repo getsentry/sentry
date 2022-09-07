@@ -9,6 +9,8 @@ def test_simple():
     op_id = "This is a test"
 
     class ExampleEndpoint(Endpoint):
+        permission_classes = ()
+
         @extend_schema(operation_id=op_id)
         def get(self, request, *args, **kwargs):
             pass
