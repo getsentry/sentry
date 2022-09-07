@@ -400,6 +400,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
 
+            # Assert returns empty result sets.
+            null_queries = [
+                f"id:{replay1_id} AND id:b",
+                f"id:{replay1_id} AND duration:>1000",
+                "id:b OR duration:>1000",
+            ]
+            for query in null_queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
+
     def test_get_replays_user_sorts(self):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
