@@ -52,6 +52,50 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
 }
 
+/**
+ * Defines what capabilities a category of issue has. Not all categories of
+ * issues work the same.
+ */
+type IssueCategoryCapabilities = {
+  /**
+   * Is this issude deletable
+   */
+  delete: boolean;
+  /**
+   * Is this issude deletable
+   */
+  ignore: boolean;
+  /**
+   * Is this issue mergable?
+   */
+  merge: boolean;
+  /**
+   * Does the issue support suspect commits
+   */
+  suspectCommits: boolean;
+};
+
+/**
+ * Defines what capabilities each category of issue supports
+ */
+export const ISSUE_CATEGORY_CAPABILITIES: Record<
+  IssueCategory,
+  IssueCategoryCapabilities
+> = {
+  [IssueCategory.ERROR]: {
+    delete: true,
+    ignore: true,
+    merge: true,
+    suspectCommits: true,
+  },
+  [IssueCategory.PERFORMANCE]: {
+    delete: false,
+    ignore: false,
+    merge: false,
+    suspectCommits: false,
+  },
+};
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
