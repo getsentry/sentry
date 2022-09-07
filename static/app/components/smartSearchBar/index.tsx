@@ -309,7 +309,6 @@ class SmartSearchBar extends Component<Props, State> {
     defaultQuery: '',
     query: null,
     onSearch: function () {},
-    excludeEnvironment: false,
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
@@ -1062,7 +1061,14 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags);
+    const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
+
+    // Filter out search items that are behind feature flags
+    const tagItems = allTagItems.filter(
+      item =>
+        item.featureFlag === undefined ||
+        this.props.organization.features.includes(item.featureFlag)
+    );
 
     return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }

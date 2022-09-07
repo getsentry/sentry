@@ -57,7 +57,7 @@ grpc-google-iam-v1==0.12.4
 grpcio==1.47.0
 h11==0.13.0
 hiredis==0.3.1
-honcho==1.0.0
+honcho==1.1.0
 identify==2.5.1
 idna==2.10
 inflection==0.5.1
@@ -146,7 +146,7 @@ s3transfer==0.5.2
 selenium==4.3.0
 sentry-arroyo==1.0.4
 sentry-relay==0.8.13
-sentry-sdk==1.9.5
+sentry-sdk==1.9.8
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0

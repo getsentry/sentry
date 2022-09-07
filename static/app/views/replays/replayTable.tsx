@@ -15,10 +15,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {Sort} from 'sentry/utils/discover/fields';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -31,6 +33,7 @@ type Props = {
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
+  referrer: string;
   replay: ReplayListRecord;
   showProjectColumn: boolean;
 };
@@ -73,6 +76,9 @@ function SortableHeader({
 }
 
 function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+  const routes = useRoutes();
+  const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
@@ -116,10 +122,11 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
       {replays?.map(replay => (
         <ReplayTableRow
           key={replay.id}
-          replay={replay}
-          organization={organization}
-          showProjectColumn={showProjectColumn}
           minWidthIsSmall={minWidthIsSmall}
+          organization={organization}
+          referrer={referrer}
+          replay={replay}
+          showProjectColumn={showProjectColumn}
         />
       ))}
     </StyledPanelTable>
@@ -129,6 +136,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
 function ReplayTableRow({
   minWidthIsSmall,
   organization,
+  referrer,
   replay,
   showProjectColumn,
 }: RowProps) {
@@ -140,17 +148,18 @@ function ReplayTableRow({
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`}
+            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?referrer=${referrer}`}
           >
-            {replay.user.username ||
-              replay.user.name ||
-              replay.user.email ||
-              replay.user.ip_address ||
-              replay.user.id ||
-              ''}
+            {replay.user.displayName || ''}
           </Link>
         }
-        user={replay.user}
+        user={{
+          username: replay.user.displayName || '',
+          email: replay.user.email || '',
+          id: replay.user.id || '',
+          ip_address: replay.user.ip_address || '',
+          name: replay.user.name || '',
+        }}
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={<StringWalker urls={replay.urls} />}
       />
