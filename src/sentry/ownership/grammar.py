@@ -70,7 +70,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
     This line contains a Matcher and a list of Owners.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         owners = [o.dump() for o in self.owners]
         owners_str = " ".join(
             f"#{owner['identifier']}" if owner["type"] == "team" else owner["identifier"]
@@ -104,7 +104,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         src/*
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.type}:{self.pattern}"
 
     def dump(self) -> Mapping[str, str]:
