@@ -83,6 +83,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
@@ -1980,3 +1981,8 @@ def save_transaction_events(jobs, projects):
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     return jobs
+
+
+issue_rate_limiter = RedisSlidingWindowRateLimiter(
+    **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
+)
