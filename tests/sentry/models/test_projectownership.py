@@ -161,13 +161,10 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No autoassignment on match
-        assert (
-            ProjectOwnership.get_autoassign_owners(
-                self.project.id,
-                {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
-            )
-            == (False, [self.team], False, rule_a)
-        )
+        assert ProjectOwnership.get_autoassign_owners(
+            self.project.id,
+            {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
+        ) == (False, [self.team], False, rule_a)
 
         # autoassignment is True
         owner = ProjectOwnership.objects.get(project_id=self.project.id)
