@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
@@ -18,7 +19,6 @@ import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
-import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -83,6 +83,9 @@ function BaseGroupRow({
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
 
+  const selectedGroups = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroups[id];
+
   const {selection} = usePageFilters();
 
   const lastInboxState = usePrevious(group.inbox);
@@ -141,7 +144,7 @@ function BaseGroupRow({
       [query, sharedAnalytics]
     );
 
-  const toggleSelect = useCallback(
+  const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
 
@@ -166,6 +169,19 @@ function BaseGroupRow({
       if (evt.shiftKey) {
         SelectedGroupStore.shiftToggleItems(group.id);
         window.getSelection()?.removeAllRanges();
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  const checkboxToggle = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+
+      if (mouseEvent.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
       }
@@ -390,7 +406,7 @@ function BaseGroupRow({
     <Wrapper
       data-test-id="group"
       data-test-reviewed={reviewed}
-      onClick={displayReprocessingLayout ? undefined : toggleSelect}
+      onClick={displayReprocessingLayout ? undefined : wrapperToggle}
       reviewed={reviewed}
       unresolved={group.status === 'unresolved'}
       actionTaken={actionTaken}
@@ -398,7 +414,13 @@ function BaseGroupRow({
     >
       {canSelect && (
         <GroupCheckBoxWrapper>
-          <GroupCheckBox id={group.id} disabled={!!displayReprocessingLayout} />
+          <Checkbox
+            id={group.id}
+            aria-label={t('Select Issue')}
+            checked={isSelected}
+            disabled={!!displayReprocessingLayout}
+            onChange={checkboxToggle}
+          />
         </GroupCheckBoxWrapper>
       )}
       <GroupSummary canSelect={canSelect}>
