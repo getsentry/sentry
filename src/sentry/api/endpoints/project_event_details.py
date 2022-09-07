@@ -4,7 +4,7 @@ from datetime import datetime
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
 
@@ -43,15 +43,26 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         prev_event_id = None
 
         if event.group_id:
-            requested_environments = set(request.GET.getlist("environment"))
-            conditions = [["event.type", "!=", "transaction"]]
+            if (
+                features.has("organizations:performance-issues", project.organization)
+                and event.get_event_type() == "transaction"
+            ):
+                conditions = [[["has", ["group_ids", group_id]], "=", 1]]
+                _filter = eventstore.Filter(
+                    conditions=conditions,
+                    project_ids=[event.project_id],
+                )
+            else:
+                conditions = [["event.type", "!=", "transaction"]]
+                _filter = eventstore.Filter(
+                    conditions=conditions,
+                    project_ids=[event.project_id],
+                    group_ids=[event.group_id],
+                )
 
+            requested_environments = set(request.GET.getlist("environment"))
             if requested_environments:
                 conditions.append(["environment", "IN", requested_environments])
-
-            _filter = eventstore.Filter(
-                conditions=conditions, project_ids=[event.project_id], group_ids=[event.group_id]
-            )
 
             # Ignore any time params and search entire retention period
             next_event_filter = deepcopy(_filter)
