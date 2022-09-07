@@ -325,6 +325,7 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   renderBody() {
+    console.log('TESTTTTT');
     return (
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <OrganizationContext.Provider value={this.state.organization}>
