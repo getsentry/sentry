@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Tuple, Union
 from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Op
 from snuba_sdk.conditions import And, Or
+from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter
@@ -116,9 +117,9 @@ class QueryConfig:
 
 def generate_valid_conditions(
     query: List[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
-) -> List[Condition]:
+) -> List[Expression]:
     """Convert search filters to snuba conditions."""
-    result = []
+    result: List[Expression] = []
     look_back = None
     for search_filter in query:
         # SearchFilters are appended to the result set.  If they are top level filters they are
@@ -174,18 +175,22 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     return Condition(Column(field.query_alias or field.attribute_name), operator, value)
 
 
-def attempt_compressed_condition(result, rhs, condition_type):
+def attempt_compressed_condition(
+    result: List[Expression],
+    condition: Condition,
+    condition_type: Union[And, Or],
+):
     """Unnecessary query optimization.
 
-    Improves the legibility of for query debugging. Clickhouse would flatten these nested OR
-    statements internally anyway.
+    Improves legibility for query debugging. Clickhouse would flatten these nested OR statements
+    internally anyway.
 
     (block OR block) OR block => (block OR block OR block)
     """
     if isinstance(result[-1], condition_type):
-        result[-1].conditions.append(rhs)
+        result[-1].conditions.append(condition)
     else:
-        result.append(condition_type([result.pop(), rhs]))
+        result.append(condition_type([result.pop(), condition]))
 
 
 def get_valid_sort_commands(
