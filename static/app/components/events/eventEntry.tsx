@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
@@ -177,16 +175,14 @@ function EventEntry({
       };
 
       return (
-        <Fragment>
-          <SpanEvidenceSection
-            issue={group as Group}
-            event={event}
-            organization={organization as Organization}
-            spanEvidence={SAMPLE_SPAN_EVIDENCE}
-            projectSlug={INTERNAL_PROJECT}
-            affectedSpanIds={affectedSpanIds}
-          />
-        </Fragment>
+        <SpanEvidenceSection
+          issue={group as Group}
+          event={event}
+          organization={organization as Organization}
+          spanEvidence={SAMPLE_SPAN_EVIDENCE}
+          projectSlug={INTERNAL_PROJECT}
+          affectedSpanIds={affectedSpanIds}
+        />
       );
     default:
       // this should not happen
