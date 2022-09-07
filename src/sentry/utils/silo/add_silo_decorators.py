@@ -25,7 +25,6 @@ def add_silo_decorators(
         import_stmt: str,
         category: ClassCategory,
         predicate: Callable[[TargetClass], bool],
-        path_name: str,
     ) -> None:
         filtered_targets = (
             (c.module, c.name)
@@ -56,28 +55,24 @@ def add_silo_decorators(
         "from sentry.db.models import customer_silo_model",
         ClassCategory.MODEL,
         customer_model_predicate,
-        path_name,
     )
     execute(
         "control_silo_model",
         "from sentry.db.models import control_silo_model",
         ClassCategory.MODEL,
         control_model_predicate,
-        path_name,
     )
     execute(
         "customer_silo_endpoint",
         "from sentry.api.base import customer_silo_endpoint",
         ClassCategory.ENDPOINT,
         customer_endpoint_predicate,
-        path_name,
     )
     execute(
         "control_silo_endpoint",
         "from sentry.api.base import control_silo_endpoint",
         ClassCategory.ENDPOINT,
         control_endpoint_predicate,
-        path_name,
     )
 
 
