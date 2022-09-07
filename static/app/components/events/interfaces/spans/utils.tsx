@@ -502,6 +502,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.nextjs',
     'sentry.javascript.electron',
     'sentry.javascript.remix',
+    'sentry.javascript.svelte',
   ].includes(sdkName.toLowerCase());
 }
 
