@@ -1,7 +1,9 @@
+import dataclasses
+import functools
 import itertools
-from collections import namedtuple
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Mapping, Set
 from copy import deepcopy
+from typing import Any, Optional, Sequence
 
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
@@ -9,14 +11,21 @@ from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 
-SnubaModelQuerySettings = namedtuple(
-    # `dataset` - the dataset in Snuba that we want to query
-    # `groupby` - the column in Snuba that we want to put in the group by statement
-    # `aggregate` - the column in Snuba that we want to run the aggregate function on
-    # `conditions` - any additional model specific conditions we want to pass in the query
-    "SnubaModelSettings",
-    ["dataset", "groupby", "aggregate", "conditions"],
-)
+
+@dataclasses.dataclass
+class SnubaModelQuerySettings:
+    # The dataset in Snuba that we want to query
+    dataset: snuba.Dataset
+
+    # The column in Snuba that we want to put in the group by statement
+    groupby: str
+    # The column in Snuba that we want to run the aggregate function on
+    aggregate: Optional[str]
+    # Any additional model specific conditions we want to pass in the query
+    conditions: Sequence[Any]
+    # The projected columns to select in the underlying dataset
+    selected_columns: Optional[Sequence[Any]] = None
+
 
 # combine DEFAULT, ERROR, and SECURITY as errors. We are now recording outcome by
 # category, and these TSDB models and where they're used assume only errors.
@@ -52,7 +61,7 @@ class SnubaTSDB(BaseTSDB):
     # include this condition to ensure they are excluded from the query. Once we switch to the
     # errors storage in Snuba, this can be omitted and transactions will be excluded by default.
     events_type_condition = ["type", "!=", "transaction"]
-    # ``non_outcomes_query_settings`` are all the query settings for for non outcomes based TSDB models.
+    # ``non_outcomes_query_settings`` are all the query settings for non outcomes based TSDB models.
     # Single tenant reads Snuba for these models, and writes to DummyTSDB. It reads and writes to Redis for all the
     # other models.
     non_outcomes_query_settings = {
@@ -61,6 +70,13 @@ class SnubaTSDB(BaseTSDB):
         ),
         TSDBModel.group: SnubaModelQuerySettings(
             snuba.Dataset.Events, "group_id", None, [events_type_condition]
+        ),
+        TSDBModel.group_performance: SnubaModelQuerySettings(
+            snuba.Dataset.Transactions,
+            "group_id",
+            None,
+            [],
+            [["arrayJoin", "group_ids", "group_id"]],
         ),
         TSDBModel.release: SnubaModelQuerySettings(
             snuba.Dataset.Events, "tags[sentry:release]", None, [events_type_condition]
@@ -230,7 +246,8 @@ class SnubaTSDB(BaseTSDB):
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
-        aggregations = [[aggregation, model_aggregate, "aggregate"]]
+        aggregated_as = "aggregate"
+        aggregations = [[aggregation, model_aggregate, aggregated_as]]
 
         # For historical compatibility with bucket-counted TSDB implementations
         # we grab the original bucketed series and add the rollup time to the
@@ -258,7 +275,8 @@ class SnubaTSDB(BaseTSDB):
             orderby.append(model_group)
 
         if keys:
-            result = snuba.query(
+            query_func_without_selected_columns = functools.partial(
+                snuba.query,
                 dataset=model_dataset,
                 start=start,
                 end=end,
@@ -273,6 +291,13 @@ class SnubaTSDB(BaseTSDB):
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
                 use_cache=use_cache,
             )
+            if model_query_settings.selected_columns:
+                result = query_func_without_selected_columns(
+                    selected_columns=model_query_settings.selected_columns
+                )
+                self.unnest(result, aggregated_as)
+            else:
+                result = query_func_without_selected_columns()
         else:
             result = {}
 
@@ -320,6 +345,41 @@ class SnubaTSDB(BaseTSDB):
                             self.trim(result[rk], subgroups, keys[rk])
                     else:
                         del result[rk]
+
+    def unnest(self, result, aggregated_as):
+        """
+        Unnests the aggregated value in results and places it one level higher to conform to the
+        proper result format
+        convert:
+        {
+          "groupby[0]:value1" : {
+            "groupby[1]:value1" : {
+              "groupby[2]:value1" : {
+                "groupby[0]": groupby[0]:value1
+                "groupby[1]": groupby[1]:value1
+                "aggregation_as": aggregated_value
+              }
+            }
+          },
+        },
+        to:
+        {
+          "groupby[0]:value1": {
+            "groupby[1]:value1" : {
+              "groupby[2]:value1" : aggregated_value
+            }
+          },
+        }, ...
+        """
+        from typing import MutableMapping
+
+        if isinstance(result, MutableMapping):
+            for key, val in result.items():
+                if isinstance(val, MutableMapping):
+                    if val.get(aggregated_as):
+                        result[key] = val.get(aggregated_as)
+                    else:
+                        self.unnest(val, aggregated_as)
 
     def get_range(
         self,
