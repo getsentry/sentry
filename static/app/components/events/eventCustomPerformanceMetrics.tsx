@@ -20,11 +20,16 @@ import {
 import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
+export enum EventDetailPageSource {
+  PERFORMANCE = 'performance',
+  DISCOVER = 'discover',
+}
+
 type Props = {
   event: Event;
   location: Location;
   organization: Organization;
-  fromPerformance?: boolean;
+  source?: EventDetailPageSource;
 };
 
 function isNotMarkMeasurement(field: string) {
@@ -35,7 +40,7 @@ export default function EventCustomPerformanceMetrics({
   event,
   location,
   organization,
-  fromPerformance,
+  source,
 }: Props) {
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -59,7 +64,7 @@ export default function EventCustomPerformanceMetrics({
               name={name}
               location={location}
               organization={organization}
-              fromPerformance={fromPerformance}
+              source={source}
             />
           );
         })}
@@ -95,7 +100,7 @@ function EventCustomPerformanceMetric({
   name,
   location,
   organization,
-  fromPerformance,
+  source,
 }: EventCustomPerformanceMetricProps) {
   const {value, unit} = event.measurements?.[name] ?? {};
   if (value === null) {
@@ -120,15 +125,18 @@ function EventCustomPerformanceMetric({
       projects: [],
       version: 1,
     });
-    if (fromPerformance) {
-      return transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
-        transaction: event.title,
-        projectID: event.projectID,
-        query: {query},
-      });
+    switch (source) {
+      case EventDetailPageSource.PERFORMANCE:
+        return transactionSummaryRouteWithQuery({
+          orgSlug: organization.slug,
+          transaction: event.title,
+          projectID: event.projectID,
+          query: {query},
+        });
+      case EventDetailPageSource.DISCOVER:
+      default:
+        return eventView.getResultsViewUrlTarget(organization.slug);
     }
-    return eventView.getResultsViewUrlTarget(organization.slug);
   }
   return (
     <StyledPanel>
