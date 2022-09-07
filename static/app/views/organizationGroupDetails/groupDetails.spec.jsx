@@ -6,6 +6,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {IssueCategory} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
 
@@ -15,7 +16,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
-  const group = TestStubs.Group();
+  const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
   const event = TestStubs.Event();
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
   const selection = {environments: []};
@@ -238,7 +239,7 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const sampleGruop = TestStubs.Group();
+    const sampleGruop = TestStubs.Group({issueCategory: IssueCategory.ERROR});
     sampleGruop.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
