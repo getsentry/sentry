@@ -1,3 +1,4 @@
+import collections
 from typing import Any, Dict, Generator, List, Optional, Sequence, Tuple
 
 
@@ -26,7 +27,7 @@ def generate_normalized_output(
         item["id"] = item.pop("replay_id")
         item["longestTransaction"] = 0
         item["environment"] = item.pop("agg_environment")
-        item["tags"] = dict_from_first(zip(item.pop("tk") or [], item.pop("tv") or []))
+        item["tags"] = dict_list(zip(item.pop("tk") or [], item.pop("tv") or []))
         item["user"] = {
             "id": item.pop("user_id"),
             "name": item.pop("user_name"),
@@ -61,15 +62,17 @@ def generate_sorted_urls(url_groups: List[Tuple[int, List[str]]]) -> Generator[N
         yield from url_group
 
 
-def dict_from_first(items: Sequence[Tuple[Any, Any]]):
+def dict_list(items: Sequence[Tuple[str, str]]) -> Dict[str, List[str]]:
     """Populate a dictionary with the first key, value pair seen.
 
     There is a potential for duplicate keys to exist in the result set.  When we filter these keys
     in Clickhouse we will filter by the first value so we ignore subsequent updates to the key.
     This function ensures what is displayed matches what was filtered.
     """
-    result = {}
+    result = collections.defaultdict(set)
     for key, value in items:
-        if key not in result:
-            result[key] = value
+        result[key].add(value)
+
+    for key, value in result.items():
+        result[key] = list(value)
     return result

@@ -76,7 +76,7 @@ def mock_expected_response(
             "name": kwargs.pop("user_name", "username"),
             "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
         },
-        "tags": {"customtag": "is_set"},
+        "tags": {"customtag": ["is_set"]},
     }
 
 
