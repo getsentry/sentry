@@ -1955,14 +1955,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
     )
-    for idx, job in enumerate(jobs):
+    for job in jobs:
         job["groups"] = []
+        event = job["event"]
+        project = event.project
 
         # General system-wide option
         rate = options.get("performance.issues.all.problem-creation")
 
         # More granular, per-project option
-        per_project_rate = projects[idx].get_option("sentry:performance_issue_creation_rate")
+        per_project_rate = project.get_option("sentry:performance_issue_creation_rate")
         if (
             rate
             and rate > random.random()
@@ -1975,9 +1977,6 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             performance_problems = job["performance_problems"]
             all_group_hashes = [problem["fingerprint"] for problem in performance_problems]
             group_hashes = all_group_hashes[:MAX_GROUPS]
-
-            event = job["event"]
-            project = event.project
 
             existing_grouphashes = GroupHash.objects.filter(
                 project=project, hash__in=group_hashes
