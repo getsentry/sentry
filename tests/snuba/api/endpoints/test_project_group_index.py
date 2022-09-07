@@ -1486,6 +1486,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 self.create_group(
                     project=self.project,
                     status=GroupStatus.RESOLVED,
+                    type=GroupType.PERFORMANCE_SLOW_SPAN.value,
                 )
             )
 
@@ -1493,7 +1494,6 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             hash = uuid4().hex
             hashes.append(hash)
-            group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
             GroupHash.objects.create(project=group.project, hash=hash, group=group)
 
         self.login_as(user=self.user)
