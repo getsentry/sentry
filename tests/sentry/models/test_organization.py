@@ -178,6 +178,27 @@ class OrganizationTest(TestCase):
         org = self.create_organization(owner=user)
         assert org.get_default_owner() == user
 
+    def test_default_owner_id(self):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization(owner=user)
+        assert org.default_owner_id == user.id
+
+    def test_default_owner_id_no_owner(self):
+        org = self.create_organization()
+        assert org.default_owner_id is None
+
+    @mock.patch.object(
+        Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
+    )
+    def test_default_owner_id_cached(self, mock_get_owners):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization(owner=user)
+        # mock_get_owners.return_value = [user]
+        assert org.default_owner_id == user.id
+        assert mock_get_owners.call_count == 1
+        assert org.default_owner_id == user.id
+        assert mock_get_owners.call_count == 1
+
     def test_flags_have_changed(self):
         org = self.create_organization()
         update_tracked_data(org)
