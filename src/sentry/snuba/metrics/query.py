@@ -32,6 +32,14 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
+    alias: Optional[str] = None
+
+    def __post_init__(self):
+        # ToDo(ahmed): Once we allow MetricField to accept MRI, we should set the alias to the operation and public
+        #  facing name
+        if not self.alias:
+            key = f"{self.op}({self.metric_name})" if self.op is not None else self.metric_name
+            object.__setattr__(self, "alias", key)
 
     def __str__(self) -> str:
         return f"{self.op}({self.metric_name})" if self.op else self.metric_name
