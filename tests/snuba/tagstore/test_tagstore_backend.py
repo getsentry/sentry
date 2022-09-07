@@ -5,7 +5,14 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
+from sentry.models import (
+    Environment,
+    EventUser,
+    Group,
+    Release,
+    ReleaseProjectEnvironment,
+    ReleaseStages,
+)
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -783,7 +790,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         self,
         project_id: int,
         user_id: str,
-        group_ids: Sequence[int],
+        groups: Sequence[Group],
         environment: Environment = None,
         timestamp: datetime = None,
     ):
@@ -798,7 +805,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         def inject_group_ids(jobs, projects):
             _pull_out_data(jobs, projects)
             for job in jobs:
-                job["event"].group_ids = group_ids
+                job["event"].groups = groups
             return jobs, projects
 
         with mock.patch("sentry.event_manager._pull_out_data", inject_group_ids):
@@ -838,7 +845,7 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["project_id"] == project_id
-        assert result["data"][0]["group_ids"] == group_ids
+        assert result["data"][0]["group_ids"] == [g.id for g in groups]
         assert result["data"][0]["tags[sentry:user]"] == user_id_val
         assert result["data"][0]["environment"] == (environment.name if environment else None)
         assert result["data"][0]["timestamp"] == insert_time.isoformat()
@@ -852,28 +859,28 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         self._insert_transaction(
             self.project.id,
             "user1",
-            [first_group.id],
+            [first_group],
             self.environment,
             timestamp=first_group.first_seen + timedelta(minutes=1),
         )
         self._insert_transaction(
             self.project.id,
             "user1",
-            [first_group.id],
+            [first_group],
             self.environment,
             timestamp=first_group.first_seen + timedelta(minutes=2),
         )
         self._insert_transaction(
             self.project.id,
             "user2",
-            [first_group.id],
+            [first_group],
             self.environment,
             timestamp=first_group.first_seen + timedelta(minutes=3),
         )
         self._insert_transaction(
             self.project.id,
             "user3",
-            [first_group.id],
+            [first_group],
             timestamp=first_group.first_seen + timedelta(minutes=4),
         )
 
@@ -883,28 +890,28 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         self._insert_transaction(
             self.project.id,
             "user1",
-            [second_group.id],
+            [second_group],
             self.environment,
             timestamp=second_group.first_seen + timedelta(minutes=1),
         )
         self._insert_transaction(
             self.project.id,
             "user1",
-            [second_group.id],
+            [second_group],
             self.environment,
             timestamp=second_group.first_seen + timedelta(minutes=2),
         )
         self._insert_transaction(
             self.project.id,
             "user2",
-            [second_group.id],
+            [second_group],
             self.environment,
             timestamp=second_group.first_seen + timedelta(minutes=3),
         )
         self._insert_transaction(
             self.project.id,
             "user3",
-            [second_group.id],
+            [second_group],
             timestamp=second_group.first_seen + timedelta(minutes=4),
         )
 
@@ -926,11 +933,11 @@ class PerfTagStorageTest(TestCase, SnubaTestCase):
         )
         first_event_ts = new_group.first_seen + timedelta(minutes=1)
         self._insert_transaction(
-            self.project.id, "user1", [new_group.id], self.environment, timestamp=first_event_ts
+            self.project.id, "user1", [new_group], self.environment, timestamp=first_event_ts
         )
         last_event_ts = new_group.first_seen + timedelta(hours=1)
         self._insert_transaction(
-            self.project.id, "user1", [new_group.id], self.environment, timestamp=last_event_ts
+            self.project.id, "user1", [new_group], self.environment, timestamp=last_event_ts
         )
 
         group_seen_stats = self.ts.get_perf_group_list_tag_value(
