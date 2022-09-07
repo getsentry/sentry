@@ -176,7 +176,6 @@ function IssueListActions({
           <ActionSet
             sort={sort}
             onSortChange={onSortChange}
-            orgSlug={organization.slug}
             queryCount={queryCount}
             query={query}
             issues={selectedIdsSet}

@@ -10,9 +10,10 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Organization, Project, ResolutionStatus} from 'sentry/types';
+import {Project, ResolutionStatus} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -29,7 +30,6 @@ type Props = {
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
-  orgSlug: Organization['slug'];
   query: string;
   queryCount: number;
   sort: string;
@@ -37,7 +37,6 @@ type Props = {
 };
 
 function ActionSet({
-  orgSlug,
   queryCount,
   query,
   allInQuerySelected,
@@ -52,8 +51,16 @@ function ActionSet({
   sort,
   onSortChange,
 }: Props) {
+  const organization = useOrganization();
   const numIssues = issues.size;
-  const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
+  const confirm = getConfirm({
+    numIssues,
+    allInQuerySelected,
+    query,
+    queryCount,
+    organization,
+  });
+
   const label = getLabel(numIssues, allInQuerySelected);
 
   // merges require a single project to be active in an org context
@@ -160,7 +167,7 @@ function ActionSet({
   return (
     <Wrapper>
       {selectedProjectSlug ? (
-        <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
+        <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
             const selectedProject = projects[0];
             return (
@@ -168,7 +175,7 @@ function ActionSet({
                 onShouldConfirm={onShouldConfirm}
                 onUpdate={onUpdate}
                 anySelected={anySelected}
-                orgSlug={orgSlug}
+                orgSlug={organization.slug}
                 params={{
                   hasReleases: selectedProject.hasOwnProperty('features')
                     ? (selectedProject as Project).features.includes('releases')
@@ -191,7 +198,7 @@ function ActionSet({
           onShouldConfirm={onShouldConfirm}
           onUpdate={onUpdate}
           anySelected={anySelected}
-          orgSlug={orgSlug}
+          orgSlug={organization.slug}
           params={{
             hasReleases: false,
             latestRelease: null,
