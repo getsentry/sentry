@@ -107,14 +107,6 @@ runs:
         cache: pip
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
 
-    - name: Install system dependencies
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          libxmlsec1-dev \
-          libmaxminddb-dev
-
     - name: Set up outputs
       id: config
       env:

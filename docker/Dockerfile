@@ -58,15 +58,6 @@ RUN set -x \
   wget \
   zlib1g-dev \
   " \
-  # maxminddb
-  && buildDeps="$buildDeps \
-  libmaxminddb-dev \
-  "\
-  # xmlsec
-  && buildDeps="$buildDeps \
-  libxmlsec1-dev \
-  pkg-config \
-  " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
   && pip install -r /tmp/requirements-frozen.txt \
@@ -78,26 +69,6 @@ RUN set -x \
   && mv dogstatsd_plugin.so /var/lib/uwsgi/ \
   && rm -rf /tmp/requirements-frozen.txt /tmp/uwsgi-dogstatsd .uwsgi_plugins_builder \
   && apt-get purge -y --auto-remove $buildDeps \
-  # We install run-time dependencies strictly after
-  # build dependencies to prevent accidental collusion.
-  # These are also installed last as they are needed
-  # during container run and can have the same deps w/
-  # build deps such as maxminddb.
-  && apt-get install -y --no-install-recommends \
-  # pillow
-  libjpeg-dev \
-  # rust bindings
-  libffi-dev \
-  # maxminddb bindings
-  libmaxminddb-dev \
-  # SAML needs these run-time
-  libxmlsec1-dev \
-  libxslt-dev \
-  # pyyaml needs this run-time
-  libyaml-dev \
-  # other
-  pkg-config \
-  \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   # Fully verify that the C extension is correctly installed, it unfortunately

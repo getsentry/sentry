@@ -1,3 +1,5 @@
+--index-url https://pypi.devinfra.sentry.io/simple
+
 docker>=3.7.0,<3.8.0
 exam>=0.10.6
 freezegun>=1.1.0

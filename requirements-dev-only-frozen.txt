@@ -1,5 +1,7 @@
 # DO NOT MODIFY. This file was generated with `make freeze-requirements`.
 
+--index-url https://pypi.devinfra.sentry.io/simple
+
 attrs==21.4.0
 black==22.3.0
 build==0.8.0
