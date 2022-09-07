@@ -75,7 +75,7 @@ export type IssueCategoryCapabilities = {
    */
   deleteAndDiscard: CapabilityInfo;
   /**
-   * Can the issue be ignored
+   * Can the issue be ignored (and the dropdown options)
    */
   ignore: CapabilityInfo;
   /**

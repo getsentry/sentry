@@ -43,6 +43,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import {issueSupports} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -322,8 +323,36 @@ class Actions extends Component<Props, State> {
     );
   };
 
+  openDeleteModal = () => {
+    const {group} = this.props;
+    if (!issueSupports(group.issueCategory, 'delete')) {
+      return;
+    }
+
+    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+      <Fragment>
+        <Body>
+          {t('Deleting this issue is permanent. Are you sure you wish to continue?')}
+        </Body>
+        <Footer>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            style={{marginLeft: space(1)}}
+            priority="primary"
+            onClick={this.onDelete}
+          >
+            {t('Delete')}
+          </Button>
+        </Footer>
+      </Fragment>
+    ));
+  };
+
   openDiscardModal = () => {
-    const {organization} = this.props;
+    const {group, organization} = this.props;
+    if (!issueSupports(group.issueCategory, 'deleteAndDiscard')) {
+      return;
+    }
 
     openModal(this.renderDiscardModal);
     analytics('feature.discard_group.modal_opened', {
@@ -447,32 +476,15 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  onAction: () =>
-                    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-                      <Fragment>
-                        <Body>
-                          {t(
-                            'Deleting this issue is permanent. Are you sure you wish to continue?'
-                          )}
-                        </Body>
-                        <Footer>
-                          <Button onClick={closeModal}>{t('Cancel')}</Button>
-                          <Button
-                            style={{marginLeft: space(1)}}
-                            priority="primary"
-                            onClick={this.onDelete}
-                          >
-                            {t('Delete')}
-                          </Button>
-                        </Footer>
-                      </Fragment>
-                    )),
+                  disabled: !issueSupports(group.issueCategory, 'delete'),
+                  onAction: () => this.openDeleteModal(),
                 },
                 {
                   key: 'delete-and-discard',
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
+                  disabled: !issueSupports(group.issueCategory, 'deleteAndDiscard'),
                   onAction: () => this.openDiscardModal(),
                 },
               ]}
