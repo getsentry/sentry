@@ -66,9 +66,12 @@ export type IssueCategoryCapabilities = {
    */
   deleteAndDiscard: boolean;
   /**
-   * Can the issue be ignored
+   * Can the issue be ignored (and the dropdown options)
    */
   ignore: boolean;
+  ignoreFor: boolean;
+  ignoreUntilAffect: boolean;
+  ignoreUntilReoccur: boolean;
   /**
    * Can the issue be merged
    */

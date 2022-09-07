@@ -8,12 +8,18 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
     delete: true,
     deleteAndDiscard: true,
     ignore: true,
+    ignoreFor: true,
+    ignoreUntilReoccur: true,
+    ignoreUntilAffect: true,
     merge: true,
   },
   [IssueCategory.PERFORMANCE]: {
     delete: false,
     deleteAndDiscard: false,
     ignore: false,
+    ignoreFor: false,
+    ignoreUntilReoccur: true,
+    ignoreUntilAffect: false,
     merge: false,
   },
 };
