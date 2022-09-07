@@ -31,6 +31,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     # GROUPS TESTS
     @override_options({"performance.issues.all.problem-creation": 1.0})
     def test_transaction_event_type_and_group(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
         manager = EventManager(
             make_event(
                 **{
@@ -59,6 +61,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
 
     @override_options({"performance.issues.all.problem-creation": 1.0})
     def test_transaction_event_span_grouping_and_group(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
         with self.feature("projects:performance-suspect-spans-ingestion"):
             manager = EventManager(
                 make_event(
