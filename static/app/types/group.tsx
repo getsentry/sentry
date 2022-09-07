@@ -57,8 +57,8 @@ type CapabilityInfo =
       enabled: true;
     }
   | {
+      disabledReason: string;
       enabled: false;
-      text: string;
     };
 
 /**

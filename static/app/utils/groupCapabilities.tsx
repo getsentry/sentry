@@ -14,16 +14,16 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
   [IssueCategory.PERFORMANCE]: {
     delete: {
       enabled: false,
-      text: t('Deleting is not yet supported for performance issues'),
+      disabledReason: t('Deleting is not yet supported for performance issues'),
     },
     deleteAndDiscard: {
       enabled: false,
-      text: t('Deleting is not yet supported for performance issues'),
+      disabledReason: t('Deleting is not yet supported for performance issues'),
     },
     ignore: {enabled: true},
     merge: {
       enabled: false,
-      text: t('Merging is not yet supported for performance issues'),
+      disabledReason: t('Merging is not yet supported for performance issues'),
     },
   },
 };
