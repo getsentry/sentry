@@ -79,7 +79,7 @@ class SudoModal extends Component<Props, State> {
     const suReason = superuserReason || data.superuserReason;
 
     if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError('No Authenticator');
+      this.handleError(ErrorCodes.noAuthenticator);
       return;
     }
 
@@ -90,11 +90,15 @@ class SudoModal extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      try {
-        await api.requestPromise('/auth/', {method: 'PUT', data});
+      if (isSuperuser) {
         this.handleSuccess();
-      } catch (err) {
-        this.handleError(err);
+      } else {
+        try {
+          await api.requestPromise('/auth/', {method: 'PUT', data});
+          this.handleSuccess();
+        } catch (err) {
+          this.handleError(err);
+        }
       }
     }
   };
@@ -135,7 +139,7 @@ class SudoModal extends Component<Props, State> {
       errorType = ErrorCodes.invalidSSOSession;
     } else if (err.status === 400) {
       errorType = ErrorCodes.invalidAccessCategory;
-    } else if (err === 'No Authenticator') {
+    } else if (err === ErrorCodes.noAuthenticator) {
       errorType = ErrorCodes.noAuthenticator;
     } else {
       errorType = ErrorCodes.unknownError;
