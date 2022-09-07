@@ -94,7 +94,4 @@ export const Wrapper = styled('div')`
     margin-bottom: 0;
     text-transform: uppercase;
   }
-  div:first-child {
-    margin-right: ${space(3)};
-  }
 `;
