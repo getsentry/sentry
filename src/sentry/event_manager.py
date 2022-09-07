@@ -1969,6 +1969,14 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
         if rate > random.random() and per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
+            kwargs["culprit"] = job["culprit"]
+            kwargs["data"] = materialize_metadata(
+                event.data,
+                get_event_type(event.data),
+                dict(job["event_metadata"]),
+            )
+            kwargs["data"]["metadata"]["title"] = "lol"
+            kwargs["data"]["last_received"] = job["received_timestamp"]
 
             performance_problems = job["performance_problems"]
             all_group_hashes = [
@@ -2079,8 +2087,8 @@ def save_transaction_events(jobs, projects):
     _derive_interface_tags_many(jobs)
     _calculate_span_grouping(jobs, projects)
     _detect_performance_problems(jobs, projects)
-    _save_aggregate_performance(jobs, projects)
     _materialize_metadata_many(jobs)
+    _save_aggregate_performance(jobs, projects)
     _get_or_create_environment_many(jobs, projects)
     _get_or_create_group_environment_many(jobs, projects)
     _get_or_create_release_associated_models(jobs, projects)

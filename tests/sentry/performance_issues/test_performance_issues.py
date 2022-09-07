@@ -49,5 +49,12 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
             assert len(event.groups) == 1
             group = event.groups[0]
+            assert group.title == "lol"
+            assert group.message == "/books/"
+            assert group.culprit == "/books/"
+            assert group.get_event_type() == "transaction"
+            assert group.get_event_metadata() == {"location": "/books/", "title": "lol"}
+            assert group.location() == "/books/"
+            assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
