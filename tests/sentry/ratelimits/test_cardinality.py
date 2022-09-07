@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Collection, Optional, Sequence
 
 import pytest
 
@@ -22,14 +22,19 @@ class LimiterHelper:
         self.timestamp = 3600
 
     def add_value(self, value: int) -> Optional[int]:
-        request = RequestedQuota(prefix="hello", unit_hashes=[value], quotas=self.quotas)
+        values = self.add_values([value])
+        if values:
+            (value,) = values
+            return value
+
+    def add_values(self, values: Sequence[int]) -> Collection[int]:
+        request = RequestedQuota(prefix="hello", unit_hashes=values, quotas=self.quotas)
         new_timestamp, grants = self.limiter.check_within_quotas(
             [request], timestamp=self.timestamp
         )
         self.limiter.use_quotas(grants, new_timestamp)
         (grant,) = grants
-        if grant.granted_unit_hashes == [value]:
-            return value
+        return grant.granted_unit_hashes
 
 
 def test_basic(limiter: RedisCardinalityLimiter):
@@ -51,19 +56,45 @@ def test_basic(limiter: RedisCardinalityLimiter):
 
 
 def test_sliding(limiter: RedisCardinalityLimiter):
+    """
+    Our rate limiter has a sliding window of [now - 1 hour ; now], with a
+    granularity of 1 hour.
+
+    What that means is that, as time moves on, old hashes should be forgotten
+    _one by one_, and the quota budget they occupy should become _gradually_
+    available to newer, never-seen-before items.
+    """
+
     helper = LimiterHelper(limiter)
 
     admissions = []
 
+    # We start with a limit of 10 new hashes per hour. We add a new hash and
+    # advance time by 6 minutes, _100 times_
     for i in range(100):
         admissions.append(helper.add_value(i))
         helper.timestamp += 360
 
+    # We assert that _all 100 items_ are admitted/accepted. This is because we
+    # have advanced time between each item. We have "slept" for 6 minutes a 100
+    # times, so we actually added 100 hashes over a span of 10 hours. That
+    # should totally fit into our limit.
     assert admissions == list(range(100))
 
     admissions = []
     expected = []
 
+    # 100 hashes over 10 hours is "basically" 10 hashes over 1 hour. Since we
+    # added items over a span of 10 hours, the limiter should've forgotten
+    # about 90% of items already, meaning that in a real-world scenario, we
+    # should accept 90 new hashes.
+    #
+    # But since we only advanced time virtually (and not in Redis for TTL
+    # purposes), we actually only accept 10 items... a flaw in this test.
+    #
+    # Anyway, in the previous loop we added an item every 6 minutes. Now we're
+    # adding an item 10 times per 6 minutes. So we should see every 10th item
+    # being admitted.
     for i in range(100, 200):
         admissions.append(helper.add_value(i))
         expected.append(i if i % 10 == 0 else None)
@@ -80,6 +111,11 @@ def test_noop(limiter: RedisCardinalityLimiter):
 
 
 def test_sampling(limiter: RedisCardinalityLimiter):
+    """
+    demonstrate behavior when "shard sampling" is active. If one out of 10
+    shards for an organization are stored, it is still possible to limit the
+    exactly correct amount of hashes, for certain hash values.
+    """
     limiter.cluster_num_physical_shards = 1
     limiter.cluster_num_shards = 10
     helper = LimiterHelper(limiter)
@@ -88,6 +124,10 @@ def test_sampling(limiter: RedisCardinalityLimiter):
     admissions = [helper.add_value(i) for i in reversed(range(10))]
     assert admissions == list(reversed(range(10)))
 
+    # we have stored only one shard out of 10, meaning the set count reported
+    # from redis is 1, but the total counts are extrapolated correctly. like
+    # without sampling, assert that the limit of 10 hashes is correctly applied
+    # and we no longer accept additional hashes beyond 10.
     admissions = [helper.add_value(i) for i in range(100, 110)]
     assert admissions == [None] * 10
 
@@ -105,3 +145,19 @@ def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
     # up the physical shard, and a total count of 10 is extrapolated from that
     admissions = [helper.add_value(i) for i in range(10)]
     assert admissions == [0] + [None] * 9
+
+
+def test_regression_mixed_order(limiter: RedisCardinalityLimiter):
+    """
+    Regression test to assert we still accept hashes after dropping some
+    within the same request, regardless of set order.
+    """
+
+    helper = LimiterHelper(limiter)
+    # this hash certainly fits into the default limit of 10 hashes
+    assert helper.add_value(5) == 5
+    # here, only 10 should be limited, as it is the 11th item being fed to the indexer.
+    # 5 was admitted in an earlier call, and 0..9 are admitted right before it.
+    # there used to be a bug where anything after 10 (i.e. 5) was dropped as
+    # well (due to a wrong `break` somewhere in a loop)
+    assert helper.add_values([0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 5]) == [0, 1, 2, 3, 4, 6, 7, 8, 9, 5]

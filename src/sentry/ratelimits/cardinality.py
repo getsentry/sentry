@@ -337,10 +337,26 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                 )
                 quotas_by_remaining_limit[remaining_limit].append(quota)
 
+            # Determine the quota(s) with the smallest remaining limit
+            # (quota.limit - <set count from redis>). If we drop any hashes at
+            # all, we can only have hit the most restrictive quota, so we
+            # report those as `reached_quotas`.
             smallest_remaining_limit = min(quotas_by_remaining_limit)
             smallest_remaining_limit_running = smallest_remaining_limit
             reached_quotas = []
 
+            # for each hash in the request, check if:
+            # 1. the hash is in `unit_keys`. If so, it has already been seen in
+            #    this timewindow, and ingesting additional copies of it comes
+            #    at no cost (= ingesting multiple metric buckets of the same
+            #    timeseries only counts once against quota)
+            #
+            # 2. we still have budget/"remaining_limit". In that case,
+            #    accept/admit the hash as well and reduce the remaining quota.
+            #
+            # 3. we have observed a totally new hash. in that case set
+            #    `reached_quotas` for reporting purposes, but don't add the
+            #    hash to `granted_hashes` (which is our return value)
             for hash in request.unit_hashes:
                 if unit_keys[self._get_timeseries_key(request, hash)]:
                     granted_hashes.append(hash)
@@ -349,7 +365,6 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                     smallest_remaining_limit_running -= 1
                 else:
                     reached_quotas = quotas_by_remaining_limit[smallest_remaining_limit]
-                    break
 
             grants.append(
                 GrantedQuota(
