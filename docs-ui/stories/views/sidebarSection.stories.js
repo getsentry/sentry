@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import Tag from 'sentry/components/tag';
 import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
@@ -20,14 +20,13 @@ export default {
 };
 
 export const Default = ({title, icon}) => (
-  <SidebarSection
-    title={title}
-    icon={
-      icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />
-    }
-  >
-    {'16 hours'}
-  </SidebarSection>
+  <SidebarSection.Wrap>
+    <SidebarSection.Title>
+      {title}
+      {icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />}
+    </SidebarSection.Title>
+    <SidebarSection.Content>{'16 hours'}</SidebarSection.Content>
+  </SidebarSection.Wrap>
 );
 
 Default.storyName = 'With text';
@@ -44,19 +43,19 @@ Default.args = {
 };
 
 export const WithIconTagsText = ({title, icon}) => (
-  <SidebarSection
-    title={title}
-    icon={
-      icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />
-    }
-  >
-    <div>
+  <SidebarSection.Wrap>
+    <SidebarSection.Title>
+      {title}
+      {icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />}
+    </SidebarSection.Title>
+
+    <SidebarSection.Content>
       <Tooltip title="Tooltip description" isHoverable>
         <Tag type="default">{'Adopted'}</Tag>
       </Tooltip>
       <Environment>{'in production'}</Environment>
-    </div>
-  </SidebarSection>
+    </SidebarSection.Content>
+  </SidebarSection.Wrap>
 );
 
 WithIconTagsText.storyName = 'With Icon, Tags, and Text';
@@ -73,39 +72,40 @@ WithIconTagsText.args = {
 };
 
 export const WithRows = ({title, icon}) => (
-  <SidebarSection
-    title={title}
-    icon={
-      icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />
-    }
-  >
-    <KeyValueTable>
-      <KeyValueTableRow
-        keyName="Created"
-        value={<StyledTextOverflow>{'Nov 17, 2021 5:36 PM'}</StyledTextOverflow>}
-      />
-      <KeyValueTableRow
-        keyName="Version"
-        value={<StyledTextOverflow>{'3.3.3'}</StyledTextOverflow>}
-      />
-      <KeyValueTableRow
-        keyName="Package"
-        value={<StyledTextOverflow>{'frontend'}</StyledTextOverflow>}
-      />
-      <KeyValueTableRow
-        keyName="First Event"
-        value={<StyledTextOverflow>{'\u2014'}</StyledTextOverflow>}
-      />
-      <KeyValueTableRow
-        keyName="Last Event"
-        value={<StyledTextOverflow>{'\u2014'}</StyledTextOverflow>}
-      />
-      <KeyValueTableRow
-        keyName="Source Maps"
-        value={<StyledTextOverflow>{'333 artifacts'}</StyledTextOverflow>}
-      />
-    </KeyValueTable>
-  </SidebarSection>
+  <SidebarSection.Wrap>
+    <SidebarSection.Title>
+      {title}
+      {icon && <QuestionTooltip position="top" title="Tooltip description" size="sm" />}
+    </SidebarSection.Title>
+    <SidebarSection.Content>
+      <KeyValueTable>
+        <KeyValueTableRow
+          keyName="Created"
+          value={<StyledTextOverflow>{'Nov 17, 2021 5:36 PM'}</StyledTextOverflow>}
+        />
+        <KeyValueTableRow
+          keyName="Version"
+          value={<StyledTextOverflow>{'3.3.3'}</StyledTextOverflow>}
+        />
+        <KeyValueTableRow
+          keyName="Package"
+          value={<StyledTextOverflow>{'frontend'}</StyledTextOverflow>}
+        />
+        <KeyValueTableRow
+          keyName="First Event"
+          value={<StyledTextOverflow>{'\u2014'}</StyledTextOverflow>}
+        />
+        <KeyValueTableRow
+          keyName="Last Event"
+          value={<StyledTextOverflow>{'\u2014'}</StyledTextOverflow>}
+        />
+        <KeyValueTableRow
+          keyName="Source Maps"
+          value={<StyledTextOverflow>{'333 artifacts'}</StyledTextOverflow>}
+        />
+      </KeyValueTable>
+    </SidebarSection.Content>
+  </SidebarSection.Wrap>
 );
 
 WithRows.storyName = 'With Multiple Rows';

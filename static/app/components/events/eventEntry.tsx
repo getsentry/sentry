@@ -1,11 +1,14 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
-import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
+import {
+  SpanEvidence,
+  SpanEvidenceSection,
+} from 'sentry/components/events/interfaces/performance';
 import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -14,10 +17,7 @@ import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
-
-import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
-import {FocusedSpanIDMap} from './interfaces/spans/types';
+import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -154,37 +154,34 @@ function EventEntry({
           organization={organization as Organization}
         />
       );
-    case EntryType.SPANTREE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+    case EntryType.PERFORMANCE:
+      if (!organization.features?.includes('performance-issues')) {
         return null;
       }
 
-      const {focusedSpanIds: _focusedSpanIds} = entry.data;
-
-      const focusedSpanIds: FocusedSpanIDMap = {};
-      _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
+      const {affectedSpanIds} = entry.data;
 
       // TODO: Need to dynamically determine the project slug for this issue
       const INTERNAL_PROJECT = 'sentry';
 
-      return (
-        <EmbeddedSpanTree
-          event={event}
-          organization={organization as Organization}
-          projectSlug={INTERNAL_PROJECT}
-          focusedSpanIds={focusedSpanIds}
-        />
-      );
-    case EntryType.PERFORMANCE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
-        return null;
-      }
+      // TODO: Replace this with real data from the entry when possible
+      const SAMPLE_SPAN_EVIDENCE: SpanEvidence = {
+        transaction: '/api/transaction/00',
+        parentSpan: 'index',
+        sourceSpan:
+          'SELECT "sentry_useroption"."id", "sentry_useroption"."user_id", "sentry_useroption"."project_id", "sentry_useroption"."organization_id", "sentry_useroption"."key", "sentry_useroption"."value" FROM "sentry_useroption" WHERE ("sentry_useroption"."organization_id" IS NULL AND "sentry_useroption"."project_id" IS NULL AND "sentry_useroption"."user_id" = %s) ',
+        repeatingSpan:
+          'SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project" WHERE ("sentry_project"."organization_id" = %s AND "sentry_project"."status" = %s AND "sentry_project"."id" IN (%s))',
+      };
 
       return (
-        <PerformanceIssueSection
+        <SpanEvidenceSection
           issue={group as Group}
-          event={event as EventError}
+          event={event}
           organization={organization as Organization}
+          spanEvidence={SAMPLE_SPAN_EVIDENCE}
+          projectSlug={INTERNAL_PROJECT}
+          affectedSpanIds={affectedSpanIds}
         />
       );
     default:

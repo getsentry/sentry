@@ -36,10 +36,6 @@ const config: TransformOptions = {
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
-    // NOTE: The order of the decorator and class-property plugins is important
-    // here. Decorators must be processed first before class properties, see:
-    // https://babeljs.io/docs/en/plugins#plugin-ordering
-    ['@babel/plugin-proposal-decorators', {legacy: true}],
     '@babel/plugin-proposal-class-properties',
   ],
   env: {

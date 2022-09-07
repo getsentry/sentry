@@ -172,7 +172,7 @@ function SelectProjectStep({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>{t('Setup Profiling')}</h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
       <form onSubmit={onFormSubmit}>
         <StyledList symbol="colored-numeric">
@@ -236,7 +236,7 @@ function AndroidInstallSteps() {
         </ExternalLink>
       </li>
       <li>
-        <StepTitle>{t('Setup Profiling')}</StepTitle>
+        <StepTitle>{t('Set Up Profiling')}</StepTitle>
         <CodeContainer>
           {`<application>
   <meta-data android:name="io.sentry.dsn" android:value="..." />
@@ -315,7 +315,7 @@ function AndroidSendDebugFilesInstruction({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>{t('Setup Profiling')}</h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
       <p>
         {t(
@@ -378,7 +378,7 @@ function IOSSendDebugFilesInstruction({
   return (
     <ModalBody>
       <ModalHeader>
-        <h3>{t('Setup Profiling')}</h3>
+        <h3>{t('Set Up Profiling')}</h3>
       </ModalHeader>
       <p>
         {t(`The most straightforward way to provide Sentry with debug information files is to
@@ -449,7 +449,7 @@ function PreviousStepButton(props: StepButtonProps) {
 
 function DocsLink() {
   return (
-    <Button external href="https://docs.sentry.io/">
+    <Button external href="https://docs.sentry.io/product/profiling/">
       {t('Read Docs')}
     </Button>
   );
@@ -521,6 +521,8 @@ const StepIndicator = styled('span')`
 `;
 
 const PreContainer = styled('pre')`
+  overflow: scroll;
+
   code {
     white-space: pre;
   }
