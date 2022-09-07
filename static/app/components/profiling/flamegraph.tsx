@@ -25,6 +25,7 @@ import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasS
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -59,10 +60,11 @@ interface FlamegraphProps {
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
+  const dispatch = useDispatchFlamegraphState();
 
   const flamegraphTheme = useFlamegraphTheme();
-  const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId, selectedRoot}, dispatchThreadId] = useFlamegraphProfiles();
+  const {sorting, view, xAxis} = useFlamegraphPreferences();
+  const {threadId, selectedRoot} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -292,7 +294,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           profileGroup={props.profiles}
           threadId={threadId}
           onThreadIdChange={newThreadId =>
-            dispatchThreadId({type: 'set thread id', payload: newThreadId})
+            dispatch({type: 'set thread id', payload: newThreadId})
           }
         />
         <FlamegraphViewSelectMenu

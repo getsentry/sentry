@@ -11,6 +11,7 @@ import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree'
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
@@ -32,8 +33,8 @@ interface FrameStackProps {
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const params = useParams();
-  const [flamegraphPreferences, dispatchFlamegraphPreferences] =
-    useFlamegraphPreferences();
+  const flamegraphPreferences = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
@@ -87,16 +88,16 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   }, []);
 
   const onTableLeftClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table left'});
-  }, [dispatchFlamegraphPreferences]);
+    dispatch({type: 'set layout', payload: 'table left'});
+  }, [dispatch]);
 
   const onTableBottomClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table bottom'});
-  }, [dispatchFlamegraphPreferences]);
+    dispatch({type: 'set layout', payload: 'table bottom'});
+  }, [dispatch]);
 
   const onTableRightClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table right'});
-  }, [dispatchFlamegraphPreferences]);
+    dispatch({type: 'set layout', payload: 'table right'});
+  }, [dispatch]);
 
   return (
     <FrameDrawer layout={flamegraphPreferences.layout}>

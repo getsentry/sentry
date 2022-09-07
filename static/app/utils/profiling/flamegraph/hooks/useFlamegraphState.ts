@@ -1,20 +1,20 @@
 import {useContext} from 'react';
 
 import {
-  FlamegraphState,
   FlamegraphStateDispatch,
   FlamegraphStateDispatchContext,
+  FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from '../flamegraphStateProvider/flamegraphContext';
 
-export function useFlamegraphState(): FlamegraphState {
+export function useFlamegraphState(): FlamegraphStateValue {
   const context = useContext(FlamegraphStateValueContext);
 
   if (context === null) {
     throw new Error('useFlamegraphState called outside of FlamegraphStateProvider');
   }
 
-  return context[0];
+  return context;
 }
 
 export function useDispatchFlamegraphState(): FlamegraphStateDispatch {

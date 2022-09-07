@@ -120,7 +120,7 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
 
 export function FlamegraphStateQueryParamSync() {
   const location = useLocation();
-  const state = useFlamegraphState();
+  const [state] = useFlamegraphState();
 
   useEffect(() => {
     browserHistory.replace({
@@ -139,7 +139,7 @@ export function FlamegraphStateQueryParamSync() {
 
 export const FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY = 'flamegraph-preferences';
 export function FlamegraphStateLocalStorageSync() {
-  const state = useFlamegraphState();
+  const [state] = useFlamegraphState();
   const [_, setState] = useLocalStorageState<DeepPartial<FlamegraphState>>(
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {

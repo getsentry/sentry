@@ -34,7 +34,7 @@ interface FlameGraphOptionsContextMenuProps {
 }
 
 export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
-  const [preferences, dispatch] = useFlamegraphPreferences();
+  const preferences = useFlamegraphPreferences();
 
   return props.contextMenu.open ? (
     <Fragment>

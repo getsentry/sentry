@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {
   useResizableDrawer,
@@ -21,7 +21,7 @@ interface ProfilingFlamechartLayoutProps {
 
 export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps) {
   const flamegraphTheme = useFlamegraphTheme();
-  const {layout} = useFlamegraphPreferencesValue();
+  const {layout} = useFlamegraphPreferences();
   const frameStackRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
