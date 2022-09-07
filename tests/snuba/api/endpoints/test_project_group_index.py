@@ -1212,12 +1212,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        group2 = self.create_group(times_seen=50)
-        group2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        group3 = self.create_group(times_seen=2)
-        group3.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -1415,15 +1412,18 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         eventstream_state = {"event_stream_state": uuid4()}
         mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
 
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group1 = self.create_group(
+            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        )
+        group2 = self.create_group(
+            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        )
 
         hashes = []
         for g in group1, group2:
             hash = uuid4().hex
             hashes.append(hash)
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
-            g.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
 
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}&id={group2.id}"

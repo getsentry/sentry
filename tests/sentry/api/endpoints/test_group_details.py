@@ -517,8 +517,7 @@ class GroupUpdateTest(APITestCase):
 
     def test_discard_performance_issue(self):
         self.login_as(user=self.user)
-        group = self.create_group()
-        group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
         GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
 
         url = f"/api/0/issues/{group.id}/"
@@ -580,8 +579,7 @@ class GroupDeleteTest(APITestCase):
         """Test that a performance issue cannot be deleted"""
         self.login_as(user=self.user)
 
-        group = self.create_group()
-        group.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
         GroupHash.objects.create(project=group.project, hash="x" * 32, group=group)
 
         url = f"/api/0/issues/{group.id}/"
