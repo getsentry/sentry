@@ -174,6 +174,17 @@ def mocked_discover_query():
                 'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
+            # project: timber
+            {
+                "sdk.version": "6.4.1",
+                "sdk.name": "sentry.java.android.timber",
+                "project": "timber",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 5,
+                "count()": 23,
+            },
             # project: dummy
             {
                 "sdk.version": "7.1.4",
@@ -323,6 +334,14 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
                     "isSendingSource": False,
+                    "isSupportedPlatform": True,
+                },
+                {
+                    "project": "timber",
+                    "latestSDKName": "sentry.java.android.timber",
+                    "latestSDKVersion": "6.4.1",
+                    "isSendingSampleRate": True,
+                    "isSendingSource": True,
                     "isSupportedPlatform": True,
                 },
                 {
