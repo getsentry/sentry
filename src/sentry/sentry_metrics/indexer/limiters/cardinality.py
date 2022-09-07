@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from typing import Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -77,7 +77,7 @@ class TimeseriesCardinalityLimiter:
         self, use_case_id: UseCaseKey, messages: Mapping[PartitionIdxOffset, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        keys_to_remove = {}
+        hash_to_offset = {}
         for key, message in messages.items():
             org_id = message["org_id"]
             message_hash = int(
@@ -90,7 +90,7 @@ class TimeseriesCardinalityLimiter:
                 16,
             )
             prefix = _build_quota_key(self.namespace, org_id)
-            keys_to_remove[prefix, message_hash] = key
+            hash_to_offset[prefix, message_hash] = key
             request_hashes[prefix].add(message_hash)
 
         requested_quotas = []
@@ -101,6 +101,11 @@ class TimeseriesCardinalityLimiter:
             )
 
         timestamp, grants = self.backend.check_within_quotas(requested_quotas)
+
+        keys_to_remove = hash_to_offset
+        # make sure that hash_to_offset is no longer used, as the underlying
+        # dict will be mutated
+        del hash_to_offset
 
         for grant in grants:
             for hash in grant.granted_unit_hashes:
@@ -114,7 +119,7 @@ class TimeseriesCardinalityLimiter:
             keys_to_remove=list(keys_to_remove.values()),
         )
 
-    def apply_cardinality_limits(self, state: CardinalityLimiterState[Any]) -> None:
+    def apply_cardinality_limits(self, state: CardinalityLimiterState) -> None:
         state._cardinality_limiter.use_quotas(state._grants, state._timestamp)
 
 
