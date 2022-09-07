@@ -52,7 +52,7 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
 }
 
-type CapabilityInfo =
+export type CapabilityInfo =
   | {
       enabled: true;
     }

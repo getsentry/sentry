@@ -12,11 +12,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
+  Group,
   GroupStatusResolution,
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
 } from 'sentry/types';
+import {issueSupports} from 'sentry/utils/groupCapabilities';
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
@@ -27,6 +29,7 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
 ];
 
 type Props = {
+  group: Group;
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
@@ -36,6 +39,7 @@ type Props = {
 };
 
 const IgnoreActions = ({
+  group,
   onUpdate,
   disabled,
   shouldConfirm,
@@ -119,12 +123,20 @@ const IgnoreActions = ({
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
           label: <Duration seconds={duration * 60} />,
-          onAction: () => onIgnore({ignoreDuration: duration}),
+          disabled: !issueSupports(group.issueCategory, 'ignoreFor').enabled,
+          onAction: () =>
+            issueSupports(group.issueCategory, 'ignoreFor').enabled
+              ? onIgnore({ignoreDuration: duration})
+              : null,
         })),
         {
           key: 'for-custom',
           label: t('Custom'),
-          onAction: () => openCustomIgnoreDuration(),
+          disabled: !issueSupports(group.issueCategory, 'ignoreFor').enabled,
+          onAction: () =>
+            issueSupports(group.issueCategory, 'ignoreFor').enabled
+              ? openCustomIgnoreDuration()
+              : null,
         },
       ],
     },
@@ -140,27 +152,37 @@ const IgnoreActions = ({
               ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
               : tn('%s time\u2026', '%s times\u2026', count),
           isSubmenu: true,
+          disabled: !issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled,
           children: [
             {
               key: `until-reoccur-${count}-times-from-now`,
               label: t('from now'),
-              onAction: () => onIgnore({ignoreCount: count}),
+              onAction: () =>
+                issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled
+                  ? onIgnore({ignoreCount: count})
+                  : null,
             },
             ...IGNORE_WINDOWS.map(({value, label}) => ({
               key: `until-reoccur-${count}-times-from-${label}`,
               label,
               onAction: () =>
-                onIgnore({
-                  ignoreCount: count,
-                  ignoreWindow: value,
-                }),
+                issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled
+                  ? onIgnore({
+                      ignoreCount: count,
+                      ignoreWindow: value,
+                    })
+                  : null,
             })),
           ],
         })),
         {
           key: 'until-reoccur-custom',
           label: t('Custom'),
-          onAction: () => openCustomIgnoreCount(),
+          disabled: !issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled,
+          onAction: () =>
+            issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled
+              ? openCustomIgnoreCount()
+              : null,
         },
       ],
     },
@@ -180,23 +202,34 @@ const IgnoreActions = ({
             {
               key: `until-affect-${count}-users-from-now`,
               label: t('from now'),
-              onAction: () => onIgnore({ignoreUserCount: count}),
+              disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
+              onAction: () =>
+                issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
+                  ? onIgnore({ignoreUserCount: count})
+                  : null,
             },
             ...IGNORE_WINDOWS.map(({value, label}) => ({
               key: `until-affect-${count}-users-from-${label}`,
               label,
+              disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
               onAction: () =>
-                onIgnore({
-                  ignoreUserCount: count,
-                  ignoreUserWindow: value,
-                }),
+                issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
+                  ? onIgnore({
+                      ignoreUserCount: count,
+                      ignoreUserWindow: value,
+                    })
+                  : null,
             })),
           ],
         })),
         {
           key: 'until-affect-custom',
           label: t('Custom'),
-          onAction: () => openCustomIgnoreUserCount(),
+          disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
+          onAction: () =>
+            issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
+              ? openCustomIgnoreUserCount()
+              : null,
         },
       ],
     },
