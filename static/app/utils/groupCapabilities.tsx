@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {IssueCategory, IssueCategoryCapabilities} from 'sentry/types/group';
 
 /**
@@ -5,22 +6,25 @@ import {IssueCategory, IssueCategoryCapabilities} from 'sentry/types/group';
  */
 const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabilities> = {
   [IssueCategory.ERROR]: {
-    delete: true,
-    deleteAndDiscard: true,
-    ignore: true,
-    ignoreFor: true,
-    ignoreUntilReoccur: true,
-    ignoreUntilAffect: true,
-    merge: true,
+    delete: {enabled: true},
+    deleteAndDiscard: {enabled: true},
+    ignore: {enabled: true},
+    merge: {enabled: true},
   },
   [IssueCategory.PERFORMANCE]: {
-    delete: false,
-    deleteAndDiscard: false,
-    ignore: false,
-    ignoreFor: false,
-    ignoreUntilReoccur: true,
-    ignoreUntilAffect: false,
-    merge: false,
+    delete: {
+      enabled: false,
+      disabledReason: t('Deleting is not yet supported for performance issues'),
+    },
+    deleteAndDiscard: {
+      enabled: false,
+      disabledReason: t('Deleting is not yet supported for performance issues'),
+    },
+    ignore: {enabled: true},
+    merge: {
+      enabled: false,
+      disabledReason: t('Merging is not yet supported for performance issues'),
+    },
   },
 };
 
@@ -31,5 +35,5 @@ export function issueSupports(
   issueCategory: IssueCategory,
   capability: keyof IssueCategoryCapabilities
 ) {
-  return ISSUE_CATEGORY_CAPABILITIES[issueCategory][capability] ?? false;
+  return ISSUE_CATEGORY_CAPABILITIES[issueCategory][capability] ?? {enabled: false};
 }
