@@ -91,11 +91,9 @@ export const CauseHeader = styled('div')`
 
   & button,
   & h3 {
-    color: ${p => p.theme.gray300};
-    font-size: 14px;
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSizeMedium};
     font-weight: 600;
-    line-height: 1.2;
-    text-transform: uppercase;
   }
 
   & h3 {
