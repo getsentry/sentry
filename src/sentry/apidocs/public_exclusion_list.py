@@ -170,10 +170,7 @@ from sentry.api.endpoints.organization_details import OrganizationDetailsEndpoin
 from sentry.api.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.api.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from sentry.api.endpoints.organization_eventid import EventIdLookupEndpoint
-from sentry.api.endpoints.organization_events import (
-    OrganizationEventsGeoEndpoint,
-    OrganizationEventsV2Endpoint,
-)
+from sentry.api.endpoints.organization_events import OrganizationEventsGeoEndpoint
 from sentry.api.endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from sentry.api.endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -720,7 +717,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationConfigIntegrationsEndpoint,
     OrganizationConfigRepositoriesEndpoint,
     OrganizationSdkUpdatesEndpoint,
-    OrganizationEventsV2Endpoint,
     OrganizationEventDetailsEndpoint,
     OrganizationEventsStatsEndpoint,
     OrganizationEventsGeoEndpoint,

@@ -13,7 +13,6 @@ function ReviewAction({disabled, onUpdate}: Props) {
       type="button"
       disabled={disabled}
       onAction={() => onUpdate({inbox: false})}
-      title={t('Mark Reviewed')}
       icon={<IconIssues size="xs" />}
     >
       {t('Mark Reviewed')}

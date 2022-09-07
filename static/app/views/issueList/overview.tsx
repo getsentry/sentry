@@ -1263,7 +1263,6 @@ class IssueListOverview extends Component<Props, State> {
 
             <Panel>
               <IssueListActions
-                organization={organization}
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}

@@ -191,6 +191,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     platform = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSampling = DynamicSamplingSerializer(required=False)
+    performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
 
     def validate(self, data):
         max_delay = (
@@ -646,7 +647,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
-            project.update_option("sentry:dynamic_sampling", fixed_rules)
+            if project.update_option("sentry:dynamic_sampling", fixed_rules):
+                changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
+
+        if "performanceIssueCreationRate" in result:
+            if project.update_option(
+                "sentry:performance_issue_creation_rate", result["performanceIssueCreationRate"]
+            ):
+                changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
+                    "performanceIssueCreationRate"
+                ]
 
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
