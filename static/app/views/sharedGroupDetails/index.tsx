@@ -16,6 +16,8 @@ import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
+import {OrganizationContext} from '../organizationContext';
+
 import SharedGroupHeader from './sharedGroupHeader';
 
 type Props = RouteComponentProps<{shareId: string}, {}> & {
@@ -104,40 +106,42 @@ class SharedGroupDetails extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle noSuffix title={title}>
-        <div className="app">
-          <div className="pattern-bg" />
-          <div className="container">
-            <div className="box box-modal">
-              <div className="box-header">
-                <Link className="logo" to="/">
-                  <span className="icon-sentry-logo-full" />
-                </Link>
-                {permalink && (
-                  <Link className="details" to={permalink}>
-                    {t('Details')}
+        <OrganizationContext.Provider value={project.organization}>
+          <div className="app">
+            <div className="pattern-bg" />
+            <div className="container">
+              <div className="box box-modal">
+                <div className="box-header">
+                  <Link className="logo" to="/">
+                    <span className="icon-sentry-logo-full" />
                   </Link>
-                )}
-              </div>
-              <div className="box-content">
-                <SharedGroupHeader group={group} />
-                <Container className="group-overview event-details-container">
-                  <BorderlessEventEntries
-                    location={location}
-                    organization={project.organization}
-                    group={group}
-                    event={latestEvent}
-                    project={project}
-                    api={api}
-                    route={route}
-                    router={router}
-                    isShare
-                  />
-                </Container>
-                <Footer />
+                  {permalink && (
+                    <Link className="details" to={permalink}>
+                      {t('Details')}
+                    </Link>
+                  )}
+                </div>
+                <div className="box-content">
+                  <SharedGroupHeader group={group} />
+                  <Container className="group-overview event-details-container">
+                    <BorderlessEventEntries
+                      location={location}
+                      organization={project.organization}
+                      group={group}
+                      event={latestEvent}
+                      project={project}
+                      api={api}
+                      route={route}
+                      router={router}
+                      isShare
+                    />
+                  </Container>
+                  <Footer />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </OrganizationContext.Provider>
       </SentryDocumentTitle>
     );
   }

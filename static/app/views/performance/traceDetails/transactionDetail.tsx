@@ -8,7 +8,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
-import {getFormattedTimeRangeWithLeadingZero} from 'sentry/components/events/interfaces/spans/utils';
+import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import Link from 'sentry/components/links/link';
 import {
   ErrorDot,
@@ -177,7 +177,7 @@ class TransactionDetail extends Component<Props> {
     const startTimestamp = Math.min(transaction.start_timestamp, transaction.timestamp);
     const endTimestamp = Math.max(transaction.start_timestamp, transaction.timestamp);
     const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
-      getFormattedTimeRangeWithLeadingZero(startTimestamp, endTimestamp);
+      getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
     const duration = (endTimestamp - startTimestamp) * 1000;
     const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 

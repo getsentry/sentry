@@ -1495,6 +1495,10 @@ SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
+# Cardinality limits during metric bucket ingestion.
+# Which cluster to use. Example: {"cluster": "default"}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
+
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
 SENTRY_RELEASE_HEALTH_OPTIONS = {}
@@ -2769,7 +2773,11 @@ SENTRY_FUNCTIONS_PROJECT_NAME = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
+# Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", False))
 
 DISALLOWED_CUSTOMER_DOMAINS = []
+
+SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
