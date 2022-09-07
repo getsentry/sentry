@@ -1981,6 +1981,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
 
+            performance_problems_by_fingerprint = {p.fingerprint: p for p in performance_problems}
             all_group_hashes = [problem.fingerprint for problem in performance_problems]
             group_hashes = all_group_hashes[:MAX_GROUPS]
 
@@ -2012,15 +2013,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
-                        problem = next(
-                            (
-                                problem
-                                for problem in performance_problems
-                                if problem.fingerprint == new_grouphash
-                            ),
-                            None,
-                        )
-
+                        problem = performance_problems_by_fingerprint[new_grouphash]
                         kwargs["type"] = problem.type.value
                         kwargs["data"]["metadata"]["title"] = f"N+1 Query:{problem.desc}"
 
@@ -2051,14 +2044,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                     is_new = False
 
-                    description = next(
-                        (
-                            problem.desc
-                            for problem in performance_problems
-                            if problem.fingerprint == new_grouphash
-                        ),
-                        None,
-                    )
+                    description = performance_problems_by_fingerprint[existing_grouphash.hash].desc
                     kwargs["data"]["metadata"]["title"] = f"N+1 Query:{description}"
 
                     is_regression = _process_existing_aggregate(
