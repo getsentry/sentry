@@ -675,10 +675,12 @@ def update_groups(
             if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
             else None
         )
-        integration = (
-            data.get("assignedBy") if data.get("integration") in list(ActivityIntegration) else None
+        extra = (
+            {"integration": data.get("integration")}
+            if data.get("integration")
+            in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
+            else dict()
         )
-        extra = {"integration": integration} if integration else dict()
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
