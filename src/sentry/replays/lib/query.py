@@ -150,7 +150,7 @@ def generate_valid_conditions(
 
 
 def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) -> Condition:
-    """Coerce SearchFilter syntax to snuba Condtion syntax."""
+    """Coerce SearchFilter syntax to snuba Condition syntax."""
     # Validate field exists and is filterable.
     field_alias = search_filter.key.name
     field = query_config.get(field_alias)
