@@ -522,8 +522,8 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   }
 
   render() {
-    const {children, showLoading, yAxis, ...props} = this.props;
-    const {topEvents} = this.props;
+    const {children, showLoading, ...props} = this.props;
+    const {topEvents, yAxis} = this.props;
     const {timeseriesData, reloading, errored, errorMessage} = this.state;
     // Is "loading" if data is null
     const loading = this.props.loading || timeseriesData === null;
