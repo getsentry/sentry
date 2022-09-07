@@ -1975,7 +1975,6 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                 get_event_type(event.data),
                 dict(job["event_metadata"]),
             )
-            kwargs["data"]["metadata"]["title"] = "N+1 Query"
             kwargs["data"]["last_received"] = job["received_timestamp"]
 
             performance_problems = job["performance_problems"]
@@ -2013,15 +2012,17 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
-                        group_type = next(
+                        problem = next(
                             (
-                                problem.type
+                                problem
                                 for problem in performance_problems
                                 if problem.fingerprint == new_grouphash
                             ),
                             None,
                         )
-                        kwargs["type"] = group_type.value
+
+                        kwargs["type"] = problem.type.value
+                        kwargs["data"]["metadata"]["title"] = f"N+1 Query:{problem.desc}"
 
                         group = _create_group(project, event, **kwargs)
                         GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
@@ -2049,6 +2050,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     group = existing_grouphash.group
 
                     is_new = False
+
+                    description = next(
+                        (
+                            problem.desc
+                            for problem in performance_problems
+                            if problem.fingerprint == new_grouphash
+                        ),
+                        None,
+                    )
+                    kwargs["data"]["metadata"]["title"] = f"N+1 Query:{description}"
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=kwargs, release=job["release"]
