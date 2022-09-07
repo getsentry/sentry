@@ -29,7 +29,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import PreferencesStore from 'sentry/stores/preferencesStore';
-import {useSidebar} from 'sentry/stores/sidebarProvider';
+import {useSidebar, useSidebarDispatch} from 'sentry/stores/sidebarProvider';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -58,7 +58,8 @@ type Props = {
 function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
-  const [sidebar, dispatchSidebar] = useSidebar();
+  const sidebar = useSidebar();
+  const dispatchSidebar = useSidebarDispatch();
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -74,12 +75,21 @@ function Sidebar({location, organization}: Props) {
     dispatchSidebar({type: 'hide panel'});
   }, [dispatchSidebar]);
 
-  const togglePanel = useCallback(
-    (panel: SidebarPanelKey) => {
-      dispatchSidebar({type: 'toggle panel', payload: panel});
-    },
-    [dispatchSidebar]
-  );
+  const showPerformanceOnboardingPanel = useCallback(() => {
+    dispatchSidebar({type: 'show panel', payload: SidebarPanelKey.PerformanceOnboarding});
+  }, [dispatchSidebar]);
+
+  const showOnboardingWizardPanel = useCallback(() => {
+    dispatchSidebar({type: 'show panel', payload: SidebarPanelKey.OnboardingWizard});
+  }, [dispatchSidebar]);
+
+  const showBroadcastsPanel = useCallback(() => {
+    dispatchSidebar({type: 'show panel', payload: SidebarPanelKey.Broadcasts});
+  }, [dispatchSidebar]);
+
+  const showServiceIncidentsPanel = useCallback(() => {
+    dispatchSidebar({type: 'show panel', payload: SidebarPanelKey.ServiceIncidents});
+  }, [dispatchSidebar]);
 
   // Close panel on any navigation
   useEffect(() => {
@@ -107,7 +117,7 @@ function Sidebar({location, organization}: Props) {
   useEffect(() => {
     if (location?.hash === '#welcome') {
       dispatchSidebar({
-        type: 'activate panel',
+        type: 'show panel',
         payload: SidebarPanelKey.OnboardingWizard,
       });
     }
@@ -352,7 +362,7 @@ function Sidebar({location, organization}: Props) {
         <SidebarSectionGroup>
           <PerformanceOnboardingSidebar
             currentPanel={sidebar}
-            onShowPanel={() => togglePanel(SidebarPanelKey.PerformanceOnboarding)}
+            onShowPanel={showPerformanceOnboardingPanel}
             hidePanel={hidePanel}
             {...sidebarItemProps}
           />
@@ -360,7 +370,7 @@ function Sidebar({location, organization}: Props) {
             <OnboardingStatus
               org={organization}
               currentPanel={sidebar}
-              onShowPanel={() => togglePanel(SidebarPanelKey.OnboardingWizard)}
+              onShowPanel={showOnboardingWizardPanel}
               hidePanel={hidePanel}
               {...sidebarItemProps}
             />
@@ -384,7 +394,7 @@ function Sidebar({location, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               currentPanel={sidebar}
-              onShowPanel={() => togglePanel(SidebarPanelKey.Broadcasts)}
+              onShowPanel={showBroadcastsPanel}
               hidePanel={hidePanel}
               organization={organization}
             />
@@ -392,7 +402,7 @@ function Sidebar({location, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               currentPanel={sidebar}
-              onShowPanel={() => togglePanel(SidebarPanelKey.ServiceIncidents)}
+              onShowPanel={showServiceIncidentsPanel}
               hidePanel={hidePanel}
             />
           </SidebarSection>

@@ -58,7 +58,7 @@ export function MetricsDataSwitcherAlert(
   const dispatchSidebar = useSidebarDispatch();
 
   const handleReviewUpdatesClick = useCallback(() => {
-    dispatchSidebar({type: 'activate panel', payload: SidebarPanelKey.Broadcasts});
+    dispatchSidebar({type: 'show panel', payload: SidebarPanelKey.Broadcasts});
   }, [dispatchSidebar]);
 
   const docsLink = useMemo(() => {

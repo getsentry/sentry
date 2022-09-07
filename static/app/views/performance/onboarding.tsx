@@ -117,7 +117,7 @@ function Onboarding({organization, project}: Props) {
       projectsForOnboarding.some(p => p.id === project.id)
     ) {
       dispatchSidebar({
-        type: 'activate panel',
+        type: 'show panel',
         payload: SidebarPanelKey.PerformanceOnboarding,
       });
     }
@@ -168,7 +168,7 @@ function Onboarding({organization, project}: Props) {
           event.preventDefault();
           window.location.hash = 'performance-sidequest';
           dispatchSidebar({
-            type: 'activate panel',
+            type: 'show panel',
             payload: SidebarPanelKey.PerformanceOnboarding,
           });
         }}

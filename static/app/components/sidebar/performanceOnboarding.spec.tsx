@@ -280,7 +280,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
         <button
           onClick={() =>
             dispatch({
-              type: 'activate panel',
+              type: 'show panel',
               payload: SidebarPanelKey.PerformanceOnboarding,
             })
           }

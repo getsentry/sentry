@@ -8,24 +8,19 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 
 type State = SidebarPanelKey | '';
 
+type ShowPanelAction = {payload: SidebarPanelKey; type: 'show panel'};
 type HidePanelAction = {type: 'hide panel'};
-type TogglePanelAction = {payload: SidebarPanelKey; type: 'toggle panel'};
-type ActivatePanelAction = {payload: SidebarPanelKey; type: 'activate panel'};
-type SidebarAction = HidePanelAction | TogglePanelAction | ActivatePanelAction;
+type SidebarAction = HidePanelAction | ShowPanelAction;
 
-const SidebarContext = createContext<[State, React.Dispatch<SidebarAction>] | null>(null);
+const SidebarContext = createContext<State | null>(null);
+const SidebarDispatchContext = createContext<React.Dispatch<SidebarAction> | null>(null);
 
 export function SidebarReducer(state: State, action: SidebarAction) {
   switch (action.type) {
-    case 'activate panel':
+    case 'show panel':
       return action.payload;
     case 'hide panel':
       return '';
-    case 'toggle panel':
-      if (state === action.payload) {
-        return '';
-      }
-      return action.payload;
     default:
       assertNever(action);
       return state;
@@ -38,19 +33,21 @@ interface Props {
 }
 
 export function SidebarProvider(props: Props) {
-  const reducer = useReducer(SidebarReducer, props.initialPanel ?? '');
+  const [state, dispatch] = useReducer(SidebarReducer, props.initialPanel ?? '');
 
   return (
-    <SidebarContext.Provider value={reducer}>{props.children}</SidebarContext.Provider>
+    <SidebarDispatchContext.Provider value={dispatch}>
+      <SidebarContext.Provider value={state}>{props.children}</SidebarContext.Provider>
+    </SidebarDispatchContext.Provider>
   );
 }
 
 export function useSidebarDispatch() {
-  const context = useContext(SidebarContext);
+  const context = useContext(SidebarDispatchContext);
   if (context === null) {
-    throw new Error('useSidebarDispatch was called outside of SidebarProvider');
+    throw new Error('useSidebarDispatch was called outside of SidebarDispatchProvider');
   }
-  return context[1];
+  return context;
 }
 
 export function useSidebar() {
