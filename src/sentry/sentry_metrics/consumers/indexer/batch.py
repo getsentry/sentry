@@ -102,12 +102,18 @@ class IndexerBatch:
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
+        metrics.incr(
+            "sentry_metrics.indexer.process_messages.dropped_message",
+            amount=len(keys_to_remove),
+            tags={
+                "reason": "cardinality_limit",
+            },
+        )
+
+        # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
         for offset in keys_to_remove:
-            metrics.incr(
-                "sentry_metrics.indexer.process_messages.dropped_message",
-                tags={
-                    "reason": "cardinality_limit",
-                },
+            sentry_sdk.set_tag(
+                "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
             )
             if _should_sample_debug_log():
                 logger.error(
@@ -117,7 +123,7 @@ class IndexerBatch:
                     },
                 )
 
-            self.skipped_offsets.add(offset)
+        self.skipped_offsets.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
     def extract_strings(self) -> Mapping[int, Set[str]]:
