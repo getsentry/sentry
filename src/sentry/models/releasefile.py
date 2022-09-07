@@ -14,6 +14,7 @@ from django.db import models, router
 
 from sentry import options
 from sentry.db.models import (
+    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -78,7 +79,7 @@ class ReleaseFile(Model):
 
     __repr__ = sane_repr("release", "ident")
 
-    objects = models.Manager()  # The default manager.
+    objects = BaseManager()  # The default manager.
     public_objects = PublicReleaseFileManager()
 
     class Meta:

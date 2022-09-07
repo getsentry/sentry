@@ -42,6 +42,39 @@ export enum SavedSearchType {
   SESSION = 2,
 }
 
+export enum IssueCategory {
+  PERFORMANCE = 'performance',
+  ERROR = 'error',
+}
+
+export enum IssueType {
+  ERROR = 'error',
+  PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
+}
+
+/**
+ * Defines what capabilities a category of issue has. Not all categories of
+ * issues work the same.
+ */
+export type IssueCategoryCapabilities = {
+  /**
+   * Can the issue be deleted
+   */
+  delete: boolean;
+  /**
+   * Can the issue be deleted and discarded
+   */
+  deleteAndDiscard: boolean;
+  /**
+   * Can the issue be ignored
+   */
+  ignore: boolean;
+  /**
+   * Can the issue be merged
+   */
+  merge: boolean;
+};
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
@@ -131,7 +164,7 @@ export type InboxDetails = {
   reason?: number;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule';
+export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule' | 'releaseCommit';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
@@ -351,22 +384,22 @@ export type GroupActivity =
 
 export type Activity = GroupActivity;
 
-type GroupFiltered = {
+interface GroupFiltered {
   count: string;
   firstSeen: string;
   lastSeen: string;
   stats: Record<string, TimeseriesValue[]>;
   userCount: number;
-};
+}
 
-export type GroupStats = GroupFiltered & {
+export interface GroupStats extends GroupFiltered {
   filtered: GroupFiltered | null;
   id: string;
   lifetime?: GroupFiltered;
   sessionCount?: string | null;
-};
+}
 
-export type BaseGroupStatusReprocessing = {
+export interface BaseGroupStatusReprocessing {
   status: 'reprocessing';
   statusDetails: {
     info: {
@@ -375,7 +408,7 @@ export type BaseGroupStatusReprocessing = {
     } | null;
     pendingEvents: number;
   };
-};
+}
 
 /**
  * Issue Resolution
@@ -411,7 +444,7 @@ export type GroupRelease = {
 };
 
 // TODO(ts): incomplete
-export type BaseGroup = {
+export interface BaseGroup extends GroupRelease {
   activity: GroupActivity[];
   annotations: string[];
   assignedTo: Actor;
@@ -423,6 +456,8 @@ export type BaseGroup = {
   isPublic: boolean;
   isSubscribed: boolean;
   isUnhandled: boolean;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
   lastSeen: string;
   latestEvent: Event;
   level: Level;
@@ -447,13 +482,26 @@ export type BaseGroup = {
   userReportCount: number;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
-} & GroupRelease;
+}
 
-export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
-export type GroupResolution = BaseGroup & GroupStats & GroupStatusResolution;
+export interface GroupReprocessing
+  // BaseGroupStatusReprocessing status field (enum) incorrectly extends the BaseGroup status field (string) so we omit it.
+  // A proper fix for this would be to make the status field an enum or string and correctly extend it.
+  extends Omit<BaseGroup, 'status'>,
+    GroupStats,
+    BaseGroupStatusReprocessing {}
+
+export interface GroupResolution
+  // GroupStatusResolution status field (enum) incorrectly extends the BaseGroup status field (string) so we omit it.
+  // A proper fix for this would be to make the status field an enum or string and correctly extend it.
+  extends Omit<BaseGroup, 'status'>,
+    GroupStats,
+    GroupStatusResolution {}
+
 export type Group = GroupResolution | GroupReprocessing;
-export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
-  Partial<GroupRelease>;
+export interface GroupCollapseRelease
+  extends Omit<Group, keyof GroupRelease>,
+    Partial<GroupRelease> {}
 
 export type GroupTombstone = {
   actor: AvatarUser;

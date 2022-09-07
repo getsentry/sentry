@@ -196,10 +196,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .nav-header span.help-link a {
           color: ${theme.subText};
         }
-        .search .search-input {
-          background: ${theme.background};
-          color: ${theme.formText};
-        }
 
         /* Global Selection header date picker */
         .rdrCalendarWrapper {

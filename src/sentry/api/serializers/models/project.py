@@ -741,6 +741,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:dynamic_sampling",
             "sentry:breakdowns",
             "sentry:span_attributes",
+            "sentry:performance_issue_creation_rate",
             "feedback:branding",
             "digests:mail:minimum_delay",
             "digests:mail:maximum_delay",
@@ -815,6 +816,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "sentry:reprocessing_active": bool(
                         attrs["options"].get("sentry:reprocessing_active", False)
                     ),
+                    "sentry:performance_issue_creation_rate": attrs["options"].get(
+                        "sentry:performance_issue_creation_rate"
+                    ),
                     "filters:blacklisted_ips": "\n".join(
                         attrs["options"].get("sentry:blacklisted_ips", [])
                     ),
@@ -880,6 +884,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
+                "performanceIssueCreationRate": get_value_with_default(
+                    "sentry:performance_issue_creation_rate"
+                ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },

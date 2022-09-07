@@ -53,8 +53,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     });
   };
 
-  handleSubmit = async data => {
-    const {api} = this.props;
+  handleSubmit = data => {
     const {superuserAccessCategory, superuserReason, authenticators} = this.state;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
@@ -63,7 +62,7 @@ class SuperuserAccessForm extends Component<Props, State> {
     const suReason = superuserReason || data.superuserReason;
 
     if (!authenticators.length && !disableU2FForSUForm) {
-      this.handleError('No Authenticator');
+      this.handleError(ErrorCodes.noAuthenticator);
       return;
     }
 
@@ -74,18 +73,12 @@ class SuperuserAccessForm extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
-      try {
-        await api.requestPromise('/auth/', {method: 'PUT', data});
-        this.handleSuccess();
-      } catch (err) {
-        this.handleError(err);
-      }
+      this.handleSuccess();
     }
   };
 
   handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
     const {api} = this.props;
-
     try {
       data.isSuperuserModal = true;
       data.superuserAccessCategory = this.state.superuserAccessCategory;
@@ -93,6 +86,7 @@ class SuperuserAccessForm extends Component<Props, State> {
       await api.requestPromise('/auth/', {method: 'PUT', data});
       this.handleSuccess();
     } catch (err) {
+      this.setState({showAccessForms: true});
       // u2fInterface relies on this
       throw err;
     }
@@ -114,7 +108,7 @@ class SuperuserAccessForm extends Component<Props, State> {
       errorType = ErrorCodes.invalidSSOSession;
     } else if (err.status === 400) {
       errorType = ErrorCodes.invalidAccessCategory;
-    } else if (err === 'No Authenticator') {
+    } else if (err === ErrorCodes.noAuthenticator) {
       errorType = ErrorCodes.noAuthenticator;
     } else {
       errorType = ErrorCodes.unknownError;
@@ -156,16 +150,12 @@ class SuperuserAccessForm extends Component<Props, State> {
     return (
       <ThemeAndStyleProvider>
         <Form
-          apiMethod="PUT"
-          apiEndpoint="/auth/"
           submitLabel={t('Continue')}
           onSubmit={this.handleSubmit}
-          onSubmitSuccess={this.handleSuccess}
-          onSubmitError={this.handleError}
           initialData={{isSuperuserModal: true}}
           extraButton={
             <BackWrapper>
-              <Button onClick={this.handleSubmit}>{t('COPS/CSM')}</Button>
+              <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
             </BackWrapper>
           }
           resetOnError
