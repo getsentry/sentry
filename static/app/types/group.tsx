@@ -52,6 +52,29 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
 }
 
+/**
+ * Defines what capabilities a category of issue has. Not all categories of
+ * issues work the same.
+ */
+export type IssueCategoryCapabilities = {
+  /**
+   * Can the issue be deleted
+   */
+  delete: boolean;
+  /**
+   * Can the issue be deleted and discarded
+   */
+  deleteAndDiscard: boolean;
+  /**
+   * Can the issue be ignored
+   */
+  ignore: boolean;
+  /**
+   * Can the issue be merged
+   */
+  merge: boolean;
+};
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
