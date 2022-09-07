@@ -70,32 +70,60 @@ def test_dump_schema():
     }
 
 
+def test_str_schema():
+    assert str(Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])) == "path:*.js #frontend"
+    assert (
+        str(Rule(Matcher("url", "http://google.com/*"), [Owner("team", "backend")]))
+        == "url:http://google.com/* #backend"
+    )
+    assert (
+        str(Rule(Matcher("tags.foo", "bar"), [Owner("user", "tagperson@sentry.io")]))
+        == "tags.foo:bar tagperson@sentry.io"
+    )
+    assert (
+        str(Rule(Matcher("tags.foo", "bar baz"), [Owner("user", "tagperson@sentry.io")]))
+        == "tags.foo:bar baz tagperson@sentry.io"
+    )
+    assert (
+        str(
+            Rule(Matcher("codeowners", "/src/components/"), [Owner("user", "githubuser@sentry.io")])
+        )
+        == "codeowners:/src/components/ githubuser@sentry.io"
+    )
+
+
 def test_load_schema():
-    assert load_schema(
-        {
-            "$version": 1,
-            "rules": [
-                {
-                    "matcher": {"type": "path", "pattern": "*.js"},
-                    "owners": [{"type": "team", "identifier": "frontend"}],
-                }
-            ],
-        }
-    ) == [Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]
+    assert (
+        load_schema(
+            {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "path", "pattern": "*.js"},
+                        "owners": [{"type": "team", "identifier": "frontend"}],
+                    }
+                ],
+            }
+        )
+        == [Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]
+    )
 
 
 def test_load_tag_schema():
-    assert load_schema(
-        {
-            "$version": 1,
-            "rules": [
-                {
-                    "matcher": {"type": "tags.release", "pattern": "*"},
-                    "owners": [{"type": "user", "identifier": "test@sentry.io"}],
-                }
-            ],
-        }
-    ) == [Rule(Matcher("tags.release", "*"), [Owner("user", "test@sentry.io")])]
+    assert (
+        load_schema(
+            {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "tags.release", "pattern": "*"},
+                        "owners": [{"type": "user", "identifier": "test@sentry.io"}],
+                    }
+                ],
+            }
+        )
+        == [Rule(Matcher("tags.release", "*"), [Owner("user", "test@sentry.io")])]
+    )
 
 
 def test_matcher_test_url():

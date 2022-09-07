@@ -132,16 +132,16 @@ def handle_owner_assignment(project, group, event):
 
         with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
             if auto_assignment and owners and not assignees_exists:
-                from sentry.models.groupassignee import AssignedReasonCodeowners, AssignedReasonType
+                from sentry.models.groupassignee import ActivityIntegration, AssignedCodeowners
 
                 assignment = GroupAssignee.objects.assign(
                     group,
                     owners[0],
                     create_only=True,
-                    reason=AssignedReasonCodeowners(
-                        type=AssignedReasonType.CODEOWNERS.value
+                    reason=AssignedCodeowners(
+                        type=ActivityIntegration.CODEOWNERS.value
                         if assigned_by_codeowners
-                        else AssignedReasonType.PROJECT_OWNERSHIP.value,
+                        else ActivityIntegration.PROJECT_OWNERSHIP.value,
                         matcher=auto_assignment_rule.matcher.dump(),
                     ),
                 )
