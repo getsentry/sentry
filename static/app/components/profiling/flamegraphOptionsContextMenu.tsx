@@ -6,8 +6,8 @@ import {
   FlamegraphColorCodings,
   FlamegraphSorting,
   FlamegraphViewOptions,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 import {
