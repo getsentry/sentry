@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -71,9 +72,9 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
                 return _detect_performance_problems(data, sdk_span)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return []
+    except Exception:
+        logging.exception("Failed to detect performance problems")
+    return []
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
