@@ -1,6 +1,6 @@
 from functools import reduce
 from operator import or_
-from typing import Any, Mapping, Optional, Set
+from typing import Any, Mapping, Optional, Sequence, Set
 
 from django.conf import settings
 from django.db.models import Q
@@ -16,7 +16,7 @@ from sentry.sentry_metrics.indexer.base import (
     StringIndexer,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
-from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter_factory
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
@@ -50,7 +50,9 @@ class PGStringIndexerV2(StringIndexer):
 
         return self._table(use_case_id).objects.filter(query_statement)
 
-    def _bulk_create_with_retry(self, table, new_records) -> None:
+    def _bulk_create_with_retry(
+        self, table: IndexerTable, new_records: Sequence[BaseIndexer]
+    ) -> None:
         """
         With multiple instances of the Postgres indexer running, we found that
         rather than direct insert conflicts we were actually observing deadlocks
@@ -61,7 +63,7 @@ class PGStringIndexerV2(StringIndexer):
         retry_count = 0
         max_retries = 3
         success = False
-        last_seen_exception = None
+        last_seen_exception: Optional[BaseException] = None
 
         with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
@@ -80,6 +82,7 @@ class PGStringIndexerV2(StringIndexer):
                         raise e
             if not success:
                 metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked_no_recovery")
+                assert isinstance(last_seen_exception, BaseException)
                 raise last_seen_exception
 
     def bulk_record(
