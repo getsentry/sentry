@@ -130,6 +130,26 @@ function AuditNote({entry, orgSlug}: {entry: AuditLog; orgSlug: Organization['sl
     );
   }
 
+  if (entry.event === 'sampling.activate') {
+    return (
+      <Note>
+        {tct('Enabled server-side sampling rule in the project [project-slug]', {
+          ['project-slug']: projectSlug,
+        })}
+      </Note>
+    );
+  }
+
+  if (entry.event === 'sampling.deactivate') {
+    return (
+      <Note>
+        {tct('Disabled server-side sampling rule in the project [project-slug]', {
+          ['project-slug']: projectSlug,
+        })}
+      </Note>
+    );
+  }
+
   return <Note>{entry.note}</Note>;
 }
 
