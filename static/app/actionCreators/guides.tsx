@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 const api = new Client();
 
@@ -61,14 +61,10 @@ export function recordFinish(guide: string, orgId: string | null) {
     return;
   }
 
-  const data = {
-    eventKey: 'assistant.guide_finished',
-    eventName: 'Assistant Guide Finished',
+  trackAdvancedAnalyticsEvent('assistant.guide_finished', {
+    organization: orgId,
     guide,
-    organization_id: orgId,
-    user_id: parseInt(user.id, 10),
-  };
-  trackAnalyticsEvent(data);
+  });
 }
 
 export function recordDismiss(guide: string, step: number, orgId: string | null) {
@@ -84,14 +80,9 @@ export function recordDismiss(guide: string, step: number, orgId: string | null)
   if (!user) {
     return;
   }
-
-  const data = {
-    eventKey: 'assistant.guide_dismissed',
-    eventName: 'Assistant Guide Dismissed',
+  trackAdvancedAnalyticsEvent('assistant.guide_dismissed', {
+    organization: orgId,
     guide,
     step,
-    organization_id: orgId,
-    user_id: parseInt(user.id, 10),
-  };
-  trackAnalyticsEvent(data);
+  });
 }

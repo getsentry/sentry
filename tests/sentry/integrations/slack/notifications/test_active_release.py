@@ -62,7 +62,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_notify_user(self, mock_func, mock_get_release_committers):
         mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             rp = RuleProcessor(
                 self.event,
                 is_new=True,

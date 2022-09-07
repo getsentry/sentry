@@ -4,14 +4,25 @@ from snuba_sdk import Function
 
 from sentry.api.event_search import SearchFilter
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.constants import RELEASE_ALIAS
+from sentry.search.events.constants import (
+    RELEASE_ALIAS,
+    RELEASE_STAGE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_BUILD_ALIAS,
+    SEMVER_PACKAGE_ALIAS,
+)
 from sentry.search.events.datasets import filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.semver_and_stage_aliases import (
+    SemverAndStageFilterConverterMixin,
+)
 from sentry.search.events.fields import SessionColumnArg, SnQLFunction
 from sentry.search.events.types import SelectType, WhereType
 
 
-class SessionsDatasetConfig(DatasetConfig):
+class SessionsDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
+    non_nullable_keys = {"project", "project_id", "environment", "release"}
+
     def __init__(self, builder: QueryBuilder):
         self.builder = builder
 
@@ -21,6 +32,10 @@ class SessionsDatasetConfig(DatasetConfig):
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
             RELEASE_ALIAS: self._release_filter_converter,
+            RELEASE_STAGE_ALIAS: self._release_stage_filter_converter,
+            SEMVER_ALIAS: self._semver_filter_converter,
+            SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
+            SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
         }
 
     @property

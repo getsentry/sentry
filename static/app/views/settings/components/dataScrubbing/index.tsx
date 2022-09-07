@@ -14,7 +14,7 @@ import {Organization, Project} from 'sentry/types';
 import Add from './modals/add';
 import Edit from './modals/edit';
 import Content from './content';
-import convertRelayPiiConfig from './convertRelayPiiConfig';
+import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import OrganizationRules from './organizationRules';
 import submitRules from './submitRules';
 import {ProjectId, Rule} from './types';

@@ -522,9 +522,8 @@ export function getCurrentPageFilters(
 }
 
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
-  const filterKeys = new Set([DashboardFilterKeys.RELEASE]);
   const dashboardFilters: DashboardFilters = {};
-  filterKeys.forEach(key => {
+  Object.values(DashboardFilterKeys).forEach(key => {
     if (defined(location.query?.[key])) {
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }

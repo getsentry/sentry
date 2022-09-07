@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.app import locks
+from sentry.locks import locks
 from sentry.models import Commit, Project, Release
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.base import instrumented_task

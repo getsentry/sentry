@@ -21,6 +21,9 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
     cached_resolves: Dict[int, str] = {}
+    # no-op if they're already strings
+    if query_definition.tag_values_are_strings:
+        return results
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
         for column in query_definition.columns:
@@ -37,7 +40,9 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
         for tag in tags:
             for row in results["data"]:
                 if row[tag] not in cached_resolves:
-                    resolved_tag = indexer.reverse_resolve(UseCaseKey.PERFORMANCE, row[tag])
+                    resolved_tag = indexer.reverse_resolve(
+                        UseCaseKey.PERFORMANCE, query_definition.organization_id, row[tag]
+                    )
                     cached_resolves[row[tag]] = resolved_tag
                 row[tag] = cached_resolves[row[tag]]
             if tag in results["meta"]:
@@ -93,18 +98,17 @@ def query(
             return {}
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         translated_columns = {}
-        function_alias_map = metrics_query.function_alias_map
         if transform_alias_to_input_format:
             translated_columns = {
                 column: function_details.field
                 for column, function_details in metrics_query.function_alias_map.items()
             }
-            function_alias_map = {
+            metrics_query.function_alias_map = {
                 translated_columns.get(column): function_details
                 for column, function_details in metrics_query.function_alias_map.items()
             }
 
-        results = discover.transform_results(results, function_alias_map, translated_columns, None)
+        results = discover.transform_results(results, metrics_query, translated_columns, None)
         results = resolve_tags(results, metrics_query)
         results["meta"]["isMetricsData"] = True
         sentry_sdk.set_tag("performance.dataset", "metrics")
@@ -154,7 +158,7 @@ def timeseries_query(
                 sentry_sdk.set_tag("query.mep_compatible", True)
                 return
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-            result = discover.transform_results(result, metrics_query.function_alias_map, {}, None)
+            result = discover.transform_results(result, metrics_query, {}, None)
             result["data"] = (
                 discover.zerofill(
                     result["data"],

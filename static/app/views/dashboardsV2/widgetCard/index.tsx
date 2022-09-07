@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -24,7 +23,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -72,6 +71,7 @@ type Props = WithRouterProps & {
 type State = {
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
@@ -163,7 +163,8 @@ class WidgetCard extends Component<Props, State> {
       index,
     } = this.props;
 
-    const {seriesData, tableData, pageLinks, totalIssuesCount} = this.state;
+    const {seriesData, tableData, pageLinks, totalIssuesCount, seriesResultsType} =
+      this.state;
 
     if (isEditing) {
       return null;
@@ -185,6 +186,7 @@ class WidgetCard extends Component<Props, State> {
         location={location}
         index={index}
         seriesData={seriesData}
+        seriesResultsType={seriesResultsType}
         tableData={tableData}
         pageLinks={pageLinks}
         totalIssuesCount={totalIssuesCount}
@@ -197,10 +199,12 @@ class WidgetCard extends Component<Props, State> {
     timeseriesResults,
     totalIssuesCount,
     pageLinks,
+    timeseriesResultsTypes,
   }: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => {
     this.setState({
@@ -208,6 +212,7 @@ class WidgetCard extends Component<Props, State> {
       tableData: tableResults,
       totalIssuesCount,
       pageLinks,
+      seriesResultsType: timeseriesResultsTypes,
     });
   };
 
@@ -306,7 +311,8 @@ class WidgetCard extends Component<Props, State> {
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
-            <Feature organization={organization} features={['dashboards-mep']}>
+            {(organization.features.includes('dashboards-mep') ||
+              organization.features.includes('mep-rollout-flag')) && (
               <DashboardsMEPConsumer>
                 {({isMetricsData}) => {
                   if (
@@ -351,7 +357,7 @@ class WidgetCard extends Component<Props, State> {
                   return null;
                 }}
               </DashboardsMEPConsumer>
-            </Feature>
+            )}
           </React.Fragment>
         )}
       </ErrorBoundary>

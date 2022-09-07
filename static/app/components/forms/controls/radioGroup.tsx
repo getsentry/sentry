@@ -90,7 +90,7 @@ const RadioGroup = <C extends string>({
         </Fragment>
       );
 
-      if (!!disabledChoiceReason) {
+      if (disabledChoiceReason) {
         return (
           <Tooltip key={index} title={disabledChoiceReason}>
             {content}

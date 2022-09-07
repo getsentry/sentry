@@ -29,8 +29,15 @@ from sentry.utils.snuba import Dataset
         ("transaction", "Char", None, "string"),
         ("foo", "unknown", None, "string"),
         ("other", "", None, "string"),
-        ("avg_duration", "", None, "duration"),
-        ("duration", "Uint64", None, "duration"),
+        (
+            "avg_transaction_duration",
+            "Float64",
+            FunctionDetails(
+                "avg(transaction.duration)", FUNCTIONS["avg"], {"column": "transaction.duration"}
+            ),
+            "duration",
+        ),
+        ("duration", "UInt64", None, "integer"),
         ("p50", "Float32", None, "duration"),
         ("p75", "Float32", None, "duration"),
         ("p95", "Float32", None, "duration"),
@@ -101,7 +108,9 @@ from sentry.utils.snuba import Dataset
     ],
 )
 def test_get_json_meta_type(field_alias, snuba_type, function, expected):
-    assert get_json_meta_type(field_alias, snuba_type, function) == expected
+    qb = UnresolvedQuery(dataset=Dataset.Discover, params={})
+    qb.function_alias_map[field_alias] = function
+    assert get_json_meta_type(field_alias, snuba_type, qb) == expected, field_alias
 
 
 @pytest.mark.parametrize(

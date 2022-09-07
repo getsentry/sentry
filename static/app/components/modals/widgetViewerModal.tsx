@@ -39,6 +39,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -86,6 +87,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -165,6 +167,7 @@ function WidgetViewerModal(props: Props) {
     tableData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
+    seriesResultsType,
   } = props;
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // Get widget zoom from location
@@ -378,7 +381,7 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const parsedQuery = !name && !!conditions ? parseSearch(conditions) : null;
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
@@ -443,11 +446,12 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable = ({
+  function DiscoverTable({
     tableResults,
     loading,
     pageLinks,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesChildrenProps) {
+    const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -470,6 +474,7 @@ function WidgetViewerModal(props: Props) {
                   setChartUnmodified(false);
                 }
               },
+              isMetricsData,
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
@@ -506,7 +511,7 @@ function WidgetViewerModal(props: Props) {
         )}
       </Fragment>
     );
-  };
+  }
 
   const renderIssuesTable = ({
     tableResults,
@@ -746,11 +751,13 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderDiscoverTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          });
+          return (
+            <DiscoverTable
+              tableResults={tableData}
+              loading={false}
+              pageLinks={defaultPageLinks}
+            />
+          );
         }
         return (
           <WidgetQueries
@@ -765,7 +772,13 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
           >
-            {renderDiscoverTable}
+            {({tableResults, loading, pageLinks}) => (
+              <DiscoverTable
+                tableResults={tableResults}
+                loading={loading}
+                pageLinks={pageLinks}
+              />
+            )}
           </WidgetQueries>
         );
     }
@@ -794,6 +807,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
+                timeseriesResultsTypes={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}

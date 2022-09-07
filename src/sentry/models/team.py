@@ -7,7 +7,7 @@ from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import env, locks
+from sentry.app import env
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
@@ -16,6 +16,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
@@ -110,7 +111,7 @@ class TeamManager(BaseManager):
                 update_code_owners_schema.apply_async(
                     kwargs={
                         "organization": instance.organization,
-                        "projects": instance.get_projects(),
+                        "projects": list(instance.get_projects()),
                     }
                 )
             except (Organization.DoesNotExist, Project.DoesNotExist):

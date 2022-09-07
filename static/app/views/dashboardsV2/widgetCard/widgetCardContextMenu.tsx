@@ -18,6 +18,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
@@ -43,6 +44,7 @@ type Props = {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
+  seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
@@ -67,6 +69,7 @@ function WidgetCardContextMenu({
   tableData,
   pageLinks,
   totalIssuesCount,
+  seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
   if (!showContextMenu) {
@@ -134,6 +137,7 @@ function WidgetCardContextMenu({
                       tableData,
                       pageLinks,
                       totalIssuesCount,
+                      seriesResultsType,
                     });
                   openWidgetViewerPath(index);
                 }}
@@ -276,6 +280,7 @@ function WidgetCardContextMenu({
                   tableData,
                   pageLinks,
                   totalIssuesCount,
+                  seriesResultsType,
                 });
                 openWidgetViewerPath(widget.id ?? index);
               }}

@@ -87,7 +87,8 @@ const LetterAvatar = styled(
           height="120"
           rx="15"
           ry="15"
-          fill={suggested ? theme.white : getColor(identifier)}
+          opacity={suggested ? '50%' : '100%'}
+          fill={getColor(identifier)}
         />
         <text
           x="50%"
@@ -95,7 +96,7 @@ const LetterAvatar = styled(
           fontSize="65"
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
-          fill={suggested ? theme.gray400 : theme.white}
+          fill={theme.white}
         >
           {getInitials(displayName)}
         </text>

@@ -10,6 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
+  fetchProjectStats,
   fetchSamplingDistribution,
   fetchSamplingSdkVersions,
 } from 'sentry/actionCreators/serverSideSampling';
@@ -44,7 +45,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {SpecificConditionsModal} from './modals/specificConditionsModal';
 import {responsiveModal} from './modals/styles';
 import {UniformRateModal} from './modals/uniformRateModal';
-import useProjectStats from './utils/useProjectStats';
+import {useProjectStats} from './utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from './utils/useRecommendedSdkUpgrades';
 import {DraggableRuleList, DraggableRuleListUpdateItemsProps} from './draggableRuleList';
 import {
@@ -95,7 +96,13 @@ export function ServerSideSampling({project}: Props) {
       return;
     }
 
-    async function fetchRecommendedSdkUpgrades() {
+    async function fetchData() {
+      fetchProjectStats({
+        orgSlug: organization.slug,
+        api,
+        projId: project.id,
+      });
+
       await fetchSamplingDistribution({
         orgSlug: organization.slug,
         projSlug: project.slug,
@@ -109,18 +116,16 @@ export function ServerSideSampling({project}: Props) {
       });
     }
 
-    fetchRecommendedSdkUpgrades();
+    fetchData();
   }, [api, organization.slug, project.slug, project.id, hasAccess]);
 
-  const {projectStats} = useProjectStats({
-    orgSlug: organization.slug,
-    projectId: project?.id,
-    interval: '1h',
-    statsPeriod: '48h',
-    groupBy: 'outcome',
-  });
+  const {projectStats48h} = useProjectStats();
 
-  const {recommendedSdkUpgrades, isProjectIncompatible} = useRecommendedSdkUpgrades({
+  const {
+    recommendedSdkUpgrades,
+    isProjectIncompatible,
+    loading: loadingRecommendedSdkUpgrades,
+  } = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
     projectId: project.id,
   });
@@ -203,7 +208,6 @@ export function ServerSideSampling({project}: Props) {
           {...modalProps}
           organization={organization}
           project={project}
-          projectStats={projectStats}
           rules={rules}
           onSubmit={saveUniformRule}
           onReadDocs={handleReadDocs}
@@ -267,7 +271,6 @@ export function ServerSideSampling({project}: Props) {
             {...modalProps}
             organization={organization}
             project={project}
-            projectStats={projectStats}
             uniformRule={rule}
             rules={rules}
             onSubmit={saveUniformRule}
@@ -463,7 +466,7 @@ export function ServerSideSampling({project}: Props) {
         {!!rules.length && !recommendedSdkUpgrades.length && (
           <SamplingSDKClientRateChangeAlert
             onReadDocs={handleReadDocs}
-            projectStats={projectStats}
+            projectStats={projectStats48h.data}
             organization={organization}
             projectId={project.id}
           />
@@ -475,7 +478,6 @@ export function ServerSideSampling({project}: Props) {
             onGetStarted={handleGetStarted}
             onReadDocs={handleReadDocs}
             hasAccess={hasAccess}
-            isProjectIncompatible={isProjectIncompatible}
           />
         ) : (
           <RulesPanel>
@@ -553,6 +555,7 @@ export function ServerSideSampling({project}: Props) {
                       grabAttributes={attributes}
                       dragging={dragging}
                       sorting={sorting}
+                      loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
                     />
                   </RulesPanelLayout>
                 );
