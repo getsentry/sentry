@@ -4,7 +4,7 @@ import os
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Iterable, Mapping, Tuple
+from typing import Iterable, Mapping, Sequence, Tuple
 
 
 class ClassCategory(Enum):
@@ -69,10 +69,19 @@ class Keywords:
     include_words: Iterable[str]
     exclude_words: Iterable[str] = ()
 
+    @classmethod
+    def _parse_words(cls, name: str) -> Sequence[str]:
+        return tuple(re.findall(".[a-z]*", name))
+
+    @classmethod
+    def _contains(cls, name: str, target: str) -> bool:
+        name_words = cls._parse_words(name)
+        target_words = cls._parse_words(target)
+        return all(word in name_words for word in target_words)
+
     def check(self, name: str) -> bool:
-        words_in_name = set(re.findall(".[a-z]*", name))
-        has_included_word = any(word in words_in_name for word in self.include_words)
-        has_excluded_word = any(word in words_in_name for word in self.exclude_words)
+        has_included_word = any(self._contains(name, keyword) for keyword in self.include_words)
+        has_excluded_word = any(self._contains(name, keyword) for keyword in self.exclude_words)
         return has_included_word and not has_excluded_word
 
 
