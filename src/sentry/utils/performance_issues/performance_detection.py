@@ -815,7 +815,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 fingerprint=fingerprint,
                 op="db",
                 desc=self.source_span.get("description", ""),
-                type=DetectorType.N_PLUS_ONE_DB_QUERIES,
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
                 spans_involved=span_ids_involved,
             )
 
@@ -825,29 +825,25 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.n_spans = []
 
     def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
-        return hashlib.sha1(
-            (
-                str(DetectorType.N_PLUS_ONE_DB_QUERIES)
-                + str(parent_op)
-                + str(parent_hash)
-                + str(source_hash)
-                + str(n_hash)
-            ).encode("utf8"),
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        full_fingerprint = hashlib.sha1(
+            (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
 
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
     event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
-    all_detected_issues = [i for _, d in detectors.items() for i in d.stored_problems]
-    has_detected_issues = bool(all_detected_issues)
+    all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
+    has_detected_problems = bool(all_detected_problems)
 
-    if has_detected_issues:
-        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_issues))
+    if has_detected_problems:
+        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_problems))
         metrics.incr(
             "performance.performance_issue.aggregate",
-            len(all_detected_issues),
+            len(all_detected_problems),
         )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
@@ -855,27 +851,38 @@ def report_metrics_for_detectors(
     detected_tags = {}
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
-        detected_issues = detector.stored_problems
-        detected_issue_keys = list(detected_issues.keys())
-        detected_tags[detector_key] = bool(len(detected_issue_keys))
+        detected_problems = detector.stored_problems
+        detected_problem_keys = list(detected_problems.keys())
+        detected_tags[detector_key] = bool(len(detected_problem_keys))
 
-        if not detected_issue_keys:
+        if not detected_problem_keys:
             continue
 
-        first_issue = detected_issues[detected_issue_keys[0]]
-        if first_issue.fingerprint:
+        first_problem = detected_problems[detected_problem_keys[0]]
+        if first_problem.fingerprint:
             sdk_span.containing_transaction.set_tag(
-                f"_pi_{detector_key}_fp", first_issue.fingerprint
+                f"_pi_{detector_key}_fp", first_problem.fingerprint
             )
-        sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", first_issue.span_id)
+
+        span_id = (
+            first_problem.span_id
+            if isinstance(first_problem, PerformanceSpanProblem)
+            else first_problem.spans_involved[0]
+        )
+        sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", span_id)
+
+        op_tags = {}
+        for problem in detected_problems.values():
+            op = problem.allowed_op if isinstance(problem, PerformanceSpanProblem) else problem.op
+            op_tags[f"op_{op}"] = True
         metrics.incr(
             f"performance.performance_issue.{detector_key}",
-            len(detected_issue_keys),
-            tags={f"op_{n.allowed_op}": True for n in detected_issues.values()},
+            len(detected_problem_keys),
+            tags=op_tags,
         )
 
     metrics.incr(
         "performance.performance_issue.detected",
-        instance=str(has_detected_issues),
+        instance=str(has_detected_problems),
         tags=detected_tags,
     )

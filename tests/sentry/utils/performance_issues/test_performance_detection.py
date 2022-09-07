@@ -118,7 +118,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert _detect_performance_problems(no_duplicate_event, sdk_span_mock) == []
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        perf_problems = _detect_performance_problems(duplicate_event, sdk_span_mock)
+        _detect_performance_problems(duplicate_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -140,21 +140,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
-        assert perf_problems == [
-            PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_DUPLICATE_SPANS-4691ce1ec85e08c8870ab4494afedfc86cdfc65d",
-                op="http",
-                desc="http://example.com/slow?q=1",
-                type=GroupType.PERFORMANCE_DUPLICATE_SPANS,
-                spans_involved=[
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                ],
-            )
-        ]
 
     def test_calls_detect_slow_span(self):
         no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
@@ -459,7 +444,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
@@ -481,10 +466,31 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_sequential",
                     "b409e78a092e642f",
                 ),
-                call("_pi_n_plus_one_db_fp", "8d86357da4d8a866b19c97670edee38d037a7bc8"),
-                call("_pi_n_plus_one_db", "b8be6138369491dd"),
+                call("_pi_n_plus_one_db_fp", "7ee87c360a29deca2446e9e3efe74e2c1a197aa9"),
+                call("_pi_n_plus_one_db", "9179e43ae844b174"),
             ]
         )
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="7ee87c360a29deca2446e9e3efe74e2c1a197aa9",
+                op="db",
+                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                spans_involved=[
+                    "9179e43ae844b174",
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            )
+        ]
 
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
