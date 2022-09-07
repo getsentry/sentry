@@ -27,7 +27,7 @@ def generate_normalized_output(
         item["id"] = item.pop("replay_id")
         item["longestTransaction"] = 0
         item["environment"] = item.pop("agg_environment")
-        item["tags"] = dict_list(zip(item.pop("tk") or [], item.pop("tv") or []))
+        item["tags"] = dict_unique_list(zip(item.pop("tk") or [], item.pop("tv") or []))
         item["user"] = {
             "id": item.pop("user_id"),
             "name": item.pop("user_name"),
@@ -62,7 +62,7 @@ def generate_sorted_urls(url_groups: List[Tuple[int, List[str]]]) -> Generator[N
         yield from url_group
 
 
-def dict_list(items: Sequence[Tuple[str, str]]) -> Dict[str, List[str]]:
+def dict_unique_list(items: Sequence[Tuple[str, str]]) -> Dict[str, List[str]]:
     """Populate a dictionary with the first key, value pair seen.
 
     There is a potential for duplicate keys to exist in the result set.  When we filter these keys
