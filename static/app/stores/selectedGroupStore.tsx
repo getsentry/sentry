@@ -120,10 +120,8 @@ const storeConfig: SelectedGroupStoreDefinition = {
 
     const newState = !this.records.get(itemId);
     this.records.set(itemId, newState);
+    this.lastSelected = itemId;
 
-    if (newState) {
-      this.lastSelected = itemId;
-    }
     this.trigger();
   },
 
