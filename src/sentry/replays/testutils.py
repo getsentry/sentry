@@ -76,7 +76,7 @@ def mock_expected_response(
             "name": kwargs.pop("user_name", "username"),
             "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
         },
-        "tags": {"customtag": ["is_set"]},
+        "tags": kwargs.pop("tags", {}),
     }
 
 
@@ -86,6 +86,9 @@ def mock_replay(
     replay_id: str,
     **kwargs: typing.Dict[str, typing.Any],
 ) -> typing.Dict[str, typing.Any]:
+    tags = kwargs.pop("tags", {})
+    tags.update({"transaction": kwargs.pop("title", "Title")})
+
     return {
         "type": "replay_event",
         "start_time": int(timestamp.timestamp()),
@@ -99,10 +102,7 @@ def mock_replay(
                         "type": "replay_event",
                         "replay_id": replay_id,
                         "segment_id": kwargs.pop("segment_id", 0),
-                        "tags": {
-                            "customtag": "is_set",
-                            "transaction": kwargs.pop("title", "Title"),
-                        },
+                        "tags": tags,
                         "urls": kwargs.pop("urls", []),
                         "error_ids": kwargs.pop(
                             "error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]
