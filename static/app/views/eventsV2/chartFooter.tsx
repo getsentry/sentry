@@ -1,3 +1,6 @@
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -5,6 +8,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
@@ -33,6 +37,7 @@ export default function ChartFooter({
   onTopEventsChange,
   topEvents,
 }: Props) {
+  const [showBaseline, setShowBaseline] = useState(true);
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
@@ -54,6 +59,15 @@ export default function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
+        <Fragment>
+          <SwitchLabel>{t('Processed baseline')}</SwitchLabel>
+          <Switch
+            isActive={showBaseline}
+            isDisabled={false}
+            size="lg"
+            toggle={() => setShowBaseline(!showBaseline)}
+          />
+        </Fragment>
         <OptionSelector
           title={t('Display')}
           selected={displayMode}
@@ -92,3 +106,8 @@ export default function ChartFooter({
     </ChartControls>
   );
 }
+
+const SwitchLabel = styled('div')`
+  padding-right: 4px;
+  font-weight: bold;
+`;
