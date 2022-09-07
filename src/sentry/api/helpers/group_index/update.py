@@ -5,10 +5,10 @@ from datetime import timedelta
 from typing import Any, Mapping, MutableMapping, Sequence
 from uuid import uuid4
 
+import rest_framework
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -73,8 +73,10 @@ def handle_discard(
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
-    if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
-        raise PermissionDenied(detail="Cannot discard performance issues.")
+    if any(group.issue_category == GroupCategory.PERFORMANCE for group in group_list):
+        raise rest_framework.exceptions.ValidationError(
+            detail="Cannot discard performance issues.", code=400
+        )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
 
@@ -792,7 +794,9 @@ def update_groups(
             return Response({"detail": "Merging across multiple projects is not supported"})
 
         if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
-            raise PermissionDenied(detail="Cannot merge performance issues.")
+            raise rest_framework.exceptions.ValidationError(
+                detail="Cannot merge performance issues.", code=400
+            )
 
         group_list_by_times_seen = sorted(
             group_list, key=lambda g: (g.times_seen, g.id), reverse=True

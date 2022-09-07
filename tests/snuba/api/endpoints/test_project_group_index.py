@@ -1221,7 +1221,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         url = f"{self.path}?id={group1.id}&id={group2.id}&id={group3.id}"
         response = self.client.put(url, data={"merge": "1"}, format="json")
 
-        assert response.status_code == 403, response.content
+        assert response.status_code == 400, response.content
 
     def test_assign(self):
         group1 = self.create_group(is_public=True)
@@ -1430,7 +1430,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         response = self.client.delete(url, format="json")
 
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         assert Group.objects.filter(id=group1.id).exists()
         assert GroupHash.objects.filter(group_id=group1.id).exists()
@@ -1501,7 +1501,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
         response = self.client.delete(url, format="json")
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         for group in groups:
             assert Group.objects.filter(id=group.id).exists()

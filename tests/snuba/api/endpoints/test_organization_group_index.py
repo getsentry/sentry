@@ -3060,7 +3060,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
         )
 
-        assert response.status_code == 403, response.content
+        assert response.status_code == 400, response.content
 
     def test_assign(self):
         group1 = self.create_group(is_public=True)
@@ -3324,7 +3324,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         with self.feature("organizations:global-views"):
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         assert Group.objects.filter(id=group1.id).exists()
         assert GroupHash.objects.filter(group_id=group1.id).exists()
@@ -3400,7 +3400,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         # if query is '' it defaults to is:unresolved
         response = self.get_response(qs_params={"query": ""})
-        assert response.status_code == 403
+        assert response.status_code == 400
 
         for group in groups:
             assert Group.objects.filter(id=group.id).exists()

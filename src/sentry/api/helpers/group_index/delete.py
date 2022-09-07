@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import List, Sequence
 from uuid import uuid4
 
-from rest_framework.exceptions import PermissionDenied
+import rest_framework
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -122,8 +122,10 @@ def delete_groups(
     if not group_list:
         return Response(status=204)
 
-    if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
-        raise PermissionDenied(detail="Cannot delete performance issues.")
+    if any(group.issue_category == GroupCategory.PERFORMANCE for group in group_list):
+        raise rest_framework.exceptions.ValidationError(
+            detail="Cannot delete performance issues.", code=400
+        )
 
     groups_by_project_id = defaultdict(list)
     for group in group_list:

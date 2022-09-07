@@ -526,7 +526,7 @@ class GroupUpdateTest(APITestCase):
             with self.feature("projects:discard-groups"):
                 response = self.client.put(url, data={"discard": True})
 
-        assert response.status_code == 403, response.content
+        assert response.status_code == 400, response.content
 
         # Ensure it's still there
         assert Group.objects.filter(id=group.id).exists()
@@ -585,7 +585,7 @@ class GroupDeleteTest(APITestCase):
         url = f"/api/0/issues/{group.id}/"
 
         response = self.client.delete(url, format="json")
-        assert response.status_code == 403, response.content
+        assert response.status_code == 400, response.content
 
         # Ensure it's still there
         assert Group.objects.filter(id=group.id).exists()

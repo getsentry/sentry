@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -310,7 +310,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         from sentry.utils import snuba
 
         if group.issue_category == GroupCategory.PERFORMANCE:
-            raise PermissionDenied(detail="Cannot delete performance issues.")
+            raise ValidationError(detail="Cannot delete performance issues.", code=400)
 
         try:
             delete_group_list(request, group.project, [group], "delete")
