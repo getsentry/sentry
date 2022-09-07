@@ -126,6 +126,12 @@ type TextareaType = {type: 'textarea'} & {
   rows?: number;
 };
 
+type NumberType = {type: 'number'} & {
+  max?: number;
+  min?: number;
+  step?: number;
+};
+
 type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
 
 type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
@@ -193,6 +199,7 @@ export type Field = (
   | SelectControlType
   | InputType
   | TextareaType
+  | NumberType
   | RangeType
   | TableType
   | ProjectMapperType
