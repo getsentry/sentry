@@ -83,7 +83,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.plugins.base import plugins
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
-from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter
+from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
@@ -108,6 +108,11 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
 # Timeout for cached group crash report counts
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
+
+issue_rate_limiter = RedisSlidingWindowRateLimiter(
+    **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
+)
+PERFORMANCE_ISSUE_QUOTA = Quota(3600, 60, 60)
 
 
 @dataclass
@@ -1981,7 +1986,17 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             new_grouphashes = set(group_hashes) - {hash.hash for hash in existing_grouphashes}
 
             if new_grouphashes:
-                for new_grouphash in new_grouphashes:
+                granted_quota = issue_rate_limiter.check_and_use_quotas(
+                    [
+                        RequestedQuota(
+                            f"performance-issues:{project.id}",
+                            len(new_grouphashes),
+                            [PERFORMANCE_ISSUE_QUOTA],
+                        )
+                    ]
+                )[0]
+                # TODO: Log stats on how many times we're over quota
+                for new_grouphash in new_grouphashes[: granted_quota.granted]:
 
                     # GROUP DOES NOT EXIST
                     with sentry_sdk.start_span(
@@ -1991,15 +2006,6 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
-
-                        # TODO: RATE LIMITER
-                        # ops team will give us a redis cluster, but told us to use the current one for now
-                        # below adapted from postgres_v2.py
-                        # from sentry.sentry_metrics.configuration import UseCaseKey
-                        # from sentry.sentry_metrics.indexer.base import KeyCollection
-                        # from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter
-                        # with writes_limiter.check_write_limits(UseCaseKey("performance"), KeyCollection({job.organization.id: {job.organization.name}})) as writes_limiter_state:
-                        #     pass
 
                         group = _create_group(project, event, **kwargs)
                         GroupHash.objects.create(project, new_grouphash, group)
@@ -2077,8 +2083,3 @@ def save_transaction_events(jobs, projects):
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
     return jobs
-
-
-issue_rate_limiter = RedisSlidingWindowRateLimiter(
-    **settings.SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS
-)
