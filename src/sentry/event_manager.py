@@ -1003,10 +1003,9 @@ def _nodestore_save_many(jobs):
         # Write the event to Nodestore
         subkeys = {}
 
-        # TODO: Check with ingest about whether this should happen for transactions that create perf
-        # issues
-        if job["groups"]:
-            event = job["event"]
+        event = job["event"]
+        # We only care about `unprocessed` for error events
+        if event.get_event_type() != "transaction" and job["groups"]:
             unprocessed = event_processing_store.get(
                 cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
                 unprocessed=True,
