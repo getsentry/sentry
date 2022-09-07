@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
@@ -156,7 +158,7 @@ function EventEntry({
           organization={organization as Organization}
         />
       );
-    case EntryType.SPANTREE:
+    case EntryType.PERFORMANCE:
       if (!organization.features?.includes('performance-issues')) {
         return null;
       }
@@ -165,19 +167,6 @@ function EventEntry({
 
       // TODO: Need to dynamically determine the project slug for this issue
       const INTERNAL_PROJECT = 'sentry';
-
-      return (
-        <EmbeddedSpanTree
-          event={event}
-          organization={organization as Organization}
-          projectSlug={INTERNAL_PROJECT}
-          affectedSpanIds={affectedSpanIds}
-        />
-      );
-    case EntryType.PERFORMANCE:
-      if (!organization.features?.includes('performance-issues')) {
-        return null;
-      }
 
       // TODO: Replace this with real data from the entry when possible
       const SAMPLE_SPAN_EVIDENCE: SpanEvidence = {
@@ -190,12 +179,20 @@ function EventEntry({
       };
 
       return (
-        <PerformanceIssueSection
-          issue={group as Group}
-          event={event as EventError}
-          organization={organization as Organization}
-          spanEvidence={SAMPLE_SPAN_EVIDENCE}
-        />
+        <Fragment>
+          <PerformanceIssueSection
+            issue={group as Group}
+            event={event as EventError}
+            organization={organization as Organization}
+            spanEvidence={SAMPLE_SPAN_EVIDENCE}
+          />
+          <EmbeddedSpanTree
+            event={event}
+            organization={organization as Organization}
+            projectSlug={INTERNAL_PROJECT}
+            affectedSpanIds={affectedSpanIds}
+          />
+        </Fragment>
       );
     default:
       // this should not happen

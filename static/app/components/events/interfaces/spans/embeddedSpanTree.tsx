@@ -128,7 +128,6 @@ export function EmbeddedSpanTree(props: Props) {
 }
 
 export const Wrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   margin: 0;
   /* Padding aligns with Layout.Body */
