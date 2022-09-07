@@ -36,7 +36,6 @@ describe('StreamGroup', function () {
   afterEach(function () {
     trackAdvancedAnalyticsEvent.mockClear();
     GroupStore.reset();
-    GroupStore.teardown();
   });
 
   it('renders with anchors', function () {

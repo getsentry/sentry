@@ -10,8 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
-  fetchProjectStats30d,
-  fetchProjectStats48h,
+  fetchProjectStats,
   fetchSamplingDistribution,
   fetchSamplingSdkVersions,
 } from 'sentry/actionCreators/serverSideSampling';
@@ -98,6 +97,12 @@ export function ServerSideSampling({project}: Props) {
     }
 
     async function fetchData() {
+      fetchProjectStats({
+        orgSlug: organization.slug,
+        api,
+        projId: project.id,
+      });
+
       await fetchSamplingDistribution({
         orgSlug: organization.slug,
         projSlug: project.slug,
@@ -109,18 +114,6 @@ export function ServerSideSampling({project}: Props) {
         api,
         projectID: project.id,
       });
-
-      await fetchProjectStats48h({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
-      });
-
-      await fetchProjectStats30d({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
-      });
     }
 
     fetchData();
@@ -128,7 +121,11 @@ export function ServerSideSampling({project}: Props) {
 
   const {projectStats48h} = useProjectStats();
 
-  const {recommendedSdkUpgrades, isProjectIncompatible} = useRecommendedSdkUpgrades({
+  const {
+    recommendedSdkUpgrades,
+    isProjectIncompatible,
+    loading: loadingRecommendedSdkUpgrades,
+  } = useRecommendedSdkUpgrades({
     orgSlug: organization.slug,
     projectId: project.id,
   });
@@ -481,7 +478,6 @@ export function ServerSideSampling({project}: Props) {
             onGetStarted={handleGetStarted}
             onReadDocs={handleReadDocs}
             hasAccess={hasAccess}
-            isProjectIncompatible={isProjectIncompatible}
           />
         ) : (
           <RulesPanel>
@@ -559,6 +555,7 @@ export function ServerSideSampling({project}: Props) {
                       grabAttributes={attributes}
                       dragging={dragging}
                       sorting={sorting}
+                      loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
                     />
                   </RulesPanelLayout>
                 );

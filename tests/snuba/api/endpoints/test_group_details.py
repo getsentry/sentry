@@ -203,3 +203,20 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["userCount"] is not None  # key shouldn't be present
         assert response.data["firstSeen"] is not None  # key shouldn't be present
         assert response.data["lastSeen"] is not None  # key shouldn't be present
+
+    def test_issue_type_category(self):
+        """Test that the issue's type and category is returned in the results"""
+
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert int(response.data["id"]) == event.group.id
+        assert response.data["issueType"] == "error"
+        assert response.data["issueCategory"] == "error"

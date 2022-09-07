@@ -1120,8 +1120,6 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
-    # Enable performance issue view
-    "organizations:performance-extraneous-spans-poc": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1496,6 +1494,10 @@ SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
 # Controls the sample rate with which we report errors to Sentry for metric messages
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
+
+# Cardinality limits during metric bucket ingestion.
+# Which cluster to use. Example: {"cluster": "default"}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
@@ -2374,7 +2376,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
@@ -2775,3 +2777,5 @@ SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
 
 DISALLOWED_CUSTOMER_DOMAINS = []
+
+SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}

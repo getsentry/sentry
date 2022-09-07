@@ -606,7 +606,6 @@ const MenuItemText = styled('div')`
 
 const ChartWrapper = styled('div')`
   width: 200px;
-  margin: 0 ${space(2)};
   align-self: center;
 `;
 
