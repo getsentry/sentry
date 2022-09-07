@@ -207,6 +207,9 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                 set_keys_to_count.extend(self._get_read_sets_keys(request, quota, timestamp))
 
         if not unit_keys_to_get and not set_keys_to_count:
+            # If there are no keys to fetch (i.e. there are no quotas to
+            # enforce), we can save the redis call entirely and just grant all
+            # quotas immediately.
             return timestamp, [
                 GrantedQuota(
                     request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
@@ -297,6 +300,8 @@ class RedisCardinalityLimiter(CardinalityLimiter):
                         set_keys_to_add[set_key].add(hash)
 
         if not set_keys_to_add and not unit_keys_to_set:
+            # If there are no keys to mutate (i.e. there are no quotas to
+            # enforce), we can save the redis call entirely.
             return
 
         with self.client.pipeline(transaction=False) as pipeline:
