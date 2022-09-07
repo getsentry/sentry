@@ -215,9 +215,7 @@ export class MutableSearch {
       } while (toRemove >= 0);
     };
 
-    this.tokens = this.tokens.filter(
-      token => token.key !== key && token.key !== `!${key}`
-    );
+    this.tokens = this.tokens.filter(token => token.key !== key);
 
     // Remove any AND/OR operators that have become erroneous due to filtering out tokens
     removeErroneousAndOrOps();
