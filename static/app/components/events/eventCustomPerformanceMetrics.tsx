@@ -18,6 +18,7 @@ import {
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 type Props = {
   event: Event;
@@ -110,7 +111,7 @@ function EventCustomPerformanceMetric({
       )
     : value;
 
-  function generateDiscoverLinkWithQuery(query: string) {
+  function generateLinkWithQuery(query: string) {
     const eventView = EventView.fromSavedQuery({
       query,
       fields: [],
@@ -120,10 +121,12 @@ function EventCustomPerformanceMetric({
       version: 1,
     });
     if (fromPerformance) {
-      return eventView.getPerformanceTransactionEventsViewUrlTarget(
-        organization.slug,
-        {}
-      );
+      return transactionSummaryRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: event.title,
+        projectID: event.projectID,
+        query: {query},
+      });
     }
     return eventView.getResultsViewUrlTarget(organization.slug);
   }
@@ -140,22 +143,22 @@ function EventCustomPerformanceMetric({
           {
             key: 'includeEvents',
             label: t('Show events with this value'),
-            to: generateDiscoverLinkWithQuery(`measurements.${name}:${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:${value}`),
           },
           {
             key: 'excludeEvents',
             label: t('Hide events with this value'),
-            to: generateDiscoverLinkWithQuery(`!measurements.${name}:${value}`),
+            to: generateLinkWithQuery(`!measurements.${name}:${value}`),
           },
           {
             key: 'includeGreaterThanEvents',
             label: t('Show events with values greater than'),
-            to: generateDiscoverLinkWithQuery(`measurements.${name}:>${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:>${value}`),
           },
           {
             key: 'includeLessThanEvents',
             label: t('Show events with values less than'),
-            to: generateDiscoverLinkWithQuery(`measurements.${name}:<${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:<${value}`),
           },
         ]}
         triggerProps={{
