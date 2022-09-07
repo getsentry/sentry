@@ -173,7 +173,6 @@ export function Rule({
           <MenuItemActionLink
             shouldConfirm={false}
             icon={<IconDownload size="xs" />}
-            title={t('Edit')}
             onClick={
               !noPermission
                 ? onEditRule
@@ -182,6 +181,7 @@ export function Rule({
                   }
             }
             disabled={noPermission}
+            aria-label={t('Edit')}
           >
             <Tooltip
               disabled={!noPermission}
@@ -195,10 +195,10 @@ export function Rule({
             onAction={onDeleteRule}
             message={t('Are you sure you wish to delete this rule?')}
             icon={<IconDownload size="xs" />}
-            title={t('Delete')}
             disabled={!canDelete}
             priority="danger"
             shouldConfirm
+            aria-label={t('Delete')}
           >
             <Tooltip
               disabled={canDelete}
