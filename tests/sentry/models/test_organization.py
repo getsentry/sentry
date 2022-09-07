@@ -193,7 +193,6 @@ class OrganizationTest(TestCase):
     def test_default_owner_id_cached(self, mock_get_owners):
         user = self.create_user("foo@example.com")
         org = self.create_organization(owner=user)
-        # mock_get_owners.return_value = [user]
         assert org.default_owner_id == user.id
         assert mock_get_owners.call_count == 1
         assert org.default_owner_id == user.id
