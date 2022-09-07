@@ -1979,10 +1979,10 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             kwargs["data"]["last_received"] = job["received_timestamp"]
 
             performance_problems = job["performance_problems"]
-            all_group_hashes = [
-                md5(problem.fingerprint.encode("utf-8")).hexdigest()
-                for problem in performance_problems
-            ]
+            for problem in performance_problems:
+                problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
+
+            all_group_hashes = [problem.fingerprint for problem in performance_problems]
             group_hashes = all_group_hashes[:MAX_GROUPS]
 
             existing_grouphashes = GroupHash.objects.filter(
@@ -2021,7 +2021,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                             ),
                             None,
                         )
-                        kwargs["type"] = group_type
+                        kwargs["type"] = group_type.value
 
                         group = _create_group(project, event, **kwargs)
                         GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
