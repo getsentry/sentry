@@ -66,7 +66,6 @@ function EventTagsAndScreenshots({
             <TagsHighlight event={event} />
           </TagsHighlightWrapper>
         )}
-        {hasEventContext && showTags && <HorizontalDivider />}
         {showTags && (
           <Tags
             organization={organization}
@@ -133,13 +132,7 @@ const TagsHighlightWrapper = styled('div')`
   overflow: hidden;
   padding: 0 ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 0 ${space(4)};
   }
-`;
-
-const HorizontalDivider = styled('div')`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.innerBorder};
 `;
