@@ -869,7 +869,6 @@ def has_valid_aggregates(interval, project__report):
     acks_late=True,
 )
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
-    set_tag("report.dry_run", dry_run)
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
@@ -929,6 +928,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     if not dry_run:
         message.send()
+        set_tag("email_sent", True)
 
 
 # Series: An array of (timestamp, value) tuples
