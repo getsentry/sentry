@@ -53,6 +53,7 @@ import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metrics
 
 import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
+import {DiscoverQueryPageSource} from '../performance/utils';
 
 import {
   WidgetViewerContext,
@@ -832,6 +833,7 @@ class DashboardDetail extends Component<Props, State> {
                             projects={projects}
                             location={location}
                             router={router}
+                            source={DiscoverQueryPageSource.DISCOVER}
                             {...metricsDataSide}
                           />
                         )}

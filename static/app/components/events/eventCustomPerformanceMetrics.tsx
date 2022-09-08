@@ -19,13 +19,17 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
+
+export enum EventDetailPageSource {
+  PERFORMANCE = 'performance',
+  DISCOVER = 'discover',
+}
 
 type Props = {
   event: Event;
   location: Location;
   organization: Organization;
-  source?: DiscoverQueryPageSource;
+  source?: EventDetailPageSource;
 };
 
 function isNotMarkMeasurement(field: string) {
@@ -122,14 +126,14 @@ function EventCustomPerformanceMetric({
       version: 1,
     });
     switch (source) {
-      case DiscoverQueryPageSource.PERFORMANCE:
+      case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
           orgSlug: organization.slug,
           transaction: event.title,
           projectID: event.projectID,
           query: {query},
         });
-      case DiscoverQueryPageSource.DISCOVER:
+      case EventDetailPageSource.DISCOVER:
       default:
         return eventView.getResultsViewUrlTarget(organization.slug);
     }
