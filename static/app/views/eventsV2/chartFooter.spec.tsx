@@ -43,6 +43,8 @@ describe('EventsV2 > ChartFooter', function () {
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
         topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
       />,
       initialData.routerContext
     );
@@ -81,6 +83,8 @@ describe('EventsV2 > ChartFooter', function () {
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
         topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
       />,
       initialData.routerContext
     );
@@ -110,6 +114,8 @@ describe('EventsV2 > ChartFooter', function () {
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
         topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
       />
     );
 
@@ -136,6 +142,8 @@ describe('EventsV2 > ChartFooter', function () {
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
         topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
       />
     );
 

@@ -79,6 +79,7 @@ type ChartProps = {
   minutesThresholdToDisplaySeconds?: number;
   previousSeriesTransformer?: (series?: Series | null) => Series | null | undefined;
   previousTimeseriesData?: Series[] | null;
+  processedBaselineTimeseriesData?: Series[] | null;
   referrer?: string;
   releaseSeries?: Series[];
   /**
@@ -120,6 +121,10 @@ class Chart extends React.Component<ChartProps, State> {
       isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
       isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
       isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData) &&
+      isEqual(
+        this.props.processedBaselineTimeseriesData,
+        nextProps.processedBaselineTimeseriesData
+      ) &&
       isEqual(this.props.tableData, nextProps.tableData)
     ) {
       return false;
