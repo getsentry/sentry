@@ -8,11 +8,8 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
   [IssueCategory.ERROR]: {
     delete: {enabled: true},
     deleteAndDiscard: {enabled: true},
-    ignore: {enabled: true},
-    ignoreFor: {enabled: true},
-    ignoreUntilReoccur: {enabled: true},
-    ignoreUntilAffect: {enabled: true},
     merge: {enabled: true},
+    ignore: {enabled: true},
   },
   [IssueCategory.PERFORMANCE]: {
     delete: {
@@ -23,24 +20,15 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
       enabled: false,
       disabledReason: t('Deleting is not yet supported for performance issues'),
     },
-    ignore: {enabled: true},
-    ignoreFor: {
-      enabled: false,
-      disabledReason: t(
-        'Ignoring for a certain time period is not yet supported for performance issues'
-      ),
-    },
-    ignoreUntilReoccur: {enabled: true},
-    ignoreUntilAffect: {
-      enabled: false,
-      disabledReason: t(
-        'Ignoring until the issue affects an additional number of users is not yet supported for performance issues'
-      ),
-    },
-
     merge: {
       enabled: false,
       disabledReason: t('Merging is not yet supported for performance issues'),
+    },
+    // NOTE: The enabled flag is not being used by the ignore dropdown, since only specific suboptions are disabled.
+    // I am leaving the disabledReason here so it can be used in tooltips for each disabled dropdown option
+    ignore: {
+      enabled: false,
+      disabledReason: t('This ignore option is not yet supported for performance issues'),
     },
   },
 };

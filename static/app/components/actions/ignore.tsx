@@ -19,7 +19,6 @@ import {
   ResolutionStatusDetails,
   SelectValue,
 } from 'sentry/types';
-import {issueSupports} from 'sentry/utils/groupCapabilities';
 
 const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
@@ -276,36 +275,23 @@ const IgnoreActions = ({
               {
                 key: `until-affect-${count}-users-from-now`,
                 label: t('from now'),
-                disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect')
-                  .enabled,
-                onAction: () =>
-                  issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-                    ? onIgnore({ignoreUserCount: count})
-                    : null,
+                onAction: () => onIgnore({ignoreUserCount: count}),
               },
               ...IGNORE_WINDOWS.map(({value, label}) => ({
                 key: `until-affect-${count}-users-from-${label}`,
                 label,
-                disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect')
-                  .enabled,
                 onAction: () =>
-                  issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-                    ? onIgnore({
-                        ignoreUserCount: count,
-                        ignoreUserWindow: value,
-                      })
-                    : null,
+                  onIgnore({
+                    ignoreUserCount: count,
+                    ignoreUserWindow: value,
+                  }),
               })),
             ],
           })),
           {
             key: 'until-affect-custom',
             label: t('Custom'),
-            disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
-            onAction: () =>
-              issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-                ? openCustomIgnoreUserCount(false)
-                : null,
+            onAction: () => openCustomIgnoreUserCount(false),
           },
         ],
       },

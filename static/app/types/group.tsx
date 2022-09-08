@@ -78,9 +78,6 @@ export type IssueCategoryCapabilities = {
    * Can the issue be ignored (and the dropdown options)
    */
   ignore: CapabilityInfo;
-  ignoreFor: CapabilityInfo;
-  ignoreUntilAffect: CapabilityInfo;
-  ignoreUntilReoccur: CapabilityInfo;
   /**
    * Can the issue be merged
    */
