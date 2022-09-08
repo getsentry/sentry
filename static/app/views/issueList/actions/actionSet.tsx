@@ -18,7 +18,7 @@ import {
   Project,
   ResolutionStatus,
 } from 'sentry/types';
-import {issueSupports} from 'sentry/utils/groupCapabilities';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -286,7 +286,7 @@ function isActionSupported(
   capability: keyof IssueCategoryCapabilities
 ) {
   for (const issue of selectedIssues) {
-    const info = issueSupports(issue.issueCategory, capability);
+    const info = getIssueCapability(issue.issueCategory, capability);
 
     if (!info.enabled) {
       return info;
