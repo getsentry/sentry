@@ -279,8 +279,9 @@ class GroupHeader extends Component<Props, State> {
 
   render() {
     const {project, group, baseUrl, event, organization, location} = this.props;
+    const {memberList} = this.state;
 
-    const userCount = group.userCount;
+    const {userCount} = group;
 
     let className = 'group-detail';
 
@@ -292,7 +293,6 @@ class GroupHeader extends Component<Props, State> {
       className += ' isResolved';
     }
 
-    const {memberList} = this.state;
     const message = getMessage(group);
 
     const searchTermWithoutQuery = omit(location.query, 'query');
