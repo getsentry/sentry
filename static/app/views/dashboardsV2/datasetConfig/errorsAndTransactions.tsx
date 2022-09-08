@@ -49,6 +49,10 @@ import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
 import {
@@ -462,6 +466,26 @@ export function getCustomEventsFieldRenderer(
     return renderTraceAsLinkable;
   }
 
+  // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
+  if (['title', 'transaction'].includes(field)) {
+    return (data, baggage) => {
+      if (data[field] === UNPARAMETERIZED_TRANSACTION) {
+        return (
+          <Container>
+            <Link
+              to={createUnnamedTransactionsDiscoverTarget({
+                location: baggage.location,
+                organization: baggage.organization,
+              })}
+            >
+              {data[field]}
+            </Link>
+          </Container>
+        );
+      }
+      return getFieldRenderer(field, meta, isAlias)(data, baggage);
+    };
+  }
   return getFieldRenderer(field, meta, isAlias);
 }
 

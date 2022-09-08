@@ -70,4 +70,33 @@ describe('getCustomFieldRenderer', function () {
       },
     });
   });
+
+  it('links << unparameterized >> title/transaction columns to event details', async function () {
+    const project = TestStubs.Project();
+    const customFieldRenderer = getCustomEventsFieldRenderer('title', {});
+    render(
+      customFieldRenderer(
+        {title: '<< unparameterized >>'},
+        {
+          organization,
+          location: router.location,
+          eventView: new EventView({
+            fields: [{field: 'id'}],
+            project: [project.id],
+          }),
+        }
+      ),
+      {context: routerContext}
+    );
+
+    userEvent.click(await screen.findByText('<< unparameterized >>'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: `/organizations/org-slug/discover/results/`,
+        query: expect.objectContaining({
+          query: 'event.type:transaction transaction.source:"url"',
+        }),
+      })
+    );
+  });
 });
