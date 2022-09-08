@@ -10,13 +10,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {
-  Group,
-  IssueCategory,
-  Organization,
-  Project,
-  ResolutionStatus,
-} from 'sentry/types';
+import {IssueCategory, Organization, Project, ResolutionStatus} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -83,15 +77,12 @@ function ActionSet({
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
 
-  // If a Performance Issue is selected, some of the ignore dropdown options must be disabled.
-  // This is quite hacky; we're checking if one of the selected issues is a Performance Issue, and create a corresponding Group object
-  // We then pass this group to IgnoreActions, and IgnoreActions only
-  // needs to check the IssueCategory of the group
-  const fakeGroup: Group = selectedIssues.some(
+  // If at least one Performance Issue is selected, some of the ignore dropdown options must be disabled.
+  const issueCategory: IssueCategory = selectedIssues.some(
     issue => issue?.issueCategory === IssueCategory.PERFORMANCE
   )
-    ? ({issueCategory: IssueCategory.PERFORMANCE} as Group)
-    : ({issueCategory: IssueCategory.ERROR} as Group);
+    ? IssueCategory.PERFORMANCE
+    : IssueCategory.ERROR;
 
   const menuItems: MenuItemProps[] = [
     {
@@ -224,7 +215,7 @@ function ActionSet({
         confirmMessage={confirm(ConfirmAction.IGNORE, true)}
         confirmLabel={label('ignore')}
         disabled={!anySelected}
-        group={fakeGroup}
+        issueCategory={issueCategory}
       />
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />

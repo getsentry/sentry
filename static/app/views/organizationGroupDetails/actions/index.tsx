@@ -375,7 +375,7 @@ class Actions extends Component<Props, State> {
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
-            group={group}
+            issueCategory={group.issueCategory}
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}
             disabled={disabled}

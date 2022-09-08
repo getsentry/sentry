@@ -12,7 +12,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
-  Group,
   GroupStatusResolution,
   IssueCategory,
   ResolutionStatus,
@@ -29,7 +28,7 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
 ];
 
 type Props = {
-  group: Group;
+  issueCategory: IssueCategory;
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
@@ -39,7 +38,7 @@ type Props = {
 };
 
 const IgnoreActions = ({
-  group,
+  issueCategory,
   onUpdate,
   disabled,
   shouldConfirm,
@@ -119,7 +118,7 @@ const IgnoreActions = ({
   // TODO: This function is only here since some of the dropdown options do not currently work for Performance issues.
   // In the future, all options will be enabled and so we can revert this to what it was before (a single constant array of dropdown items)
   const getDropdownItems = () => {
-    if (group.issueCategory === IssueCategory.PERFORMANCE) {
+    if (issueCategory === IssueCategory.PERFORMANCE) {
       return [
         {
           key: 'for',

@@ -14,11 +14,11 @@ describe('IgnoreActions', function () {
     jest.resetAllMocks();
   });
 
-  const GROUP_STUB = {issueCategory: IssueCategory.ERROR};
-
   describe('disabled', function () {
     it('does not call onUpdate when clicked', function () {
-      render(<IgnoreActions group={GROUP_STUB} onUpdate={spy} disabled />);
+      render(
+        <IgnoreActions issueCategory={IssueCategory.ERROR} onUpdate={spy} disabled />
+      );
       const button = screen.getByRole('button', {name: 'Ignore'});
       expect(button).toBeDisabled();
       userEvent.click(button);
@@ -28,7 +28,9 @@ describe('IgnoreActions', function () {
 
   describe('ignored', function () {
     it('displays ignored view', function () {
-      render(<IgnoreActions group={GROUP_STUB} onUpdate={spy} isIgnored />);
+      render(
+        <IgnoreActions issueCategory={IssueCategory.ERROR} onUpdate={spy} isIgnored />
+      );
       const button = screen.getByRole('button', {name: 'Unignore'});
       expect(button).toBeInTheDocument();
       // Shows icon only
@@ -41,7 +43,7 @@ describe('IgnoreActions', function () {
 
   describe('without confirmation', function () {
     it('calls spy with ignore details when clicked', function () {
-      render(<IgnoreActions group={GROUP_STUB} onUpdate={spy} />);
+      render(<IgnoreActions issueCategory={IssueCategory.ERROR} onUpdate={spy} />);
       const button = screen.getByRole('button', {name: 'Ignore'});
       userEvent.click(button);
       expect(spy).toHaveBeenCalledTimes(1);
@@ -53,7 +55,7 @@ describe('IgnoreActions', function () {
     it('displays confirmation modal with message provided', function () {
       render(
         <IgnoreActions
-          group={GROUP_STUB}
+          issueCategory={IssueCategory.ERROR}
           onUpdate={spy}
           shouldConfirm
           confirmMessage="confirm me"
