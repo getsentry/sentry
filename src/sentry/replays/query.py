@@ -24,6 +24,7 @@ from sentry.replays.lib.query import (
     Number,
     QueryConfig,
     String,
+    Tag,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -267,30 +268,6 @@ def _grouped_unique_scalar_value(
 
 replay_url_parser_config = SearchConfig(
     numeric_keys={"duration", "countErrors", "countSegments"},
-    allowed_keys={
-        "id",
-        "projectId",
-        "platform",
-        "release",
-        "dist",
-        "duration",
-        "countErrors",
-        "countSegments",
-        "user.id",
-        "user.email",
-        "user.name",
-        "user.ipAddress",
-        "sdk.name",
-        "sdk.version",
-        "os.name",
-        "os.version",
-        "browser.name",
-        "browser.version",
-        "device.name",
-        "device.brand",
-        "device.model",
-        "device.family",
-    },
 )
 
 
@@ -320,6 +297,9 @@ class ReplayQueryConfig(QueryConfig):
     device_model = String(field_alias="device.model")
     sdk_name = String(field_alias="sdk.name")
     sdk_version = String(field_alias="sdk.version")
+
+    # Tag
+    tags = Tag(field_alias="*")
 
     # Sort keys
     started_at = String(name="startedAt", is_filterable=False)
@@ -362,40 +342,4 @@ def _strip_uuid_dashes(
         "replaceAll",
         parameters=[Function("toString", parameters=[input_value]), "-", ""],
         alias=alias or input_name if aliased else None,
-    )
-
-
-# Tag Filtering Behavior
-
-
-def filter_tag_by_value(key: str, value: str) -> Condition:
-    """Helper function that allows filtering a tag by a value."""
-    return Condition(Function("has", parameters=[_all_values_for_tag_key(key), value]), Op.EQ, 1)
-
-
-def filter_tag_by_values(key: str, values: List[str]) -> Condition:
-    """Helper function that allows filtering a tag by multiple values."""
-    return Condition(Function("haAny", parameters=[_all_values_for_tag_key(key), values]), Op.EQ, 1)
-
-
-def _all_values_for_tag_key(key: str) -> Function:
-    Function(
-        "arrayFilter",
-        parameters=["(i, x) -> i = 1", _bitmask_on_tag_key(key), Column("tv")],
-    )
-
-
-def _bitmask_on_tag_key(key: str) -> Function:
-    """Create a bit mask.
-
-    Returns an array where the integer 1 represents a match.
-        e.g.: [0, 0, 1, 0, 1, 0]
-    """
-    return Function(
-        "arrayMap",
-        parameters=[
-            f"(i, x) -> x = '{key}'",
-            Function("arrayEnumerate", Column("tk")),
-            Column("tk"),
-        ],
     )
