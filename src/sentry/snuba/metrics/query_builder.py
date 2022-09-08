@@ -11,7 +11,19 @@ __all__ = (
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Or, Query
+from snuba_sdk import (
+    AliasedExpression,
+    Column,
+    Condition,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    Offset,
+    Op,
+    Or,
+    Query,
+)
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -41,7 +53,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
     parse_expression,
 )
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
-from sentry.snuba.metrics.query import MetricField, MetricsQuery
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
@@ -220,7 +232,9 @@ class QueryDefinition:
 
         self.query = query_params.get("query", "")
         self.parsed_query = parse_query(self.query, projects) if self.query else None
-        self.groupby = query_params.getlist("groupBy", [])
+        self.groupby = [
+            MetricGroupByField(groupby_col) for groupby_col in query_params.getlist("groupBy", [])
+        ]
         self.fields = [parse_field(key) for key in query_params.getlist("field", [])]
         self.orderby = self._parse_orderby(query_params)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
@@ -330,8 +344,7 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
     query_metric_fields: Set[str],
-    use_case_id: UseCaseKey,
-    org_id: int,
+    groupby_aliases: Set[str],
 ) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
@@ -346,7 +359,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name.startswith(("tags[", "tags_raw["))
+        is_tag = column_name in groupby_aliases
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 
@@ -379,7 +392,6 @@ def translate_meta_results(
                 continue
         else:
             if is_tag:
-                record["name"] = parse_tag(use_case_id, org_id, record["name"])
                 # since we changed value from int to str we need
                 # also want to change type
                 record["type"] = "string"
@@ -426,16 +438,38 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self) -> List[Column]:
         groupby_cols = []
-        for field in self._metrics_query.groupby or []:
+
+        def generate_aliased_expression(column: Column, alias: str) -> AliasedExpression:
+            return AliasedExpression(exp=column, alias=alias)
+
+        for metric_groupby_obj in self._metrics_query.groupby or []:
             # Handles the case when we are trying to group by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands
-            if field in FIELD_ALIAS_MAPPINGS:
-                groupby_cols.append(Column(FIELD_ALIAS_MAPPINGS[field]))
-            elif field in FIELD_ALIAS_MAPPINGS.values():
-                groupby_cols.append(Column(field))
+            if metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS:
+                groupby_cols.append(
+                    generate_aliased_expression(
+                        Column(FIELD_ALIAS_MAPPINGS[metric_groupby_obj.name]),
+                        metric_groupby_obj.alias,
+                    )
+                )
+            elif metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS.values():
+                groupby_cols.append(
+                    generate_aliased_expression(
+                        column=Column(metric_groupby_obj.name), alias=metric_groupby_obj.alias
+                    )
+                )
             else:
-                assert isinstance(field, Tag)
-                groupby_cols.append(Column(resolve_tag_key(self._use_case_id, self._org_id, field)))
+                assert isinstance(metric_groupby_obj.name, Tag)
+                groupby_cols.append(
+                    generate_aliased_expression(
+                        column=Column(
+                            resolve_tag_key(
+                                self._use_case_id, self._org_id, metric_groupby_obj.name
+                            )
+                        ),
+                        alias=metric_groupby_obj.alias,
+                    )
+                )
         return groupby_cols
 
     def _build_orderby(self) -> Optional[List[OrderBy]]:
@@ -662,11 +696,12 @@ class SnubaResultConverter:
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
     def _extract_data(self, data, groups):
-        tags = tuple(
-            (key, data[key])
-            for key in sorted(data.keys())
-            if (key.startswith(("tags[", "tags_raw[")) or key in FIELD_ALIAS_MAPPINGS.values())
+        group_key_aliases = (
+            {metric_groupby_obj.alias for metric_groupby_obj in self._metrics_query.groupby}
+            if self._metrics_query.groupby
+            else set()
         )
+        tags = tuple((key, data[key]) for key in sorted(data.keys()) if key in group_key_aliases)
 
         tag_data = groups.setdefault(tags, {})
         if self._metrics_query.include_series:
@@ -724,16 +759,26 @@ class SnubaResultConverter:
                     for data in subresults[k]["data"]:
                         self._extract_data(data, groups)
 
+        group_by_alias_to_group_by_column = (
+            {
+                metric_groupby_obj.alias: metric_groupby_obj.name
+                for metric_groupby_obj in self._metrics_query.groupby
+            }
+            if self._metrics_query.groupby
+            else {}
+        )
+
         groups = [
             dict(
                 by=dict(
                     (
-                        parse_tag(self._use_case_id, self._organization_id, key),
+                        key,
                         reverse_resolve_tag_value(
                             self._use_case_id, self._organization_id, value, weak=True
                         ),
                     )
-                    if key not in FIELD_ALIAS_MAPPINGS.values()
+                    if group_by_alias_to_group_by_column.get(key)
+                    not in set(FIELD_ALIAS_MAPPINGS.values()) | set(FIELD_ALIAS_MAPPINGS.keys())
                     else (key, value)
                     for key, value in tags
                 ),
