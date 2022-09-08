@@ -425,23 +425,23 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 200
         expected_output = {
             prj_foo.id: {
-                "by": {"project_id": prj_foo.id},
+                "by": {"project": prj_foo.id},
                 "series": {"sum(sentry.sessions.session)": [3.0]},
                 "totals": {"sum(sentry.sessions.session)": 3.0},
             },
             self.project.id: {
-                "by": {"project_id": self.project.id},
+                "by": {"project": self.project.id},
                 "series": {"sum(sentry.sessions.session)": [2.0]},
                 "totals": {"sum(sentry.sessions.session)": 2.0},
             },
             prj_boo.id: {
-                "by": {"project_id": prj_boo.id},
+                "by": {"project": prj_boo.id},
                 "series": {"sum(sentry.sessions.session)": [5.0]},
                 "totals": {"sum(sentry.sessions.session)": 5.0},
             },
         }
         for grp in response.data["groups"]:
-            prj_id = grp["by"]["project_id"]
+            prj_id = grp["by"]["project"]
             assert grp == expected_output[prj_id]
 
     def test_pagination_limit_without_orderby(self):

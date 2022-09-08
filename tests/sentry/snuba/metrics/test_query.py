@@ -11,6 +11,7 @@ from sentry.snuba.metrics import (
     DerivedMetricParseException,
     Groupable,
     MetricField,
+    MetricGroupByField,
     MetricsQuery,
     OrderBy,
     parse_query,
@@ -33,7 +34,7 @@ class MetricsQueryBuilder:
         self.granularity: Granularity = Granularity(3600)
         self.orderby: Optional[ConditionGroup] = None
         self.where: Optional[Sequence[Groupable]] = None
-        self.groupby: Optional[Sequence[OrderBy]] = None
+        self.groupby: Optional[Sequence[MetricGroupByField]] = None
         self.limit: Optional[Limit] = None
         self.offset: Optional[Offset] = None
         self.histogram_buckets: int = 100
@@ -80,7 +81,7 @@ class MetricsQueryBuilder:
         self.limit = limit
         return self
 
-    def with_groupby(self, groupby: Sequence[Groupable]) -> "MetricsQueryBuilder":
+    def with_groupby(self, groupby: Sequence[MetricGroupByField]) -> "MetricsQueryBuilder":
         self.groupby = groupby
         return self
 
@@ -407,7 +408,9 @@ def test_validate_groupby():
         InvalidParams, match="Tag name session.status cannot be used to groupBy query"
     ):
         MetricsQuery(
-            **MetricsQueryBuilder().with_groupby(["session.status"]).to_metrics_query_dict()
+            **MetricsQueryBuilder()
+            .with_groupby([MetricGroupByField("session.status")])
+            .to_metrics_query_dict()
         )
 
 

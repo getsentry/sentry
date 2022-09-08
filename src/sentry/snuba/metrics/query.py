@@ -45,6 +45,16 @@ class MetricField:
         return f"{self.op}({self.metric_name})" if self.op else self.metric_name
 
 
+@dataclass(frozen=True)
+class MetricGroupByField:
+    name: str
+    alias: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.alias:
+            object.__setattr__(self, "alias", self.name)
+
+
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
 
@@ -82,7 +92,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     end: datetime
     granularity: Granularity
     where: Optional[ConditionGroup] = None  # TODO: Should restrict
-    groupby: Optional[Sequence[Groupable]] = None
+    groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[OrderBy]] = None
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
@@ -210,9 +220,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_groupby(self) -> None:
         if not self.groupby:
             return
-        for field in self.groupby:
-            if field in UNALLOWED_TAGS:
-                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
+        for metric_groupby_obj in self.groupby:
+            if metric_groupby_obj.name in UNALLOWED_TAGS:
+                raise InvalidParams(
+                    f"Tag name {metric_groupby_obj.name} cannot be used to groupBy query"
+                )
 
     def validate_histogram_buckets(self) -> None:
         # Validate histogram bucket count
