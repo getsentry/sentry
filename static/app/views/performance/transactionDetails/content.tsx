@@ -5,9 +5,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
-import EventCustomPerformanceMetrics, {
-  EventDetailPageSource,
-} from 'sentry/components/events/eventCustomPerformanceMetrics';
+import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -34,7 +32,7 @@ import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
-import {getSelectedProjectPlatforms} from '../utils';
+import {DiscoverQueryPageSource, getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
@@ -257,7 +255,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           event={event}
                           location={location}
                           organization={organization}
-                          source={EventDetailPageSource.PERFORMANCE}
+                          source={DiscoverQueryPageSource.PERFORMANCE}
                         />
                       )}
                       <TagsTable

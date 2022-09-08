@@ -51,6 +51,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
+  DiscoverQueryPageSource,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
@@ -476,6 +477,7 @@ export function getCustomEventsFieldRenderer(
               to={createUnnamedTransactionsDiscoverTarget({
                 location: baggage.location,
                 organization: baggage.organization,
+                source: DiscoverQueryPageSource.DISCOVER,
               })}
             >
               {data[field]}
