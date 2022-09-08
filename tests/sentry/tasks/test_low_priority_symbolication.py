@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Generator
+from typing import TYPE_CHECKING, Generator
 from unittest import mock
 
 import pytest
@@ -23,13 +25,8 @@ from sentry.tasks.low_priority_symbolication import (
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils.services import LazyServiceWrapper
 
-if TYPE_CHECKING:
-    from typing import Callable
-
-    def _fixture(func: Callable[..., Any]) -> Callable[..., None]:
-        ...
-
-    pytest.fixture = _fixture
+if TYPE_CHECKING:  # TODO: pytest 7.x
+    from _pytest.monkeypatch import MonkeyPatch
 
 
 @pytest.fixture
@@ -56,9 +53,9 @@ def store() -> Generator[RealtimeMetricsStore, None, None]:
 
 
 class TestScanForSuspectProjects:
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def mock_update_lpq_eligibility(
-        self, monkeypatch: "pytest.MonkeyPatch"
+        self, monkeypatch: MonkeyPatch
     ) -> Generator[mock.Mock, None, None]:
         mock_fn = mock.Mock()
         monkeypatch.setattr(low_priority_symbolication, "update_lpq_eligibility", mock_fn)
@@ -113,7 +110,7 @@ class TestUpdateLpqEligibility:
 
     @freeze_time(datetime.fromtimestamp(0))
     def test_is_eligible_not_lpq(
-        self, store: RealtimeMetricsStore, monkeypatch: "pytest.MonkeyPatch"
+        self, store: RealtimeMetricsStore, monkeypatch: MonkeyPatch
     ) -> None:
         store.increment_project_event_counter(project_id=17, timestamp=0)
         assert store.get_lpq_projects() == set()
@@ -127,7 +124,7 @@ class TestUpdateLpqEligibility:
 
     @freeze_time(datetime.fromtimestamp(0))
     def test_is_eligible_in_lpq(
-        self, store: RealtimeMetricsStore, monkeypatch: "pytest.MonkeyPatch"
+        self, store: RealtimeMetricsStore, monkeypatch: MonkeyPatch
     ) -> None:
         store.add_project_to_lpq(17)
         monkeypatch.setattr(
@@ -149,7 +146,7 @@ class TestUpdateLpqEligibility:
 
     @freeze_time(datetime.fromtimestamp(0))
     def test_is_eligible_recently_moved(
-        self, store: RedisRealtimeMetricsStore, monkeypatch: "pytest.MonkeyPatch"
+        self, store: RedisRealtimeMetricsStore, monkeypatch: MonkeyPatch
     ) -> None:
         store._backoff_timer = 10
         # Abusing the fact that removing always updates the backoff timer even if it's a noop

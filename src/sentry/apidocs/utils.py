@@ -46,7 +46,7 @@ def inline_sentry_response_serializer(name: str, t: type) -> type:
     return serializer_class
 
 
-class SentryApiBuildError(UnableToProceedError):  # type: ignore
+class SentryApiBuildError(UnableToProceedError):
     def __init__(self, msg: str = "", *args: Any, **kwargs: Any) -> None:
         super().__init__(
             msg

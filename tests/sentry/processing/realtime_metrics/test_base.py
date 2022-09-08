@@ -4,7 +4,7 @@ from sentry.processing.realtime_metrics import base
 
 
 class TestBucketedCounts:
-    @pytest.fixture  # type: ignore
+    @pytest.fixture
     def buckets(self) -> base.BucketedCounts:
         return base.BucketedCounts(timestamp=123, width=10, counts=[1, 2, 3])
 
@@ -65,7 +65,7 @@ class TestDurationsHistogram:
 
         assert hist.total_count() == 3
 
-    @pytest.mark.parametrize("percentile, result", [(0.70, 7), (0.75, 7), (0.80, 8)])  # type: ignore
+    @pytest.mark.parametrize("percentile, result", [(0.70, 7), (0.75, 7), (0.80, 8)])
     def test_percentile(self, percentile: float, result: int) -> None:
         hist = base.DurationsHistogram(bucket_size=1)
         for i in range(1, 10):
