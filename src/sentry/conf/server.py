@@ -2408,6 +2408,10 @@ KAFKA_EVENTS = "events"
 # changes to support different topic, switch this to "transactions" to start
 # producing to the new topic.
 KAFKA_TRANSACTIONS = "events"
+# TODO: KAFKA_NEW_TRANSACTIONS only exists in order to facilitate the errors/transactions
+# split. It is only supposed to exist briefly so we can map transactions of a subset of
+# projects to the new topic first before migrating them all over.
+KAFKA_NEW_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2446,6 +2450,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_NEW_TRANSACTIONS: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
