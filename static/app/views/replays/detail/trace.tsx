@@ -48,6 +48,7 @@ type State = {
 interface Props {
   organization: Organization;
   replayRecord: ReplayRecord;
+  className?: any | string;
 }
 
 const INITIAL_STATE = Object.freeze({
@@ -58,7 +59,7 @@ const INITIAL_STATE = Object.freeze({
   traces: null,
 });
 
-export default function Trace({replayRecord, organization}: Props) {
+export default function Trace({replayRecord, organization, className}: Props) {
   const [state, setState] = useState<State>(INITIAL_STATE);
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
@@ -161,6 +162,7 @@ export default function Trace({replayRecord, organization}: Props) {
 
   return (
     <TraceView
+      className={className}
       meta={null}
       traces={state.traces}
       location={location}

@@ -46,6 +46,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceEventView: EventView;
   traceSlug: string;
   traces: TraceFullDetailed[] | null;
+  className?: string;
   filteredTransactionIds?: Set<string>;
   traceInfo?: TraceInfo;
 };
@@ -91,6 +92,7 @@ export default function TraceView({
   traceSlug,
   traceEventView,
   filteredTransactionIds,
+  className,
   ...props
 }: Props) {
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
@@ -251,7 +253,7 @@ export default function TraceView({
   );
 
   const traceView = (
-    <TraceDetailBody>
+    <TraceDetailBody className={className}>
       <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
         <DividerHandlerManager.Consumer>
           {({dividerPosition}) => (
