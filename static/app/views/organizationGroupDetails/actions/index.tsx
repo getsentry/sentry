@@ -42,7 +42,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
-import {issueSupports} from 'sentry/utils/groupCapabilities';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -322,12 +322,7 @@ class Actions extends Component<Props, State> {
     );
   };
 
-  openDeleteModal = () => {
-    const {group} = this.props;
-    if (!issueSupports(group.issueCategory, 'delete')) {
-      return;
-    }
-
+  openDeleteModal = () =>
     openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
       <Fragment>
         <Body>
@@ -345,13 +340,9 @@ class Actions extends Component<Props, State> {
         </Footer>
       </Fragment>
     ));
-  };
 
   openDiscardModal = () => {
-    const {group, organization} = this.props;
-    if (!issueSupports(group.issueCategory, 'deleteAndDiscard')) {
-      return;
-    }
+    const {organization} = this.props;
 
     openModal(this.renderDiscardModal);
     analytics('feature.discard_group.modal_opened', {
@@ -384,6 +375,9 @@ class Actions extends Component<Props, State> {
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
 
+    const deleteCap = getIssueCapability(group.issueCategory, 'delete');
+    const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
+
     return (
       <Wrapper>
         <GuideAnchor target="resolve" position="bottom" offset={20}>
@@ -403,6 +397,7 @@ class Actions extends Component<Props, State> {
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
+            issueCategory={group.issueCategory}
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}
             disabled={disabled}
@@ -474,16 +469,20 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  disabled: !issueSupports(group.issueCategory, 'delete'),
-                  onAction: () => this.openDeleteModal(),
+                  disabled: !deleteCap.enabled,
+                  tooltip: deleteCap.disabledReason,
+                  onAction: deleteCap.enabled ? () => this.openDeleteModal() : undefined,
                 },
                 {
                   key: 'delete-and-discard',
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  disabled: !issueSupports(group.issueCategory, 'deleteAndDiscard'),
-                  onAction: () => this.openDiscardModal(),
+                  disabled: !deleteDiscardCap.enabled,
+                  tooltip: deleteDiscardCap.disabledReason,
+                  onAction: deleteDiscardCap.enabled
+                    ? () => this.openDiscardModal()
+                    : undefined,
                 },
               ]}
             />

@@ -217,7 +217,12 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
 
 
 class HashDiscarded(Exception):
-    pass
+    def __init__(
+        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
+    ):
+        super().__init__(message)
+        self.reason = reason
+        self.tombstone_id = tombstone_id
 
 
 class ScoreClause(Func):
@@ -487,7 +492,14 @@ class EventManager:
                     **kwargs,
                 )
                 job["groups"] = [group_info]
-        except HashDiscarded:
+        except HashDiscarded as err:
+            logger.info(
+                "event_manager.save.discard",
+                extra={
+                    "reason": err.reason,
+                    "tombstone_id": err.tombstone_id,
+                },
+            )
             discard_event(job, attachments)
             raise
 
@@ -1241,7 +1253,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
                 "platform": event.platform,
             },
         ):
-            raise HashDiscarded("Load shedding group creation")
+            raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"
@@ -1419,7 +1431,11 @@ def _find_existing_grouphash(
         # be able to tombstone `hierarchical_hashes[4]` while still having a
         # group attached to `hierarchical_hashes[0]`? Maybe.
         if group_hash.group_tombstone_id is not None:
-            raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
+            raise HashDiscarded(
+                "Matches group tombstone %s" % group_hash.group_tombstone_id,
+                reason="discard",
+                tombstone_id=group_hash.group_tombstone_id,
+            )
 
     return None, root_hierarchical_hash
 
@@ -1433,7 +1449,7 @@ def _create_group(project, event, **kwargs):
             tags={"platform": event.platform or "unknown"},
         )
         sentry_sdk.capture_message("short_id.timeout")
-        raise HashDiscarded("Timeout when getting next_short_id")
+        raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so

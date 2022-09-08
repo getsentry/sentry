@@ -30,7 +30,7 @@ def peek_header(token: str) -> JSONData:
 
     :param token: The JWT token to extract the headers from.
     """
-    return pyjwt.get_unverified_header(token.encode("UTF-8"))
+    return pyjwt.get_unverified_header(token.encode("UTF-8"))  # type: ignore[no-untyped-call]
 
 
 def peek_claims(token: str) -> JSONData:
@@ -105,7 +105,7 @@ def encode(
     if headers is None:
         headers = {}
     # This type is checked in the tests so this is fine.
-    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers)  # type: ignore
+    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers)
 
 
 def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, str]:
@@ -132,12 +132,12 @@ def rsa_key_from_jwk(jwk: str) -> str:
 
     :param jwk: The JSON Web Key as encoded JSON.
     """
-    key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
+    key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)  # type: ignore[no-untyped-call]
     if isinstance(key, RSAPrivateKey):
         # The return type is verified in our own tests, this is fine.
-        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")  # type: ignore
+        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")
     elif isinstance(key, RSAPublicKey):
         # The return type is verified in our own tests, this is fine.
-        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")  # type: ignore
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
     else:
         raise ValueError("Unknown RSA JWK key")
