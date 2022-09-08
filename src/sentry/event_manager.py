@@ -2041,7 +2041,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
                         problem = performance_problems_by_fingerprint[new_grouphash]
-                        group_kwargs = kwargs
+                        group_kwargs = kwargs.copy()
                         group_kwargs["type"] = problem.type.value
 
                         group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
@@ -2076,7 +2076,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     is_new = False
 
                     problem = performance_problems_by_fingerprint[existing_grouphash.hash]
-                    group_kwargs = kwargs
+                    group_kwargs = kwargs.copy()
                     group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                         group_kwargs["data"]["metadata"], problem
                     )
