@@ -331,7 +331,7 @@ default_manager.add(
         event_id=184,
         name="SAMPLING_RULE_ACTIVATE",
         api_name="sampling.activate",
-        template="activate server-side sampling rule",
+        template="activated server-side sampling rule",
     )
 )
 default_manager.add(
@@ -339,6 +339,6 @@ default_manager.add(
         event_id=185,
         name="SAMPLING_RULE_DEACTIVATE",
         api_name="sampling.deactivate",
-        template="deactivate server-side sampling rule",
+        template="deactivated server-side sampling rule",
     )
 )

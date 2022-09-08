@@ -596,7 +596,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     project.delete_option("sentry:store_crash_reports")
                 else:
                     project.update_option("sentry:store_crash_reports", result["storeCrashReports"])
-
         if result.get("relayPiiConfig") is not None:
             if project.update_option("sentry:relay_pii_config", result["relayPiiConfig"]):
                 changed_proj_settings["sentry:relay_pii_config"] = (
@@ -650,7 +649,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
-
             if project.update_option("sentry:dynamic_sampling", fixed_rules):
                 changed_proj_settings["sentry:dynamic_sampling"] = result["dynamicSampling"]
 
@@ -876,6 +874,32 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     def dynamic_sampling_audit_log(
         self, project, request, old_raw_dynamic_sampling, new_raw_dynamic_sampling
     ):
+        """
+        Compares the previous and next dynamic sampling object, triggering audit logs according to the changes and early returns.
+
+        We are currently verifying the following cases:
+
+        Creation
+            Triggered when the next dynamic sampling object contains more rules than the previous
+
+        Deletion
+            Triggered when the next dynamic sampling object contains less rules than the previous
+
+        Activation
+            We make a loop through the whole object, comparing next with previous rules.
+            If we detect that the rule is different from the another and that the next rule is positive, this is triggered
+
+        Deactivation
+            We make a loop through the whole object, comparing next with previous rules.
+            If we detect that the rule is different from the another and that the next rule is negative, this is triggered
+
+        Other Changes
+            Triggered when all other changes have been made to the next dynamic sampling object
+
+        :old_raw_dynamic_sampling: The dynamic sampling object before the changes
+        :new_raw_dynamic_sampling: The updated dynamic sampling object
+
+        """
         if old_raw_dynamic_sampling is None or new_raw_dynamic_sampling is None:
             return
 
