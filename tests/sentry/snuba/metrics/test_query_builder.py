@@ -7,6 +7,7 @@ import pytz
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import (
+    AliasedExpression,
     And,
     Column,
     Condition,
@@ -58,7 +59,7 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.metrics.query import MetricField
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -296,7 +297,7 @@ def test_build_snuba_query(mock_now, mock_now2):
         end=MOCK_NOW,
         granularity=Granularity(3600),
         where=[Condition(Column("release"), Op.EQ, "staging")],
-        groupby=["environment"],
+        groupby=[MetricGroupByField("environment")],
     )
     snuba_queries, _ = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
@@ -325,7 +326,12 @@ def test_build_snuba_query(mock_now, mock_now2):
                     alias=f"{alias}({metric_name})",
                 )
             ],
-            groupby=[Column(resolve_tag_key(use_case_id, org_id, "environment"))] + extra_groupby,
+            groupby=[
+                AliasedExpression(
+                    Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+                )
+            ]
+            + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
@@ -601,7 +607,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
@@ -626,7 +634,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
             Column("bucketed_time"),
         ],
         where=[
@@ -706,7 +716,9 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
@@ -732,7 +744,9 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
             Column("bucketed_time"),
         ],
         where=[
@@ -959,12 +973,12 @@ def test_get_intervals():
 def test_translate_meta_results():
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "metric_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE, 1
+        meta, {"p50(transaction.measurements.lcp)"}, {"transaction"}
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
@@ -980,13 +994,15 @@ def test_translate_meta_results_with_duplicates():
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "transaction", "type": "UInt64"},
+        {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH, 1
+        meta,
+        {"p50(transaction.measurements.lcp)"},
+        {"transaction"},
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
