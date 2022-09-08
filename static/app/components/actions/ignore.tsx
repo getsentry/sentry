@@ -14,6 +14,7 @@ import {t, tn} from 'sentry/locale';
 import {
   Group,
   GroupStatusResolution,
+  IssueCategory,
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
@@ -114,126 +115,198 @@ const IgnoreActions = ({
       />
     ));
 
-  const dropdownItems = [
-    {
-      key: 'for',
-      label: t('For\u2026'),
-      isSubmenu: true,
-      children: [
-        ...IGNORE_DURATIONS.map(duration => ({
-          key: `for-${duration}`,
-          label: <Duration seconds={duration * 60} />,
-          disabled: !issueSupports(group.issueCategory, 'ignoreFor').enabled,
-          onAction: () =>
-            issueSupports(group.issueCategory, 'ignoreFor').enabled
-              ? onIgnore({ignoreDuration: duration})
-              : null,
-        })),
+  const getDropdownItems = () => {
+    if (true) {
+      return [
         {
-          key: 'for-custom',
-          label: t('Custom'),
-          disabled: !issueSupports(group.issueCategory, 'ignoreFor').enabled,
-          onAction: () =>
-            issueSupports(group.issueCategory, 'ignoreFor').enabled
-              ? openCustomIgnoreDuration()
-              : null,
-        },
-      ],
-    },
-    {
-      key: 'until-reoccur',
-      label: t('Until this occurs again\u2026'),
-      isSubmenu: true,
-      children: [
-        ...IGNORE_COUNTS.map(count => ({
-          key: `until-reoccur-${count}-times`,
-          label:
-            count === 1
-              ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
-              : tn('%s time\u2026', '%s times\u2026', count),
-          isSubmenu: true,
-          disabled: !issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled,
-          children: [
-            {
-              key: `until-reoccur-${count}-times-from-now`,
-              label: t('from now'),
-              onAction: () =>
-                issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled
-                  ? onIgnore({ignoreCount: count})
-                  : null,
-            },
-            ...IGNORE_WINDOWS.map(({value, label}) => ({
-              key: `until-reoccur-${count}-times-from-${label}`,
-              label,
-              onAction: () =>
-                issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled
-                  ? onIgnore({
-                      ignoreCount: count,
-                      ignoreWindow: value,
-                    })
-                  : null,
-            })),
-          ],
-        })),
-        {
-          key: 'until-reoccur-custom',
-          label: t('Custom'),
-          disabled: !issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled,
-          onAction: () =>
-            issueSupports(group.issueCategory, 'ignoreUntilReoccur').enabled
-              ? openCustomIgnoreCount()
-              : null,
-        },
-      ],
-    },
-    {
-      key: 'until-affect',
-      label: t('Until this affects an additional\u2026'),
-      isSubmenu: true,
-      children: [
-        ...IGNORE_COUNTS.map(count => ({
-          key: `until-affect-${count}-users`,
-          label:
-            count === 1
-              ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
-              : tn('%s user\u2026', '%s users\u2026', count),
+          key: 'for',
+          label: t('For\u2026'),
           isSubmenu: true,
           children: [
-            {
-              key: `until-affect-${count}-users-from-now`,
-              label: t('from now'),
-              disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
-              onAction: () =>
-                issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-                  ? onIgnore({ignoreUserCount: count})
-                  : null,
-            },
-            ...IGNORE_WINDOWS.map(({value, label}) => ({
-              key: `until-affect-${count}-users-from-${label}`,
-              label,
-              disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
-              onAction: () =>
-                issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-                  ? onIgnore({
-                      ignoreUserCount: count,
-                      ignoreUserWindow: value,
-                    })
-                  : null,
+            ...IGNORE_DURATIONS.map(duration => ({
+              key: `for-${duration}`,
+              label: <Duration seconds={duration * 60} />,
+              onAction: () => onIgnore({ignoreDuration: duration}),
             })),
+            {
+              key: 'for-custom',
+              label: t('Custom'),
+              onAction: () => openCustomIgnoreDuration(),
+            },
           ],
-        })),
-        {
-          key: 'until-affect-custom',
-          label: t('Custom'),
-          disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
-          onAction: () =>
-            issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-              ? openCustomIgnoreUserCount()
-              : null,
         },
-      ],
-    },
-  ];
+        {
+          key: 'until-reoccur',
+          label: t('Until this occurs again\u2026'),
+          isSubmenu: true,
+          children: [
+            ...IGNORE_COUNTS.map(count => ({
+              key: `until-reoccur-${count}-times`,
+              label:
+                count === 1
+                  ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+                  : tn('%s time\u2026', '%s times\u2026', count),
+              isSubmenu: true,
+              children: [
+                {
+                  key: `until-reoccur-${count}-times-from-now`,
+                  label: t('from now'),
+                  onAction: () => onIgnore({ignoreCount: count}),
+                },
+                ...IGNORE_WINDOWS.map(({label}) => ({
+                  key: `until-reoccur-${count}-times-from-${label}`,
+                  label,
+                  disabled: true,
+                })),
+              ],
+            })),
+            {
+              key: 'until-reoccur-custom',
+              label: t('Custom'),
+              onAction: () => openCustomIgnoreCount(), // TODO: Disable time window in the modal
+            },
+          ],
+        },
+        {
+          key: 'until-affect',
+          label: t('Until this affects an additional\u2026'),
+          isSubmenu: true,
+          children: [
+            ...IGNORE_COUNTS.map(count => ({
+              key: `until-affect-${count}-users`,
+              label:
+                count === 1
+                  ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+                  : tn('%s user\u2026', '%s users\u2026', count),
+              isSubmenu: true,
+              children: [
+                {
+                  key: `until-affect-${count}-users-from-now`,
+                  label: t('from now'),
+                  onAction: () => onIgnore({ignoreUserCount: count}),
+                },
+                ...IGNORE_WINDOWS.map(({label}) => ({
+                  key: `until-affect-${count}-users-from-${label}`,
+                  label,
+                  disabled: true,
+                })),
+              ],
+            })),
+            {
+              key: 'until-affect-custom',
+              label: t('Custom'),
+              onAction: () => openCustomIgnoreUserCount(), // TODO: Edit modal to disable time window
+            },
+          ],
+        },
+      ];
+    }
+
+    return [
+      {
+        key: 'for',
+        label: t('For\u2026'),
+        isSubmenu: true,
+        children: [
+          ...IGNORE_DURATIONS.map(duration => ({
+            key: `for-${duration}`,
+            label: <Duration seconds={duration * 60} />,
+            onAction: () => onIgnore({ignoreDuration: duration}),
+          })),
+          {
+            key: 'for-custom',
+            label: t('Custom'),
+            onAction: () => openCustomIgnoreDuration(),
+          },
+        ],
+      },
+      {
+        key: 'until-reoccur',
+        label: t('Until this occurs again\u2026'),
+        isSubmenu: true,
+        children: [
+          ...IGNORE_COUNTS.map(count => ({
+            key: `until-reoccur-${count}-times`,
+            label:
+              count === 1
+                ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+                : tn('%s time\u2026', '%s times\u2026', count),
+            isSubmenu: true,
+            children: [
+              {
+                key: `until-reoccur-${count}-times-from-now`,
+                label: t('from now'),
+                onAction: () => onIgnore({ignoreCount: count}),
+              },
+              ...IGNORE_WINDOWS.map(({value, label}) => ({
+                key: `until-reoccur-${count}-times-from-${label}`,
+                label,
+                onAction: () =>
+                  onIgnore({
+                    ignoreCount: count,
+                    ignoreWindow: value,
+                  }),
+              })),
+            ],
+          })),
+          {
+            key: 'until-reoccur-custom',
+            label: t('Custom'),
+            onAction: () => openCustomIgnoreCount(),
+          },
+        ],
+      },
+      {
+        key: 'until-affect',
+        label: t('Until this affects an additional\u2026'),
+        isSubmenu: true,
+        children: [
+          ...IGNORE_COUNTS.map(count => ({
+            key: `until-affect-${count}-users`,
+            label:
+              count === 1
+                ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+                : tn('%s user\u2026', '%s users\u2026', count),
+            isSubmenu: true,
+            children: [
+              {
+                key: `until-affect-${count}-users-from-now`,
+                label: t('from now'),
+                disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect')
+                  .enabled,
+                onAction: () =>
+                  issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
+                    ? onIgnore({ignoreUserCount: count})
+                    : null,
+              },
+              ...IGNORE_WINDOWS.map(({value, label}) => ({
+                key: `until-affect-${count}-users-from-${label}`,
+                label,
+                disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect')
+                  .enabled,
+                onAction: () =>
+                  issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
+                    ? onIgnore({
+                        ignoreUserCount: count,
+                        ignoreUserWindow: value,
+                      })
+                    : null,
+              })),
+            ],
+          })),
+          {
+            key: 'until-affect-custom',
+            label: t('Custom'),
+            disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
+            onAction: () =>
+              issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
+                ? openCustomIgnoreUserCount()
+                : null,
+          },
+        ],
+      },
+    ];
+  };
 
   return (
     <ButtonBar merged>
@@ -262,7 +335,7 @@ const IgnoreActions = ({
           />
         )}
         menuTitle={t('Ignore')}
-        items={dropdownItems}
+        items={getDropdownItems()}
         isDisabled={disabled}
       />
     </ButtonBar>
