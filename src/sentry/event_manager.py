@@ -209,7 +209,7 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
 
 class HashDiscarded(Exception):
     def __init__(
-        self, message: str, reason: Optional[str] = None, tombstone_id: Optional[int] = None
+        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
     ):
         super().__init__(message)
         self.reason = reason
