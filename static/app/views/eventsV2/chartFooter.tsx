@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -12,6 +12,7 @@ import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 
 type Props = {
   displayMode: string;
@@ -20,6 +21,8 @@ type Props = {
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
   organization: Organization;
+  setShowBaseline: (value: boolean) => void;
+  showBaseline: boolean;
   topEvents: string;
   total: number | null;
   yAxisOptions: SelectValue<string>[];
@@ -36,8 +39,10 @@ export default function ChartFooter({
   onDisplayChange,
   onTopEventsChange,
   topEvents,
+  setShowBaseline,
+  showBaseline,
 }: Props) {
-  const [showBaseline, setShowBaseline] = useState(true);
+  const metricsCardinality = useMetricsCardinalityContext();
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
@@ -63,7 +68,7 @@ export default function ChartFooter({
           <SwitchLabel>{t('Processed baseline')}</SwitchLabel>
           <Switch
             isActive={showBaseline}
-            isDisabled={false}
+            isDisabled={metricsCardinality.outcome?.forceTransactionsOnly}
             size="lg"
             toggle={() => setShowBaseline(!showBaseline)}
           />
