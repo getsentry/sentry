@@ -1,7 +1,6 @@
 import hashlib
 import logging
 import random
-import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
@@ -21,8 +20,6 @@ from .performance_span_issue import PerformanceSpanProblem
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
-
-select_query_regex = re.compile("^select", re.I)
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 
@@ -753,16 +750,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         query = span.get("description", None)
         return query and not query.endswith("...")
 
-    def _contains_select_query(self, span: Span) -> bool:
-        # XXX: Should consider CTEs, etc.
-        query = span.get("description", None)
-        return query and select_query_regex.match(query)
-
     def _maybe_use_as_source(self, span: Span):
         if not self._contains_complete_query(span):
-            return
-
-        if not self._contains_select_query:
             return
 
         parent_span_id = span.get("parent_span_id", None)
@@ -773,9 +762,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def _continues_n_plus_1(self, span: Span):
         if not self._contains_complete_query(span):
-            return False
-
-        if not self._contains_select_query(span):
             return False
 
         if self._overlaps_last_span(span):
