@@ -27,9 +27,7 @@ def add_silo_decorators(
         predicate: Callable[[TargetClass], bool],
     ) -> None:
         filtered_targets = (
-            (c.module, c.name)
-            for c in classes
-            if c.category == category and not c.is_decorated and predicate(c)
+            (c.module, c.name) for c in classes if c.category == category and predicate(c)
         )
         apply_decorators(decorator_name, import_stmt, filtered_targets, path_name)
 
@@ -73,6 +71,12 @@ def add_silo_decorators(
         "from sentry.api.base import control_silo_endpoint",
         ClassCategory.ENDPOINT,
         control_endpoint_predicate,
+    )
+    execute(
+        "pending_silo_endpoint",
+        "from sentry.api.base import pending_silo_endpoint",
+        ClassCategory.ENDPOINT,
+        (lambda c: not (customer_endpoint_predicate(c) or control_endpoint_predicate(c))),
     )
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Iterable, Mapping, Sequence, Tuple
@@ -25,11 +26,30 @@ def apply_decorators(
                     yield os.path.join(dirpath, filename)
 
     def find_class_declarations():
+        """Find the target class declarations.
+
+        For each module-class pair in `target_names`, check the Python source file
+        corresponding to that module. If the named class is declared in that module,
+        yield it.
+        """
+        targets = defaultdict(set)
+        for (module_name, class_name) in target_names:
+            targets[class_name].add(module_name)
+
         for src_path in find_source_paths():
             with open(src_path) as f:
                 src_code = f.read()
-            for match in re.findall(r"\nclass\s+(\w+)\(", src_code):
-                yield src_path, match
+            for class_name in re.findall(r"\nclass\s+(\w+)\(", src_code):
+                for module_name in targets[class_name]:
+                    if is_module(src_path, module_name):
+                        yield src_path, class_name
+
+    def is_module(src_path: str, module_name: str) -> bool:
+        """Check whether a source file path is for the correct module."""
+        suffix = ".py"
+        return src_path.endswith(suffix) and (
+            src_path[: -len(suffix)].replace("/", ".").endswith(module_name)
+        )
 
     def insert_import(src_code: str) -> str:
         future_import = None
@@ -41,24 +61,40 @@ def apply_decorators(
         else:
             return import_stmt + "\n" + src_code
 
-    def is_module(src_path: str, module_name: str | None) -> bool:
-        if module_name is None:
-            return False
-        suffix = ".py"
-        return src_path.endswith(suffix) and (
-            src_path[: -len(suffix)].replace("/", ".").endswith(module_name)
+    for src_path, class_name in find_class_declarations():
+        with open(src_path) as f:
+            src_code = f.read()
+        decorator_is_new = False
+
+        def replace(match):
+            nonlocal decorator_is_new
+
+            existing_decorator, class_decl = match.groups()
+            if existing_decorator == decorator_name:
+                return match.group()
+            decorator_is_new = True
+            return f"\n@{decorator_name}\n{class_decl}"
+
+        # Try to detect a pre-existing decorator, if possible, and replace it if it
+        # doesn't match the decorator we are trying to add. This works only if the
+        # decorator is immediately above the class, which is usually a safe
+        # assumption because that's where this script writes it. In the long run,
+        # it could be disrupted by the insertion of a comment, another unrelated
+        # decorator, or such.
+        new_code = re.sub(
+            (
+                r"(?:\n@((?:control|customer|pending)_silo_(?:model|endpoint|test)))?"
+                rf"\n(class\s+{class_name}\()"
+            ),
+            replace,
+            src_code,
         )
 
-    targets = {class_name: module_name for (module_name, class_name) in target_names}
-    for src_path, class_name in find_class_declarations():
-        if is_module(src_path, targets.get(class_name)):
-            with open(src_path) as f:
-                src_code = f.read()
-            new_code = re.sub(
-                rf"\nclass\s+{class_name}\(",
-                rf"\n@{decorator_name}\g<0>",
-                src_code,
-            )
+        if decorator_is_new:
+            # Naively insert a new import statement. This may add duplicate import
+            # statements if we decorate more than one class in the same file,
+            # or leave behind an old import statement if we are replacing an existing
+            # decorator. Rely on pre-commit hooks or IDE tools to clean it up.
             new_code = insert_import(new_code)
             with open(src_path, mode="w") as f:
                 f.write(new_code)
