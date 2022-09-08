@@ -800,6 +800,10 @@ class ProjectUpdateTest(APITestCase):
         _remove_ids_from_dynamic_rules(saved_config)
         _remove_ids_from_dynamic_rules(original_config)
         assert original_config == saved_config
+        project = Project.objects.get(id=self.project.id)
+        assert AuditLogEntry.objects.filter(
+            organization=project.organization, event=audit_log.get_event_id("SAMPLING_RULE_EDIT")
+        ).exists()
 
     def test_setting_dynamic_sampling_rules_roundtrip(self):
         """

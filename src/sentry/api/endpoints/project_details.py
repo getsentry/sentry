@@ -900,11 +900,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :new_raw_dynamic_sampling: The updated dynamic sampling object
 
         """
-        if old_raw_dynamic_sampling is None or new_raw_dynamic_sampling is None:
-            return
-
-        old_rules = old_raw_dynamic_sampling.get("rules", [])
-        new_rules = new_raw_dynamic_sampling.get("rules", [])
 
         common_audit_data = {
             "request": request,
@@ -915,6 +910,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         def create_audit_entry_for_event(audit_data, event_text):
             self.create_audit_entry(**audit_data, event=audit_log.get_event_id(event_text))
+
+        if old_raw_dynamic_sampling is None or new_raw_dynamic_sampling is None:
+            common_audit_data["data"].update(new_raw_dynamic_sampling)
+            create_audit_entry_for_event(
+                common_audit_data,
+                "SAMPLING_RULE_EDIT",
+            )
+            return
+
+        old_rules = old_raw_dynamic_sampling.get("rules", [])
+        new_rules = new_raw_dynamic_sampling.get("rules", [])
 
         if len(new_rules) > len(old_rules):
             create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_ADD")
