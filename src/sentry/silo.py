@@ -41,8 +41,6 @@ class SiloLimit(abc.ABC):
 
     def __init__(self, *modes: SiloMode) -> None:
         self.modes = frozenset(modes)
-        if not self.modes:
-            raise ValueError
 
     @abc.abstractmethod
     def __call__(self, decorated_object: Any) -> Any:
