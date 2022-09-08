@@ -89,7 +89,7 @@ const IgnoreActions = ({
       />
     ));
 
-  const openCustomIgnoreCount = () =>
+  const openCustomIgnoreCount = (isPerformanceIssue: boolean) =>
     openModal(deps => (
       <CustomIgnoreCountModal
         {...deps}
@@ -99,10 +99,11 @@ const IgnoreActions = ({
         countName="ignoreCount"
         windowName="ignoreWindow"
         windowOptions={IGNORE_WINDOWS}
+        isPerformanceIssue={isPerformanceIssue}
       />
     ));
 
-  const openCustomIgnoreUserCount = () =>
+  const openCustomIgnoreUserCount = (isPerformanceIssue: boolean) =>
     openModal(deps => (
       <CustomIgnoreCountModal
         {...deps}
@@ -112,11 +113,14 @@ const IgnoreActions = ({
         countName="ignoreUserCount"
         windowName="ignoreUserWindow"
         windowOptions={IGNORE_WINDOWS}
+        isPerformanceIssue={isPerformanceIssue}
       />
     ));
 
+  // TODO: This function is only here since some of the dropdown options do not currently work for Performance issues.
+  // In the future, all options will be enabled and so we can revert this to what it was before (a single constant array of dropdown items)
   const getDropdownItems = () => {
-    if (true) {
+    if (group.issueCategory === IssueCategory.PERFORMANCE) {
       return [
         {
           key: 'for',
@@ -163,7 +167,7 @@ const IgnoreActions = ({
             {
               key: 'until-reoccur-custom',
               label: t('Custom'),
-              onAction: () => openCustomIgnoreCount(), // TODO: Disable time window in the modal
+              onAction: () => openCustomIgnoreCount(true), // TODO: Disable time window in the modal
             },
           ],
         },
@@ -195,7 +199,7 @@ const IgnoreActions = ({
             {
               key: 'until-affect-custom',
               label: t('Custom'),
-              onAction: () => openCustomIgnoreUserCount(), // TODO: Edit modal to disable time window
+              onAction: () => openCustomIgnoreUserCount(true), // TODO: Edit modal to disable time window
             },
           ],
         },
@@ -252,7 +256,7 @@ const IgnoreActions = ({
           {
             key: 'until-reoccur-custom',
             label: t('Custom'),
-            onAction: () => openCustomIgnoreCount(),
+            onAction: () => openCustomIgnoreCount(false),
           },
         ],
       },
@@ -300,7 +304,7 @@ const IgnoreActions = ({
             disabled: !issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled,
             onAction: () =>
               issueSupports(group.issueCategory, 'ignoreUntilAffect').enabled
-                ? openCustomIgnoreUserCount()
+                ? openCustomIgnoreUserCount(false)
                 : null,
           },
         ],
