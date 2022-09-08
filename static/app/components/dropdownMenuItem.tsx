@@ -121,6 +121,9 @@ const MenuItem = ({
     if (to) {
       return;
     }
+    if (itemProps.disabled) {
+      return;
+    }
     if (isSubmenuTrigger) {
       state.selectionManager.select(node.key);
       return;
