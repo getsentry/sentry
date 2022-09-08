@@ -1,3 +1,4 @@
+import React, {ReactElement} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -10,10 +11,12 @@ import {EventTag} from 'sentry/types/event';
 
 import {AnnotatedText} from './events/meta/annotatedText';
 
+type Tag = EventTag | {key: string; value: string[]};
+
 interface Props {
-  generateUrl: (tag: EventTag) => LocationDescriptor;
+  generateUrl: (tag: Tag) => LocationDescriptor;
   query: string;
-  tag: EventTag;
+  tag: Tag;
   meta?: Record<any, any>;
 }
 
@@ -25,10 +28,26 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
 
   const renderTagValue = () => {
     switch (tag.key) {
-      case 'release':
+      case 'release': {
+        if (Array.isArray(tag.value)) {
+          // If there are multiple releases, we want to show them as a list
+          return tag.value.reduce((acc, value, index) => {
+            acc.push(<Version key={value} anchor={false} version={value} withPackage />);
+            if (index !== tag.value.length - 1) {
+              acc.push(', ');
+            }
+            return acc;
+          }, [] as (ReactElement | string)[]);
+        }
         return <Version version={tag.value} anchor={false} withPackage />;
-      default:
+      }
+      default: {
+        if (Array.isArray(tag.value)) {
+          return tag.value.join(', ');
+        }
+
         return tag.value;
+      }
     }
   };
   return (
