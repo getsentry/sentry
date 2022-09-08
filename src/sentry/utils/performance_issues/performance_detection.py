@@ -9,8 +9,9 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 import sentry_sdk
 
-from sentry import options
+from sentry import options, projectoptions
 from sentry.eventstore.models import Event
+from sentry.models import ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 
@@ -80,7 +81,19 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
 # Thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_default_detection_settings():
+def get_detection_settings(project_id: str):
+    default_settings = projectoptions.get_well_known_default(
+        "sentry:performance_issue_settings",
+        project=project_id,
+    )
+    issue_settings = ProjectOption.objects.get_value(
+        project_id, "sentry:performance_issue_settings", default_settings
+    )
+    settings = {
+        **default_settings,
+        **issue_settings,
+    }  # Merge saved settings into default so updating the default works in the future.
+
     return {
         DetectorType.DUPLICATE_SPANS: [
             {
@@ -133,8 +146,8 @@ def get_default_detection_settings():
             }
         ],
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
-            "count": 5,
-            "duration_threshold": 500.0,  # ms
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
     }
 
@@ -142,8 +155,9 @@ def get_default_detection_settings():
 def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
     spans = data.get("spans", [])
+    project_id = data.get("project")
 
-    detection_settings = get_default_detection_settings()
+    detection_settings = get_detection_settings(project_id)
     detectors = {
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
@@ -703,7 +717,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if op != "db":
+        if not op.startswith("db"):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
@@ -815,7 +829,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
-                desc=self.source_span.get("description", ""),
+                desc=self.n_spans[0].get("description", ""),
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
                 spans_involved=span_ids_involved,
             )
