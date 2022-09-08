@@ -471,7 +471,7 @@ class Actions extends Component<Props, State> {
                   hidden: !hasAccess,
                   disabled: !deleteCap.enabled,
                   tooltip: deleteCap.disabledReason,
-                  onAction: deleteCap.enabled ? () => this.openDeleteModal() : undefined,
+                  onAction: this.openDeleteModal,
                 },
                 {
                   key: 'delete-and-discard',
@@ -480,9 +480,7 @@ class Actions extends Component<Props, State> {
                   hidden: !hasAccess,
                   disabled: !deleteDiscardCap.enabled,
                   tooltip: deleteDiscardCap.disabledReason,
-                  onAction: deleteDiscardCap.enabled
-                    ? () => this.openDiscardModal()
-                    : undefined,
+                  onAction: this.openDiscardModal,
                 },
               ]}
             />
