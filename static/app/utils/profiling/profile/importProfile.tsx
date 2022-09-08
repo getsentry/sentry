@@ -24,6 +24,7 @@ export interface ImportOptions {
 
 export interface ProfileGroup {
   activeProfileIndex: number;
+  metadata: Partial<Profiling.Schema['metadata']>;
   name: string;
   profiles: Profile[];
   traceID: string;
@@ -82,12 +83,17 @@ function importJSSelfProfile(
   options: ImportOptions
 ): ProfileGroup {
   const frameIndex = createFrameIndex(input.frames);
+  const profile = importSingleProfile(input, frameIndex, options);
 
   return {
     traceID,
     name: traceID,
     activeProfileIndex: 0,
-    profiles: [importSingleProfile(input, frameIndex, options)],
+    profiles: [profile],
+    metadata: {
+      platform: 'javascript',
+      durationNS: profile.duration,
+    },
   };
 }
 
@@ -116,8 +122,9 @@ function importSchema(
 
   return {
     traceID,
-    name: input.transactionName,
+    name: input.metadata?.transactionName ?? traceID,
     activeProfileIndex: input.activeProfileIndex ?? 0,
+    metadata: input.metadata ?? {},
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)
     ),
