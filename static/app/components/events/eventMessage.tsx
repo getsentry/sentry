@@ -13,36 +13,27 @@ type Props = {
   message?: React.ReactNode;
 };
 
-const BaseEventMessage = ({
-  className,
-  level,
-  levelIndicatorSize,
-  message,
-  annotations,
-}: Props) => (
-  <div className={className}>
-    {level && (
-      <StyledErrorLevel size={levelIndicatorSize} level={level}>
-        {level}
-      </StyledErrorLevel>
-    )}
+const EventMessage = styled(
+  ({className, level, levelIndicatorSize, message, annotations}: Props) => (
+    <div className={className}>
+      {level && (
+        <ErrorLevel size={levelIndicatorSize} level={level}>
+          {level}
+        </ErrorLevel>
+      )}
 
-    {message && <Message>{message}</Message>}
+      {message && <Message>{message}</Message>}
 
-    {annotations}
-  </div>
-);
-
-const EventMessage = styled(BaseEventMessage)`
+      {annotations}
+    </div>
+  )
+)`
   display: flex;
+  gap: ${space(1)};
   align-items: center;
   position: relative;
   line-height: 1.2;
   overflow: hidden;
-`;
-
-const StyledErrorLevel = styled(ErrorLevel)`
-  margin-right: ${space(1)};
 `;
 
 const Message = styled('span')`
