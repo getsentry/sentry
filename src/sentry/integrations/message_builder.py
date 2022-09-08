@@ -3,8 +3,9 @@ from __future__ import annotations
 from abc import ABC
 from typing import Any, Callable, Mapping, Sequence
 
+from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
-from sentry.models import Event, Group, Project, Rule, Team, User
+from sentry.models import Group, Project, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri

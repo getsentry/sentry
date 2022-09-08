@@ -6,6 +6,7 @@ import pytest
 from sentry import eventstore
 from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
+from sentry.snuba.dataset import Dataset
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -16,7 +17,8 @@ class EventStorageTest(TestCase):
         self.eventstorage = EventStorage()
 
     def test_minimal_columns(self):
-        assert len(self.eventstorage.minimal_columns) == 4
+        assert len(self.eventstorage.minimal_columns[Dataset.Events]) == 4
+        assert len(self.eventstorage.minimal_columns[Dataset.Transactions]) == 4
 
     def test_bind_nodes(self):
         """
