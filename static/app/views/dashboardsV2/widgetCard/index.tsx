@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -312,7 +311,8 @@ class WidgetCard extends Component<Props, State> {
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
-            <Feature organization={organization} features={['dashboards-mep']}>
+            {(organization.features.includes('dashboards-mep') ||
+              organization.features.includes('mep-rollout-flag')) && (
               <DashboardsMEPConsumer>
                 {({isMetricsData}) => {
                   if (
@@ -357,7 +357,7 @@ class WidgetCard extends Component<Props, State> {
                   return null;
                 }}
               </DashboardsMEPConsumer>
-            </Feature>
+            )}
           </React.Fragment>
         )}
       </ErrorBoundary>

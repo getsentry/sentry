@@ -1,15 +1,18 @@
 import hashlib
+import logging
 import random
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import sentry_sdk
 
-from sentry import options
+from sentry import options, projectoptions
 from sentry.eventstore.models import Event
+from sentry.models import ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 
@@ -18,6 +21,8 @@ from .performance_span_issue import PerformanceSpanProblem
 Span = Dict[str, Any]
 TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
+
+select_query_regex = re.compile("^select", re.I)
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
 
@@ -30,6 +35,7 @@ class DetectorType(Enum):
     LONG_TASK_SPANS = "long_task"
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
+    N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -41,6 +47,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.LONG_TASK_SPANS: GroupType.PERFORMANCE_LONG_TASK_SPANS,
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
+    DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 
@@ -69,15 +76,27 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
                 op="py.detect_performance_issue", description="none"
             ) as sdk_span:
                 return _detect_performance_problems(data, sdk_span)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return []
+    except Exception:
+        logging.exception("Failed to detect performance problems")
+    return []
 
 
 # Gets some of the thresholds to perform performance detection. Can be made configurable later.
 # Thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_default_detection_settings():
+def get_detection_settings(project_id: str):
+    default_settings = projectoptions.get_well_known_default(
+        "sentry:performance_issue_settings",
+        project=project_id,
+    )
+    issue_settings = ProjectOption.objects.get_value(
+        project_id, "sentry:performance_issue_settings", default_settings
+    )
+    settings = {
+        **default_settings,
+        **issue_settings,
+    }  # Merge saved settings into default so updating the default works in the future.
+
     return {
         DetectorType.DUPLICATE_SPANS: [
             {
@@ -129,14 +148,19 @@ def get_default_detection_settings():
                 "allowed_span_ops": ["http.client"],
             }
         ],
+        DetectorType.N_PLUS_ONE_DB_QUERIES: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+        },
     }
 
 
 def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
     spans = data.get("spans", [])
+    project_id = data.get("project")
 
-    detection_settings = get_default_detection_settings()
+    detection_settings = get_detection_settings(project_id)
     detectors = {
         DetectorType.DUPLICATE_SPANS: DuplicateSpanDetector(detection_settings, data),
         DetectorType.DUPLICATE_SPANS_HASH: DuplicateSpanHashDetector(detection_settings, data),
@@ -147,14 +171,17 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
             detection_settings, data
         ),
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
     }
 
-    # Create performance issues for duplicate spans first
-    used_perf_issue_detectors = {DetectorType.DUPLICATE_SPANS_HASH}
+    # Create performance issues for N+1 DB queries first
+    used_perf_issue_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES}
 
     for span in spans:
         for _, detector in detectors.items():
             detector.visit_span(span)
+    for _, detector in detectors.items():
+        detector.on_complete()
 
     report_metrics_for_detectors(event_id, detectors, sdk_span)
 
@@ -173,8 +200,15 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
 
 def prepare_problem_for_grouping(
-    problem: PerformanceSpanProblem, data: Event, detector_type: DetectorType
+    problem: Union[PerformanceProblem, PerformanceSpanProblem],
+    data: Event,
+    detector_type: DetectorType,
 ) -> PerformanceProblem:
+    # Don't transform if the caller has already done the work for us.
+    # (TBD: All detectors should get updated to just return PerformanceProblem directly)
+    if isinstance(problem, PerformanceProblem):
+        return problem
+
     transaction_name = data.get("transaction")
     spans_involved = problem.spans_involved
     first_span_id = spans_involved[0]
@@ -278,6 +312,9 @@ class PerformanceDetector(ABC):
     @abstractmethod
     def visit_span(self, span: Span) -> None:
         raise NotImplementedError
+
+    def on_complete(self) -> None:
+        pass
 
     @property
     @abstractmethod
@@ -635,18 +672,207 @@ class NPlusOneSpanDetector(PerformanceDetector):
                 )
 
 
+class NPlusOneDBSpanDetector(PerformanceDetector):
+    """
+    Detector goals:
+      - identify a database N+1 query with high accuracy
+      - collect enough information to create a good fingerprint (see below)
+      - only return issues with good fingerprints
+
+    A good fingerprint is one that gives us confidence that, if two fingerprints
+    match, then they correspond to the same issue location in code (and
+    therefore, the same fix).
+
+    To do this we look for a specific structure:
+
+      [-------- transaction span -----------]
+         [-------- parent span -----------]
+            [source query]
+                          [n0]
+                              [n1]
+                                  [n2]
+                                      ...
+
+    If we detect two different N+1 problems, and both have matching parents,
+    source queries, and repeated (n) queries, then we can be fairly confident
+    they are the same issue.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    settings_key = DetectorType.N_PLUS_ONE_DB_QUERIES
+
+    def init(self):
+        self.stored_problems = {}
+        self.potential_parents = {}
+        self.n_spans = []
+        self.source_span = None
+
+    def visit_span(self, span: Span) -> None:
+        span_id = span.get("span_id", None)
+        op = span.get("op", None)
+        if not span_id or not op:
+            return
+
+        if not op.startswith("db"):
+            # This breaks up the N+1 we're currently tracking.
+            self._maybe_store_problem()
+            self._reset_detection()
+            # Treat it as a potential parent as long as it isn't the root span.
+            if span.get("parent_span_id", None):
+                self.potential_parents[span_id] = span
+            return
+
+        if not self.source_span:
+            # We aren't currently tracking an N+1. Maybe this span triggers one!
+            self._maybe_use_as_source(span)
+            return
+
+        # If we got this far, we know we're a DB span and we're looking for a
+        # sequence of N identical DB spans.
+        if self._continues_n_plus_1(span):
+            self.n_spans.append(span)
+        else:
+            self._maybe_store_problem()
+            self._reset_detection()
+            # Maybe this DB span starts a whole new N+1!
+            self._maybe_use_as_source(span)
+
+    def on_complete(self) -> None:
+        self._maybe_store_problem()
+
+    def _contains_complete_query(self, span: Span) -> bool:
+        # When SDKs truncate span description, they add a "..." suffix (three
+        # full stops, not an ellipsis).
+        query = span.get("description", None)
+        return query and not query.endswith("...")
+
+    def _contains_select_query(self, span: Span) -> bool:
+        # XXX: Should consider CTEs, etc.
+        query = span.get("description", None)
+        return query and select_query_regex.match(query)
+
+    def _maybe_use_as_source(self, span: Span):
+        if not self._contains_complete_query(span):
+            return
+
+        if not self._contains_select_query:
+            return
+
+        parent_span_id = span.get("parent_span_id", None)
+        if not parent_span_id or parent_span_id not in self.potential_parents:
+            return
+
+        self.source_span = span
+
+    def _continues_n_plus_1(self, span: Span):
+        if not self._contains_complete_query(span):
+            return False
+
+        if not self._contains_select_query(span):
+            return False
+
+        if self._overlaps_last_span(span):
+            return False
+
+        expected_parent_id = self.source_span.get("parent_span_id", None)
+        parent_id = span.get("parent_span_id", None)
+        if not parent_id or parent_id != expected_parent_id:
+            return False
+
+        span_hash = span.get("hash", None)
+        if not span_hash:
+            return False
+
+        if not self.n_hash:
+            self.n_hash = span_hash
+            return True
+
+        return span_hash == self.n_hash
+
+    def _overlaps_last_span(self, span: Span) -> bool:
+        last_span = self.source_span
+        if self.n_spans:
+            last_span = self.n_spans[-1]
+
+        last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
+        current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
+        return last_span_ends > current_span_begins
+
+    def _maybe_store_problem(self):
+        if not self.source_span or not self.n_spans:
+            return
+
+        count = self.settings.get("count")
+        duration_threshold = timedelta(milliseconds=self.settings.get("duration_threshold"))
+
+        # Do we have enough spans?
+        if len(self.n_spans) < count:
+            return
+
+        # Do the spans take enough total time?
+        total_duration = timedelta()
+        for span in self.n_spans:
+            total_duration += get_span_duration(span)
+        if total_duration < duration_threshold:
+            return
+
+        # We require a parent span in order to improve our fingerprint accuracy.
+        parent_span_id = self.source_span.get("parent_span_id", None)
+        if not parent_span_id:
+            return
+        parent_span = self.potential_parents[parent_span_id]
+        if not parent_span:
+            return
+
+        fingerprint = self._fingerprint(
+            parent_span.get("op", None),
+            parent_span.get("hash", None),
+            self.source_span.get("hash", None),
+            self.n_spans[0].get("hash", None),
+        )
+        if fingerprint not in self.stored_problems:
+            spans_involved = [self.source_span] + self.n_spans
+            span_ids_involved = [span.get("span_id", None) for span in spans_involved]
+            self.stored_problems[fingerprint] = PerformanceProblem(
+                fingerprint=fingerprint,
+                op="db",
+                desc=self.source_span.get("description", ""),
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                spans_involved=span_ids_involved,
+            )
+
+    def _reset_detection(self):
+        self.source_span = None
+        self.n_hash = None
+        self.n_spans = []
+
+    def _fingerprint(self, parent_op, parent_hash, source_hash, n_hash) -> str:
+        problem_class = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+        full_fingerprint = hashlib.sha1(
+            (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
+        ).hexdigest()
+        return f"1-{problem_class}-{full_fingerprint}"
+
+
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
     event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
-    all_detected_issues = [i for _, d in detectors.items() for i in d.stored_problems]
-    has_detected_issues = bool(all_detected_issues)
+    all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
+    has_detected_problems = bool(all_detected_problems)
 
-    if has_detected_issues:
-        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_issues))
+    if has_detected_problems:
+        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_problems))
         metrics.incr(
             "performance.performance_issue.aggregate",
-            len(all_detected_issues),
+            len(all_detected_problems),
         )
         if event_id:
             sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
@@ -654,27 +880,38 @@ def report_metrics_for_detectors(
     detected_tags = {}
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
-        detected_issues = detector.stored_problems
-        detected_issue_keys = list(detected_issues.keys())
-        detected_tags[detector_key] = bool(len(detected_issue_keys))
+        detected_problems = detector.stored_problems
+        detected_problem_keys = list(detected_problems.keys())
+        detected_tags[detector_key] = bool(len(detected_problem_keys))
 
-        if not detected_issue_keys:
+        if not detected_problem_keys:
             continue
 
-        first_issue = detected_issues[detected_issue_keys[0]]
-        if first_issue.fingerprint:
+        first_problem = detected_problems[detected_problem_keys[0]]
+        if first_problem.fingerprint:
             sdk_span.containing_transaction.set_tag(
-                f"_pi_{detector_key}_fp", first_issue.fingerprint
+                f"_pi_{detector_key}_fp", first_problem.fingerprint
             )
-        sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", first_issue.span_id)
+
+        span_id = (
+            first_problem.span_id
+            if isinstance(first_problem, PerformanceSpanProblem)
+            else first_problem.spans_involved[0]
+        )
+        sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", span_id)
+
+        op_tags = {}
+        for problem in detected_problems.values():
+            op = problem.allowed_op if isinstance(problem, PerformanceSpanProblem) else problem.op
+            op_tags[f"op_{op}"] = True
         metrics.incr(
             f"performance.performance_issue.{detector_key}",
-            len(detected_issue_keys),
-            tags={f"op_{n.allowed_op}": True for n in detected_issues.values()},
+            len(detected_problem_keys),
+            tags=op_tags,
         )
 
     metrics.incr(
         "performance.performance_issue.detected",
-        instance=str(has_detected_issues),
+        instance=str(has_detected_problems),
         tags=detected_tags,
     )
