@@ -249,22 +249,6 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
-    def get_earliest_event_id(self, event, filter):
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_before_event_condition(event))
-        filter.end = event.datetime
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
-
-    def get_latest_event_id(self, event, filter):
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_after_event_condition(event))
-        filter.start = event.datetime
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
-
     def get_next_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a next event given a current event
