@@ -42,7 +42,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
-import {issueSupports} from 'sentry/utils/groupCapabilities';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -324,7 +324,7 @@ class Actions extends Component<Props, State> {
 
   openDeleteModal = () => {
     const {group} = this.props;
-    if (!issueSupports(group.issueCategory, 'delete')) {
+    if (!getIssueCapability(group.issueCategory, 'delete')) {
       return;
     }
 
@@ -349,7 +349,7 @@ class Actions extends Component<Props, State> {
 
   openDiscardModal = () => {
     const {group, organization} = this.props;
-    if (!issueSupports(group.issueCategory, 'deleteAndDiscard')) {
+    if (!getIssueCapability(group.issueCategory, 'deleteAndDiscard')) {
       return;
     }
 
@@ -475,7 +475,7 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  disabled: !issueSupports(group.issueCategory, 'delete'),
+                  disabled: !getIssueCapability(group.issueCategory, 'delete'),
                   onAction: () => this.openDeleteModal(),
                 },
                 {
@@ -483,7 +483,7 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  disabled: !issueSupports(group.issueCategory, 'deleteAndDiscard'),
+                  disabled: !getIssueCapability(group.issueCategory, 'deleteAndDiscard'),
                   onAction: () => this.openDiscardModal(),
                 },
               ]}
