@@ -439,30 +439,27 @@ class SnubaQueryBuilder:
     def _build_groupby(self) -> List[Column]:
         groupby_cols = []
 
-        def generate_aliased_expression(column: Column, alias: str) -> AliasedExpression:
-            return AliasedExpression(exp=column, alias=alias)
-
         for metric_groupby_obj in self._metrics_query.groupby or []:
             # Handles the case when we are trying to group by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands
             if metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS:
                 groupby_cols.append(
-                    generate_aliased_expression(
-                        Column(FIELD_ALIAS_MAPPINGS[metric_groupby_obj.name]),
-                        metric_groupby_obj.alias,
+                    AliasedExpression(
+                        exp=Column(FIELD_ALIAS_MAPPINGS[metric_groupby_obj.name]),
+                        alias=metric_groupby_obj.alias,
                     )
                 )
             elif metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS.values():
                 groupby_cols.append(
-                    generate_aliased_expression(
-                        column=Column(metric_groupby_obj.name), alias=metric_groupby_obj.alias
+                    AliasedExpression(
+                        exp=Column(metric_groupby_obj.name), alias=metric_groupby_obj.alias
                     )
                 )
             else:
                 assert isinstance(metric_groupby_obj.name, Tag)
                 groupby_cols.append(
-                    generate_aliased_expression(
-                        column=Column(
+                    AliasedExpression(
+                        exp=Column(
                             resolve_tag_key(
                                 self._use_case_id, self._org_id, metric_groupby_obj.name
                             )
