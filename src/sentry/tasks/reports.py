@@ -12,7 +12,7 @@ from typing import Iterable, Mapping, NamedTuple, Tuple
 import pytz
 from django.db.models import F
 from django.utils import dateformat, timezone
-from sentry_sdk import set_tag
+from sentry_sdk import set_tag, set_user
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -883,6 +883,8 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         return
 
     user = User.objects.get(id=user_id)
+    # This helps slicing transactions based on user
+    set_user({"email": user.username})
 
     if not user_subscribed_to_organization_reports(user, organization):
         logger.debug(
@@ -916,10 +918,13 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     )
 
     if not reports:
+        set_tag("report.available", False)
         logger.debug(
             f"Skipping report for {organization} to {user}, no qualifying reports to deliver."
         )
         return Skipped.NoReports
+    set_tag("report.available", True)
+    set_tag("report.dry_run", deliver_organization_user_report)
 
     message = build_message(timestamp, duration, organization, user, reports)
 
