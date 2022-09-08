@@ -19,6 +19,7 @@ from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 _fixture_path = os.path.join(os.path.dirname(__file__), "events")
 
 EVENTS = {}
+PROJECT_ID = 1
 
 for filename in os.listdir(_fixture_path):
     if not filename.endswith(".json"):
@@ -27,7 +28,9 @@ for filename in os.listdir(_fixture_path):
     [event_name, _extension] = filename.split(".")
 
     with open(os.path.join(_fixture_path, filename)) as f:
-        EVENTS[event_name] = json.load(f)
+        event = json.load(f)
+        event["project"] = PROJECT_ID
+        EVENTS[event_name] = event
 
 
 # Duration is in ms
@@ -53,10 +56,16 @@ def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %
 
 
 def create_event(spans, event_id="a" * 16):
-    return {"event_id": event_id, "spans": spans}
+    return {"event_id": event_id, "project": PROJECT_ID, "spans": spans}
 
 
 class PerformanceDetectionTest(unittest.TestCase):
+    def setUp(self):
+        super(PerformanceDetectionTest, self).setUp()
+        patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
+        self.project_option_mock = patch_project_option_get.start()
+        self.addCleanup(patch_project_option_get.stop)
+
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
         event = {}
@@ -70,6 +79,40 @@ class PerformanceDetectionTest(unittest.TestCase):
             with override_options({"performance.issues.all.problem-detection": 1.0}):
                 detect_performance_problems(event)
         assert mock.call_count == 1
+
+    def test_project_option_overrides_default(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                op="db",
+                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                spans_involved=[
+                    "9179e43ae844b174",
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            )
+        ]
+
+        self.project_option_mock.return_value = {
+            "n_plus_one_db_duration_threshold": 100000,
+        }
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
 
     def test_calls_detect_duplicate(self):
         no_duplicate_event = create_event([create_span("db")] * 4)
@@ -352,6 +395,7 @@ class PerformanceDetectionTest(unittest.TestCase):
     def test_calls_detect_render_blocking_asset(self):
         render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -364,6 +408,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         non_render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -379,6 +424,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         no_fcp_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": None,
@@ -391,6 +437,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         short_render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
