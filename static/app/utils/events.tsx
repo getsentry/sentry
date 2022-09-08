@@ -26,6 +26,7 @@ export function getMessage(
 
   switch (type) {
     case EventOrGroupType.ERROR:
+    case EventOrGroupType.TRANSACTION:
       return metadata.value;
     case EventOrGroupType.CSP:
       return metadata.message;
