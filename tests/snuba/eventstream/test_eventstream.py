@@ -18,8 +18,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         super().setUp()
 
         self.kafka_eventstream = KafkaEventStream()
-        self.kafka_eventstream.errors_producer = Mock()
-        self.kafka_eventstream.transactions_producer = Mock()
+        self.producer_mock = Mock()
+        self.kafka_eventstream.get_producer = Mock(return_value=self.producer_mock)
 
     def __build_event(self, timestamp):
         raw_event = {
@@ -46,11 +46,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
-        producer = (
-            self.kafka_eventstream.transactions_producer
-            if is_transaction_event
-            else self.kafka_eventstream.errors_producer
-        )
+        producer = self.producer_mock
 
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
