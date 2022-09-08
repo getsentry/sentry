@@ -25,6 +25,25 @@ function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
     }));
 }
 
+/**
+ * Recursively finds and returns disabled items
+ */
+function getDisabledKeys(source: MenuItemProps[]): MenuItemProps['key'][] {
+  return source.reduce<string[]>((acc, cur) => {
+    if (cur.disabled) {
+      // If an item is disabled, then its children will be inaccessible, so we
+      // can skip them and just return the parent item
+      return acc.concat([cur.key]);
+    }
+
+    if (cur.children) {
+      return acc.concat(getDisabledKeys(cur.children));
+    }
+
+    return acc;
+  }, []);
+}
+
 type TriggerProps = {
   props: Omit<React.HTMLAttributes<Element>, 'children'> & {
     onClick?: (e: MouseEvent) => void;
@@ -190,10 +209,7 @@ function MenuControl({
   }
 
   const activeItems = useMemo(() => removeHiddenItems(items), [items]);
-  const defaultDisabledKeys = useMemo(
-    () => activeItems.filter(item => item.disabled).map(item => item.key),
-    [activeItems]
-  );
+  const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
 
   function renderMenu() {
     if (!state.isOpen) {
