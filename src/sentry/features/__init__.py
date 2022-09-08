@@ -147,6 +147,8 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
+default_manager.add("organizations:dashboard-custom-measurement-widgets", OrganizationFeature, True)
+default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
 default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

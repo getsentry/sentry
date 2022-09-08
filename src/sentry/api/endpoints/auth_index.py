@@ -9,6 +9,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import SsoRequired
@@ -25,6 +26,14 @@ from sentry.utils.settings import is_self_hosted
 logger: logging.Logger = logging.getLogger(__name__)
 
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
+
+DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
+    settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
+)
+
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
+    settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False
+)
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -86,7 +95,9 @@ class AuthIndexEndpoint(Endpoint):
             return authenticated
         return False
 
-    def _validate_superuser(self, validator, request):
+    def _validate_superuser(
+        self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
+    ):
         """
         For a superuser, they need to be validated before we can grant an active superuser session.
         If the user has a password or u2f device, authenticate the password/challenge that was sent is valid.
@@ -97,34 +108,13 @@ class AuthIndexEndpoint(Endpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
-
-        DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
-            settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
-        )
-        VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = getattr(
-            settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
-        )
-
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
-        authenticated = None
 
-        def _require_password_or_u2f_check():
-            if (
-                not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
-            ) or DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
-                # Don't need to check password as its only for self-hosted users or if superuser form is turned off
-                return False
-            if request.user.has_usable_password():
-                return True
-            if Authenticator.objects.filter(
-                user_id=request.user.id, type=U2fInterface.type
-            ).exists():
-                return True
-            return False
-
-        if _require_password_or_u2f_check():
+        if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and verify_authenticator or is_self_hosted():
             authenticated = self._verify_user_via_inputs(validator, request)
+        else:
+            authenticated = True
 
         if Superuser.org_id:
             if (
@@ -133,12 +123,6 @@ class AuthIndexEndpoint(Endpoint):
             ):
                 request.session[PREFILLED_SU_MODAL_KEY] = request.data
                 self._reauthenticate_with_sso(request, Superuser.org_id)
-            # below is a special case if the user is a superuser but doesn't have a password or
-            # u2f device set up, the only way to authenticate this case is to see if they have a
-            # valid sso session.
-            authenticated = True if authenticated is None else authenticated
-        elif authenticated is None:
-            return False
 
         return authenticated
 
@@ -216,7 +200,24 @@ class AuthIndexEndpoint(Endpoint):
 
             authenticated = self._verify_user_via_inputs(validator, request)
         else:
-            authenticated = self._validate_superuser(validator, request)
+            verify_authenticator = False
+
+            if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and not is_self_hosted():
+                if Superuser.org_id:
+                    superuser_org = Organization.objects.get(id=Superuser.org_id)
+
+                    verify_authenticator = features.has(
+                        "organizations:u2f-superuser-form", superuser_org, actor=request.user
+                    )
+
+                if verify_authenticator:
+                    if not Authenticator.objects.filter(
+                        user_id=request.user.id, type=U2fInterface.type
+                    ).exists():
+                        return Response(
+                            {"detail": {"code": "no_u2f"}}, status=status.HTTP_403_FORBIDDEN
+                        )
+            authenticated = self._validate_superuser(validator, request, verify_authenticator)
 
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
