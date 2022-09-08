@@ -869,6 +869,7 @@ def has_valid_aggregates(interval, project__report):
     acks_late=True,
 )
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
+    set_tag("report.dry_run", dry_run)
     try:
         organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
@@ -917,14 +918,12 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         )
     )
 
+    set_tag("report.available", not reports)
     if not reports:
-        set_tag("report.available", False)
         logger.debug(
             f"Skipping report for {organization} to {user}, no qualifying reports to deliver."
         )
         return Skipped.NoReports
-    set_tag("report.available", True)
-    set_tag("report.dry_run", deliver_organization_user_report)
 
     message = build_message(timestamp, duration, organization, user, reports)
 
