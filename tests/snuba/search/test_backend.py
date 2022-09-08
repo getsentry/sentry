@@ -289,7 +289,8 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         perf_group_1 = Group.objects.get(id=transaction_event.group_id)
         perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
 
-        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert set(results) == {perf_group_1}
 
     def test_query_multi_project(self):

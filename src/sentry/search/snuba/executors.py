@@ -152,6 +152,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         * a sorted list of (group_id, group_score) tuples sorted descending by score,
         * the count of total results (rows) available for this query.
         """
+
         filters = {"project_id": project_ids}
 
         environments = None
