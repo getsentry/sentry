@@ -10,7 +10,14 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {IssueCategory, Organization, Project, ResolutionStatus} from 'sentry/types';
+import {
+  BaseGroup,
+  IssueCategory,
+  IssueCategoryCapabilities,
+  Organization,
+  Project,
+  ResolutionStatus,
+} from 'sentry/types';
 import {issueSupports} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
