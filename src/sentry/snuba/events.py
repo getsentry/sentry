@@ -566,3 +566,11 @@ class Columns(Enum):
         discover_name="contexts[trace.client_sample_rate]",
         alias="trace.client_sample_rate",
     )
+
+    APP_START_TYPE = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="app_start_type",
+        discover_name="app_start_type",
+        alias="app.start_type",
+    )
