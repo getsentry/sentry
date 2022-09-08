@@ -720,7 +720,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if op != "db":
+        if not op.startswith("db"):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
