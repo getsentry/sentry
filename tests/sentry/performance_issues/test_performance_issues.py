@@ -54,14 +54,14 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             group = event.groups[0]
             assert (
                 group.title
-                == "N+1 Query:SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+                == "N+1 Query: SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
             )
             assert group.message == "/books/"
             assert group.culprit == "/books/"
             assert group.get_event_type() == "transaction"
             assert group.get_event_metadata() == {
                 "location": "/books/",
-                "title": "N+1 Query:SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "title": "N+1 Query: SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             }
             assert group.location() == "/books/"
             assert group.level == 40
@@ -101,11 +101,11 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             group.refresh_from_db()
             assert (
                 group.title
-                == "N+1 Query:SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+                == "N+1 Query: SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
             )
             assert group.get_event_metadata() == {
                 "location": "/books/",
-                "title": "N+1 Query:SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "title": "N+1 Query: SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             }
             assert group.location() == "/books/"
             assert group.message == "/books/"
