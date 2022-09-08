@@ -759,7 +759,7 @@ class SnubaResultConverter:
                     for data in subresults[k]["data"]:
                         self._extract_data(data, groups)
 
-        group_by_alias_to_group_by_column = (
+        groupby_alias_to_groupby_column = (
             {
                 metric_groupby_obj.alias: metric_groupby_obj.name
                 for metric_groupby_obj in self._metrics_query.groupby
@@ -777,7 +777,7 @@ class SnubaResultConverter:
                             self._use_case_id, self._organization_id, value, weak=True
                         ),
                     )
-                    if group_by_alias_to_group_by_column.get(key)
+                    if groupby_alias_to_groupby_column.get(key)
                     not in set(FIELD_ALIAS_MAPPINGS.values()) | set(FIELD_ALIAS_MAPPINGS.keys())
                     else (key, value)
                     for key, value in tags

@@ -745,7 +745,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         select=[select],
         groupby=[
             AliasedExpression(
-                Column(resolve_tag_key(use_case_id, org_id, "environment")), "environment"
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
             ),
             Column("bucketed_time"),
         ],
