@@ -477,7 +477,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
-                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
                 spans_involved=[
                     "9179e43ae844b174",
