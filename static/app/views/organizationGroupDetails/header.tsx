@@ -30,7 +30,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -326,9 +326,6 @@ class GroupHeader extends Component<Props, State> {
       </GuideAnchor>
     );
 
-    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
-    const isPerformanceIssue = !!event?.contexts?.performance_issue;
-
     return (
       <Layout.Header>
         <div className={className}>
@@ -428,7 +425,7 @@ class GroupHeader extends Component<Props, State> {
             query={location.query}
           />
           <NavTabs>
-            {isPerformanceIssue
+            {group.issueCategory === IssueCategory.PERFORMANCE
               ? this.getPerformanceIssueTabs()
               : this.getErrorIssueTabs()}
           </NavTabs>
