@@ -343,6 +343,7 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert set(results) == {self.perf_group_1}
 
+    def test_error_performance_query(self):
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="my_tag:1")
         assert set(results) == {
@@ -351,6 +352,9 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             self.perf_group_2,
             self.error_group_2,
         }
+
+    def test_error_performance_query_paginated(self):
+        pass
 
     def test_query_multi_project(self):
         self.set_up_multi_project()
@@ -2254,6 +2258,8 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
             date_to=date_to,
             cursor=cursor,
         )
+        print("results: ", list(results))
+        print("expected: ", expected_groups)
         assert list(results) == expected_groups
         assert results.hits == expected_hits
         return results
@@ -2432,6 +2438,95 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         self.run_test(
             "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
+        )
+
+    def test_cursor_performance_error_issues(self):
+        # is this even in the right class? I am confused. I tried to move it to the one with the EventsDatasetSnubaSearchBackend
+        # but I have to redefine run_test which needs to redefine make_query which takes different args ):
+        transaction_event_data = {
+            "level": "info",
+            "message": "ayoo",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        }
+
+        perf_group_1 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        perf_group_2 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [
+                    perf_group_1
+                ]  # what about perf_group_2? do I need to redefine a hack_pull_out_data2? that doesn't feel right but I need them in diff groups
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            perf_event_1 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+        perf_event_1.group = perf_group_1
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            perf_event_2 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+        perf_event_2.group = perf_group_2
+
+        # error_group_3 = self.store_event(
+        #     data={
+        #         "fingerprint": ["put-me-in-group3"],
+        #         "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+        #         "tags": {"sentry:user": "user2", "my_tag": 1},
+        #     },
+        #     project_id=self.project.id,
+        # ).group
+        # error_group_4 = self.store_event(
+        #     data={
+        #         "fingerprint": ["put-me-in-group7"],
+        #         "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+        #         "tags": {"sentry:user": "user2", "my_tag": 1},
+        #     },
+        #     project_id=self.project.id,
+        # ).group
+
+        # print(perf_group_1.id)
+        # print(perf_group_2.id)
+        # print(error_group_3.id)
+        # print(error_group_4.id)
+
+        # probably want my_tag:1 instead of is:unresolved but this is the wrong query executor class
+        # not sure what the expected result actually should be w/ 2 perf issues and 2 error issues
+
+        results = self.run_test("is:unresolved", [perf_group_2], 4, limit=1, count_hits=True)
+        results = self.run_test(
+            "is:unresolved", [perf_group_1], 4, limit=1, cursor=results.next, count_hits=True
+        )
+        results = self.run_test(
+            "is:unresolved", [perf_group_2], 4, limit=1, cursor=results.prev, count_hits=True
+        )
+        self.run_test(
+            "is:unresolved",
+            [perf_group_1, self.group1],
+            4,
+            limit=2,
+            cursor=results.next,
+            count_hits=True,
         )
 
     def test_rechecking(self):
