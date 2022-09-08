@@ -17,6 +17,7 @@ from sentry.snuba.metrics import (
     SingularEntityDerivedMetric,
 )
 from sentry.snuba.metrics.fields.base import (
+    COMPOSITE_ENTITY_CONSTITUENT_ALIAS,
     DERIVED_ALIASES,
     CompositeEntityDerivedMetric,
     _get_known_entity_of_metric_mri,
@@ -515,22 +516,22 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             (
                 None,
                 SessionMRI.ERRORED_SET.value,
-                f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (
                 None,
                 SessionMRI.ERRORED_PREAGGREGATED.value,
-                f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (
                 None,
                 SessionMRI.CRASHED_AND_ABNORMAL.value,
-                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (
                 None,
                 SessionMRI.ERRORED_ALL.value,
-                f"{SessionMRI.ERRORED_ALL.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.ERRORED_ALL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (None, SessionMRI.ERRORED.value, alias),
         ]
@@ -544,24 +545,28 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             (
                 None,
                 SessionMRI.ERRORED_SET.value,
-                f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (
                 None,
                 SessionMRI.ERRORED_PREAGGREGATED.value,
-                f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (
                 None,
                 SessionMRI.CRASHED_AND_ABNORMAL.value,
-                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
             (
                 None,
                 SessionMRI.ERRORED_ALL.value,
-                f"{SessionMRI.ERRORED_ALL.value}__CHILD_OF__{alias}",
+                f"{SessionMRI.ERRORED_ALL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
             ),
-            (None, SessionMRI.ERRORED.value, f"{SessionMRI.ERRORED.value}__CHILD_OF__{alias}"),
+            (
+                None,
+                SessionMRI.ERRORED.value,
+                f"{SessionMRI.ERRORED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}",
+            ),
             (None, "random_composite", alias),
         ]
 
@@ -569,18 +574,53 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         metrics_query = object()
         alias = "sessions_errored"
         totals = {
-            f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{alias}": 3,
-            f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{alias}": 4.0,
-            f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{alias}": 0,
-            f"{SessionMRI.ERRORED.value}__CHILD_OF__{alias}": 0,
-            f"{SessionMRI.ERRORED_ALL.value}__CHILD_OF__{alias}": 7,
+            f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 3,
+            f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 4.0,
+            f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 0,
+            f"{SessionMRI.ERRORED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 0,
+            f"{SessionMRI.ERRORED_ALL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 7,
         }
         series = {
-            f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{alias}": [0, 0, 0, 0, 3, 0],
-            f"{SessionMRI.ERRORED.value}__CHILD_OF__{alias}": [0, 0, 0, 0, 0, 0],
-            f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{alias}": [4.0, 0, 0, 0, 0, 0],
-            f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{alias}": [0, 0, 0, 0, 0, 0],
-            f"{SessionMRI.ERRORED_ALL.value}__CHILD_OF__{alias}": [4.0, 0, 0, 0, 3, 0],
+            f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": [
+                0,
+                0,
+                0,
+                0,
+                3,
+                0,
+            ],
+            f"{SessionMRI.ERRORED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": [
+                4.0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            f"{SessionMRI.ERRORED_ALL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": [
+                4.0,
+                0,
+                0,
+                0,
+                3,
+                0,
+            ],
         }
         assert (
             self.sessions_errored.run_post_query_function(

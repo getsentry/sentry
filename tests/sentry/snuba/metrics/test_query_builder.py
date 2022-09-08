@@ -44,6 +44,7 @@ from sentry.snuba.metrics import (
     resolve_tags,
     translate_meta_results,
 )
+from sentry.snuba.metrics.fields.base import COMPOSITE_ENTITY_CONSTITUENT_ALIAS
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     addition,
@@ -428,12 +429,12 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
             (
                 None,
                 SessionMRI.ERRORED_PREAGGREGATED.value,
-                f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
             ),
             (
                 None,
                 SessionMRI.CRASHED_AND_ABNORMAL.value,
-                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
             ),
             (None, SessionMRI.CRASH_FREE_RATE.value, SessionMetricKey.CRASH_FREE_RATE.value),
             (None, SessionMRI.ALL.value, SessionMetricKey.ALL.value),
@@ -442,7 +443,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
             (
                 None,
                 SessionMRI.ERRORED_SET.value,
-                f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
             ),
         ],
     }
@@ -455,7 +456,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     errored_preaggr_sessions(
                         org_id,
                         metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
-                        alias=f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                        alias=f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                     addition(
                         crashed_sessions(
@@ -472,7 +473,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                             ],
                             alias=SessionMRI.ABNORMAL.value,
                         ),
-                        alias=f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                        alias=f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                     complement(
                         division_float(
@@ -527,7 +528,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                 select=[
                     uniq_aggregation_on_metric(
                         metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
-                        alias=f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                        alias=f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                 ],
                 groupby=groupby,
@@ -777,12 +778,12 @@ def test_translate_results_derived_metrics(_1, _2):
             (
                 None,
                 SessionMRI.ERRORED_PREAGGREGATED.value,
-                f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
             ),
             (
                 None,
                 SessionMRI.CRASHED_AND_ABNORMAL.value,
-                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
             ),
             (None, SessionMRI.CRASH_FREE_RATE.value, SessionMetricKey.CRASH_FREE_RATE.value),
             (None, SessionMRI.ALL.value, SessionMetricKey.ALL.value),
@@ -791,7 +792,7 @@ def test_translate_results_derived_metrics(_1, _2):
             (
                 None,
                 SessionMRI.ERRORED_SET.value,
-                f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}",
+                f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
             ),
         ],
     }
@@ -806,8 +807,8 @@ def test_translate_results_derived_metrics(_1, _2):
                     {
                         SessionMetricKey.CRASH_FREE_RATE.value: 0.5,
                         SessionMetricKey.ALL.value: 8.0,
-                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 3,
-                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 0,
+                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 3,
+                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 0,
                     }
                 ],
             },
@@ -817,15 +818,15 @@ def test_translate_results_derived_metrics(_1, _2):
                         "bucketed_time": "2021-08-24T00:00Z",
                         SessionMetricKey.CRASH_FREE_RATE.value: 0.5,
                         SessionMetricKey.ALL.value: 4,
-                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 1,
-                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 0,
+                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 1,
+                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 0,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
                         SessionMetricKey.CRASH_FREE_RATE.value: 0.5,
                         SessionMetricKey.ALL.value: 4,
-                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 2,
-                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 0,
+                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 2,
+                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 0,
                     },
                 ],
             },
@@ -834,7 +835,7 @@ def test_translate_results_derived_metrics(_1, _2):
             "totals": {
                 "data": [
                     {
-                        f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 3,
+                        f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 3,
                     },
                 ],
             },
@@ -842,11 +843,11 @@ def test_translate_results_derived_metrics(_1, _2):
                 "data": [
                     {
                         "bucketed_time": "2021-08-24T00:00Z",
-                        f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 2,
+                        f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 2,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
-                        f"{SessionMRI.ERRORED_SET.value}__CHILD_OF__{SessionMetricKey.ERRORED.value}": 1,
+                        f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 1,
                     },
                 ],
             },
