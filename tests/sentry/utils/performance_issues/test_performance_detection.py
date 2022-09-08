@@ -610,6 +610,17 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_n_plus_one_detector_ignores_non_select_queries(self):
+        update_n_plus_one_event = EVENTS["n-plus-one-in-django-new-view-updates"]
+
+        sdk_span_mock = Mock()
+        _detect_performance_problems(update_n_plus_one_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert not n_plus_one_fingerprint
+
 
 class PrepareProblemForGroupingTest(unittest.TestCase):
     def test(self):
