@@ -36,7 +36,7 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
 /**
  * Checks if an issue supports a specific capability.
  */
-export function issueSupports(
+export function getIssueCapability(
   issueCategory: IssueCategory,
   capability: keyof IssueCategoryCapabilities
 ) {
