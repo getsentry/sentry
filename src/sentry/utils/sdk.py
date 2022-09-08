@@ -107,8 +107,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     # This is the parent task of the next two tasks.
     "sentry.tasks.reports.prepare_reports": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.reports.prepare_organization_report": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.reports.deliver_organization_user_report": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.reports.prepare_organization_report": 0.1,
+    "sentry.tasks.reports.deliver_organization_user_report": 0.01,
     "sentry.tasks.process_buffer.process_incr": 0.01,
 }
 
