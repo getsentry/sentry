@@ -61,7 +61,7 @@ def create_event(spans, event_id="a" * 16):
 
 class PerformanceDetectionTest(unittest.TestCase):
     def setUp(self):
-        super(PerformanceDetectionTest, self).setUp()
+        super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()
         self.addCleanup(patch_project_option_get.stop)
