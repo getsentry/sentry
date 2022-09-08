@@ -52,14 +52,10 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
 }
 
-type CapabilityInfo =
-  | {
-      enabled: true;
-    }
-  | {
-      disabledReason: string;
-      enabled: false;
-    };
+type CapabilityInfo = {
+  enabled: boolean;
+  disabledReason?: string;
+};
 
 /**
  * Defines what capabilities a category of issue has. Not all categories of

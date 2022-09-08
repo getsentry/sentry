@@ -11,6 +11,7 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {IssueCategory} from 'sentry/types';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
 import {OrganizationContext} from '../organizationContext';
@@ -242,6 +243,37 @@ describe('IssueListActions', function () {
     // Can resolve but not merge issues from multiple projects
     expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
+  });
+
+  it('disables delete and merge actions when a performance issue is selected', () => {
+    jest
+      .spyOn(SelectedGroupStore, 'getSelectedIds')
+      .mockImplementation(() => new Set(['1', '2']));
+    jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+      switch (id) {
+        case '1':
+          return TestStubs.Group({
+            issueCategory: IssueCategory.ERROR,
+          });
+        default:
+          return TestStubs.Group({
+            issueCategory: IssueCategory.PERFORMANCE,
+          });
+      }
+    });
+
+    render(<WrappedComponent />);
+
+    expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
+
+    // Open overflow menu
+    userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+    // Delete menu item should be disabled
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   describe('mark reviewed', function () {
