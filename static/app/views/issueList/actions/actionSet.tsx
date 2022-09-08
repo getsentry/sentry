@@ -273,7 +273,6 @@ function ActionSet({
           showChevron: false,
           size: 'xs',
         }}
-        disabledKeys={menuItems.filter(item => item.disabled).map(item => item.key)}
         isDisabled={!anySelected}
       />
       <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
