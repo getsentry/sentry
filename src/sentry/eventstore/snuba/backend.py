@@ -6,7 +6,10 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import features
 from sentry.eventstore.base import EventStorage
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
@@ -194,6 +197,9 @@ class SnubaEventStorage(EventStorage):
             # Set passed group_id if not a transaction
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
+                org = Project.objects.select_related("organization").get(id=project_id)
+                if features.has("organizations:performance-issues", org):
+                    return event.for_group(Group.objects.get(id=group_id))
             else:
                 event.group_id = group_id
 
@@ -274,7 +280,13 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
+        dataset = (
+            snuba.Dataset.Transactions
+            if event.get_event_type() == "transaction"
+            else snuba.Dataset.Discover
+        )
+
+        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
     def get_prev_event_id(self, event, filter):
         """
@@ -293,14 +305,21 @@ class SnubaEventStorage(EventStorage):
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
 
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
+        dataset = (
+            snuba.Dataset.Transactions
+            if event.get_event_type() == "transaction"
+            else snuba.Dataset.Discover
+        )
+
+        return self.__get_event_id_from_filter(
+            filter=filter, orderby=DESC_ORDERING, dataset=dataset
+        )
 
     def __get_columns(self):
         return [col.value.event_name for col in EventStorage.minimal_columns]
 
-    def __get_event_id_from_filter(self, filter=None, orderby=None):
+    def __get_event_id_from_filter(self, filter=None, orderby=None, dataset=snuba.Dataset.Discover):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
-
         try:
             # This query uses the discover dataset to enable
             # getting events across both errors and transactions, which is
@@ -314,7 +333,7 @@ class SnubaEventStorage(EventStorage):
                 limit=1,
                 referrer="eventstore.get_next_or_prev_event_id",
                 orderby=orderby,
-                dataset=snuba.Dataset.Discover,
+                dataset=dataset,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging

@@ -22,6 +22,9 @@ class TSDBModel(Enum):
     group = 4
     release = 7
 
+    # number of transactions seen specific to a group
+    group_performance = 10
+
     # the number of events sent to the server
     project_total_received = 100
     # the number of events rejected due to rate limiting
