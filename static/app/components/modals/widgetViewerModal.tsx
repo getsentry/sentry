@@ -56,7 +56,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -1032,12 +1031,6 @@ function OpenButton({
       to={path}
       priority="primary"
       type="button"
-      disabled={isCustomMeasurementWidget(widget)}
-      title={
-        isCustomMeasurementWidget(widget)
-          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
-          : undefined
-      }
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,
