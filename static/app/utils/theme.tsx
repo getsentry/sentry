@@ -481,6 +481,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
   error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
+  unknown: colors.gray200,
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({

@@ -887,7 +887,7 @@ export function getCumulativeAlertLevelFromErrors(
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
 }
 
-// Maps the six known error levels to one of three Alert component types
+// Maps the known error levels to an Alert component types
 const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
   fatal: 'error',
   error: 'error',
@@ -895,6 +895,7 @@ const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert'
   warning: 'warning',
   sample: 'info',
   info: 'info',
+  unknown: 'muted',
 };
 
 // Allows sorting errors according to their level of severity
@@ -905,6 +906,7 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   warning: 3,
   sample: 2,
   info: 1,
+  unknown: 0,
 };
 
 /**
