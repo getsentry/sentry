@@ -527,6 +527,20 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
+    def test_finds_n_plus_one_with_db_dot_something_spans(self):
+        activerecord_n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-activerecord"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(activerecord_n_plus_one_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert (
+            n_plus_one_fingerprint
+            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8"
+        )
+
     def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self):
         query_waterfall_event = EVENTS["query-waterfall-in-django-random-view"]
         sdk_span_mock = Mock()
