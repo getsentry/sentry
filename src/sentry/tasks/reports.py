@@ -12,6 +12,7 @@ from typing import Iterable, Mapping, NamedTuple, Tuple
 import pytz
 from django.db.models import F
 from django.utils import dateformat, timezone
+from sentry_sdk import set_tag
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -576,7 +577,6 @@ def take_max_n(x, y, n):
     return series[:n]
 
 
-# This block generates a class and two functions and it is only built on first import
 Report, build_project_report, merge_reports = build_report(
     [
         (
@@ -702,7 +702,7 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     for i, organization_id in enumerate(
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
     ):
-        # One task per organization is created
+        # Create a celery task per organization
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
         if i % 10000 == 0:
             logger.info(
@@ -746,6 +746,8 @@ def verify_prepare_reports(*args, **kwargs):
 def prepare_organization_report(timestamp, duration, organization_id, user_id=None, dry_run=False):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
+        # This allows slicing the transactions by the org and we can determine if there are certain outliers
+        set_tag("org.slug", organization.slug)
     except Organization.DoesNotExist:
         logger.warning(
             "reports.organization.missing",
