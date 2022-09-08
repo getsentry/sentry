@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,8 +11,11 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
+if TYPE_CHECKING:
+    from sentry.models.group import Group
 
-class GroupEventsLatestEndpoint(GroupEndpoint):
+
+class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -18,7 +25,7 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
         }
     }
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve the Latest Event for an Issue
         ``````````````````````````````````````
