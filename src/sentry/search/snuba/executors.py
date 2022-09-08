@@ -317,7 +317,12 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", len(error_rows) + len(txn_rows))
 
-        return [(row["group_id"], row[sort_field]) for row in merge(error_rows, txn_rows)], total
+        def keyfunc(row):
+            return row.get("group_id")
+
+        return [
+            (row["group_id"], row[sort_field]) for row in merge(error_rows, txn_rows, key=keyfunc)
+        ], total
 
     def _transform_converted_filter(
         self,
