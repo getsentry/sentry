@@ -324,7 +324,7 @@ class Actions extends Component<Props, State> {
 
   openDeleteModal = () => {
     const {group} = this.props;
-    if (!getIssueCapability(group.issueCategory, 'delete')) {
+    if (!getIssueCapability(group.issueCategory, 'delete').enabled) {
       return;
     }
 
@@ -349,7 +349,7 @@ class Actions extends Component<Props, State> {
 
   openDiscardModal = () => {
     const {group, organization} = this.props;
-    if (!getIssueCapability(group.issueCategory, 'deleteAndDiscard')) {
+    if (!getIssueCapability(group.issueCategory, 'deleteAndDiscard').enabled) {
       return;
     }
 
@@ -475,7 +475,7 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  disabled: !getIssueCapability(group.issueCategory, 'delete'),
+                  disabled: !getIssueCapability(group.issueCategory, 'delete').enabled,
                   onAction: () => this.openDeleteModal(),
                 },
                 {
@@ -483,7 +483,8 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  disabled: !getIssueCapability(group.issueCategory, 'deleteAndDiscard'),
+                  disabled: !getIssueCapability(group.issueCategory, 'deleteAndDiscard')
+                    .enabled,
                   onAction: () => this.openDiscardModal(),
                 },
               ]}
