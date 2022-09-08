@@ -2,6 +2,13 @@ import {css} from '@emotion/react';
 
 import {Theme} from 'sentry/utils/theme';
 
+/**
+ * Inner padding for inputs. This is deprecated. If necessary, use the values
+ * in `theme.formPadding` instead. Be sure to specify the input size, e.g.
+ * `theme.formPadding.md.paddingLeft`.
+ *
+ * @deprecated
+ */
 export const INPUT_PADDING = 10;
 
 type Props = {
@@ -11,6 +18,23 @@ type Props = {
   readOnly?: boolean;
 };
 
+/**
+ * Styles for inputs/textareas. This is deprecated. Consider these
+ * alternatives:
+ *
+ * - [Strongly Recommended] Use the existing form components, such as:
+ *   + <Input /> from 'sentry/components/input'
+ *   + <Textarea /> from 'sentry/components/forms/controls/textarea'
+ *   + <TextCopyInput /> from 'sentry/components/forms/textCopyInput'
+ *   + …
+ *
+ * - Import `inputStyles` as a named import from 'sentry/components/input'.
+ * This is only meant for use in core, reusable components. It should rarely
+ * be used elsewhere (chances are you don't want all the styles that it comes
+ * with).
+ *
+ * @deprecated
+ */
 const inputStyles = (props: Props) =>
   css`
     color: ${props.disabled ? props.theme.disabled : props.theme.formText};
