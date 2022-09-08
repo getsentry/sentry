@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
@@ -12,6 +12,18 @@ import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownBut
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Menu from 'sentry/components/dropdownMenuV2';
 import {FormSize} from 'sentry/utils/theme';
+
+/**
+ * Recursively removes hidden items, including those nested in submenus
+ */
+function removeHiddenItems(source: MenuItemProps[]): MenuItemProps[] {
+  return source
+    .filter(item => !item.hidden)
+    .map(item => ({
+      ...item,
+      ...(item.children ? {children: removeHiddenItems(item.children)} : {}),
+    }));
+}
 
 type TriggerProps = {
   props: Omit<React.HTMLAttributes<Element>, 'children'> & {
@@ -90,6 +102,7 @@ type Props = {
  */
 function MenuControl({
   items,
+  disabledKeys,
   trigger,
   triggerLabel,
   triggerProps = {},
@@ -151,16 +164,6 @@ function MenuControl({
     updateTriggerWidth();
   }, [updateTriggerWidth]);
 
-  // Recursively remove hidden items, including those nested in submenus
-  function removeHiddenItems(source) {
-    return source
-      .filter(item => !item.hidden)
-      .map(item => ({
-        ...item,
-        ...(item.children ? {children: removeHiddenItems(item.children)} : {}),
-      }));
-  }
-
   function renderTrigger() {
     if (trigger) {
       return trigger({
@@ -186,6 +189,12 @@ function MenuControl({
     );
   }
 
+  const activeItems = useMemo(() => removeHiddenItems(items), [items]);
+  const defaultDisabledKeys = useMemo(
+    () => activeItems.filter(item => item.disabled).map(item => item.key),
+    [activeItems]
+  );
+
   function renderMenu() {
     if (!state.isOpen) {
       return null;
@@ -203,7 +212,8 @@ function MenuControl({
         shouldCloseOnBlur={!isSubmenu && props.shouldCloseOnBlur}
         closeRootMenu={closeRootMenu ?? state.close}
         closeCurrentSubmenu={closeCurrentSubmenu}
-        items={removeHiddenItems(items)}
+        disabledKeys={disabledKeys ?? defaultDisabledKeys}
+        items={activeItems}
       >
         {(item: MenuItemProps) => {
           if (item.children && item.children.length > 0 && !item.isSubmenu) {
