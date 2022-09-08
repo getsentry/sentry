@@ -6,6 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import IgnoreActions from 'sentry/components/actions/ignore';
+import {IssueCategory} from 'sentry/types';
 
 describe('IgnoreActions', function () {
   const spy = jest.fn();
@@ -13,9 +14,11 @@ describe('IgnoreActions', function () {
     jest.resetAllMocks();
   });
 
+  const GROUP_STUB = {issueCategory: IssueCategory.ERROR};
+
   describe('disabled', function () {
     it('does not call onUpdate when clicked', function () {
-      render(<IgnoreActions onUpdate={spy} disabled />);
+      render(<IgnoreActions group={GROUP_STUB} onUpdate={spy} disabled />);
       const button = screen.getByRole('button', {name: 'Ignore'});
       expect(button).toBeDisabled();
       userEvent.click(button);
@@ -25,7 +28,7 @@ describe('IgnoreActions', function () {
 
   describe('ignored', function () {
     it('displays ignored view', function () {
-      render(<IgnoreActions onUpdate={spy} isIgnored />);
+      render(<IgnoreActions group={GROUP_STUB} onUpdate={spy} isIgnored />);
       const button = screen.getByRole('button', {name: 'Unignore'});
       expect(button).toBeInTheDocument();
       // Shows icon only
@@ -38,7 +41,7 @@ describe('IgnoreActions', function () {
 
   describe('without confirmation', function () {
     it('calls spy with ignore details when clicked', function () {
-      render(<IgnoreActions onUpdate={spy} />);
+      render(<IgnoreActions group={GROUP_STUB} onUpdate={spy} />);
       const button = screen.getByRole('button', {name: 'Ignore'});
       userEvent.click(button);
       expect(spy).toHaveBeenCalledTimes(1);
@@ -48,7 +51,14 @@ describe('IgnoreActions', function () {
 
   describe('with confirmation step', function () {
     it('displays confirmation modal with message provided', function () {
-      render(<IgnoreActions onUpdate={spy} shouldConfirm confirmMessage="confirm me" />);
+      render(
+        <IgnoreActions
+          group={GROUP_STUB}
+          onUpdate={spy}
+          shouldConfirm
+          confirmMessage="confirm me"
+        />
+      );
       renderGlobalModal();
       const button = screen.getByRole('button', {name: 'Ignore'});
       userEvent.click(button);
