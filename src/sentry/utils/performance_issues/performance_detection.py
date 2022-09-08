@@ -829,7 +829,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
-                desc=self.source_span.get("description", ""),
+                desc=self.n_spans[0].get("description", ""),
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
                 spans_involved=span_ids_involved,
             )
