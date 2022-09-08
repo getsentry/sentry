@@ -921,12 +921,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if errors:
             all_errors.extend(errors)
 
-        # This might fail but that's okay, we try with a different path a
-        # bit later down the road.
-
-        # NOTE: Used for pre_context, context_line, post_context
-
-        # /assets/bundle.js.min
+        # Source is used for pre/post and context_line frame expansion.
+        # Initially its pointing to minified source, but can be shadowed with original source down the road.
         source = self.get_source(frame["abs_path"])
         source_context = None
 
@@ -998,7 +994,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame["lineno"] = token.line
                 new_frame["colno"] = token.col
 
-                if token.function_name not in useless_fn_names:
+                # If we have a usable function name from symbolic or we have no initial function name at all
+                if token.function_name not in useless_fn_names or not new_frame.get("function"):
                     new_frame["function"] = token.function_name
 
                 filename = token.src
