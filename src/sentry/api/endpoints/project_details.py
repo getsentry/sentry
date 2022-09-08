@@ -771,8 +771,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 self.dynamic_sampling_audit_log(
                     project,
                     request,
-                    old_data["dynamicSampling"],
-                    result["dynamicSampling"],
+                    old_data.get("dynamicSampling"),
+                    result.get("dynamicSampling"),
                 )
                 if len(changed_proj_settings) == 1:
                     data = serialize(project, request.user, DetailedProjectSerializer())
@@ -876,46 +876,41 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
     def dynamic_sampling_audit_log(
         self, project, request, old_raw_dynamic_sampling, new_raw_dynamic_sampling
     ):
-        if old_raw_dynamic_sampling is not None:
-            old_rules = old_raw_dynamic_sampling["rules"] or []
-            rules = new_raw_dynamic_sampling["rules"] or []
+        if old_raw_dynamic_sampling is None or new_raw_dynamic_sampling is None:
+            return
 
-            common_audit_data = {}
-            common_audit_data["request"] = request
-            common_audit_data["organization"] = project.organization
-            common_audit_data["target_object"] = project.id
-            common_audit_data["data"] = project.get_audit_log_data()
+        old_rules = old_raw_dynamic_sampling.get("rules", [])
+        new_rules = new_raw_dynamic_sampling.get("rules", [])
 
-            if len(rules) > len(old_rules):
-                self.create_audit_entry(
-                    **common_audit_data, event=audit_log.get_event_id("SAMPLING_RULE_ADD")
+        common_audit_data = {
+            "request": request,
+            "organization": project.organization,
+            "target_object": project.id,
+            "data": project.get_audit_log_data(),
+        }
+
+        def create_audit_entry_for_event(audit_data, event_text):
+            self.create_audit_entry(**audit_data, event=audit_log.get_event_id(event_text))
+
+        if len(new_rules) > len(old_rules):
+            create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_ADD")
+            return
+
+        if len(new_rules) < len(old_rules):
+            create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_REMOVE")
+            return
+
+        for index, rule in enumerate(new_rules):
+            if rule["active"] != old_rules[index]["active"]:
+                create_audit_entry_for_event(
+                    common_audit_data,
+                    "SAMPLING_RULE_ACTIVATE" if rule["active"] else "SAMPLING_RULE_DEACTIVATE",
                 )
                 return
 
-            if len(rules) < len(old_rules):
-                self.create_audit_entry(
-                    **common_audit_data, event=audit_log.get_event_id("SAMPLING_RULE_REMOVE")
-                )
-                return
+        common_audit_data["data"].update(new_raw_dynamic_sampling)
 
-            for index, rule in enumerate(rules):
-                if rule["active"] != old_rules[index]["active"]:
-                    if rule["active"] is True:
-                        self.create_audit_entry(
-                            **common_audit_data,
-                            event=audit_log.get_event_id("SAMPLING_RULE_ACTIVATE"),
-                        )
-                        return
-                    else:
-                        self.create_audit_entry(
-                            **common_audit_data,
-                            event=audit_log.get_event_id("SAMPLING_RULE_DEACTIVATE"),
-                        )
-                        return
-
-            common_audit_data["data"] = {**new_raw_dynamic_sampling, **project.get_audit_log_data()}
-
-            self.create_audit_entry(
-                **common_audit_data,
-                event=audit_log.get_event_id("SAMPLING_RULE_EDIT"),
-            )
+        create_audit_entry_for_event(
+            common_audit_data,
+            "SAMPLING_RULE_EDIT",
+        )
