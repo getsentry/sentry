@@ -2018,7 +2018,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                         problem = performance_problems_by_fingerprint[new_grouphash]
                         kwargs["type"] = problem.type.value
-                        kwargs["data"]["metadata"]["title"] = f"N+1 Query: {problem.desc}"
+                        kwargs["data"]["metadata"]["title"] = f"N+1 Query:{problem.desc}"
 
                         group = _create_group(project, event, **kwargs)
                         GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
@@ -2048,7 +2048,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     is_new = False
 
                     description = performance_problems_by_fingerprint[existing_grouphash.hash].desc
-                    kwargs["data"]["metadata"]["title"] = f"N+1 Query: {description}"
+                    kwargs["data"]["metadata"]["title"] = f"N+1 Query:{description}"
 
                     is_regression = _process_existing_aggregate(
                         group=group, event=job["event"], data=kwargs, release=job["release"]
