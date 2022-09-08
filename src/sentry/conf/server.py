@@ -2136,6 +2136,10 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+# How does production configure the Sentry DSN?
+# sentry/utils/sdk.py loads the upstream_dsn through this
+if os.environ.get("SENTRY_DSN"):
+    SENTRY_SDK_CONFIG["dsn"] = os.environ.get("SENTRY_DSN")
 
 # Callable to bind additional context for the Sentry SDK
 #

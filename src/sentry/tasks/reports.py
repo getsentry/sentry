@@ -576,6 +576,7 @@ def take_max_n(x, y, n):
     return series[:n]
 
 
+# This block generates a class and two functions and it is only built on first import
 Report, build_project_report, merge_reports = build_report(
     [
         (
@@ -649,6 +650,10 @@ class RedisReportBackend(ReportBackend):
         return Report(*json.loads(zlib.decompress(value)))
 
     def prepare(self, timestamp, duration, organization):
+        """
+        For every project belonging to the organization, serially build a report and zlib compress it
+        After this completes, store it in Redis with an expiration
+        """
         reports = {}
         for project in organization.project_set.all():
             reports[project.id] = self.__encode(self.build(timestamp, duration, project))
@@ -674,9 +679,13 @@ class RedisReportBackend(ReportBackend):
         return [self.__decode(val) for val in result.value]
 
 
-backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
+# We may want to use redis.redis_cluster
+# The difference between these two clusters is that one uses rb, which is our super old manual partitioning client
+redis_report_backend = RedisReportBackend(cluster=redis.clusters.get("default"), ttl=60 * 60 * 3)
 
 
+# This task triggers other Celery tasks, if you want it instrumented you need
+# to include the parent task in the list of SAMPLED_TASKS
 @instrumented_task(
     name="sentry.tasks.reports.prepare_reports",
     queue="reports.prepare",
@@ -688,10 +697,12 @@ def prepare_reports(dry_run=False, *args, **kwargs):
 
     logger.info("reports.begin_prepare_report")
 
+    # Get org ids of all visible organizations
     organizations = _get_organization_queryset().values_list("id", flat=True)
     for i, organization_id in enumerate(
         RangeQuerySetWrapper(organizations, step=10000, result_value_getter=lambda item: item)
     ):
+        # One task per organization is created
         prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
         if i % 10000 == 0:
             logger.info(
@@ -746,7 +757,7 @@ def prepare_organization_report(timestamp, duration, organization_id, user_id=No
         )
         return
 
-    backend.prepare(timestamp, duration, organization)
+    redis_report_backend.prepare(timestamp, duration, organization)
 
     # If an OrganizationMember row doesn't have an associated user, this is
     # actually a pending invitation, so no report should be delivered.
@@ -898,7 +909,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     reports = dict(
         filter(
             lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
-            zip(projects, backend.fetch(timestamp, duration, organization, projects)),
+            zip(projects, redis_report_backend.fetch(timestamp, duration, organization, projects)),
         )
     )
 
