@@ -1011,6 +1011,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Whether to allow issue only search on the issue list
+    "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
@@ -1143,6 +1145,8 @@ SENTRY_FEATURES = {
     "organizations:native-stack-trace-v2": False,
     # Enable performance issues
     "organizations:performance-issues": False,
+    # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
+    "organizations:performance-issues-ingest": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings

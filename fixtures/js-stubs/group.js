@@ -15,6 +15,8 @@ export function Group(params = {}) {
     isBookmarked: false,
     isPublic: false,
     isSubscribed: false,
+    issueCategory: 'error',
+    issueType: 'error',
     lastRelease: null,
     lastSeen: '2019-04-11T01:08:59Z',
     level: 'warning',
