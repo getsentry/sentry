@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
+from heapq import merge
 from typing import Any, List, Mapping, Sequence, Set, Tuple, cast
 
 import sentry_sdk
@@ -32,7 +34,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models import Environment, Group, Optional, Project
+from sentry.models import Environment, Group, Optional, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
@@ -150,7 +152,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         * a sorted list of (group_id, group_score) tuples sorted descending by score,
         * the count of total results (rows) available for this query.
         """
-
         filters = {"project_id": project_ids}
 
         environments = None
@@ -228,12 +229,52 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ]  # ensure stable sort within the same score
             referrer = "search"
 
-        snuba_results = snuba.aliased_query(
-            dataset=self.dataset,
+        organization = Organization.objects.get(id=organization_id)
+        if not features.has("organizations:performance-issues", organization):
+            snuba_results = snuba.aliased_query(
+                dataset=self.dataset,
+                start=start,
+                end=end,
+                selected_columns=selected_columns,
+                groupby=["group_id"],
+                conditions=conditions,
+                having=having,
+                filter_keys=filters,
+                aggregations=aggregations,
+                orderby=orderby,
+                referrer=referrer,
+                limit=limit,
+                offset=offset,
+                totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+                turbo=get_sample,  # Turn off FINAL when in sampling mode
+                sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+                condition_resolver=snuba.get_snuba_column_name,
+            )
+            rows = snuba_results["data"]
+            total = snuba_results["totals"]["total"]
+
+            if not get_sample:
+                metrics.timing("snuba.search.num_result_groups", len(rows))
+
+            return [(row["group_id"], row[sort_field]) for row in rows], total
+
+        # TODO(CEO): can this be consolidated?
+        query_partial = functools.partial(
+            snuba.aliased_query,
             start=start,
             end=end,
             selected_columns=selected_columns,
             groupby=["group_id"],
+            limit=limit,
+            offset=offset,
+            totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+            turbo=get_sample,  # Turn off FINAL when in sampling mode
+            sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+        )
+
+        snuba_error_results = query_partial(
+            dataset=self.dataset,  # CEO: should this be hardcoded to snuba.Dataset.Events or use self.dataset?
+            selected_columns=selected_columns,
             conditions=conditions,
             having=having,
             filter_keys=filters,
@@ -247,13 +288,35 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
             condition_resolver=snuba.get_snuba_column_name,
         )
-        rows = snuba_results["data"]
-        total = snuba_results["totals"]["total"]
+        # TODO: need to filter out and/or map the error-specific parameters in the following parameters to the
+        #       transaction-specific ones. CEO: which parameters?
+        mod_agg = aggregations.copy() if aggregations else []
+        mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
+
+        snuba_transaction_results = query_partial(
+            dataset=snuba.Dataset.Transactions,
+            selected_columns=selected_columns,
+            conditions=conditions,
+            having=having,
+            filter_keys=filters,
+            aggregations=mod_agg,
+            orderby=orderby,
+            referrer=referrer,
+            condition_resolver=functools.partial(
+                snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
+            ),
+        )
+
+        error_rows = snuba_error_results["data"]
+        txn_rows = snuba_transaction_results["data"]
+        total = (
+            snuba_error_results["totals"]["total"] + snuba_transaction_results["totals"]["total"]
+        )
 
         if not get_sample:
-            metrics.timing("snuba.search.num_result_groups", len(rows))
+            metrics.timing("snuba.search.num_result_groups", len(error_rows) + len(txn_rows))
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total
+        return [(row["group_id"], row[sort_field]) for row in merge(error_rows, txn_rows)], total
 
     def _transform_converted_filter(
         self,
@@ -353,6 +416,32 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             allow_postgres_only_search = features.has(
                 "organizations:issue-search-allow-postgres-only-search", projects[0].organization
             )
+
+            # This search is for some time window that ends with "now",
+            # so if the requested sort is `date` (`last_seen`) and there
+            # are no other Snuba-based search predicates, we can simply
+            # return the results from Postgres.
+            if (
+                cursor is None
+                and sort_by == "date"
+                and
+                # This handles tags and date parameters for search filters.
+                not [
+                    sf
+                    for sf in search_filters
+                    if sf.key.name not in self.postgres_only_fields.union(["date"])
+                ]
+            ):
+                group_queryset = group_queryset.order_by("-last_seen")
+                paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
+                metrics.incr("snuba.search.postgres_only")
+                # When its a simple django-only search, we count_hits like normal
+
+                # TODO: Add types to paginators and remove this
+                return cast(
+                    CursorResult[Group],
+                    paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+                )
 
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but

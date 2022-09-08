@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
+from sentry.event_manager import _pull_out_data
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
@@ -256,6 +257,40 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(search_filter_query="bar")
         assert set(results) == {self.group2}
+
+    def test_performance_query(self):
+        transaction_event_data = {
+            "level": "info",
+            "message": "ayoo",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        }
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [self.group]
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            transaction_event = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+
+        transaction_event.group = self.group
+        perf_group_1 = Group.objects.get(id=transaction_event.group_id)
+        perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+
+        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        assert set(results) == {perf_group_1}
 
     def test_query_multi_project(self):
         self.set_up_multi_project()
