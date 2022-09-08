@@ -34,7 +34,7 @@ class MetricField:
     metric_name: str
     alias: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # ToDo(ahmed): Once we allow MetricField to accept MRI, we should set the alias to the operation and public
         #  facing name
         if not self.alias:

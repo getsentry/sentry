@@ -520,7 +520,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     conversions to SnQL away from the query builder.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.metric_operation.op}({self.metric_object.metric_mri})"
 
     def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
@@ -552,7 +552,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         projects: Sequence[Project],
         metrics_query: MetricsQuery,
         use_case_id: UseCaseKey,
-        alias: str = None,
+        alias: str,
     ) -> List[OrderBy]:
         self.metric_operation.validate_can_orderby()
         return [
@@ -594,7 +594,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
 
     def generate_bottom_up_derived_metrics_dependencies(
         self, alias: str
-    ) -> Iterable[Tuple[MetricOperationType, str, Optional[str]]]:
+    ) -> Iterable[Tuple[MetricOperationType, str, str]]:
         return [(self.metric_operation.op, self.metric_object.metric_mri, alias)]
 
     def build_conditional_aggregate_for_metric(
@@ -651,7 +651,7 @@ class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressio
             f"{get_public_name_from_mri(self.metric_mri)} with a `projects` attribute."
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.metric_mri
 
 
@@ -752,6 +752,8 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
             arg_snql += cls.__recursively_generate_select_snql(org_id, arg, use_case_id)
 
         if alias is None:
+            # Aliases on components of SingularEntityDerivedMetric do not really matter as these evaluate to a single
+            # expression, and so what matters is the alias on that top level expression
             alias = derived_metric_mri
 
         assert derived_metric.snql is not None
@@ -931,7 +933,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         return entities_and_metric_mris
 
     def generate_bottom_up_derived_metrics_dependencies(
-        self, alias
+        self, alias: str
     ) -> Iterable[Tuple[Optional[MetricOperationType], str, str]]:
         # We are only interested in the dependency tree from instances of
         # CompositeEntityDerivedMetric as they don't have a direct mapping to SnQL and so
@@ -1328,7 +1330,7 @@ def metric_object_factory(
 
 
 def generate_bottom_up_dependency_tree_for_metrics(
-    metrics_query_fields_set: Set[Tuple[Optional[MetricOperationType], str]]
+    metrics_query_fields_set: Set[Tuple[Optional[MetricOperationType], str, str]]
 ) -> List[Tuple[Optional[MetricOperationType], str, str]]:
     """
     This function basically generates a dependency list for all instances of
