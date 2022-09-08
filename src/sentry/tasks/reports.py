@@ -871,6 +871,7 @@ def has_valid_aggregates(interval, project__report):
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
     try:
         organization = _get_organization_queryset().get(id=organization_id)
+        set_tag("org.slug", organization.slug)
     except Organization.DoesNotExist:
         logger.warning(
             "reports.organization.missing",
