@@ -115,6 +115,86 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.group2.save()
         self.store_group(self.group2)
 
+        transaction_event_data = {
+            "level": "info",
+            "message": "ayoo",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        }
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [self.group]
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            transaction_event = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+
+        transaction_event.group = self.group
+        self.perf_group_1 = Group.objects.get(id=transaction_event.group_id)
+        self.perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            transaction_event = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "b" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+
+        transaction_event.group = self.group
+        self.perf_group_2 = Group.objects.get(id=transaction_event.group_id)
+        self.perf_group_2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+
+        error_event_data = {
+            "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            "message": "bar",
+            "environment": "staging",
+            "tags": {
+                "server": "example.com",
+                "url": "http://example.com",
+                "sentry:user": "event2@example.com",
+                "my_tag": 1,
+            },
+        }
+
+        error_event = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_1"],
+                "event_id": "c" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_1"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_1 = Group.objects.get(id=error_event.group.id)
+
+        error_event_2 = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_2"],
+                "event_id": "d" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_2"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_2 = Group.objects.get(id=error_event_2.group.id)
+
         GroupBookmark.objects.create(user=self.user, group=self.group2, project=self.group2.project)
 
         GroupAssignee.objects.create(user=self.user, group=self.group2, project=self.group2.project)
@@ -259,99 +339,18 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         assert set(results) == {self.group2}
 
     def test_performance_query(self):
-        transaction_event_data = {
-            "level": "info",
-            "message": "ayoo",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [self.group]
-            return jobs, projects
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            transaction_event = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
-
-        transaction_event.group = self.group
-        perf_group_1 = Group.objects.get(id=transaction_event.group_id)
-        perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            transaction_event = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
-
-        transaction_event.group = self.group
-        perf_group_2 = Group.objects.get(id=transaction_event.group_id)
-        perf_group_2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-        assert set(results) == {perf_group_1}
-
-        error_event = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-error_group_1"],
-                "event_id": "b" * 32,
-                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "message": "bar",
-                "stacktrace": {"frames": [{"module": "group2"}]},
-                "environment": "staging",
-                "tags": {
-                    "server": "example.com",
-                    "url": "http://example.com",
-                    "sentry:user": "event2@example.com",
-                    "my_tag": 1,
-                },
-            },
-            project_id=self.project.id,
-        )
-
-        error_group_1 = Group.objects.get(id=error_event.group.id)
-
-        error_event_2 = self.store_event(
-            data={
-                "fingerprint": ["put-me-in-error_group_1"],
-                "event_id": "b" * 32,
-                "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-                "message": "bar",
-                "stacktrace": {"frames": [{"module": "group2"}]},
-                "environment": "staging",
-                "tags": {
-                    "server": "example.com",
-                    "url": "http://example.com",
-                    "sentry:user": "event2@example.com",
-                    "my_tag": 1,
-                },
-            },
-            project_id=self.project.id,
-        )
-
-        error_group_2 = Group.objects.get(id=error_event_2.group.id)
+        assert set(results) == {self.perf_group_1}
 
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="my_tag:1")
-        assert set(results) == {perf_group_1, error_group_1, perf_group_2, error_group_2}
+        assert set(results) == {
+            self.perf_group_1,
+            self.error_group_1,
+            self.perf_group_2,
+            self.error_group_2,
+        }
 
     def test_query_multi_project(self):
         self.set_up_multi_project()
