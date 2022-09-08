@@ -65,6 +65,7 @@ function EventOrGroupHeader({
         {!hideLevel && level && (
           <Tooltip
             skipWrapper
+            disabled={level === 'unknown'}
             title={tct('Error level: [level]', {level: capitalize(level)})}
           >
             <GroupLevel level={level} />
