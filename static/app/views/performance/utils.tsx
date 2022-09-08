@@ -67,12 +67,7 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
   const discoverEventView = EventView.fromNewQueryWithLocation(
     query,
     props.location
-  ).withSorts([
-    {
-      field: 'epm',
-      kind: 'desc',
-    },
-  ]);
+  ).withSorts([{field: 'epm', kind: 'desc'}]);
   const target = discoverEventView.getResultsViewUrlTarget(props.organization.slug);
   target.query[SHOW_UNPARAM_BANNER] = 'true';
   return target;
