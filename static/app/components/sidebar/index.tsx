@@ -266,7 +266,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
-        isAlpha
+        isBeta
       />
     </Feature>
   );
@@ -331,12 +331,12 @@ function Sidebar({location, organization}: Props) {
                 {projects}
                 {issues}
                 {performance}
+                {profiling}
                 {releases}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-                {profiling}
               </SidebarSection>
 
               <SidebarSection>

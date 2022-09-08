@@ -31,13 +31,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
         )
 
     @cached_property
-    def producer(self):
-        # TODO: The producer is currently hardcoded to KAFKA_EVENTS. This assumes that the transactions
-        # topic is either the same (or is on the same cluster) as the events topic. Since we are in the
-        # process of splitting the topic this will no longer be true. This should be fixed and we should
-        # drop this requirement when the KafkaEventStream is refactored to be agnostic of dataset specific
-        # details and the correct topic should be passed into here instead of hardcoding events.
+    def errors_producer(self):
         return kafka.producers.get(settings.KAFKA_EVENTS)
+
+    @cached_property
+    def transactions_producer(self):
+        return kafka.producers.get(settings.KAFKA_TRANSACTIONS)
 
     def delivery_callback(self, error, message):
         if error is not None:
@@ -45,7 +44,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _get_headers_for_insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -94,7 +92,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
         else:
             return {
                 **super()._get_headers_for_insert(
-                    group,
                     event,
                     is_new,
                     is_regression,
@@ -107,7 +104,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        group,
         event,
         is_new,
         is_regression,
@@ -131,7 +127,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             kwargs[KW_SKIP_SEMANTIC_PARTITIONING] = True
 
         return super().insert(
-            group,
             event,
             is_new,
             is_regression,
@@ -157,6 +152,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
         headers["operation"] = _type
         headers["version"] = str(self.EVENT_PROTOCOL_VERSION)
 
+        if is_transaction_event:
+            topic = self.transactions_topic
+            producer = self.transactions_producer
+        else:
+            topic = self.topic
+            producer = self.errors_producer
+
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
         # to be delivered) and the corresponding callback being fired is
@@ -167,14 +169,12 @@ class KafkaEventStream(SnubaProtocolEventStream):
         # a heartbeat for the purposes of any sort of session expiration.)
         # Note that this call to poll() is *only* dealing with earlier
         # asynchronous produce() calls from the same process.
-        self.producer.poll(0.0)
+        producer.poll(0.0)
 
         assert isinstance(extra_data, tuple)
 
         try:
-            topic = self.transactions_topic if is_transaction_event else self.topic
-
-            self.producer.produce(
+            producer.produce(
                 topic=topic,
                 key=str(project_id).encode("utf-8") if not skip_semantic_partitioning else None,
                 value=json.dumps((self.EVENT_PROTOCOL_VERSION, _type) + extra_data),
@@ -187,7 +187,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         if not asynchronous:
             # flush() is a convenience method that calls poll() until len() is zero
-            self.producer.flush()
+            producer.flush()
 
     def requires_post_process_forwarder(self):
         return True
@@ -199,9 +199,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         concurrency = options.get(_CONCURRENCY_OPTION)
         logger.info(f"Starting post process forwarder to consume {entity} messages")
@@ -249,9 +249,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         consumer = self._build_consumer(
             entity,
@@ -279,9 +279,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         topic: Optional[str],
         commit_log_topic: str,
         synchronize_commit_group: str,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]] = "latest",
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         logger.debug("Starting post-process forwarder...")
 

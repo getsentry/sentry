@@ -763,6 +763,8 @@ function buildRoutes() {
           )}
         />
       </Route>
+
+      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
           component={make(
@@ -1047,7 +1049,7 @@ function buildRoutes() {
 
   const replayRoutes = (
     <Route
-      path="/organizations/:orgSlug/replays/"
+      path="/organizations/:orgId/replays/"
       component={make(() => import('sentry/views/replays'))}
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />

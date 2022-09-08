@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from functools import partial
 from typing import Callable, Mapping, Optional, Union
 
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -17,13 +16,13 @@ from sentry.runner import configure
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
-from sentry.sentry_metrics.consumers.indexer.processing import process_messages
+from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
 
-class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
+class Unbatcher(ProcessingStep[MessageBatch]):
     def __init__(
         self,
         next_step: ProcessingStep[KafkaPayload],
@@ -54,7 +53,7 @@ class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
         self.__next_step.join(timeout)
 
 
-class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
+class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     """
     Builds an indexer consumer based on the multi process transform Arroyo step.
 
@@ -113,7 +112,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            partial(process_messages, self.__config.use_case_id),
+            MessageProcessor(self.__config).process_messages,
             Unbatcher(
                 SimpleProduceStep(
                     commit_function=commit,
@@ -160,7 +159,7 @@ def get_parallel_metrics_consumer(
     auto_offset_reset: str,
     indexer_profile: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
-) -> StreamProcessor:
+) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
         max_msg_batch_time=max_msg_batch_time,

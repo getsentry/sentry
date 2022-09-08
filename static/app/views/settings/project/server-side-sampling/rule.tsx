@@ -8,6 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownLink from 'sentry/components/dropdownLink';
 import NewBooleanField from 'sentry/components/forms/booleanField';
+import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconDownload, IconEllipsis} from 'sentry/icons';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -27,6 +28,11 @@ type Props = {
    */
   hideGrabButton: boolean;
   listeners: DraggableSyntheticListeners;
+  /**
+   * While loading we show a placeholder in place of the "Active" toggle
+   * Without this we can't know if they are able to activate the rule or not
+   */
+  loadingRecommendedSdkUpgrades: boolean;
   noPermission: boolean;
   onActivate: () => void;
   onDeleteRule: () => void;
@@ -53,11 +59,12 @@ export function Rule({
   grabAttributes,
   hideGrabButton,
   upgradeSdkForProjects,
+  loadingRecommendedSdkUpgrades,
 }: Props) {
   const isUniform = isUniformRule(rule);
   const canDelete = !noPermission && !isUniform;
-  const canActivate = !noPermission && !upgradeSdkForProjects.length;
-  const canDrag = !isUniform && !noPermission;
+  const canDrag = !noPermission && !isUniform;
+  const canActivate = !noPermission && (!upgradeSdkForProjects.length || rule.active);
 
   return (
     <Fragment>
@@ -122,34 +129,38 @@ export function Rule({
         <SampleRate>{formatPercentage(rule.sampleRate)}</SampleRate>
       </RateColumn>
       <ActiveColumn>
-        <GuideAnchor
-          target="sampling_rule_toggle"
-          onFinish={onActivate}
-          disabled={!canActivate || !isUniform}
-        >
-          <Tooltip
-            disabled={canActivate}
-            title={
-              !canActivate
-                ? tn(
-                    'To enable the rule, the recommended sdk version have to be updated',
-                    'To enable the rule, the recommended sdk versions have to be updated',
-                    upgradeSdkForProjects.length
-                  )
-                : undefined
-            }
+        {loadingRecommendedSdkUpgrades ? (
+          <ActivateTogglePlaceholder />
+        ) : (
+          <GuideAnchor
+            target="sampling_rule_toggle"
+            onFinish={onActivate}
+            disabled={!canActivate || !isUniform}
           >
-            <ActiveToggle
-              inline={false}
-              hideControlState
-              aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
-              onClick={onActivate}
-              name="active"
-              disabled={!canActivate}
-              value={rule.active}
-            />
-          </Tooltip>
-        </GuideAnchor>
+            <Tooltip
+              disabled={canActivate}
+              title={
+                !canActivate
+                  ? tn(
+                      'To enable the rule, the recommended sdk version have to be updated',
+                      'To enable the rule, the recommended sdk versions have to be updated',
+                      upgradeSdkForProjects.length
+                    )
+                  : undefined
+              }
+            >
+              <ActiveToggle
+                inline={false}
+                hideControlState
+                aria-label={rule.active ? t('Deactivate Rule') : t('Activate Rule')}
+                onClick={onActivate}
+                name="active"
+                disabled={!canActivate}
+                value={rule.active}
+              />
+            </Tooltip>
+          </GuideAnchor>
+        )}
       </ActiveColumn>
       <Column>
         <EllipisDropDownButton
@@ -162,7 +173,6 @@ export function Rule({
           <MenuItemActionLink
             shouldConfirm={false}
             icon={<IconDownload size="xs" />}
-            title={t('Edit')}
             onClick={
               !noPermission
                 ? onEditRule
@@ -171,6 +181,7 @@ export function Rule({
                   }
             }
             disabled={noPermission}
+            aria-label={t('Edit')}
           >
             <Tooltip
               disabled={!noPermission}
@@ -184,10 +195,10 @@ export function Rule({
             onAction={onDeleteRule}
             message={t('Are you sure you wish to delete this rule?')}
             icon={<IconDownload size="xs" />}
-            title={t('Delete')}
             disabled={!canDelete}
             priority="danger"
             shouldConfirm
+            aria-label={t('Delete')}
           >
             <Tooltip
               disabled={canDelete}
@@ -288,6 +299,11 @@ const ActiveToggle = styled(NewBooleanField)`
   padding: 0;
   height: 34px;
   justify-content: center;
+`;
+
+const ActivateTogglePlaceholder = styled(Placeholder)`
+  height: 24px;
+  margin-top: ${space(0.5)};
 `;
 
 const ConditionName = styled('div')`

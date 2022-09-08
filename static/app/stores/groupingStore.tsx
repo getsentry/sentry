@@ -7,11 +7,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import GroupingActions from 'sentry/actions/groupingActions';
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -130,12 +128,11 @@ interface GroupingStoreDefinition
     }>
   ): Promise<any>;
   onMerge(props: {
+    projectId: Project['id'];
     params?: {
       groupId: Group['id'];
       orgId: Organization['id'];
-      projectId: Project['id'];
     };
-    projectId?: Project['id'];
     query?: string;
   }): undefined | Promise<any>;
   onToggleCollapseFingerprint(fingerprint: string): void;
@@ -177,7 +174,6 @@ interface GroupingStoreDefinition
 }
 
 const storeConfig: GroupingStoreDefinition = {
-  listenables: [GroupingActions],
   api: new Client(),
 
   init() {
@@ -517,7 +513,7 @@ const storeConfig: GroupingStoreDefinition = {
         this.api,
         {
           orgId,
-          projectId: projectId || params.projectId,
+          projectId,
           itemIds: [...ids, groupId],
           query,
         },
@@ -625,5 +621,5 @@ const storeConfig: GroupingStoreDefinition = {
   },
 };
 
-const GroupingStore = createStore(makeSafeRefluxStore(storeConfig));
+const GroupingStore = createStore(storeConfig);
 export default GroupingStore;
