@@ -1,16 +1,29 @@
 """
 Metrics Service Layer Tests for Performance
 """
+import time
 from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
+from freezegun import freeze_time
+from snuba_sdk import Direction, Granularity, Limit, Offset
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import (
+    MetricField,
+    MetricGroupByField,
+    MetricsQuery,
+    OrderBy,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
-from sentry.snuba.metrics.query_builder import QueryDefinition
+from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
+from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
 from sentry.testutils import BaseMetricsTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -46,6 +59,348 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 {"name": "transaction.failure_rate", "type": "Float64"},
                 {"name": "transaction.miserable_user", "type": "UInt64"},
                 {"name": "transaction.user_misery", "type": "Float64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_alias_on_different_metrics_expression(self):
+        now = before_now(minutes=0)
+
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            for value in [123.4] * count:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={"transaction": v_transaction, "measurement_rating": "poor"},
+                    timestamp=int(time.time()),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    alias="count_lcp",
+                ),
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                    alias="count_fcp",
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            groupby=[MetricGroupByField(name="transaction", alias="transaction_group")],
+            orderby=[
+                OrderBy(
+                    MetricField(
+                        op="count",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        alias="count_lcp",
+                    ),
+                    Direction.DESC,
+                ),
+                OrderBy(
+                    MetricField(
+                        op="count",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                        alias="count_fcp",
+                    ),
+                    Direction.DESC,
+                ),
+            ],
+            limit=Limit(limit=2),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        groups = data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction_group": expected_transaction}
+            assert group["totals"] == {
+                "count_lcp": expected_count,
+                "count_fcp": 0,
+            }
+
+        assert data["meta"] == sorted(
+            [
+                {"name": "count_fcp", "type": "UInt64"},
+                {"name": "count_lcp", "type": "UInt64"},
+                {"name": "transaction_group", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_alias_on_same_metrics_expression_but_different_aliases(self):
+        now = before_now(minutes=0)
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            for value in [123.4] * count:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={"transaction": v_transaction, "measurement_rating": "poor"},
+                    timestamp=int(time.time()),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    alias="count_lcp",
+                ),
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    alias="count_lcp_2",
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            groupby=[
+                MetricGroupByField("transaction", alias="transaction_group"),
+            ],
+            orderby=[
+                OrderBy(
+                    MetricField(
+                        op="count",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        alias="count_lcp",
+                    ),
+                    Direction.DESC,
+                ),
+                OrderBy(
+                    MetricField(
+                        op="count",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        alias="count_lcp_2",
+                    ),
+                    Direction.DESC,
+                ),
+            ],
+            limit=Limit(limit=2),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        groups = data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction_group": expected_transaction}
+            assert group["totals"] == {
+                "count_lcp": expected_count,
+                "count_lcp_2": expected_count,
+            }
+        assert data["meta"] == sorted(
+            [
+                {"name": "count_lcp", "type": "UInt64"},
+                {"name": "count_lcp_2", "type": "UInt64"},
+                {"name": "transaction_group", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    @freeze_time()
+    def test_alias_on_single_entity_derived_metrics(self):
+        now = timezone.now()
+
+        for value, tag_value in (
+            (3.4, TransactionStatusTagValue.OK.value),
+            (0.3, TransactionStatusTagValue.CANCELLED.value),
+            (2.3, TransactionStatusTagValue.UNKNOWN.value),
+            (0.5, TransactionStatusTagValue.ABORTED.value),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
+                timestamp=now.timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op=None,
+                    metric_name=TransactionMetricKey.FAILURE_RATE.value,
+                    alias="failure_rate_alias",
+                ),
+            ],
+            start=now - timedelta(minutes=1),
+            end=now,
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=2),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        assert len(data["groups"]) == 1
+        group = data["groups"][0]
+        assert group["by"] == {}
+        assert group["totals"] == {"failure_rate_alias": 0.25}
+        assert data["meta"] == [{"name": "failure_rate_alias", "type": "Float64"}]
+
+    def test_groupby_aliasing_with_multiple_groups_and_orderby(self):
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [10, 11, 12]),
+            ("transaction", "/bar/", [4, 5, 6]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        for tag, value, numbers in (
+            ("transaction", "/foo/", [1, 2, 3]),
+            ("transaction", "/bar/", [13, 14, 15]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_FCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "1h",
+                "interval": "1h",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="p50",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    alias="p50_lcp",
+                ),
+                MetricField(
+                    op="p50",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                    alias="p50_fcp",
+                ),
+            ],
+            start=start,
+            end=end,
+            groupby=[
+                MetricGroupByField("transaction", "transaction_group"),
+                MetricGroupByField("project_id", "project"),
+                MetricGroupByField("project", "project_alias"),
+            ],
+            orderby=[
+                OrderBy(
+                    MetricField(
+                        op="p50",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        alias="p50_lcp",
+                    ),
+                    direction=Direction.ASC,
+                )
+            ],
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar/", 5.0, 14.0),
+            ("/foo/", 11.0, 2.0),
+        ]
+        for (expected_tag_value, expected_lcp_count, expected_fcp_count), group in zip(
+            expected, groups
+        ):
+            # With orderBy, you only get totals:
+            assert group["by"] == {
+                "transaction_group": expected_tag_value,
+                "project": self.project.id,
+                "project_alias": self.project.id,
+            }
+            assert group["totals"] == {
+                "p50_lcp": expected_lcp_count,
+                "p50_fcp": expected_fcp_count,
+            }
+            assert group["series"] == {
+                "p50_lcp": [expected_lcp_count],
+                "p50_fcp": [expected_fcp_count],
+            }
+        assert data["meta"] == sorted(
+            [
+                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "p50_fcp", "type": "Array(Float64)"},
+                {"name": "p50_lcp", "type": "Array(Float64)"},
+                {"name": "project", "type": "string"},
+                {"name": "project_alias", "type": "string"},
+                {"name": "transaction_group", "type": "string"},
             ],
             key=lambda elem: elem["name"],
         )
