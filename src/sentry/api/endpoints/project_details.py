@@ -877,8 +877,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         self, project, request, old_raw_dynamic_sampling, new_raw_dynamic_sampling
     ):
         if old_raw_dynamic_sampling is not None:
-            old_rules = json.loads(old_raw_dynamic_sampling)["rules"] or {}
-            rules = json.loads(new_raw_dynamic_sampling)["rules"] or {}
+            old_rules = old_raw_dynamic_sampling["rules"] or []
+            rules = new_raw_dynamic_sampling["rules"] or []
 
             common_audit_data = {}
             common_audit_data["request"] = request
@@ -913,8 +913,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                         )
                         return
 
+            common_audit_data["data"] = {**new_raw_dynamic_sampling, **project.get_audit_log_data()}
+
             self.create_audit_entry(
                 **common_audit_data,
                 event=audit_log.get_event_id("SAMPLING_RULE_EDIT"),
-                data={**new_raw_dynamic_sampling, **project.get_audit_log_data()},
             )
