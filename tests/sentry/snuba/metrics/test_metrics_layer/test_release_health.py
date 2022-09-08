@@ -44,7 +44,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             include_meta=True,
             use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
-        print(data["meta"])
         assert data["meta"] == sorted(
             [
                 {"name": "environment", "type": "string"},

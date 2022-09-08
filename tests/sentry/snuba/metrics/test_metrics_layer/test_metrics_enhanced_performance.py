@@ -211,7 +211,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        print(data["meta"])
         groups = data["groups"]
         assert len(groups) == 2
 
