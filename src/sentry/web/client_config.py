@@ -211,7 +211,6 @@ def get_client_config(request=None):
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
         "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
-        "disableU2FForSUForm": getattr(settings, "DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL", False),
         "links": {
             "organizationUrl": generate_organization_url(last_org_slug) if last_org_slug else None,
             "regionUrl": generate_region_url() if last_org_slug else None,
