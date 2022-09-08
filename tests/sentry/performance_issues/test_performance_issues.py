@@ -62,6 +62,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert group.get_event_metadata() == {
                 "location": "/books/",
                 "title": "N+1 Query: SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "type": "N+1 Query",
+                "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             }
             assert group.location() == "/books/"
             assert group.level == 40
@@ -106,6 +108,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert group.get_event_metadata() == {
                 "location": "/books/",
                 "title": "N+1 Query: SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "type": "N+1 Query",
+                "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             }
             assert group.location() == "/books/"
             assert group.message == "/books/"

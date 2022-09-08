@@ -1184,6 +1184,14 @@ def materialize_metadata(data, event_type, event_metadata):
     }
 
 
+def inject_performance_problem_metadata(metadata, problem: PerformanceProblem):
+    # TODO make type here dynamic, pull it from group type
+    metadata["type"] = "N+1 Query"
+    metadata["value"] = problem.desc
+    metadata["title"] = f"N+1 Query: {problem.desc}"
+    return metadata
+
+
 def get_culprit(data):
     """Helper to calculate the default culprit"""
     return force_text(
@@ -2033,10 +2041,14 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
                         problem = performance_problems_by_fingerprint[new_grouphash]
-                        kwargs["type"] = problem.type.value
-                        kwargs["data"]["metadata"]["title"] = f"N+1 Query: {problem.desc}"
+                        group_kwargs = kwargs.copy()
+                        group_kwargs["type"] = problem.type.value
 
-                        group = _create_group(project, event, **kwargs)
+                        group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
+                            group_kwargs["data"]["metadata"], problem
+                        )
+
+                        group = _create_group(project, event, **group_kwargs)
                         GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
 
                         is_new = True
@@ -2063,11 +2075,14 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                     is_new = False
 
-                    description = performance_problems_by_fingerprint[existing_grouphash.hash].desc
-                    kwargs["data"]["metadata"]["title"] = f"N+1 Query: {description}"
+                    problem = performance_problems_by_fingerprint[existing_grouphash.hash]
+                    group_kwargs = kwargs.copy()
+                    group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
+                        group_kwargs["data"]["metadata"], problem
+                    )
 
                     is_regression = _process_existing_aggregate(
-                        group=group, event=job["event"], data=kwargs, release=job["release"]
+                        group=group, event=job["event"], data=group_kwargs, release=job["release"]
                     )
 
                     job["groups"].append(
