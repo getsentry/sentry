@@ -132,6 +132,37 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         We usually return a paginator object, which contains the results and the number of hits"""
         raise NotImplementedError
 
+    def update_conditions(
+        self,
+        key: str,
+        operator: str,
+        value: str,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Sequence[Environment],
+        environment_ids: Sequence[int],
+        conditions: Sequence[any],
+    ) -> Sequence[any]:
+        search_filter = SearchFilter(
+            key=SearchKey(name=key),
+            operator=operator,
+            value=SearchValue(raw_value=value),
+        )
+        converted_filter = convert_search_filter_to_snuba_query(
+            search_filter,
+            params={
+                "organization_id": organization_id,
+                "project_id": project_ids,
+                "environment": environments,
+            },
+        )
+        converted_filter = self._transform_converted_filter(
+            search_filter, converted_filter, project_ids, environment_ids
+        )
+        updated_conditions = conditions.copy()
+        updated_conditions.append(converted_filter)
+        return updated_conditions
+
     def snuba_search(
         self,
         start: datetime,
@@ -261,84 +292,54 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         query_partial = functools.partial(
             snuba.aliased_query,
+            dataset=snuba.Dataset.Discover,
             start=start,
             end=end,
             selected_columns=selected_columns,
             groupby=["group_id"],
             limit=limit,
             offset=offset,
-            totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
-            turbo=get_sample,  # Turn off FINAL when in sampling mode
-            sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
-        )
-
-        error_filter = SearchFilter(
-            key=SearchKey(name="event.type"),
-            operator="!=",
-            value=SearchValue(raw_value="transaction"),
-        )
-        converted_error_filter = convert_search_filter_to_snuba_query(
-            error_filter,
-            params={
-                "organization_id": organization_id,
-                "project_id": project_ids,
-                "environment": environments,
-            },
-        )
-        converted_error_filter = self._transform_converted_filter(
-            error_filter, converted_error_filter, project_ids, environment_ids
-        )
-        error_conditions = conditions.copy()
-        error_conditions.append(converted_error_filter)
-
-        snuba_error_results = query_partial(
-            dataset=snuba.Dataset.Discover,
-            selected_columns=selected_columns,
-            conditions=error_conditions,
-            having=having,
-            filter_keys=filters,
-            aggregations=aggregations,
             orderby=orderby,
             referrer=referrer,
-            limit=limit,
-            offset=offset,
+            having=having,
+            filter_keys=filters,
             totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
             turbo=get_sample,  # Turn off FINAL when in sampling mode
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+        )
+
+        error_conditions = self.update_conditions(
+            "event.type",
+            "!=",
+            "transaction",
+            organization_id,
+            project_ids,
+            environments,
+            environment_ids,
+            conditions,
+        )
+        snuba_error_results = query_partial(
+            conditions=error_conditions,
+            aggregations=aggregations,
             condition_resolver=snuba.get_snuba_column_name,
         )
-        # TODO: need to filter out and/or map the error-specific parameters in the following parameters to the
-        #       transaction-specific ones. CEO: which parameters?
+
         mod_agg = aggregations.copy() if aggregations else []
         mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
-        txn_filter = SearchFilter(
-            key=SearchKey(name="event.type"),
-            operator="=",
-            value=SearchValue(raw_value="transaction"),
+        transaction_conditions = self.update_conditions(
+            "event.type",
+            "=",
+            "transaction",
+            organization_id,
+            project_ids,
+            environments,
+            environment_ids,
+            conditions,
         )
-        converted_txn_filter = convert_search_filter_to_snuba_query(
-            txn_filter,
-            params={
-                "organization_id": organization_id,
-                "project_id": project_ids,
-                "environment": environments,
-            },
-        )
-        converted_txn_filter = self._transform_converted_filter(
-            txn_filter, converted_txn_filter, project_ids, environment_ids
-        )
-        conditions.append(converted_txn_filter)
-
         snuba_transaction_results = query_partial(
-            dataset=snuba.Dataset.Discover,
-            selected_columns=selected_columns,
-            conditions=conditions,
-            having=having,
-            filter_keys=filters,
+            conditions=transaction_conditions,
             aggregations=mod_agg,
-            orderby=orderby,
-            referrer=referrer,
             condition_resolver=functools.partial(
                 snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
             ),
