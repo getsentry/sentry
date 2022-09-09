@@ -58,7 +58,7 @@ const INITIAL_STATE = Object.freeze({
   traces: null,
 });
 
-function Trace({replayRecord, organization}: Props) {
+export default function Trace({replayRecord, organization}: Props) {
   const [state, setState] = useState<State>(INITIAL_STATE);
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
@@ -171,5 +171,3 @@ function Trace({replayRecord, organization}: Props) {
   );
   // TODO(replays): pagination
 }
-
-export default Trace;
