@@ -23,7 +23,7 @@ export function projectStatsToPredictedSeries(
   let serverRate = Math.max(Math.min(server, 1), 0);
 
   const commonSeriesConfig = {
-    barMinHeight: 1,
+    barMinHeight: 0,
     type: 'bar',
     stack: 'predictedUsage',
   };

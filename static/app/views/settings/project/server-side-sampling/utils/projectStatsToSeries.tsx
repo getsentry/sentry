@@ -19,7 +19,7 @@ export function projectStatsToSeries(
   }
 
   const commonSeriesConfig = {
-    barMinHeight: 1,
+    barMinHeight: 0,
     type: 'bar',
     stack: 'usage',
   };
