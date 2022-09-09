@@ -97,7 +97,6 @@ describe('ProjectCspReports', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    // Click Regenerate Token
     userEvent.type(
       screen.getByRole('textbox', {
         name: 'Additional ignored sources Discard reports about requests from the given sources. Separate multiple entries with a newline.',
