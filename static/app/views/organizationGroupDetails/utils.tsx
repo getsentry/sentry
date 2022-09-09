@@ -26,7 +26,7 @@ export async function fetchGroupEvent(
   const url =
     eventId === 'latest' || eventId === 'oldest'
       ? `/issues/${groupId}/events/${eventId}/`
-      : `/projects/${orgId}/${projectId}/events/${eventId}/?group_id=${groupId}`;
+      : `/projects/${orgId}/${projectId}/events/${eventId}/`;
 
   const query: {environment?: string[]} = {};
   if (envNames.length !== 0) {
