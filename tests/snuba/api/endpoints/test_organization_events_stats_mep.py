@@ -63,7 +63,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
                 },
             )
             assert response.status_code == 200, response.content
-            print(response.data)
             data = response.data["data"]
             assert len(data) == 6
             assert response.data["isMetricsData"]
@@ -577,6 +576,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         assert response.status_code == 200
         meta = response.data["meta"]
+        print(meta)
         assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
         assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
 
