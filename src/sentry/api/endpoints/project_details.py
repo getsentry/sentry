@@ -901,6 +901,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         """
 
+        if old_raw_dynamic_sampling is None and new_raw_dynamic_sampling is None:
+            return
+
         common_audit_data = {
             "request": request,
             "organization": project.organization,
@@ -911,12 +914,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         def create_audit_entry_for_event(audit_data, event_text):
             self.create_audit_entry(**audit_data, event=audit_log.get_event_id(event_text))
 
-        if old_raw_dynamic_sampling is None or new_raw_dynamic_sampling is None:
-            common_audit_data["data"].update(new_raw_dynamic_sampling)
-            create_audit_entry_for_event(
-                common_audit_data,
-                "SAMPLING_RULE_EDIT",
-            )
+        if old_raw_dynamic_sampling is None and new_raw_dynamic_sampling is not None:
+            create_audit_entry_for_event(common_audit_data, "SAMPLING_RULE_ADD")
             return
 
         old_rules = old_raw_dynamic_sampling.get("rules", [])

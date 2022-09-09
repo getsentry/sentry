@@ -200,6 +200,14 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             audit_log_event = audit_log.get(audit_entry.event)
             assert audit_log_event.render(audit_entry) == "added server-side sampling rule"
 
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.org,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
+
     def test_remove_specific_rule(self):
         with self.feature(FEATURE_NAME):
             self.project.update_option(
@@ -252,10 +260,20 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             # Validate the audit log
             audit_entry = AuditLogEntry.objects.get(
-                organization=self.org, event=audit_log.get_event_id("SAMPLING_RULE_REMOVE")
+                organization=self.org,
+                event=audit_log.get_event_id("SAMPLING_RULE_REMOVE"),
+                target_object=self.project.id,
             )
             audit_log_event = audit_log.get(audit_entry.event)
             assert audit_log_event.render(audit_entry) == "deleted server-side sampling rule"
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.org,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
 
     def test_activate_uniform_rule(self):
         with self.feature(FEATURE_NAME):
@@ -298,6 +316,14 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             audit_log_event = audit_log.get(audit_entry.event)
             assert audit_log_event.render(audit_entry) == "activated server-side sampling rule"
 
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.org,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
+
     def test_deactivate_uniform_rule(self):
         with self.feature(FEATURE_NAME):
             self.project.update_option(
@@ -338,6 +364,14 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             )
             audit_log_event = audit_log.get(audit_entry.event)
             assert audit_log_event.render(audit_entry) == "deactivated server-side sampling rule"
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.org,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
 
     def test_add_specific_rule(self):
         with self.feature(FEATURE_NAME):
@@ -511,3 +545,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             )
             audit_log_event = audit_log.get(audit_entry.event)
             assert audit_log_event.render(audit_entry) == "edited server-side sampling rule"
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.org,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
