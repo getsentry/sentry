@@ -359,7 +359,9 @@ const EventHeader = ({event}: {event: Event}) => {
   const message = getMessage(event);
   return (
     <EventHeaderContainer data-test-id="event-header">
-      <StyledEventOrGroupTitle data={event} />
+      <TitleWrapper>
+        <StyledEventOrGroupTitle data={event} />
+      </TitleWrapper>
       {message && (
         <MessageWrapper>
           <EventMessage message={message} />
@@ -373,9 +375,12 @@ const EventHeaderContainer = styled('div')`
   max-width: ${p => p.theme.breakpoints.small};
 `;
 
+const TitleWrapper = styled('div')`
+  margin-top: 20px;
+`;
+
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: ${p => p.theme.headerFontSize};
-  margin-top: 20px;
 `;
 
 const MessageWrapper = styled('div')`
