@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Event, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
+import {EntryType, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
 import DataSection from '../../eventTagsAndScreenshot/dataSection';
 import KeyValueList from '../keyValueList';
 import TraceView from '../spans/traceView';
+import {RawSpanType, SpanEntry} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 export type SpanEvidence = {
@@ -17,40 +17,71 @@ export type SpanEvidence = {
 };
 
 interface Props {
-  affectedSpanIds: string[];
-  event: Event;
+  event: EventTransaction;
   organization: Organization;
-  spanEvidence: SpanEvidence;
 }
 
-export function SpanEvidenceSection({
-  spanEvidence,
-  event,
-  organization,
-  affectedSpanIds,
-}: Props) {
-  const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
+export function SpanEvidenceSection({event, organization}: Props) {
+  // We won't be able to do this once it is possible to merge Performance Issues, but for now it is fine
+  const {causes, offenders, parents} = Object.values(event.performanceDetectorData!)[0];
+
+  // For now, it is safe to assume that there is only one cause and parent span for N+1 issues
+  const sourceSpanId = causes[0];
+  const parentSpanId = parents[0];
+  const repeatingSpanIdSet = new Set(offenders);
+
+  // Let's dive into the event to pick off the span evidence data by using the IDs we know
+  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+    return entry.type === EntryType.SPANS;
+  });
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+
+  const spanEvidence = spans.reduce(
+    (acc: SpanEvidence & {affectedSpanIds: string[]}, span) => {
+      if (span.span_id === sourceSpanId) {
+        acc.sourceSpan = span.description ?? '';
+      }
+
+      if (span.span_id === parentSpanId) {
+        acc.parentSpan = span.description ?? '';
+      }
+
+      if (repeatingSpanIdSet.has(span.span_id)) {
+        acc.repeatingSpan = span.description ?? '';
+        acc.affectedSpanIds.push(span.span_id);
+      }
+
+      return acc;
+    },
+    {
+      transaction: '',
+      parentSpan: '',
+      sourceSpan: '',
+      repeatingSpan: '',
+      affectedSpanIds: [],
+    }
+  );
 
   const data: KeyValueListData = [
     {
       key: '0',
       subject: t('Transaction'),
-      value: transaction,
+      value: spanEvidence.transaction,
     },
     {
       key: '1',
       subject: t('Parent Span'),
-      value: parentSpan,
+      value: spanEvidence.parentSpan,
     },
     {
       key: '2',
       subject: t('Source Span'),
-      value: sourceSpan,
+      value: spanEvidence.sourceSpan,
     },
     {
       key: '3',
       subject: t('Repeating Span'),
-      value: repeatingSpan,
+      value: spanEvidence.repeatingSpan,
     },
   ];
 
@@ -66,40 +97,15 @@ export function SpanEvidenceSection({
       <TraceViewWrapper>
         <TraceView
           organization={organization}
-          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
+          waterfallModel={
+            new WaterfallModel(event as EventTransaction, spanEvidence.affectedSpanIds)
+          }
           isEmbedded
         />
       </TraceViewWrapper>
     </DataSection>
   );
 }
-
-export const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: 0;
-  /* Padding aligns with Layout.Body */
-  padding: ${space(3)} ${space(2)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)} ${space(3)};
-  }
-  & h3,
-  & h3 a {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: ${p => p.theme.gray300};
-  }
-  & h3 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    padding: ${space(0.75)} 0;
-    margin-bottom: 0;
-    text-transform: uppercase;
-  }
-`;
 
 const TraceViewWrapper = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
