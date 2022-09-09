@@ -164,6 +164,12 @@ def main():
         "obj": {},
         "max_content_width": 100,
     }
+    if os.environ.get("SENTRY_SILO_MODE"):
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+        logger = logging.getLogger(__name__)
+        logger.info(
+            f"A silo mode was specified. Running Sentry as a {os.environ.get('SENTRY_SILO_MODE')} silo."
+        )
     # This variable is *only* set as part of direnv/.envrc, thus, we cannot affect production
     if os.environ.get("SENTRY_DEVSERVICES_DSN"):
         # We do this here because `configure_structlog` executes later
