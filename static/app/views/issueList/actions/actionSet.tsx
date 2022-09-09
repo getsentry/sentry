@@ -12,12 +12,13 @@ import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   BaseGroup,
+  IssueCategory,
   IssueCategoryCapabilities,
   Organization,
   Project,
   ResolutionStatus,
 } from 'sentry/types';
-import {issueSupports} from 'sentry/utils/groupCapabilities';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -105,6 +106,13 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+
+  // If at least one Performance Issue is selected, some of the ignore dropdown options must be disabled.
+  const issueCategory: IssueCategory = selectedIssues.some(
+    issue => issue?.issueCategory === IssueCategory.PERFORMANCE
+  )
+    ? IssueCategory.PERFORMANCE
+    : IssueCategory.ERROR;
 
   const menuItems: MenuItemProps[] = [
     {
@@ -236,6 +244,7 @@ function ActionSet({
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
         confirmMessage={confirm(ConfirmAction.IGNORE, true)}
         confirmLabel={label('ignore')}
+        issueCategory={issueCategory}
         disabled={ignoreDisabled}
       />
       {!nestMergeAndReview && (
@@ -264,7 +273,6 @@ function ActionSet({
           showChevron: false,
           size: 'xs',
         }}
-        disabledKeys={menuItems.filter(item => item.disabled).map(item => item.key)}
         isDisabled={!anySelected}
       />
       <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
@@ -277,7 +285,7 @@ function isActionSupported(
   capability: keyof IssueCategoryCapabilities
 ) {
   for (const issue of selectedIssues) {
-    const info = issueSupports(issue.issueCategory, capability);
+    const info = getIssueCapability(issue.issueCategory, capability);
 
     if (!info.enabled) {
       return info;

@@ -91,8 +91,9 @@ class PerformanceDetectionTest(unittest.TestCase):
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                spans_involved=[
-                    "9179e43ae844b174",
+                parent_span_ids=["8dd7a5869a4f4583"],
+                cause_span_ids=["9179e43ae844b174"],
+                offender_span_ids=[
                     "b8be6138369491dd",
                     "b2d4826e7b618f1b",
                     "b3fdeea42536dbf1",
@@ -517,7 +518,7 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_n_plus_one_db_fp",
                     "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 ),
-                call("_pi_n_plus_one_db", "9179e43ae844b174"),
+                call("_pi_n_plus_one_db", "b8be6138369491dd"),
             ]
         )
         assert perf_problems == [
@@ -526,8 +527,9 @@ class PerformanceDetectionTest(unittest.TestCase):
                 op="db",
                 desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                spans_involved=[
-                    "9179e43ae844b174",
+                parent_span_ids=["8dd7a5869a4f4583"],
+                cause_span_ids=["9179e43ae844b174"],
+                offender_span_ids=[
                     "b8be6138369491dd",
                     "b2d4826e7b618f1b",
                     "b3fdeea42536dbf1",
@@ -606,6 +608,17 @@ class PerformanceDetectionTest(unittest.TestCase):
             ]
         )
 
+    def test_does_not_detect_n_plus_one_where_source_is_truncated(self):
+        truncated_source_event = EVENTS["n-plus-one-in-django-new-view-truncated-source"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(truncated_source_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert not n_plus_one_fingerprint
+
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
@@ -639,7 +652,9 @@ class PrepareProblemForGroupingTest(unittest.TestCase):
             op="db",
             type=GroupType.PERFORMANCE_N_PLUS_ONE,
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            spans_involved=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
+            parent_span_ids=None,
+            cause_span_ids=None,
+            offender_span_ids=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
         )
 
 

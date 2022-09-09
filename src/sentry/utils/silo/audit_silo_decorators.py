@@ -58,7 +58,7 @@ def _create_endpoint_table(app_label):
         if not endpoint_class.__module__.startswith(app_label):
             continue
         limit = getattr(endpoint_class, "__silo_limit", None)
-        key = limit.modes if limit else None
+        key = frozenset(limit.modes if limit else ())
         table[key].append(endpoint_class)
 
     return table

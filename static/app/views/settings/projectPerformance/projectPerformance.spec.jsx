@@ -4,11 +4,11 @@ import ProjectPerformance from 'sentry/views/settings/projectPerformance/project
 
 describe('projectPerformance', function () {
   const org = TestStubs.Organization({
-    features: ['performance-view', 'performance-issues'],
+    features: ['performance-view', 'performance-issues-dev'],
   });
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock, postMock, deleteMock;
+  let getMock, postMock, deleteMock, performanceIssuesMock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -43,7 +43,7 @@ describe('projectPerformance', function () {
       body: {},
       statusCode: 200,
     });
-    MockApiClient.addMockResponse({
+    performanceIssuesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
       body: {},
@@ -104,5 +104,21 @@ describe('projectPerformance', function () {
 
     await tick();
     expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('does not get performance issues settings without the feature flag', async function () {
+    const org_without_perf_issues = TestStubs.Organization({
+      features: ['performance-view'],
+    });
+
+    mountWithTheme(
+      <ProjectPerformance
+        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org_without_perf_issues}
+        project={project}
+      />
+    );
+    await tick();
+    expect(performanceIssuesMock).not.toHaveBeenCalled();
   });
 });

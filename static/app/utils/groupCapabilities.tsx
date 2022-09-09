@@ -8,22 +8,28 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
   [IssueCategory.ERROR]: {
     delete: {enabled: true},
     deleteAndDiscard: {enabled: true},
-    ignore: {enabled: true},
     merge: {enabled: true},
+    ignore: {enabled: true},
   },
   [IssueCategory.PERFORMANCE]: {
     delete: {
       enabled: false,
-      disabledReason: t('Deleting is not yet supported for performance issues'),
+      disabledReason: t('Not yet supported for performance issues'),
     },
     deleteAndDiscard: {
       enabled: false,
-      disabledReason: t('Deleting is not yet supported for performance issues'),
+      disabledReason: t('Not yet supported for performance issues'),
     },
-    ignore: {enabled: true},
     merge: {
       enabled: false,
-      disabledReason: t('Merging is not yet supported for performance issues'),
+      disabledReason: t('Not yet supported for performance issues'),
+    },
+    // NOTE: The enabled flag is not being used by the ignore dropdown, since
+    // only specific suboptions are disabled. I am leaving the disabledReason
+    // here so it can be used in tooltips for each disabled dropdown option
+    ignore: {
+      enabled: false,
+      disabledReason: t('This ignore option is not yet supported for performance issues'),
     },
   },
 };
@@ -31,7 +37,7 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
 /**
  * Checks if an issue supports a specific capability.
  */
-export function issueSupports(
+export function getIssueCapability(
   issueCategory: IssueCategory,
   capability: keyof IssueCategoryCapabilities
 ) {
