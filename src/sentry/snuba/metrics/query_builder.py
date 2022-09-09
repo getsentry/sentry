@@ -825,22 +825,27 @@ class SnubaResultConverter:
 
             for key in set(totals or ()) | set(series or ()):
                 metric_field = self._alias_to_metric_field.get(key)
-                if not metric_field:
-                    continue
-                metric_obj = metric_object_factory(
-                    metric_field.op, get_mri(metric_field.metric_name)
-                )
-                operation, metric_mri = parse_expression(str(metric_obj))
 
-                if (operation, metric_mri, key) not in self._metrics_query_fields_set:
+                if not metric_field:
                     if totals is not None:
                         del totals[key]
                     if series is not None:
                         del series[key]
-                else:
-                    if totals is not None:
-                        totals[key] = totals.pop(key)
-                    if series is not None:
-                        series[key] = series.pop(key)
+
+                # metric_obj = metric_object_factory(
+                #     metric_field.op, get_mri(metric_field.metric_name)
+                # )
+                # operation, metric_mri = parse_expression(str(metric_obj))
+
+                # if (operation, metric_mri, key) not in self._metrics_query_fields_set:
+                #     if totals is not None:
+                #         del totals[key]
+                #     if series is not None:
+                #         del series[key]
+                # else:
+                #     if totals is not None:
+                #         totals[key] = totals.pop(key)
+                #     if series is not None:
+                #         series[key] = series.pop(key)
 
         return groups

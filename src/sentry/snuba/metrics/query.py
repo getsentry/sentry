@@ -59,8 +59,6 @@ class MetricGroupByField:
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
 
-MAX_HISTOGRAM_BUCKET = 250
-
 
 @dataclass(frozen=True)
 class OrderBy:
@@ -219,14 +217,6 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 raise InvalidParams(
                     f"Tag name {metric_groupby_obj.name} cannot be used to groupBy query"
                 )
-
-    def validate_histogram_buckets(self) -> None:
-        # Validate histogram bucket count
-        if self.histogram_buckets > MAX_HISTOGRAM_BUCKET:
-            raise InvalidParams(
-                f"We don't have more than {MAX_HISTOGRAM_BUCKET} buckets stored for any "
-                f"given metric bucket."
-            )
 
     def validate_include_totals(self) -> None:
         if self.include_totals or self.include_series:
