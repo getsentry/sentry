@@ -54,7 +54,9 @@ class PerformanceProblem:
     op: str
     desc: str
     type: GroupType
-    spans_involved: Sequence[str]
+    parent_span_ids: Optional[Sequence[str]]
+    cause_span_ids: Optional[Sequence[str]]
+    offender_span_ids: Sequence[str]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -223,7 +225,9 @@ def prepare_problem_for_grouping(
         op=op,
         desc=desc,
         type=group_type,
-        spans_involved=spans_involved,
+        parent_span_ids=None,
+        cause_span_ids=None,
+        offender_span_ids=spans_involved,
     )
 
     return prepared_problem
@@ -828,14 +832,14 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.n_spans[0].get("hash", None),
         )
         if fingerprint not in self.stored_problems:
-            spans_involved = [self.source_span] + self.n_spans
-            span_ids_involved = [span.get("span_id", None) for span in spans_involved]
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
                 desc=self.n_spans[0].get("description", ""),
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                spans_involved=span_ids_involved,
+                parent_span_ids=[parent_span_id],
+                cause_span_ids=[self.source_span.get("span_id", None)],
+                offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
             )
 
     def _reset_detection(self):
@@ -886,7 +890,7 @@ def report_metrics_for_detectors(
         span_id = (
             first_problem.span_id
             if isinstance(first_problem, PerformanceSpanProblem)
-            else first_problem.spans_involved[0]
+            else first_problem.offender_span_ids[0]
         )
         sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", span_id)
 
