@@ -420,8 +420,8 @@ export interface EventTransaction
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
-  performanceDetectorData?: Record<string, PerformanceDetectorData>;
   type: EventOrGroupType.TRANSACTION;
+  performanceDetectorData?: Record<string, PerformanceDetectorData>;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
