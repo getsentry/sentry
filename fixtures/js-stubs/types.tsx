@@ -16,6 +16,7 @@ type TestStubFixtures = {
   AsanaCreate: SimpleStub;
   AsanaPlugin: SimpleStub;
   AuditLogs: OverridableStubList;
+  AuditLogsApiEventNames: SimpleStub;
   AuthProvider: OverridableStub;
   AuthProviders: OverridableStubList;
   Authenticators: SimpleStub;

@@ -2,10 +2,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {Config, User} from 'sentry/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
-describe('OrganizationAuditLog', () => {
-  const user = {
+describe('OrganizationAuditLog', function () {
+  const user: User = {
     ...TestStubs.User(),
     options: {
       clock24Hours: true,
@@ -13,11 +15,13 @@ describe('OrganizationAuditLog', () => {
     },
   };
 
+  const config: Config = {...ConfigStore.getConfig(), user};
+
   beforeEach(() => {
-    ConfigStore.loadInitialData({user});
+    ConfigStore.loadInitialData(config);
   });
 
-  it('renders', async () => {
+  it('renders', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/audit-logs/`,
       method: 'GET',
@@ -50,19 +54,18 @@ describe('OrganizationAuditLog', () => {
       },
     });
 
-    const {routerContext, organization} = initializeOrg({
+    const {routerContext, organization, router} = initializeOrg({
+      ...initializeOrg(),
       projects: [],
       router: {
         params: {orgId: 'org-slug'},
       },
     });
-    const mockLocation = {query: {}};
+
     render(
-      <OrganizationAuditLog
-        organization={organization}
-        params={{orgId: organization.slug}}
-        location={mockLocation}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <OrganizationAuditLog location={router.location} />
+      </OrganizationContext.Provider>,
       {
         context: routerContext,
       }
