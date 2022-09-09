@@ -2,9 +2,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
-import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, TagCollection} from 'sentry/types';
+import {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -14,6 +13,7 @@ import {
   isLegalYAxisType,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {
@@ -28,6 +28,8 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
+
+import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -85,6 +87,55 @@ export function mapErrors(
 
   return update;
 }
+
+export const generateOrderOptions = ({
+  aggregates,
+  columns,
+  widgetType,
+  widgetBuilderNewDesign = false,
+}: {
+  aggregates: string[];
+  columns: string[];
+  widgetType: WidgetType;
+  widgetBuilderNewDesign?: boolean;
+}): SelectValue<string>[] => {
+  const isRelease = widgetType === WidgetType.RELEASE;
+  const options: SelectValue<string>[] = [];
+  let equations = 0;
+  (isRelease
+    ? [...aggregates.map(stripDerivedMetricsPrefix), ...columns]
+    : [...aggregates, ...columns]
+  )
+    .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => (isRelease ? !TAG_SORT_DENY_LIST.includes(field) : true))
+    .forEach(field => {
+      let alias;
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+      }
+
+      if (widgetBuilderNewDesign) {
+        options.push({label, value: alias ?? field});
+        return;
+      }
+
+      options.push({
+        label: t('%s asc', label),
+        value: alias ?? field,
+      });
+
+      options.push({
+        label: t('%s desc', label),
+        value: `-${alias ?? field}`,
+      });
+    });
+
+  return options;
+};
 
 export function normalizeQueries({
   displayType,

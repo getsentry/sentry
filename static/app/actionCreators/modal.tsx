@@ -1,5 +1,4 @@
 import type {ModalTypes} from 'sentry/components/globalModal';
-import type {DashboardWidgetModalOptions} from 'sentry/components/modals/addDashboardWidgetModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashboardWidgetLibraryModal';
@@ -234,13 +233,6 @@ export async function openInviteMembersModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
-}
-
-export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
-  const mod = await import('sentry/components/modals/addDashboardWidgetModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
 export async function openWidgetBuilderOverwriteModal(

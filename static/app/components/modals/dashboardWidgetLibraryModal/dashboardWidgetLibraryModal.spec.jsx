@@ -1,17 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import DashboardWidgetLibraryModal from 'sentry/components/modals/dashboardWidgetLibraryModal';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 const stubEl = props => <div>{props.children}</div>;
 const alertText =
   'Please select at least one Widget from our Library. Alternatively, you can build a custom widget from scratch.';
-
-jest.mock('sentry/actionCreators/modal', () => ({
-  openAddDashboardWidgetModal: jest.fn(),
-}));
 
 function mountModal({initialData}, onApply, closeModal, widgets = []) {
   return render(
@@ -66,8 +61,6 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
 
     const button = screen.getByRole('button', {name: 'Custom Widget'});
     userEvent.click(button);
-
-    expect(openAddDashboardWidgetModal).toHaveBeenCalledTimes(1);
   });
 
   it('submits selected widgets', function () {

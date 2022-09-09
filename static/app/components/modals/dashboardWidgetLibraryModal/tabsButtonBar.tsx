@@ -1,20 +1,13 @@
 import styled from '@emotion/styled';
 
-import {
-  openAddDashboardWidgetModal,
-  openDashboardWidgetLibraryModal,
-} from 'sentry/actionCreators/modal';
+import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  Widget,
-} from 'sentry/views/dashboardsV2/types';
+import {DashboardDetails, Widget} from 'sentry/views/dashboardsV2/types';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
 import Button from '../../button';
@@ -52,18 +45,6 @@ export function TabsButtonBar({
           if (activeTab === TAB.Custom) {
             return;
           }
-          trackAdvancedAnalyticsEvent('dashboards_views.widget_library.switch_tab', {
-            organization,
-            to: TAB.Custom,
-          });
-          openAddDashboardWidgetModal({
-            organization,
-            dashboard,
-            selectedWidgets,
-            widget: customWidget,
-            source: DashboardWidgetSource.LIBRARY,
-            onAddLibraryWidget: onAddWidget,
-          });
         }}
       >
         {t('Custom Widget')}
