@@ -3,7 +3,19 @@ import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 /**
  * Generate breadcrumb descriptions based on type
  */
-export function getDescription(crumb: Crumb) {
+export function getDescription(crumb: Crumb, startTimestampMs?: number) {
+  if (crumb.data && 'action' in crumb.data) {
+    switch (crumb.data.action) {
+      case 'largest-contentful-paint':
+        if (crumb.timestamp && startTimestampMs) {
+          return `${new Date(crumb.timestamp).getTime() - startTimestampMs}ms`;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   switch (crumb.type) {
     case BreadcrumbType.NAVIGATION:
       return `${crumb.data?.to ?? ''}`;
@@ -31,6 +43,6 @@ export function getTitle(crumb: Crumb) {
 /**
  * Generate breadcrumb title + descriptions
  */
-export function getDetails(crumb: Crumb) {
-  return {title: getTitle(crumb), description: getDescription(crumb)};
+export function getDetails(crumb: Crumb, startTimestampMs?: number) {
+  return {title: getTitle(crumb), description: getDescription(crumb, startTimestampMs)};
 }
