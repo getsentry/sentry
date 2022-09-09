@@ -116,6 +116,7 @@ default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature
 default_manager.add("organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-ingest", OrganizationFeature)
+default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
