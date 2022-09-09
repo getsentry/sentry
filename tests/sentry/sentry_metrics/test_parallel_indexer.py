@@ -4,9 +4,10 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import (
+    RELEASE_HEALTH_PG_NAMESPACE,
     IndexerStorage,
     MetricsIngestConfiguration,
-    UseCaseKey, RELEASE_HEALTH_PG_NAMESPACE,
+    UseCaseKey,
 )
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
