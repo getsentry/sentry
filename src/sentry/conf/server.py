@@ -1147,6 +1147,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues": False,
     # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
     "organizations:performance-issues-ingest": False,
+    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    "organizations:performance-issues-dev": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
