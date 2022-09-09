@@ -51,7 +51,6 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     # events
-    "sentry-api-0-organization-eventsv2": 0.1,
     "sentry-api-0-organization-events": 1,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
@@ -186,7 +185,7 @@ def set_current_event_project(project_id):
 
 
 def get_project_key():
-    from sentry.models import ProjectKey
+    from sentry.models.projectkey import ProjectKey
 
     if not settings.SENTRY_PROJECT:
         return None
@@ -427,3 +426,12 @@ def bind_organization_context(organization):
                     "internal-error.organization-context",
                     extra={"organization_id": organization.id},
                 )
+
+
+def set_measurement(measurement_name, value, unit=None):
+    try:
+        transaction = sentry_sdk.Hub.current.scope.transaction
+        if transaction is not None:
+            transaction.set_measurement(measurement_name, value, unit)
+    except Exception:
+        pass

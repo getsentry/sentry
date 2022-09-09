@@ -14,6 +14,7 @@ from django.db import models, router
 
 from sentry import options
 from sentry.db.models import (
+    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -63,7 +64,7 @@ class ReleaseFile(Model):
 
     organization_id = BoundedBigIntegerField()
     # DEPRECATED
-    project_id = BoundedPositiveIntegerField(null=True)
+    project_id = BoundedBigIntegerField(null=True)
     release_id = BoundedBigIntegerField()
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
@@ -78,7 +79,7 @@ class ReleaseFile(Model):
 
     __repr__ = sane_repr("release", "ident")
 
-    objects = models.Manager()  # The default manager.
+    objects = BaseManager()  # The default manager.
     public_objects = PublicReleaseFileManager()
 
     class Meta:

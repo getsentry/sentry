@@ -51,6 +51,8 @@ export enum FieldKey {
   ID = 'id',
   IS = 'is',
   ISSUE = 'issue',
+  ISSUE_CATEGORY = 'issue.category',
+  ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
   LOCATION = 'location',
@@ -107,6 +109,7 @@ export enum FieldValueType {
   PERCENTAGE = 'percentage',
   STRING = 'string',
   NEVER = 'never',
+  SIZE = 'size',
 }
 
 export enum WebVital {
@@ -170,12 +173,25 @@ export enum AggregationKey {
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
+  /**
+   * Is this field being deprecated
+   */
   deprecated?: boolean;
+  /**
+   * Description of the field
+   */
   desc?: string;
+  /**
+   * Feature flag that indicates gating of the field from use
+   */
+  featureFlag?: string;
+  /**
+   * Additional keywords used when filtering via autocomplete
+   */
   keywords?: string[];
 }
 
-export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
+export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   [AggregationKey.Count]: {
     desc: t('count of events'),
     kind: FieldKind.FUNCTION,
@@ -295,7 +311,7 @@ export const AGGREGATION_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
-export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
+export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
     desc: t('Web Vital First Paint'),
     kind: FieldKind.METRICS,
@@ -388,7 +404,7 @@ export const MEASUREMENT_FIELDS: Record<string, FieldDefinition> = {
   },
 };
 
-export const SPAN_OP_FIELDS = {
+export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   [SpanOpBreakdown.SpansBrowser]: {
     desc: t('Cumulative time based on the browser operation'),
     kind: FieldKind.METRICS,
@@ -416,7 +432,13 @@ export const SPAN_OP_FIELDS = {
   },
 };
 
-export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefinition> = {
+type AllFieldKeys =
+  | keyof typeof AGGREGATION_FIELDS
+  | keyof typeof MEASUREMENT_FIELDS
+  | keyof typeof SPAN_OP_FIELDS
+  | FieldKey;
+
+const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
@@ -512,6 +534,11 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.ENVIRONMENT]: {
+    desc: t('The environment the event was seen in'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.ERROR_HANDLED]: {
     desc: t('Determines handling status of the error'),
     kind: FieldKind.FIELD,
@@ -597,6 +624,19 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     desc: t('The issue identification code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ISSUE_CATEGORY]: {
+    desc: t('The category of issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['error', 'performance'],
+    featureFlag: 'performance-issues',
+  },
+  [FieldKey.ISSUE_TYPE]: {
+    desc: t('The type of issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    featureFlag: 'performance-issues',
   },
   [FieldKey.LAST_SEEN]: {
     desc: t('Issues last seen at a given time'),
@@ -758,12 +798,12 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.DATE,
   },
   [FieldKey.TIMESTAMP_TO_HOUR]: {
-    desc: t('Rounded down to the nearest day'),
+    desc: t('Rounded down to the nearest hour'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
   [FieldKey.TIMESTAMP_TO_DAY]: {
-    desc: t('Rounded down to the nearest hour'),
+    desc: t('Rounded down to the nearest day'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
@@ -783,7 +823,7 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRACE_SPAN]: {
-    desc: t('Span identification number of the root span t('),
+    desc: t('Span identification number of the root span'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -793,17 +833,17 @@ export const FIELDS: Record<FieldKey & AggregationKey & MobileVital, FieldDefini
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_OP]: {
-    desc: t('The trace identification number'),
+    desc: t('Short code identifying the type of operation the span is measuring'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [FieldKey.TRANSACTION_DURATION]: {
-    desc: t('Span identification number of the parent to the event'),
+    desc: t('Duration, in milliseconds, of the transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DURATION,
   },
   [FieldKey.TRANSACTION_STATUS]: {
-    desc: t('Span identification number of the root span'),
+    desc: t('Describes the status of the span/transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -872,6 +912,8 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
@@ -993,5 +1035,5 @@ export const DISCOVER_FIELDS = [
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {
-  return FIELDS[key] ?? null;
+  return FIELD_DEFINITIONS[key] ?? null;
 };

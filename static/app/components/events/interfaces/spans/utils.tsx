@@ -14,6 +14,7 @@ import {Organization} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {WebVital} from 'sentry/utils/fields';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
@@ -22,7 +23,6 @@ import {Theme} from 'sentry/utils/theme';
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import {
   EnhancedSpan,
-  FocusedSpanIDMap,
   GapSpanType,
   OrphanSpanType,
   OrphanTreeDepth,
@@ -502,6 +502,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.nextjs',
     'sentry.javascript.electron',
     'sentry.javascript.remix',
+    'sentry.javascript.svelte',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -512,6 +513,7 @@ export const durationlessBrowserOps = ['mark', 'paint'];
 
 type Measurements = {
   [name: string]: {
+    failedThreshold: boolean;
     timestamp: number;
     value: number | undefined;
   };
@@ -541,18 +543,29 @@ export function getMeasurements(
   event: EventTransaction,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
-  if (!event.measurements) {
+  if (!event.measurements || !event.startTimestamp) {
     return new Map();
   }
 
+  const {startTimestamp} = event;
+
+  // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
+  const allowedVitals = new Set<string>([
+    WebVital.FCP,
+    WebVital.FP,
+    WebVital.FID,
+    WebVital.LCP,
+    WebVital.TTFB,
+  ]);
+
   const measurements = Object.keys(event.measurements)
-    .filter(name => name.startsWith('mark.'))
+    .filter(name => allowedVitals.has(`measurements.${name}`))
     .map(name => {
-      const slug = name.slice('mark.'.length);
-      const associatedMeasurement = event.measurements![slug];
+      const associatedMeasurement = event.measurements![name];
       return {
         name,
-        timestamp: event.measurements![name].value,
+        // Time timestamp is in seconds, but the measurement value is given in ms so convert it here
+        timestamp: startTimestamp + associatedMeasurement.value / 1000,
         value: associatedMeasurement ? associatedMeasurement.value : undefined,
       };
     });
@@ -560,7 +573,7 @@ export function getMeasurements(
   const mergedMeasurements = new Map<number, VerticalMark>();
 
   measurements.forEach(measurement => {
-    const name = measurement.name.slice('mark.'.length);
+    const name = measurement.name;
     const value = measurement.value;
 
     const bounds = generateBounds({
@@ -584,11 +597,14 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
+        const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+
         verticalMark.marks = {
           ...verticalMark.marks,
           [name]: {
             value,
             timestamp: measurement.timestamp,
+            failedThreshold: value ? value >= poorThreshold : false,
           },
         };
 
@@ -601,8 +617,14 @@ export function getMeasurements(
       }
     }
 
+    const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+
     const marks = {
-      [name]: {value, timestamp: measurement.timestamp},
+      [name]: {
+        value,
+        timestamp: measurement.timestamp,
+        failedThreshold: value ? value >= poorThreshold : false,
+      },
     };
 
     mergedMeasurements.set(roundedPos, {
@@ -610,6 +632,7 @@ export function getMeasurements(
       failedThreshold: hasFailedThreshold(marks),
     });
   });
+
   return mergedMeasurements;
 }
 
@@ -785,11 +808,11 @@ export class SpansInViewMap {
   length: number;
   isRootSpanInView: boolean;
 
-  constructor() {
+  constructor(isRootSpanInView: boolean) {
     this.spanDepthsInView = new Map();
     this.treeDepthSum = 0;
     this.length = 0;
-    this.isRootSpanInView = false;
+    this.isRootSpanInView = isRootSpanInView;
   }
 
   /**
@@ -850,13 +873,6 @@ export class SpansInViewMap {
   }
 }
 
-export function isSpanIdFocused(spanId: string, focusedSpanIds: FocusedSpanIDMap) {
-  return (
-    spanId in focusedSpanIds ||
-    Object.values(focusedSpanIds).some(relatedSpans => relatedSpans.has(spanId))
-  );
-}
-
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level'>[]
 ): keyof Theme['alert'] | undefined {
@@ -871,7 +887,7 @@ export function getCumulativeAlertLevelFromErrors(
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
 }
 
-// Maps the six known error levels to one of three Alert component types
+// Maps the known error levels to an Alert component types
 const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
   fatal: 'error',
   error: 'error',
@@ -879,6 +895,7 @@ const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert'
   warning: 'warning',
   sample: 'info',
   info: 'info',
+  unknown: 'muted',
 };
 
 // Allows sorting errors according to their level of severity
@@ -889,4 +906,54 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   warning: 3,
   sample: 2,
   info: 1,
+  unknown: 0,
 };
+
+/**
+ * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length
+ */
+export function getFormattedTimeRangeWithLeadingAndTrailingZero(
+  start: number,
+  end: number
+) {
+  const startStrings = String(start).split('.');
+  const endStrings = String(end).split('.');
+
+  if (startStrings.length !== 2 || endStrings.length !== 2) {
+    return {
+      start: String(start),
+      end: String(end),
+    };
+  }
+
+  const newTimestamps = startStrings.reduce(
+    (acc, startString, index) => {
+      if (startString.length > endStrings[index].length) {
+        acc.start.push(startString);
+        acc.end.push(
+          index === 0
+            ? endStrings[index].padStart(startString.length, '0')
+            : endStrings[index].padEnd(startString.length, '0')
+        );
+        return acc;
+      }
+
+      acc.start.push(
+        index === 0
+          ? startString.padStart(endStrings[index].length, '0')
+          : startString.padEnd(endStrings[index].length, '0')
+      );
+      acc.end.push(endStrings[index]);
+      return acc;
+    },
+    {start: [], end: []} as {
+      end: string[];
+      start: string[];
+    }
+  );
+
+  return {
+    start: newTimestamps.start.join('.'),
+    end: newTimestamps.end.join('.'),
+  };
+}

@@ -1,4 +1,5 @@
-from datetime import timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 from rest_framework import status
@@ -13,12 +14,21 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
-from sentry.utils.dates import parse_stats_period
-from sentry.utils.snuba import Dataset, raw_snql_query
+from sentry.utils.snuba import Dataset, parse_snuba_datetime, raw_snql_query
 
 
 class EmptyTransactionDatasetException(Exception):
     ...
+
+
+@dataclass
+class QueryTimeRange:
+    """
+    Dataclass that stores start and end time for a query.
+    """
+
+    start_time: datetime
+    end_time: datetime
 
 
 def percentile_fn(data, percentile):
@@ -52,23 +62,17 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         }
 
     @staticmethod
-    def __get_root_transactions_count(project, query, sample_size, start_time, end_time):
-        # Run query that gets total count of transactions with these conditions for the specified
-        # time period
+    def __run_discover_query(columns, query: str, params, limit, referrer: str, orderby=None):
+        if orderby is None:
+            orderby = []
+
         return discover.query(
-            selected_columns=[
-                "count()",
-            ],
-            query=f"{query} event.type:transaction !has:trace.parent_span_id",
-            params={
-                "start": start_time,
-                "end": end_time,
-                "project_id": [project.id],
-                "organization_id": project.organization,
-            },
-            orderby=[],
+            selected_columns=columns,
+            query=query,
+            params=params,
+            orderby=orderby,
             offset=0,
-            limit=sample_size,
+            limit=limit,
             equations=[],
             auto_fields=True,
             auto_aggregations=True,
@@ -76,11 +80,29 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             use_aggregate_conditions=True,
             transform_alias_to_input_format=True,
             functions_acl=None,
+            referrer=referrer,
+        )["data"]
+
+    def __get_root_transactions_count(self, project, query, sample_size, query_time_range):
+        # Run query that gets total count of transactions with these conditions for the specified
+        # time period
+        return self.__run_discover_query(
+            columns=[
+                "count()",
+            ],
+            query=f"{query} event.type:transaction !has:trace.parent_span",
+            params={
+                "start": query_time_range.start_time,
+                "end": query_time_range.end_time,
+                "project_id": [project.id],
+                "organization_id": project.organization,
+            },
+            limit=sample_size,
             referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
-        )["data"][0]["count()"]
+        )[0]["count()"]
 
     def __generate_root_transactions_sampling_factor(
-        self, project, query, sample_size, start_time, end_time
+        self, project, query, sample_size, query_time_range
     ):
         """
         Generate a sampling factor representative of the total transactions count, that is
@@ -94,14 +116,47 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         `normalized_transactions_coun`t to be 100,000 rather than 10,000)
         """
         root_transactions_count = self.__get_root_transactions_count(
-            project=project,
-            query=query,
-            sample_size=sample_size,
-            start_time=start_time,
-            end_time=end_time,
+            project=project, query=query, sample_size=sample_size, query_time_range=query_time_range
         )
         if root_transactions_count == 0:
-            raise EmptyTransactionDatasetException()
+            # If the last hour has no transactions, then it might indicate that either this
+            # transaction traffic for this project is low or that the org has run out of their
+            # transactions' quota, and in that case we need to expand the query time bounds to the
+            # most recent 24 hours with transactions. We do that by looking for transactions in
+            # the last 30 days and grouping them by day.
+
+            # Round up to end of the current day
+            end_bound_time = query_time_range.end_time.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
+            start_bound_time = end_bound_time - timedelta(days=30)
+
+            transaction_count_month = self.__run_discover_query(
+                columns=["count()", "timestamp.to_day"],
+                query=f"{query} event.type:transaction !has:trace.parent_span",
+                params={
+                    "start": start_bound_time,
+                    "end": end_bound_time,
+                    "project_id": [project.id],
+                    "organization_id": project.organization,
+                },
+                orderby=["-timestamp.to_day"],
+                limit=1,
+                referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
+            )
+            if len(transaction_count_month) == 0:
+                # If no data is found in the last 30 days, raise an exception
+                raise EmptyTransactionDatasetException()
+
+            # Re-define the time bounds for the logic of this endpoint
+            query_time_range.start_time = parse_snuba_datetime(
+                transaction_count_month[0]["timestamp.to_day"]
+            )
+            query_time_range.end_time = query_time_range.start_time + timedelta(days=1)
+
+            # Set the transactions count that will be used to determine the sampling factor to
+            # the most recent day with transactions count
+            root_transactions_count = transaction_count_month[0]["count()"]
 
         if sample_size % 10 == 0:
             normalized_sample_count = sample_size
@@ -118,7 +173,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         return max(normalized_transactions_count / (10 * normalized_sample_count), 1)
 
     def __fetch_randomly_sampled_root_transactions(
-        self, project, query, sample_size, start_time, end_time
+        self, project, query, sample_size, query_time_range
     ):
         """
         Fetches a random sample of root transactions of size `sample_size` in the last period
@@ -132,18 +187,17 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             project=project,
             query=query,
             sample_size=sample_size,
-            start_time=start_time,
-            end_time=end_time,
+            query_time_range=query_time_range,
         )
         builder = QueryBuilder(
             Dataset.Discover,
             params={
-                "start": start_time,
-                "end": end_time,
+                "start": query_time_range.start_time,
+                "end": query_time_range.end_time,
                 "project_id": [project.id],
                 "organization_id": project.organization,
             },
-            query=f"{query} event.type:transaction !has:trace.parent_span_id",
+            query=f"{query} event.type:transaction !has:trace.parent_span",
             selected_columns=[
                 "id",
                 "trace",
@@ -204,20 +258,17 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         query = request.GET.get("query", "")
         requested_sample_size = min(int(request.GET.get("sampleSize", 100)), 1000)
         distributed_trace = request.GET.get("distributedTrace", "1") == "1"
-        stats_period = min(
-            parse_stats_period(request.GET.get("statsPeriod", "1h")), timedelta(hours=24)
-        )
+        stats_period = timedelta(hours=1)
 
-        end_time = timezone.now()
-        start_time = end_time - stats_period
+        time_now = timezone.now()
+        query_time_range: QueryTimeRange = QueryTimeRange(time_now - stats_period, time_now)
 
         try:
             root_transactions = self.__fetch_randomly_sampled_root_transactions(
                 project=project,
                 query=query,
                 sample_size=requested_sample_size,
-                start_time=start_time,
-                end_time=end_time,
+                query_time_range=query_time_range,
             )
         except EmptyTransactionDatasetException:
             return Response(
@@ -226,6 +277,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "sample_size": 0,
                     "null_sample_rate_percentage": None,
                     "sample_rate_distributions": None,
+                    "startTimestamp": None,
+                    "endTimestamp": None,
                 }
             )
         sample_size = len(root_transactions)
@@ -245,26 +298,18 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "id", flat=True
             )
 
-            project_breakdown = discover.query(
-                selected_columns=["project_id", "project", "count()"],
+            project_breakdown = self.__run_discover_query(
+                columns=["project_id", "project", "count()"],
                 query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
                 params={
-                    "start": start_time,
-                    "end": end_time,
+                    "start": query_time_range.start_time,
+                    "end": query_time_range.end_time,
                     "project_id": list(projects_in_org),
                     "organization_id": project.organization,
                 },
-                equations=[],
-                orderby=[],
-                offset=0,
                 limit=20,
-                auto_fields=True,
-                auto_aggregations=True,
-                allow_metric_aggregates=True,
-                use_aggregate_conditions=True,
-                transform_alias_to_input_format=True,
                 referrer="dynamic-sampling.distribution.fetch-project-breakdown",
-            )["data"]
+            )
 
             # If the number of the projects in the breakdown is greater than 10 projects,
             # then a question needs to be raised on the eligibility of the org for dynamic sampling
@@ -284,5 +329,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     (sample_size - len(non_null_sample_rates)) / sample_size * 100
                 ),
                 "sample_rate_distributions": self._get_sample_rates_data(non_null_sample_rates),
+                "startTimestamp": query_time_range.start_time,
+                "endTimestamp": query_time_range.end_time,
             }
         )

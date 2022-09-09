@@ -24,14 +24,14 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.servermode import ModeLimited, ServerComponentMode
+from sentry.silo import SiloLimit, SiloMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import capture_exception
+from sentry.utils.sdk import capture_exception, set_measurement
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
@@ -43,6 +43,7 @@ __all__ = [
     "StatsMixin",
     "control_silo_endpoint",
     "customer_silo_endpoint",
+    "pending_silo_endpoint",
 ]
 
 ONE_MINUTE = 60
@@ -336,9 +337,14 @@ class Endpoint(APIView):
         default_per_page=100,
         max_per_page=100,
         cursor_cls=Cursor,
+        response_cls=Response,
+        response_kwargs=None,
         **paginator_kwargs,
     ):
         assert (paginator and not paginator_kwargs) or (paginator_cls and paginator_kwargs)
+
+        if response_kwargs is None:
+            response_kwargs = {}
 
         per_page = self.get_per_page(request, default_per_page, max_per_page)
 
@@ -353,6 +359,7 @@ class Endpoint(APIView):
                 description=type(self).__name__,
             ) as span:
                 span.set_data("Limit", per_page)
+                set_measurement("query.per_page", per_page)
                 sentry_sdk.set_tag("query.per_page", per_page)
                 sentry_sdk.set_tag(
                     "query.per_page.grouped", format_grouped_length(per_page, [1, 10, 50, 100])
@@ -371,7 +378,7 @@ class Endpoint(APIView):
         else:
             results = cursor_result.results
 
-        response = Response(results)
+        response = response_cls(results, **response_kwargs)
 
         self.add_cursor_headers(request, response, cursor_result)
 
@@ -488,29 +495,28 @@ def resolve_region(request: Request):
     return None
 
 
-class ApiAvailableOn(ModeLimited):
+class EndpointSiloLimit(SiloLimit):
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
-        return type(
+        new_class = type(
             decorated_class.__name__,
             (decorated_class,),
             {
                 "dispatch": dispatch_override,
-                "__mode_limit": self,  # For internal tooling only
+                "__silo_limit": self,  # For internal tooling only
             },
         )
+        new_class.__module__ = decorated_class.__module__
+        return new_class
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
 
-    class ApiAvailabilityError(Exception):
-        pass
-
     def handle_when_unavailable(
         self,
         original_method: Callable[..., Any],
-        current_mode: ServerComponentMode,
-        available_modes: Iterable[ServerComponentMode],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
         def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
             mode_str = ", ".join(str(m) for m in available_modes)
@@ -519,7 +525,7 @@ class ApiAvailableOn(ModeLimited):
                 f"{current_mode} mode. This endpoint is available only in: {mode_str}"
             )
             if settings.FAIL_ON_UNAVAILABLE_API_CALL:
-                raise self.ApiAvailabilityError(message)
+                raise self.AvailabilityError(message)
             else:
                 logger.warning(message)
                 return HttpResponse(status=status.HTTP_404_NOT_FOUND)
@@ -529,14 +535,21 @@ class ApiAvailableOn(ModeLimited):
     def __call__(self, decorated_obj: Any) -> Any:
         if isinstance(decorated_obj, type):
             if not issubclass(decorated_obj, Endpoint):
-                raise ValueError("`@ApiAvailableOn` can decorate only Endpoint subclasses")
+                raise ValueError("`@EndpointSiloLimit` can decorate only Endpoint subclasses")
             return self.modify_endpoint_class(decorated_obj)
 
         if callable(decorated_obj):
             return self.modify_endpoint_method(decorated_obj)
 
-        raise TypeError("`@ApiAvailableOn` must decorate a class or method")
+        raise TypeError("`@EndpointSiloLimit` must decorate a class or method")
 
 
-control_silo_endpoint = ApiAvailableOn(ServerComponentMode.CONTROL)
-customer_silo_endpoint = ApiAvailableOn(ServerComponentMode.CUSTOMER)
+control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
+customer_silo_endpoint = EndpointSiloLimit(SiloMode.CUSTOMER)
+
+# Use this decorator to mark endpoints that still need to be marked as either
+# control_silo_endpoint or customer_silo_endpoint. Marking a class with
+# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
+# that the test will fail if a new endpoint is added with no decorator at all.
+# Eventually we should replace all instances of this decorator and delete it.
+pending_silo_endpoint = EndpointSiloLimit()

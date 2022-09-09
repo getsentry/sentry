@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List, Mapping, Optional, Union
+from typing import Callable, Mapping, Optional, Union
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -11,7 +11,6 @@ from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Environment, Release, SemverFilter
 from sentry.models.group import Group
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -29,15 +28,12 @@ from sentry.search.events.constants import (
     ISSUE_ALIAS,
     ISSUE_ID_ALIAS,
     MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
-    MAX_SEARCH_RELEASES,
     MEASUREMENTS_FRAMES_FROZEN_RATE,
     MEASUREMENTS_FRAMES_SLOW_RATE,
     MEASUREMENTS_STALL_PERCENTAGE,
     MISERY_ALPHA,
     MISERY_BETA,
     NON_FAILURE_STATUS,
-    OPERATOR_NEGATION_MAP,
-    OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -47,17 +43,21 @@ from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
-    SEMVER_EMPTY_RELEASE,
     SEMVER_PACKAGE_ALIAS,
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TRACE_PARENT_SPAN_ALIAS,
+    TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
     USER_DISPLAY_ALIAS,
     VITAL_THRESHOLDS,
 )
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.semver_and_stage_aliases import (
+    SemverAndStageFilterConverterMixin,
+)
 from sentry.search.events.fields import (
     ColumnArg,
     ColumnTagArg,
@@ -75,26 +75,20 @@ from sentry.search.events.fields import (
     SnQLStringArg,
     normalize_count_if_value,
     normalize_percentile_alias,
-    reflective_result_type,
     with_default,
 )
-from sentry.search.events.filter import (
-    _flip_field_sort,
-    handle_operator_negation,
-    parse_semver,
-    to_list,
-    translate_transaction_status,
-)
+from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
 from sentry.utils.numbers import format_grouped_length
 
 
-class DiscoverDatasetConfig(DatasetConfig):
+class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
     custom_threshold_columns = {
         "apdex()",
         "count_miserable(user)",
         "user_misery()",
     }
+    non_nullable_keys = {"event.type"}
 
     def __init__(self, builder: QueryBuilder):
         self.builder = builder
@@ -119,6 +113,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_ALIAS: self._semver_filter_converter,
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
+            TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
         }
 
     @property
@@ -134,6 +129,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
             USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
             PROJECT_THRESHOLD_CONFIG_ALIAS: lambda _: self._resolve_project_threshold_config,
+            ERROR_HANDLED_ALIAS: self._resolve_error_handled_alias,
             ERROR_UNHANDLED_ALIAS: self._resolve_error_unhandled_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             MEASUREMENTS_FRAMES_SLOW_RATE: self._resolve_measurements_frames_slow_rate,
@@ -266,7 +262,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         NumberRange("percentile", 0, 1),
                     ],
                     snql_aggregate=self._resolve_percentile,
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                     combinators=[
@@ -279,7 +275,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.5),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -289,7 +285,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.75),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -299,7 +295,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.95),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -309,7 +305,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 0.99),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -319,7 +315,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                         with_default("transaction.duration", NumericColumn("column")),
                     ],
                     snql_aggregate=lambda args, alias: self._resolve_percentile(args, alias, 1),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -509,7 +505,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "min",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -517,7 +513,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "max",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("max", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                     combinators=[
@@ -528,7 +524,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "avg",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("avg", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
                 ),
@@ -570,7 +566,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "sum",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     combinators=[
                         SnQLArrayCombinator("column", NumericColumn.numeric_array_columns)
@@ -581,7 +577,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[SnQLFieldColumn("column")],
                     # Not actually using `any` so that this function returns consistent results
                     snql_aggregate=lambda args, alias: Function("min", [args["column"]], alias),
-                    result_type_fn=reflective_result_type(),
+                    result_type_fn=self.reflective_result_type(),
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
@@ -1174,6 +1170,9 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
         return field_aliases.resolve_team_key_transaction_alias(self.builder)
 
+    def _resolve_error_handled_alias(self, _: str) -> SelectType:
+        return Function("isHandled", [], ERROR_HANDLED_ALIAS)
+
     def _resolve_error_unhandled_alias(self, _: str) -> SelectType:
         return Function("notHandled", [], ERROR_UNHANDLED_ALIAS)
 
@@ -1486,6 +1485,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 0,
             )
 
+    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            return Condition(
+                Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
+                Op.EQ if search_filter.operator == "!=" else Op.NEQ,
+                1,
+            )
+        else:
+            return self.builder.get_default_converter()(search_filter)
+
     def _transaction_status_filter_converter(
         self, search_filter: SearchFilter
     ) -> Optional[WhereType]:
@@ -1564,166 +1573,3 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
-
-    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        """
-        Parses a release stage search and returns a snuba condition to filter to the
-        requested releases.
-        """
-        # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
-        # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
-
-        if "organization_id" not in self.builder.params:
-            raise ValueError("organization_id is a required param")
-
-        organization_id: int = self.builder.params["organization_id"]
-        project_ids: Optional[List[int]] = self.builder.params.get("project_id")
-        environments: Optional[List[Environment]] = self.builder.params.get(
-            "environment_objects", []
-        )
-        qs = (
-            Release.objects.filter_by_stage(
-                organization_id,
-                search_filter.operator,
-                search_filter.value.value,
-                project_ids=project_ids,
-                environments=environments,
-            )
-            .values_list("version", flat=True)
-            .order_by("date_added")[:MAX_SEARCH_RELEASES]
-        )
-        versions = list(qs)
-
-        if not versions:
-            # XXX: Just return a filter that will return no results if we have no versions
-            versions = [SEMVER_EMPTY_RELEASE]
-
-        return Condition(self.builder.column("release"), Op.IN, versions)
-
-    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        """
-        Parses a semver query search and returns a snuba condition to filter to the
-        requested releases.
-
-        Since we only have semver information available in Postgres currently, we query
-        Postgres and return a list of versions to include/exclude. For most customers this
-        will work well, however some have extremely large numbers of releases, and we can't
-        pass them all to Snuba. To try and serve reasonable results, we:
-         - Attempt to query based on the initial semver query. If this returns
-           MAX_SEMVER_SEARCH_RELEASES results, we invert the query and see if it returns
-           fewer results. If so, we use a `NOT IN` snuba condition instead of an `IN`.
-         - Order the results such that the versions we return are semantically closest to
-           the passed filter. This means that when searching for `>= 1.0.0`, we'll return
-           version 1.0.0, 1.0.1, 1.1.0 before 9.x.x.
-        """
-        if "organization_id" not in self.builder.params:
-            raise ValueError("organization_id is a required param")
-
-        organization_id: int = self.builder.params["organization_id"]
-        project_ids: Optional[List[int]] = self.builder.params.get("project_id")
-        # We explicitly use `raw_value` here to avoid converting wildcards to shell values
-        version: str = search_filter.value.raw_value
-        operator: str = search_filter.operator
-
-        # Note that we sort this such that if we end up fetching more than
-        # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
-        # the passed filter.
-        order_by = Release.SEMVER_COLS
-        if operator.startswith("<"):
-            order_by = list(map(_flip_field_sort, order_by))
-        qs = (
-            Release.objects.filter_by_semver(
-                organization_id,
-                parse_semver(version, operator),
-                project_ids=project_ids,
-            )
-            .values_list("version", flat=True)
-            .order_by(*order_by)[:MAX_SEARCH_RELEASES]
-        )
-        versions = list(qs)
-        final_operator = Op.IN
-        if len(versions) == MAX_SEARCH_RELEASES:
-            # We want to limit how many versions we pass through to Snuba. If we've hit
-            # the limit, make an extra query and see whether the inverse has fewer ids.
-            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
-            # do our best.
-            operator = OPERATOR_NEGATION_MAP[operator]
-            # Note that the `order_by` here is important for index usage. Postgres seems
-            # to seq scan with this query if the `order_by` isn't included, so we
-            # include it even though we don't really care about order for this query
-            qs_flipped = (
-                Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
-                .order_by(*map(_flip_field_sort, order_by))
-                .values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
-            )
-
-            exclude_versions = list(qs_flipped)
-            if exclude_versions and len(exclude_versions) < len(versions):
-                # Do a negative search instead
-                final_operator = Op.NOT_IN
-                versions = exclude_versions
-
-        if not versions:
-            # XXX: Just return a filter that will return no results if we have no versions
-            versions = [SEMVER_EMPTY_RELEASE]
-
-        return Condition(self.builder.column("release"), final_operator, versions)
-
-    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        """
-        Applies a semver package filter to the search. Note that if the query returns more than
-        `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
-        """
-        if "organization_id" not in self.builder.params:
-            raise ValueError("organization_id is a required param")
-
-        organization_id: int = self.builder.params["organization_id"]
-        project_ids: Optional[List[int]] = self.builder.params.get("project_id")
-        package: str = search_filter.value.raw_value
-
-        versions = list(
-            Release.objects.filter_by_semver(
-                organization_id,
-                SemverFilter("exact", [], package),
-                project_ids=project_ids,
-            ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
-        )
-
-        if not versions:
-            # XXX: Just return a filter that will return no results if we have no versions
-            versions = [SEMVER_EMPTY_RELEASE]
-
-        return Condition(self.builder.column("release"), Op.IN, versions)
-
-    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        """
-        Applies a semver build filter to the search. Note that if the query returns more than
-        `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
-        """
-        if "organization_id" not in self.builder.params:
-            raise ValueError("organization_id is a required param")
-
-        organization_id: int = self.builder.params["organization_id"]
-        project_ids: Optional[List[int]] = self.builder.params.get("project_id")
-        build: str = search_filter.value.raw_value
-
-        operator, negated = handle_operator_negation(search_filter.operator)
-        try:
-            django_op = OPERATOR_TO_DJANGO[operator]
-        except KeyError:
-            raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
-        versions = list(
-            Release.objects.filter_by_semver_build(
-                organization_id,
-                django_op,
-                build,
-                project_ids=project_ids,
-                negated=negated,
-            ).values_list("version", flat=True)[:MAX_SEARCH_RELEASES]
-        )
-
-        if not versions:
-            # XXX: Just return a filter that will return no results if we have no versions
-            versions = [SEMVER_EMPTY_RELEASE]
-
-        return Condition(self.builder.column("release"), Op.IN, versions)

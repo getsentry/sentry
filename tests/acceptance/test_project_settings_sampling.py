@@ -1,10 +1,19 @@
+from datetime import datetime, timedelta
+
 import pytest
+import pytz
+import requests
+from django.conf import settings
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 from sentry.api.endpoints.project_details import DynamicSamplingSerializer
+from sentry.constants import DataCategory
 from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.skips import requires_snuba
+from sentry.utils import json
+from sentry.utils.outcomes import Outcome
 
 FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
 
@@ -16,7 +25,7 @@ uniform_rule_with_recommended_sampling_values = {
         "op": "and",
         "inner": [],
     },
-    "sampleRate": 1,
+    "sampleRate": 0.1,
 }
 
 uniform_rule_with_custom_sampling_values = {
@@ -50,9 +59,12 @@ specific_rule_with_all_current_trace_conditions = {
 }
 
 
+@pytest.mark.snuba
+@requires_snuba
 class ProjectSettingsSamplingTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
+        self.now = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.utc)
         self.user = self.create_user("foo@example.com")
         self.org = self.create_organization(name="Rowdy Tiger", owner=None)
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
@@ -67,24 +79,52 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/server-side-sampling/"
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/outcomes/drop").status_code == 200
+
+    def store_outcomes(self, outcome, num_times=1):
+        outcomes = []
+        for _ in range(num_times):
+            outcome_copy = outcome.copy()
+            outcome_copy["timestamp"] = outcome_copy["timestamp"].strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            outcomes.append(outcome_copy)
+
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+            ).status_code
+            == 200
+        )
 
     def wait_until_page_loaded(self):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    @pytest.mark.skip(reason="Flaky")
     def test_add_uniform_rule_with_recommended_sampling_values(self):
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self.now - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.TRANSACTION,
+                "quantity": 1,
+            }
+        )
+
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Click on the recommended sampling values option
-            self.browser.element('[id="sampling-recommended"]').click()
+            self.browser.click_when_visible('[id="sampling-recommended"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
@@ -103,13 +143,26 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 == serializer.validated_data["rules"][0]
             )
 
-    @pytest.mark.skip(reason="Flaking pretty consistently")
     def test_add_uniform_rule_with_custom_sampling_values(self):
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self.now - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.TRANSACTION,
+                "quantity": 1,
+            }
+        )
+
         with self.feature(FEATURE_NAME):
             self.wait_until_page_loaded()
 
             # Open uniform rate modal
-            self.browser.element('[aria-label="Start Setup"]').click()
+            self.browser.click_when_visible('[aria-label="Start Setup"]')
+
+            self.browser.wait_until('[id="recommended-client-sampling"]')
 
             # Enter a custom value for client side sampling
             self.browser.element('[id="recommended-client-sampling"]').clear()
@@ -120,10 +173,10 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[id="recommended-server-sampling"]').send_keys(50, Keys.ENTER)
 
             # Click on next button
-            self.browser.element('[aria-label="Next"]').click()
+            self.browser.click_when_visible('[aria-label="Next"]')
 
             # Click on done button
-            self.browser.element('[aria-label="Done"]').click()
+            self.browser.click_when_visible('[aria-label="Done"]')
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')

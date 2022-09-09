@@ -3,10 +3,10 @@ from copy import deepcopy
 import sentry_sdk
 
 from sentry import nodestore
+from sentry.eventstore.models import Event
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
-
-from .models import Event
 
 
 class Filter:
@@ -134,7 +134,15 @@ class EventStorage(Service):
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
+    minimal_columns = {
+        Dataset.Events: [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP],
+        Dataset.Transactions: [
+            Columns.EVENT_ID,
+            Columns.GROUP_IDS,
+            Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
+        ],
+    }
 
     def get_events(
         self,

@@ -1,4 +1,3 @@
-import functools
 import logging
 import time
 from typing import Any, List, MutableMapping, Optional, Set
@@ -10,7 +9,7 @@ from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message
 from django.conf import settings
 
-from sentry.utils import kafka_config
+from sentry.utils import kafka_config, metrics
 
 MessageBatch = List[Message[KafkaPayload]]
 
@@ -38,13 +37,6 @@ def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapp
         },
     )
     return consumer_config
-
-
-@functools.lru_cache(maxsize=10)
-def get_metrics():  # type: ignore
-    from sentry.utils import metrics
-
-    return metrics
 
 
 class DuplicateMessage(Exception):
@@ -88,7 +80,7 @@ class MetricsBatchBuilder:
             return False
 
 
-class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
+class BatchMessages(ProcessingStep[KafkaPayload]):
     """
     First processing step in the MetricsConsumerStrategyFactory.
     Keeps track of a batch of messages (using the MetricsBatchBuilder)
@@ -113,7 +105,6 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__batch: Optional[MetricsBatchBuilder] = None
         self.__closed = False
         self.__batch_start: Optional[float] = None
-        self.__metrics = get_metrics()
 
     def poll(self) -> None:
         assert not self.__closed
@@ -156,7 +147,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
         if self.__batch_start is not None:
             elapsed_time = time.time() - self.__batch_start
-            self.__metrics.timing("batch_messages.build_time", elapsed_time)
+            metrics.timing("batch_messages.build_time", elapsed_time)
             self.__batch_start = None
 
         self.__next_step.submit(new_message)

@@ -7,7 +7,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import Button from 'sentry/components/button';
-import DropdownMenu from 'sentry/components/dropdownMenu';
+import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -26,7 +27,6 @@ import {
   RenderSearch,
   SearchWrapper,
 } from 'sentry/views/settings/components/defaultSearchBar';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
@@ -261,7 +261,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
       <SearchWrapperWithFilter>
-        <DropdownMenu closeOnEscape>
+        <DeprecatedDropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
             <FilterWrapper>
               <Button icon={<IconSliders size="xs" />} {...getActorProps({})}>
@@ -276,7 +276,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
               )}
             </FilterWrapper>
           )}
-        </DropdownMenu>
+        </DeprecatedDropdownMenu>
         {defaultSearchBar}
       </SearchWrapperWithFilter>
     );

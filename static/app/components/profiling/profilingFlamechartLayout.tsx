@@ -32,16 +32,23 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
         flamegraphTheme.SIZES.BAR_HEIGHT,
     ];
 
-    const onResize = (newDimensions: [number, number]) => {
+    const onResize = (
+      newDimensions: [number, number],
+      maybeOldDimensions: [number, number] | undefined
+    ) => {
       if (!frameStackRef.current) {
         return;
       }
 
       if (layout === 'table left' || layout === 'table right') {
-        frameStackRef.current.style.width = `${newDimensions[0]}px`;
+        frameStackRef.current.style.width = `${
+          maybeOldDimensions?.[0] ?? newDimensions[0]
+        }px`;
         frameStackRef.current.style.height = `100%`;
       } else {
-        frameStackRef.current.style.height = `${newDimensions[1]}px`;
+        frameStackRef.current.style.height = `${
+          maybeOldDimensions?.[1] ?? newDimensions[1]
+        }px`;
         frameStackRef.current.style.width = `100%`;
       }
     };
@@ -138,6 +145,7 @@ const ZoomViewContainer = styled('div')`
   flex-direction: column;
   flex: 1 1 100%;
   grid-area: flamegraph;
+  position: relative;
 `;
 
 const FrameStackContainer = styled('div')<{layout: FlamegraphPreferences['layout']}>`

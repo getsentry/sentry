@@ -17,7 +17,7 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {
   AGGREGATIONS,
@@ -118,7 +118,22 @@ export const SIZE_UNITS = {
   tebibyte: 1024 ** 4,
   pebibyte: 1024 ** 5,
   exbibyte: 1024 ** 6,
+  kilobyte: 1000,
+  megabyte: 1000 ** 2,
+  gigabyte: 1000 ** 3,
+  terabyte: 1000 ** 4,
+  petabyte: 1000 ** 5,
+  exabyte: 1000 ** 6,
 };
+
+export const ABYTE_UNITS = [
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+  'petabyte',
+  'exabyte',
+];
 
 export const DURATION_UNITS = {
   nanosecond: 1 / 1000 ** 2,
@@ -211,7 +226,10 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       return (
         <NumberContainer>
           {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
-            <FileSize bytes={data[field] * SIZE_UNITS[unit]} />
+            <FileSize
+              bytes={data[field] * SIZE_UNITS[unit]}
+              base={ABYTE_UNITS.includes(unit) ? 10 : 2}
+            />
           ) : (
             emptyValue
           )}
@@ -694,12 +712,13 @@ const spanOperationRelativeBreakdownRenderer = (
                   if (filter === SpanOperationBreakdownFilter.None) {
                     return;
                   }
-                  trackAnalyticsEvent({
-                    eventName: 'Performance Views: Select Relative Breakdown',
-                    eventKey: 'performance_views.relative_breakdown.selection',
-                    organization_id: parseInt(organization.id, 10),
-                    action: filter as string,
-                  });
+                  trackAdvancedAnalyticsEvent(
+                    'performance_views.relative_breakdown.selection',
+                    {
+                      action: filter,
+                      organization,
+                    }
+                  );
                   browserHistory.push({
                     pathname: location.pathname,
                     query: {

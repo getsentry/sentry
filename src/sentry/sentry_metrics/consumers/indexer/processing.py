@@ -1,70 +1,78 @@
-import functools
 import logging
-from typing import TYPE_CHECKING
+from typing import Callable, Mapping
 
 from arroyo.types import Message
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
+from sentry.sentry_metrics.indexer.base import StringIndexer
+from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer
+from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-
-@functools.lru_cache(maxsize=10)
-def get_metrics():  # type: ignore
-    from sentry.utils import metrics
-
-    return metrics
-
-
-@functools.lru_cache(maxsize=10)
-def get_indexer():  # type: ignore
-    from sentry.sentry_metrics import indexer
-
-    return indexer
+STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
+    IndexerStorage.CLOUDSPANNER: CloudSpannerIndexer,
+    IndexerStorage.POSTGRES: PostgresIndexer,
+    IndexerStorage.MOCK: MockIndexer,
+}
 
 
-def process_messages(
-    use_case_id: UseCaseKey,
-    outer_message: Message[MessageBatch],
-) -> MessageBatch:
-    """
-    We have an outer_message Message() whose payload is a batch of Message() objects.
+class MessageProcessor:
+    def __init__(self, config: MetricsIngestConfiguration):
+        self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
+        self._config = config
 
-        Message(
-            partition=...,
-            offset=...
-            timestamp=...
-            payload=[Message(...), Message(...), etc]
-        )
+    # The following two methods are required to work such that the parallel
+    # indexer can spawn subprocesses correctly.
+    #
+    # We get/set just the config (assuming it's pickleable) and re-instantiate
+    # the indexer backend in the subprocess (assuming that it usually isn't)
 
-    The inner messages payloads are KafkaPayload's that have:
-        * key
-        * headers
-        * value
+    def __getstate__(self) -> MetricsIngestConfiguration:
+        return self._config
 
-    The value of the message is what we need to parse and then translate
-    using the indexer.
-    """
-    if TYPE_CHECKING:
-        from sentry.sentry_metrics import indexer
-        from sentry.utils import metrics
-    else:
-        # This, instead of importing the normal way, was likely done to prevent
-        # fork-safety issues.
-        indexer = get_indexer()
-        metrics = get_metrics()
+    def __setstate__(self, config: MetricsIngestConfiguration) -> None:
+        # mypy: "cannot access init directly"
+        # yes I can, watch me.
+        self.__init__(config)  # type: ignore
 
-    batch = IndexerBatch(use_case_id, outer_message)
+    def process_messages(
+        self,
+        outer_message: Message[MessageBatch],
+    ) -> MessageBatch:
+        """
+        We have an outer_message Message() whose payload is a batch of Message() objects.
 
-    org_strings = batch.extract_strings()
+            Message(
+                partition=...,
+                offset=...
+                timestamp=...
+                payload=[Message(...), Message(...), etc]
+            )
 
-    with metrics.timer("metrics_consumer.bulk_record"):
-        record_result = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        The inner messages payloads are KafkaPayload's that have:
+            * key
+            * headers
+            * value
 
-    mapping = record_result.get_mapped_results()
-    bulk_record_meta = record_result.get_fetch_metadata()
+        The value of the message is what we need to parse and then translate
+        using the indexer.
+        """
+        batch = IndexerBatch(self._config.use_case_id, outer_message)
 
-    new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
-    return new_messages
+        org_strings = batch.extract_strings()
+
+        with metrics.timer("metrics_consumer.bulk_record"):
+            record_result = self._indexer.bulk_record(
+                use_case_id=self._config.use_case_id, org_strings=org_strings
+            )
+
+        mapping = record_result.get_mapped_results()
+        bulk_record_meta = record_result.get_fetch_metadata()
+
+        new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
+        return new_messages

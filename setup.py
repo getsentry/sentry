@@ -32,7 +32,7 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "22.8.0.dev0"
+VERSION = "22.9.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -81,7 +81,7 @@ cmdclass = {
 
 def get_requirements(env):
     with open(f"requirements-{env}.txt") as fp:
-        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
+        return [x.strip() for x in fp.read().split("\n") if not x.startswith(("#", "--"))]
 
 
 # Only include dev requirements in non-binary distributions as we don't want these

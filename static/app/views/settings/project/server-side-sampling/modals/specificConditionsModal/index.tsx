@@ -7,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import FieldRequiredBadge from 'sentry/components/forms/field/fieldRequiredBadge';
 import NumberField from 'sentry/components/forms/numberField';
@@ -27,7 +28,6 @@ import {
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {isUniformRule, percentageToRate, rateToPercentage} from '../../utils';
@@ -78,7 +78,7 @@ export function SpecificConditionsModal({
 
   useEffect(() => {
     setData(d => {
-      if (!!d.errors.sampleRate) {
+      if (d.errors.sampleRate) {
         return {...d, errors: {...d.errors, sampleRate: undefined}};
       }
 
@@ -314,7 +314,6 @@ export function SpecificConditionsModal({
                   </TriggerLabel>
                 }
                 placeholder={t('Filter conditions')}
-                isOptionDisabled={opt => opt.disabled}
                 isDisabled={isUniformRule(rule)}
                 options={predefinedConditionsOptions}
                 value={conditions.map(({category}) => category)}
@@ -349,7 +348,7 @@ export function SpecificConditionsModal({
             label={`${t('Sample Rate')} \u0025`}
             name="sampleRate"
             onChange={value => {
-              setData({...data, samplePercentage: !!value ? Number(value) : null});
+              setData({...data, samplePercentage: value ? Number(value) : null});
             }}
             onKeyDown={(_value: string, e: KeyboardEvent) => {
               if (e.key === 'Enter') {

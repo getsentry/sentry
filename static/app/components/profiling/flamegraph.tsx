@@ -41,6 +41,7 @@ import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRen
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
+import {FlamegraphWarnings} from './FlamegraphWarnings';
 import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
 
 function getTransactionConfigSpace(profiles: Profile[]): Rect {
@@ -326,6 +327,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         flamechart={
           <ProfileDragDropImport onImport={props.onImport}>
+            <FlamegraphWarnings flamegraph={flamegraph} />
             <FlamegraphZoomView
               flamegraphRenderer={flamegraphRenderer}
               canvasBounds={canvasBounds}
@@ -342,6 +344,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         frameStack={
           <FrameStack
+            profileGroup={props.profiles}
+            flamegraph={flamegraph}
             referenceNode={referenceNode}
             rootNodes={rootNodes}
             getFrameColor={getFrameColor}

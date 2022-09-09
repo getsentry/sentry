@@ -92,9 +92,17 @@ SESSIONS_FIELD_LIST = [
     "project_id",
     "org_id",
     "environment",
+    "session.status",
+    "users_errored",
+    "users_abnormal",
+    "sessions_errored",
+    "sessions_abnormal",
+    "duration_quantiles",
+    "duration_avg",
 ]
 
 SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
+SESSIONS_SNUBA_MAP.update({"timestamp": "started"})
 
 # This maps the public column aliases to the discover dataset column names.
 # Longer term we would like to not expose the transactions dataset directly
@@ -1444,6 +1452,14 @@ def is_duration_measurement(key):
         "measurements.ttfb.requesttime",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
+    ]
+
+
+def is_percentage_measurement(key):
+    return key in [
+        "measurements.frames_slow_rate",
+        "measurements.frames_frozen_rate",
+        "measurements.stall_percentage",
     ]
 
 

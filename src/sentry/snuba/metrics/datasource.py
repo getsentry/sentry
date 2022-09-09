@@ -140,16 +140,17 @@ def get_metrics(projects: Sequence[Project], use_case_id: UseCaseKey) -> Sequenc
 
     for metric_type in ("counter", "set", "distribution"):
         metric_ids_in_entities.setdefault(metric_type, set())
+        org_id = projects[0].organization_id
         for row in _get_metrics_for_entity(
             entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
             project_ids=[project.id for project in projects],
-            org_id=projects[0].organization_id,
+            org_id=org_id,
         ):
             try:
                 metrics_meta.append(
                     MetricMeta(
                         name=get_public_name_from_mri(
-                            reverse_resolve(use_case_id, row["metric_id"])
+                            reverse_resolve(use_case_id, org_id, row["metric_id"])
                         ),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
@@ -208,7 +209,7 @@ def get_custom_measurements(
             start=start,
             end=end,
         ):
-            mri = reverse_resolve(use_case_id, row["metric_id"])
+            mri = reverse_resolve(use_case_id, organization_id, row["metric_id"])
             parsed_mri = parse_mri(mri)
             if parsed_mri is not None and is_custom_measurement(parsed_mri):
                 metrics_meta.append(
@@ -305,6 +306,7 @@ def _fetch_tags_or_values_per_ids(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     assert len({p.organization_id for p in projects}) == 1
+    org_id = projects[0].organization_id
 
     metric_mris = None
     if metric_names is not None:
@@ -344,7 +346,7 @@ def _fetch_tags_or_values_per_ids(
             groupby=[Column("metric_id"), Column(column)],
             referrer=referrer,
             project_ids=[p.id for p in projects],
-            org_id=projects[0].organization_id,
+            org_id=org_id,
         )
 
         for row in rows:
@@ -397,8 +399,8 @@ def _fetch_tags_or_values_per_ids(
         tag_id = column.split("[")[1].split("]")[0]
         tags_or_values = [
             {
-                "key": reverse_resolve(use_case_id, int(tag_id)),
-                "value": reverse_resolve_tag_value(use_case_id, value_id),
+                "key": reverse_resolve(use_case_id, org_id, int(tag_id)),
+                "value": reverse_resolve_tag_value(use_case_id, org_id, value_id),
             }
             for value_id in tag_or_value_ids
         ]
@@ -407,7 +409,7 @@ def _fetch_tags_or_values_per_ids(
         tags_or_values = [
             {"key": reversed_tag}
             for tag_id in tag_or_value_ids
-            if (reversed_tag := reverse_resolve(use_case_id, tag_id)) not in UNALLOWED_TAGS
+            if (reversed_tag := reverse_resolve(use_case_id, org_id, tag_id)) not in UNALLOWED_TAGS
         ]
         tags_or_values.sort(key=itemgetter("key"))
 
@@ -518,6 +520,8 @@ class GroupLimitFilters:
     - ``keys``: A tuple containing resolved tag names ("tag[123]") in the order
       of the ``groupBy`` clause.
 
+    - ``aliased_keys``: A tuple containing the group column name aliases
+
     - ``values``: A list of tuples containing the tag values of the group keys.
       The list is in the order returned by Snuba. The tuple elements are ordered
       like ``keys``.
@@ -527,6 +531,7 @@ class GroupLimitFilters:
     """
 
     keys: Tuple[Groupable]
+    aliased_keys: Tuple[str]
     values: List[Tuple[int]]
     conditions: ConditionGroup
 
@@ -541,16 +546,23 @@ def _get_group_limit_filters(
     # will be used to filter down and order the results of the 2nd query.
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
-        resolve_tag_key(use_case_id, metrics_query.org_id, field)
-        if field not in FIELD_ALIAS_MAPPINGS.values()
-        else field
-        for field in metrics_query.groupby
+        FIELD_ALIAS_MAPPINGS[metric_groupby_obj.name]
+        if metric_groupby_obj.name in FIELD_ALIAS_MAPPINGS
+        else resolve_tag_key(use_case_id, metrics_query.org_id, metric_groupby_obj.name)
+        if metric_groupby_obj.name not in FIELD_ALIAS_MAPPINGS.values()
+        else metric_groupby_obj.name
+        for metric_groupby_obj in metrics_query.groupby
+    )
+    aliased_group_keys = tuple(
+        metric_groupby_obj.alias for metric_groupby_obj in metrics_query.groupby
     )
 
     # Get an ordered list of tuples containing the values of the group keys.
     # This needs to be deduplicated since in timeseries queries the same
     # grouping key will reappear for every time bucket.
-    values = list(OrderedDict((tuple(row[col] for col in keys), None) for row in results).keys())
+    values = list(
+        OrderedDict((tuple(row[col] for col in aliased_group_keys), None) for row in results).keys()
+    )
     conditions = [
         Condition(Function("tuple", [Column(k) for k in keys]), Op.IN, Function("tuple", values))
     ]
@@ -559,13 +571,18 @@ def _get_group_limit_filters(
     # the group by columns, we need a separate condition for each of the columns
     # in the group by with their respective values so Clickhouse can filter the
     # results down before checking for the group by column combinations.
-    values_by_column = {col: list({row[col] for row in results}) for col in keys}
+    values_by_column = {
+        key: list({row[aliased_key] for row in results})
+        for key, aliased_key in zip(keys, aliased_group_keys)
+    }
     conditions += [
         Condition(Column(col), Op.IN, Function("tuple", col_values))
         for col, col_values in values_by_column.items()
     ]
 
-    return GroupLimitFilters(keys=keys, values=values, conditions=conditions)
+    return GroupLimitFilters(
+        keys=keys, aliased_keys=aliased_group_keys, values=values, conditions=conditions
+    )
 
 
 def _apply_group_limit_filters(query: Query, filters: GroupLimitFilters) -> Query:
@@ -602,7 +619,7 @@ def _sort_results_by_group_filters(
     # }
     rows_by_group_values = {}
     for row in results:
-        group_values = tuple(row[col] for col in filters.keys)
+        group_values = tuple(row[col] for col in filters.aliased_keys)
         rows_by_group_values.setdefault(group_values, []).append(row)
 
     # Order the results according to the results of the initial query, so that when
@@ -635,7 +652,7 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
         for key, query_results in queries.items():
             filtered = []
             for row in query_results["data"]:
-                group_values = tuple(row[col] for col in filters.keys)
+                group_values = tuple(row[col] for col in filters.aliased_keys)
                 if group_values in valid_values:
                     filtered.append(row)
             queries[key]["data"] = filtered
@@ -797,9 +814,11 @@ def get_series(
 
                 results[entity][key] = {"data": snuba_result_data}
 
+    org_id = projects[0].organization_id
+
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id,
+        org_id,
         metrics_query,
         fields_in_entities,
         intervals,
@@ -816,14 +835,21 @@ def get_series(
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
-    metrics_query_fields = {str(metric_field) for metric_field in metrics_query.select}
+    metrics_query_fields = {
+        str(metric_field) for metric_field in converter._alias_to_metric_obj.keys()
+    }
+    groupby_aliases = (
+        {metric_groupby_obj.alias for metric_groupby_obj in metrics_query.groupby}
+        if metrics_query.groupby
+        else set()
+    )
 
     return {
         "start": metrics_query.start,
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(meta, metrics_query_fields, use_case_id)
+        "meta": translate_meta_results(meta, metrics_query_fields, groupby_aliases)
         if include_meta
         else [],
     }

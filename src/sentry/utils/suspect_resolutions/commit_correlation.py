@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Sequence, Set
 
-from sentry.models import CommitFileChange, Group, GroupRelease, ReleaseCommit
+from sentry.models import CommitFileChange, Group, GroupRelease, Release, ReleaseCommit
 
 
 @dataclass
@@ -40,20 +40,23 @@ def is_issue_commit_correlated(
     return CommitCorrelatedResult(
         not resolved_filechanges.files_changed.isdisjoint(candidate_filechanges.files_changed),
         resolved_filechanges.release_ids,
-        resolved_filechanges.release_ids,
+        candidate_filechanges.release_ids,
     )
 
 
 def get_files_changed_in_releases(
     resolved_issue_time: datetime, issue_id: int, project_id: int
 ) -> ReleaseCommitFileChanges:
-    releases = GroupRelease.objects.filter(
-        group_id=issue_id,
-        project_id=project_id,
-        last_seen__gte=(resolved_issue_time - timedelta(hours=5)),
-    ).values_list("release_id", flat=True)
-
-    if not releases:
+    releases = list(
+        Release.objects.filter(
+            id__in=GroupRelease.objects.filter(
+                group_id=issue_id,
+                project_id=project_id,
+            ).values_list("release_id", flat=True),
+            date_added__gte=(resolved_issue_time - timedelta(hours=5)),
+        )
+    )
+    if len(releases) == 0:
         return ReleaseCommitFileChanges([], set())
 
     files_changed_in_releases = set(
@@ -66,4 +69,4 @@ def get_files_changed_in_releases(
         .distinct()
     )
 
-    return ReleaseCommitFileChanges(releases, files_changed_in_releases)
+    return ReleaseCommitFileChanges([release.id for release in releases], files_changed_in_releases)

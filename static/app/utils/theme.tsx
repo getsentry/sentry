@@ -481,6 +481,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
   error: '#FF7738',
   fatal: colors.red300,
   default: colors.gray300,
+  unknown: colors.gray200,
 });
 
 const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
@@ -750,22 +751,46 @@ const commonTheme = {
    */
   buttonPadding: {
     md: {
-      paddingTop: 10,
-      paddingBottom: 10,
       paddingLeft: 16,
       paddingRight: 16,
+      paddingTop: 10,
+      paddingBottom: 10,
     },
     sm: {
-      paddingTop: 8,
-      paddingBottom: 8,
       paddingLeft: 12,
       paddingRight: 12,
+      paddingTop: 8,
+      paddingBottom: 8,
     },
     xs: {
-      paddingTop: 6,
-      paddingBottom: 6,
       paddingLeft: 8,
       paddingRight: 8,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
+  },
+
+  /**
+   * Padding for form inputs
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
     },
   },
 

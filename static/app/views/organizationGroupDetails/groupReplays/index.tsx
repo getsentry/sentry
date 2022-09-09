@@ -2,16 +2,11 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
-import {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupReplays from './groupReplays';
 
-type Props = {
-  group: Group;
-};
-
-const GroupReplaysContainer = ({group}: Props) => {
+const GroupReplaysContainer = (props: React.ComponentProps<typeof GroupReplays>) => {
   const organization = useOrganization();
   function renderNoAccess() {
     return (
@@ -23,11 +18,11 @@ const GroupReplaysContainer = ({group}: Props) => {
 
   return (
     <Feature
-      features={['session-replay']}
+      features={['session-replay-ui']}
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <GroupReplays group={group} />
+      <GroupReplays {...props} />
     </Feature>
   );
 };
