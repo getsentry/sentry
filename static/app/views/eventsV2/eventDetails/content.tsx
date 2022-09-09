@@ -360,7 +360,7 @@ const EventHeader = ({event}: {event: Event}) => {
   return (
     <EventHeaderContainer data-test-id="event-header">
       <TitleWrapper>
-        <StyledEventOrGroupTitle data={event} />
+        <EventOrGroupTitle data={event} />
       </TitleWrapper>
       {message && (
         <MessageWrapper>
@@ -376,11 +376,8 @@ const EventHeaderContainer = styled('div')`
 `;
 
 const TitleWrapper = styled('div')`
-  margin-top: 20px;
-`;
-
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: ${p => p.theme.headerFontSize};
+  margin-top: 20px;
 `;
 
 const MessageWrapper = styled('div')`

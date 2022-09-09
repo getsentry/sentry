@@ -355,7 +355,7 @@ class GroupHeader extends Component<Props, State> {
             <div className="col-sm-7">
               <TitleWrapper>
                 <h3>
-                  <StyledEventOrGroupTitle hasGuideAnchor data={group} />
+                  <EventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
                 {group.inbox && (
                   <InboxReasonWrapper>
@@ -451,10 +451,6 @@ export default withApi(withRouter(withOrganization(GroupHeader)));
 const TitleWrapper = styled('div')`
   display: flex;
   line-height: 24px;
-`;
-
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-size: inherit;
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
