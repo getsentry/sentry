@@ -118,7 +118,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
             {t('Assigned via %s', integrationName[data.integration])}
             {data.rule && (
               <Fragment>
-                : <StyledCode>{data.rule}</StyledCode>
+                : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
               </Fragment>
             )}
           </CodeWrapper>
@@ -353,6 +353,6 @@ const CodeWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const StyledCode = styled('span')`
+const StyledRuleSpan = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
 `;
