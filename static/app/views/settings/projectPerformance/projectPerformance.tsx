@@ -52,17 +52,22 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
+    const {params, organization} = this.props;
     const {orgId, projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['threshold', `/projects/${orgId}/${projectId}/transaction-threshold/configure/`],
-      [
-        'performance_issue_settings',
-        `/projects/${orgId}/${projectId}/performance-issues/configure/`,
-      ],
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
+
+    if (organization.features.includes('performance-issues')) {
+      const performanceIssuesEndpoint = [
+        'performance_issue_settings',
+        `/projects/${orgId}/${projectId}/performance-issues/configure/`,
+      ] as [string, string];
+
+      endpoints.push(performanceIssuesEndpoint);
+    }
 
     return endpoints;
   }
