@@ -5,10 +5,13 @@ import time
 
 import pytest
 from django.utils.datastructures import MultiValueDict
+from snuba_sdk import Granularity, Limit, Offset
 
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import MetricField, MetricsQuery
 from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.query_builder import QueryDefinition
+from sentry.snuba.metrics.naming_layer import SessionMetricKey, SessionMRI
+from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
 from sentry.testutils import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -51,7 +54,7 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_validate_include_meta_only_non_composite_derived_metrics_and_in_select(self):
+    def test_validate_include_meta_computes_meta_for_composite_derived_metrics(self):
         query_params = MultiValueDict(
             {
                 "field": [
@@ -62,12 +65,143 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             }
         )
         query = QueryDefinition([self.project], query_params)
-        assert (
-            get_series(
-                [self.project],
-                query.to_metrics_query(),
-                include_meta=True,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )["meta"]
-            == []
+        assert get_series(
+            [self.project],
+            query.to_metrics_query(),
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )["meta"] == sorted(
+            [
+                {"name": "session.errored", "type": "Float64"},
+                {"name": "session.healthy", "type": "Float64"},
+            ],
+            key=lambda elem: elem["name"],
         )
+
+    def test_alias_on_composite_entity_derived_metric(self):
+        user_ts = time.time()
+        org_id = self.organization.id
+
+        for tag_value, count_value in (
+            ("errored_preaggr", 10),
+            ("crashed", 2),
+            ("abnormal", 4),
+            ("init", 15),
+        ):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="counter",
+                name=str(SessionMRI.SESSION.value),
+                tags={"session.status": tag_value},
+                timestamp=(user_ts // 60 - 4) * 60,
+                value=count_value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+        for value in range(3):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="set",
+                name=str(SessionMRI.ERROR.value),
+                tags={"release": "foo"},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "6m",
+                "interval": "1m",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op=None,
+                    metric_name=str(SessionMetricKey.ERRORED.value),
+                    alias="errored_sessions_alias",
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        group = data["groups"][0]
+        assert group["totals"]["errored_sessions_alias"] == 7
+        assert group["series"]["errored_sessions_alias"] == [0, 4, 0, 0, 0, 3]
+        assert data["meta"] == sorted(
+            [
+                {"name": "errored_sessions_alias", "type": "Float64"},
+                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_aliasing_behavior_on_derived_op_and_derived_alias(self):
+        user_ts = time.time()
+        for tag_value, d_value in (
+            ("exited", [4, 5, 6, 1, 2, 3]),
+            ("crashed", [7, 8, 9]),
+        ):
+            for v in d_value:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=str(SessionMRI.RAW_DURATION.value),
+                    tags={"session.status": tag_value},
+                    timestamp=user_ts,
+                    value=v,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "1h",
+                "interval": "1h",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="histogram",
+                    metric_name=SessionMetricKey.DURATION.value,
+                    alias="histogram_duration",
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            histogram_from=2,
+            histogram_buckets=2,
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+
+        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
+        assert data["groups"] == [
+            {
+                "by": {},
+                "totals": {"histogram_duration": hist},
+            }
+        ]

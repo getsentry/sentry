@@ -1,6 +1,5 @@
 import time
-from dataclasses import dataclass
-from typing import Collection, Optional, Sequence, Tuple
+from typing import Collection, NamedTuple, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
@@ -8,8 +7,7 @@ Hash = str
 Timestamp = int
 
 
-@dataclass(frozen=True)
-class Quota:
+class Quota(NamedTuple):
     # The number of seconds to apply the limit to.
     window_seconds: int
 
@@ -31,8 +29,7 @@ class Quota:
         assert self.window_seconds % self.granularity_seconds == 0
 
 
-@dataclass(frozen=True)
-class RequestedQuota:
+class RequestedQuota(NamedTuple):
     # A string that all redis state is prefixed with. For example
     # `sentry-string-indexer` where 123 is an organization id.
     prefix: str
@@ -52,8 +49,7 @@ class RequestedQuota:
     quotas: Sequence[Quota]
 
 
-@dataclass(frozen=True)
-class GrantedQuota:
+class GrantedQuota(NamedTuple):
     request: RequestedQuota
 
     # The subset of hashes provided by the user `self.request` that were

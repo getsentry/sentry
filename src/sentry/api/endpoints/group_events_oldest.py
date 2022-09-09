@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -5,9 +9,12 @@ from sentry.api import client
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 
+if TYPE_CHECKING:
+    from sentry.models.group import Group
 
-class GroupEventsOldestEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+
+class GroupEventsOldestEndpoint(GroupEndpoint):  # type: ignore
+    def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve the Oldest Event for an Issue
         ``````````````````````````````````````
