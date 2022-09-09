@@ -6,7 +6,7 @@ from arroyo.types import Message, Partition, Topic
 from sentry.sentry_metrics.configuration import (
     IndexerStorage,
     MetricsIngestConfiguration,
-    UseCaseKey,
+    UseCaseKey, RELEASE_HEALTH_PG_NAMESPACE,
 )
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -53,6 +53,8 @@ def test_basic(request):
             internal_metrics_tag="test",
             writes_limiter_cluster_options={},
             writes_limiter_namespace="test",
+            cardinality_limiter_cluster_options={},
+            cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
         ),
     )
 
