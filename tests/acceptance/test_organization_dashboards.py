@@ -8,6 +8,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from fixtures.page_objects.dashboard_detail import (
     EDIT_WIDGET_BUTTON,
     WIDGET_DRAG_HANDLE,
+    WIDGET_EDITABLE_TEXT_LABEL,
     WIDGET_RESIZE_HANDLE,
     WIDGET_TITLE_FIELD,
     DashboardDetailPage,
@@ -287,10 +288,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Edit the existing widget
             button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(Keys.END, "Existing WidgetUPDATED!!")
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             # Add and drag new widget to the right
@@ -305,10 +307,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Edit the new widget
             button = self.browser.element(f".react-grid-item:nth-of-type(2) {EDIT_WIDGET_BUTTON}")
             button.click()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(Keys.END, "New WidgetUPDATED!!")
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             self.page.save_dashboard()
@@ -321,12 +324,13 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         def add_issue_widget(widget_title):
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys(widget_title)
             self.browser.element(
                 '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
             ).click()
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
 
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
@@ -551,33 +555,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.browser.snapshot("dashboard widget - delete with grid")
 
-    def test_cancel_without_changes_does_not_trigger_confirm_with_widget_library_through_header(
-        self,
-    ):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
-            self.page.visit_dashboard_detail()
-
-            # Open widget library
-            self.page.click_dashboard_header_add_widget_button()
-            self.browser.element('[data-test-id="library-tab"]').click()
-
-            # Select/deselect widget library cards
-            self.browser.element('[data-test-id="widget-library-card-0"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-
-            # Save widget library selections
-            button = self.browser.element('[data-test-id="confirm-widgets"]')
-            button.click()
-            self.page.wait_until_loaded()
-
-            # Should not trigger alert
-            self.page.enter_edit_state()
-            self.page.click_cancel_button()
-            wait = WebDriverWait(self.browser.driver, 5)
-            wait.until_not(EC.alert_is_present())
-
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
     ):
@@ -587,9 +564,10 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             self.page.click_dashboard_header_add_widget_button()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys("New custom widget")
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
             self.page.wait_until_loaded()
 
@@ -743,7 +721,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Change the chart type to the first visualization option - Area chart
             chart_type_input = self.browser.element("#react-select-2-input")
             chart_type_input.send_keys("Area", Keys.ENTER)
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             # No confirm dialog because of shifting lower element
@@ -794,7 +772,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Change the chart type to the first visualization option - Area chart
             chart_type_input = self.browser.element("#react-select-2-input")
             chart_type_input.send_keys("Area", Keys.ENTER)
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             self.page.wait_until_loaded()
@@ -845,7 +823,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Change the chart type to big number
             chart_type_input = self.browser.element("#react-select-2-input")
             chart_type_input.send_keys("Big Number", Keys.ENTER)
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             self.page.wait_until_loaded()
