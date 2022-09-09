@@ -95,6 +95,7 @@ type TestStubFixtures = {
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
   Repository: OverridableStub;
+  RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;
   Searches: OverridableStubList;
   SentryApp: OverridableStub;
@@ -149,7 +150,6 @@ type TestStubFixtures = {
   // Dashboard(widgets = DEFAULT_WIDGETS, props = {})
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
   // PhabricatorAutocomplete(type = 'project', values = null)
-  // RepositoryProjectPathConfig(project, repo, integration, params)
   // RoleList(params = [], fullAccess = false)
 
   // const MOCK_RESP_VERBOSE

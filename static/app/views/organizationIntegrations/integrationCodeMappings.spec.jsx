@@ -45,26 +45,22 @@ describe('IntegrationCodeMappings', function () {
     }),
   ];
 
-  const pathConfig1 = TestStubs.RepositoryProjectPathConfig(
-    projects[0],
-    repos[0],
+  const pathConfig1 = TestStubs.RepositoryProjectPathConfig({
+    project: projects[0],
+    repo: repos[0],
     integration,
-    {
-      stackRoot: 'stack/root',
-      sourceRoot: 'source/root',
-    }
-  );
+    stackRoot: 'stack/root',
+    sourceRoot: 'source/root',
+  });
 
-  const pathConfig2 = TestStubs.RepositoryProjectPathConfig(
-    projects[1],
-    repos[1],
+  const pathConfig2 = TestStubs.RepositoryProjectPathConfig({
+    project: projects[1],
+    repo: repos[1],
     integration,
-    {
-      id: '12',
-      stackRoot: 'one/path',
-      sourceRoot: 'another/root',
-    }
-  );
+    id: '12',
+    stackRoot: 'one/path',
+    sourceRoot: 'another/root',
+  });
 
   let wrapper;
 
@@ -135,7 +131,10 @@ describe('IntegrationCodeMappings', function () {
     const createMock = Client.addMockResponse({
       url,
       method: 'POST',
-      body: TestStubs.RepositoryProjectPathConfig(projects[1], repos[1], integration, {
+      body: TestStubs.RepositoryProjectPathConfig({
+        project: projects[1],
+        repo: repos[1],
+        integration,
         stackRoot,
         sourceRoot,
         defaultBranch,
@@ -182,7 +181,10 @@ describe('IntegrationCodeMappings', function () {
     const editMock = Client.addMockResponse({
       url,
       method: 'PUT',
-      body: TestStubs.RepositoryProjectPathConfig(projects[0], repos[0], integration, {
+      body: TestStubs.RepositoryProjectPathConfig({
+        project: projects[0],
+        repo: repos[0],
+        integration,
         stackRoot,
         sourceRoot,
         defaultBranch,
