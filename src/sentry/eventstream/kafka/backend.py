@@ -213,11 +213,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         concurrency = options.get(_CONCURRENCY_OPTION)
         logger.info(f"Starting post process forwarder to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
-            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
             worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
             default_topic = self.transactions_topic
         elif entity == PostProcessForwarderType.ERRORS:
-            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
             worker = ErrorsPostProcessForwarderWorker(concurrency=concurrency)
             default_topic = self.topic
         else:
@@ -225,11 +223,15 @@ class KafkaEventStream(SnubaProtocolEventStream):
             # irrespective of values in the header. This would most likely be the case
             # for development environments. For the combined post process forwarder
             # to work KAFKA_EVENTS and KAFKA_TRANSACTIONS must be the same currently.
-            cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
-            assert cluster_name == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
+            assert (
+                settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["cluster"]
+                == settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["cluster"]
+            )
             worker = PostProcessForwarderWorker(concurrency=concurrency)
             default_topic = self.topic
             assert self.topic == self.transactions_topic
+
+        cluster_name = settings.KAFKA_TOPICS[topic or default_topic]["cluster"]
 
         synchronized_consumer = SynchronizedConsumer(
             cluster_name=cluster_name,
