@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEmpty from 'lodash/isEmpty';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -86,6 +87,7 @@ function DomMutations({replay}: Props) {
           triggerProps={{
             prefix: t('Event Type'),
           }}
+          triggerLabel={isEmpty(filters) ? t('Any') : null}
           multiple
           options={getDomMutationsTypes(actions).map(mutationEventType => ({
             value: mutationEventType,
@@ -103,43 +105,39 @@ function DomMutations({replay}: Props) {
 
         <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
       </MutationFilters>
-      {isLoading ? (
-        <Placeholder height="200px" />
-      ) : (
-        <MutationList>
-          {filteredDomMutations.map((mutation, i) => (
-            <MutationListItem
-              key={i}
-              onMouseEnter={() => handleMouseEnter(mutation.crumb)}
-              onMouseLeave={() => handleMouseLeave(mutation.crumb)}
-            >
-              {i < actions.length - 1 && <StepConnector />}
-              <IconWrapper color={mutation.crumb.color}>
-                <BreadcrumbIcon type={mutation.crumb.type} />
-              </IconWrapper>
-              <MutationContent>
-                <MutationDetailsContainer>
-                  <div>
-                    <TitleContainer>
-                      <Title>{getDetails(mutation.crumb).title}</Title>
-                    </TitleContainer>
-                    <MutationMessage>{mutation.crumb.message}</MutationMessage>
-                  </div>
-                  <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
-                    <PlayerRelativeTime
-                      relativeTimeMs={startTimestampMs}
-                      timestamp={mutation.crumb.timestamp}
-                    />
-                  </UnstyledButton>
-                </MutationDetailsContainer>
-                <CodeContainer>
-                  <HTMLCode code={mutation.html} />
-                </CodeContainer>
-              </MutationContent>
-            </MutationListItem>
-          ))}
-        </MutationList>
-      )}
+      <MutationList>
+        {filteredDomMutations.map((mutation, i) => (
+          <MutationListItem
+            key={i}
+            onMouseEnter={() => handleMouseEnter(mutation.crumb)}
+            onMouseLeave={() => handleMouseLeave(mutation.crumb)}
+          >
+            {i < filteredDomMutations.length - 1 && <StepConnector />}
+            <IconWrapper color={mutation.crumb.color}>
+              <BreadcrumbIcon type={mutation.crumb.type} />
+            </IconWrapper>
+            <MutationContent>
+              <MutationDetailsContainer>
+                <div>
+                  <TitleContainer>
+                    <Title>{getDetails(mutation.crumb).title}</Title>
+                  </TitleContainer>
+                  <MutationMessage>{mutation.crumb.message}</MutationMessage>
+                </div>
+                <UnstyledButton onClick={() => handleClick(mutation.crumb)}>
+                  <PlayerRelativeTime
+                    relativeTimeMs={startTimestampMs}
+                    timestamp={mutation.crumb.timestamp}
+                  />
+                </UnstyledButton>
+              </MutationDetailsContainer>
+              <CodeContainer>
+                <HTMLCode code={mutation.html} />
+              </CodeContainer>
+            </MutationContent>
+          </MutationListItem>
+        ))}
+      </MutationList>
     </MutationContainer>
   );
 }

@@ -14,7 +14,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
@@ -90,12 +90,7 @@ class Tags extends Component<Props, State> {
   handleTagClick = (tag: string) => {
     const {organization} = this.props;
     // metrics
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.facet_map.clicked',
-      eventName: 'Discoverv2: Clicked on a tag on the facet map',
-      tag,
-      organization_id: parseInt(organization.id, 10),
-    });
+    trackAdvancedAnalyticsEvent('discover_v2.facet_map.clicked', {organization, tag});
   };
 
   renderTag(tag: Tag) {

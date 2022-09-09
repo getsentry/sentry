@@ -502,6 +502,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.nextjs',
     'sentry.javascript.electron',
     'sentry.javascript.remix',
+    'sentry.javascript.svelte',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -886,7 +887,7 @@ export function getCumulativeAlertLevelFromErrors(
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
 }
 
-// Maps the six known error levels to one of three Alert component types
+// Maps the known error levels to an Alert component types
 const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
   fatal: 'error',
   error: 'error',
@@ -894,6 +895,7 @@ const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert'
   warning: 'warning',
   sample: 'info',
   info: 'info',
+  unknown: 'muted',
 };
 
 // Allows sorting errors according to their level of severity
@@ -904,16 +906,20 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   warning: 3,
   sample: 2,
   info: 1,
+  unknown: 0,
 };
 
 /**
- * Formats start and end unix timestamps by inserting a leading zero if needed, so they can have the same length
+ * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length
  */
-export function getFormattedTimeRangeWithLeadingZero(start: number, end: number) {
+export function getFormattedTimeRangeWithLeadingAndTrailingZero(
+  start: number,
+  end: number
+) {
   const startStrings = String(start).split('.');
   const endStrings = String(end).split('.');
 
-  if (startStrings.length !== endStrings.length) {
+  if (startStrings.length !== 2 || endStrings.length !== 2) {
     return {
       start: String(start),
       end: String(end),
@@ -924,11 +930,19 @@ export function getFormattedTimeRangeWithLeadingZero(start: number, end: number)
     (acc, startString, index) => {
       if (startString.length > endStrings[index].length) {
         acc.start.push(startString);
-        acc.end.push(endStrings[index].padStart(startString.length, '0'));
+        acc.end.push(
+          index === 0
+            ? endStrings[index].padStart(startString.length, '0')
+            : endStrings[index].padEnd(startString.length, '0')
+        );
         return acc;
       }
 
-      acc.start.push(startString.padStart(endStrings[index].length, '0'));
+      acc.start.push(
+        index === 0
+          ? startString.padStart(endStrings[index].length, '0')
+          : startString.padEnd(endStrings[index].length, '0')
+      );
       acc.end.push(endStrings[index]);
       return acc;
     },
