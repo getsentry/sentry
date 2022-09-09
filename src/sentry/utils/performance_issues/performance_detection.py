@@ -776,6 +776,10 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_hash:
             return False
 
+        if span_hash == self.source_span.get("hash", None):
+            # The source span and n repeating spans must have different queries.
+            return False
+
         if not self.n_hash:
             self.n_hash = span_hash
             return True
