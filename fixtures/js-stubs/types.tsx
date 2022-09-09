@@ -95,6 +95,12 @@ type TestStubFixtures = {
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
   Repository: OverridableStub;
+  RepositoryProjectPathConfig: (
+    project: any,
+    repo: any,
+    integration: any,
+    params?: any
+  ) => any;
   Search: OverridableStub;
   Searches: OverridableStubList;
   SentryApp: OverridableStub;
