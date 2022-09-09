@@ -249,13 +249,6 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-export type EntryPerformance = {
-  data: {
-    affectedSpanIds: string[];
-  };
-  type: EntryType.PERFORMANCE;
-};
-
 type EntryMessage = {
   data: {
     formatted: string;
@@ -305,7 +298,6 @@ export type Entry =
   | EntryException
   | EntryStacktrace
   | EntrySpans
-  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -432,7 +424,6 @@ export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
-    | EntryPerformance
   )[];
   type: EventOrGroupType.ERROR;
 }

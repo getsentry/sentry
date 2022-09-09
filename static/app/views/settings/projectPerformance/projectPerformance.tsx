@@ -60,7 +60,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
       ['project', `/projects/${orgId}/${projectId}/`],
     ];
 
-    if (organization.features.includes('performance-issues')) {
+    if (organization.features.includes('performance-issues-dev')) {
       const performanceIssuesEndpoint = [
         'performance_issue_settings',
         `/projects/${orgId}/${projectId}/performance-issues/configure/`,
@@ -259,7 +259,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Feature features={['organizations:performance-issues']}>
+        <Feature features={['organizations:performance-issues-dev']}>
           <Fragment>
             <Form
               saveOnBlur

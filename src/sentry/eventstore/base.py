@@ -124,8 +124,6 @@ class EventStorage(Service):
         "get_unfetched_events",
         "get_prev_event_id",
         "get_next_event_id",
-        "get_earliest_event_id",
-        "get_latest_event_id",
         "bind_nodes",
         "get_unfetched_transactions",
     )
@@ -220,28 +218,6 @@ class EventStorage(Service):
     def get_prev_event_id(self, event, snuba_filter):
         """
         Gets the previous event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_earliest_event_id(self, event, snuba_filter):
-        """
-        Gets the earliest event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_latest_event_id(self, event, snuba_filter):
-        """
-        Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:

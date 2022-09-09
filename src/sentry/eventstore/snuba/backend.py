@@ -79,6 +79,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_events",
+        dataset=snuba.Dataset.Events,
     ):
         """
         Get events from Snuba, without node data loaded.
@@ -90,6 +91,7 @@ class SnubaEventStorage(EventStorage):
             offset=offset,
             referrer=referrer,
             should_bind_nodes=False,
+            dataset=dataset,
         )
 
     def __get_events(
@@ -251,22 +253,6 @@ class SnubaEventStorage(EventStorage):
             event.group_id = result["data"][0]["group_id"]
 
         return event
-
-    def get_earliest_event_id(self, event, filter):
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_before_event_condition(event))
-        filter.end = event.datetime
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
-
-    def get_latest_event_id(self, event, filter):
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_after_event_condition(event))
-        filter.start = event.datetime
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 
     def get_next_event_id(self, event, filter):
         """
