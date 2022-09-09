@@ -454,7 +454,7 @@ const TitleWrapper = styled('div')`
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: inherit;
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
