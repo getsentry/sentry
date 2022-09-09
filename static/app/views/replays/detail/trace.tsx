@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -19,10 +18,6 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  TracePanel,
-  TraceViewHeaderContainer,
-} from 'sentry/views/performance/traceDetails/styles';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
 import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -179,19 +174,4 @@ function Trace({replayRecord, organization, className}: Props) {
   // TODO(replays): pagination
 }
 
-const StyledTrace = styled(Trace)`
-  margin-top: 0;
-  height: 100%;
-
-  ${TracePanel} {
-    height: 100%;
-    overflow: auto;
-  }
-  ${TraceViewHeaderContainer} {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-`;
-
-export default StyledTrace;
+export default Trace;
