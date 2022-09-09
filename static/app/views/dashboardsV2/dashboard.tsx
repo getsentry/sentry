@@ -338,7 +338,7 @@ class Dashboard extends Component<Props, State> {
       isEditing,
       widgetLimitReached,
       onDelete: this.handleDeleteWidget(widget),
-      onEdit: this.handleEditWidget(widget, index),
+      onEdit: this.handleEditWidget(index),
       onDuplicate: this.handleDuplicateWidget(widget, index),
       isPreview,
       dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,

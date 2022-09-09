@@ -170,8 +170,6 @@ function WidgetBuilder({
     defaultTableColumns = [defaultTableColumns];
   }
 
-  // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
-  const widgetBuilderNewDesign = true;
   const hasReleaseHealthFeature = organization.features.includes('dashboards-releases');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
@@ -354,15 +352,13 @@ function WidgetBuilder({
       fetchDashboards();
     }
 
-    if (widgetBuilderNewDesign) {
-      setState(prevState => ({
-        ...prevState,
-        selectedDashboard: {
-          label: dashboard.title,
-          value: dashboard.id || NEW_DASHBOARD_ID,
-        },
-      }));
-    }
+    setState(prevState => ({
+      ...prevState,
+      selectedDashboard: {
+        label: dashboard.title,
+        value: dashboard.id || NEW_DASHBOARD_ID,
+      },
+    }));
   }, [
     api,
     dashboard.id,
@@ -370,7 +366,6 @@ function WidgetBuilder({
     notDashboardsOrigin,
     organization.slug,
     source,
-    widgetBuilderNewDesign,
   ]);
 
   useEffect(() => {
@@ -489,22 +484,20 @@ function WidgetBuilder({
 
       set(newState, 'queries', normalized);
 
-      if (widgetBuilderNewDesign) {
-        if (
-          getIsTimeseriesChart(newDisplayType) &&
-          normalized[0].columns.filter(column => !!column).length
-        ) {
-          // If a limit already exists (i.e. going between timeseries) then keep it,
-          // otherwise calculate a limit
-          newState.limit =
-            prevState.limit ??
-            Math.min(
-              getResultsLimit(normalized.length, normalized[0].columns.length),
-              DEFAULT_RESULTS_LIMIT
-            );
-        } else {
-          newState.limit = undefined;
-        }
+      if (
+        getIsTimeseriesChart(newDisplayType) &&
+        normalized[0].columns.filter(column => !!column).length
+      ) {
+        // If a limit already exists (i.e. going between timeseries) then keep it,
+        // otherwise calculate a limit
+        newState.limit =
+          prevState.limit ??
+          Math.min(
+            getResultsLimit(normalized.length, normalized[0].columns.length),
+            DEFAULT_RESULTS_LIMIT
+          );
+      } else {
+        newState.limit = undefined;
       }
 
       set(newState, 'userHasModified', true);
@@ -805,19 +798,8 @@ function WidgetBuilder({
       widgetData.layout = widgetToBeUpdated?.layout;
     }
 
-    // Only Table and Top N views need orderby
-    if (!widgetBuilderNewDesign && !isTabularChart) {
-      widgetData.queries.forEach(query => {
-        query.orderby = '';
-      });
-    }
-
-    if (!widgetBuilderNewDesign) {
-      widgetData.queries.forEach(query => omit(query, 'fieldAliases'));
-    }
-
     // Only Time Series charts shall have a limit
-    if (widgetBuilderNewDesign && !isTimeseriesChart) {
+    if (!isTimeseriesChart) {
       widgetData.limit = undefined;
     }
 
@@ -1022,9 +1004,7 @@ function WidgetBuilder({
 
   // The SortBy field shall only be displayed in tabular visualizations or
   // on time-series visualizations when at least one groupBy value is selected
-  const displaySortByStep =
-    (widgetBuilderNewDesign && isTimeseriesChart && groupByValueSelected) ||
-    isTabularChart;
+  const displaySortByStep = (isTimeseriesChart && groupByValueSelected) || isTabularChart;
 
   if (isEditing && !isValidWidgetIndex) {
     return (
@@ -1133,7 +1113,7 @@ function WidgetBuilder({
                         dashboardFilters={dashboard.filters}
                         location={location}
                       />
-                      {widgetBuilderNewDesign && isTimeseriesChart && (
+                      {isTimeseriesChart && (
                         <GroupByStep
                           columns={columns
                             .filter(field => !(field === 'equation|'))
@@ -1152,7 +1132,6 @@ function WidgetBuilder({
                           displayType={state.displayType}
                           queries={state.queries}
                           dataSet={state.dataSet}
-                          widgetBuilderNewDesign={widgetBuilderNewDesign}
                           error={state.errors?.orderby}
                           onSortByChange={handleSortByChange}
                           onLimitChange={handleLimitChange}
@@ -1178,7 +1157,6 @@ function WidgetBuilder({
                 <Side>
                   <WidgetLibrary
                     organization={organization}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                     selectedWidgetId={
                       state.userHasModified ? null : state.prebuiltWidgetId
                     }
