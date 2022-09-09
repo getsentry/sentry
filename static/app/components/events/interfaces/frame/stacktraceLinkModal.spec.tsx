@@ -10,7 +10,7 @@ function createWrapper(statusCode: number, closeModal: () => {}) {
   const integration = TestStubs.GitHubIntegration();
   const filename = '/sentry/app.py';
   const repo = TestStubs.Repository({integrationId: integration.id});
-  const config = TestStubs.RepositoryProjectPathConfig(project, repo, integration);
+  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
 
   const configData = {
