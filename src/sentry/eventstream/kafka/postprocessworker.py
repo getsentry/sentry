@@ -20,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 Message = Any
 _DURATION_METRIC = "eventstream.duration"
-_CONCURRENCY_METRIC = "eventstream.concurrency"
 _MESSAGES_METRIC = "eventstream.messages"
-_CONCURRENCY_OPTION = "post-process-forwarder:concurrency"
 _TRANSACTION_FORWARDER_HEADER = "transaction_forwarder"
 
 
@@ -112,7 +110,6 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
     def __init__(self, concurrency: Optional[int] = 1) -> None:
         self.__current_concurrency = concurrency
         logger.info(f"Starting post process forwarder with {concurrency} threads")
-        metrics.incr(_CONCURRENCY_METRIC, amount=concurrency)
         self.__executor = ThreadPoolExecutor(max_workers=self.__current_concurrency)
 
     def process_message(self, message: Message) -> Optional[Future]:
@@ -134,18 +131,6 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
                 exc = future.exception()
                 if exc is not None:
                     raise exc
-
-        # Check if the concurrency settings have changed. If yes, then shutdown the existing executor
-        # and create a new one with the new settings
-        new_concurrency = options.get(_CONCURRENCY_OPTION)
-        if new_concurrency != self.__current_concurrency:
-            logger.info(
-                f"Switching post-process-forwarder from {self.__current_concurrency} to {new_concurrency} worker threads"
-            )
-            metrics.incr(_CONCURRENCY_METRIC, amount=new_concurrency)
-            self.__executor.shutdown(wait=True)
-            self.__executor = ThreadPoolExecutor(max_workers=new_concurrency)
-            self.__current_concurrency = new_concurrency
 
     def shutdown(self) -> None:
         self.__executor.shutdown()

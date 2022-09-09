@@ -336,6 +336,12 @@ def cron(**options):
     help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
 )
 @click.option(
+    "--concurrency",
+    default=50,
+    type=int,
+    help="Thread pool size for post process worker.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -362,6 +368,7 @@ def post_process_forwarder(**options):
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
+            concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
         )
     except ForwarderNotRequired:
