@@ -79,6 +79,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_events",
+        dataset=snuba.Dataset.Events,
     ):
         """
         Get events from Snuba, without node data loaded.
@@ -90,6 +91,7 @@ class SnubaEventStorage(EventStorage):
             offset=offset,
             referrer=referrer,
             should_bind_nodes=False,
+            dataset=dataset,
         )
 
     def __get_events(
