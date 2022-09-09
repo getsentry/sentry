@@ -20,6 +20,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -35,6 +36,7 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
+@region_silo_test
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 

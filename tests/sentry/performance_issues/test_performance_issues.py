@@ -6,6 +6,7 @@ from sentry.event_manager import EventManager
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupCategory, GroupType
 from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
@@ -29,6 +30,7 @@ class EventManagerTestMixin:
         return event
 
 
+@region_silo_test
 class EventManagerTest(TestCase, EventManagerTestMixin):
 
     # GROUPS TESTS

@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.authentication import QuietBasicAuthentication
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
@@ -27,6 +27,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 PREFILLED_SU_MODAL_KEY = "prefilled_su_modal"
 
 
+@control_silo_endpoint
 class AuthIndexEndpoint(Endpoint):
     """
     Manage session authentication

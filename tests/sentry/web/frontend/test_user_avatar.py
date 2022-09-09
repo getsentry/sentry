@@ -4,9 +4,11 @@ from django.urls import reverse
 
 from sentry.models import File, UserAvatar
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
+@control_silo_test
 class UserAvatarTest(TestCase):
     def test_headers(self):
         user = self.create_user(email="a@example.com")

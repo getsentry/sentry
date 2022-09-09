@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
@@ -658,6 +659,7 @@ class PrepareProblemForGroupingTest(unittest.TestCase):
         )
 
 
+@region_silo_test
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
     def test(self):
         # Make sure we don't forget to include a mapping to `GroupType`

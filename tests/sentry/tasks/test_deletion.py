@@ -20,6 +20,7 @@ from sentry.signals import pending_delete
 from sentry.tasks.deletion import delete_groups, reattempt_deletions, run_scheduled_deletions
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
 class RunScheduledDeletionTest(TestCase):
@@ -164,6 +165,7 @@ class ReattemptDeletionsTest(TestCase):
         assert schedule.in_progress is True
 
 
+@region_silo_test
 class DeleteGroupTest(TestCase):
     def test_simple(self):
         event_id = "a" * 32
