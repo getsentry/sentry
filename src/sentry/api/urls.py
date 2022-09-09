@@ -239,11 +239,7 @@ from .endpoints.organization_dynamic_sampling_sdk_versions import (
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import (
-    OrganizationEventsEndpoint,
-    OrganizationEventsGeoEndpoint,
-    OrganizationEventsV2Endpoint,
-)
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsGeoEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -402,6 +398,7 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
+from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -1111,12 +1108,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/sdk-updates/$",
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
-                ),
-                # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
-                    OrganizationEventsV2Endpoint.as_view(),
-                    name="sentry-api-0-organization-eventsv2",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events/$",
@@ -2242,6 +2233,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
                     ProjectTransactionThresholdEndpoint.as_view(),
                     name="sentry-api-0-project-transaction-threshold",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance-issues/configure/$",
+                    ProjectPerformanceIssueSettingsEndpoint.as_view(),
+                    name="sentry-api-0-project-performance-issue-settings",
                 ),
                 # Load plugin project urls
                 url(

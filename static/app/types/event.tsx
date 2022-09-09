@@ -10,7 +10,7 @@ import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktr
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
 export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
-export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
 /**
  * Grouping Configuration.
@@ -249,15 +249,10 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-export type EntrySpanTree = {
+export type EntryPerformance = {
   data: {
     affectedSpanIds: string[];
   };
-  type: EntryType.SPANTREE;
-};
-
-export type EntryPerformance = {
-  data: any; // data is not used
   type: EntryType.PERFORMANCE;
 };
 
@@ -310,7 +305,6 @@ export type Entry =
   | EntryException
   | EntryStacktrace
   | EntrySpans
-  | EntrySpanTree
   | EntryPerformance
   | EntryMessage
   | EntryRequest
@@ -438,7 +432,6 @@ export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
     | EntryThreads
     | EntryDebugMeta
     | EntryPerformance
-    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
 }

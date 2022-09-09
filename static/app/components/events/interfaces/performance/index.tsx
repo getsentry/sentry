@@ -2,48 +2,76 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventError, Group, Organization} from 'sentry/types';
-import {useLocation} from 'sentry/utils/useLocation';
+import {Event, Group, KeyValueListData, Organization} from 'sentry/types';
 
-import {DurationChart} from './durationChart';
-import {SpanCountChart} from './spanCountChart';
+import KeyValueList from '../keyValueList';
+import {EmbeddedSpanTree} from '../spans/embeddedSpanTree';
+
+export type SpanEvidence = {
+  parentSpan: string;
+  repeatingSpan: string;
+  sourceSpan: string;
+  transaction: string;
+};
 
 interface Props {
-  event: EventError;
+  affectedSpanIds: string[];
+  event: Event;
   issue: Group;
   organization: Organization;
+  projectSlug: string;
+  spanEvidence: SpanEvidence;
 }
 
-export function PerformanceIssueSection({issue, event, organization}: Props) {
-  const location = useLocation();
+export function SpanEvidenceSection({
+  spanEvidence,
+  event,
+  organization,
+  projectSlug,
+  affectedSpanIds,
+}: Props) {
+  const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
+
+  const data: KeyValueListData = [
+    {
+      key: '0',
+      subject: t('Transaction'),
+      value: transaction,
+    },
+    {
+      key: '1',
+      subject: t('Parent Span'),
+      value: parentSpan,
+    },
+    {
+      key: '2',
+      subject: t('Source Span'),
+      value: sourceSpan,
+    },
+    {
+      key: '3',
+      subject: t('Repeating Span'),
+      value: repeatingSpan,
+    },
+  ];
 
   return (
     <Wrapper>
-      <Section>
-        <h3>{t('P75 Duration Change')}</h3>
-        <DurationChart
-          issue={issue}
-          location={location}
-          organization={organization}
-          event={event}
-        />
-      </Section>
-      <Section>
-        <h3>{t('Span Count Distribution')}</h3>
-        <SpanCountChart
-          issue={issue}
-          event={event}
-          location={location}
-          organization={organization}
-        />
-      </Section>
+      <h3>{t('Span Evidence')}</h3>
+      <KeyValueList data={data} />
+      <EmbeddedSpanTree
+        event={event}
+        organization={organization as Organization}
+        projectSlug={projectSlug}
+        affectedSpanIds={affectedSpanIds}
+      />
     </Wrapper>
   );
 }
 
 export const Wrapper = styled('div')`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   border-top: 1px solid ${p => p.theme.innerBorder};
   margin: 0;
   /* Padding aligns with Layout.Body */
@@ -66,11 +94,4 @@ export const Wrapper = styled('div')`
     margin-bottom: 0;
     text-transform: uppercase;
   }
-  div:first-child {
-    margin-right: ${space(3)};
-  }
-`;
-
-const Section = styled('div')`
-  width: 50%;
 `;

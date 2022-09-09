@@ -112,7 +112,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            MessageProcessor(self.__config.use_case_id).process_messages,
+            MessageProcessor(self.__config).process_messages,
             Unbatcher(
                 SimpleProduceStep(
                     commit_function=commit,

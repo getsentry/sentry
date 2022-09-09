@@ -127,8 +127,8 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
-    "category": convert_category_value,
-    "type": convert_type_value,
+    "issue.category": convert_category_value,
+    "issue.type": convert_type_value,
 }
 
 
