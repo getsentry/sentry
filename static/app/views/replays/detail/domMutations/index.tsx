@@ -14,7 +14,6 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import HTMLCode from 'sentry/components/htmlCode';
-import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import SearchBar from 'sentry/components/searchBar';
@@ -94,6 +93,10 @@ function DomMutations({replay}: Props) {
     }
   }, [filteredDomMutations, listRef]);
 
+  if (isLoading) {
+    return null;
+  }
+
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = filteredDomMutations[index];
     const {html, crumb} = mutation;
@@ -165,33 +168,30 @@ function DomMutations({replay}: Props) {
 
         <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
       </MutationFilters>
-      {isLoading ? (
-        <Placeholder height="200px" />
-      ) : (
-        <MutationList>
-          <AutoSizer>
-            {({width, height}) => (
-              <ReactVirtualizedList
-                ref={(el: ReactVirtualizedList | null) => {
-                  listRef = el;
-                }}
-                deferredMeasurementCache={cache}
-                height={height}
-                overscanRowCount={5}
-                rowCount={filteredDomMutations.length}
-                noRowsRenderer={() => (
-                  <EmptyStateWarning withIcon={false} small>
-                    {t('No related DOM Events recorded')}
-                  </EmptyStateWarning>
-                )}
-                rowHeight={cache.rowHeight}
-                rowRenderer={renderRow}
-                width={width}
-              />
-            )}
-          </AutoSizer>
-        </MutationList>
-      )}
+
+      <MutationList>
+        <AutoSizer>
+          {({width, height}) => (
+            <ReactVirtualizedList
+              ref={(el: ReactVirtualizedList | null) => {
+                listRef = el;
+              }}
+              deferredMeasurementCache={cache}
+              height={height}
+              overscanRowCount={5}
+              rowCount={filteredDomMutations.length}
+              noRowsRenderer={() => (
+                <EmptyStateWarning withIcon={false} small>
+                  {t('No related DOM Events recorded')}
+                </EmptyStateWarning>
+              )}
+              rowHeight={cache.rowHeight}
+              rowRenderer={renderRow}
+              width={width}
+            />
+          )}
+        </AutoSizer>
+      </MutationList>
     </MutationContainer>
   );
 }
