@@ -3,6 +3,7 @@ import type {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
+import List from 'sentry/components/list';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -11,6 +12,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
+import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import Layout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 
@@ -29,6 +31,7 @@ function ReplayDetails({
   },
   params: {orgId: orgSlug, replaySlug},
 }: Props) {
+  useReplayPageview();
   const {fetching, onRetry, replay, fetchError} = useReplayData({
     replaySlug,
     orgSlug,
@@ -59,11 +62,11 @@ function ReplayDetails({
             message={
               <Fragment>
                 <p>{t('This could be due to a couple of reasons:')}</p>
-                <ol className="detailed-error-list">
+                <List symbol="bullet">
                   {reasons.map((reason, i) => (
                     <li key={i}>{reason}</li>
                   ))}
-                </ol>
+                </List>
               </Fragment>
             }
           />

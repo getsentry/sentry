@@ -1172,32 +1172,6 @@ describe('Modals -> WidgetViewerModal', function () {
           });
         });
 
-        it('disables the Open in Discover button for a custom measurement widget', async function () {
-          const customMeasurementWidget = {
-            ...mockWidget,
-            queries: [
-              {
-                conditions: '',
-                fields: [],
-                aggregates: ['p99(measurements.custom.measurement)'],
-                columns: ['title'],
-                id: '1',
-                name: 'Query Name',
-                orderby: '',
-              },
-            ],
-          };
-          await renderModal({
-            initialData: initialDataWithFlag,
-            widget: customMeasurementWidget,
-            tableData: [],
-            pageLinks:
-              '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
-          });
-          userEvent.click(screen.getByText('Open in Discover'));
-          expect(initialData.router.push).not.toHaveBeenCalled();
-        });
-
         it('displays table data with units correctly', async function () {
           const eventsMock = MockApiClient.addMockResponse({
             url: '/organizations/org-slug/events/',

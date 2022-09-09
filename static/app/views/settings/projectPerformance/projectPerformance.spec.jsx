@@ -3,7 +3,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import ProjectPerformance from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
-  const org = TestStubs.Organization({features: ['performance-view']});
+  const org = TestStubs.Organization({
+    features: ['performance-view', 'performance-issues'],
+  });
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;
@@ -33,6 +35,18 @@ describe('projectPerformance', function () {
     deleteMock = MockApiClient.addMockResponse({
       url: configUrl,
       method: 'DELETE',
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: {},
+      statusCode: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/performance-issues/configure/',
+      method: 'GET',
+      body: {},
       statusCode: 200,
     });
   });

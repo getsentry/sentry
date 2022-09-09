@@ -73,7 +73,6 @@ function Actions({
                   <MenuItemActionLink
                     shouldConfirm={false}
                     icon={<IconDownload size="xs" />}
-                    title={t('Download')}
                     href={downloadUrl}
                     onClick={event => {
                       if (deleted) {
@@ -89,7 +88,6 @@ function Actions({
                   <MenuItemActionLink
                     onAction={() => onDelete(debugFileId)}
                     message={debugFileDeleteConfirmationInfo}
-                    title={t('Delete')}
                     disabled={!hasAccess || deleted}
                     shouldConfirm
                   >
