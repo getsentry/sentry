@@ -94,10 +94,6 @@ function DomMutations({replay}: Props) {
     }
   }, [filteredDomMutations, listRef]);
 
-  if (isLoading) {
-    return null;
-  }
-
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = filteredDomMutations[index];
     const {html, crumb} = mutation;
@@ -169,30 +165,33 @@ function DomMutations({replay}: Props) {
 
         <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
       </MutationFilters>
-
-      <MutationList>
-        <AutoSizer>
-          {({width, height}) => (
-            <ReactVirtualizedList
-              ref={(el: ReactVirtualizedList | null) => {
-                listRef = el;
-              }}
-              deferredMeasurementCache={cache}
-              height={height}
-              overscanRowCount={5}
-              rowCount={filteredDomMutations.length}
-              noRowsRenderer={() => (
-                <EmptyStateWarning withIcon={false} small>
-                  {t('No related DOM Events recorded')}
-                </EmptyStateWarning>
-              )}
-              rowHeight={cache.rowHeight}
-              rowRenderer={renderRow}
-              width={width}
-            />
-          )}
-        </AutoSizer>
-      </MutationList>
+      {isLoading ? (
+        <Placeholder height="200px" />
+      ) : (
+        <MutationList>
+          <AutoSizer>
+            {({width, height}) => (
+              <ReactVirtualizedList
+                ref={(el: ReactVirtualizedList | null) => {
+                  listRef = el;
+                }}
+                deferredMeasurementCache={cache}
+                height={height}
+                overscanRowCount={5}
+                rowCount={filteredDomMutations.length}
+                noRowsRenderer={() => (
+                  <EmptyStateWarning withIcon={false} small>
+                    {t('No related DOM Events recorded')}
+                  </EmptyStateWarning>
+                )}
+                rowHeight={cache.rowHeight}
+                rowRenderer={renderRow}
+                width={width}
+              />
+            )}
+          </AutoSizer>
+        </MutationList>
+      )}
     </MutationContainer>
   );
 }
