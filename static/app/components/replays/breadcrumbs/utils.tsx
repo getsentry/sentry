@@ -21,8 +21,6 @@ export function getDescription(crumb: Crumb, startTimestampMs?: number) {
       return `${crumb.data?.to ?? ''}`;
     case BreadcrumbType.DEFAULT:
       return JSON.stringify(crumb.data);
-    case BreadcrumbType.DEBUG:
-      return crumb.message || '';
     default:
       return crumb.message || '';
   }
