@@ -2142,7 +2142,6 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
-
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
