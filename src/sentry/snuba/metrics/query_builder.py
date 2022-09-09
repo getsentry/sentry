@@ -268,9 +268,6 @@ class QueryDefinition:
             limit=self.limit,
             offset=self.offset,
             granularity=Granularity(self.rollup),
-            histogram_buckets=self.histogram_buckets,
-            histogram_from=self.histogram_from,
-            histogram_to=self.histogram_to,
         )
 
     @staticmethod
@@ -423,6 +420,8 @@ class SnubaQueryBuilder:
         self._org_id = metrics_query.org_id
         self._use_case_id = use_case_id
 
+        self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
+
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
@@ -482,7 +481,7 @@ class SnubaQueryBuilder:
                 metric_field_obj.generate_orderby_clause(
                     projects=self._projects,
                     direction=orderby.direction,
-                    metrics_query=self._metrics_query,
+                    params=orderby.field.params,
                     use_case_id=self._use_case_id,
                     alias=orderby.field.alias,
                 )
@@ -600,11 +599,15 @@ class SnubaQueryBuilder:
             metric_ids_set = set()
             for field in fields:
                 metric_field_obj = metric_mri_to_obj_dict[field]
+                try:
+                    params = self._alias_to_metric_field[field[2]].params
+                except KeyError:
+                    params = None
                 select += metric_field_obj.generate_select_statements(
                     projects=self._projects,
-                    metrics_query=self._metrics_query,
                     use_case_id=self._use_case_id,
                     alias=field[2],
+                    params=params,
                 )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(
                     self._projects, self._use_case_id
@@ -662,10 +665,7 @@ class SnubaResultConverter:
         # This dictionary is required because at the very end when we want to remove all the extra constituents that
         # were returned by the query, and the only thing we have is the alias, we need a mapping from the alias to
         # the metric object that that alias represents
-        self._alias_to_metric_obj = {
-            field.alias: metric_object_factory(field.op, get_mri(field.metric_name))
-            for field in self._metrics_query.select
-        }
+        self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
 
         # This is a set of all the `(op, metric_mri, alias)` combinations passed in the metrics_query
         self._metrics_query_fields_set = {
@@ -792,8 +792,12 @@ class SnubaResultConverter:
             for op, metric_mri, alias in self._bottom_up_dependency_tree:
                 metric_obj = metric_object_factory(op=op, metric_mri=metric_mri)
                 if totals is not None:
+                    try:
+                        params = self._alias_to_metric_field[alias].params
+                    except KeyError:
+                        params = None
                     totals[alias] = metric_obj.run_post_query_function(
-                        totals, metrics_query=self._metrics_query, alias=alias
+                        totals, params=params, alias=alias
                     )
 
                 if series is not None:
@@ -803,8 +807,12 @@ class SnubaResultConverter:
                             alias,
                             [metric_obj.generate_default_null_values()] * len(self._intervals),
                         )
+                        try:
+                            params = self._alias_to_metric_field[alias].params
+                        except KeyError:
+                            params = None
                         series[alias][idx] = metric_obj.run_post_query_function(
-                            series, metrics_query=self._metrics_query, idx=idx, alias=alias
+                            series, params=params, idx=idx, alias=alias
                         )
 
         # Remove the extra fields added due to the constituent metrics that were added
@@ -816,7 +824,10 @@ class SnubaResultConverter:
             series = group.get("series")
 
             for key in set(totals or ()) | set(series or ()):
-                metric_obj = self._alias_to_metric_obj.get(key)
+                metric_field = self._alias_to_metric_field.get(key)
+                metric_obj = metric_object_factory(
+                    metric_field.op, get_mri(metric_field.metric_name)
+                )
                 operation, metric_mri = parse_expression(str(metric_obj))
 
                 if (operation, metric_mri, key) not in self._metrics_query_fields_set:

@@ -3,7 +3,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Set, Union
+from typing import Any, Literal, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
@@ -32,6 +32,7 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
+    params: Optional[Any] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -98,13 +99,6 @@ class MetricsQuery(MetricsQueryValidationRunner):
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
-
-    # TODO(ahmed): These should be properties of the Histogram field. We need to extend MetricField
-    #  to accept params and we should pass histogram fields as params on a specific instance of
-    #  MetricField rather than them living on an instance of MetricsQuery
-    histogram_buckets: int = 100
-    histogram_from: Optional[float] = None
-    histogram_to: Optional[float] = None
 
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:
