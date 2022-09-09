@@ -831,21 +831,4 @@ class SnubaResultConverter:
                         del totals[key]
                     if series is not None:
                         del series[key]
-
-                # metric_obj = metric_object_factory(
-                #     metric_field.op, get_mri(metric_field.metric_name)
-                # )
-                # operation, metric_mri = parse_expression(str(metric_obj))
-
-                # if (operation, metric_mri, key) not in self._metrics_query_fields_set:
-                #     if totals is not None:
-                #         del totals[key]
-                #     if series is not None:
-                #         del series[key]
-                # else:
-                #     if totals is not None:
-                #         totals[key] = totals.pop(key)
-                #     if series is not None:
-                #         series[key] = series.pop(key)
-
         return groups
