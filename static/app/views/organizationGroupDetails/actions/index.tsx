@@ -470,7 +470,7 @@ class Actions extends Component<Props, State> {
                   label: t('Delete'),
                   hidden: !hasAccess,
                   disabled: !deleteCap.enabled,
-                  tooltip: deleteCap.disabledReason,
+                  details: deleteCap.disabledReason,
                   onAction: this.openDeleteModal,
                 },
                 {
@@ -479,7 +479,7 @@ class Actions extends Component<Props, State> {
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
                   disabled: !deleteDiscardCap.enabled,
-                  tooltip: deleteDiscardCap.disabledReason,
+                  details: deleteDiscardCap.disabledReason,
                   onAction: this.openDiscardModal,
                 },
               ]}
