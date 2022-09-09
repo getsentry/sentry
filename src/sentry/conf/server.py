@@ -1021,12 +1021,6 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Enable the new widget builder experience on Dashboards
-    "organizations:new-widget-builder-experience": False,
-    # Enable the new widget builder experience "design" on Dashboards
-    "organizations:new-widget-builder-experience-design": False,
-    # Enable access to the Add to Dashboard modal for metrics work
-    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
