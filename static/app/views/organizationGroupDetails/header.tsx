@@ -30,7 +30,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -279,8 +279,9 @@ class GroupHeader extends Component<Props, State> {
 
   render() {
     const {project, group, baseUrl, event, organization, location} = this.props;
+    const {memberList} = this.state;
 
-    const userCount = group.userCount;
+    const {userCount} = group;
 
     let className = 'group-detail';
 
@@ -292,7 +293,6 @@ class GroupHeader extends Component<Props, State> {
       className += ' isResolved';
     }
 
-    const {memberList} = this.state;
     const message = getMessage(group);
 
     const searchTermWithoutQuery = omit(location.query, 'query');
@@ -325,9 +325,6 @@ class GroupHeader extends Component<Props, State> {
         </IssueBreadcrumbWrapper>
       </GuideAnchor>
     );
-
-    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
-    const isPerformanceIssue = !!event?.contexts?.performance_issue;
 
     return (
       <Layout.Header>
@@ -428,7 +425,7 @@ class GroupHeader extends Component<Props, State> {
             query={location.query}
           />
           <NavTabs>
-            {isPerformanceIssue
+            {group.issueCategory === IssueCategory.PERFORMANCE
               ? this.getPerformanceIssueTabs()
               : this.getErrorIssueTabs()}
           </NavTabs>

@@ -1,9 +1,9 @@
 import logging
 import signal
-from typing import Any, Literal, Mapping, Optional, Tuple, Union
+from typing import Any, Literal, Mapping, MutableMapping, Optional, Tuple, Union
 
+from confluent_kafka import Producer
 from django.conf import settings
-from django.utils.functional import cached_property
 
 from sentry import options
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
@@ -23,20 +23,27 @@ logger = logging.getLogger(__name__)
 
 
 class KafkaEventStream(SnubaProtocolEventStream):
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         self.topic = settings.KAFKA_EVENTS
         self.transactions_topic = settings.KAFKA_TRANSACTIONS
+        # TODO: KAFKA_NEW_TRANSACTIONS is temporary and only to be used during
+        # the errors/transactions split process.
+        self.new_transactions_topic = settings.KAFKA_NEW_TRANSACTIONS
         self.assign_transaction_partitions_randomly = (
             settings.SENTRY_EVENTSTREAM_PARTITION_TRANSACTIONS_RANDOMLY
         )
 
-    @cached_property
-    def errors_producer(self):
-        return kafka.producers.get(settings.KAFKA_EVENTS)
+    def get_transactions_topic(self, project_id: int) -> str:
+        use_new_topic = killswitch_matches_context(
+            "kafka.send-project-transactions-to-new-topic",
+            {"project_id": project_id},
+        )
+        if use_new_topic:
+            return self.new_transactions_topic
+        return self.transactions_topic
 
-    @cached_property
-    def transactions_producer(self):
-        return kafka.producers.get(settings.KAFKA_TRANSACTIONS)
+    def get_producer(self, topic: str) -> Producer:
+        return kafka.producers.get(topic)
 
     def delivery_callback(self, error, message):
         if error is not None:
@@ -143,21 +150,21 @@ class KafkaEventStream(SnubaProtocolEventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
         is_transaction_event: bool = False,
-    ):
+    ) -> None:
         if headers is None:
             headers = {}
         headers["operation"] = _type
         headers["version"] = str(self.EVENT_PROTOCOL_VERSION)
 
         if is_transaction_event:
-            topic = self.transactions_topic
-            producer = self.transactions_producer
+            topic = self.get_transactions_topic(project_id)
         else:
             topic = self.topic
-            producer = self.errors_producer
+
+        producer = self.get_producer(topic)
 
         # Polling the producer is required to ensure callbacks are fired. This
         # means that the latency between a message being delivered (or failing
