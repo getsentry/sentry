@@ -2007,6 +2007,14 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             all_group_hashes = [problem.fingerprint for problem in performance_problems]
             group_hashes = all_group_hashes[:MAX_GROUPS]
 
+            if len(group_hashes) > 0:
+                job["event"].data["performance_detector_data"] = {}
+
+            for hash in group_hashes:
+                job["event"].data["performance_detector_data"][
+                    hash
+                ] = performance_problems_by_fingerprint[hash].to_json()
+
             existing_grouphashes = GroupHash.objects.filter(
                 project=project, hash__in=group_hashes
             ).select_related("group")
