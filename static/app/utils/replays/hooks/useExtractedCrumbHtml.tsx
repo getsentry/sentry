@@ -30,7 +30,7 @@ type HookOpts = {
 
 const requestIdleCallback =
   window.requestIdleCallback ||
-  function (cb) {
+  function requestIdleCallbackPolyfill(cb) {
     const start = Date.now();
     return setTimeout(function () {
       cb({
