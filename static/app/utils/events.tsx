@@ -166,6 +166,7 @@ export function getTitle(
       return {
         title: customTitle ?? title,
         subtitle: event.issueCategory === 'performance' ? culprit : '',
+        treeLabel: undefined,
       };
     default:
       return {
