@@ -5,4 +5,4 @@ from dataclasses import dataclass
 class Region:
     name: str
     subdomain: str
-    is_private: bool
+    is_private: bool = False
