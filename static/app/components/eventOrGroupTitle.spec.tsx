@@ -53,7 +53,7 @@ describe('EventOrGroupTitle', function () {
         data={
           {
             ...data,
-            type: EventOrGroupType.ERROR,
+            type: EventOrGroupType.DEFAULT,
             metadata: {
               ...data.metadata,
               title: 'metadata title',
