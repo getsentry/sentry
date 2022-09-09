@@ -8,13 +8,13 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.eventstore.base import EventStorage
+from sentry.eventstore.models import Event
 from sentry.models.group import Group
-from sentry.models.project import Project
+from sentry.models.organization import Organization
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
 from sentry.utils.validators import normalize_event_id
-
-from ..models import Event
 
 EVENT_ID = Columns.EVENT_ID.value.alias
 PROJECT_ID = Columns.PROJECT_ID.value.alias
@@ -56,6 +56,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
+        dataset=snuba.Dataset.Events,
     ):
         """
         Get events from Snuba, with node data loaded.
@@ -68,6 +69,7 @@ class SnubaEventStorage(EventStorage):
                 offset=offset,
                 referrer=referrer,
                 should_bind_nodes=True,
+                dataset=dataset,
             )
 
     def get_unfetched_events(
@@ -77,6 +79,7 @@ class SnubaEventStorage(EventStorage):
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_unfetched_events",
+        dataset=snuba.Dataset.Events,
     ):
         """
         Get events from Snuba, without node data loaded.
@@ -88,6 +91,7 @@ class SnubaEventStorage(EventStorage):
             offset=offset,
             referrer=referrer,
             should_bind_nodes=False,
+            dataset=dataset,
         )
 
     def __get_events(
@@ -98,9 +102,10 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer=None,
         should_bind_nodes=False,
+        dataset=snuba.Dataset.Events,
     ):
         assert filter, "You must provide a filter"
-        cols = self.__get_columns()
+        cols = self.__get_columns(dataset)
         orderby = orderby or DESC_ORDERING
 
         # This is an optimization for the Group.filter_by_event_id query where we
@@ -138,7 +143,7 @@ class SnubaEventStorage(EventStorage):
                     limit=len(nodestore_events),
                     offset=DEFAULT_OFFSET,
                     referrer=referrer,
-                    dataset=snuba.Dataset.Events,
+                    dataset=dataset,
                 )
 
                 if "error" not in result:
@@ -165,7 +170,7 @@ class SnubaEventStorage(EventStorage):
             limit=limit,
             offset=offset,
             referrer=referrer,
-            dataset=snuba.Dataset.Events,
+            dataset=dataset,
         )
 
         if "error" not in result:
@@ -197,7 +202,7 @@ class SnubaEventStorage(EventStorage):
             # Set passed group_id if not a transaction
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
-                org = Project.objects.select_related("organization").get(id=project_id)
+                org = Organization.objects.get(project__id=project_id)
                 if features.has("organizations:performance-issues", org):
                     return event.for_group(Group.objects.get(id=group_id))
             else:
@@ -249,22 +254,6 @@ class SnubaEventStorage(EventStorage):
 
         return event
 
-    def get_earliest_event_id(self, event, filter):
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_before_event_condition(event))
-        filter.end = event.datetime
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING)
-
-    def get_latest_event_id(self, event, filter):
-        filter = deepcopy(filter)
-        filter.conditions = filter.conditions or []
-        filter.conditions.extend(get_after_event_condition(event))
-        filter.start = event.datetime
-
-        return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
-
     def get_next_event_id(self, event, filter):
         """
         Returns (project_id, event_id) of a next event given a current event
@@ -315,8 +304,8 @@ class SnubaEventStorage(EventStorage):
             filter=filter, orderby=DESC_ORDERING, dataset=dataset
         )
 
-    def __get_columns(self):
-        return [col.value.event_name for col in EventStorage.minimal_columns]
+    def __get_columns(self, dataset: Dataset):
+        return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
 
     def __get_event_id_from_filter(self, filter=None, orderby=None, dataset=snuba.Dataset.Discover):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
@@ -349,12 +338,9 @@ class SnubaEventStorage(EventStorage):
 
     def __make_event(self, snuba_data):
         event_id = snuba_data[Columns.EVENT_ID.value.event_name]
-        group_id = snuba_data[Columns.GROUP_ID.value.event_name]
         project_id = snuba_data[Columns.PROJECT_ID.value.event_name]
 
-        return Event(
-            event_id=event_id, group_id=group_id, project_id=project_id, snuba_data=snuba_data
-        )
+        return Event(event_id=event_id, project_id=project_id, snuba_data=snuba_data)
 
     def get_unfetched_transactions(
         self,
@@ -368,7 +354,7 @@ class SnubaEventStorage(EventStorage):
         Get transactions from Snuba, without node data loaded.
         """
         assert filter, "You must provide a filter"
-        cols = self.__get_columns()
+        cols = self.__get_columns(snuba.Dataset.Transactions)
         orderby = orderby or DESC_ORDERING
 
         result = snuba.aliased_query(

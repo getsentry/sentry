@@ -24,7 +24,6 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -43,7 +42,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
-import {issueSupports} from 'sentry/utils/groupCapabilities';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -323,12 +322,7 @@ class Actions extends Component<Props, State> {
     );
   };
 
-  openDeleteModal = () => {
-    const {group} = this.props;
-    if (!issueSupports(group.issueCategory, 'delete')) {
-      return;
-    }
-
+  openDeleteModal = () =>
     openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
       <Fragment>
         <Body>
@@ -346,13 +340,9 @@ class Actions extends Component<Props, State> {
         </Footer>
       </Fragment>
     ));
-  };
 
   openDiscardModal = () => {
-    const {group, organization} = this.props;
-    if (!issueSupports(group.issueCategory, 'deleteAndDiscard')) {
-      return;
-    }
+    const {organization} = this.props;
 
     openModal(this.renderDiscardModal);
     analytics('feature.discard_group.modal_opened', {
@@ -385,6 +375,9 @@ class Actions extends Component<Props, State> {
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
 
+    const deleteCap = getIssueCapability(group.issueCategory, 'delete');
+    const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
+
     return (
       <Wrapper>
         <GuideAnchor target="resolve" position="bottom" offset={20}>
@@ -404,18 +397,18 @@ class Actions extends Component<Props, State> {
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
+            issueCategory={group.issueCategory}
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}
             disabled={disabled}
           />
         </GuideAnchor>
-        <Tooltip
-          disabled={!!group.inbox || disabled}
-          title={t('Issue has been reviewed')}
-          delay={300}
-        >
-          <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
-        </Tooltip>
+        <ReviewAction
+          onUpdate={this.onUpdate}
+          disabled={!group.inbox || disabled}
+          tooltip={t('Issue has been reviewed')}
+          tooltipProps={{disabled: !!group.inbox || disabled, delay: 300}}
+        />
         <Feature
           hookName="feature-disabled:open-in-discover"
           features={['discover-basic']}
@@ -476,16 +469,18 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  disabled: !issueSupports(group.issueCategory, 'delete'),
-                  onAction: () => this.openDeleteModal(),
+                  disabled: !deleteCap.enabled,
+                  details: deleteCap.disabledReason,
+                  onAction: this.openDeleteModal,
                 },
                 {
                   key: 'delete-and-discard',
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  disabled: !issueSupports(group.issueCategory, 'deleteAndDiscard'),
-                  onAction: () => this.openDiscardModal(),
+                  disabled: !deleteDiscardCap.enabled,
+                  details: deleteDiscardCap.disabledReason,
+                  onAction: this.openDiscardModal,
                 },
               ]}
             />
