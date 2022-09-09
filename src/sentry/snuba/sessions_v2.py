@@ -221,22 +221,6 @@ GROUPBY_MAP = {
     "session.status": SessionStatusGroupBy(),
 }
 
-CONDITION_COLUMNS = ["project", "project_id", "environment", "release"]
-FILTER_KEY_COLUMNS = ["project_id"]
-
-
-def resolve_column(col, extra_columns=None):
-    condition_columns = CONDITION_COLUMNS + (extra_columns or [])
-    if col in condition_columns:
-        return col
-    raise InvalidField(f'Invalid query field: "{col}"')
-
-
-def resolve_filter_key(col):
-    if col in FILTER_KEY_COLUMNS:
-        return col
-    raise InvalidField(f'Invalid query field: "{col}"')
-
 
 class InvalidField(Exception):
     pass

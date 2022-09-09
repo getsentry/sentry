@@ -27,6 +27,20 @@ class MessageProcessor:
         self._indexer = STORAGE_TO_INDEXER[config.db_backend](**config.db_backend_options)
         self._config = config
 
+    # The following two methods are required to work such that the parallel
+    # indexer can spawn subprocesses correctly.
+    #
+    # We get/set just the config (assuming it's pickleable) and re-instantiate
+    # the indexer backend in the subprocess (assuming that it usually isn't)
+
+    def __getstate__(self) -> MetricsIngestConfiguration:
+        return self._config
+
+    def __setstate__(self, config: MetricsIngestConfiguration) -> None:
+        # mypy: "cannot access init directly"
+        # yes I can, watch me.
+        self.__init__(config)  # type: ignore
+
     def process_messages(
         self,
         outer_message: Message[MessageBatch],

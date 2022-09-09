@@ -10,7 +10,15 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {Organization, Project, ResolutionStatus} from 'sentry/types';
+import {
+  BaseGroup,
+  IssueCategory,
+  IssueCategoryCapabilities,
+  Organization,
+  Project,
+  ResolutionStatus,
+} from 'sentry/types';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -56,32 +64,63 @@ function ActionSet({
   const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
   const label = getLabel(numIssues, allInQuerySelected);
 
-  // merges require a single project to be active in an org context
-  // selectedProjectSlug is null when 0 or >1 projects are selected.
-  const mergeDisabled = !(multiSelected && selectedProjectSlug);
+  const selectedIssues = [...issues]
+    .map(issueId => GroupStore.get(issueId))
+    .filter(issue => issue) as BaseGroup[];
 
-  const selectedIssues = [...issues].map(GroupStore.get);
+  // Merges require multiple issues of a single project type
+  const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;
+  const {enabled: mergeSupported, disabledReason: mergeDisabledReason} =
+    isActionSupported(selectedIssues, 'merge');
+  const {enabled: deleteSupported, disabledReason: deleteDisabledReason} =
+    isActionSupported(selectedIssues, 'delete');
+  const {enabled: ignoreSupported} = isActionSupported(selectedIssues, 'ignore');
+  const mergeDisabled =
+    !multiSelected || multipleIssueProjectsSelected || !mergeSupported;
+  const ignoreDisabled = !anySelected || !ignoreSupported;
+
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
 
   // determine which ... dropdown options to show based on issue(s) selected
   const canAddBookmark =
-    allInQuerySelected || selectedIssues.some(issue => !issue?.isBookmarked);
+    allInQuerySelected || selectedIssues.some(issue => !issue.isBookmarked);
   const canRemoveBookmark =
-    allInQuerySelected || selectedIssues.some(issue => issue?.isBookmarked);
+    allInQuerySelected || selectedIssues.some(issue => issue.isBookmarked);
   const canSetUnresolved =
-    allInQuerySelected || selectedIssues.some(issue => issue?.status === 'resolved');
+    allInQuerySelected || selectedIssues.some(issue => issue.status === 'resolved');
+
+  const makeMergeTooltip = () => {
+    if (mergeDisabledReason) {
+      return mergeDisabledReason;
+    }
+
+    if (multipleIssueProjectsSelected) {
+      return t('Cannot merge issues from different projects');
+    }
+
+    return '';
+  };
 
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
 
+  // If at least one Performance Issue is selected, some of the ignore dropdown options must be disabled.
+  const issueCategory: IssueCategory = selectedIssues.some(
+    issue => issue?.issueCategory === IssueCategory.PERFORMANCE
+  )
+    ? IssueCategory.PERFORMANCE
+    : IssueCategory.ERROR;
+
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
       label: t('Merge'),
       hidden: !nestMergeAndReview,
+      disabled: mergeDisabled,
+      tooltip: makeMergeTooltip(),
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
@@ -95,6 +134,7 @@ function ActionSet({
       key: 'mark-reviewed',
       label: t('Mark Reviewed'),
       hidden: !nestMergeAndReview,
+      disabled: !canMarkReviewed,
       onAction: () => onUpdate({inbox: false}),
     },
     {
@@ -140,6 +180,8 @@ function ActionSet({
       key: 'delete',
       label: t('Delete'),
       priority: 'danger',
+      disabled: !deleteSupported,
+      tooltip: deleteDisabledReason,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
@@ -150,11 +192,6 @@ function ActionSet({
         });
       },
     },
-  ];
-
-  const disabledMenuItems = [
-    ...(mergeDisabled ? ['merge'] : []),
-    ...(canMarkReviewed ? [] : ['mark-reviewed']),
   ];
 
   return (
@@ -207,20 +244,22 @@ function ActionSet({
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
         confirmMessage={confirm(ConfirmAction.IGNORE, true)}
         confirmLabel={label('ignore')}
-        disabled={!anySelected}
+        issueCategory={issueCategory}
+        disabled={ignoreDisabled}
       />
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
       {!nestMergeAndReview && (
         <ActionLink
+          aria-label={t('Merge Selected Issues')}
           type="button"
           disabled={mergeDisabled}
           onAction={onMerge}
           shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
           message={confirm(ConfirmAction.MERGE, false)}
           confirmLabel={label('merge')}
-          title={t('Merge Selected Issues')}
+          title={makeMergeTooltip()}
         >
           {t('Merge')}
         </ActionLink>
@@ -234,12 +273,26 @@ function ActionSet({
           showChevron: false,
           size: 'xs',
         }}
-        disabledKeys={disabledMenuItems}
         isDisabled={!anySelected}
       />
       <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
     </Wrapper>
   );
+}
+
+function isActionSupported(
+  selectedIssues: BaseGroup[],
+  capability: keyof IssueCategoryCapabilities
+) {
+  for (const issue of selectedIssues) {
+    const info = getIssueCapability(issue.issueCategory, capability);
+
+    if (!info.enabled) {
+      return info;
+    }
+  }
+
+  return {enabled: true};
 }
 
 export default ActionSet;

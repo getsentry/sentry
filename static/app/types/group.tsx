@@ -42,6 +42,44 @@ export enum SavedSearchType {
   SESSION = 2,
 }
 
+export enum IssueCategory {
+  PERFORMANCE = 'performance',
+  ERROR = 'error',
+}
+
+export enum IssueType {
+  ERROR = 'error',
+  PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
+}
+
+type CapabilityInfo = {
+  enabled: boolean;
+  disabledReason?: string;
+};
+
+/**
+ * Defines what capabilities a category of issue has. Not all categories of
+ * issues work the same.
+ */
+export type IssueCategoryCapabilities = {
+  /**
+   * Can the issue be deleted
+   */
+  delete: CapabilityInfo;
+  /**
+   * Can the issue be deleted and discarded
+   */
+  deleteAndDiscard: CapabilityInfo;
+  /**
+   * Can the issue be ignored (and the dropdown options)
+   */
+  ignore: CapabilityInfo;
+  /**
+   * Can the issue be merged
+   */
+  merge: CapabilityInfo;
+};
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
@@ -423,6 +461,8 @@ export interface BaseGroup extends GroupRelease {
   isPublic: boolean;
   isSubscribed: boolean;
   isUnhandled: boolean;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
   lastSeen: string;
   latestEvent: Event;
   level: Level;

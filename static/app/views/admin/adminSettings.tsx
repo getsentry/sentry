@@ -1,3 +1,4 @@
+import Feature from 'sentry/components/acl/feature';
 import {Form} from 'sentry/components/forms';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
@@ -16,6 +17,10 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'performance.issues.all.problem-detection',
+  'performance.issues.all.problem-creation',
+  'performance.issues.n_plus_one.problem-detection',
+  'performance.issues.n_plus_one.problem-creation',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -87,6 +92,16 @@ export default class AdminSettings extends AsyncView<{}, State> {
             <PanelHeader>Beacon</PanelHeader>
             {fields['beacon.anonymous']}
           </Panel>
+
+          <Feature features={['organizations:performance-issues-dev']}>
+            <Panel>
+              <PanelHeader>Performance Issues</PanelHeader>
+              {fields['performance.issues.all.problem-detection']}
+              {fields['performance.issues.all.problem-creation']}
+              {fields['performance.issues.n_plus_one.problem-detection']}
+              {fields['performance.issues.n_plus_one.problem-creation']}
+            </Panel>
+          </Feature>
         </Form>
       </div>
     );
