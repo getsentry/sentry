@@ -1,19 +1,27 @@
-// import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 /**
  * Generate breadcrumb descriptions based on type
  */
-export function getDescription(crumb: Crumb, startTimestampMs: number) {
+export function getDescription(crumb: Crumb, startTimestampMs?: number) {
+  if (crumb.data && 'action' in crumb.data) {
+    switch (crumb.data.action) {
+      case 'largest-contentful-paint':
+        if (crumb.timestamp && startTimestampMs) {
+          return `${new Date(crumb.timestamp).getTime() - startTimestampMs}ms`;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   switch (crumb.type) {
     case BreadcrumbType.NAVIGATION:
       return `${crumb.data?.to ?? ''}`;
     case BreadcrumbType.DEFAULT:
       return JSON.stringify(crumb.data);
     case BreadcrumbType.DEBUG:
-      if (crumb.data?.action === 'largest-contentful-paint' && crumb.timestamp) {
-        return `${new Date(crumb.timestamp).getTime() - startTimestampMs}ms`;
-      }
       return crumb.message || '';
     default:
       return crumb.message || '';
@@ -37,6 +45,6 @@ export function getTitle(crumb: Crumb) {
 /**
  * Generate breadcrumb title + descriptions
  */
-export function getDetails(crumb: Crumb, startTimestampMs: number) {
+export function getDetails(crumb: Crumb, startTimestampMs?: number) {
   return {title: getTitle(crumb), description: getDescription(crumb, startTimestampMs)};
 }
