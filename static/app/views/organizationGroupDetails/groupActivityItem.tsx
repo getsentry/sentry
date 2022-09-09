@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
@@ -78,29 +79,52 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
 
   function getAssignedMessage(data: GroupActivityAssigned['data']) {
     let assignee: string | User | undefined = undefined;
-
     if (data.assigneeType === 'team') {
       const team = TeamStore.getById(data.assignee);
-      assignee = team ? team.slug : '<unknown-team>';
-
-      return tct('[author] assigned this issue to #[assignee]', {
-        author,
-        assignee,
-      });
+      assignee = team ? `#${team.slug}` : '<unknown-team>';
+    } else if (activity.user && data.assignee === activity.user.id) {
+      assignee = t('themselves');
+    } else if (data.assigneeType === 'user' && data.assigneeEmail) {
+      assignee = data.assigneeEmail;
+    } else {
+      assignee = t('an unknown user');
     }
 
-    if (activity.user && data.assignee === activity.user.id) {
-      return tct('[author] assigned this issue to themselves', {author});
-    }
+    const isAutoAssigned = ['projectOwnership', 'codeowners'].includes(
+      data.integration as string
+    );
 
-    if (data.assigneeType === 'user' && data.assigneeEmail) {
-      return tct('[author] assigned this issue to [assignee]', {
-        author,
-        assignee: data.assigneeEmail,
-      });
-    }
+    const integrationName: Record<
+      NonNullable<GroupActivityAssigned['data']['integration']>,
+      string
+    > = {
+      msteams: t('Microsoft Teams'),
+      slack: t('Slack'),
+      projectOwnership: t('Ownership Rule'),
+      codeowners: t('Codeowners Rule'),
+    };
 
-    return tct('[author] assigned this issue to an unknown user', {author});
+    return (
+      <Fragment>
+        <div>
+          {tct('[author] [action] this issue to [assignee]', {
+            action: isAutoAssigned ? t('auto-assigned') : t('assigned'),
+            author,
+            assignee,
+          })}
+        </div>
+        {data.integration && (
+          <CodeWrapper>
+            {t('Assigned via %s', integrationName[data.integration])}
+            {data.rule && (
+              <Fragment>
+                : <StyledCode>{data.rule}</StyledCode>
+              </Fragment>
+            )}
+          </CodeWrapper>
+        )}
+      </Fragment>
+    );
   }
 
   function renderContent() {
@@ -323,3 +347,12 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
 }
 
 export default GroupActivityItem;
+
+const CodeWrapper = styled('div')`
+  overflow-wrap: anywhere;
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledCode = styled('span')`
+  font-family: ${p => p.theme.text.familyMono};
+`;
