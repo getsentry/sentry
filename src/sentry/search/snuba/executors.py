@@ -29,7 +29,7 @@ from snuba_sdk.query import Query
 from snuba_sdk.relationships import Relationship
 
 from sentry import features, options
-from sentry.api.event_search import SearchFilter
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
@@ -259,7 +259,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
             return [(row["group_id"], row[sort_field]) for row in rows], total
 
-        # TODO(CEO): can this be consolidated?
         query_partial = functools.partial(
             snuba.aliased_query,
             start=start,
@@ -273,10 +272,29 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
         )
 
+        error_filter = SearchFilter(
+            key=SearchKey(name="event.type"),
+            operator="!=",
+            value=SearchValue(raw_value="transaction"),
+        )
+        converted_error_filter = convert_search_filter_to_snuba_query(
+            error_filter,
+            params={
+                "organization_id": organization_id,
+                "project_id": project_ids,
+                "environment": environments,
+            },
+        )
+        converted_error_filter = self._transform_converted_filter(
+            error_filter, converted_error_filter, project_ids, environment_ids
+        )
+        error_conditions = conditions.copy()
+        error_conditions.append(converted_error_filter)
+
         snuba_error_results = query_partial(
-            dataset=self.dataset,  # CEO: should this be hardcoded to snuba.Dataset.Events or use self.dataset?
+            dataset=snuba.Dataset.Discover,
             selected_columns=selected_columns,
-            conditions=conditions,
+            conditions=error_conditions,
             having=having,
             filter_keys=filters,
             aggregations=aggregations,
@@ -294,8 +312,26 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         mod_agg = aggregations.copy() if aggregations else []
         mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
+        txn_filter = SearchFilter(
+            key=SearchKey(name="event.type"),
+            operator="=",
+            value=SearchValue(raw_value="transaction"),
+        )
+        converted_txn_filter = convert_search_filter_to_snuba_query(
+            txn_filter,
+            params={
+                "organization_id": organization_id,
+                "project_id": project_ids,
+                "environment": environments,
+            },
+        )
+        converted_txn_filter = self._transform_converted_filter(
+            txn_filter, converted_txn_filter, project_ids, environment_ids
+        )
+        conditions.append(converted_txn_filter)
+
         snuba_transaction_results = query_partial(
-            dataset=snuba.Dataset.Transactions,
+            dataset=snuba.Dataset.Discover,
             selected_columns=selected_columns,
             conditions=conditions,
             having=having,
