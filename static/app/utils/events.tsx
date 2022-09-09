@@ -3,6 +3,7 @@ import {
   EventMetadata,
   EventOrGroupType,
   GroupTombstone,
+  IssueCategory,
   TreeLabelPart,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -163,9 +164,10 @@ export function getTitle(
         treeLabel: undefined,
       };
     case EventOrGroupType.TRANSACTION:
+      const isPerfIssue = event.issueCategory === IssueCategory.PERFORMANCE;
       return {
-        title: customTitle ?? title,
-        subtitle: event.issueCategory === 'performance' ? culprit : '',
+        title: isPerfIssue ? metadata.title : customTitle ?? title,
+        subtitle: isPerfIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:
