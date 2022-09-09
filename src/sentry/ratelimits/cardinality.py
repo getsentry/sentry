@@ -1,5 +1,5 @@
 import time
-from typing import Collection, NamedTuple, Optional, Sequence, Tuple, Any
+from typing import Any, Collection, NamedTuple, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
