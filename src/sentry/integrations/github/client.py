@@ -213,6 +213,45 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         encoded_content = contents["content"]
         return b64decode(encoded_content).decode("utf-8")
 
+    def get_blame_for_file(self, repo: Repository, path: str, ref: str):
+        [owner, name] = repo.name.split("/")
+        query = f"""query {{
+            repository(name: {name}, owner: {owner}) {{
+                ref(qualifiedName: {ref}) {{
+                    target {{
+                        ... on Commit {{
+                            blame(path: {path}) {{
+                                ranges {{
+                                        commit {{
+                                            author {{
+                                                name
+                                                email
+                                            }}
+                                            message
+                                        }}
+                                    startingLine
+                                    endingLine
+                                    age
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        }}"""
+
+        contents = self.post(
+            path="/graphql",
+            data={"query": query},
+        )
+        return (
+            contents.get("data", {})
+            .get("repository", {})
+            .get("ref", {})
+            .get("target", {})
+            .get("blame", [])
+        )
+
 
 class GitHubAppsClient(GitHubClientMixin):
     def __init__(self, integration: Integration) -> None:

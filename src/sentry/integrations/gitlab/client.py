@@ -14,6 +14,7 @@ API_VERSION = "/api/v4"
 
 class GitLabApiClientPath:
     oauth_token = "/oauth/token"
+    blame = "/projects/{project}/repository/files/{path}/blame"
     commit = "/projects/{project}/repository/commits/{sha}"
     commits = "/projects/{project}/repository/commits"
     compare = "/projects/{project}/repository/compare"
@@ -317,3 +318,9 @@ class GitLabApiClient(ApiClient):
 
         encoded_content = contents["content"]
         return b64decode(encoded_content).decode("utf-8")
+
+    def get_blame_for_file(self, repo: Repository, path: str, ref: str):
+        project_id = repo.config["project_id"]
+        request_path = GitLabApiClientPath.blame.format(project=project_id, path=path)
+        contents = self.get(request_path, params={"ref": ref})
+        return contents
