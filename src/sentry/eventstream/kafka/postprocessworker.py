@@ -108,9 +108,8 @@ class PostProcessForwarderWorker(AbstractBatchWorker):
     """
 
     def __init__(self, concurrency: Optional[int] = 1) -> None:
-        self.__current_concurrency = concurrency
         logger.info(f"Starting post process forwarder with {concurrency} threads")
-        self.__executor = ThreadPoolExecutor(max_workers=self.__current_concurrency)
+        self.__executor = ThreadPoolExecutor(max_workers=concurrency)
 
     def process_message(self, message: Message) -> Optional[Future]:
         """
