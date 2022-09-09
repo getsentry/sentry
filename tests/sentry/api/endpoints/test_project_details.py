@@ -1299,6 +1299,7 @@ class ProjectUpdateTest(APITestCase):
             # check that audit entry was created with redacted password
             assert create_audit_entry.called
             call = faux.faux(create_audit_entry)
+
             assert call.kwarg_equals(
                 "data",
                 {
