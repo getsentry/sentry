@@ -240,7 +240,7 @@ class GroupHeader extends Component<Props, State> {
   }
 
   getPerformanceIssueTabs() {
-    const {baseUrl, currentTab, location} = this.props;
+    const {baseUrl, currentTab, location, group} = this.props;
 
     const disabledTabs = this.getDisabledTabs();
 
@@ -259,6 +259,17 @@ class GroupHeader extends Component<Props, State> {
         >
           {t('Details')}
         </ListLink>
+        <StyledListLink
+          to={`${baseUrl}activity/${location.search}`}
+          isActive={() => currentTab === Tab.ACTIVITY}
+          disabled={disabledTabs.includes(Tab.ACTIVITY)}
+        >
+          {t('Activity')}
+          <Badge>
+            {group.numComments}
+            <IconChat size="xs" />
+          </Badge>
+        </StyledListLink>
         <ListLink
           to={`${baseUrl}tags/${location.search}`}
           isActive={() => currentTab === Tab.TAGS}
