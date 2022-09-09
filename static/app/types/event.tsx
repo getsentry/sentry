@@ -352,6 +352,12 @@ export type EventUser = {
   username?: string | null;
 };
 
+export type PerformanceDetectorData = {
+  causes: string[];
+  offenders: string[];
+  parents: string[];
+};
+
 interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
@@ -414,6 +420,7 @@ export interface EventTransaction
   endTimestamp: number;
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
+  performanceDetectorData?: Record<string, PerformanceDetectorData>;
   type: EventOrGroupType.TRANSACTION;
 }
 
