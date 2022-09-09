@@ -170,6 +170,13 @@ export enum AggregationKey {
   LastSeen = 'last_seen',
 }
 
+export enum ReplayFieldKey {
+  CountErrors = 'countErrors',
+  CountSegments = 'countSegments',
+  Duration = 'duration',
+  ProjectId = 'projectId',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
@@ -432,16 +439,41 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
+export const REPLAY_FIELDS: Record<ReplayFieldKey, FieldDefinition> = {
+  [ReplayFieldKey.CountErrors]: {
+    desc: t('Number of errors in the replay'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.CountSegments]: {
+    desc: t('Number of segments in the replay'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.INTEGER,
+  },
+  [ReplayFieldKey.Duration]: {
+    desc: t('Duration of the replay'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.DURATION,
+  },
+  [ReplayFieldKey.ProjectId]: {
+    desc: t('Project ID'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.STRING,
+  },
+};
+
 type AllFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
+  | ReplayFieldKey
   | FieldKey;
 
 const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
+  ...REPLAY_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,

@@ -20,13 +20,21 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 );
 
 const REPLAY_TAGS = [
+  'browser.name',
+  'browser.version',
+  'countErrors',
+  'countSegments',
   'device.brand',
   'device.family',
+  'device.model',
   'device.name',
   'dist',
+  'duration',
+  'id',
   'os.build',
   'os.kernel_version',
   'platform.name',
+  'projectId',
   'release',
   'sdk.name',
   'sdk.version',
