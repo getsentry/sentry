@@ -54,19 +54,32 @@ type State = {
 };
 
 class OrganizationContextContainer extends Component<Props, State> {
+  static getOrgIdFromHostOrParams(props: Readonly<Props>): string {
+    // First, look for subdomain slug, fallback to params
+    const {params} = props;
+    // TODO: this is messy
+    const re = /([\w\-\_]+)\.(sentry|dev\.getsentry)\.(net|io)/;
+    const subdomainMatch = window.location.host.match(re);
+    let orgId = '';
+    if (subdomainMatch) {
+      orgId = subdomainMatch[1];
+    } else {
+      orgId = params.orgId;
+    }
+    return orgId;
+  }
+
   static getDerivedStateFromProps(props: Readonly<Props>, prevState: State): State {
     const {prevProps} = prevState;
 
     if (OrganizationContextContainer.shouldRemount(prevProps, props)) {
       return OrganizationContextContainer.getDefaultState(props);
     }
-
-    const {organizationsLoading, location, params} = props;
-    const {orgId} = params;
+    const {organizationsLoading, location} = props;
     return {
       ...prevState,
       prevProps: {
-        orgId,
+        orgId: OrganizationContextContainer.getOrgIdFromHostOrParams(props),
         organizationsLoading,
         location,
       },
@@ -74,12 +87,12 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   static shouldRemount(prevProps: State['prevProps'], props: Props): boolean {
+    const pathOrgId = OrganizationContextContainer.getOrgIdFromHostOrParams(props);
     const hasOrgIdAndChanged =
-      prevProps.orgId && props.params.orgId && prevProps.orgId !== props.params.orgId;
+      prevProps.orgId && pathOrgId && prevProps.orgId !== pathOrgId;
 
     const hasOrgId =
-      props.params.orgId ||
-      (props.useLastOrganization && ConfigStore.get('lastOrganization'));
+      pathOrgId || (props.useLastOrganization && ConfigStore.get('lastOrganization'));
 
     // protect against the case where we finish fetching org details
     // and then `OrganizationsStore` finishes loading:
@@ -100,7 +113,7 @@ class OrganizationContextContainer extends Component<Props, State> {
 
   static getDefaultState(props: Props): State {
     const prevProps = {
-      orgId: props.params.orgId,
+      orgId: OrganizationContextContainer.getOrgIdFromHostOrParams(props),
       organizationsLoading: props.organizationsLoading,
       location: props.location,
     };
@@ -124,7 +137,7 @@ class OrganizationContextContainer extends Component<Props, State> {
 
   static getOrganizationSlug(props: Props) {
     return (
-      props.params.orgId ||
+      OrganizationContextContainer.getOrgIdFromHostOrParams(props) ||
       ((props.useLastOrganization &&
         (ConfigStore.get('lastOrganization') ||
           props.organizations?.[0]?.slug)) as string)

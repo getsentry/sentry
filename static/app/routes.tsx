@@ -421,29 +421,82 @@ function buildRoutes() {
     sentry.io/onboarding/{slug}/{step} -> {slug}.sentry.io/onboarding/{step}
     sentry.io/settings/{slug}/projects/{projectslug}/ -> {slug}.sentry.io/settings/projects/{project.slug}/
   */
-  const orgScopedCustomDomainRoute = originalRoute => {
-    const newPath = originalRoute.props.path
-      .replace(/organizations\/:orgId\/?/, '')
-      .replace(/:orgId\/?/, '');
-    const customDomainRoute = (
-      <Route path={newPath} component={originalRoute.component} />
-    );
+
+  type HostRedirectComponentProps = RouteComponentProps<{orgId: string}, {}> & {
+    children: React.ReactNode;
+  };
+
+  // This builds a list of redirects based on nested path components for all components in the subtree
+  // and renders the routes with updated paths along with the redirects
+  const orgScopedCustomDomainRouteHelper = (parentPath, route, redirectList) => {
+    if (Array.isArray(route)) {
+      return route.map(r =>
+        orgScopedCustomDomainRouteHelper(parentPath, r, redirectList)
+      );
+    }
+    const originalPath = route.props.path || '';
+    let fullOriginalPath = originalPath;
+    if (originalPath && originalPath[0] != '/') {
+      fullOriginalPath = parentPath + originalPath;
+    }
+    let newPath = null;
+    let newChildren = null;
+    if (originalPath) {
+      newPath = route.props.path
+        .replace(/organizations\/:orgId\/?/, '')
+        .replace(/:orgId\/?/, '');
+
+      if (originalPath !== newPath) {
+        redirectList.push(<Redirect from={fullOriginalPath} to={newPath} />);
+      }
+    }
+
+    if (Array.isArray(route.props.children)) {
+      newChildren = [];
+      for (const child in route.props.children) {
+        const newChild = orgScopedCustomDomainRouteHelper(
+          fullOriginalPath,
+          route.props.children[child],
+          redirectList
+        );
+        newChildren.push(newChild);
+      }
+    } else {
+      // There are elements where this property is not an array
+      newChildren = route.props.children;
+    }
+
+    return React.cloneElement(route, {
+      path: newPath,
+      children: newChildren,
+    });
+  };
+
+  const orgScopedCustomDomainRoutes = originalRoute => {
     const config = window.__initialData;
-    const {regionUrl} = config.links;
+    const {regionUrl, organizationUrl} = config.links;
 
     // TODO: Typing seems wrong on config.features. Needs a cast?
     const shouldUseLegacyRoute =
-      !regionUrl || !config.features.includes('customer-domains');
-    const flaggedOriginalRoute = shouldUseLegacyRoute ? (
-      originalRoute
-    ) : (
-      <Redirect from={originalRoute.path} to={newPath} />
-    );
+      !regionUrl || !config.features.includes('organizations:customer-domains');
 
+    const newPath = originalRoute.props.path
+      .replace(/organizations\/:orgId\/?/, '')
+      .replace(/:orgId\/?/, '');
+
+    if (!shouldUseLegacyRoute && window.location.host != new URL(organizationUrl).host) {
+      window.location = organizationUrl + newPath + window.location.search;
+    }
+
+    const redirectList = [];
+    const newRoute = orgScopedCustomDomainRouteHelper('', originalRoute, redirectList);
+    redirectList.forEach(r => {
+      console.log(r.props.from + ' -> ' + r.props.to);
+    });
     return (
       <Fragment>
-        {customDomainRoute}
-        {flaggedOriginalRoute}
+        {redirectList}
+        {newRoute}
       </Fragment>
     );
   };
@@ -481,18 +534,14 @@ function buildRoutes() {
         path="/organizations/new/"
         component={make(() => import('sentry/views/organizationCreate'))}
       />
-      {orgScopedCustomDomainRoute(
-        <Route
-          path="/organizations/:orgId/data-export/:dataExportId"
-          component={make(() => import('sentry/views/dataExport/dataDownload'))}
-        />
-      )}
-      {orgScopedCustomDomainRoute(
-        <Route
-          path="/organizations/:orgId/disabled-member/"
-          component={make(() => import('sentry/views/disabledMember'))}
-        />
-      )}
+      <Route
+        path="/organizations/:orgId/data-export/:dataExportId"
+        component={make(() => import('sentry/views/dataExport/dataDownload'))}
+      />
+      <Route
+        path="/organizations/:orgId/disabled-member/"
+        component={make(() => import('sentry/views/disabledMember'))}
+      />
       <Route
         path="/join-request/:orgId/"
         component={make(() => import('sentry/views/organizationJoinRequest'))}
@@ -1156,17 +1205,15 @@ function buildRoutes() {
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
       <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
-      {orgScopedCustomDomainRoute(
-        <Route name={t('Organization')} path=":orgId/">
-          {orgSettingsRoutes}
-          {projectSettingsRoutes}
-          {legacySettingsRedirects}
-        </Route>
-      )}
+      <Route name={t('Organization')} path=":orgId/">
+        {orgSettingsRoutes}
+        {projectSettingsRoutes}
+        {legacySettingsRedirects}
+      </Route>
     </Route>
   );
 
-  const projectsRoutes = orgScopedCustomDomainRoute(
+  const projectsRoutes = (
     <Route path="/organizations/:orgId/projects/">
       <IndexRoute component={make(() => import('sentry/views/projectsDashboard'))} />
       <Route
@@ -1200,69 +1247,59 @@ function buildRoutes() {
 
   const dashboardRoutes = (
     <Fragment>
-      {orgScopedCustomDomainRoute(
+      <Route
+        path="/organizations/:orgId/dashboards/"
+        component={make(() => import('sentry/views/dashboardsV2'))}
+      >
+        <IndexRoute component={make(() => import('sentry/views/dashboardsV2/manage'))} />
+      </Route>
+      <Route
+        path="/organizations/:orgId/dashboards/new/"
+        component={make(() => import('sentry/views/dashboardsV2/create'))}
+      >
         <Route
-          path="/organizations/:orgId/dashboards/"
-          component={make(() => import('sentry/views/dashboardsV2'))}
-        >
-          <IndexRoute
-            component={make(() => import('sentry/views/dashboardsV2/manage'))}
-          />
-        </Route>
-      )}
-      {orgScopedCustomDomainRoute(
+          path="widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+        />
         <Route
-          path="/organizations/:orgId/dashboards/new/"
+          path="widget/new/"
+          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+        />
+      </Route>
+      <Route
+        path="/organizations/:orgId/dashboards/new/:templateId"
+        component={make(() => import('sentry/views/dashboardsV2/create'))}
+      >
+        <Route
+          path="widget/:widgetId/"
           component={make(() => import('sentry/views/dashboardsV2/create'))}
-        >
-          <Route
-            path="widget/:widgetIndex/edit/"
-            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-          />
-          <Route
-            path="widget/new/"
-            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-          />
-        </Route>
-      )}
-      {orgScopedCustomDomainRoute(
-        <Route
-          path="/organizations/:orgId/dashboards/new/:templateId"
-          component={make(() => import('sentry/views/dashboardsV2/create'))}
-        >
-          <Route
-            path="widget/:widgetId/"
-            component={make(() => import('sentry/views/dashboardsV2/create'))}
-          />
-        </Route>
-      )}
+        />
+      </Route>
       <Redirect
         from="/organizations/:orgId/dashboards/:dashboardId/"
         to="/organizations/:orgId/dashboard/:dashboardId/"
       />
-      {orgScopedCustomDomainRoute(
+      <Route
+        path="/organizations/:orgId/dashboard/:dashboardId/"
+        component={make(() => import('sentry/views/dashboardsV2/view'))}
+      >
         <Route
-          path="/organizations/:orgId/dashboard/:dashboardId/"
+          path="widget/:widgetIndex/edit/"
+          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+        />
+        <Route
+          path="widget/new/"
+          component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
+        />
+        <Route
+          path="widget/:widgetId/"
           component={make(() => import('sentry/views/dashboardsV2/view'))}
-        >
-          <Route
-            path="widget/:widgetIndex/edit/"
-            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-          />
-          <Route
-            path="widget/new/"
-            component={make(() => import('sentry/views/dashboardsV2/widgetBuilder'))}
-          />
-          <Route
-            path="widget/:widgetId/"
-            component={make(() => import('sentry/views/dashboardsV2/view'))}
-          />
-        </Route>
-      )}
+        />
+      </Route>
     </Fragment>
   );
 
-  const alertRoutes = orgScopedCustomDomainRoute(
+  const alertRoutes = (
     <Route
       path="/organizations/:orgId/alerts/"
       component={make(() => import('sentry/views/alerts'))}
@@ -1341,7 +1378,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const monitorsRoutes = orgScopedCustomDomainRoute(
+  const monitorsRoutes = (
     <Route
       path="/organizations/:orgId/monitors/"
       component={make(() => import('sentry/views/monitors'))}
@@ -1362,7 +1399,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const replayRoutes = orgScopedCustomDomainRoute(
+  const replayRoutes = (
     <Route
       path="/organizations/:orgId/replays/"
       component={make(() => import('sentry/views/replays'))}
@@ -1375,7 +1412,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const releasesRoutes = orgScopedCustomDomainRoute(
+  const releasesRoutes = (
     <Route path="/organizations/:orgId/releases/">
       <IndexRoute component={make(() => import('sentry/views/releases/list'))} />
       <Route
@@ -1403,14 +1440,14 @@ function buildRoutes() {
     </Route>
   );
 
-  const activityRoutes = orgScopedCustomDomainRoute(
+  const activityRoutes = (
     <Route
       path="/organizations/:orgId/activity/"
       component={make(() => import('sentry/views/organizationActivity'))}
     />
   );
 
-  const statsRoutes = orgScopedCustomDomainRoute(
+  const statsRoutes = (
     <Route path="/organizations/:orgId/stats/">
       <IndexRoute component={make(() => import('sentry/views/organizationStats'))} />
       <Route
@@ -1442,7 +1479,7 @@ function buildRoutes() {
   // should be the canonical route for discover2. We have a redirect right now
   // as /discover was for discover 1 and most of the application is linking to
   // /discover/queries and not /discover
-  const discoverRoutes = orgScopedCustomDomainRoute(
+  const discoverRoutes = (
     <Route
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
@@ -1463,7 +1500,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const performanceRoutes = orgScopedCustomDomainRoute(
+  const performanceRoutes = (
     <Route
       path="/organizations/:orgId/performance/"
       component={make(() => import('sentry/views/performance'))}
@@ -1543,18 +1580,19 @@ function buildRoutes() {
     </Route>
   );
 
-  const userFeedbackRoutes = orgScopedCustomDomainRoute(
+  const userFeedbackRoutes = (
     <Route
       path="/organizations/:orgId/user-feedback/"
       component={make(() => import('sentry/views/userFeedback'))}
     />
   );
 
-  const issueListRoutes = orgScopedCustomDomainRoute(
+  const issueListRoutes = (
     <Route
       path="/organizations/:orgId/issues/"
       component={errorHandler(IssueListContainer)}
     >
+      {/* <Redirect from="/" to="/issues/" /> */}
       <Redirect from="/organizations/:orgId/" to="/organizations/:orgId/issues/" />
       <IndexRoute component={errorHandler(IssueListOverview)} />
       <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
@@ -1563,7 +1601,7 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueDetailsRoutes = orgScopedCustomDomainRoute(
+  const issueDetailsRoutes = (
     <Route
       path="/organizations/:orgId/issues/:groupId/"
       component={make(() => import('sentry/views/organizationGroupDetails'))}
@@ -2199,13 +2237,15 @@ function buildRoutes() {
   const appRoutes = (
     <Route>
       {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        {hook('routes')}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
-      </Route>
+      {orgScopedCustomDomainRoutes(
+        <Route path="/" component={errorHandler(App)}>
+          {rootRoutes}
+          {organizationRoutes}
+          {legacyRedirectRoutes}
+          {hook('routes')}
+          <Route path="*" component={errorHandler(RouteNotFound)} />
+        </Route>
+      )}
     </Route>
   );
 

@@ -18,9 +18,7 @@ class DisabledMemberView(ReactPageView):
         try:
             member = get_cached_organization_member(user.id, organization.id)
             if not member.flags["member-limit:restricted"]:
-                return self.redirect(
-                    reverse("sentry-organization-issue-list", args=[organization.slug])
-                )
+                return self.redirect(reverse("issue-list", args=[organization.slug]))
         except OrganizationMember.DoesNotExist:
             # this shouldn't happen but we can default to basic handling
             pass

@@ -105,7 +105,7 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org_slug(session, user):
+def _resolve_last_org(session, user):
     last_org_slug = session["activeorg"] if session and "activeorg" in session else None
     if not last_org_slug:
         return None
@@ -114,11 +114,18 @@ def _resolve_last_org_slug(session, user):
         if user is not None and not isinstance(user, AnonymousUser):
             try:
                 get_cached_organization_member(user.id, last_org.id)
-                return last_org_slug
+                return last_org
             except OrganizationMember.DoesNotExist:
                 return None
     except Organization.DoesNotExist:
         pass
+    return None
+
+
+def _resolve_last_org_slug(session, user):
+    last_org = _resolve_last_org(session, user)
+    if last_org is not None and "activeorg" in session:
+        return session["activeorg"]
     return None
 
 
@@ -147,9 +154,14 @@ def get_client_config(request=None):
         active_superuser = False
         language_code = "en"
 
+    last_org = _resolve_last_org_slug(session, user)
+
     enabled_features = []
     if features.has("organizations:create", actor=user):
         enabled_features.append("organizations:create")
+    if features.has("organizations:customer-domains", last_org):
+        enabled_features.append("organizations:customer-domains")
+
     if auth.has_user_registration():
         enabled_features.append("auth:register")
 

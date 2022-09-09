@@ -2,7 +2,9 @@ import {useEffect, useRef} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
-import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
+import OrganizationContextContainer, {
+  OrganizationLegacyContext,
+} from 'sentry/views/organizationContextContainer';
 
 import Body from './body';
 
@@ -12,8 +14,9 @@ type Props = RouteComponentProps<{orgId: string}, {}> &
 function OrganizationDetails({children, ...props}: Props) {
   // Switch organizations when the orgId changes
   const orgId = useRef(props.params.orgId);
+  const pathOrgId = OrganizationLegacyContext.getOrgIdFromHostOrParams(props);
   useEffect(() => {
-    if (props.params.orgId && orgId.current !== props.params.orgId) {
+    if (pathOrgId && orgId.current !== pathOrgId) {
       // Only switch on: org1 -> org2
       // Not on: undefined -> org1
       // Also avoid: org1 -> undefined -> org1
@@ -23,7 +26,7 @@ function OrganizationDetails({children, ...props}: Props) {
 
       orgId.current = props.params.orgId;
     }
-  }, [props.params.orgId]);
+  }, [pathOrgId, props.params.orgId]);
 
   return (
     <OrganizationContextContainer includeSidebar useLastOrganization {...props}>

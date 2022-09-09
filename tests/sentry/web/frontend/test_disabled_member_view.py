@@ -30,5 +30,5 @@ class DisabledMemberViewTest(TestCase):
         self.create_one_member()
         resp = self.client.get(self.path)
         assert resp.status_code == 302
-        redirect = reverse("sentry-organization-issue-list", args=[self.org.slug])
+        redirect = reverse("issue-list", args=[self.org.slug])
         assert redirect == resp["Location"]

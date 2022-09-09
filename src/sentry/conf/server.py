@@ -968,7 +968,7 @@ SENTRY_FEATURES = {
     # is not enabled).
     "organizations:create": True,
     # Enable usage of customer domains on the frontend
-    "organizations:customer-domains": False,
+    "organizations:customer-domains": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
