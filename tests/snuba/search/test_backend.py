@@ -40,7 +40,63 @@ def date_to_query_format(date):
     return date.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-class EventsSnubaSearchTest(TestCase, SnubaTestCase):
+class SharedSnubaTest(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+
+    def build_search_filter(self, query, projects=None, user=None, environments=None):
+        user = user if user is not None else self.user
+        projects = projects if projects is not None else [self.project]
+        return convert_query_values(parse_search_query(query), projects, user, environments)
+
+    def make_query(
+        self,
+        projects=None,
+        search_filter_query=None,
+        environments=None,
+        sort_by="date",
+        limit=None,
+        count_hits=False,
+        date_from=None,
+        date_to=None,
+        cursor=None,
+    ):
+        search_filters = []
+        projects = projects if projects is not None else [self.project]
+        if search_filter_query is not None:
+            search_filters = self.build_search_filter(
+                search_filter_query, projects, environments=environments
+            )
+
+        kwargs = {}
+        if limit is not None:
+            kwargs["limit"] = limit
+
+        return self.backend.query(
+            projects,
+            search_filters=search_filters,
+            environments=environments,
+            count_hits=count_hits,
+            sort_by=sort_by,
+            date_from=date_from,
+            date_to=date_to,
+            cursor=cursor,
+            **kwargs,
+        )
+
+    def store_event(self, data, *args, **kwargs):
+        event = super().store_event(data, *args, **kwargs)
+        environment_name = data.get("environment")
+        if environment_name:
+            GroupEnvironment.objects.filter(
+                group_id=event.group_id,
+                environment__name=environment_name,
+                first_seen__gt=event.datetime,
+            ).update(first_seen=event.datetime)
+        return event
+
+
+class EventsSnubaSearchTest(SharedSnubaTest):
     @property
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
@@ -115,86 +171,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.group2.save()
         self.store_group(self.group2)
 
-        transaction_event_data = {
-            "level": "info",
-            "message": "ayoo",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [self.group]
-            return jobs, projects
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            transaction_event = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
-
-        transaction_event.group = self.group
-        self.perf_group_1 = Group.objects.get(id=transaction_event.group_id)
-        self.perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            transaction_event = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "b" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
-
-        transaction_event.group = self.group
-        self.perf_group_2 = Group.objects.get(id=transaction_event.group_id)
-        self.perf_group_2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-
-        error_event_data = {
-            "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
-            "message": "bar",
-            "environment": "staging",
-            "tags": {
-                "server": "example.com",
-                "url": "http://example.com",
-                "sentry:user": "event2@example.com",
-                "my_tag": 1,
-            },
-        }
-
-        error_event = self.store_event(
-            data={
-                **error_event_data,
-                "fingerprint": ["put-me-in-error_group_1"],
-                "event_id": "c" * 32,
-                "stacktrace": {"frames": [{"module": "error_group_1"}]},
-            },
-            project_id=self.project.id,
-        )
-        self.error_group_1 = Group.objects.get(id=error_event.group.id)
-
-        error_event_2 = self.store_event(
-            data={
-                **error_event_data,
-                "fingerprint": ["put-me-in-error_group_2"],
-                "event_id": "d" * 32,
-                "stacktrace": {"frames": [{"module": "error_group_2"}]},
-            },
-            project_id=self.project.id,
-        )
-        self.error_group_2 = Group.objects.get(id=error_event_2.group.id)
-
         GroupBookmark.objects.create(user=self.user, group=self.group2, project=self.group2.project)
 
         GroupAssignee.objects.create(user=self.user, group=self.group2, project=self.group2.project)
@@ -211,17 +187,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             "production": self.event1.get_environment(),
             "staging": self.event2.get_environment(),
         }
-
-    def store_event(self, data, *args, **kwargs):
-        event = super().store_event(data, *args, **kwargs)
-        environment_name = data.get("environment")
-        if environment_name:
-            GroupEnvironment.objects.filter(
-                group_id=event.group_id,
-                environment__name=environment_name,
-                first_seen__gt=event.datetime,
-            ).update(first_seen=event.datetime)
-        return event
 
     def set_up_multi_project(self):
         self.project2 = self.create_project(organization=self.project.organization)
@@ -281,44 +246,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         return event.group
 
-    def build_search_filter(self, query, projects=None, user=None, environments=None):
-        user = user if user is not None else self.user
-        projects = projects if projects is not None else [self.project]
-        return convert_query_values(parse_search_query(query), projects, user, environments)
-
-    def make_query(
-        self,
-        projects=None,
-        search_filter_query=None,
-        environments=None,
-        sort_by="date",
-        limit=None,
-        count_hits=False,
-        date_from=None,
-        date_to=None,
-    ):
-        search_filters = []
-        projects = projects if projects is not None else [self.project]
-        if search_filter_query is not None:
-            search_filters = self.build_search_filter(
-                search_filter_query, projects, environments=environments
-            )
-
-        kwargs = {}
-        if limit is not None:
-            kwargs["limit"] = limit
-
-        return self.backend.query(
-            projects,
-            search_filters=search_filters,
-            environments=environments,
-            count_hits=count_hits,
-            sort_by=sort_by,
-            date_from=date_from,
-            date_to=date_to,
-            **kwargs,
-        )
-
     def run_test_query_in_syntax(
         self, query, expected_groups, expected_negative_groups=None, environments=None
     ):
@@ -337,24 +264,6 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
 
         results = self.make_query(search_filter_query="bar")
         assert set(results) == {self.group2}
-
-    def test_performance_query(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
-        assert set(results) == {self.perf_group_1}
-
-    def test_error_performance_query(self):
-        with self.feature("organizations:performance-issues"):
-            results = self.make_query(search_filter_query="my_tag:1")
-        assert set(results) == {
-            self.perf_group_1,
-            self.error_group_1,
-            self.perf_group_2,
-            self.error_group_2,
-        }
-
-    def test_error_performance_query_paginated(self):
-        pass
 
     def test_query_multi_project(self):
         self.set_up_multi_project()
@@ -2150,7 +2059,202 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             test_query(f"{key}:{val}")
 
 
-class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
+class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
+    def setUp(self):
+        super().setUp()
+        self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+        transaction_event_data = {
+            "level": "info",
+            "message": "ayoo",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        }
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [self.group]
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            transaction_event = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+
+        transaction_event.group = self.group
+        self.perf_group_1 = Group.objects.get(id=transaction_event.group_id)
+        self.perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            transaction_event = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "b" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+
+        transaction_event.group = self.group
+        self.perf_group_2 = Group.objects.get(id=transaction_event.group_id)
+        self.perf_group_2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+
+        error_event_data = {
+            "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
+            "message": "bar",
+            "environment": "staging",
+            "tags": {
+                "server": "example.com",
+                "url": "http://example.com",
+                "sentry:user": "event2@example.com",
+                "my_tag": 1,
+            },
+        }
+
+        error_event = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_1"],
+                "event_id": "c" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_1"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_1 = Group.objects.get(id=error_event.group.id)
+
+        error_event_2 = self.store_event(
+            data={
+                **error_event_data,
+                "fingerprint": ["put-me-in-error_group_2"],
+                "event_id": "d" * 32,
+                "stacktrace": {"frames": [{"module": "error_group_2"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.error_group_2 = Group.objects.get(id=error_event_2.group.id)
+
+    def test_performance_query(self):
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
+        assert set(results) == {self.perf_group_1}
+
+    def test_error_performance_query(self):
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(search_filter_query="my_tag:1")
+        assert set(results) == {
+            self.perf_group_1,
+            self.error_group_1,
+            self.perf_group_2,
+            self.error_group_2,
+        }
+
+    def test_cursor_performance_error_issues(self):
+        # TODO this test is a hot mess
+        pass
+        # is this even in the right class? I am confused. I tried to move it to the one with the EventsDatasetSnubaSearchBackend
+        # but I have to redefine run_test which needs to redefine make_query which takes different args ):
+        transaction_event_data = {
+            "level": "info",
+            "message": "ayoo",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+        }
+
+        perf_group_1 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        perf_group_2 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [
+                    perf_group_1
+                ]  # what about perf_group_2? do I need to redefine a hack_pull_out_data2? that doesn't feel right but I need them in diff groups
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            perf_event_1 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+        perf_event_1.group = perf_group_1
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            perf_event_2 = self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+                    "tags": {"my_tag": 1},
+                },
+                project_id=self.project.id,
+            )
+        perf_event_2.group = perf_group_2
+
+        # error_group_3 = self.store_event(
+        #     data={
+        #         "fingerprint": ["put-me-in-group3"],
+        #         "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
+        #         "tags": {"sentry:user": "user2", "my_tag": 1},
+        #     },
+        #     project_id=self.project.id,
+        # ).group
+        # error_group_4 = self.store_event(
+        #     data={
+        #         "fingerprint": ["put-me-in-group7"],
+        #         "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
+        #         "tags": {"sentry:user": "user2", "my_tag": 1},
+        #     },
+        #     project_id=self.project.id,
+        # ).group
+
+        # print(perf_group_1.id)
+        # print(perf_group_2.id)
+        # print(error_group_3.id)
+        # print(error_group_4.id)
+
+        # probably want my_tag:1 instead of is:unresolved but this is the wrong query executor class
+        # not sure what the expected result actually should be w/ 2 perf issues and 2 error issues
+
+        results = self.run_test("is:unresolved", [perf_group_2], 4, limit=1, count_hits=True)
+        results = self.run_test(
+            "is:unresolved", [perf_group_1], 4, limit=1, cursor=results.next, count_hits=True
+        )
+        results = self.run_test(
+            "is:unresolved", [perf_group_2], 4, limit=1, cursor=results.prev, count_hits=True
+        )
+        self.run_test(
+            "is:unresolved",
+            [perf_group_1, self.group1],
+            4,
+            limit=2,
+            cursor=results.next,
+            count_hits=True,
+        )
+
+
+class CdcEventsSnubaSearchTest(SharedSnubaTest):
     @property
     def backend(self):
         return CdcEventsDatasetSnubaSearchBackend()
@@ -2192,46 +2296,6 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         self.group2 = self.event2.group
         self.env2 = self.event2.get_environment()
-
-    def build_search_filter(self, query, projects=None, user=None, environments=None):
-        user = user if user is not None else self.user
-        projects = projects if projects is not None else [self.project]
-        return convert_query_values(parse_search_query(query), projects, user, environments)
-
-    def make_query(
-        self,
-        projects=None,
-        search_filter_query=None,
-        environments=None,
-        sort_by="date",
-        limit=None,
-        count_hits=False,
-        date_from=None,
-        date_to=None,
-        cursor=None,
-    ):
-        search_filters = []
-        projects = projects if projects is not None else [self.project]
-        if search_filter_query is not None:
-            search_filters = self.build_search_filter(
-                search_filter_query, projects, environments=environments
-            )
-
-        kwargs = {}
-        if limit is not None:
-            kwargs["limit"] = limit
-
-        return self.backend.query(
-            projects,
-            search_filters=search_filters,
-            environments=environments,
-            count_hits=count_hits,
-            sort_by=sort_by,
-            date_from=date_from,
-            date_to=date_to,
-            cursor=cursor,
-            **kwargs,
-        )
 
     def run_test(
         self,
@@ -2438,95 +2502,6 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         )
         self.run_test(
             "is:unresolved", [group3, self.group1], 4, limit=2, cursor=results.next, count_hits=True
-        )
-
-    def test_cursor_performance_error_issues(self):
-        # is this even in the right class? I am confused. I tried to move it to the one with the EventsDatasetSnubaSearchBackend
-        # but I have to redefine run_test which needs to redefine make_query which takes different args ):
-        transaction_event_data = {
-            "level": "info",
-            "message": "ayoo",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
-        perf_group_1 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
-        perf_group_2 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [
-                    perf_group_1
-                ]  # what about perf_group_2? do I need to redefine a hack_pull_out_data2? that doesn't feel right but I need them in diff groups
-            return jobs, projects
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            perf_event_1 = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
-        perf_event_1.group = perf_group_1
-
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            perf_event_2 = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
-        perf_event_2.group = perf_group_2
-
-        # error_group_3 = self.store_event(
-        #     data={
-        #         "fingerprint": ["put-me-in-group3"],
-        #         "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-        #         "tags": {"sentry:user": "user2", "my_tag": 1},
-        #     },
-        #     project_id=self.project.id,
-        # ).group
-        # error_group_4 = self.store_event(
-        #     data={
-        #         "fingerprint": ["put-me-in-group7"],
-        #         "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-        #         "tags": {"sentry:user": "user2", "my_tag": 1},
-        #     },
-        #     project_id=self.project.id,
-        # ).group
-
-        # print(perf_group_1.id)
-        # print(perf_group_2.id)
-        # print(error_group_3.id)
-        # print(error_group_4.id)
-
-        # probably want my_tag:1 instead of is:unresolved but this is the wrong query executor class
-        # not sure what the expected result actually should be w/ 2 perf issues and 2 error issues
-
-        results = self.run_test("is:unresolved", [perf_group_2], 4, limit=1, count_hits=True)
-        results = self.run_test(
-            "is:unresolved", [perf_group_1], 4, limit=1, cursor=results.next, count_hits=True
-        )
-        results = self.run_test(
-            "is:unresolved", [perf_group_2], 4, limit=1, cursor=results.prev, count_hits=True
-        )
-        self.run_test(
-            "is:unresolved",
-            [perf_group_1, self.group1],
-            4,
-            limit=2,
-            cursor=results.next,
-            count_hits=True,
         )
 
     def test_rechecking(self):
