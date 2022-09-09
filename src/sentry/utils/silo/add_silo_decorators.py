@@ -10,7 +10,7 @@ from sentry.utils.silo.common import (
     Keywords,
     apply_decorators,
     has_control_name,
-    has_customer_name,
+    has_region_name,
 )
 
 
@@ -34,14 +34,14 @@ def add_silo_decorators(
     ####################################################################
     # Fill these predicates in with the logic you want to apply
 
-    def customer_model_predicate(c: TargetClass) -> bool:
+    def region_model_predicate(c: TargetClass) -> bool:
         return False  # For now, rely on decorate_models_by_relation instead
 
     def control_model_predicate(c: TargetClass) -> bool:
         return False  # For now, rely on decorate_models_by_relation instead
 
-    def customer_endpoint_predicate(c: TargetClass) -> bool:
-        return has_customer_name(c.name, silo_keywords)
+    def region_endpoint_predicate(c: TargetClass) -> bool:
+        return has_region_name(c.name, silo_keywords)
 
     def control_endpoint_predicate(c: TargetClass) -> bool:
         return has_control_name(c.name, silo_keywords)
@@ -49,10 +49,10 @@ def add_silo_decorators(
     ####################################################################
 
     execute(
-        "customer_silo_model",
-        "from sentry.db.models import customer_silo_model",
+        "region_silo_model",
+        "from sentry.db.models import region_silo_model",
         ClassCategory.MODEL,
-        customer_model_predicate,
+        region_model_predicate,
     )
     execute(
         "control_silo_model",
@@ -61,10 +61,10 @@ def add_silo_decorators(
         control_model_predicate,
     )
     execute(
-        "customer_silo_endpoint",
-        "from sentry.api.base import customer_silo_endpoint",
+        "region_silo_endpoint",
+        "from sentry.api.base import region_silo_endpoint",
         ClassCategory.ENDPOINT,
-        customer_endpoint_predicate,
+        region_endpoint_predicate,
     )
     execute(
         "control_silo_endpoint",
@@ -76,7 +76,7 @@ def add_silo_decorators(
         "pending_silo_endpoint",
         "from sentry.api.base import pending_silo_endpoint",
         ClassCategory.ENDPOINT,
-        (lambda c: not (customer_endpoint_predicate(c) or control_endpoint_predicate(c))),
+        (lambda c: not (region_endpoint_predicate(c) or control_endpoint_predicate(c))),
     )
 
 

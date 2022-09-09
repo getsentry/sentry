@@ -18,7 +18,7 @@ __all__ = (
     "DefaultFieldsModel",
     "sane_repr",
     "control_silo_model",
-    "customer_silo_model",
+    "region_silo_model",
 )
 
 
@@ -206,5 +206,5 @@ class ModelSiloLimit(SiloLimit):
         return model_class
 
 
-control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.CUSTOMER)
-customer_silo_model = ModelSiloLimit(SiloMode.CUSTOMER)
+control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
+region_silo_model = ModelSiloLimit(SiloMode.REGION)

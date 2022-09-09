@@ -42,7 +42,7 @@ __all__ = [
     "EnvironmentMixin",
     "StatsMixin",
     "control_silo_endpoint",
-    "customer_silo_endpoint",
+    "region_silo_endpoint",
     "pending_silo_endpoint",
 ]
 
@@ -545,10 +545,10 @@ class EndpointSiloLimit(SiloLimit):
 
 
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
-customer_silo_endpoint = EndpointSiloLimit(SiloMode.CUSTOMER)
+region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 
 # Use this decorator to mark endpoints that still need to be marked as either
-# control_silo_endpoint or customer_silo_endpoint. Marking a class with
+# control_silo_endpoint or region_silo_endpoint. Marking a class with
 # pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
 # that the test will fail if a new endpoint is added with no decorator at all.
 # Eventually we should replace all instances of this decorator and delete it.

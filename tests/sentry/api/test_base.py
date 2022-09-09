@@ -234,13 +234,13 @@ class SiloModeTest(APITestCase):
                     # TODO: Make work with EndpointWithDecoratedMethod
 
     def test_with_active_mode(self):
-        self._test_active_on(SiloMode.CUSTOMER, SiloMode.CUSTOMER, True)
+        self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
     def test_with_inactive_mode(self):
-        self._test_active_on(SiloMode.CUSTOMER, SiloMode.CONTROL, False)
-        self._test_active_on(SiloMode.CONTROL, SiloMode.CUSTOMER, False)
+        self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
 
     def test_with_monolith_mode(self):
-        self._test_active_on(SiloMode.CUSTOMER, SiloMode.MONOLITH, True)
+        self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)

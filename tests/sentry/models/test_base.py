@@ -18,11 +18,11 @@ class AvailableOnTest(TestCase):
     class ControlModel(TestModel):
         pass
 
-    @ModelSiloLimit(SiloMode.CUSTOMER)
-    class CustomerModel(TestModel):
+    @ModelSiloLimit(SiloMode.REGION)
+    class RegionModel(TestModel):
         pass
 
-    @ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.CUSTOMER)
+    @ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
     class ReadOnlyModel(TestModel):
         pass
 
@@ -39,18 +39,18 @@ class AvailableOnTest(TestCase):
 
         self.ModelOnMonolith.objects.filter(id=1).delete()
 
-    @override_settings(SILO_MODE=SiloMode.CUSTOMER)
+    @override_settings(SILO_MODE=SiloMode.REGION)
     def test_available_on_same_mode(self):
-        assert list(self.CustomerModel.objects.all()) == []
-        with raises(self.CustomerModel.DoesNotExist):
-            self.CustomerModel.objects.get(id=1)
+        assert list(self.RegionModel.objects.all()) == []
+        with raises(self.RegionModel.DoesNotExist):
+            self.RegionModel.objects.get(id=1)
 
-        self.CustomerModel.objects.create()
-        assert self.CustomerModel.objects.count() == 1
+        self.RegionModel.objects.create()
+        assert self.RegionModel.objects.count() == 1
 
-        self.CustomerModel.objects.filter(id=1).delete()
+        self.RegionModel.objects.filter(id=1).delete()
 
-    @override_settings(SILO_MODE=SiloMode.CUSTOMER)
+    @override_settings(SILO_MODE=SiloMode.REGION)
     def test_unavailable_on_other_mode(self):
         with raises(ModelSiloLimit.AvailabilityError):
             list(self.ControlModel.objects.all())
@@ -61,7 +61,7 @@ class AvailableOnTest(TestCase):
         with raises(ModelSiloLimit.AvailabilityError):
             self.ControlModel.objects.filter(id=1).delete()
 
-    @override_settings(SILO_MODE=SiloMode.CUSTOMER)
+    @override_settings(SILO_MODE=SiloMode.REGION)
     def test_available_for_read_only(self):
         assert list(self.ReadOnlyModel.objects.all()) == []
         with raises(self.ReadOnlyModel.DoesNotExist):
