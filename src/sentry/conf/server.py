@@ -2136,10 +2136,6 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
-# sentry/utils/sdk.py loads the upstream_dsn through this
-if os.environ.get("SENTRY_DSN"):
-    SENTRY_SDK_CONFIG["dsn"] = os.environ.get("SENTRY_DSN")
-
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):

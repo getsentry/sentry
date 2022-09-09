@@ -278,6 +278,7 @@ def configure_sdk():
     relay_dsn = sdk_options.pop("relay_dsn", None)
     experimental_dsn = sdk_options.pop("experimental_dsn", None)
     internal_project_key = get_project_key()
+    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     upstream_dsn = sdk_options.pop("dsn", None)
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["release"] = (
