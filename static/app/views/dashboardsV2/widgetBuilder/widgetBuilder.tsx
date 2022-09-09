@@ -171,9 +171,7 @@ function WidgetBuilder({
   }
 
   // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
+  const widgetBuilderNewDesign = true;
   const hasReleaseHealthFeature = organization.features.includes('dashboards-releases');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
@@ -216,9 +214,8 @@ function WidgetBuilder({
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType:
-        (widgetBuilderNewDesign && displayType === DisplayType.TOP_N
-          ? DisplayType.AREA
-          : displayType) ?? DisplayType.TABLE,
+        (displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType) ??
+        DisplayType.TABLE,
       interval: '5m',
       queries: [],
       limit: limit ? Number(limit) : undefined,
@@ -231,21 +228,17 @@ function WidgetBuilder({
     };
 
     if (defaultWidgetQuery) {
-      if (widgetBuilderNewDesign) {
-        defaultState.queries = [
-          {
-            ...defaultWidgetQuery,
-            orderby:
-              defaultWidgetQuery.orderby ||
-              (datasetConfig.getTableSortOptions
-                ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
-                    .value
-                : ''),
-          },
-        ];
-      } else {
-        defaultState.queries = [{...defaultWidgetQuery}];
-      }
+      defaultState.queries = [
+        {
+          ...defaultWidgetQuery,
+          orderby:
+            defaultWidgetQuery.orderby ||
+            (datasetConfig.getTableSortOptions
+              ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+                  .value
+              : ''),
+        },
+      ];
 
       if (
         ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
@@ -299,7 +292,6 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -312,7 +304,6 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
         });
       }
 
@@ -443,7 +434,6 @@ function WidgetBuilder({
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
             widgetType: WidgetType.DISCOVER,
-            widgetBuilderNewDesign,
           })
         );
         set(newState, 'dataSet', DataSet.EVENTS);
@@ -455,7 +445,6 @@ function WidgetBuilder({
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
-        widgetBuilderNewDesign,
       });
 
       if (newDisplayType === DisplayType.TOP_N) {
@@ -739,7 +728,6 @@ function WidgetBuilder({
       } else if (!newQuery.orderby) {
         const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
           columns: query.columns,
           aggregates: query.aggregates,
         });

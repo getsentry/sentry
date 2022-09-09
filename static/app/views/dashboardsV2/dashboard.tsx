@@ -16,7 +16,6 @@ import isEqual from 'lodash/isEqual';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
@@ -24,7 +23,6 @@ import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -215,55 +213,28 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = () => {
-    const {
-      organization,
-      dashboard,
-      selection,
-      handleUpdateWidgetList,
-      handleAddCustomWidget,
-      router,
-      location,
-      paramDashboardId,
-    } = this.props;
+    const {organization, router, location, paramDashboardId} = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience-design')) {
-      if (paramDashboardId) {
-        router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        });
-        return;
-      }
-
+    if (paramDashboardId) {
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
         },
       });
-
       return;
     }
 
-    trackAdvancedAnalyticsEvent('dashboards_views.add_widget_modal.opened', {
-      organization,
+    router.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
+      query: {
+        ...location.query,
+        source: DashboardWidgetSource.DASHBOARDS,
+      },
     });
 
-    trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
-      organization,
-    });
-    openAddDashboardWidgetModal({
-      organization,
-      dashboard,
-      selection,
-      onAddWidget: handleAddCustomWidget,
-      onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
-      source: DashboardWidgetSource.LIBRARY,
-    });
+    return;
   };
 
   handleUpdateComplete = (prevWidget: Widget) => (nextWidget: Widget) => {
@@ -323,60 +294,29 @@ class Dashboard extends Component<Props, State> {
     }
   };
 
-  handleEditWidget = (widget: Widget, index: number) => () => {
-    const {
-      organization,
-      dashboard,
-      selection,
-      router,
-      location,
-      paramDashboardId,
-      handleAddCustomWidget,
-      isEditing,
-    } = this.props;
+  handleEditWidget = (index: number) => () => {
+    const {organization, router, location, paramDashboardId} = this.props;
 
-    if (
-      organization.features.includes('new-widget-builder-experience-design') &&
-      (!organization.features.includes('new-widget-builder-experience-modal-access') ||
-        isEditing)
-    ) {
-      if (paramDashboardId) {
-        router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        });
-        return;
-      }
-
+    if (paramDashboardId) {
       router.push({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+        pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/${index}/edit/`,
         query: {
           ...location.query,
           source: DashboardWidgetSource.DASHBOARDS,
         },
       });
-
       return;
     }
 
-    trackAdvancedAnalyticsEvent('dashboards_views.edit_widget_modal.opened', {
-      organization,
+    router.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/widget/${index}/edit/`,
+      query: {
+        ...location.query,
+        source: DashboardWidgetSource.DASHBOARDS,
+      },
     });
-    const modalProps = {
-      organization,
-      widget,
-      selection,
-      onAddWidget: handleAddCustomWidget,
-      onUpdateWidget: this.handleUpdateComplete(widget),
-    };
-    openAddDashboardWidgetModal({
-      ...modalProps,
-      dashboard,
-      source: DashboardWidgetSource.DASHBOARDS,
-    });
+
+    return;
   };
 
   getWidgetIds() {
