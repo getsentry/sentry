@@ -102,22 +102,6 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             button.click()
             self.browser.snapshot("dashboards - edit widget")
 
-    def test_widget_library(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
-            self.page.visit_default_overview()
-
-            # Open widget library
-            self.page.click_dashboard_header_add_widget_button()
-            self.browser.element('[data-test-id="library-tab"]').click()
-
-            # Select/deselect widget library cards
-            self.browser.element('[data-test-id="widget-library-card-0"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-            self.browser.element('[data-test-id="widget-library-card-3"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-
-            self.browser.snapshot("dashboards - widget library")
-
     def test_duplicate_widget_in_view_mode(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
@@ -243,26 +227,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.save_dashboard()
 
             self.capture_screenshots("dashboards - move existing widget on existing dashboard")
-
-    def test_add_by_widget_library_do_not_overlap(self):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE + GRID_LAYOUT_FEATURE
-        ):
-            self.page.visit_dashboard_detail()
-            self.page.click_dashboard_header_add_widget_button()
-
-            self.browser.element('[data-test-id="library-tab"]').click()
-
-            # Add library widgets
-            self.browser.element('[data-test-id="widget-library-card-0"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-            self.browser.element('[data-test-id="widget-library-card-3"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-            self.browser.element('[data-test-id="confirm-widgets"]').click()
-
-            self.capture_screenshots(
-                "dashboards - widgets from widget library do not overlap when added"
-            )
 
     def test_widget_edit_keeps_same_layout_after_modification(self):
         existing_widget = DashboardWidget.objects.create(
