@@ -409,8 +409,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         now = timezone.now()
 
         for tag, value, numbers in (
-            ("tag1", "value1", [4, 5, 6]),
-            ("tag1", "value2", [1, 2, 3]),
+            ("tag1", "value1", [1, 2, 3]),
+            ("tag1", "value2", [10, 100, 1000]),
         ):
             for subvalue in numbers:
                 self.store_metric(
@@ -424,10 +424,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
-        class hashabledict(dict):
-            def __hash__(self):
-                return hash(tuple(sorted(self.items())))
-
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -436,13 +432,22 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     op="histogram",
                     # ToDo(ahmed): Replace this with MRI once we make MetricsQuery accept MRI
                     metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
-                    params=hashabledict(
-                        {
-                            "histogram_from": 2,
-                            "histogram_to": None,
-                            "histogram_buckets": 2,
-                        }
-                    ),
+                    params={
+                        "histogram_from": 2,
+                        "histogram_to": None,
+                        "histogram_buckets": 2,
+                    },
+                    alias="histogram_lcp_1",
+                ),
+                MetricField(
+                    op="histogram",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    params={
+                        "histogram_from": None,
+                        "histogram_to": 9,
+                        "histogram_buckets": 2,
+                    },
+                    alias="histogram_lcp_2",
                 ),
             ],
             start=now - timedelta(hours=1),
@@ -459,12 +464,13 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             use_case_id=UseCaseKey.PERFORMANCE,
         )
 
-        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
-
         assert data["groups"] == [
             {
                 "by": {},
-                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
+                "totals": {
+                    "histogram_lcp_1": [(2.0, 501.0, 4), (501.0, 1000.0, 2)],
+                    "histogram_lcp_2": [(1.0, 5.0, 3), (5.0, 9.0, 0)],
+                },
             }
         ]
 

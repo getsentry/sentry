@@ -179,6 +179,10 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 MetricField(
                     op="histogram",
                     metric_name=SessionMetricKey.DURATION.value,
+                    params={
+                        "histogram_from": 2,
+                        "histogram_buckets": 2,
+                    },
                     alias="histogram_duration",
                 ),
             ],
@@ -187,8 +191,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             granularity=Granularity(granularity=rollup),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
-            histogram_from=2,
-            histogram_buckets=2,
             include_series=False,
         )
         data = get_series(

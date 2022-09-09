@@ -359,7 +359,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             subdata = data[alias][idx]
 
         compute_func_dict = {"data": subdata}
-        if self.metrics_query_args is not None:
+        if self.metrics_query_args is not None and params is not None:
             for field in self.metrics_query_args:
                 compute_func_dict[field] = params.get(field)
 
@@ -375,7 +375,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
     ) -> Optional[Function]:
         kwargs = {"org_id": org_id}
-        if self.metrics_query_args is not None:
+        if self.metrics_query_args is not None and params is not None:
             for field in self.metrics_query_args:
                 kwargs[field] = params.get(field)
 

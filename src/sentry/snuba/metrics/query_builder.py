@@ -825,6 +825,8 @@ class SnubaResultConverter:
 
             for key in set(totals or ()) | set(series or ()):
                 metric_field = self._alias_to_metric_field.get(key)
+                if not metric_field:
+                    continue
                 metric_obj = metric_object_factory(
                     metric_field.op, get_mri(metric_field.metric_name)
                 )
