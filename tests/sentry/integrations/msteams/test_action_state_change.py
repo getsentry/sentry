@@ -19,6 +19,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.utils import json
@@ -206,6 +207,13 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
+        activity = Activity.objects.filter(group=self.group1).first()
+        assert activity.data == {
+            "assignee": str(self.team.id),
+            "assigneeEmail": None,
+            "assigneeType": "team",
+            "integration": ActivityIntegration.MSTEAMS.value,
+        }
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -217,6 +225,13 @@ class StatusActionTest(BaseEventTest):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
+        activity = Activity.objects.filter(group=self.group1).first()
+        assert activity.data == {
+            "assignee": str(self.user.id),
+            "assigneeEmail": self.user.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.MSTEAMS.value,
+        }
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

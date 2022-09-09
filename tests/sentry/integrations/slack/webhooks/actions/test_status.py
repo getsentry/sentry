@@ -22,6 +22,7 @@ from sentry.models import (
     OrganizationIntegration,
     OrganizationMember,
 )
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -100,6 +101,13 @@ class StatusActionTest(BaseEventTest):
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
+        activity = Activity.objects.filter(group=self.group).first()
+        assert activity.data == {
+            "assignee": str(user2.id),
+            "assigneeEmail": user2.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.SLACK.value,
+        }
 
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
 

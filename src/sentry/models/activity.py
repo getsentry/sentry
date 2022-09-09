@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.conf import settings
@@ -133,3 +134,12 @@ class Activity(Model):
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
+
+
+class ActivityIntegration(Enum):
+    """Used in the Activity data column to define an acting integration"""
+
+    CODEOWNERS = "codeowners"
+    PROJECT_OWNERSHIP = "projectOwnership"
+    SLACK = "slack"
+    MSTEAMS = "msteams"

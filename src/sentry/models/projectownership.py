@@ -154,7 +154,7 @@ class ProjectOwnership(Model):
             codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
             assigned_by_codeowners = False
             if not (ownership or codeowners):
-                return False, [], assigned_by_codeowners
+                return False, [], assigned_by_codeowners, None
 
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -165,7 +165,7 @@ class ProjectOwnership(Model):
             )
 
             if not (codeowners_rules or ownership_rules):
-                return ownership.auto_assignment, [], assigned_by_codeowners
+                return ownership.auto_assignment, [], assigned_by_codeowners, None
 
             ownership_actors = cls._find_actors(project_id, ownership_rules, limit)
             codeowners_actors = cls._find_actors(project_id, codeowners_rules, limit)
@@ -173,7 +173,7 @@ class ProjectOwnership(Model):
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
             if not (ownership_actors or codeowners_actors):
-                return ownership.auto_assignment, [], assigned_by_codeowners
+                return ownership.auto_assignment, [], assigned_by_codeowners, None
 
             # Ownership rules take precedence over codeowner rules.
             actors = [*ownership_actors, *codeowners_actors][:limit]
@@ -183,12 +183,18 @@ class ProjectOwnership(Model):
             if len(ownership_actors) == 0:
                 assigned_by_codeowners = True
 
+            # The rule that would be used for auto assignment
+            auto_assignment_rule = (
+                codeowners_rules[0] if assigned_by_codeowners else ownership_rules[0]
+            )
+
             from sentry.models import ActorTuple
 
             return (
                 ownership.auto_assignment,
                 ActorTuple.resolve_many(actors),
                 assigned_by_codeowners,
+                auto_assignment_rule,
             )
 
     @classmethod
