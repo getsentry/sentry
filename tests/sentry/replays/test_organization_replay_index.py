@@ -312,7 +312,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = "44c586f7-bd12-4c1b-b609-189344a19e92"
+        replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(
@@ -357,39 +357,60 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                ("platform", "javascript"),
-                ("duration", ">15"),
-                ("user.id", "123"),
-                ("user.name", "username123"),
-                ("user.email", "username@example.com"),
-                ("user.ipAddress", "127.0.0.1"),
-                ("sdk.name", "sentry.javascript.react"),
-                ("os.name", "macOS"),
-                ("os.version", "15"),
-                ("browser.name", "Firefox"),
-                ("browser.version", "99"),
-                ("dist", "abc123"),
-                ("countSegments", ">=2"),
-                ("device.name", "Macbook"),
-                ("device.brand", "Apple"),
-                ("device.family", "Macintosh"),
-                ("device.model", "10"),
+                "platform:javascript",
+                "duration:>15",
+                "user.id:123",
+                "user.name:username123",
+                "user.email:username@example.com",
+                "user.ipAddress:127.0.0.1",
+                "sdk.name:sentry.javascript.react",
+                "os.name:macOS",
+                "os.version:15",
+                "browser.name:Firefox",
+                "browser.version:99",
+                "dist:abc123",
+                "countSegments:>=2",
+                "device.name:Macbook",
+                "device.brand:Apple",
+                "device.family:Macintosh",
+                "device.model:10",
+                # Contains operator.
+                f"id:[{replay1_id},{uuid.uuid4().hex},{uuid.uuid4().hex}]",
+                # Or expression.
+                f"id:{replay1_id} OR id:{uuid.uuid4().hex} OR id:{uuid.uuid4().hex}",
+                # Paren wrapped expression.
+                f"((id:{replay1_id} OR id:b) AND (duration:>15 OR id:d))",
+                # Implicit paren wrapped expression.
+                f"(id:{replay1_id} OR id:b) AND (duration:>15 OR id:d)",
+                # Implicit And.
+                f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
             ]
 
-            for key, value in queries:
-                response = self.client.get(self.url + f"?query={key}:{value}")
-                assert response.status_code == 200, key
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
                 response_data = response.json()
-                assert len(response_data["data"]) == 1, key
+                assert len(response_data["data"]) == 1, query
 
             # Test all queries as a single AND expression.
-            raw_queries = [f"{key}:{value}" for key, value in queries]
-            all_queries = " ".join(raw_queries)
+            all_queries = " ".join(queries)
 
             response = self.client.get(self.url + f"?query={all_queries}")
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
+
+            # Assert returns empty result sets.
+            null_queries = [
+                f"id:{replay1_id} AND id:b",
+                f"id:{replay1_id} AND duration:>1000",
+                "id:b OR duration:>1000",
+            ]
+            for query in null_queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
 
     def test_get_replays_user_sorts(self):
         """Test replays conform to the interchange format."""
@@ -558,7 +579,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         """Test replays unknown fields raise a 400 error."""
         project = self.create_project(teams=[self.team])
 
-        replay1_id = str(uuid.uuid4())
+        replay1_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
         seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
         self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))

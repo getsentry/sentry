@@ -19,7 +19,7 @@ export class ChromeTraceProfile extends EventedProfile {}
 type ProcessId = number;
 type ThreadId = number;
 
-export function splitEventsByProcessAndTraceId(
+export function splitEventsByProcessAndThreadId(
   trace: ChromeTrace.ArrayFormat
 ): Map<ProcessId, Map<ThreadId, ChromeTrace.Event[]>> {
   const collections: Map<ProcessId, Map<ThreadId, ChromeTrace.Event[]>> = new Map();
@@ -263,11 +263,11 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
 
 export function parseTypescriptChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
-  traceID: string,
+  profileID: string,
   options?: ImportOptions
 ): ProfileGroup {
   const profiles: Profile[] = [];
-  const eventsByProcessAndThreadID = splitEventsByProcessAndTraceId(input);
+  const eventsByProcessAndThreadID = splitEventsByProcessAndThreadId(input);
 
   for (const [processId, threads] of eventsByProcessAndThreadID) {
     for (const [threadId, events] of threads) {
@@ -284,9 +284,10 @@ export function parseTypescriptChromeTraceArrayFormat(
 
   return {
     name: 'chrometrace',
-    traceID,
+    traceID: profileID,
     activeProfileIndex: 0,
     profiles,
+    metadata: {} as Profiling.Schema['metadata'],
   };
 }
 
@@ -517,7 +518,7 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
 
 export function parseChromeTraceFormat(
   input: ChromeTrace.ArrayFormat,
-  traceID: string,
+  profileID: string,
   _options?: ImportOptions
 ): ProfileGroup {
   const {cpuProfiles, threadNames: _threadNames} = collectEventsByProfile(input);
@@ -531,8 +532,9 @@ export function parseChromeTraceFormat(
 
   return {
     name: 'chrometrace',
-    traceID,
     activeProfileIndex: 0,
     profiles: [],
+    traceID: profileID,
+    metadata: {} as Profiling.Schema['metadata'],
   };
 }

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, List, Sequence, Tuple
 
+from sentry.eventstore.models import Event
 from sentry.integrations.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -21,7 +22,7 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.models import Event, Group, GroupStatus, Integration, Project, Rule
+from sentry.models import Group, GroupStatus, Integration, Project, Rule
 
 from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder

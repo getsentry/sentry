@@ -475,7 +475,9 @@ function getEventsRequest(
   cursor?: string,
   referrer?: string
 ) {
-  const isMEPEnabled = organization.features.includes('dashboards-mep');
+  const isMEPEnabled =
+    organization.features.includes('dashboards-mep') ||
+    organization.features.includes('mep-rollout-flag');
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 

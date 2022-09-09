@@ -40,7 +40,6 @@ from snuba_sdk import (
     Op,
 )
 from snuba_sdk.conditions import ConditionGroup
-from snuba_sdk.legacy import json_to_snql
 
 from sentry.api.utils import InvalidParams as UtilsInvalidParams
 from sentry.models import Release
@@ -54,10 +53,9 @@ from sentry.release_health.base import (
     SessionsQueryValue,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.snuba.metrics.query import MetricField, MetricsQuery, OrderBy
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery, OrderBy
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
     InvalidParams,
@@ -415,7 +413,8 @@ def run_sessions_query(
     if not intervals:
         return _empty_result(query)
 
-    conditions = _get_filter_conditions(query.conditions)
+    conditions = query.get_filter_conditions()
+
     where, status_filter = _extract_status_filter_from_conditions(conditions)
     if status_filter == frozenset():
         # There was a condition that cannot be met, such as 'session:status:foo'
@@ -433,10 +432,7 @@ def run_sessions_query(
     if not fields:
         return _empty_result(query)
 
-    filter_keys = query.filter_keys.copy()
-    project_ids = filter_keys.pop("project_id")
-    assert not filter_keys
-
+    project_ids = query.params["project_id"]
     limit = Limit(query.limit) if query.limit else None
 
     ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
@@ -546,7 +542,13 @@ def run_sessions_query(
         query.end,
         Granularity(query.rollup),
         where=where,
-        groupby=list({column for field in fields.values() for column in field.get_groupby()}),
+        groupby=list(
+            {
+                MetricGroupByField(column)
+                for field in fields.values()
+                for column in field.get_groupby()
+            }
+        ),
         orderby=orderby_sequence,
         limit=limit,
         offset=Offset(query.offset or 0),
@@ -700,14 +702,6 @@ def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
         "intervals": intervals,
         "query": query.query,
     }
-
-
-def _get_filter_conditions(conditions: Any) -> ConditionGroup:
-    """Translate given conditions to snql"""
-    dummy_entity = EntityKey.MetricsSets.value
-    return json_to_snql(
-        {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
-    ).query.where
 
 
 def _extract_status_filter_from_conditions(

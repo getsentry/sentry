@@ -13,11 +13,7 @@ type Props = {
 };
 
 function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
-  const labelTitle =
-    replayRecord?.user.name ||
-    replayRecord?.user.email ||
-    replayRecord?.user.ip_address ||
-    replayRecord?.user.id;
+  const labelTitle = replayRecord?.user.displayName;
 
   return (
     <Breadcrumbs
