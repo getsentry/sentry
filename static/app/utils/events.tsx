@@ -103,7 +103,7 @@ export function getTitle(
   features: string[] = [],
   grouping = false
 ) {
-  const {metadata, type, culprit} = event;
+  const {metadata, type, culprit, title} = event;
 
   const customTitle =
     features.includes('custom-event-title') && metadata?.title
@@ -152,7 +152,7 @@ export function getTitle(
       // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
       // back to the computed title for these.
       return {
-        title: customTitle ?? (metadata.message || event.title),
+        title: customTitle ?? (metadata.message || title),
         subtitle: metadata.origin ?? '',
         treeLabel: undefined,
       };
@@ -162,9 +162,14 @@ export function getTitle(
         subtitle: '',
         treeLabel: undefined,
       };
+    case EventOrGroupType.TRANSACTION:
+      return {
+        title: customTitle ?? title,
+        subtitle: event.issueCategory === 'performance' ? culprit : '',
+      };
     default:
       return {
-        title: customTitle ?? event.title,
+        title: customTitle ?? title,
         subtitle: '',
         treeLabel: undefined,
       };
