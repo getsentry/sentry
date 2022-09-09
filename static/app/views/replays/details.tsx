@@ -4,6 +4,7 @@ import type {RouteComponentProps} from 'react-router';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -64,7 +65,7 @@ function ReplayDetails({
                 <p>{t('This could be due to a couple of reasons:')}</p>
                 <List symbol="bullet">
                   {reasons.map((reason, i) => (
-                    <li key={i}>{reason}</li>
+                    <ListItem key={i}>{reason}</ListItem>
                   ))}
                 </List>
               </Fragment>

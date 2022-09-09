@@ -1,5 +1,6 @@
 import DetailedError from 'sentry/components/errors/detailedError';
 import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {Environment} from 'sentry/types';
 
@@ -24,7 +25,7 @@ const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
         <p>{t('This could be due to a handful of reasons:')}</p>
         <List symbol="bullet">
           {reasons.map((reason, i) => (
-            <li key={i}>{reason}</li>
+            <ListItem key={i}>{reason}</ListItem>
           ))}
         </List>
       </div>
