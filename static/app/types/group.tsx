@@ -352,7 +352,9 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     assigneeType: string;
     user: Team | User;
     assigneeEmail?: string;
-    /** If the user was assigned via an integration */
+    /**
+     * If the user was assigned via an integration
+     */
     integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
