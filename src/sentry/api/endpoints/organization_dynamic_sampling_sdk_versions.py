@@ -34,6 +34,9 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
         "sentry.python.serverless",  # AWS Lambda
         "sentry.cocoa",  # iOS
+        "sentry.php",  # PHP
+        "sentry.php.laravel",  # Laravel
+        "sentry.php.symfony",  # Symfony
     )
 )
 # We want sentry.java.android, sentry.java.android.timber, and all others to match
