@@ -192,6 +192,7 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
       className={props.className}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      data-testid="stacktrace-preview"
     >
       <StacktraceHovercard
         body={

@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
+import {IssueCategory} from 'sentry/types';
 
 describe('EventOrGroupTitle', function () {
   const data = {
@@ -79,5 +80,19 @@ describe('EventOrGroupTitle', function () {
     );
 
     expect(screen.getByText('metadata title')).toBeInTheDocument();
+  });
+
+  it('does not render stack trace when issueCategory is performance', () => {
+    render(
+      <EventOrGroupTitle
+        data={{
+          ...data,
+          issueCategory: IssueCategory.PERFORMANCE,
+        }}
+        withStackTracePreview
+      />
+    );
+
+    expect(screen.queryByTestId('stacktrace-preview')).not.toBeInTheDocument();
   });
 });
