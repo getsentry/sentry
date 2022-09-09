@@ -665,3 +665,24 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             assert (
                 detector_type in DETECTOR_TYPE_TO_GROUP_TYPE
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
+
+
+class PerformanceProblemTest(unittest.TestCase):
+    def test_serializes_json(self):
+        problem = PerformanceProblem(
+            fingerprint="7f3650f4ac0901d47ca7320f070abd5b",
+            op="db",
+            desc="SELECT * FROM events;",
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            parent_span_ids=None,
+            cause_span_ids=["234067843ab03"],
+            offender_span_ids=["3e9a58f9e3c", "98b452cdc6cbe9"],
+        )
+
+        output = problem.to_json()
+
+        json.dumps(output)  # Ensure is serializable
+
+        assert output["parents"] == []
+        assert output["causes"] == ["234067843ab03"]
+        assert output["offenders"] == ["3e9a58f9e3c", "98b452cdc6cbe9"]

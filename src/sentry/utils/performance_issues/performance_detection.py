@@ -58,6 +58,13 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
 
+    def to_json(self):
+        return {
+            "parents": self.parent_span_ids or [],
+            "causes": self.cause_span_ids or [],
+            "offenders": self.offender_span_ids or [],
+        }
+
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
