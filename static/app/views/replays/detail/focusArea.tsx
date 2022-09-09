@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -10,10 +9,6 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  TracePanel,
-  TraceViewHeaderContainer,
-} from 'sentry/views/performance/traceDetails/styles';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
 import IssueList from 'sentry/views/replays/detail/issueList';
@@ -84,7 +79,7 @@ function FocusArea({}: Props) {
           features={features}
           renderDisabled={renderDisabled}
         >
-          <StyledTrace organization={organization} replayRecord={replayRecord} />
+          <Trace organization={organization} replayRecord={replayRecord} />
         </Feature>
       );
     case 'issues':
@@ -106,20 +101,5 @@ function FocusArea({}: Props) {
       return null;
   }
 }
-
-const StyledTrace = styled(Trace)`
-  margin-top: 0;
-  height: 100%;
-
-  ${TracePanel} {
-    height: 100%;
-    overflow: auto;
-  }
-  ${TraceViewHeaderContainer} {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-`;
 
 export default FocusArea;
