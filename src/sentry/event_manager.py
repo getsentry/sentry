@@ -1186,9 +1186,8 @@ def materialize_metadata(data, event_type, event_metadata):
 
 def inject_performance_problem_metadata(metadata, problem: PerformanceProblem):
     # TODO make type here dynamic, pull it from group type
-    metadata["type"] = "N+1 Query"
     metadata["value"] = problem.desc
-    metadata["title"] = f"N+1 Query: {problem.desc}"
+    metadata["title"] = "N+1 Query"
     return metadata
 
 
