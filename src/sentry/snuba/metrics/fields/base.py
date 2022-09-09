@@ -299,13 +299,13 @@ class MetricOperation(MetricOperationDefinition, ABC):
         metric_mri: str,
         alias: str,
         idx: Optional[int] = None,
-        params: MetricOperationParams = None,
+        params: Optional[MetricOperationParams] = None,
     ) -> SnubaDataType:
         raise NotImplementedError
 
     @abstractmethod
     def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseKey, params: MetricOperationParams = None
+        self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
     ) -> Optional[Function]:
         raise NotImplementedError
 
@@ -328,12 +328,12 @@ class RawOp(MetricOperation):
         metric_mri: str,
         alias: str,
         idx: Optional[int] = None,
-        params: MetricOperationParams = None,
+        params: Optional[MetricOperationParams] = None,
     ) -> SnubaDataType:
         return data
 
     def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseKey, params: MetricOperationParams = None
+        self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
     ) -> None:
         return
 
@@ -351,7 +351,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         metric_mri: str,
         alias: str,
         idx: Optional[int] = None,
-        params: MetricOperationParams = None,
+        params: Optional[MetricOperationParams] = None,
     ) -> SnubaDataType:
         if idx is None:
             subdata = data[alias]
@@ -361,7 +361,6 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         compute_func_dict = {"data": subdata}
         if self.metrics_query_args is not None:
             for field in self.metrics_query_args:
-                # ToDo(ahmed): Wrap with try and catch
                 compute_func_dict[field] = params.get(field)
 
         subdata = self.post_query_func(**compute_func_dict)
@@ -373,12 +372,12 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         return data
 
     def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseKey, params: MetricOperationParams = None
+        self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
     ) -> Optional[Function]:
         kwargs = {"org_id": org_id}
         if self.metrics_query_args is not None:
             for field in self.metrics_query_args:
-                kwargs[field] = params[field]
+                kwargs[field] = params.get(field)
 
         return self.filter_conditions_func(**kwargs)
 
@@ -607,6 +606,9 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
+
+        # We don't pass params to the metric object because params are usually applied on the operation not on the
+        # metric object/name
         conditions = self.metric_object.generate_filter_snql_conditions(
             org_id=org_id, use_case_id=use_case_id
         )
@@ -776,14 +778,14 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         # Before, we are able to generate the relevant SnQL for a derived metric, we need to
         # validate that this instance of SingularEntityDerivedMetric is built from constituent
         # metrics that span a single entity
-        # Currently `params` is not being used in instances of `SingularEntityDerivedMetric` and
-        # `CompositeEntityDerivedMetric` instances as these types of expressions produce SnQL that does not require any
-        # parameters but in the future that might change, and when that occurs we will need to pass the params to the
-        # `snql` function of the derived metric
         if not projects:
             self._raise_entity_validation_exception("generate_select_statements")
         self.get_entity(projects=projects, use_case_id=use_case_id)
         org_id = org_id_from_projects(projects)
+        # Currently `params` is not being used in instances of `SingularEntityDerivedMetric` and
+        # `CompositeEntityDerivedMetric` instances as these types of expressions produce SnQL that does not require any
+        # parameters but in the future that might change, and when that occurs we will need to pass the params to the
+        # `snql` function of the derived metric
         return self.__recursively_generate_select_snql(
             org_id, derived_metric_mri=self.metric_mri, use_case_id=use_case_id, alias=alias
         )
@@ -867,6 +869,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         projects: Sequence[Project],
         use_case_id: UseCaseKey,
         alias: str,
+        params: Optional[MetricOperationParams] = None,
     ) -> List[OrderBy]:
         raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
@@ -1288,16 +1291,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             post_query_func=rebucket_histogram,
             filter_conditions_func=zoom_histogram,
         ),
-        # DerivedOp(
-        #     op="rate",
-        #     can_orderby=False,
-        #     snql=lambda *args, metric_mri, org_id, metric_ids, alias=None: rate(
-        #         MetricExpression(
-        #             metric_operation=RawOp(op="count"), metric_object=RawMetric(metric_mri)
-        #         ).generate_select_statements(*args),
-        #         division_float()
-        #     ),
-        # ),
     ]
 }
 

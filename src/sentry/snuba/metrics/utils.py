@@ -76,7 +76,6 @@ MetricOperationType = Literal[
     "p95",
     "p99",
     "histogram",
-    "rate",
 ]
 MetricUnit = Literal[
     "nanosecond",

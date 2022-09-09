@@ -406,9 +406,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_histogram_transaction_duration(self):
-        print("Okaaaaayyyy")
-        from django.utils import timezone
-
         now = timezone.now()
 
         for tag, value, numbers in (

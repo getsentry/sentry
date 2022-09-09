@@ -289,10 +289,6 @@ def division_float(arg1_snql, arg2_snql, alias=None):
     )
 
 
-def rate(arg1_snql, arg2_snql, alias=None):
-    return division_float(arg1_snql, arg2_snql, alias)
-
-
 def complement(arg1_snql, alias=None):
     """(x) -> (1 - x)"""
     return Function("minus", [1.0, arg1_snql], alias=alias)
