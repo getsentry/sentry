@@ -800,6 +800,261 @@ class ProjectUpdateTest(APITestCase):
         _remove_ids_from_dynamic_rules(saved_config)
         _remove_ids_from_dynamic_rules(original_config)
         assert original_config == saved_config
+        assert AuditLogEntry.objects.filter(
+            organization=self.project.organization,
+            event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
+        ).exists()
+
+        # Make sure that the early return logic worked, as only the above audit log was triggered
+        with pytest.raises(AuditLogEntry.DoesNotExist):
+            AuditLogEntry.objects.get(
+                organization=self.organization,
+                target_object=self.project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            )
+
+    def test_dynamic_sampling_rule_deletion(self):
+        """
+        Tests that when sending a request to dekete a dynamic sampling rule,
+        the rule will be successfully deleted and that the audit log 'SAMPLING_RULE_REMOVE' will be triggered
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [dynamic_sampling["rules"][2]],
+            }
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_RULE_REMOVE"),
+            ).exists()
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.organization,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
+
+    def test_dynamic_sampling_rule_activation(self):
+        """
+        Tests that when sending a request to activate a dynamic sampling rule,
+        the rule will be successfully activated and that the audit log 'SAMPLING_RULE_ACTIVATE' will be triggered
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+        # Update project adding three rules
+        project.update_option(
+            "sentry:dynamic_sampling",
+            {
+                "rules": [
+                    {**dynamic_sampling["rules"][1], "active": False},
+                    {**dynamic_sampling["rules"][2], "active": False},
+                ]
+            },
+        )
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [
+                    {**dynamic_sampling["rules"][1], "active": False},
+                    {**dynamic_sampling["rules"][2], "active": True},
+                ]
+            }
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_RULE_ACTIVATE"),
+            ).exists()
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.organization,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
+
+    def test_dynamic_sampling_rule_deactivation(self):
+        """
+        Tests that when sending a request to deactivate a dynamic sampling rule,
+        the rule will be successfully deactivated and that the audit log 'SAMPLING_RULE_DEACTIVATE' will be triggered
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [
+                    {**dynamic_sampling["rules"][0], "active": False},
+                    dynamic_sampling["rules"][1],
+                    dynamic_sampling["rules"][2],
+                ]
+            }
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_RULE_DEACTIVATE"),
+            ).exists()
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.organization,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
+
+    def test_dynamic_smapling_rule_edition(self):
+        """
+        Tests that when sending a request updating a dynamic sampling rule,
+        the rule will be successfully edited and that the audit log 'SAMPLING_RULE_EDIT' will be triggered
+        """
+        dynamic_sampling = _dyn_sampling_data()
+        project = self.project  # force creation
+        # Update project adding three rules
+        project.update_option("sentry:dynamic_sampling", dynamic_sampling)
+
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [
+                    {**dynamic_sampling["rules"][0], "sampleRate": 0.2},
+                    dynamic_sampling["rules"][1],
+                    dynamic_sampling["rules"][2],
+                ]
+            }
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_RULE_EDIT"),
+            ).exists()
+
+            # Make sure that the early return logic worked, as only the above audit log was triggered
+            with pytest.raises(AuditLogEntry.DoesNotExist):
+                AuditLogEntry.objects.get(
+                    organization=self.organization,
+                    target_object=self.project.id,
+                    event=audit_log.get_event_id("PROJECT_EDIT"),
+                )
+
+    def test_request_with_dynamic_sampling_and_other_property(self):
+        """
+        Tests that when sending a request to update the dynamic sampling property
+        alongside another project's property, everything will be successfully updated and
+        the audit logs 'SAMPLING_RULE_*' and 'PROJECT_EDIT' will be triggered
+
+        """
+
+        dynamic_sampling = _dyn_sampling_data()
+        self.login_as(self.user)
+
+        token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        data = {
+            "dynamicSampling": {
+                "rules": [dynamic_sampling["rules"][len(dynamic_sampling["rules"]) - 1]],
+            },
+            "platform": "rust",
+            "relayPiiConfig": "",
+        }
+
+        with Feature({"organizations:server-side-sampling": True}):
+            self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+
+            # Audit Log shall be triggered twice
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
+            ).exists()
+
+            assert AuditLogEntry.objects.filter(
+                organization=self.project.organization,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            ).exists()
 
     def test_setting_dynamic_sampling_rules_roundtrip(self):
         """
@@ -927,6 +1182,19 @@ class ProjectUpdateTest(APITestCase):
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
         assert all([rule["active"] for rule in saved_config["rules"]])
+        assert AuditLogEntry.objects.filter(
+            organization=self.project.organization,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("SAMPLING_RULE_ADD"),
+        ).exists()
+
+        # Make sure that the early return logic worked, as only the above audit log was triggered
+        with pytest.raises(AuditLogEntry.DoesNotExist):
+            AuditLogEntry.objects.get(
+                organization=self.organization,
+                target_object=self.project.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            )
 
     def test_dynamic_sampling_rules_should_contain_single_uniform_rule(self):
         """
@@ -1035,11 +1303,11 @@ class ProjectUpdateTest(APITestCase):
                 "data",
                 {
                     "sentry:symbol_sources": [redacted_source],
-                    "id": 41,
-                    "slug": "bar",
-                    "name": "Bar",
-                    "status": 0,
-                    "public": False,
+                    "id": self.project.id,
+                    "slug": self.project.slug,
+                    "name": self.project.name,
+                    "status": self.project.status,
+                    "public": self.project.public,
                 },
             )
 

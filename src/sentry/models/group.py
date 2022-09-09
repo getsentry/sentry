@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.utils.http import urlencode, urlquote
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import eventstore, eventtypes, tagstore
+from sentry import eventstore, eventtypes, features, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
     BaseManager,
@@ -29,10 +29,11 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupType
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -179,24 +180,39 @@ class EventOrdering(Enum):
 
 
 def get_oldest_or_latest_event_for_environments(
-    ordering, environments=(), issue_id=None, project_id=None
-) -> Event | None:
+    ordering: EventOrdering, environments: Sequence[str], group: Group
+) -> GroupEvent | None:
     conditions = []
 
     if len(environments) > 0:
         conditions.append(["environment", "IN", environments])
 
+    if (
+        features.has("organizations:performance-issues", group.organization)
+        and group.issue_category == GroupCategory.PERFORMANCE
+    ):
+        conditions.append([["has", ["group_ids", group.id]], "=", 1])
+        _filter = eventstore.Filter(
+            conditions=conditions,
+            project_ids=[group.project_id],
+        )
+        dataset = Dataset.Transactions
+    else:
+        _filter = eventstore.Filter(
+            conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
+        )
+        dataset = Dataset.Events
+
     events = eventstore.get_events(
-        filter=eventstore.Filter(
-            conditions=conditions, project_ids=[project_id], group_ids=[issue_id]
-        ),
+        filter=_filter,
         limit=1,
         orderby=ordering.value,
         referrer="Group.get_latest",
+        dataset=dataset,
     )
 
     if events:
-        return events[0]
+        return events[0].for_group(group)
 
     return None
 
@@ -405,6 +421,7 @@ class Group(Model):
         choices=(
             (GroupType.ERROR.value, _("Error")),
             (GroupType.PERFORMANCE_N_PLUS_ONE.value, _("N Plus One")),
+            (GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, _("N Plus One DB Queries")),
             (GroupType.PERFORMANCE_SLOW_SPAN.value, _("Slow Span")),
             (GroupType.PERFORMANCE_SEQUENTIAL_SLOW_SPANS.value, _("Sequential Slow Spans")),
             (GroupType.PERFORMANCE_LONG_TASK_SPANS.value, _("Long Task Span")),
@@ -413,6 +430,7 @@ class Group(Model):
                 _("Render Blocking Asset Span"),
             ),
             (GroupType.PERFORMANCE_DUPLICATE_SPANS.value, _("Duplicate Spans")),
+            # TODO add more group types when detection starts outputting them
         ),
     )
 
@@ -531,26 +549,28 @@ class Group(Model):
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
-    def get_latest_event(self) -> Event | None:
+    def get_latest_event(self) -> GroupEvent | None:
         if not hasattr(self, "_latest_event"):
             self._latest_event = self.get_latest_event_for_environments()
 
         return self._latest_event
 
-    def get_latest_event_for_environments(self, environments=()):
+    def get_latest_event_for_environments(
+        self, environments: Sequence[str] = ()
+    ) -> GroupEvent | None:
         return get_oldest_or_latest_event_for_environments(
             EventOrdering.LATEST,
-            environments=environments,
-            issue_id=self.id,
-            project_id=self.project_id,
+            environments,
+            self,
         )
 
-    def get_oldest_event_for_environments(self, environments=()):
+    def get_oldest_event_for_environments(
+        self, environments: Sequence[str] = ()
+    ) -> GroupEvent | None:
         return get_oldest_or_latest_event_for_environments(
             EventOrdering.OLDEST,
-            environments=environments,
-            issue_id=self.id,
-            project_id=self.project_id,
+            environments,
+            self,
         )
 
     def get_first_release(self) -> str | None:
