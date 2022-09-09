@@ -9,7 +9,7 @@ import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
-  components: Array<SentryAppComponent>;
+  components: SentryAppComponent[];
   filename: string;
   lineNo: number;
 };
