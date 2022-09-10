@@ -59,11 +59,18 @@ from sentry.models import (
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.testutils.helpers import override_options
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
+from sentry.utils.performance_issues.performance_detection import (
+    EventPerformanceProblem,
+    PerformanceProblem,
+)
 from tests.sentry.integrations.github.test_repository import stub_installation_token
+from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 def make_event(**kwargs):
@@ -2085,6 +2092,107 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             # This should have moved us back to the default grouping
             project = Project.objects.get(id=self.project.id)
             assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+
+    @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    def test_perf_issue_creation(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            "projects:performance-suspect-spans-ingestion"
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            data = event.data
+            expected_hash = "19e15e0444e0bc1d5159fb07cd4bd2eb"
+            assert event.get_event_type() == "transaction"
+            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+            assert data["hashes"] == [expected_hash]
+            spans = [{"hash": span["hash"]} for span in data["spans"]]
+            # the basic strategy is to simply use the description
+            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
+            assert len(event.groups) == 1
+            group = event.groups[0]
+            assert group.title == "N+1 Query"
+            assert group.message == "/books/"
+            assert group.culprit == "/books/"
+            assert group.get_event_type() == "transaction"
+            description = "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            assert group.get_event_metadata() == {
+                "location": "/books/",
+                "title": "N+1 Query",
+                "value": description,
+            }
+            assert group.location() == "/books/"
+            assert group.level == 40
+            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            assert EventPerformanceProblem.fetch(
+                event, expected_hash
+            ).problem == PerformanceProblem(
+                expected_hash,
+                "db",
+                description,
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["8dd7a5869a4f4583"],
+                ["9179e43ae844b174"],
+                [
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            )
+
+    @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    def test_perf_issue_update(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            "projects:performance-suspect-spans-ingestion"
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            group = event.groups[0]
+            assert group.issue_category == GroupCategory.PERFORMANCE
+            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            group.data["metadata"] = {
+                "location": "hi",
+                "title": "lol",
+            }
+            group.culprit = "wat"
+            group.message = "nope"
+            group.save()
+            assert group.location() == "hi"
+            assert group.title == "lol"
+
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            with self.tasks():
+                manager.save(self.project.id)
+            # Make sure the original group is updated via buffers
+            group.refresh_from_db()
+            assert group.title == "N+1 Query"
+
+            assert group.get_event_metadata() == {
+                "location": "/books/",
+                "title": "N+1 Query",
+                "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            }
+            assert group.location() == "/books/"
+            assert group.message == "/books/"
+            assert group.culprit == "/books/"
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
