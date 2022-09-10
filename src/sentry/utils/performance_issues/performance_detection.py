@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
@@ -114,6 +114,16 @@ class EventPerformanceProblem:
                 nodestore.get(cls.build_identifier(event.event_id, problem_hash))
             ),
         )
+        return cls.fetch_multi((event, problem_hash))[0]
+
+    @classmethod
+    def fetch_multi(cls, items: Tuple[Event, str]) -> Sequence[EventPerformanceProblem]:
+        ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
+        results = nodestore.get_multi(ids)
+        return [
+            cls(event, PerformanceProblem.from_dict(results[_id]))
+            for _id, (event, _) in zip(ids, items)
+        ]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion

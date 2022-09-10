@@ -1,14 +1,20 @@
+from __future__ import annotations
+
+from collections import defaultdict
 from datetime import datetime
+from typing import Sequence
 
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.models import EventAttachment, EventError, Release, UserReport
+from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
 from sentry.utils.json import prune_empty_keys
+from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
 
 CRASH_FILE_TYPES = {"event.minidump"}
@@ -173,7 +179,7 @@ class EventSerializer(Serializer):
             file.event_id: serialized
             for file, serialized in zip(crash_files, serialize(crash_files, user=user))
         }
-        results = {}
+        results = defaultdict(dict)
         for item in item_list:
             # TODO(dcramer): convert to get_api_context
             (user_data, user_meta) = self._get_interface_with_meta(item, "user", is_public)
@@ -305,6 +311,32 @@ class DetailedEventSerializer(EventSerializer):
     Adds release and user report info to the serialized event.
     """
 
+    def get_attrs(
+        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False
+    ):
+        results = super().get_attrs(item_list, user, is_public)
+        # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
+        # a single hash, so this will work fine for the moment
+        group_hashes = {
+            group_hash.group_id: group_hash
+            for group_hash in GroupHash.objects.filter(
+                group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
+                group__type__in=[
+                    gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
+                ],
+            )
+        }
+        problems = EventPerformanceProblem.fetch_multi(
+            [
+                (e, group_hashes[e.group_id].hash)
+                for e in item_list
+                if getattr(e, "group_id", None) in group_hashes
+            ]
+        )
+        for event_problem in problems:
+            results[event_problem.event]["perf_problem"] = event_problem.problem.as_dict()
+        return results
+
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
@@ -313,6 +345,7 @@ class DetailedEventSerializer(EventSerializer):
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
+        result["perfProblem"] = attrs.get("perf_problem")
         return result
 
 
