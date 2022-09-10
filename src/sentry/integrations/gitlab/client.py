@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any, Mapping, Sequence
 from urllib.parse import quote
 
 from django.urls import reverse
@@ -319,7 +320,9 @@ class GitLabApiClient(ApiClient):
         encoded_content = contents["content"]
         return b64decode(encoded_content).decode("utf-8")
 
-    def get_blame_for_file(self, repo: Repository, path: str, ref: str):
+    def get_blame_for_file(
+        self, repo: Repository, path: str, ref: str
+    ) -> Sequence[Mapping[str, Any]]:
         project_id = repo.config["project_id"]
         request_path = GitLabApiClientPath.blame.format(project=project_id, path=path)
         contents = self.get(request_path, params={"ref": ref})
