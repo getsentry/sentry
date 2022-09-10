@@ -428,10 +428,10 @@ function buildRoutes() {
 
   // This builds a list of redirects based on nested path components for all components in the subtree
   // and renders the routes with updated paths along with the redirects
-  const orgScopedCustomDomainRouteHelper = (parentPath, route, redirectList) => {
+  const orgScopedCustomDomainRouteHelper = (parentPath, route) => {
     if (Array.isArray(route)) {
       return route.map(r =>
-        orgScopedCustomDomainRouteHelper(parentPath, r, redirectList)
+        orgScopedCustomDomainRouteHelper(parentPath, r)
       );
     }
     const originalPath = route.props.path || '';
@@ -440,14 +440,19 @@ function buildRoutes() {
       fullOriginalPath = parentPath + originalPath;
     }
     let newPath = null;
+    let fullNewPath = null;
     let newChildren = null;
+    let redirectElement = null;
     if (originalPath) {
       newPath = route.props.path
         .replace(/organizations\/:orgId\/?/, '')
         .replace(/:orgId\/?/, '');
+      fullNewPath = fullOriginalPath
+        .replace(/organizations\/:orgId\/?/, '')
+        .replace(/:orgId\/?/, '');
 
-      if (originalPath !== newPath) {
-        redirectList.push(<Redirect from={fullOriginalPath} to={newPath} />);
+      if (fullOriginalPath !== fullNewPath) {
+        redirectElement = <Redirect from={fullOriginalPath} to={fullNewPath} />;
       }
     }
 
@@ -457,7 +462,6 @@ function buildRoutes() {
         const newChild = orgScopedCustomDomainRouteHelper(
           fullOriginalPath,
           route.props.children[child],
-          redirectList
         );
         newChildren.push(newChild);
       }
@@ -466,10 +470,15 @@ function buildRoutes() {
       newChildren = route.props.children;
     }
 
-    return React.cloneElement(route, {
-      path: newPath,
-      children: newChildren,
-    });
+    return (
+      <Fragment>
+        {redirectElement}
+        {React.cloneElement(route, {
+          path: newPath,
+          children: newChildren,
+        })}
+      </Fragment>
+    );
   };
 
   const orgScopedCustomDomainRoutes = originalRoute => {
@@ -488,17 +497,7 @@ function buildRoutes() {
       window.location = organizationUrl + newPath + window.location.search;
     }
 
-    const redirectList = [];
-    const newRoute = orgScopedCustomDomainRouteHelper('', originalRoute, redirectList);
-    redirectList.forEach(r => {
-      console.log(r.props.from + ' -> ' + r.props.to);
-    });
-    return (
-      <Fragment>
-        {redirectList}
-        {newRoute}
-      </Fragment>
-    );
+    return orgScopedCustomDomainRouteHelper('', originalRoute);
   };
 
   const rootRoutes = (
