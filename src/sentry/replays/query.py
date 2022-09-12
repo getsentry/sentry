@@ -24,6 +24,7 @@ from sentry.replays.lib.query import (
     Number,
     QueryConfig,
     String,
+    Tag,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -177,9 +178,17 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="device_model"),
         _grouped_unique_scalar_value(column_name="sdk_name"),
         _grouped_unique_scalar_value(column_name="sdk_version"),
-        _grouped_unique_scalar_value(column_name="tags.key"),
-        _grouped_unique_scalar_value(column_name="tags.value"),
         # Flatten array of arrays.
+        Function(
+            "groupArrayArray",
+            parameters=[Column("tags.key")],
+            alias="tk",
+        ),
+        Function(
+            "groupArrayArray",
+            parameters=[Column("tags.value")],
+            alias="tv",
+        ),
         Function(
             "arrayMap",
             parameters=[
@@ -259,30 +268,6 @@ def _grouped_unique_scalar_value(
 
 replay_url_parser_config = SearchConfig(
     numeric_keys={"duration", "countErrors", "countSegments"},
-    allowed_keys={
-        "id",
-        "projectId",
-        "platform",
-        "release",
-        "dist",
-        "duration",
-        "countErrors",
-        "countSegments",
-        "user.id",
-        "user.email",
-        "user.name",
-        "user.ipAddress",
-        "sdk.name",
-        "sdk.version",
-        "os.name",
-        "os.version",
-        "browser.name",
-        "browser.version",
-        "device.name",
-        "device.brand",
-        "device.model",
-        "device.family",
-    },
 )
 
 
@@ -312,6 +297,9 @@ class ReplayQueryConfig(QueryConfig):
     device_model = String(field_alias="device.model")
     sdk_name = String(field_alias="sdk.name")
     sdk_version = String(field_alias="sdk.version")
+
+    # Tag
+    tags = Tag(field_alias="*")
 
     # Sort keys
     started_at = String(name="startedAt", is_filterable=False)
