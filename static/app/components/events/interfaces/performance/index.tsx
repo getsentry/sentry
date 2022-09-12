@@ -1,50 +1,71 @@
 import styled from '@emotion/styled';
 
+import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventError, Group, KeyValueListData, Organization} from 'sentry/types';
+import {Event, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
+import TraceView from '../spans/traceView';
+import WaterfallModel from '../spans/waterfallModel';
 
 export type SpanEvidence = {
   parentSpan: string;
   repeatingSpan: string;
   sourceSpan: string;
+  transaction: string;
 };
 
 interface Props {
-  event: EventError;
-  issue: Group;
+  affectedSpanIds: string[];
+  event: Event;
   organization: Organization;
   spanEvidence: SpanEvidence;
 }
 
-export function PerformanceIssueSection({spanEvidence}: Props) {
-  const {parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
+export function SpanEvidenceSection({
+  spanEvidence,
+  event,
+  organization,
+  affectedSpanIds,
+}: Props) {
+  const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
 
   const data: KeyValueListData = [
     {
       key: '0',
+      subject: t('Transaction'),
+      value: transaction,
+    },
+    {
+      key: '1',
       subject: t('Parent Span'),
       value: parentSpan,
     },
     {
-      key: '1',
+      key: '2',
       subject: t('Source Span'),
       value: sourceSpan,
     },
     {
-      key: '2',
+      key: '3',
       subject: t('Repeating Span'),
       value: repeatingSpan,
     },
   ];
 
   return (
-    <Wrapper>
-      <h3>{t('Span Evidence')}</h3>
+    <EventDataSection type="span-evidence" title={t('Span Evidence')} wrapTitle>
       <KeyValueList data={data} />
-    </Wrapper>
+
+      <TraceViewWrapper>
+        <TraceView
+          organization={organization}
+          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
+          isEmbedded
+        />
+      </TraceViewWrapper>
+    </EventDataSection>
   );
 }
 
@@ -73,7 +94,9 @@ export const Wrapper = styled('div')`
     margin-bottom: 0;
     text-transform: uppercase;
   }
-  div:first-child {
-    margin-right: ${space(3)};
-  }
+`;
+
+const TraceViewWrapper = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
 `;

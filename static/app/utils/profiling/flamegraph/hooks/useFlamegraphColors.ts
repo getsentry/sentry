@@ -1,7 +1,6 @@
-import {Flamegraph} from '../flamegraph';
-import {FlamegraphFrame} from '../flamegraphFrame';
-
-import {ColorChannels, FlamegraphTheme} from './flamegraphTheme';
+import {Flamegraph} from '../../flamegraph';
+import {FlamegraphFrame} from '../../flamegraphFrame';
+import {ColorChannels, FlamegraphTheme} from '../flamegraphTheme';
 
 export function useFlamegraphColors(
   theme: FlamegraphTheme,

@@ -425,23 +425,23 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 200
         expected_output = {
             prj_foo.id: {
-                "by": {"project_id": prj_foo.id},
+                "by": {"project": prj_foo.id},
                 "series": {"sum(sentry.sessions.session)": [3.0]},
                 "totals": {"sum(sentry.sessions.session)": 3.0},
             },
             self.project.id: {
-                "by": {"project_id": self.project.id},
+                "by": {"project": self.project.id},
                 "series": {"sum(sentry.sessions.session)": [2.0]},
                 "totals": {"sum(sentry.sessions.session)": 2.0},
             },
             prj_boo.id: {
-                "by": {"project_id": prj_boo.id},
+                "by": {"project": prj_boo.id},
                 "series": {"sum(sentry.sessions.session)": [5.0]},
                 "totals": {"sum(sentry.sessions.session)": 5.0},
             },
         }
         for grp in response.data["groups"]:
-            prj_id = grp["by"]["project_id"]
+            prj_id = grp["by"]["project"]
             assert grp == expected_output[prj_id]
 
     def test_pagination_limit_without_orderby(self):
@@ -1299,6 +1299,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         returned_values = {group["by"]["tag3"] for group in groups}
         assert "value1" not in returned_values, returned_values
 
+    @pytest.mark.skip(reason="flaky: TET-368")
     def test_limit_without_orderby_excess_groups_pruned(self):
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
@@ -1855,19 +1856,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.errored"] == 7
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
-
-        response = self.get_success_response(
-            self.organization.slug,
-            field=["session.errored"],
-            statsPeriod="6m",
-            interval="1m",
-        )
-        group = response.data["groups"][0]
-        assert group == {
-            "by": {},
-            "totals": {"session.errored": 7},
-            "series": {"session.errored": [0, 4, 0, 0, 0, 3]},
-        }
 
     def test_orderby_composite_entity_derived_metric(self):
         self.store_session(
@@ -2838,177 +2826,3 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "totals": {"p50(session.duration)": 6.0},
             "series": {"p50(session.duration)": [6.0]},
         }
-
-    def test_histogram(self):
-        # Record some strings
-        org_id = self.organization.id
-        tag1 = perf_indexer_record(org_id, "tag1")
-        value1 = perf_indexer_record(org_id, "value1")
-        value2 = perf_indexer_record(org_id, "value2")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, value1, [4, 5, 6]),
-                    (tag1, value2, [1, 2, 3]),
-                )
-            ],
-            entity="metrics_distributions",
-        )
-
-        # Note: everything is a string here on purpose to ensure we parse ints properly
-        response = self.get_success_response(
-            self.organization.slug,
-            field=f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            statsPeriod="1h",
-            interval="1h",
-            includeSeries="0",
-            histogramBuckets="2",
-            histogramFrom="2",
-        )
-
-        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
-
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
-            }
-        ]
-
-    def test_histogram_zooming(self):
-        # Record some strings
-        org_id = self.organization.id
-        tag1 = perf_indexer_record(org_id, "tag1")
-        value1 = perf_indexer_record(org_id, "value1")
-        value2 = perf_indexer_record(org_id, "value2")
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.transaction_lcp_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": numbers,
-                    "tags": {tag: value},
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (tag1, value1, [1, 2, 3]),
-                    (tag1, value2, [10, 100, 1000]),
-                )
-            ],
-            entity="metrics_distributions",
-        )
-
-        # Note: everything is a string here on purpose to ensure we parse ints properly
-        response = self.get_success_response(
-            self.organization.slug,
-            field=f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})",
-            statsPeriod="1h",
-            interval="1h",
-            includeSeries="0",
-            histogramBuckets="2",
-            histogramTo="9",
-        )
-
-        # if zoom_histogram were not called, the variable-width
-        # HdrHistogram buckets returned from clickhouse would be so
-        # inaccurate that we would accidentally return something
-        # else: (5.0, 9.0, 1)
-        hist = [(1.0, 5.0, 3), (5.0, 9.0, 0)]
-
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "totals": {f"histogram({TransactionMetricKey.MEASUREMENTS_LCP.value})": hist},
-            }
-        ]
-
-    def test_histogram_session_duration(self):
-        # Record some strings
-        org_id = self.organization.id
-
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_duration_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": [4, 5, 6],
-                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "exited")},
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_duration_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": [1, 2, 3],
-                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "exited")},
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_duration_metric,
-                    "timestamp": int(time.time()),
-                    "type": "d",
-                    "value": [7, 8, 9],
-                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "crashed")},
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
-        )
-
-        # Note: everything is a string here on purpose to ensure we parse ints properly
-        response = self.get_success_response(
-            self.organization.slug,
-            field="histogram(sentry.sessions.session.duration)",
-            statsPeriod="1h",
-            interval="1h",
-            includeSeries="0",
-            histogramBuckets="2",
-            histogramFrom="2",
-        )
-        hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "totals": {"histogram(sentry.sessions.session.duration)": hist},
-            }
-        ]
-
-        # Using derived alias `session.duration` which has a filter on `exited` session.status
-        response = self.get_success_response(
-            self.organization.slug,
-            field=f"histogram({SessionMetricKey.DURATION.value})",
-            statsPeriod="1h",
-            interval="1h",
-            includeSeries="0",
-            histogramBuckets="2",
-            histogramFrom="2",
-        )
-        hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "totals": {f"histogram({SessionMetricKey.DURATION.value})": hist},
-            }
-        ]
