@@ -156,6 +156,7 @@ function importNodeProfile(
     traceID,
     name: input.name,
     activeProfileIndex: 0,
+    metadata: {},
     profiles: [importSingleProfile(input, frameIndex, options)],
   };
 }
