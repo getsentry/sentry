@@ -52,7 +52,7 @@ export type ReplayRecord = {
   };
   platform: string;
   projectId: string;
-  release: null | string;
+  releases: null | string[];
   sdk: {
     name: string;
     version: string;
