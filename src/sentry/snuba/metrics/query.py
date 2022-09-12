@@ -3,7 +3,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Literal, Optional, Sequence, Set, Union
+from typing import Dict, Literal, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
@@ -32,7 +32,7 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
-    params: Optional[Any] = None
+    params: Optional[Dict[str, Union[str, int, float]]] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
