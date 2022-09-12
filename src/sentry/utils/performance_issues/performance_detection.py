@@ -15,7 +15,7 @@ from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import ProjectOption
 from sentry.types.issues import GroupType
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 from .performance_span_issue import PerformanceSpanProblem
 
@@ -60,22 +60,19 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
 
-    def serialize(self) -> str:
-        return json.dumps(
-            {
-                "fingerprint": self.fingerprint,
-                "op": self.op,
-                "desc": self.desc,
-                "type": self.type.value,
-                "parent_span_ids": self.parent_span_ids,
-                "cause_span_ids": self.cause_span_ids,
-                "offender_span_ids": self.offender_span_ids,
-            }
-        )
+    def to_dict(self) -> str:
+        return {
+            "fingerprint": self.fingerprint,
+            "op": self.op,
+            "desc": self.desc,
+            "type": self.type.value,
+            "parent_span_ids": self.parent_span_ids,
+            "cause_span_ids": self.cause_span_ids,
+            "offender_span_ids": self.offender_span_ids,
+        }
 
     @classmethod
-    def deserialize(cls, serialized: str) -> PerformanceProblem:
-        data = json.loads(serialized)
+    def from_dict(cls, data: dict) -> PerformanceProblem:
         return cls(
             data["fingerprint"],
             data["op"],
@@ -107,13 +104,13 @@ class EventPerformanceProblem:
         return f"p-i-e:{identifier}"
 
     def save(self):
-        nodestore.set(self.identifier, self.problem.serialize())
+        nodestore.set(self.identifier, self.problem.to_dict())
 
     @classmethod
     def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
         return cls(
             event,
-            PerformanceProblem.deserialize(
+            PerformanceProblem.from_dict(
                 nodestore.get(cls.build_identifier(event.event_id, problem_hash))
             ),
         )
