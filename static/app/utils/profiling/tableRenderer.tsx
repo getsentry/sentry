@@ -1,16 +1,12 @@
 import {LocationDescriptorObject} from 'history';
 
-import {GridColumnOrder} from 'sentry/components/gridEditable';
+import {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 
-type Sort<K> = {
-  column: K;
-  direction: 'asc' | 'desc';
-};
-
 interface TableHeadProps<K> {
-  currentSort?: Sort<K>;
+  currentSort?: GridColumnSortBy<K> | null;
   generateSortLink?: (column: K) => () => LocationDescriptorObject | undefined;
+  onClick?(column: GridColumnOrder<K>, e: React.MouseEvent<HTMLAnchorElement>): void;
   rightAlignedColumns?: Set<K>;
   sortableColumns?: Set<K>;
 }
@@ -20,17 +16,18 @@ export function renderTableHead<K>({
   generateSortLink,
   rightAlignedColumns,
   sortableColumns,
+  onClick,
 }: TableHeadProps<K>) {
   return (column: GridColumnOrder<K>, _columnIndex: number) => {
     return (
       <SortLink
+        onClick={e => onClick?.(column, e)}
         align={rightAlignedColumns?.has(column.key) ? 'right' : 'left'}
         title={column.name}
-        direction={
-          currentSort?.column === column.key ? currentSort?.direction : undefined
-        }
+        direction={currentSort?.key === column.key ? currentSort?.order : undefined}
         canSort={sortableColumns?.has(column.key) || false}
         generateSortLink={generateSortLink?.(column.key) ?? (() => undefined)}
+        replace
       />
     );
   };

@@ -1,3 +1,4 @@
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -13,12 +14,20 @@ type Props = {
   canSort: boolean;
   direction: Directions;
   generateSortLink: () => LocationDescriptorObject | undefined;
-
   title: React.ReactNode;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  replace?: boolean;
 };
 
-function SortLink({align, title, canSort, generateSortLink, onClick, direction}: Props) {
+function SortLink({
+  align,
+  title,
+  canSort,
+  generateSortLink,
+  onClick,
+  direction,
+  replace,
+}: Props) {
   const target = generateSortLink();
 
   if (!target || !canSort) {
@@ -29,8 +38,16 @@ function SortLink({align, title, canSort, generateSortLink, onClick, direction}:
     <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
   );
 
+  const handleOnClick: React.MouseEventHandler<HTMLAnchorElement> = e => {
+    if (replace) {
+      e.preventDefault();
+      browserHistory.replace(target);
+    }
+    onClick?.(e);
+  };
+
   return (
-    <StyledLink align={align} to={target} onClick={onClick}>
+    <StyledLink align={align} to={target} onClick={handleOnClick}>
       {title} {arrow}
     </StyledLink>
   );
@@ -40,7 +57,7 @@ type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
 type StyledLinkProps = LinkProps & {align: Alignments};
 
 const StyledLink = styled((props: StyledLinkProps) => {
-  const forwardProps = omit(props, ['align']);
+  const forwardProps = omit(props, ['align', 'css']);
   return <Link {...forwardProps} />;
 })`
   display: block;

@@ -32,11 +32,11 @@ function FunctionsTable(props: FunctionsTableProps) {
 
   const sort = useMemo(() => {
     let column = props.sort;
-    let direction: 'asc' | 'desc' = 'asc' as const;
+    let order: 'asc' | 'desc' = 'asc' as const;
 
     if (props.sort.startsWith('-')) {
       column = props.sort.substring(1);
-      direction = 'desc' as const;
+      order = 'desc' as const;
     }
 
     if (!SORTABLE_COLUMNS.has(column as any)) {
@@ -44,8 +44,8 @@ function FunctionsTable(props: FunctionsTableProps) {
     }
 
     return {
-      column: column as TableColumnKey,
-      direction,
+      key: column as TableColumnKey,
+      order,
     };
   }, [props.sort]);
 
@@ -86,7 +86,7 @@ function FunctionsTable(props: FunctionsTableProps) {
       }
 
       const direction =
-        sort.column !== column ? 'desc' : sort.direction === 'desc' ? 'asc' : 'desc';
+        sort.key !== column ? 'desc' : sort.order === 'desc' ? 'asc' : 'desc';
 
       return () => ({
         ...location,
