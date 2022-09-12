@@ -840,7 +840,7 @@ describe('WidgetBuilder', function () {
         });
       });
 
-      it('raises an alert banner and disables saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
+      it('raises an alert banner but allows saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
         eventsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           method: 'GET',
@@ -887,8 +887,8 @@ describe('WidgetBuilder', function () {
           expect(eventsMock).toHaveBeenCalled();
         });
 
-        screen.getByText('You have inputs that are incompatible with');
-        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+        screen.getByText('Your selection is only applicable to');
+        expect(screen.getByText('Add Widget').closest('button')).toBeEnabled();
       });
 
       it('raises an alert banner if widget result is not metrics data', async function () {
