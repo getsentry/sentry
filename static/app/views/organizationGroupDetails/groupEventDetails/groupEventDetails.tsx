@@ -303,6 +303,9 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
 const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
   padding: 0 !important;
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    align-content: stretch;
+  }
 `;
 
 const Wrapper = styled('div')`
