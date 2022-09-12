@@ -22,7 +22,6 @@ import space from 'sentry/styles/space';
 import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
-import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
@@ -312,7 +311,6 @@ tags.sku_class:enterprise #enterprise`;
         <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
 
         <PermissionAlert />
-        <FeedbackAlert />
         {this.renderCodeOwnerErrors()}
         {ownership && (
           <RulesPanel

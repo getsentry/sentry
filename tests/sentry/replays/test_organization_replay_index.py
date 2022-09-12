@@ -53,6 +53,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "http://localhost:3000/",
                     "http://localhost:3000/login",
                 ],  # duplicate urls are okay,
+                tags={"test": "hello", "other": "hello"},
             )
         )
         self.store_replays(
@@ -62,6 +63,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 replay1_id,
                 # error_ids=[uuid.uuid4().hex, replay1_id],  # duplicate error-id
                 urls=["http://localhost:3000/"],  # duplicate urls are okay
+                tags={"test": "world", "other": "hello"},
             )
         )
 
@@ -87,6 +89,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 count_segments=2,
                 # count_errors=3,
                 count_errors=1,
+                tags={"test": ["hello", "world"], "other": ["hello"]},
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -336,6 +339,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand="Apple",
                 device_family="Macintosh",
                 device_model="10",
+                tags={"a": "m", "b": "q"},
             )
         )
         self.store_replays(
@@ -351,13 +355,13 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 device_brand=None,
                 device_family=None,
                 device_model=None,
+                tags={"a": "n", "b": "o"},
             )
         )
 
         with self.feature(REPLAYS_FEATURES):
             # Run all the queries individually to determine compliance.
             queries = [
-                f"id:[{replay1_id}, {uuid.uuid4().hex}]",
                 "platform:javascript",
                 "duration:>15",
                 "user.id:123",
@@ -375,6 +379,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "device.brand:Apple",
                 "device.family:Macintosh",
                 "device.model:10",
+                # Contains operator.
+                f"id:[{replay1_id},{uuid.uuid4().hex},{uuid.uuid4().hex}]",
+                f"!id:[{uuid.uuid4().hex}]",
+                # Or expression.
+                f"id:{replay1_id} OR id:{uuid.uuid4().hex} OR id:{uuid.uuid4().hex}",
+                # Paren wrapped expression.
+                f"((id:{replay1_id} OR id:b) AND (duration:>15 OR id:d))",
+                # Implicit paren wrapped expression.
+                f"(id:{replay1_id} OR id:b) AND (duration:>15 OR id:d)",
+                # Implicit And.
+                f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
+                # Tag filters.
+                "a:m",
+                "a:[n,o]",
             ]
 
             for query in queries:
@@ -390,6 +408,20 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
+
+            # Assert returns empty result sets.
+            null_queries = [
+                f"id:{replay1_id} AND id:b",
+                f"id:{replay1_id} AND duration:>1000",
+                "id:b OR duration:>1000",
+                "a:o",
+                "a:[o,p]",
+            ]
+            for query in null_queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query
 
     def test_get_replays_user_sorts(self):
         """Test replays conform to the interchange format."""
@@ -536,14 +568,16 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert r["data"][0]["id"] == replay1_id, key
                 assert r["data"][1]["id"] == replay2_id, key
 
-    def test_get_replays_filter_bad_field(self):
-        """Test replays conform to the interchange format."""
-        self.create_project(teams=[self.team])
+    # No such thing as a bad field with the tag filtering behavior.
+    #
+    # def test_get_replays_filter_bad_field(self):
+    #     """Test replays conform to the interchange format."""
+    #     self.create_project(teams=[self.team])
 
-        with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url + "?query=xyz:a")
-            assert response.status_code == 400
-            assert b"xyz" in response.content
+    #     with self.feature(REPLAYS_FEATURES):
+    #         response = self.client.get(self.url + "?query=xyz:a")
+    #         assert response.status_code == 400
+    #         assert b"xyz" in response.content
 
     def test_get_replays_filter_bad_value(self):
         """Test replays conform to the interchange format."""

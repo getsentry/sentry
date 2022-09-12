@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
-from dataclasses import dataclass
-from typing import Collection, Iterator, List, Optional, Sequence, Tuple
+from typing import Collection, NamedTuple, Optional, Sequence, Tuple
+
 
 from sentry.utils import redis
 from sentry.utils.services import Service
@@ -10,8 +10,7 @@ Hash = int
 Timestamp = int
 
 
-@dataclass(frozen=True)
-class Quota:
+class Quota(NamedTuple):
     # The number of seconds to apply the limit to.
     window_seconds: int
 
@@ -56,8 +55,7 @@ class Quota:
             yield value
 
 
-@dataclass(frozen=True)
-class RequestedQuota:
+class RequestedQuota(NamedTuple):
     # A string that all redis state is prefixed with. For example
     # `sentry-string-indexer` where 123 is an organization id.
     prefix: str
@@ -77,8 +75,7 @@ class RequestedQuota:
     quotas: Sequence[Quota]
 
 
-@dataclass(frozen=True)
-class GrantedQuota:
+class GrantedQuota(NamedTuple):
     request: RequestedQuota
 
     # The subset of hashes provided by the user `self.request` that were
@@ -149,8 +146,6 @@ class CardinalityLimiter(Service):
         Given a set of requests and the corresponding return values from
         `check_within_quotas`, consume the quotas.
 
-        :param requests: The requests that have previously been passed to
-            `check_within_quotas`.
         :param timestamp: The request timestamp that has previously been passed
             to `check_within_quotas`.
         :param grants: The return value of `check_within_quotas` which

@@ -1,4 +1,5 @@
-export function RepositoryProjectPathConfig(project, repo, integration, params) {
+export function RepositoryProjectPathConfig(params) {
+  const {project, repo, integration} = params;
   return {
     id: '2',
     projectId: project.id,

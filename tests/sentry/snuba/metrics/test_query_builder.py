@@ -7,6 +7,7 @@ import pytz
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import (
+    AliasedExpression,
     And,
     Column,
     Condition,
@@ -44,6 +45,7 @@ from sentry.snuba.metrics import (
     resolve_tags,
     translate_meta_results,
 )
+from sentry.snuba.metrics.fields.base import COMPOSITE_ENTITY_CONSTITUENT_ALIAS
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     addition,
@@ -54,9 +56,10 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     uniq_aggregation_on_metric,
 )
+from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.metrics.query import MetricField
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -294,7 +297,7 @@ def test_build_snuba_query(mock_now, mock_now2):
         end=MOCK_NOW,
         granularity=Granularity(3600),
         where=[Condition(Column("release"), Op.EQ, "staging")],
-        groupby=["environment"],
+        groupby=[MetricGroupByField("environment")],
     )
     snuba_queries, _ = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
@@ -320,10 +323,15 @@ def test_build_snuba_query(mock_now, mock_now2):
                             ],
                         ),
                     ],
-                    alias=f"{alias}({get_mri(metric_name)})",
+                    alias=f"{alias}({metric_name})",
                 )
             ],
-            groupby=[Column(resolve_tag_key(use_case_id, org_id, "environment"))] + extra_groupby,
+            groupby=[
+                AliasedExpression(
+                    Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+                )
+            ]
+            + extra_groupby,
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
@@ -424,13 +432,25 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
-            (None, SessionMRI.ERRORED_PREAGGREGATED.value),
-            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
-            (None, SessionMRI.CRASH_FREE_RATE.value),
-            (None, SessionMRI.ALL.value),
+            (
+                None,
+                SessionMRI.ERRORED_PREAGGREGATED.value,
+                f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
+            ),
+            (
+                None,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
+            ),
+            (None, SessionMRI.CRASH_FREE_RATE.value, SessionMetricKey.CRASH_FREE_RATE.value),
+            (None, SessionMRI.ALL.value, SessionMetricKey.ALL.value),
         ],
         "metrics_sets": [
-            (None, SessionMRI.ERRORED_SET.value),
+            (
+                None,
+                SessionMRI.ERRORED_SET.value,
+                f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
+            ),
         ],
     }
     for key in ("totals", "series"):
@@ -442,7 +462,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     errored_preaggr_sessions(
                         org_id,
                         metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
-                        alias=SessionMRI.ERRORED_PREAGGREGATED.value,
+                        alias=f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                     addition(
                         crashed_sessions(
@@ -459,7 +479,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                             ],
                             alias=SessionMRI.ABNORMAL.value,
                         ),
-                        alias=SessionMRI.CRASHED_AND_ABNORMAL.value,
+                        alias=f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                     complement(
                         division_float(
@@ -479,12 +499,12 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                             ),
                             alias=SessionMRI.CRASH_RATE.value,
                         ),
-                        alias=SessionMRI.CRASH_FREE_RATE.value,
+                        alias=SessionMetricKey.CRASH_FREE_RATE.value,
                     ),
                     all_sessions(
                         org_id,
                         metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
-                        alias=SessionMRI.ALL.value,
+                        alias=SessionMetricKey.ALL.value,
                     ),
                 ],
                 groupby=groupby,
@@ -514,7 +534,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                 select=[
                     uniq_aggregation_on_metric(
                         metric_ids=[resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
-                        alias=SessionMRI.ERRORED_SET.value,
+                        alias=f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
                     ),
                 ],
                 groupby=groupby,
@@ -580,14 +600,16 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
                 [Column("metric_id"), resolve_weak(use_case_id, org_id, get_mri(metric_name))],
             ),
         ],
-        alias=f"{op}({get_mri(metric_name)})",
+        alias=f"{op}({metric_name})",
     )
 
     assert counter_queries["totals"] == Query(
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
@@ -612,7 +634,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
             Column("bucketed_time"),
         ],
         where=[
@@ -686,13 +710,15 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             Column("value"),
             Function("and", conditions),
         ],
-        alias=f"{op}({SessionMRI.DURATION.value})",
+        alias=f"{op}({SessionMetricKey.DURATION.value})",
     )
     assert distribution_queries["totals"] == Query(
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
         ],
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
@@ -718,7 +744,9 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
-            Column(resolve_tag_key(use_case_id, org_id, "environment")),
+            AliasedExpression(
+                Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
+            ),
             Column("bucketed_time"),
         ],
         where=[
@@ -761,13 +789,25 @@ def test_translate_results_derived_metrics(_1, _2):
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
-            (None, SessionMRI.ERRORED_PREAGGREGATED.value),
-            (None, SessionMRI.CRASHED_AND_ABNORMAL.value),
-            (None, SessionMRI.CRASH_FREE_RATE.value),
-            (None, SessionMRI.ALL.value),
+            (
+                None,
+                SessionMRI.ERRORED_PREAGGREGATED.value,
+                f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
+            ),
+            (
+                None,
+                SessionMRI.CRASHED_AND_ABNORMAL.value,
+                f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
+            ),
+            (None, SessionMRI.CRASH_FREE_RATE.value, SessionMetricKey.CRASH_FREE_RATE.value),
+            (None, SessionMRI.ALL.value, SessionMetricKey.ALL.value),
         ],
         "metrics_sets": [
-            (None, SessionMRI.ERRORED_SET.value),
+            (
+                None,
+                SessionMRI.ERRORED_SET.value,
+                f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}",
+            ),
         ],
     }
 
@@ -779,10 +819,10 @@ def test_translate_results_derived_metrics(_1, _2):
             "totals": {
                 "data": [
                     {
-                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
-                        SessionMRI.ALL.value: 8.0,
-                        SessionMRI.ERRORED_PREAGGREGATED.value: 3,
-                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
+                        SessionMetricKey.CRASH_FREE_RATE.value: 0.5,
+                        SessionMetricKey.ALL.value: 8.0,
+                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 3,
+                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 0,
                     }
                 ],
             },
@@ -790,17 +830,17 @@ def test_translate_results_derived_metrics(_1, _2):
                 "data": [
                     {
                         "bucketed_time": "2021-08-24T00:00Z",
-                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
-                        SessionMRI.ALL.value: 4,
-                        SessionMRI.ERRORED_PREAGGREGATED.value: 1,
-                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
+                        SessionMetricKey.CRASH_FREE_RATE.value: 0.5,
+                        SessionMetricKey.ALL.value: 4,
+                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 1,
+                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 0,
                     },
                     {
                         "bucketed_time": "2021-08-25T00:00Z",
-                        SessionMRI.CRASH_FREE_RATE.value: 0.5,
-                        SessionMRI.ALL.value: 4,
-                        SessionMRI.ERRORED_PREAGGREGATED.value: 2,
-                        SessionMRI.CRASHED_AND_ABNORMAL.value: 0,
+                        SessionMetricKey.CRASH_FREE_RATE.value: 0.5,
+                        SessionMetricKey.ALL.value: 4,
+                        f"{SessionMRI.ERRORED_PREAGGREGATED.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 2,
+                        f"{SessionMRI.CRASHED_AND_ABNORMAL.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 0,
                     },
                 ],
             },
@@ -809,14 +849,20 @@ def test_translate_results_derived_metrics(_1, _2):
             "totals": {
                 "data": [
                     {
-                        SessionMRI.ERRORED_SET.value: 3,
+                        f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 3,
                     },
                 ],
             },
             "series": {
                 "data": [
-                    {"bucketed_time": "2021-08-24T00:00Z", SessionMRI.ERRORED_SET.value: 2},
-                    {"bucketed_time": "2021-08-25T00:00Z", SessionMRI.ERRORED_SET.value: 1},
+                    {
+                        "bucketed_time": "2021-08-24T00:00Z",
+                        f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 2,
+                    },
+                    {
+                        "bucketed_time": "2021-08-25T00:00Z",
+                        f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{SessionMetricKey.ERRORED.value}": 1,
+                    },
                 ],
             },
         },
@@ -863,7 +909,7 @@ def test_translate_results_missing_slots(_1, _2):
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
-            ("sum", SessionMRI.SESSION.value),
+            ("sum", SessionMRI.SESSION.value, "sum(sentry.sessions.session)"),
         ],
     }
 
@@ -873,7 +919,7 @@ def test_translate_results_missing_slots(_1, _2):
                 "data": [
                     {
                         "metric_id": resolve(use_case_id, org_id, SessionMRI.SESSION.value),
-                        f"sum({SessionMRI.SESSION.value})": 400,
+                        "sum(sentry.sessions.session)": 400,
                     },
                 ],
             },
@@ -882,13 +928,13 @@ def test_translate_results_missing_slots(_1, _2):
                     {
                         "metric_id": resolve(use_case_id, org_id, SessionMRI.SESSION.value),
                         "bucketed_time": "2021-08-23T00:00Z",
-                        f"sum({SessionMRI.SESSION.value})": 100,
+                        "sum(sentry.sessions.session)": 100,
                     },
                     # no data for 2021-08-24
                     {
                         "metric_id": resolve(use_case_id, org_id, SessionMRI.SESSION.value),
                         "bucketed_time": "2021-08-25T00:00Z",
-                        f"sum({SessionMRI.SESSION.value})": 300,
+                        "sum(sentry.sessions.session)": 300,
                     },
                 ],
             },
@@ -927,12 +973,12 @@ def test_get_intervals():
 def test_translate_meta_results():
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "metric_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.PERFORMANCE, 1
+        meta, {"p50(transaction.measurements.lcp)"}, {"transaction"}
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
@@ -948,13 +994,15 @@ def test_translate_meta_results_with_duplicates():
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "transaction", "type": "UInt64"},
+        {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
     ]
     assert translate_meta_results(
-        meta, {"p50(transaction.measurements.lcp)"}, UseCaseKey.RELEASE_HEALTH, 1
+        meta,
+        {"p50(transaction.measurements.lcp)"},
+        {"transaction"},
     ) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},

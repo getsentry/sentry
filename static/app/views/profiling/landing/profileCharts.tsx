@@ -49,7 +49,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
         if (rawData.axis === 'count') {
           return {
             data: rawData.values.map((value, i) => ({
-              name: timestamps[i],
+              name: String(timestamps[i]),
               // the response value contains nulls when no data is
               // available, use 0 to represent it
               value: value ?? 0,
@@ -62,7 +62,7 @@ export function ProfileCharts({query, router, selection}: ProfileChartsProps) {
 
         return {
           data: rawData.values.map((value, i) => ({
-            name: timestamps[i],
+            name: String(timestamps[i]),
             // the response value contains nulls when no data
             // is available, use 0 to represent it
             value: (value ?? 0) / 1e6, // convert ns to ms
