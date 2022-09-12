@@ -75,6 +75,7 @@ export default function ChartFooter({
           <Fragment>
             <SwitchLabel>{t('Processed events')}</SwitchLabel>
             <Switch
+              data-test-id="processed-events-toggle"
               isActive={showBaseline}
               isDisabled={
                 metricsCardinality.outcome?.forceTransactionsOnly ||
