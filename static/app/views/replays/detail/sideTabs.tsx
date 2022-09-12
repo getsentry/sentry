@@ -1,6 +1,6 @@
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
-import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 type Props = {};
 
