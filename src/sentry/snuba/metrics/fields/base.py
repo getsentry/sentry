@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -314,7 +315,6 @@ class MetricOperation(MetricOperationDefinition, ABC):
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
-    metrics_query_args: Optional[List[str]] = None
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda *args: args
     filter_conditions_func: Callable[..., Optional[Function]] = lambda _: None
 
@@ -359,10 +359,23 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         else:
             subdata = data[alias][idx]
 
-        compute_func_dict = {"data": subdata}
-        if self.metrics_query_args is not None and params is not None:
-            for field in self.metrics_query_args:
-                compute_func_dict[field] = params.get(field)
+        # Fetch the function args
+        metrics_query_args = set(inspect.signature(self.post_query_func).parameters.keys())
+
+        compute_func_dict = {}
+        # ToDo(ahmed): Add support for other fields that might be required as function arguments in the future. For now,
+        #  the only default required argument is data as post query function relies on it to manipulate the data
+        #  returned from the query
+        if "data" in metrics_query_args:
+            compute_func_dict["data"] = subdata
+
+        if metrics_query_args and params is not None:
+            for field in metrics_query_args:
+                try:
+                    # Adding this try/except because we do not want to override the defaults of the function with None
+                    compute_func_dict[field] = params[field]
+                except KeyError:
+                    continue
 
         subdata = self.post_query_func(**compute_func_dict)
 
@@ -375,11 +388,17 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
     def generate_filter_snql_conditions(
         self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
     ) -> Optional[Function]:
-        kwargs = {"org_id": org_id}
-        if self.metrics_query_args is not None and params is not None:
-            for field in self.metrics_query_args:
-                kwargs[field] = params.get(field)  # type: ignore
+        # Fetch the function args
+        metrics_query_args = set(inspect.signature(self.filter_conditions_func).parameters.keys())
 
+        kwargs = {}
+        if metrics_query_args and params is not None:
+            for field in metrics_query_args:
+                try:
+                    # Adding this try/except because we do not want to override the defaults of the function with None
+                    kwargs[field] = params[field]  # type: ignore
+                except KeyError:
+                    continue
         return self.filter_conditions_func(**kwargs)
 
 
@@ -1288,7 +1307,6 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
         DerivedOp(
             op="histogram",
             can_orderby=False,
-            metrics_query_args=["histogram_from", "histogram_to", "histogram_buckets"],
             post_query_func=rebucket_histogram,
             filter_conditions_func=zoom_histogram,
         ),

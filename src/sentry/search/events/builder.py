@@ -2411,7 +2411,6 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
-            self.organization_id,
             self.num_buckets,
             self.min_bin,
             self.max_bin,
