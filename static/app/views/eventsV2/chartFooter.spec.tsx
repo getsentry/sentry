@@ -5,6 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
+import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import ChartFooter from 'sentry/views/eventsV2/chartFooter';
@@ -43,8 +44,14 @@ describe('EventsV2 > ChartFooter', function () {
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
   ];
-
   const project = TestStubs.Project();
+  const eventView = EventView.fromSavedQuery({
+    id: '',
+    name: 'test query',
+    version: 2,
+    fields: ['transaction', 'count()'],
+    projects: [project.id],
+  });
 
   afterEach(function () {});
 
@@ -77,6 +84,7 @@ describe('EventsV2 > ChartFooter', function () {
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 
@@ -120,6 +128,7 @@ describe('EventsV2 > ChartFooter', function () {
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 
@@ -155,6 +164,7 @@ describe('EventsV2 > ChartFooter', function () {
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 
@@ -184,6 +194,7 @@ describe('EventsV2 > ChartFooter', function () {
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 
@@ -212,6 +223,7 @@ describe('EventsV2 > ChartFooter', function () {
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 

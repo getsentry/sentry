@@ -26,6 +26,7 @@ import {
   explodeFieldString,
   Field,
   getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
@@ -382,6 +383,32 @@ function generateAdditionalConditions(
     }
   });
   return conditions;
+}
+
+export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
+  let usesTransactions: boolean = false;
+  const parsedQuery = new MutableSearch(eventView.query);
+  for (let index = 0; index < yAxisValue.length; index++) {
+    const yAxis = yAxisValue[index];
+    if (isMeasurement(getAggregateArg(yAxis) ?? '')) {
+      usesTransactions = true;
+      break;
+    }
+    if (
+      ['count()', 'failure_rate()', 'epm()', 'eps()', 'failure_count()'].includes(yAxis)
+    ) {
+      const eventTypeFilter = parsedQuery.getFilterValues('event.type');
+      if (
+        eventTypeFilter.length > 0 &&
+        eventTypeFilter.every(filter => filter === 'transaction')
+      ) {
+        usesTransactions = true;
+        break;
+      }
+    }
+  }
+
+  return usesTransactions;
 }
 
 function generateExpandedConditions(
