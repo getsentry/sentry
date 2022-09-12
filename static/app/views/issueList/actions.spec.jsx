@@ -246,37 +246,6 @@ describe('IssueListActions', function () {
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
-  it('disables delete and merge actions when a performance issue is selected', () => {
-    jest
-      .spyOn(SelectedGroupStore, 'getSelectedIds')
-      .mockImplementation(() => new Set(['1', '2']));
-    jest.spyOn(GroupStore, 'get').mockImplementation(id => {
-      switch (id) {
-        case '1':
-          return TestStubs.Group({
-            issueCategory: IssueCategory.ERROR,
-          });
-        default:
-          return TestStubs.Group({
-            issueCategory: IssueCategory.PERFORMANCE,
-          });
-      }
-    });
-
-    render(<WrappedComponent />);
-
-    expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
-
-    // Open overflow menu
-    userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-
-    // Delete menu item should be disabled
-    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
-
   describe('mark reviewed', function () {
     it('acknowledges group', function () {
       const mockOnMarkReviewed = jest.fn();
@@ -328,91 +297,134 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('bulk action performance issues', function () {
-    const orgWithPerformanceIssues = TestStubs.Organization({
-      features: ['performance-issues'],
-    });
-
-    it('silently filters out performance issues when bulk deleting', function () {
-      const bulkDeleteMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'DELETE',
-      });
-
-      render(
-        <OrganizationContext.Provider value={orgWithPerformanceIssues}>
-          <GlobalModal />
-          <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
-        </OrganizationContext.Provider>
-      );
-
-      userEvent.click(screen.getByRole('checkbox'));
-
-      userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-      userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-      userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
-
-      const modal = screen.getByRole('dialog');
-
-      expect(
-        within(modal).getByText(/deleting performance issues is not yet supported/i)
-      ).toBeInTheDocument();
-
-      userEvent.click(within(modal).getByRole('button', {name: 'Bulk delete issues'}));
-
-      expect(bulkDeleteMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'is:unresolved !issue.category:performance',
-          }),
-        })
-      );
-    });
-
-    it('silently filters out performance issues when bulk merging', function () {
-      const bulkMergeMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
-      });
-
-      // Ensure that all issues have the same project so we can merge
+  describe('performance issues', function () {
+    it('disables options that are not supported for performance issues', () => {
       jest
-        .spyOn(GroupStore, 'get')
-        .mockReturnValue(
-          TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set(['1', '2']));
+      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+        switch (id) {
+          case '1':
+            return TestStubs.Group({
+              issueCategory: IssueCategory.ERROR,
+            });
+          default:
+            return TestStubs.Group({
+              issueCategory: IssueCategory.PERFORMANCE,
+            });
+        }
+      });
+
+      render(<WrappedComponent />);
+
+      // Resolve and ignore are supported
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Ignore'})).toBeEnabled();
+
+      // Merge is not supported and should be disabled
+      expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
+
+      // Open overflow menu
+      userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      // 'Add to Bookmarks' is supported
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to Bookmarks'})
+      ).toHaveAttribute('aria-disabled', 'false');
+
+      // Deleting is not supported and menu item should be disabled
+      expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    describe('bulk action performance issues', function () {
+      const orgWithPerformanceIssues = TestStubs.Organization({
+        features: ['performance-issues'],
+      });
+
+      it('silently filters out performance issues when bulk deleting', function () {
+        const bulkDeleteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'DELETE',
+        });
+
+        render(
+          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+          </OrganizationContext.Provider>
         );
 
-      render(
-        <OrganizationContext.Provider value={orgWithPerformanceIssues}>
-          <GlobalModal />
-          <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
-        </OrganizationContext.Provider>
-      );
+        userEvent.click(screen.getByRole('checkbox'));
 
-      userEvent.click(screen.getByRole('checkbox'));
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-      userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
-      userEvent.click(screen.getByRole('button', {name: 'Merge Selected Issues'}));
+        const modal = screen.getByRole('dialog');
 
-      const modal = screen.getByRole('dialog');
+        expect(
+          within(modal).getByText(/deleting performance issues is not yet supported/i)
+        ).toBeInTheDocument();
 
-      expect(
-        within(modal).getByText(/merging performance issues is not yet supported/i)
-      ).toBeInTheDocument();
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk delete issues'}));
 
-      userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
+        expect(bulkDeleteMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved !issue.category:performance',
+            }),
+          })
+        );
+      });
 
-      expect(bulkMergeMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'is:unresolved !issue.category:performance',
-          }),
-        })
-      );
+      it('silently filters out performance issues when bulk merging', function () {
+        const bulkMergeMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        // Ensure that all issues have the same project so we can merge
+        jest
+          .spyOn(GroupStore, 'get')
+          .mockReturnValue(
+            TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
+          );
+
+        render(
+          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+          </OrganizationContext.Provider>
+        );
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        userEvent.click(screen.getByRole('button', {name: 'Merge Selected Issues'}));
+
+        const modal = screen.getByRole('dialog');
+
+        expect(
+          within(modal).getByText(/merging performance issues is not yet supported/i)
+        ).toBeInTheDocument();
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
+
+        expect(bulkMergeMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved !issue.category:performance',
+            }),
+          })
+        );
+      });
     });
   });
 });

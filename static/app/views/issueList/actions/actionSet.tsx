@@ -80,10 +80,9 @@ function ActionSet({
     isActionSupported(selectedIssues, 'merge');
   const {enabled: deleteSupported, disabledReason: deleteDisabledReason} =
     isActionSupported(selectedIssues, 'delete');
-  const {enabled: ignoreSupported} = isActionSupported(selectedIssues, 'ignore');
   const mergeDisabled =
     !multiSelected || multipleIssueProjectsSelected || !mergeSupported;
-  const ignoreDisabled = !anySelected || !ignoreSupported;
+  const ignoreDisabled = !anySelected;
 
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
