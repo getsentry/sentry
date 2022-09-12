@@ -7,25 +7,12 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import SimilarSpectrum from 'sentry/components/similarSpectrum';
 import {t} from 'sentry/locale';
+import type {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 
 import Item from './item';
 import Toolbar from './toolbar';
-
-type SimilarItem = {
-  isBelowThreshold: boolean;
-  issue: Group;
-  aggregate?: {
-    exception: number;
-    message: number;
-  };
-  score?: Record<string, number | null>;
-  scoresByInterface?: {
-    exception: Array<[string, number | null]>;
-    message: Array<[string, any | null]>;
-  };
-};
 
 type DefaultProps = {
   filteredItems: Array<SimilarItem>;

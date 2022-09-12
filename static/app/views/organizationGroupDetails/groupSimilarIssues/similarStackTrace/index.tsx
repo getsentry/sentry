@@ -11,16 +11,13 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
+import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import List from './list';
 
-type ListProps = React.ComponentProps<typeof List>;
-
-type SimilarItems = ListProps['items'];
 type RouteParams = {
   groupId: string;
   orgId: string;
@@ -33,9 +30,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   error: boolean;
-  filteredSimilarItems: SimilarItems;
+  filteredSimilarItems: SimilarItem[];
   loading: boolean;
-  similarItems: SimilarItems;
+  similarItems: SimilarItem[];
   similarLinks: string | null;
   v2: boolean;
 };
