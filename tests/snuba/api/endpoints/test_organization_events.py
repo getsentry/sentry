@@ -13,6 +13,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
+from sentry.event_manager import _pull_out_data
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -23,6 +24,7 @@ from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_not_arm64
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
@@ -492,23 +494,28 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_group_ids(self):
-        # store transaction with group ids
-        _data = load_data("transaction")
-        _data["group_ids"] = "3571022555"
-
-        self.store_event(
-            data=_data,
-            project_id=self.project.id,
+        perf_group = self.create_group(
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, short_id="3571022555"
         )
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [perf_group]
+            return jobs, projects
+
+        data = load_data("transaction")
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            self.store_event(data=data, project_id=self.project.id)
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "performance.issue_ids:3571022555",
+            "query": f"performance.issue_ids:{perf_group.id}",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data[0]["count"] == 1
+        assert response.data["data"][0]["count()"] == 1
 
     def test_event_id_with_in_search(self):
         self.store_event(
