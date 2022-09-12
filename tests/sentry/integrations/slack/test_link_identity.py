@@ -5,6 +5,7 @@ from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import Identity, IdentityStatus, OrganizationIntegration
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import add_identity, install_slack
+from sentry.testutils.silo import control_silo_test
 
 
 class SlackIntegrationLinkIdentityTestBase(TestCase):
@@ -28,6 +29,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         )
 
 
+@control_silo_test
 class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @responses.activate
     def test_basic_flow(self):
@@ -74,6 +76,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert not Identity.objects.filter(external_id=external_id_2, user=user2).exists()
 
 
+@control_silo_test
 class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     def setUp(self):
         super().setUp()

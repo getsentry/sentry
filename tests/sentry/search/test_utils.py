@@ -16,6 +16,7 @@ from sentry.search.utils import (
     tokenize_query,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 def test_get_numeric_field_value():
@@ -713,6 +714,7 @@ class GetLatestReleaseTest(TestCase):
         ]
 
 
+@control_silo_test
 class ConvertUserTagTest(TestCase):
     def test_simple_user_tag(self):
         assert convert_user_tag_to_query("user", "id:123456") == 'user.id:"123456"'
