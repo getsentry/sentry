@@ -1,11 +1,13 @@
 import styled from '@emotion/styled';
 
+import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Group, KeyValueListData, Organization} from 'sentry/types';
+import {Event, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
 import KeyValueList from '../keyValueList';
-import {EmbeddedSpanTree} from '../spans/embeddedSpanTree';
+import TraceView from '../spans/traceView';
+import WaterfallModel from '../spans/waterfallModel';
 
 export type SpanEvidence = {
   parentSpan: string;
@@ -17,9 +19,7 @@ export type SpanEvidence = {
 interface Props {
   affectedSpanIds: string[];
   event: Event;
-  issue: Group;
   organization: Organization;
-  projectSlug: string;
   spanEvidence: SpanEvidence;
 }
 
@@ -27,7 +27,6 @@ export function SpanEvidenceSection({
   spanEvidence,
   event,
   organization,
-  projectSlug,
   affectedSpanIds,
 }: Props) {
   const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
@@ -56,16 +55,17 @@ export function SpanEvidenceSection({
   ];
 
   return (
-    <Wrapper>
-      <h3>{t('Span Evidence')}</h3>
+    <EventDataSection type="span-evidence" title={t('Span Evidence')} wrapTitle>
       <KeyValueList data={data} />
-      <EmbeddedSpanTree
-        event={event}
-        organization={organization as Organization}
-        projectSlug={projectSlug}
-        affectedSpanIds={affectedSpanIds}
-      />
-    </Wrapper>
+
+      <TraceViewWrapper>
+        <TraceView
+          organization={organization}
+          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
+          isEmbedded
+        />
+      </TraceViewWrapper>
+    </EventDataSection>
   );
 }
 
@@ -94,4 +94,9 @@ export const Wrapper = styled('div')`
     margin-bottom: 0;
     text-transform: uppercase;
   }
+`;
+
+const TraceViewWrapper = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
 `;
