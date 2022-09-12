@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -27,23 +27,14 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const init = useCallback(async () => {
-    setData(prev => ({
-      ...prev,
-      isFetching: true,
-    }));
-    const response = await fetchReplayList({
+  useEffect(() => {
+    fetchReplayList({
       api,
       organization,
       location,
       eventView,
-    });
-    setData(response);
+    }).then(setData);
   }, [api, organization, location, eventView]);
-
-  useEffect(() => {
-    init();
-  }, [init]);
 
   return data;
 }
