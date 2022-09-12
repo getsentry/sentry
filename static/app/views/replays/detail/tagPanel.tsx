@@ -5,8 +5,8 @@ import {KeyValueTable} from 'sentry/components/keyValueTable';
 import {Panel as BasePanel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import TagsTableRow from 'sentry/components/tagsTableRow';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
 
 function TagPanel() {
   const {replay} = useReplayContext();
@@ -24,7 +24,7 @@ function TagPanel() {
       <FluidPanel>
         <KeyValueTable>
           {Object.entries(replayRecord.tags).map(([key, value]) => (
-            <TagsTableRow
+            <ReplayTagsTableRow
               key={key}
               tag={{key, value}}
               query={query}
