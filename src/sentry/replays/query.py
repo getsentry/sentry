@@ -284,7 +284,7 @@ class ReplayQueryConfig(QueryConfig):
     replay_id = String(field_alias="id")
     platform = String()
     agg_environment = String(field_alias="environment")
-    release = ListField(field_alias="releases")
+    releases = ListField()
     dist = String()
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
