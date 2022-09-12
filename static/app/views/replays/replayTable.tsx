@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -28,6 +29,7 @@ type Props = {
   replays: undefined | ReplayListRecord[];
   showProjectColumn: boolean;
   sort: Sort;
+  fetchError?: Error;
 };
 
 type RowProps = {
@@ -75,7 +77,7 @@ function SortableHeader({
   );
 }
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}: Props) {
   const routes = useRoutes();
   const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
 
@@ -83,41 +85,59 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
+  const tableHeaders = [
+    t('Session'),
+    showProjectColumn && minWidthIsSmall ? (
+      <SortableHeader
+        key="projectId"
+        sort={sort}
+        fieldName="projectId"
+        label={t('Project')}
+      />
+    ) : null,
+    <SortableHeader
+      key="startedAt"
+      sort={sort}
+      fieldName="startedAt"
+      label={t('Start Time')}
+    />,
+    <SortableHeader
+      key="duration"
+      sort={sort}
+      fieldName="duration"
+      label={t('Duration')}
+    />,
+    <SortableHeader
+      key="countErrors"
+      sort={sort}
+      fieldName="countErrors"
+      label={t('Errors')}
+    />,
+    t('Activity'),
+  ].filter(Boolean);
+
+  if (fetchError && !isFetching) {
+    return (
+      <StyledPanelTable
+        headers={tableHeaders}
+        showProjectColumn={showProjectColumn}
+        isLoading={false}
+      >
+        <StyledAlert type="error" showIcon>
+          {t(
+            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+          )}
+        </StyledAlert>
+      </StyledPanelTable>
+    );
+  }
+
   return (
     <StyledPanelTable
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
       showProjectColumn={showProjectColumn}
-      headers={[
-        t('Session'),
-        showProjectColumn && minWidthIsSmall ? (
-          <SortableHeader
-            key="projectId"
-            sort={sort}
-            fieldName="projectId"
-            label={t('Project')}
-          />
-        ) : null,
-        <SortableHeader
-          key="startedAt"
-          sort={sort}
-          fieldName="startedAt"
-          label={t('Start Time')}
-        />,
-        <SortableHeader
-          key="duration"
-          sort={sort}
-          fieldName="duration"
-          label={t('Duration')}
-        />,
-        <SortableHeader
-          key="countErrors"
-          sort={sort}
-          fieldName="countErrors"
-          label={t('Errors')}
-        />,
-        t('Activity'),
-      ].filter(Boolean)}
+      headers={tableHeaders}
     >
       {replays?.map(replay => (
         <ReplayTableRow
@@ -221,6 +241,13 @@ const TimeSinceWrapper = styled('div')`
 const StyledIconCalendarWrapper = styled(IconCalendar)`
   position: relative;
   top: -1px;
+`;
+
+const StyledAlert = styled(Alert)`
+  position: relative;
+  bottom: 0.5px;
+  grid-column-start: span 99;
+  margin-bottom: 0;
 `;
 
 export default ReplayTable;
