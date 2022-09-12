@@ -244,12 +244,6 @@ class QueryDefinition:
         self.rollup = rollup
         self.start = start
         self.end = end
-        # Histogram fields
-        self.histogram_buckets = int(query_params.get("histogramBuckets", 100))
-        histogram_from = query_params.get("histogramFrom", None)
-        histogram_to = query_params.get("histogramTo", None)
-        self.histogram_from = float(histogram_from) if histogram_from is not None else None
-        self.histogram_to = float(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
 
