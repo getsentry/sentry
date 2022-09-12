@@ -77,6 +77,7 @@ default_manager.add("organizations:dashboards-template", OrganizationFeature, Tr
 default_manager.add("organizations:dashboards-top-level-filter", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
+default_manager.add("organizations:discover-metrics-baseline", OrganizationFeature, True)
 default_manager.add("organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
