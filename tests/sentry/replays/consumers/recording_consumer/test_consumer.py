@@ -64,7 +64,6 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         processing_strategy.poll()
         processing_strategy.join(1)
         processing_strategy.terminate()
-
         recording_file_name = f"rr:{self.replay_id}:{segment_id}"
         recording = File.objects.get(name=recording_file_name)
 
