@@ -439,9 +439,10 @@ export type ResolutionStatusDetails = {
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
-  inCommit?: Commit;
+  inCommit?: {commit?: string; repository?: string};
   inNextRelease?: boolean;
   inRelease?: string;
+  repository?: string;
 };
 
 export type GroupStatusResolution = {
