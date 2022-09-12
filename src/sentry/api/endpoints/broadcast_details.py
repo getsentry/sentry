@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.permissions import IsAuthenticated
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
@@ -18,6 +18,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@pending_silo_endpoint
 class BroadcastDetailsEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
