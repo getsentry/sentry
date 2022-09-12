@@ -84,7 +84,7 @@ export type IssueCategoryCapabilities = {
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: Object;
+  headers: object;
   id: string;
   mimetype: string;
   name: string;
@@ -352,6 +352,12 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     assigneeType: string;
     user: Team | User;
     assigneeEmail?: string;
+    /**
+     * If the user was assigned via an integration
+     */
+    integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
+    /** Codeowner or Project owner rule as a string */
+    rule?: string;
   };
   type: GroupActivityType.ASSIGNED;
 }

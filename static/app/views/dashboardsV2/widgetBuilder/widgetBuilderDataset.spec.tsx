@@ -840,7 +840,7 @@ describe('WidgetBuilder', function () {
         });
       });
 
-      it('raises an alert banner and disables saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
+      it('raises an alert banner but allows saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
         eventsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           method: 'GET',
@@ -887,8 +887,8 @@ describe('WidgetBuilder', function () {
           expect(eventsMock).toHaveBeenCalled();
         });
 
-        screen.getByText('You have inputs that are incompatible with');
-        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+        screen.getByText('Your selection is only applicable to');
+        expect(screen.getByText('Add Widget').closest('button')).toBeEnabled();
       });
 
       it('raises an alert banner if widget result is not metrics data', async function () {
@@ -1169,7 +1169,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('12 MB');
       });
 
-      it('displays custom performance metric in column select', async function () {
+      it('displays saved custom performance metric in column select', async function () {
         renderTestComponent({
           query: {source: DashboardWidgetSource.DISCOVERV2},
           dashboard: {
@@ -1200,6 +1200,46 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
         });
         await screen.findByText('measurements.custom.measurement');
+      });
+
+      it('displays custom performance metric in column select dropdown', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {'measurements.custom.measurement': {functions: ['p99']}},
+        });
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['transaction', 'count()'],
+                    columns: ['transaction'],
+                    aggregates: ['count()'],
+                    orderby: '-count()',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        await screen.findByText('transaction');
+        userEvent.click(screen.getAllByText('count()')[1]);
+        expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
       });
 
       it('does not default to sorting by transaction when columns change', async function () {

@@ -1,7 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
-import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
+import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {

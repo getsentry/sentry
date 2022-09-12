@@ -6,6 +6,7 @@ from dateutil.parser import parse as parse_date
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 
 from sentry import features
@@ -223,14 +224,23 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
         # Essentially for each project, we fetch all the SDK versions from the previously
         # computed dictionary, and then we find the latest SDK version according to
         # semantic versioning and return the info for that particular project SDK version.
-        project_info_list = [
-            project_to_sdk_version_to_info_dict[project][
-                max(
-                    project_to_sdk_version_to_info_dict[project].keys(),
-                    key=cmp_to_key(compare_version_relay),
-                )
+        try:
+            project_info_list = [
+                project_to_sdk_version_to_info_dict[project][
+                    max(
+                        project_to_sdk_version_to_info_dict[project].keys(),
+                        key=cmp_to_key(compare_version_relay),
+                    )
+                ]
+                for project in project_to_sdk_version_to_info_dict
             ]
-            for project in project_to_sdk_version_to_info_dict
-        ]
+        except RelayError:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={
+                    "details": "Unable to parse sdk versions. "
+                    "Please check that sdk versions are valid semantic versions."
+                },
+            )
 
         return Response(project_info_list)

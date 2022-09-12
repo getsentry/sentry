@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
-import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
@@ -61,7 +61,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     setDetailsTab('transaction');
   }, []);
 
-  const flamegraphPreferences = useFlamegraphPreferencesValue();
+  const flamegraphPreferences = useFlamegraphPreferences();
   const isResizableDetailsBar =
     flamegraphPreferences.layout === 'table left' ||
     flamegraphPreferences.layout === 'table right';

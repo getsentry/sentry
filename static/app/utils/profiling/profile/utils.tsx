@@ -136,7 +136,7 @@ function indexNodeToParents(
       map[node.key] = [];
     }
 
-    map[node.key].push(parent);
+    map[node.key]!.push(parent); // we initialize this above
 
     if (!node.children.length) {
       leafs.push(node);
@@ -144,7 +144,7 @@ function indexNodeToParents(
     }
 
     for (let i = 0; i < node.children.length; i++) {
-      indexNode(node.children[i], node);
+      indexNode(node.children[i]!, node); // iterating over non empty array
     }
   }
 
@@ -180,11 +180,12 @@ function reverseTrail(
       children: [] as FlamegraphFrame[],
     };
 
-    if (!parentMap[n.key]) {
+    const parents = parentMap[n.key];
+    if (!parents) {
       continue;
     }
 
-    for (const parent of parentMap[n.key]) {
+    for (const parent of parents) {
       nc.children.push(...reverseTrail([parent], parentMap));
     }
     splits.push(nc);
