@@ -92,12 +92,10 @@ export const generateOrderOptions = ({
   aggregates,
   columns,
   widgetType,
-  widgetBuilderNewDesign = false,
 }: {
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
-  widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
   const isRelease = widgetType === WidgetType.RELEASE;
   const options: SelectValue<string>[] = [];
@@ -118,20 +116,7 @@ export const generateOrderOptions = ({
         equations += 1;
       }
 
-      if (widgetBuilderNewDesign) {
-        options.push({label, value: alias ?? field});
-        return;
-      }
-
-      options.push({
-        label: t('%s asc', label),
-        value: alias ?? field,
-      });
-
-      options.push({
-        label: t('%s desc', label),
-        value: `-${alias ?? field}`,
-      });
+      options.push({label, value: alias ?? field});
     });
 
   return options;
