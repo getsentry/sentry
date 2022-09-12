@@ -26,6 +26,7 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
 )
 
@@ -36,13 +37,16 @@ import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from io import BytesIO
 from typing import Dict, List, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
+from zlib import compress
 
 import pytest
+import pytz
 import requests
 from click.testing import CliRunner
 from django.conf import settings
@@ -87,6 +91,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DeletedOrganization,
     Deploy,
+    File,
     GroupMeta,
     Identity,
     IdentityProvider,
@@ -102,6 +107,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -118,6 +124,7 @@ from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
@@ -1353,6 +1360,43 @@ class ReplaysSnubaTestCase(TestCase):
     def store_replays(self, replay):
         response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
         assert response.status_code == 200
+
+
+# AcceptanceTestCase and TestCase are mutually exclusive base classses
+class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
+    def setUp(self):
+        self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        super().setUp()
+        self.drop_replays()
+        patcher = patch("django.utils.timezone.now", return_value=self.now)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def drop_replays(self):
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replays):
+        assert (
+            len(replays) >= 2
+        ), "You need to store at least 2 replay events for the replay to be considered valid"
+        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=replays)
+        assert response.status_code == 200
+
+    def store_replay_segments(
+        self,
+        replay_id: str,
+        project_id: str,
+        segment_id: int,
+        segment,
+    ):
+        f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
+        f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
+        ReplayRecordingSegment.objects.create(
+            replay_id=replay_id,
+            project_id=project_id,
+            segment_id=segment_id,
+            file_id=f.id,
+        )
 
 
 class IntegrationRepositoryTestCase(APITestCase):
