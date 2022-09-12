@@ -491,6 +491,25 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
+    def test_group_ids(self):
+        # store transaction with group ids
+        _data = load_data("transaction")
+        _data["group_ids"] = "3571022555"
+
+        self.store_event(
+            data=_data,
+            project_id=self.project.id,
+        )
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "performance.issue_ids:3571022555",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data[0]["count"] == 1
+
     def test_event_id_with_in_search(self):
         self.store_event(
             data={"event_id": "a" * 32, "environment": "staging1", "timestamp": self.ten_mins_ago},
