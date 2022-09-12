@@ -22,10 +22,6 @@ describe('withRepositories HoC', function () {
     RepositoryStore.init();
   });
 
-  afterEach(() => {
-    RepositoryStore.teardown();
-  });
-
   it('adds repositories prop', async () => {
     const Component = () => null;
     const Container = withRepositories(Component);

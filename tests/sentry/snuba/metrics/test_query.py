@@ -11,6 +11,7 @@ from sentry.snuba.metrics import (
     DerivedMetricParseException,
     Groupable,
     MetricField,
+    MetricGroupByField,
     MetricsQuery,
     OrderBy,
     parse_query,
@@ -33,10 +34,9 @@ class MetricsQueryBuilder:
         self.granularity: Granularity = Granularity(3600)
         self.orderby: Optional[ConditionGroup] = None
         self.where: Optional[Sequence[Groupable]] = None
-        self.groupby: Optional[Sequence[OrderBy]] = None
+        self.groupby: Optional[Sequence[MetricGroupByField]] = None
         self.limit: Optional[Limit] = None
         self.offset: Optional[Offset] = None
-        self.histogram_buckets: int = 100
         self.include_series: bool = True
         self.include_totals: bool = True
 
@@ -64,10 +64,6 @@ class MetricsQueryBuilder:
         self.granularity = granularity
         return self
 
-    def with_histogram_buckets(self, histogram_buckets: int) -> "MetricsQueryBuilder":
-        self.histogram_buckets = histogram_buckets
-        return self
-
     def with_include_series(self, include_series: bool) -> "MetricsQueryBuilder":
         self.include_series = include_series
         return self
@@ -80,7 +76,7 @@ class MetricsQueryBuilder:
         self.limit = limit
         return self
 
-    def with_groupby(self, groupby: Sequence[Groupable]) -> "MetricsQueryBuilder":
+    def with_groupby(self, groupby: Sequence[MetricGroupByField]) -> "MetricsQueryBuilder":
         self.groupby = groupby
         return self
 
@@ -97,7 +93,6 @@ class MetricsQueryBuilder:
             "groupby": self.groupby,
             "limit": self.limit,
             "offset": self.offset,
-            "histogram_buckets": self.histogram_buckets,
             "include_series": self.include_series,
             "include_totals": self.include_totals,
         }
@@ -407,7 +402,9 @@ def test_validate_groupby():
         InvalidParams, match="Tag name session.status cannot be used to groupBy query"
     ):
         MetricsQuery(
-            **MetricsQueryBuilder().with_groupby(["session.status"]).to_metrics_query_dict()
+            **MetricsQueryBuilder()
+            .with_groupby([MetricGroupByField("session.status")])
+            .to_metrics_query_dict()
         )
 
 
@@ -491,11 +488,3 @@ def test_granularity_validation(stats_period, interval, error_message):
     # that is not present in the select
     with pytest.raises(InvalidParams, match=error_message):
         MetricsQuery(**metrics_query_dict)
-
-
-def test_validate_histogram_buckets():
-    with pytest.raises(
-        InvalidParams,
-        match="We don't have more than 250 buckets stored for any given metric bucket.",
-    ):
-        MetricsQuery(**MetricsQueryBuilder().with_histogram_buckets(500).to_metrics_query_dict())

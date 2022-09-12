@@ -9,6 +9,7 @@ from sentry.search.events.types import SelectType, WhereType
 
 class DatasetConfig(abc.ABC):
     custom_threshold_columns = {}
+    non_nullable_keys = set()
     missing_function_error = InvalidSearchQuery
 
     @property

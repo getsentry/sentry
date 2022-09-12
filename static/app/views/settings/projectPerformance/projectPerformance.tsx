@@ -3,6 +3,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -18,6 +19,7 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
+type RouteParams = {orgId: string; projectId: string};
 type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
   organization: Organization;
   project: Project;
@@ -41,13 +43,31 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return routeTitleGen(t('Performance'), projectId, false);
   }
 
+  getProjectEndpoint({orgId, projectId}: RouteParams) {
+    return `/projects/${orgId}/${projectId}/`;
+  }
+
+  getPerformanceIssuesEndpoint({orgId, projectId}: RouteParams) {
+    return `/projects/${orgId}/${projectId}/performance-issues/configure/`;
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
+    const {params, organization} = this.props;
     const {orgId, projectId} = params;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       ['threshold', `/projects/${orgId}/${projectId}/transaction-threshold/configure/`],
+      ['project', `/projects/${orgId}/${projectId}/`],
     ];
+
+    if (organization.features.includes('performance-issues-dev')) {
+      const performanceIssuesEndpoint = [
+        'performance_issue_settings',
+        `/projects/${orgId}/${projectId}/performance-issues/configure/`,
+      ] as [string, string];
+
+      endpoints.push(performanceIssuesEndpoint);
+    }
 
     return endpoints;
   }
@@ -125,6 +145,62 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return fields;
   }
 
+  get performanceIssueFormFields(): Field[] {
+    return [
+      {
+        name: 'performanceIssueCreationRate',
+        type: 'range',
+        label: t('Performance Issue Creation Rate'),
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        defaultValue: 0,
+        help: t(
+          'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
+        ),
+      },
+    ];
+  }
+
+  get performanceIssueDetectorsFormFields(): Field[] {
+    return [
+      {
+        name: 'n_plus_one_db_detection_rate',
+        type: 'range',
+        label: t('N+1 (DB) Detection Rate'),
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        defaultValue: 0,
+      },
+      {
+        name: 'n_plus_one_db_issue_rate',
+        type: 'range',
+        label: t('N+1 (DB) Issue Rate'),
+        min: 0.0,
+        max: 1.0,
+        step: 0.01,
+        defaultValue: 0,
+      },
+      {
+        name: 'n_plus_one_db_count',
+        type: 'number',
+        label: t('N+1 (DB) Minimum Count'),
+        min: 0,
+        max: 1000,
+        defaultValue: 5,
+      },
+      {
+        name: 'n_plus_one_db_duration_threshold',
+        type: 'number',
+        label: t('N+1 (DB) Duration Threshold'),
+        min: 0,
+        max: 1000000.0,
+        defaultValue: 500,
+      },
+    ];
+  }
+
   get initialData() {
     const {threshold} = this.state;
 
@@ -135,9 +211,12 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {organization, project, params} = this.props;
     const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
     const requiredScopes: Scope[] = ['project:write'];
+
+    const projectEndpoint = this.getProjectEndpoint(params);
+    const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
 
     return (
       <Fragment>
@@ -180,6 +259,47 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
+        <Feature features={['organizations:performance-issues-dev']}>
+          <Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={{
+                performanceIssueCreationRate:
+                  this.state.project.performanceIssueCreationRate,
+              }}
+              apiMethod="PUT"
+              apiEndpoint={projectEndpoint}
+            >
+              <Access access={requiredScopes}>
+                {({hasAccess}) => (
+                  <JsonForm
+                    title={t('Performance Issues - All')}
+                    fields={this.performanceIssueFormFields}
+                    disabled={!hasAccess}
+                  />
+                )}
+              </Access>
+            </Form>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={this.state.performance_issue_settings}
+              apiMethod="PUT"
+              apiEndpoint={performanceIssuesEndpoint}
+            >
+              <Access access={requiredScopes}>
+                {({hasAccess}) => (
+                  <JsonForm
+                    title={t('Performance Issues - Detector Settings')}
+                    fields={this.performanceIssueDetectorsFormFields}
+                    disabled={!hasAccess}
+                  />
+                )}
+              </Access>
+            </Form>
+          </Fragment>
+        </Feature>
       </Fragment>
     );
   }

@@ -39,10 +39,6 @@ describe('EnvironmentSelector', function () {
     onUpdate.mockReset();
   });
 
-  afterEach(() => {
-    ConfigStore.teardown();
-  });
-
   const selectorProps = {
     organization,
     projects,

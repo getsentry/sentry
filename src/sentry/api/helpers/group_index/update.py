@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any, Mapping, MutableMapping, Sequence
 from uuid import uuid4
 
+import rest_framework
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -40,6 +41,7 @@ from sentry.models import (
     follows_semver_versioning_scheme,
     remove_group_from_inbox,
 )
+from sentry.models.activity import ActivityIntegration
 from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
@@ -54,6 +56,7 @@ from sentry.signals import (
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
@@ -71,6 +74,10 @@ def handle_discard(
         if not features.has("projects:discard-groups", project, actor=user):
             return Response({"detail": ["You do not have that feature enabled"]}, status=400)
 
+    if any(group.issue_category == GroupCategory.PERFORMANCE for group in group_list):
+        raise rest_framework.exceptions.ValidationError(
+            detail="Cannot discard performance issues.", code=400
+        )
     # grouped by project_id
     groups_to_delete = defaultdict(list)
 
@@ -674,11 +681,19 @@ def update_groups(
             if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
             else None
         )
+        extra = (
+            {"integration": data.get("integration")}
+            if data.get("integration")
+            in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
+            else dict()
+        )
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
 
-                assignment = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                assignment = GroupAssignee.objects.assign(
+                    group, resolved_actor, acting_user, extra=extra
+                )
                 analytics.record(
                     "manual.issue_assignment",
                     organization_id=project_lookup[group.project_id].organization_id,
@@ -786,6 +801,12 @@ def update_groups(
         # don't allow merging cross project
         if len(projects) > 1:
             return Response({"detail": "Merging across multiple projects is not supported"})
+
+        if any([group.issue_category == GroupCategory.PERFORMANCE for group in group_list]):
+            raise rest_framework.exceptions.ValidationError(
+                detail="Cannot merge performance issues.", code=400
+            )
+
         group_list_by_times_seen = sorted(
             group_list, key=lambda g: (g.times_seen, g.id), reverse=True
         )

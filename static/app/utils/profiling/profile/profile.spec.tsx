@@ -7,7 +7,13 @@ export const f = (name: string, key: number) =>
   new Frame({name, key, is_application: false});
 export const c = (fr: Frame) => new CallTreeNode(fr, null);
 export const firstCallee = (node: CallTreeNode) => node.children[0];
-export const nthCallee = (node: CallTreeNode, n: number) => node.children[n];
+export const nthCallee = (node: CallTreeNode, n: number) => {
+  const child = node.children[n];
+  if (!child) {
+    throw new Error('Child not found');
+  }
+  return child;
+};
 
 export const makeTestingBoilerplate = () => {
   const timings: [Frame['name'], string][] = [];
@@ -62,7 +68,7 @@ stack top -> stack bottom`;
 
 describe('Profile', () => {
   it('Empty profile duration is not infinity', () => {
-    const profile = Profile.Empty();
+    const profile = Profile.Empty;
     expect(profile.duration).toEqual(1000);
     expect(profile.minFrameDuration).toEqual(1000);
   });

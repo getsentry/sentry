@@ -216,9 +216,7 @@ describe('Dashboards > Dashboard', () => {
     beforeEach(() => {
       MemberListStore.init();
     });
-    afterEach(() => {
-      MemberListStore.teardown();
-    });
+
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       render(
         <Dashboard
