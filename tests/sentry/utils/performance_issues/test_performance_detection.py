@@ -2,6 +2,8 @@ import os
 import unittest
 from unittest.mock import Mock, call, patch
 
+from sentry.eventstore.models import Event
+from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
@@ -9,6 +11,7 @@ from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
+    EventPerformanceProblem,
     PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
@@ -667,3 +670,20 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             assert (
                 detector_type in DETECTOR_TYPE_TO_GROUP_TYPE
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
+
+
+class EventPerformanceProblemTest(TestCase):
+    def test_save_and_fetch(self):
+        event = Event(self.project.id, "something")
+        problem = PerformanceProblem(
+            "test",
+            "db",
+            "something bad happened",
+            GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            ["1"],
+            ["2", "3", "4"],
+            ["4", "5", "6"],
+        )
+
+        EventPerformanceProblem(event, problem).save()
+        assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
