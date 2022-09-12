@@ -44,7 +44,7 @@ const Tag = styled(
     <div {...props}>
       {icon && (
         <IconWrapper>
-          {isValidElement(icon) && cloneElement(icon, {size: 'xs'})}
+          {isValidElement(icon) && cloneElement<any>(icon, {size: 'xs'})}
         </IconWrapper>
       )}
       {children}

@@ -35,7 +35,7 @@ function ProjectSettingsLayout({
             )}
           >
             {children && isValidElement(children)
-              ? cloneElement(children, {organization, project})
+              ? cloneElement<any>(children, {organization, project})
               : children}
           </SettingsLayout>
         </AppStoreConnectContext.Provider>

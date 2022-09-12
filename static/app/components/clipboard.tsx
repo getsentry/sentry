@@ -96,7 +96,7 @@ function Clipboard({
     return null;
   }
 
-  return cloneElement(children, {ref: handleMount});
+  return cloneElement<any>(children, {ref: handleMount});
 }
 
 export default Clipboard;

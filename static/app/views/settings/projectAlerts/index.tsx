@@ -15,7 +15,7 @@ const ProjectAlerts = ({children, organization}: Props) => (
     {({hasAccess}) => (
       <Fragment>
         {isValidElement(children) &&
-          cloneElement(children, {
+          cloneElement<any>(children, {
             organization,
             canEditRule: hasAccess,
           })}

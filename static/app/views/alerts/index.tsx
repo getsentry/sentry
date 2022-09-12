@@ -12,7 +12,7 @@ function AlertsContainer({children}: Props) {
 
   const content =
     children && isValidElement(children)
-      ? cloneElement(children, {
+      ? cloneElement<any>(children, {
           organization,
           hasMetricAlerts,
         })
