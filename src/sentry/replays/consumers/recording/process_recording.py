@@ -5,7 +5,7 @@ import logging
 from collections import deque
 from concurrent.futures import ALL_COMPLETED, Future, wait
 from io import BytesIO
-from typing import Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
 from arroyo import Partition
@@ -163,7 +163,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         # TODO: validate schema against json schema?
         try:
             message_dict = msgpack.unpackb(message.payload.value)
-            self._configure_sentry_scope(message_dict, message.offset)
+            self._configure_sentry_scope(message_dict)
 
             if message_dict["type"] == "replay_recording_chunk":
                 self._process_chunk(cast(RecordingSegmentChunkMessage, message_dict), message)
@@ -218,11 +218,10 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         self.close()
         self.__threadpool.shutdown(wait=False)
 
-    def _configure_sentry_scope(self, message_dict, offset):
+    def _configure_sentry_scope(self, message_dict: dict[str, Any]) -> None:
         with configure_scope() as scope:
             scope.set_tag("replay_id", message_dict["replay_id"])
             scope.set_tag("project_id", message_dict["project_id"])
-            scope.set_tag("offset", offset)
             # TODO: add replay sdk version once added
 
 
