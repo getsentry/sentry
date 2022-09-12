@@ -396,7 +396,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             for field in metrics_query_args:
                 try:
                     # Adding this try/except because we do not want to override the defaults of the function with None
-                    kwargs[field] = params[field]  # type: ignore
+                    kwargs[field] = params[field]
                 except KeyError:
                     continue
         return self.filter_conditions_func(**kwargs)
