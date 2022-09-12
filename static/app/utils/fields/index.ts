@@ -170,7 +170,7 @@ export enum AggregationKey {
   LastSeen = 'last_seen',
 }
 
-export enum ReplayFieldKey {
+enum ReplayFieldKey {
   CountErrors = 'countErrors',
   CountSegments = 'countSegments',
 }
