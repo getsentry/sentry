@@ -25,8 +25,8 @@ export function PythonTooltip(props: FlamegraphTooltipProps) {
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
-        {props.frame.frame.file ?? '<unknown file>'}:
-        {props.frame.frame.line ?? '<unknown line>'}
+        {props.frame.frame.file ?? t('<unknown file>')}:
+        {props.frame.frame.line ?? t('<unknown line>')}
       </FlamegraphTooltipTimelineInfo>
       <FlamegraphTooltipTimelineInfo>
         {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
