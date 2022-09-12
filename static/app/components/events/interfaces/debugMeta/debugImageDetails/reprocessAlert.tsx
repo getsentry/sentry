@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
@@ -36,11 +36,7 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
     undefined | ReprocessableEvent
   >();
 
-  useEffect(() => {
-    checkEventReprocessable();
-  }, []);
-
-  async function checkEventReprocessable() {
+  const checkEventReprocessable = useCallback(async () => {
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projSlug}/events/${eventId}/reprocessable/`
@@ -49,7 +45,11 @@ function ReprocessAlert({onReprocessEvent, api, orgSlug, projSlug, eventId}: Pro
     } catch {
       // do nothing
     }
-  }
+  }, [api, eventId, orgSlug, projSlug]);
+
+  useEffect(() => {
+    checkEventReprocessable();
+  }, [checkEventReprocessable]);
 
   if (!reprocessableEvent) {
     return null;
