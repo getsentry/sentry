@@ -1,8 +1,10 @@
 from django.conf import settings
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class CreateOrganizationTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

@@ -7,6 +7,7 @@ from sentry.models import (
     UserRole,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class UserDetailsTest(APITestCase):
@@ -18,6 +19,7 @@ class UserDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
 
+@control_silo_test
 class UserDetailsGetTest(UserDetailsTest):
     # TODO(dcramer): theres currently no way to look up other users
     def test_look_up_other_user(self):
@@ -62,6 +64,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
 
 
+@control_silo_test
 class UserDetailsUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -141,6 +144,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert user.username == "new@example.com"
 
 
+@control_silo_test
 class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     method = "put"
 
@@ -227,6 +231,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert user.is_staff
 
 
+@control_silo_test
 class UserDetailsDeleteTest(UserDetailsTest):
     method = "delete"
 
