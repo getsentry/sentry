@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import random
@@ -9,7 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 import sentry_sdk
 
-from sentry import options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import ProjectOption
 from sentry.types.issues import GroupType
@@ -57,6 +59,61 @@ class PerformanceProblem:
     parent_span_ids: Optional[Sequence[str]]
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
+
+    def to_dict(self) -> str:
+        return {
+            "fingerprint": self.fingerprint,
+            "op": self.op,
+            "desc": self.desc,
+            "type": self.type.value,
+            "parent_span_ids": self.parent_span_ids,
+            "cause_span_ids": self.cause_span_ids,
+            "offender_span_ids": self.offender_span_ids,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> PerformanceProblem:
+        return cls(
+            data["fingerprint"],
+            data["op"],
+            data["desc"],
+            GroupType(data["type"]),
+            data["parent_span_ids"],
+            data["cause_span_ids"],
+            data["offender_span_ids"],
+        )
+
+
+class EventPerformanceProblem:
+    """
+    Wrapper that binds an Event and PerformanceProblem together and allow the problem to be saved
+    to and fetch from Nodestore
+    """
+
+    def __init__(self, event: Event, problem: PerformanceProblem):
+        self.event = event
+        self.problem = problem
+
+    @property
+    def identifier(self) -> str:
+        return self.build_identifier(self.event.event_id, self.problem.fingerprint)
+
+    @classmethod
+    def build_identifier(cls, event_id: str, problem_hash: str) -> str:
+        identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
+        return f"p-i-e:{identifier}"
+
+    def save(self):
+        nodestore.set(self.identifier, self.problem.to_dict())
+
+    @classmethod
+    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
+        return cls(
+            event,
+            PerformanceProblem.from_dict(
+                nodestore.get(cls.build_identifier(event.event_id, problem_hash))
+            ),
+        )
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
