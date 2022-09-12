@@ -1,93 +1,16 @@
-.auth-btn-wrapper {
-  display: flex;
-
-  padding: 10px 0;
-
-  justify-content: center;
-
-  .btn-done {
-    margin-right: 1em;
-  }
-}
-
-.auth-wrapper {
-  display: flex;
-
-  flex: 1;
-  justify-content: flex-end;
-
-  .authorize {
-    padding-right: 20px;
-    margin-left: 10px;
-    margin-right: 10px;
-  }
-}
-
 .auth-container {
-  margin: 0 0 10px 0;
-  padding: 10px 20px;
-
   border-bottom: 1px solid @auth-container-border-color;
-
-  &:last-of-type {
-    margin: 0;
-    padding: 10px 20px;
-
-    border: 0;
-  }
-
-  h4 {
-    margin: 5px 0 15px 0 !important;
-  }
-
-  .wrapper {
-    margin: 0;
-    padding: 0;
-  }
-
-  input[type='text'],
-  input[type='password'] {
-    min-width: 230px;
-  }
-
   .errors {
-    font-size: 12px;
-
-    padding: 10px;
-
-    border-radius: 4px;
-
-    background-color: #ffeeee;
-
-    color: red;
-
-    margin: 1em;
-
     .text_code();
-
-    b {
-      text-transform: capitalize;
-      margin-right: 1em;
-    }
   }
 }
 
 .scopes {
   h2 {
-    font-size: 14px;
-
     .text_headline();
 
     a {
-      font-size: 12px;
       color: @auth-select-all-none-link-font-color;
-      cursor: pointer;
-      padding-left: 10px;
-      text-decoration: underline;
     }
   }
-}
-
-.scope-def {
-  padding: 0 0 20px 0;
 }

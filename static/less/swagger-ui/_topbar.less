@@ -1,82 +1,21 @@
 .topbar {
-  padding: 10px 0;
-
   background-color: @topbar-background-color;
-  .topbar-wrapper {
-    display: flex;
-    align-items: center;
-  }
   a {
-    font-size: 1.5em;
-    font-weight: bold;
-
-    display: flex;
-    align-items: center;
-    flex: 1;
-
-    max-width: 300px;
-
-    text-decoration: none;
-
     .text_headline(@topbar-link-font-color);
-
-    span {
-      margin: 0;
-      padding: 0 10px;
-    }
   }
 
   .download-url-wrapper {
-    display: flex;
-    flex: 3;
-    justify-content: flex-end;
-
     input[type='text'] {
-      width: 100%;
-      margin: 0;
-
       border: 2px solid @topbar-download-url-wrapper-element-border-color;
-      border-radius: 4px 0 0 4px;
-      outline: none;
     }
 
     .select-label {
-      display: flex;
-      align-items: center;
-
-      width: 100%;
-      max-width: 600px;
-      margin: 0;
-      color: #f0f0f0;
-      span {
-        font-size: 16px;
-
-        flex: 1;
-
-        padding: 0 10px 0 0;
-
-        text-align: right;
-      }
-
       select {
-        flex: 2;
-
-        width: 100%;
-
         border: 2px solid @topbar-download-url-wrapper-element-border-color;
-        outline: none;
-        box-shadow: none;
       }
     }
 
     .download-url-button {
-      font-size: 16px;
-      font-weight: bold;
-
-      padding: 4px 30px;
-
-      border: none;
-      border-radius: 0 4px 4px 0;
       background: @topbar-download-url-button-background-color;
 
       .text_headline(@topbar-download-url-button-font-color);

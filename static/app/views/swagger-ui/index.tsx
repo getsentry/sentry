@@ -1,3 +1,5 @@
+import 'swagger-ui-react/swagger-ui.css';
+
 import {OpenAPIV3} from 'openapi-types';
 import SwaggerUI from 'swagger-ui-react';
 

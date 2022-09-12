@@ -1,31 +1,7 @@
 .markdown,
 .renderedMarkdown {
-  p,
-  pre {
-    margin: 1em auto;
-
-    word-break: break-all; /* Fallback trick */
-    word-break: break-word;
-  }
-  pre {
-    color: black;
-    font-weight: normal;
-    white-space: pre-wrap;
-    background: none;
-    padding: 0px;
-  }
-
   code {
-    font-size: 14px;
-    padding: 5px 7px;
-
-    border-radius: 4px;
     background: rgba(@info-code-background-color, 0.05);
-
     .text_code(@info-code-font-color);
-  }
-
-  pre > code {
-    display: block;
   }
 }

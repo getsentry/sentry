@@ -1,59 +1,16 @@
 select {
-  font-size: 14px;
-  font-weight: bold;
-
-  padding: 5px 40px 5px 10px;
-
   border: 2px solid @form-select-border-color;
-  border-radius: 4px;
   background: @form-select-background-color
     url('data:image/svg+xml, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M13.418 7.859c.271-.268.709-.268.978 0 .27.268.272.701 0 .969l-3.908 3.83c-.27.268-.707.268-.979 0l-3.908-3.83c-.27-.267-.27-.701 0-.969.271-.268.709-.268.978 0L10 11l3.418-3.141z"/></svg>')
     right 10px center no-repeat;
-  background-size: 20px;
   box-shadow: 0 1px 2px 0 rgba(@form-select-box-shadow-color, 0.25);
-
   .text_headline();
-  appearance: none;
 
   &[multiple] {
-    margin: 5px 0;
-    padding: 5px;
-
     background: @form-select-background-color;
   }
-
-  &.invalid {
-    .invalidFormElement();
-  }
-}
-
-.opblock-body select {
-  min-width: 230px;
-  @media (max-width: 768px) {
-    min-width: 180px;
-  }
-  @media (max-width: 640px) {
-    width: 100%;
-    min-width: 100%;
-  }
-}
-
-label {
-  font-size: 12px;
-  font-weight: bold;
-
-  margin: 0 0 5px 0;
-
-  .text_headline();
-}
-
-input[type='text'],
-input[type='password'],
-input[type='search'],
-input[type='email'],
-input[type='file'] {
-  @media (max-width: 768px) {
-    max-width: 175px;
+  label {
+    .text_headline();
   }
 }
 
@@ -63,141 +20,34 @@ input[type='search'],
 input[type='email'],
 input[type='file'],
 textarea {
-  min-width: 100px;
-  margin: 5px 0;
-  padding: 8px 10px;
-
   border: 1px solid @form-input-border-color;
-  border-radius: 4px;
   background: @form-input-background-color;
-
   &.invalid {
     .invalidFormElement();
   }
 }
 
-input,
-textarea,
-select {
-  &[disabled] {
-    // opacity: 0.85;
-    background-color: #fafafa;
-    color: #888;
-    cursor: not-allowed;
-  }
-}
-
-select[disabled] {
-  border-color: #888;
-}
-
-textarea[disabled] {
-  background-color: #41444e;
-  color: #fff;
-}
-
-@keyframes shake {
-  10%,
-  90% {
-    transform: translate3d(-1px, 0, 0);
-  }
-
-  20%,
-  80% {
-    transform: translate3d(2px, 0, 0);
-  }
-
-  30%,
-  50%,
-  70% {
-    transform: translate3d(-4px, 0, 0);
-  }
-
-  40%,
-  60% {
-    transform: translate3d(4px, 0, 0);
-  }
-}
-
 textarea {
-  font-size: 12px;
-
-  width: 100%;
-  min-height: 280px;
-  padding: 10px;
-
-  border: none;
-  border-radius: 4px;
-  outline: none;
   background: rgba(@form-textarea-background-color, 0.8);
-
-  .text_code();
 
   &:focus {
     border: 2px solid @form-textarea-focus-border-color;
   }
 
   &.curl {
-    font-size: 12px;
-
-    min-height: 100px;
-    margin: 0;
-    padding: 10px;
-
-    resize: none;
-
-    border-radius: 4px;
-    background: @form-textarea-curl-background-color;
-
     .text_code(@form-textarea-curl-font-color);
   }
 }
 
 .checkbox {
-  padding: 5px 0 10px;
-
-  transition: opacity 0.5s;
-
   color: @form-checkbox-label-font-color;
-
-  label {
-    display: flex;
-  }
-
   p {
-    font-weight: normal !important;
-    font-style: italic;
-
-    margin: 0 !important;
-
     .text_code();
   }
-
   input[type='checkbox'] {
-    display: none;
-
     & + label > .item {
-      position: relative;
-      top: 3px;
-
-      display: inline-block;
-
-      width: 16px;
-      height: 16px;
-      margin: 0 8px 0 0;
-      padding: 5px;
-
-      cursor: pointer;
-
-      border-radius: 1px;
       background: @form-checkbox-background-color;
       box-shadow: 0 0 0 2px @form-checkbox-box-shadow-color;
-
-      flex: none;
-
-      &:active {
-        transform: scale(0.9);
-      }
     }
 
     &:checked + label > .item {

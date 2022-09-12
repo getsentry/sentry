@@ -5,9 +5,8 @@ import {
 } from 'sentry/actionCreators/indicator';
 import AlertLink from 'sentry/components/alertLink';
 import Button from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {InternalAppApiToken, Organization} from 'sentry/types';
