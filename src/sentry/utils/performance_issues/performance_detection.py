@@ -812,9 +812,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return query and not query.endswith("...")
 
     def _maybe_use_as_source(self, span: Span):
-        if not self._contains_complete_query(span):
-            return
-
         parent_span_id = span.get("parent_span_id", None)
         if not parent_span_id or parent_span_id not in self.potential_parents:
             return
@@ -822,9 +819,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.source_span = span
 
     def _continues_n_plus_1(self, span: Span):
-        if not self._contains_complete_query(span):
-            return False
-
         if self._overlaps_last_span(span):
             return False
 
@@ -880,6 +874,14 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return
         parent_span = self.potential_parents[parent_span_id]
         if not parent_span:
+            return
+
+        # Track how many N+1-looking problems we found but dropped because we
+        # couldn't be sure (maybe the truncated part of the query differs).
+        if not self._contains_complete_query(self.source_span) or not self._contains_complete_query(
+            self.n_spans[0]
+        ):
+            metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
         fingerprint = self._fingerprint(
