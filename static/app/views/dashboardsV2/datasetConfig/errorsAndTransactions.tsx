@@ -152,7 +152,6 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
-  filterTableOptions,
   filterAggregateParams,
   getSeriesResultType,
 };
@@ -592,11 +591,6 @@ function getEventsSeriesRequest(
   }
 
   return doEventsRequest<true>(api, requestData);
-}
-
-// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
-function filterTableOptions(option: FieldValueOption) {
-  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements
