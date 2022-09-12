@@ -17,10 +17,11 @@ interface ArrayLinksProps {
 
 function ArrayLinks({items}: ArrayLinksProps) {
   const [expanded, setExpanded] = useState(false);
+  const firstItem = items[0];
 
   return (
     <ArrayContainer expanded={expanded}>
-      {items.length > 0 && <LinkedItem item={items[0]} />}
+      {firstItem && <LinkedItem item={firstItem} />}
       {items.length > 1 &&
         expanded &&
         items
