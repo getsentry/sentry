@@ -229,12 +229,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(
                 key=SearchKey(name="measurements.foo"),
                 operator=">",
-                value=SearchValue(5 * 1024**3),
+                value=SearchValue(5 * 1000**3),
             ),
             SearchFilter(
                 key=SearchKey(name="measurements.bar"),
                 operator="<",
-                value=SearchValue(3 * 1024**5),
+                value=SearchValue(3 * 1000**5),
             ),
         ]
 
@@ -247,12 +247,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(
                 key=SearchKey(name="p50(measurements.foo)"),
                 operator=">",
-                value=SearchValue(5 * 1024**3),
+                value=SearchValue(5 * 1000**3),
             ),
             SearchFilter(
                 key=SearchKey(name="p100(measurements.bar)"),
                 operator="<",
-                value=SearchValue(3 * 1024**5),
+                value=SearchValue(3 * 1000**5),
             ),
         ]
 
