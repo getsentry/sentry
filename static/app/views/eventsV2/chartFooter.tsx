@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -64,15 +65,17 @@ export default function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
-        <Fragment>
-          <SwitchLabel>{t('Processed baseline')}</SwitchLabel>
-          <Switch
-            isActive={showBaseline}
-            isDisabled={metricsCardinality.outcome?.forceTransactionsOnly}
-            size="lg"
-            toggle={() => setShowBaseline(!showBaseline)}
-          />
-        </Fragment>
+        <Feature features={['organization:discover-metrics-baseline']}>
+          <Fragment>
+            <SwitchLabel>{t('Processed baseline')}</SwitchLabel>
+            <Switch
+              isActive={showBaseline}
+              isDisabled={metricsCardinality.outcome?.forceTransactionsOnly}
+              size="lg"
+              toggle={() => setShowBaseline(!showBaseline)}
+            />
+          </Fragment>
+        </Feature>
         <OptionSelector
           title={t('Display')}
           selected={displayMode}

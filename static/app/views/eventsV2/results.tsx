@@ -510,8 +510,8 @@ class Results extends Component<Props, State> {
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
 
-    const partialEventView = cloneDeep(eventView);
-    partialEventView.query = '';
+    const metricsEventView = cloneDeep(eventView);
+    metricsEventView.query = '';
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -555,7 +555,7 @@ class Results extends Component<Props, State> {
                   <MetricsCardinalityProvider
                     organization={organization}
                     location={location}
-                    partialEventView={partialEventView}
+                    metricsEventView={metricsEventView}
                   >
                     <ResultsChart
                       router={router}
