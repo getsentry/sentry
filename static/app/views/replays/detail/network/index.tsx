@@ -208,7 +208,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               <Text>{network.description}</Text>
             </Tooltip>
           ) : (
-            <EmptyText>({t('Missing path')})</EmptyText>
+            <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
         <Item {...columnHandlers}>
@@ -218,7 +218,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           {defined(network.data.size) ? (
             <FileSize bytes={network.data.size} />
           ) : (
-            <EmptyText>({t('Missing size')})</EmptyText>
+            <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
 
@@ -353,10 +353,7 @@ const UnstyledHeaderButton = styled(UnstyledButton)`
 `;
 
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) repeat(
-      4,
-      minmax(max-content, 160px)
-    );
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(4, max-content);
   grid-template-rows: 24px repeat(auto-fit, 28px);
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
