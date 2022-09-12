@@ -987,6 +987,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable metrics baseline in discover
+    "organizations:discover-metrics-baseline": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1147,6 +1149,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues": False,
     # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
     "organizations:performance-issues-ingest": False,
+    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    "organizations:performance-issues-dev": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -2140,7 +2144,6 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
-
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):

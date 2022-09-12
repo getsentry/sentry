@@ -4,7 +4,7 @@ import ProjectPerformance from 'sentry/views/settings/projectPerformance/project
 
 describe('projectPerformance', function () {
   const org = TestStubs.Organization({
-    features: ['performance-view', 'performance-issues'],
+    features: ['performance-view', 'performance-issues-dev'],
   });
   const project = TestStubs.ProjectDetails();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';

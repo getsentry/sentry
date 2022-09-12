@@ -19,7 +19,7 @@ SILO_KEYWORDS = {
     "control": Keywords(
         include_words=["User", "Auth", "Identity"],
     ),
-    "customer": Keywords(
+    "region": Keywords(
         include_words=["Organization", "Project", "Team", "Group", "Event", "Issue"],
         exclude_words=["JiraIssue"],
     ),
