@@ -416,3 +416,19 @@ class DetailedEventSerializerTest(TestCase):
             "parentSpanIds": ["8dd7a5869a4f4583"],
             "type": 1006,
         }
+
+    @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    def test_performance_problem_no_stored_data(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
+            "sentry.event_manager.EventPerformanceProblem"
+        ), self.feature("projects:performance-suspect-spans-ingestion"):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+        group_event = event.for_group(event.groups[0])
+
+        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        assert result["perfProblem"] is None

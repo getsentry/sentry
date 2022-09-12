@@ -752,8 +752,25 @@ class EventPerformanceProblemTest(TestCase):
         ]
         for event, problem in all_event_problems:
             EventPerformanceProblem(event, problem).save()
-        result = EventPerformanceProblem.fetch_multi(
-            [(event, problem.fingerprint) for event, problem in all_event_problems]
-        )
 
-        assert [r.problem for r in result] == [problem for _, problem in all_event_problems]
+        unsaved_problem = PerformanceProblem(
+            "fake_fingerprint",
+            "db",
+            "hello",
+            GroupType.PERFORMANCE_SLOW_SPAN,
+            ["234"],
+            ["fdgh", "gdhgf", "gdgh"],
+            ["gdf", "yu", "kjl"],
+        )
+        result = EventPerformanceProblem.fetch_multi(
+            [
+                (event, problem.fingerprint)
+                for event, problem in all_event_problems + [(event, unsaved_problem)]
+            ]
+        )
+        print(result)
+
+        assert [r.problem if r else None for r in result] == [
+            problem for _, problem in all_event_problems
+        ] + [None]
+        assert False

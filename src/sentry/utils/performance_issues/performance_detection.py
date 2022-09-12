@@ -108,20 +108,16 @@ class EventPerformanceProblem:
 
     @classmethod
     def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
-        return cls(
-            event,
-            PerformanceProblem.from_dict(
-                nodestore.get(cls.build_identifier(event.event_id, problem_hash))
-            ),
-        )
         return cls.fetch_multi((event, problem_hash))[0]
 
     @classmethod
-    def fetch_multi(cls, items: Sequence[Tuple[Event, str]]) -> Sequence[EventPerformanceProblem]:
+    def fetch_multi(
+        cls, items: Sequence[Tuple[Event, str]]
+    ) -> Sequence[Optional[EventPerformanceProblem]]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
         results = nodestore.get_multi(ids)
         return [
-            cls(event, PerformanceProblem.from_dict(results[_id]))
+            cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
             for _id, (event, _) in zip(ids, items)
         ]
 
