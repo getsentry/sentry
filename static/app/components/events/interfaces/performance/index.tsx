@@ -13,7 +13,6 @@ export type SpanEvidence = {
   parentSpan: string;
   repeatingSpan: string;
   sourceSpan: string;
-  transaction: string;
 };
 
 interface Props {
@@ -26,7 +25,6 @@ export function SpanEvidenceSection({event, organization}: Props) {
     return null;
   }
 
-  // We won't be able to do this once it is possible to merge Performance Issues, but for now it is fine
   const {
     cause_span_ids: causes,
     offender_span_ids: offenders,
@@ -62,7 +60,6 @@ export function SpanEvidenceSection({event, organization}: Props) {
       return acc;
     },
     {
-      transaction: '',
       parentSpan: '',
       sourceSpan: '',
       repeatingSpan: '',
