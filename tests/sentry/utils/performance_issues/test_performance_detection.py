@@ -701,3 +701,59 @@ class EventPerformanceProblemTest(TestCase):
 
         EventPerformanceProblem(event, problem).save()
         assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
+
+    def test_fetch_multi(self):
+        event_1 = Event(self.project.id, "something")
+        event_1_problems = [
+            PerformanceProblem(
+                "test",
+                "db",
+                "something bad happened",
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["1"],
+                ["2", "3", "4"],
+                ["4", "5", "6"],
+            ),
+            PerformanceProblem(
+                "test_2",
+                "db",
+                "something horrible happened",
+                GroupType.PERFORMANCE_SLOW_SPAN,
+                ["234"],
+                ["67", "87686", "786"],
+                ["4", "5", "6"],
+            ),
+        ]
+        event_2 = Event(self.project.id, "something else")
+        event_2_problems = [
+            PerformanceProblem(
+                "event_2_test",
+                "db",
+                "something happened",
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["1"],
+                ["a", "b", "c"],
+                ["d", "e", "f"],
+            ),
+            PerformanceProblem(
+                "event_2_test_2",
+                "db",
+                "hello",
+                GroupType.PERFORMANCE_SLOW_SPAN,
+                ["234"],
+                ["fdgh", "gdhgf", "gdgh"],
+                ["gdf", "yu", "kjl"],
+            ),
+        ]
+        all_event_problems = [
+            (event, problem)
+            for event, problems in ((event_1, event_1_problems), (event_2, event_2_problems))
+            for problem in problems
+        ]
+        for event, problem in all_event_problems:
+            EventPerformanceProblem(event, problem).save()
+        result = EventPerformanceProblem.fetch_multi(
+            [(event, problem.fingerprint) for event, problem in all_event_problems]
+        )
+
+        assert [r.problem for r in result] == [problem for _, problem in all_event_problems]
