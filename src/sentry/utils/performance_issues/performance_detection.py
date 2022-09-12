@@ -117,7 +117,7 @@ class EventPerformanceProblem:
         return cls.fetch_multi((event, problem_hash))[0]
 
     @classmethod
-    def fetch_multi(cls, items: Tuple[Event, str]) -> Sequence[EventPerformanceProblem]:
+    def fetch_multi(cls, items: Sequence[Tuple[Event, str]]) -> Sequence[EventPerformanceProblem]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
         results = nodestore.get_multi(ids)
         return [
