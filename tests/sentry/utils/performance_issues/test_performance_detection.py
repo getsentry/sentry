@@ -548,6 +548,13 @@ class PerformanceDetectionTest(unittest.TestCase):
             )
         ]
 
+    @patch("sentry.utils.metrics.incr")
+    def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
+        _detect_performance_problems(n_plus_one_event, Mock())
+        unexpected_call = call("performance.performance_issue.truncated_np1_db")
+        assert unexpected_call not in incr_mock.mock_calls
+
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
     ):
@@ -622,6 +629,12 @@ class PerformanceDetectionTest(unittest.TestCase):
             if args[0][0] == "_pi_n_plus_one_db_fp":
                 n_plus_one_fingerprint = args[0][1]
         assert not n_plus_one_fingerprint
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock):
+        truncated_source_event = EVENTS["n-plus-one-in-django-new-view-truncated-source"]
+        _detect_performance_problems(truncated_source_event, Mock())
+        incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
 
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
