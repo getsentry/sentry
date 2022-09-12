@@ -1299,6 +1299,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         returned_values = {group["by"]["tag3"] for group in groups}
         assert "value1" not in returned_values, returned_values
 
+    @pytest.mark.skip(reason="flaky: TET-368")
     def test_limit_without_orderby_excess_groups_pruned(self):
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
