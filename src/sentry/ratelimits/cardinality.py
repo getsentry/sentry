@@ -1,9 +1,9 @@
 import time
-from typing import Collection, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, Collection, NamedTuple, Optional, Sequence, Tuple
 
 from sentry.utils.services import Service
 
-Hash = str
+Hash = int
 Timestamp = int
 
 
@@ -120,11 +120,15 @@ class CardinalityLimiter(Service):
         Given a set of requests and the corresponding return values from
         `check_within_quotas`, consume the quotas.
 
-        :param requests: The requests that have previously been passed to
-            `check_within_quotas`.
         :param timestamp: The request timestamp that has previously been passed
             to `check_within_quotas`.
         :param grants: The return value of `check_within_quotas` which
             indicates how much quota should actually be consumed.
         """
+        pass
+
+
+class RedisCardinalityLimiter(CardinalityLimiter):
+    # TODO: implement everything
+    def __init__(self, **options: Any) -> None:
         pass

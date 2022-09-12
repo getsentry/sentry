@@ -4,7 +4,7 @@ from sentry.sentry_metrics.configuration import (
     UseCaseKey,
 )
 from sentry.sentry_metrics.indexer.base import KeyCollection
-from sentry.sentry_metrics.indexer.ratelimiters import WritesLimiter
+from sentry.sentry_metrics.indexer.limiters.writes import WritesLimiter
 
 WRITES_LIMITERS = {
     RELEASE_HEALTH_PG_NAMESPACE: WritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),

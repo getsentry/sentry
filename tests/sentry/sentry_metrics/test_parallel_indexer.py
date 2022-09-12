@@ -4,6 +4,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import (
+    RELEASE_HEALTH_PG_NAMESPACE,
     IndexerStorage,
     MetricsIngestConfiguration,
     UseCaseKey,
@@ -53,6 +54,8 @@ def test_basic(request):
             internal_metrics_tag="test",
             writes_limiter_cluster_options={},
             writes_limiter_namespace="test",
+            cardinality_limiter_cluster_options={},
+            cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
         ),
     )
 

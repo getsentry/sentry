@@ -8,6 +8,7 @@ from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import StringIndexer
 from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner import CloudSpannerIndexer
+from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
 from sentry.utils import metrics
@@ -64,6 +65,14 @@ class MessageProcessor:
         """
         batch = IndexerBatch(self._config.use_case_id, outer_message)
 
+        with metrics.timer("metrics_consumer.check_cardinality_limits"):
+            cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
+            cardinality_limiter_state = cardinality_limiter.check_cardinality_limits(
+                batch.use_case_id, batch.parsed_payloads_by_offset
+            )
+
+        batch.filter_messages(cardinality_limiter_state.keys_to_remove)
+
         org_strings = batch.extract_strings()
 
         with metrics.timer("metrics_consumer.bulk_record"):
@@ -75,4 +84,9 @@ class MessageProcessor:
         bulk_record_meta = record_result.get_fetch_metadata()
 
         new_messages = batch.reconstruct_messages(mapping, bulk_record_meta)
+
+        with metrics.timer("metrics_consumer.apply_cardinality_limits"):
+            # TODO: move to separate thread
+            cardinality_limiter.apply_cardinality_limits(cardinality_limiter_state)
+
         return new_messages
