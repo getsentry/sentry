@@ -2,7 +2,7 @@
 from typing import Any, List, Optional, Tuple, Union
 
 from rest_framework.exceptions import ParseError
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Function, Op
 from snuba_sdk.conditions import And, Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
@@ -88,6 +88,52 @@ class String(Field):
 class Number(Field):
     _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN]
     _python_type = int
+
+
+class ListField(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = list
+
+    def as_condition(
+        self,
+        _: str,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        if operator in [Op.EQ, Op.NEQ]:
+            return self._has_any_condition(operator, value)
+        else:
+            return self._has_condition(operator, value)
+
+    def _has_condition(
+        self,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        if isinstance(value, list):
+            return self._has_any_condition(Op.IN if operator == Op.EQ else Op.NOT_IN)
+
+        return Condition(
+            Function("has", parameters=[Column(self.query_alias or self.attribute_name), value]),
+            Op.EQ,
+            1 if operator == Op.EQ else 0,
+        )
+
+    def _has_any_condition(
+        self,
+        operator: Op,
+        values: Union[List[str], str],
+    ) -> Condition:
+        if not isinstance(values, list):
+            return self._has_condition(Op.EQ if operator == Op.IN else Op.NEQ)
+
+        return Condition(
+            Function(
+                "hasAny", parameters=[Column(self.query_alias or self.attribute_name), values]
+            ),
+            Op.EQ,
+            1 if operator == Op.IN else 0,
+        )
 
 
 class QueryConfig:

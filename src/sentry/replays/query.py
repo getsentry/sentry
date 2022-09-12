@@ -21,6 +21,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchConfig, SearchFilter
 from sentry.replays.lib.query import (
+    ListField,
     Number,
     QueryConfig,
     String,
@@ -152,7 +153,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         ),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
-        _grouped_unique_scalar_value(column_name="release"),
+        _grouped_unique_values(column_name="release", alias="releases"),
         _grouped_unique_scalar_value(column_name="dist"),
         _grouped_unique_scalar_value(column_name="user_id"),
         _grouped_unique_scalar_value(column_name="user_email"),
@@ -227,7 +228,9 @@ def make_select_statement() -> List[Union[Column, Function]]:
     ]
 
 
-def _grouped_unique_values(column_name: str, aliased: bool = False) -> Function:
+def _grouped_unique_values(
+    column_name: str, alias: Optional[str] = None, aliased: bool = False
+) -> Function:
     """Returns an array of unique, non-null values.
 
     E.g.
@@ -236,7 +239,7 @@ def _grouped_unique_values(column_name: str, aliased: bool = False) -> Function:
     return Function(
         "groupUniqArray",
         parameters=[Column(column_name)],
-        alias=column_name if aliased else None,
+        alias=alias or column_name if aliased else None,
     )
 
 
@@ -296,7 +299,7 @@ class ReplayQueryConfig(QueryConfig):
     replay_id = String(field_alias="id")
     platform = String()
     agg_environment = String(field_alias="environment")
-    release = String()
+    release = ListField(field_alias="releases")
     dist = String()
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")

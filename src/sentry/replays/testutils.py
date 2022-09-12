@@ -49,7 +49,7 @@ def mock_expected_response(
         "longestTransaction": kwargs.pop("longest_transaction", 0),
         "platform": kwargs.pop("platform", "javascript"),
         "environment": kwargs.pop("environment", "production"),
-        "release": kwargs.pop("release", "version@1.3"),
+        "releases": kwargs.pop("releases", ["version@1.3"]),
         "dist": kwargs.pop("dist", "abc123"),
         "os": {
             "name": kwargs.pop("os_name", "iOS"),
