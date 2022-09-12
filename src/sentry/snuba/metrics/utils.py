@@ -94,6 +94,12 @@ MetricUnit = Literal[
     "tebibyte",
     "pebibyte",
     "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
