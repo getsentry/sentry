@@ -648,7 +648,7 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
-      ? cloneElement(children, {
+      ? cloneElement<any>(children, {
           dashboard: modifiedDashboard ?? dashboard,
           onSave: this.isEditing ? this.onUpdateWidget : this.handleUpdateWidgetList,
         })
