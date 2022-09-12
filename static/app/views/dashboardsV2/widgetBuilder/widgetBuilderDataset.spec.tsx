@@ -1169,7 +1169,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('12 MB');
       });
 
-      it('displays custom performance metric in column select', async function () {
+      it('displays saved custom performance metric in column select', async function () {
         renderTestComponent({
           query: {source: DashboardWidgetSource.DISCOVERV2},
           dashboard: {
@@ -1200,6 +1200,46 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
         });
         await screen.findByText('measurements.custom.measurement');
+      });
+
+      it('displays custom performance metric in column select dropdown', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {'measurements.custom.measurement': {functions: ['p99']}},
+        });
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['transaction', 'count()'],
+                    columns: ['transaction'],
+                    aggregates: ['count()'],
+                    orderby: '-count()',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        await screen.findByText('transaction');
+        userEvent.click(screen.getAllByText('count()')[1]);
+        expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
       });
 
       it('does not default to sorting by transaction when columns change', async function () {
