@@ -58,8 +58,8 @@ function FlamegraphZoomView({
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [profileGroup] = useProfileGroup();
-  const [flamegraphProfile] = useFlamegraphProfiles();
-  const [flamegraphSearch] = useFlamegraphSearch();
+  const flamegraphProfile = useFlamegraphProfiles();
+  const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
   const [lastInteraction, setLastInteraction] = useState<

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {t} from 'sentry/locale';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 
 import {
