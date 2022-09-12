@@ -397,9 +397,9 @@ class TransactionBar extends Component<Props, State> {
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
         >
-          <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
-            {this.renderTitle(scrollbarManagerChildrenProps)}
-          </GuideAnchor>
+          {/* <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}> */}
+          {this.renderTitle(scrollbarManagerChildrenProps)}
+          {/* </GuideAnchor> */}
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
