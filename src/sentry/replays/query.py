@@ -154,7 +154,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         ),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
-        _grouped_unique_values(column_name="release", alias="releases"),
+        _grouped_unique_values(column_name="release", alias="releases", aliased=True),
         _grouped_unique_scalar_value(column_name="dist"),
         _grouped_unique_scalar_value(column_name="user_id"),
         _grouped_unique_scalar_value(column_name="user_email"),
