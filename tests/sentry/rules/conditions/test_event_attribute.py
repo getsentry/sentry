@@ -289,6 +289,57 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+    def test_error_handled(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ]
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "False"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_handled_not_defined(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_unhandled(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ],
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
     def test_exception_value(self):
         event = self.get_event()
         rule = self.get_rule(
