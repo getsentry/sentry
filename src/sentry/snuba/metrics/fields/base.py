@@ -93,13 +93,14 @@ __all__ = (
     "generate_bottom_up_dependency_tree_for_metrics",
     "get_derived_metrics",
     "org_id_from_projects",
+    "COMPOSITE_ENTITY_CONSTITUENT_ALIAS",
 )
 
 COMPOSITE_ENTITY_CONSTITUENT_ALIAS = "__CHILD_OF__"
 
 SnubaDataType = Dict[str, Any]
 PostQueryFuncReturnType = Optional[Union[Tuple[Any, ...], ClickhouseHistogram, int, float]]
-MetricOperationParams = Optional[Mapping[str, Union[str, int, float]]]
+MetricOperationParams = Mapping[str, Union[str, int, float]]
 
 
 def run_metrics_query(
@@ -377,7 +378,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         kwargs = {"org_id": org_id}
         if self.metrics_query_args is not None and params is not None:
             for field in self.metrics_query_args:
-                kwargs[field] = params.get(field)
+                kwargs[field] = params.get(field)  # type: ignore
 
         return self.filter_conditions_func(**kwargs)
 
@@ -991,8 +992,8 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         self,
         data: SnubaDataType,
         alias: str,
-        idx: Optional[int] = None,
         params: Optional[MetricOperationParams] = None,
+        idx: Optional[int] = None,
     ) -> Any:
         if COMPOSITE_ENTITY_CONSTITUENT_ALIAS in alias:
             # Often times we have multi level nodes in the definition of a composite entity derived metric, and so
