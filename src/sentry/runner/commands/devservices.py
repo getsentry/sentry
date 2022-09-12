@@ -1,9 +1,13 @@
 import os
 import signal
+import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import click
+
+import docker
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -13,15 +17,27 @@ if os.path.exists(RAW_SOCKET_HACK_PATH):
     os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
 
 
-def get_docker_client():
-    import docker
-
+def get_docker_client() -> docker.DockerClient:
     client = docker.from_env()
-    try:
-        client.ping()
-        return client
-    except Exception:
-        raise click.ClickException("Make sure Docker is running.")
+    started = False
+    max_wait = 30
+    start = time.monotonic()
+
+    while time.monotonic() - start < max_wait:
+        try:
+            client.ping()
+            return client
+        except Exception:
+            if not started:
+                if sys.platform == "darwin":
+                    subprocess.check_call(("open", "--background", "-a", "Docker"))
+                else:
+                    raise click.ClickException("Make sure docker in running.")
+                started = True
+                click.echo(f"Attempting to start docker... (timeout after {max_wait}s)")
+            time.sleep(1)
+
+    raise click.ClickException("Failed to start docker.")
 
 
 def get_or_create(client, thing, name):
