@@ -110,10 +110,9 @@ describe('TagValueAutocomplete', function () {
       />
     );
 
-    const input = screen.getByLabelText('Search or add an environment');
 
     // Open the select
-    userEvent.click(input);
+    userEvent.click(screen.getByLabelText('Search or add an environment'));
 
     // Assert the custom prepended options are there
     expect(await screen.findByText('Prepended')).toBeInTheDocument();
