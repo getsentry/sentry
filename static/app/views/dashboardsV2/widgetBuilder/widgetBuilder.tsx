@@ -60,7 +60,6 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {isCustomMeasurementWidget} from 'sentry/views/dashboardsV2/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -983,14 +982,8 @@ function WidgetBuilder({
     });
   }
 
-  function isFormInvalid(isMetricsData?: boolean) {
-    // Block saving if the widget uses custom measurements and is not able to be fulfilled with metrics
-    const incompatibleCustomMeasurementWidget =
-      !isMetricsData && isCustomMeasurementWidget(currentWidget);
-    if (
-      incompatibleCustomMeasurementWidget ||
-      (notDashboardsOrigin && !state.selectedDashboard)
-    ) {
+  function isFormInvalid() {
+    if (notDashboardsOrigin && !state.selectedDashboard) {
       return true;
     }
 
@@ -1175,17 +1168,13 @@ function WidgetBuilder({
                       )}
                     </BuildSteps>
                   </Main>
-                  <DashboardsMEPConsumer>
-                    {({isMetricsData}) => (
-                      <Footer
-                        goBackLocation={previousLocation}
-                        isEditing={isEditing}
-                        onSave={handleSave}
-                        onDelete={handleDelete}
-                        invalidForm={isFormInvalid(isMetricsData)}
-                      />
-                    )}
-                  </DashboardsMEPConsumer>
+                  <Footer
+                    goBackLocation={previousLocation}
+                    isEditing={isEditing}
+                    onSave={handleSave}
+                    onDelete={handleDelete}
+                    invalidForm={isFormInvalid()}
+                  />
                 </MainWrapper>
                 <Side>
                   <WidgetLibrary
