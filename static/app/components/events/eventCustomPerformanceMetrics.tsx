@@ -117,14 +117,8 @@ function EventCustomPerformanceMetric({
     : value;
 
   function generateLinkWithQuery(query: string) {
-    const eventView = EventView.fromSavedQuery({
-      query,
-      fields: [],
-      id: undefined,
-      name: '',
-      projects: [],
-      version: 1,
-    });
+    const eventView = EventView.fromLocation(location);
+    eventView.query = query;
     switch (source) {
       case EventDetailPageSource.PERFORMANCE:
         return transactionSummaryRouteWithQuery({
