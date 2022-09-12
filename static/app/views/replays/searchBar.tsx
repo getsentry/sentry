@@ -1,7 +1,5 @@
-import {useEffect} from 'react';
-import assign from 'lodash/assign';
+import {useCallback} from 'react';
 import flatten from 'lodash/flatten';
-import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
@@ -31,9 +29,9 @@ const REPLAY_TAGS = [
   'dist',
   'duration',
   'id',
-  'os.build',
-  'os.kernel_version',
-  'platform.name',
+  'os.name',
+  'os.version',
+  'platform',
   'projectId',
   'release',
   'sdk.name',
@@ -41,20 +39,9 @@ const REPLAY_TAGS = [
   'user.display',
   'user.email',
   'user.id',
-  'user.ip',
-  'user.username',
+  'user.ipAddress',
+  'user.name',
 ];
-
-const getReplayTags = () =>
-  Object.fromEntries(
-    REPLAY_TAGS.map(key => [
-      key,
-      {
-        ...FIELD_TAGS[key],
-        kind: FieldKind.FIELD,
-      },
-    ])
-  );
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
@@ -73,17 +60,11 @@ function SearchBar(props: SearchBarProps) {
 
   const api = useApi();
 
-  useEffect(() => {
-    // Clear memoized data on mount to make tests more consistent.
-    getEventFieldValues.cache.clear?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectIds]);
-
   // Returns array of tag values that substring match `query`; invokes `callback`
   // with data when ready
-  const getEventFieldValues = memoize(
+  const getEventFieldValues = useCallback(
     (tag, query, endpointParams): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+      const projectIdStrings = projectIds?.map(String);
 
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
@@ -106,44 +87,42 @@ function SearchBar(props: SearchBarProps) {
         }
       );
     },
-    ({key}, query) => `${key}-${query}`
+    [api, organization.slug, projectIds]
   );
 
   const getTagList = () => {
-    const replayTags = getReplayTags();
-
-    const tagsWithKind = Object.fromEntries(
-      Object.keys(tags).map(key => [
+    const combinedTags: TagCollection = Object.fromEntries([
+      ...Object.keys(tags).map(key => [
         key,
         {
           ...tags[key],
           kind: FieldKind.TAG,
         },
-      ])
-    );
-
-    const combinedTags: TagCollection = assign({}, tagsWithKind, replayTags);
-
-    const sortedTagKeys = Object.keys(combinedTags);
-    sortedTagKeys.sort((a, b) => {
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    });
+      ]),
+      ...REPLAY_TAGS.map(key => [
+        key,
+        {
+          ...FIELD_TAGS[key],
+          kind: FieldKind.FIELD,
+        },
+      ]),
+    ]);
 
     return omit(combinedTags, omitTags ?? []);
   };
 
   return (
     <SmartSearchBar
-      onGetTagValues={getEventFieldValues}
-      supportedTags={getTagList()}
-      prepareQuery={query => {
-        // Prepare query string (e.g. strip special characters like negation operator)
-        return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-      }}
       maxSearchItems={maxSearchItems}
       excludeEnvironment
       maxMenuHeight={maxMenuHeight ?? 300}
       {...props}
+      prepareQuery={query => {
+        // Prepare query string (e.g. strip special characters like negation operator)
+        return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+      }}
+      supportedTags={getTagList()}
+      onGetTagValues={getEventFieldValues}
     />
   );
 }

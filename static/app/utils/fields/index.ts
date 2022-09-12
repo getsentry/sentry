@@ -173,7 +173,6 @@ export enum AggregationKey {
 export enum ReplayFieldKey {
   CountErrors = 'countErrors',
   CountSegments = 'countSegments',
-  Duration = 'duration',
   ProjectId = 'projectId',
 }
 
@@ -449,11 +448,6 @@ export const REPLAY_FIELDS: Record<ReplayFieldKey, FieldDefinition> = {
     desc: t('Number of segments in the replay'),
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.INTEGER,
-  },
-  [ReplayFieldKey.Duration]: {
-    desc: t('Duration of the replay'),
-    kind: FieldKind.FUNCTION,
-    valueType: FieldValueType.DURATION,
   },
   [ReplayFieldKey.ProjectId]: {
     desc: t('Project ID'),
