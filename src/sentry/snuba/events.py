@@ -31,7 +31,7 @@ class Columns(Enum):
     # exposed to users through discover search.
     GROUP_IDS = Column(
         group_name=None,
-        event_name=None,
+        event_name="group_ids",
         transaction_name="group_ids",
         discover_name="group_ids",
         alias="performance.issue_ids",
