@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -33,6 +33,7 @@ class GroupEventsError(Exception):
     pass
 
 
+@region_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):  # type: ignore
     def get(self, request: Request, group: Group) -> Response:
         """

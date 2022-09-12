@@ -157,14 +157,14 @@ function buildProfile(
     throw new Error('Last end event contains no timestamp');
   }
 
-  const profile = new ChromeTraceProfile(
-    lastTimestamp - firstTimestamp,
-    firstTimestamp,
-    lastTimestamp,
-    `${processName}: ${threadName}`,
-    'microseconds', // the trace event format provides timestamps in microseconds
-    threadId
-  );
+  const profile = new ChromeTraceProfile({
+    duration: lastTimestamp - firstTimestamp,
+    startedAt: firstTimestamp,
+    endedAt: lastTimestamp,
+    name: `${processName}: ${threadName}`,
+    unit: 'microseconds', // the trace event format provides timestamps in microseconds
+    threadId,
+  });
 
   const stack: ChromeTrace.Event[] = [];
   const frameCache = new Map<string, Frame>();

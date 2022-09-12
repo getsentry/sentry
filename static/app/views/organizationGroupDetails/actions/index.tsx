@@ -88,14 +88,14 @@ class Actions extends Component<Props, State> {
 
   getDiscoverUrl() {
     const {group, project, organization} = this.props;
-    const {title, id, type} = group;
+    const {title, type, shortId} = group;
 
     const discoverQuery = {
       id: undefined,
       name: title || type,
       fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
-      query: `issue.id:${id}`,
+      query: `issue:${shortId}`,
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
@@ -239,14 +239,6 @@ class Actions extends Component<Props, State> {
   onToggleSubscribe = () => {
     this.onUpdate({isSubscribed: !this.props.group.isSubscribed});
     this.trackIssueAction('subscribed');
-  };
-
-  onRedirectDiscover = () => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-      organization,
-    });
-    browserHistory.push(this.getDiscoverUrl());
   };
 
   onDiscard = () => {
@@ -417,12 +409,7 @@ class Actions extends Component<Props, State> {
           <ActionButton
             disabled={disabled}
             to={disabled ? '' : this.getDiscoverUrl()}
-            onClick={() => {
-              this.trackIssueAction('open_in_discover');
-              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-                organization,
-              });
-            }}
+            onClick={() => this.trackIssueAction('open_in_discover')}
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>

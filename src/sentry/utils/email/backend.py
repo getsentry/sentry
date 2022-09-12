@@ -39,14 +39,10 @@ class PreviewBackend(BaseEmailBackend):  # type: ignore
     def send_messages(self, email_messages: Sequence[EmailMultiAlternatives]) -> int:
         for message in email_messages:
             content = bytes(message.message())
-            preview = tempfile.NamedTemporaryFile(
+            with tempfile.NamedTemporaryFile(
                 delete=False, prefix="sentry-email-preview-", suffix=".eml"
-            )
-            try:
+            ) as preview:
                 preview.write(content)
-                preview.flush()
-            finally:
-                preview.close()
 
             subprocess.check_call(("open", preview.name))
 

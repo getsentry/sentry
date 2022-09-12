@@ -7,6 +7,11 @@ export function isSchema(input: any): input is Profiling.Schema {
     'shared' in input
   );
 }
+
+export function isNodeProfile(profile: any): profile is [Profiling.NodeProfile, {}] {
+  return Array.isArray(profile) && profile.length === 2 && isSampledProfile(profile[0]);
+}
+
 export function isEventedProfile(profile: any): profile is Profiling.EventedProfile {
   return 'type' in profile && profile.type === 'evented';
 }
@@ -19,14 +24,18 @@ export function isJSProfile(profile: any): profile is JSSelfProfiling.Trace {
   return !('type' in profile) && Array.isArray(profile.resources);
 }
 
-export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.ObjectFormat {
-  return typeof input === 'object' && 'traceEvents' in input;
+export function isChromeTraceObjectFormat(
+  profile: any
+): profile is ChromeTrace.ObjectFormat {
+  return typeof profile === 'object' && 'traceEvents' in profile;
 }
 
 // We check for the presence of at least one ProfileChunk event in the trace
-export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ProfileType {
+export function isChromeTraceArrayFormat(
+  profile: any
+): profile is ChromeTrace.ProfileType {
   return (
-    Array.isArray(input) && input.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
+    Array.isArray(profile) && profile.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
   );
 }
 
@@ -35,17 +44,18 @@ export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.Profi
 // The TS trace can still contain other event types like metadata events, meaning we cannot
 // use array.every() and need to check all the events to make sure no P events are present
 export function isTypescriptChromeTraceArrayFormat(
-  input: any
-): input is ChromeTrace.ArrayFormat {
+  profile: any
+): profile is ChromeTrace.ArrayFormat {
   return (
-    Array.isArray(input) && !input.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
+    Array.isArray(profile) &&
+    !profile.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
   );
 }
 
-export function isChromeTraceFormat(input: any): input is ChromeTrace.ArrayFormat {
+export function isChromeTraceFormat(profile: any): profile is ChromeTrace.ArrayFormat {
   return (
-    isTypescriptChromeTraceArrayFormat(input) ||
-    isChromeTraceObjectFormat(input) ||
-    isChromeTraceArrayFormat(input)
+    isTypescriptChromeTraceArrayFormat(profile) ||
+    isChromeTraceObjectFormat(profile) ||
+    isChromeTraceArrayFormat(profile)
   );
 }

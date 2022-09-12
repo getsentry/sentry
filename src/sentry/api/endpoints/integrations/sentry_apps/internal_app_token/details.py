@@ -3,11 +3,13 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.mediators.sentry_app_installation_tokens import Destroyer
 from sentry.models import ApiToken
 
 
+@pending_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission,)
 

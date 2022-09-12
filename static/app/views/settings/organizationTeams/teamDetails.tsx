@@ -136,7 +136,7 @@ function TeamDetails({children, ...props}: Props) {
                 <NavTabs underlined>{navigationTabs}</NavTabs>
 
                 {isValidElement(children) &&
-                  cloneElement(children, {
+                  cloneElement<any>(children, {
                     team,
                     onTeamChange: () => onTeamChange(team),
                   })}
