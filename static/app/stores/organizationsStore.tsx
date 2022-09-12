@@ -9,6 +9,7 @@ interface OrganizationsStoreDefinition extends StoreDefinition {
   get(slug: string): Organization | undefined;
 
   getAll(): Organization[];
+  getState(): Organization[];
   load(items: Organization[]): void;
   loaded: boolean;
   onChangeSlug(prev: Organization, next: Organization): void;
@@ -56,6 +57,10 @@ const storeConfig: OrganizationsStoreDefinition = {
   },
 
   getAll() {
+    return this.state;
+  },
+
+  getState() {
     return this.state;
   },
 

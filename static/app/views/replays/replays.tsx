@@ -4,6 +4,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DetailedError from 'sentry/components/errors/detailedError';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -13,10 +15,8 @@ import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useReplayList, {
-  DEFAULT_SORT,
-  REPLAY_LIST_FIELDS,
-} from 'sentry/utils/replays/hooks/useReplayList';
+import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
+import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -68,11 +68,11 @@ function Replays({location}: Props) {
         message={
           <div>
             <p>{t('This could be due to a handful of reasons:')}</p>
-            <ol className="detailed-error-list">
+            <List symbol="bullet">
               {reasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
+                <ListItem key={i}>{reason}</ListItem>
               ))}
-            </ol>
+            </List>
           </div>
         }
       />

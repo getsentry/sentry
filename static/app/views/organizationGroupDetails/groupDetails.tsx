@@ -15,7 +15,7 @@ import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {AvatarProject, Group, Organization, Project} from 'sentry/types';
-import {EntrySpanTree, EntryType, Event} from 'sentry/types/event';
+import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -163,40 +163,18 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
-  addPerformanceSpecificEntries(event: Event) {
-    const performanceData = event.contexts.performance_issue;
-
-    const spanTreeEntry: EntrySpanTree = {
-      data: {
-        affectedSpanIds: performanceData.spans,
-      },
-      type: EntryType.SPANTREE,
-    };
-
-    const performanceEntry = {
-      data: {},
-      type: EntryType.PERFORMANCE,
-    };
-
-    const updatedEvent = {
-      ...event,
-      entries: [performanceEntry, spanTreeEntry, ...event.entries],
-    };
-    return updatedEvent;
-  }
-
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api, organization} = this.props;
+    const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
     const projectId = group?.project?.slug;
     try {
-      let event = await fetchGroupEvent(
+      const event = await fetchGroupEvent(
         api,
         orgSlug,
         groupId,
@@ -204,15 +182,6 @@ class GroupDetails extends Component<Props, State> {
         environments,
         projectId
       );
-
-      // add extra perf issue specific entries like span tree and duration and span count charts
-      if (
-        organization.features.includes('performance-issues') &&
-        event.contexts.performance_issue
-      ) {
-        const updatedEvent = this.addPerformanceSpecificEntries(event);
-        event = updatedEvent as Event;
-      }
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
