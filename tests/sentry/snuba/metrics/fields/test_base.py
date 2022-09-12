@@ -146,8 +146,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         Test that ensures that method generate_select_statements generates the equivalent SnQL
         required to query for the instance of DerivedMetric
         """
-        metrics_query = object()
-
         org_id = self.project.organization_id
         use_case_id = UseCaseKey.RELEASE_HEALTH
         for status in ("init", "abnormal", "crashed", "errored"):
@@ -168,7 +166,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         for metric_mri, (func, metric_ids_list) in derived_name_snql.items():
             assert DERIVED_METRICS[metric_mri].generate_select_statements(
                 [self.project],
-                metrics_query=metrics_query,
                 use_case_id=use_case_id,
                 alias=metric_mri,
             ) == [
@@ -182,7 +179,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         session_error_metric_ids = [rh_indexer_record(org_id, SessionMRI.ERROR.value)]
         assert DERIVED_METRICS[SessionMRI.ERRORED_SET.value].generate_select_statements(
             [self.project],
-            metrics_query=metrics_query,
             use_case_id=use_case_id,
             alias=SessionMRI.ERRORED_SET.value,
         ) == [
@@ -196,7 +192,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASHED_AND_ABNORMAL_USER.value
         ].generate_select_statements(
             [self.project],
-            metrics_query=metrics_query,
             use_case_id=use_case_id,
             alias="crashed_abnormal_alias",
         ) == [
@@ -208,7 +203,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         ]
         assert MOCKED_DERIVED_METRICS[SessionMRI.ERRORED_USER.value].generate_select_statements(
             [self.project],
-            metrics_query=metrics_query,
             use_case_id=use_case_id,
             alias="errored_user_alias",
         ) == [
@@ -227,7 +221,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
         assert MOCKED_DERIVED_METRICS[SessionMRI.HEALTHY_USER.value].generate_select_statements(
             [self.project],
-            metrics_query=metrics_query,
             use_case_id=use_case_id,
             alias="healthy_user_alias",
         ) == [
@@ -242,7 +235,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
         assert MOCKED_DERIVED_METRICS[SessionMRI.CRASH_FREE_RATE.value].generate_select_statements(
             [self.project],
-            metrics_query=metrics_query,
             use_case_id=use_case_id,
             alias="crash_rate_alias",
         ) == [
@@ -261,7 +253,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             SessionMRI.CRASH_FREE_USER_RATE.value
         ].generate_select_statements(
             [self.project],
-            metrics_query=metrics_query,
             use_case_id=use_case_id,
             alias="crash_free_rate_alias",
         ) == [
@@ -282,7 +273,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         with pytest.raises(DerivedMetricParseException):
             self.crash_free_fake.generate_select_statements(
                 [self.project],
-                metrics_query=metrics_query,
                 use_case_id=use_case_id,
                 alias="whatever",
             )
@@ -332,7 +322,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
         mocked_mri_resolver(["crash_free_fake"], get_public_name_from_mri),
     )
     def test_generate_order_by_clause(self):
-        metrics_query = object()
         use_case_id = UseCaseKey.RELEASE_HEALTH
 
         for derived_metric_mri in MOCKED_DERIVED_METRICS.keys():
@@ -344,14 +333,12 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             assert derived_metric_obj.generate_orderby_clause(
                 projects=[self.project],
                 direction=Direction.ASC,
-                metrics_query=metrics_query,
                 use_case_id=use_case_id,
                 alias="test",
             ) == [
                 OrderBy(
                     derived_metric_obj.generate_select_statements(
                         [self.project],
-                        metrics_query=metrics_query,
                         use_case_id=use_case_id,
                         alias="test",
                     )[0],
@@ -363,7 +350,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             self.crash_free_fake.generate_orderby_clause(
                 projects=[self.project],
                 direction=Direction.DESC,
-                metrics_query=metrics_query,
                 use_case_id=use_case_id,
                 alias="test",
             )
@@ -405,7 +391,6 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             )
 
     def test_run_post_query_function(self):
-        metrics_query = object()
         totals = {
             "crashed_alias": 7,
         }
@@ -413,24 +398,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
             "crashed_alias": [4, 0, 0, 0, 3, 0],
         }
         crashed_sessions = MOCKED_DERIVED_METRICS[SessionMRI.CRASHED.value]
-        assert (
-            crashed_sessions.run_post_query_function(
-                totals, metrics_query=metrics_query, alias="crashed_alias"
-            )
-            == 7
-        )
-        assert (
-            crashed_sessions.run_post_query_function(
-                series, metrics_query=metrics_query, alias="crashed_alias", idx=0
-            )
-            == 4
-        )
-        assert (
-            crashed_sessions.run_post_query_function(
-                series, metrics_query=metrics_query, alias="crashed_alias", idx=4
-            )
-            == 3
-        )
+        assert crashed_sessions.run_post_query_function(totals, alias="crashed_alias") == 7
+        assert crashed_sessions.run_post_query_function(series, alias="crashed_alias", idx=0) == 4
+        assert crashed_sessions.run_post_query_function(series, alias="crashed_alias", idx=4) == 3
 
 
 class CompositeEntityDerivedMetricTestCase(TestCase):
@@ -482,24 +452,18 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
             )
 
     def test_generate_select_snql_of_derived_metric(self):
-        metrics_query = object()
-
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_select_statements(
                 projects=[1],
-                metrics_query=metrics_query,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 alias="test",
             )
 
     def test_generate_orderby_clause(self):
-        metrics_query = object()
-
         with pytest.raises(NotSupportedOverCompositeEntityException):
             self.sessions_errored.generate_orderby_clause(
                 direction=Direction.ASC,
                 projects=[1],
-                metrics_query=metrics_query,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
                 alias="test",
             )
@@ -571,7 +535,6 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         ]
 
     def test_run_post_query_function(self):
-        metrics_query = object()
         alias = "sessions_errored"
         totals = {
             f"{SessionMRI.ERRORED_SET.value}{COMPOSITE_ENTITY_CONSTITUENT_ALIAS}{alias}": 3,
@@ -625,23 +588,12 @@ class CompositeEntityDerivedMetricTestCase(TestCase):
         assert (
             self.sessions_errored.run_post_query_function(
                 totals,
-                metrics_query=metrics_query,
                 alias=alias,
             )
             == 7
         )
-        assert (
-            self.sessions_errored.run_post_query_function(
-                series, metrics_query=metrics_query, alias=alias, idx=0
-            )
-            == 4
-        )
-        assert (
-            self.sessions_errored.run_post_query_function(
-                series, metrics_query=metrics_query, alias=alias, idx=4
-            )
-            == 3
-        )
+        assert self.sessions_errored.run_post_query_function(series, alias=alias, idx=0) == 4
+        assert self.sessions_errored.run_post_query_function(series, alias=alias, idx=4) == 3
 
 
 class DerivedMetricAliasTestCase(TestCase):

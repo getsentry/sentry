@@ -405,6 +405,75 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
+    def test_histogram_transaction_duration(self):
+        now = timezone.now()
+
+        for tag, value, numbers in (
+            ("tag1", "value1", [1, 2, 3]),
+            ("tag1", "value2", [10, 100, 1000]),
+        ):
+            for subvalue in numbers:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={tag: value},
+                    timestamp=int(time.time()),
+                    value=subvalue,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="histogram",
+                    # ToDo(ahmed): Replace this with MRI once we make MetricsQuery accept MRI
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    params={
+                        "histogram_from": 2,
+                        "histogram_to": None,
+                        "histogram_buckets": 2,
+                    },
+                    alias="histogram_lcp_1",
+                ),
+                MetricField(
+                    op="histogram",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    params={
+                        "histogram_from": None,
+                        "histogram_to": 9,
+                        "histogram_buckets": 2,
+                    },
+                    alias="histogram_lcp_2",
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        assert data["groups"] == [
+            {
+                "by": {},
+                "totals": {
+                    "histogram_lcp_1": [(2.0, 501.0, 4), (501.0, 1000.0, 2)],
+                    "histogram_lcp_2": [(1.0, 5.0, 3), (5.0, 9.0, 0)],
+                },
+            }
+        ]
+
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [

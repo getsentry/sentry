@@ -836,7 +836,7 @@ def get_series(
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
     metrics_query_fields = {
-        str(metric_field) for metric_field in converter._alias_to_metric_obj.keys()
+        str(metric_field) for metric_field in converter._alias_to_metric_field.keys()
     }
     groupby_aliases = (
         {metric_groupby_obj.alias for metric_groupby_obj in metrics_query.groupby}

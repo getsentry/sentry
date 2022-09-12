@@ -172,6 +172,43 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 "interval": "1h",
             }
         )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="histogram",
+                    metric_name="sentry.sessions.session.duration",
+                    params={
+                        "histogram_from": 2,
+                        "histogram_buckets": 2,
+                    },
+                    alias="histogram_non_filtered_duration",
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+
+        hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
+        assert data["groups"] == [
+            {
+                "by": {},
+                "totals": {"histogram_non_filtered_duration": hist},
+            }
+        ]
+
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -179,6 +216,10 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 MetricField(
                     op="histogram",
                     metric_name=SessionMetricKey.DURATION.value,
+                    params={
+                        "histogram_from": 2,
+                        "histogram_buckets": 2,
+                    },
                     alias="histogram_duration",
                 ),
             ],
@@ -187,8 +228,6 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             granularity=Granularity(granularity=rollup),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
-            histogram_from=2,
-            histogram_buckets=2,
             include_series=False,
         )
         data = get_series(

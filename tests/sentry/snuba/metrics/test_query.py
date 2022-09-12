@@ -37,7 +37,6 @@ class MetricsQueryBuilder:
         self.groupby: Optional[Sequence[MetricGroupByField]] = None
         self.limit: Optional[Limit] = None
         self.offset: Optional[Offset] = None
-        self.histogram_buckets: int = 100
         self.include_series: bool = True
         self.include_totals: bool = True
 
@@ -63,10 +62,6 @@ class MetricsQueryBuilder:
 
     def with_granularity(self, granularity: Granularity) -> "MetricsQueryBuilder":
         self.granularity = granularity
-        return self
-
-    def with_histogram_buckets(self, histogram_buckets: int) -> "MetricsQueryBuilder":
-        self.histogram_buckets = histogram_buckets
         return self
 
     def with_include_series(self, include_series: bool) -> "MetricsQueryBuilder":
@@ -98,7 +93,6 @@ class MetricsQueryBuilder:
             "groupby": self.groupby,
             "limit": self.limit,
             "offset": self.offset,
-            "histogram_buckets": self.histogram_buckets,
             "include_series": self.include_series,
             "include_totals": self.include_totals,
         }
@@ -494,11 +488,3 @@ def test_granularity_validation(stats_period, interval, error_message):
     # that is not present in the select
     with pytest.raises(InvalidParams, match=error_message):
         MetricsQuery(**metrics_query_dict)
-
-
-def test_validate_histogram_buckets():
-    with pytest.raises(
-        InvalidParams,
-        match="We don't have more than 250 buckets stored for any given metric bucket.",
-    ):
-        MetricsQuery(**MetricsQueryBuilder().with_histogram_buckets(500).to_metrics_query_dict())
