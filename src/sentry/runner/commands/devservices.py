@@ -6,6 +6,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import click
+import requests
 
 import docker
 
@@ -19,27 +20,32 @@ if os.path.exists(RAW_SOCKET_HACK_PATH):
 
 def get_docker_client() -> docker.DockerClient:
     client = docker.from_env()
-    started = False
-    max_wait = 30
-    start = time.monotonic()
+    try:
+        client.ping()
+        return client
+    except requests.exceptions.ConnectionError:
+        click.echo("Attempting to start docker...")
+        if sys.platform == "darwin":
+            subprocess.check_call(
+                ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+            )
+        else:
+            click.echo("Unable to start docker.")
+            raise click.ClickException("Make sure docker is running.")
 
-    while time.monotonic() - start < max_wait:
-        try:
-            client.ping()
-            return client
-        except Exception:
-            if not started:
-                if sys.platform == "darwin":
-                    subprocess.check_call(
-                        ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
-                    )
-                else:
-                    raise click.ClickException("Make sure docker in running.")
-                started = True
-                click.echo(f"Attempting to start docker... (timeout after {max_wait}s)")
+        max_wait = 60
+        start = time.monotonic()
+
+        click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
+        while time.monotonic() - start < max_wait:
             time.sleep(1)
+            try:
+                client.ping()
+                return client
+            except (requests.exceptions.ConnectionError, docker.errors.APIError):
+                continue
 
-    raise click.ClickException("Failed to start docker.")
+        raise click.ClickException("Failed to start docker.")
 
 
 def get_or_create(client, thing, name):
