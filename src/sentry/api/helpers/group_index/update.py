@@ -41,6 +41,7 @@ from sentry.models import (
     follows_semver_versioning_scheme,
     remove_group_from_inbox,
 )
+from sentry.models.activity import ActivityIntegration
 from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
@@ -680,11 +681,19 @@ def update_groups(
             if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
             else None
         )
+        extra = (
+            {"integration": data.get("integration")}
+            if data.get("integration")
+            in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
+            else dict()
+        )
         if assigned_actor:
             for group in group_list:
                 resolved_actor = assigned_actor.resolve()
 
-                assignment = GroupAssignee.objects.assign(group, resolved_actor, acting_user)
+                assignment = GroupAssignee.objects.assign(
+                    group, resolved_actor, acting_user, extra=extra
+                )
                 analytics.record(
                     "manual.issue_assignment",
                     organization_id=project_lookup[group.project_id].organization_id,

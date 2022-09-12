@@ -455,6 +455,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
+    def test_perf_issue(self):
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        self.login_as(user=self.user)
+        with self.feature("organizations:issue-search-allow-postgres-only-search"):
+            response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
+
     def test_lookup_by_event_id(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -587,7 +595,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=2))},
             project_id=project.id,
         )
         event2 = self.store_event(
@@ -1668,7 +1676,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
@@ -1689,7 +1696,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
@@ -1709,7 +1715,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
@@ -1729,7 +1734,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
@@ -1749,7 +1753,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["base"]

@@ -6,10 +6,8 @@ import {PageContent} from 'sentry/styles/organization';
 import type {Group} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useReplayList, {
-  DEFAULT_SORT,
-  REPLAY_LIST_FIELDS,
-} from 'sentry/utils/replays/hooks/useReplayList';
+import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
+import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplayTable from 'sentry/views/replays/replayTable';
