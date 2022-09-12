@@ -1,10 +1,11 @@
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import FlexibleForeignKey, region_silo_model
 
 from . import AvatarBase
 
 
+@region_silo_model
 class TeamAvatar(AvatarBase):
     """
     A TeamAvatar associates a Team with their avatar photo File

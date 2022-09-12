@@ -1,16 +1,18 @@
-# This endpoint helps managing persisted client state with a TTL for a member, organization or user
-
 from django.conf import settings
 from django.http import HttpResponse
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.utils import json, redis
 from sentry.utils.client_state import STATE_CATEGORIES, get_client_state_key, get_redis_client
 
+# This endpoint helps managing persisted client state with a TTL for a member, organization or user
 
+
+@pending_silo_endpoint
 class ClientStateListEndpoint(OrganizationEndpoint):
     private = True
 
@@ -29,6 +31,7 @@ class ClientStateListEndpoint(OrganizationEndpoint):
         return Response(result)
 
 
+@pending_silo_endpoint
 class ClientStateEndpoint(OrganizationEndpoint):
     private = True
 

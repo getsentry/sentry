@@ -1,8 +1,10 @@
 from sentry.models import Rule
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class FirstSeenEventConditionTest(RuleTestCase):
     rule_cls = FirstSeenEventCondition
 

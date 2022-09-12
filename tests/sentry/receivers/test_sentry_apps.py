@@ -10,6 +10,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.faux import faux
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import region_silo_test
 
 # This testcase needs to be an APITestCase because all of the logic to resolve
 # Issues and kick off side effects are just chillin in the endpoint code -_-
@@ -17,6 +18,7 @@ from sentry.types.activity import ActivityType
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@region_silo_test
 class TestIssueWorkflowNotifications(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)
@@ -159,6 +161,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
 
 @patch("sentry.tasks.sentry_functions.send_sentry_function_webhook.delay")
+@region_silo_test
 class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -306,6 +309,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
 
 
 @patch("sentry.tasks.sentry_apps.workflow_notification.delay")
+@region_silo_test
 class TestIssueAssigned(APITestCase):
     def setUp(self):
         self.issue = self.create_group(project=self.project)

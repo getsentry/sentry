@@ -60,6 +60,7 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUP
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json
@@ -92,6 +93,7 @@ class EventManagerTestMixin:
         return event
 
 
+@region_silo_test
 class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
@@ -2457,6 +2459,7 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             assert commit_list[1].key == LATER_COMMIT_SHA
 
 
+@region_silo_test
 class ReleaseIssueTest(TestCase):
     def setUp(self):
         self.project = self.create_project()

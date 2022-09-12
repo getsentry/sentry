@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import SavedSearch, SavedSearchUserDefault
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectSearchListTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -73,6 +75,7 @@ class ProjectSearchListTest(APITestCase):
         assert resp.data[1]["id"] == str(search2.id)
 
 
+@region_silo_test
 class ProjectSearchCreateTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

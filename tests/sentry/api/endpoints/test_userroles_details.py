@@ -1,5 +1,6 @@
 from sentry.models import UserRole
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class PermissionTestMixin:
@@ -32,6 +33,7 @@ class UserRolesDetailsTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
+@control_silo_test
 class UserRolesDetailsGetTest(PermissionTestMixin, UserRolesDetailsTest):
     def test_simple(self):
         UserRole.objects.create(name="test-role")
@@ -41,6 +43,7 @@ class UserRolesDetailsGetTest(PermissionTestMixin, UserRolesDetailsTest):
         assert resp.data["name"] == "test-role"
 
 
+@control_silo_test
 class UserRolesDetailsPutTest(PermissionTestMixin, UserRolesDetailsTest):
     method = "PUT"
 
@@ -56,6 +59,7 @@ class UserRolesDetailsPutTest(PermissionTestMixin, UserRolesDetailsTest):
         assert role2.permissions == ["users.edit"]
 
 
+@control_silo_test
 class UserRolesDetailsDeleteTest(PermissionTestMixin, UserRolesDetailsTest):
     method = "DELETE"
 

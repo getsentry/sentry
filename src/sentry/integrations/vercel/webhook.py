@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import VERSION, audit_log, http, options
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.models import (
     Integration,
     Organization,
@@ -119,6 +119,7 @@ def get_payload_and_token(
     return release_payload, sentry_app_installation_token.api_token.token
 
 
+@pending_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()

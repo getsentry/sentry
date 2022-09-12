@@ -8,8 +8,10 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class AuthDetailsEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
@@ -25,6 +27,7 @@ class AuthDetailsEndpointTest(APITestCase):
         assert response.status_code == 400
 
 
+@control_silo_test
 class AuthLoginEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
@@ -46,6 +49,7 @@ class AuthLoginEndpointTest(APITestCase):
         assert response.status_code == 401
 
 
+@control_silo_test
 class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
@@ -118,6 +122,7 @@ class AuthVerifyEndpointTest(APITestCase):
         assert {"response": "response"} in validate_response.call_args[0]
 
 
+@control_silo_test
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
@@ -460,6 +465,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
             assert self.client.session.get("_next") is None
 
 
+@control_silo_test
 class AuthLogoutEndpointTest(APITestCase):
     path = "/api/0/auth/"
 

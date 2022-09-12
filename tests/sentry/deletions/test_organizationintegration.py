@@ -12,8 +12,10 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization()

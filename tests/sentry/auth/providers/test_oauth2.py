@@ -7,6 +7,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Provider
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class DummyOAuth2Provider(OAuth2Provider):
@@ -22,6 +23,7 @@ class DummyOAuth2Provider(OAuth2Provider):
         pass
 
 
+@control_silo_test
 class OAuth2ProviderTest(TestCase):
     @fixture
     def auth_provider(self):

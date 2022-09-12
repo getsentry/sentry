@@ -3,8 +3,10 @@ from unittest import mock
 from sentry.auth.password_validation import MinimumLengthValidator
 from sentry.models import User
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class UserPasswordTest(APITestCase):
     endpoint = "sentry-api-0-user-password"
     method = "put"

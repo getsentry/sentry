@@ -3,8 +3,10 @@ from exam import fixture
 from sentry.api.serializers import serialize
 from sentry.models import Environment
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationEnvironmentsTest(APITestCase):
     endpoint = "sentry-api-0-organization-environments"
 

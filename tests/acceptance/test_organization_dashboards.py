@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
@@ -35,6 +36,7 @@ GRID_LAYOUT_FEATURE = ["organizations:dashboard-grid-layout"]
 WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
 
 
+@region_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -144,6 +146,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.browser.snapshot("dashboard widget - delete")
 
 
+@region_silo_test
 class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
@@ -865,6 +868,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             )
 
 
+@region_silo_test
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

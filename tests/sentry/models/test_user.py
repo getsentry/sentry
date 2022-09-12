@@ -1,7 +1,9 @@
 from sentry.models import Authenticator, OrganizationMember, OrganizationMemberTeam, User, UserEmail
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class UserTest(TestCase):
     def test_get_orgs(self):
         user = self.create_user()
@@ -25,6 +27,7 @@ class UserTest(TestCase):
         assert {_.id for _ in projects} == {project.id}
 
 
+@control_silo_test
 class UserDetailsTest(TestCase):
     def test_salutation(self):
         user = self.create_user(email="a@example.com", username="a@example.com")
@@ -37,6 +40,7 @@ class UserDetailsTest(TestCase):
         assert user.get_salutation_name() == "Hello"
 
 
+@control_silo_test
 class UserMergeToTest(TestCase):
     def test_simple(self):
         from_user = self.create_user("foo@example.com")

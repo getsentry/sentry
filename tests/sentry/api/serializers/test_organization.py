@@ -15,8 +15,10 @@ from sentry.features.base import OrganizationFeature
 from sentry.models import OrganizationOnboardingTask
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -77,6 +79,7 @@ class OrganizationSerializerTest(TestCase):
         assert "disabled-feature" not in result["features"]
 
 
+@region_silo_test
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -94,6 +97,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert isinstance(result["teamRoleList"], list)
 
 
+@region_silo_test
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized

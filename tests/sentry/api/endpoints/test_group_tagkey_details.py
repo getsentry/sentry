@@ -1,8 +1,10 @@
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class GroupTagDetailsTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         for i in range(3):

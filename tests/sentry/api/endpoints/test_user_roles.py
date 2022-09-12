@@ -1,5 +1,6 @@
 from sentry.models import UserRole
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class PermissionTestMixin:
@@ -32,6 +33,7 @@ class UserUserRolesTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
+@control_silo_test
 class UserUserRolesGetTest(UserUserRolesTest, PermissionTestMixin):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])

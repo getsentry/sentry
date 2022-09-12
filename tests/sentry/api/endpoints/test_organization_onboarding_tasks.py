@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import OnboardingTask, OnboardingTaskStatus, OrganizationOnboardingTask
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()

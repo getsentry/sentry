@@ -1,6 +1,7 @@
 from sentry import audit_log
 from sentry.models import AuditLogEntry, DeletedTeam, ScheduledDeletion, Team, TeamStatus
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
 class TeamDetailsTestBase(APITestCase):
@@ -54,6 +55,7 @@ class TeamDetailsTestBase(APITestCase):
         self.assert_team_status(team_id, TeamStatus.VISIBLE)
 
 
+@region_silo_test
 class TeamDetailsTest(TeamDetailsTestBase):
     def test_simple(self):
         team = self.team  # force creation
@@ -62,6 +64,7 @@ class TeamDetailsTest(TeamDetailsTestBase):
         assert response.data["id"] == str(team.id)
 
 
+@region_silo_test
 class TeamUpdateTest(TeamDetailsTestBase):
     method = "put"
 
@@ -77,6 +80,7 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.slug == "foobar"
 
 
+@region_silo_test
 class TeamDeleteTest(TeamDetailsTestBase):
     method = "delete"
 

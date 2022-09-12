@@ -1,7 +1,9 @@
 from sentry.models import EventUser
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectUserDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-user-details"
 

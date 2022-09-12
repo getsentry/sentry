@@ -2,8 +2,10 @@ from unittest.mock import patch
 
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class CreateProjectTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

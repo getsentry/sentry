@@ -27,10 +27,12 @@ from sentry.models import (
 )
 from sentry.signals import buffer_incr_complete
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.releaseactivity import ReleaseActivityType
 
 
+@region_silo_test
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
@@ -219,6 +221,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupSubscription.objects.filter(group=group, user=user).exists()
 
 
+@region_silo_test
 class ProjectHasReleasesReceiverTest(TestCase):
     def test(self):
         buffer = Buffer()

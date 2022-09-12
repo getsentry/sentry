@@ -6,9 +6,11 @@ from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class EventSerializerTest(TestCase):
     def test_simple(self):
         event_id = "a" * 32
@@ -217,6 +219,7 @@ class EventSerializerTest(TestCase):
         assert result["entries"][0]["type"] == "spans"
 
 
+@region_silo_test
 class SharedEventSerializerTest(TestCase):
     def test_simple(self):
         event = self.store_event(
@@ -237,6 +240,7 @@ class SharedEventSerializerTest(TestCase):
             assert entry["type"] != "breadcrumbs"
 
 
+@region_silo_test
 class SimpleEventSerializerTest(TestCase):
     def test_user(self):
         """
@@ -291,6 +295,7 @@ class SimpleEventSerializerTest(TestCase):
         assert result["groupID"] is None
 
 
+@region_silo_test
 class EventSerializerSdkUpdatesTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",

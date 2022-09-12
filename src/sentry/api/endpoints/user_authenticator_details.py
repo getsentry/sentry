@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -13,6 +14,7 @@ from sentry.models import Authenticator
 from sentry.security import capture_security_activity
 
 
+@control_silo_endpoint
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     permission_classes = (OrganizationUserPermission,)
 

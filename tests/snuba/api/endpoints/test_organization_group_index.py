@@ -54,12 +54,14 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
 @apply_feature_flag_on_cls("organizations:release-committer-assignees")
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -1921,6 +1923,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert owners[1]["type"] == "releaseCommit"
 
 
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3225,6 +3228,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"

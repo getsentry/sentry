@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 
 
 def mocked_discover_query():
@@ -200,6 +201,7 @@ def mocked_discover_query():
     }
 
 
+@region_silo_test
 class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     @property
     def endpoint(self):

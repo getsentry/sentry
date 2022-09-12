@@ -2,8 +2,10 @@ from sentry.models import OrganizationMemberTeam
 from sentry.roles import team_roles
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationMemberTest(TestCase):
     def setUp(self):
         organization = self.create_organization()

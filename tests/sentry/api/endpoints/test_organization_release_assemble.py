@@ -7,8 +7,10 @@ from django.urls import reverse
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationReleaseAssembleTest(APITestCase):
     def setUp(self):
         self.organization = self.create_organization(owner=self.user)

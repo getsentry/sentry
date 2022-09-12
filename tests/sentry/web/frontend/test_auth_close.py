@@ -3,8 +3,10 @@ from django.utils.http import urlquote
 from exam import fixture
 
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class AuthClose(TestCase):
     @fixture
     def path(self):

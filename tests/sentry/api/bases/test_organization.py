@@ -22,6 +22,7 @@ from sentry.auth.authenticators import TotpInterface
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
 class MockSuperUser:
@@ -43,6 +44,7 @@ class OrganizationPermissionBase(TestCase):
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
 
+@region_silo_test
 class OrganizationPermissionTest(OrganizationPermissionBase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -191,6 +193,7 @@ class BaseOrganizationEndpointTest(TestCase):
         return request
 
 
+@region_silo_test
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
     def setUp(self):
         self.team_1 = self.create_team(organization=self.org)

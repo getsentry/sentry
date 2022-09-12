@@ -19,6 +19,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -93,6 +94,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.login_as(self.user)
 
 
+@region_silo_test
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
@@ -255,6 +257,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         ]
 
 
+@region_silo_test
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
 
@@ -657,6 +660,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert error_message in response.json().get("actions")[0]
 
 
+@region_silo_test
 class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 

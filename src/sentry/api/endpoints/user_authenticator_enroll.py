@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits as ratelimiter
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
@@ -100,6 +101,7 @@ def get_serializer_field_metadata(serializer, fields=None):
     return meta
 
 
+@control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     @sudo_required
     def get(self, request: Request, user, interface_id) -> Response:

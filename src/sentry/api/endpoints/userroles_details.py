@@ -4,7 +4,7 @@ from django.db import IntegrityError, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
@@ -14,6 +14,7 @@ from sentry.models import UserRole
 audit_logger = logging.getLogger("sentry.audit.user")
 
 
+@control_silo_endpoint
 class UserRoleDetailsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

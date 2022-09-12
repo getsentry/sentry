@@ -16,11 +16,13 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-events-stats"
 
@@ -904,6 +906,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
 
+@region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

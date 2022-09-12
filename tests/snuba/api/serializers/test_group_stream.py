@@ -9,10 +9,12 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnub
 from sentry.models import Environment
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 
 
+@region_silo_test
 class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
     def test_environment(self):
         group = self.group
