@@ -88,14 +88,14 @@ class Actions extends Component<Props, State> {
 
   getDiscoverUrl() {
     const {group, project, organization} = this.props;
-    const {title, id, type} = group;
+    const {title, type, shortId} = group;
 
     const discoverQuery = {
       id: undefined,
       name: title || type,
       fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
-      query: `issue.id:${id}`,
+      query: `issue:${shortId}`,
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
