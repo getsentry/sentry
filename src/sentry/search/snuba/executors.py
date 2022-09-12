@@ -8,7 +8,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from heapq import merge
-from typing import Any, List, Mapping, Sequence, Set, Tuple, cast
+from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -141,8 +141,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         project_ids: Sequence[int],
         environments: Sequence[Environment],
         environment_ids: Sequence[int],
-        conditions: Sequence[any],
-    ) -> Sequence[any]:
+        conditions: List[Any],
+    ) -> Sequence[Any]:
         search_filter = SearchFilter(
             key=SearchKey(name=key),
             operator=operator,
@@ -159,9 +159,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         converted_filter = self._transform_converted_filter(
             search_filter, converted_filter, project_ids, environment_ids
         )
-        updated_conditions = conditions.copy()
-        updated_conditions.append(converted_filter)
-        return updated_conditions
+        conditions.append(converted_filter)
+        return conditions
 
     def snuba_search(
         self,
@@ -354,7 +353,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", len(error_rows) + len(txn_rows))
 
-        def keyfunc(row):
+        def keyfunc(row: Dict[str, int]) -> Optional[int]:
             return row.get("group_id")
 
         return [
