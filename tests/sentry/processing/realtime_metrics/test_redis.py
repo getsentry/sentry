@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict
+from typing import Any, Dict
 
 import pytest
 
@@ -6,18 +6,6 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.processing import realtime_metrics
 from sentry.processing.realtime_metrics.redis import RedisRealtimeMetricsStore
 from sentry.utils import redis
-
-if TYPE_CHECKING:
-    from typing import Callable
-
-    def _fixture(func: Callable[..., Any]) -> Callable[..., None]:
-        ...
-
-    def _xfail(func: Callable[..., Any]) -> Callable[..., None]:
-        ...
-
-    pytest.fixture = _fixture
-    pytest.mark.xfail = _xfail
 
 
 @pytest.fixture

@@ -1,7 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const data = {
   metadata: {
@@ -14,6 +17,25 @@ const data = {
   },
   culprit: 'culprit',
 };
+
+function TestComponent({children}) {
+  const {organization, router} = initializeOrg();
+
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    </OrganizationContext.Provider>
+  );
+}
 
 describe('EventDataSection', function () {
   const groupData = {
@@ -30,13 +52,15 @@ describe('EventDataSection', function () {
   };
   it('renders formatted', function () {
     const wrapper = render(
-      <EventDataSection
-        group={groupData}
-        event={eventData}
-        type="extra"
-        title="Additional Data"
-        raw={false}
-      />
+      <TestComponent>
+        <EventDataSection
+          group={groupData}
+          event={eventData}
+          type="extra"
+          title="Additional Data"
+          raw={false}
+        />
+      </TestComponent>
     );
 
     expect(wrapper.container).toSnapshot();
@@ -44,13 +68,15 @@ describe('EventDataSection', function () {
 
   it('renders raw', function () {
     const wrapper = render(
-      <EventDataSection
-        group={groupData}
-        event={eventData}
-        type="extra"
-        title="Additional Data"
-        raw
-      />
+      <TestComponent>
+        <EventDataSection
+          group={groupData}
+          event={eventData}
+          type="extra"
+          title="Additional Data"
+          raw
+        />
+      </TestComponent>
     );
     expect(wrapper.container).toSnapshot();
   });
@@ -71,14 +97,20 @@ describe('KeyValueList', function () {
 
   it('renders formatted', function () {
     const wrapper = render(
-      <KeyValueList data={extraDataArray} isContextData raw={false} />
+      <TestComponent>
+        <KeyValueList data={extraDataArray} isContextData raw={false} />
+      </TestComponent>
     );
 
     expect(wrapper.container).toSnapshot();
   });
 
   it('renders raw', function () {
-    const wrapper = render(<KeyValueList data={extraDataArray} isContextData raw />);
+    const wrapper = render(
+      <TestComponent>
+        <KeyValueList data={extraDataArray} isContextData raw />
+      </TestComponent>
+    );
 
     expect(wrapper.container).toSnapshot();
   });

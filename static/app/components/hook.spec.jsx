@@ -12,7 +12,6 @@ const HookWrapper = props => (
 
 describe('Hook', function () {
   afterEach(function () {
-    HookStore.teardown();
     HookStore.init();
   });
 

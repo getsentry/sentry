@@ -3,9 +3,9 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Set, Union
+from typing import Dict, Literal, Optional, Sequence, Set, Union
 
-from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
+from snuba_sdk import Column, Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
@@ -32,15 +32,32 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
+    params: Optional[Dict[str, Union[str, int, float]]] = None
+    alias: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        # ToDo(ahmed): Once we allow MetricField to accept MRI, we should set the alias to the operation and public
+        #  facing name
+        if not self.alias:
+            key = f"{self.op}({self.metric_name})" if self.op is not None else self.metric_name
+            object.__setattr__(self, "alias", key)
 
     def __str__(self) -> str:
         return f"{self.op}({self.metric_name})" if self.op else self.metric_name
 
 
+@dataclass(frozen=True)
+class MetricGroupByField:
+    name: str
+    alias: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.alias:
+            object.__setattr__(self, "alias", self.name)
+
+
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
-
-MAX_HISTOGRAM_BUCKET = 250
 
 
 @dataclass(frozen=True)
@@ -74,19 +91,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
     end: datetime
     granularity: Granularity
     where: Optional[ConditionGroup] = None  # TODO: Should restrict
-    groupby: Optional[Sequence[Groupable]] = None
+    groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[OrderBy]] = None
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
-
-    # TODO(ahmed): These should be properties of the Histogram field. We need to extend MetricField
-    #  to accept params and we should pass histogram fields as params on a specific instance of
-    #  MetricField rather than them living on an instance of MetricsQuery
-    histogram_buckets: int = 100
-    histogram_from: Optional[float] = None
-    histogram_to: Optional[float] = None
 
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:
@@ -134,16 +144,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for condition in self.where:
             if (
                 isinstance(condition, Condition)
-                and isinstance(condition.lhs, Function)
-                and condition.lhs.function == "ifNull"
+                and isinstance(condition.lhs, Column)
+                and condition.lhs.name in UNALLOWED_TAGS
             ):
-                parameter = condition.lhs.parameters[0]
-                if isinstance(parameter, Column) and parameter.name.startswith(
-                    ("tags_raw[", "tags[")
-                ):
-                    tag_name = parameter.name.split("[")[1].split("]")[0]
-                    if tag_name in UNALLOWED_TAGS:
-                        raise InvalidParams(f"Tag name {tag_name} is not a valid query filter")
+                raise InvalidParams(f"Tag name {condition.lhs.name} is not a valid query filter")
 
     def validate_orderby(self) -> None:
         if not self.orderby:
@@ -208,17 +212,11 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_groupby(self) -> None:
         if not self.groupby:
             return
-        for field in self.groupby:
-            if field in UNALLOWED_TAGS:
-                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
-
-    def validate_histogram_buckets(self) -> None:
-        # Validate histogram bucket count
-        if self.histogram_buckets > MAX_HISTOGRAM_BUCKET:
-            raise InvalidParams(
-                f"We don't have more than {MAX_HISTOGRAM_BUCKET} buckets stored for any "
-                f"given metric bucket."
-            )
+        for metric_groupby_obj in self.groupby:
+            if metric_groupby_obj.name in UNALLOWED_TAGS:
+                raise InvalidParams(
+                    f"Tag name {metric_groupby_obj.name} cannot be used to groupBy query"
+                )
 
     def validate_include_totals(self) -> None:
         if self.include_totals or self.include_series:

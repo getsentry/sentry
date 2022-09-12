@@ -187,6 +187,12 @@
           "type": "framework",
           "id": "javascript-remix",
           "name": "Remix"
+        },
+        {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/svelte/",
+          "type": "framework",
+          "id": "javascript-svelte",
+          "name": "Svelte"
         }
       ],
       "id": "javascript",

@@ -10,7 +10,7 @@ describe('projectStatsToPredictedSeries', function () {
       {
         seriesName: 'Indexed and Processed',
         color: '#2BA185',
-        barMinHeight: 1,
+        barMinHeight: 0,
         type: 'bar',
         stack: 'predictedUsage',
         data: [
@@ -117,7 +117,7 @@ describe('projectStatsToPredictedSeries', function () {
           {name: 1656954000000, value: 109120},
           {name: 1656957600000, value: 62582},
         ],
-        barMinHeight: 1,
+        barMinHeight: 0,
         type: 'bar',
         stack: 'predictedUsage',
       },
@@ -174,7 +174,7 @@ describe('projectStatsToPredictedSeries', function () {
           {name: 1656954000000, value: 381921},
           {name: 1656957600000, value: 219036},
         ],
-        barMinHeight: 1,
+        barMinHeight: 0,
         type: 'bar',
         stack: 'predictedUsage',
       },
@@ -188,7 +188,7 @@ describe('projectStatsToPredictedSeries', function () {
       {
         seriesName: 'Indexed and Processed',
         color: '#2BA185',
-        barMinHeight: 1,
+        barMinHeight: 0,
         type: 'bar',
         stack: 'predictedUsage',
         data: [
@@ -295,7 +295,7 @@ describe('projectStatsToPredictedSeries', function () {
           {name: 1656954000000, value: 545456},
           {name: 1656957600000, value: 311527},
         ],
-        barMinHeight: 1,
+        barMinHeight: 0,
         type: 'bar',
         stack: 'predictedUsage',
       },
@@ -352,7 +352,7 @@ describe('projectStatsToPredictedSeries', function () {
           {name: 1656954000000, value: 1909096},
           {name: 1656957600000, value: 1090345},
         ],
-        barMinHeight: 1,
+        barMinHeight: 0,
         type: 'bar',
         stack: 'predictedUsage',
       },
