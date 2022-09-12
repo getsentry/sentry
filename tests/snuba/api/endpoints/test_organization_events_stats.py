@@ -573,7 +573,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data={
                 "end": iso_format(before_now()),
                 "start": iso_format(before_now(hours=2)),
-                "query": "event.type:transaction performance.issue_ids:123",
+                "query": "performance.issue_ids:123",
                 "interval": "30m",
                 "yAxis": "count()",
             },
