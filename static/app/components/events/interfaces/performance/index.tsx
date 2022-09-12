@@ -22,8 +22,16 @@ interface Props {
 }
 
 export function SpanEvidenceSection({event, organization}: Props) {
+  if (!event.perfProblem) {
+    return null;
+  }
+
   // We won't be able to do this once it is possible to merge Performance Issues, but for now it is fine
-  const {causes, offenders, parents} = Object.values(event.performanceDetectorData!)[0];
+  const {
+    cause_span_ids: causes,
+    offender_span_ids: offenders,
+    parent_span_ids: parents,
+  } = event.perfProblem;
 
   // For now, it is safe to assume that there is only one cause and parent span for N+1 issues
   const sourceSpanId = causes[0];
@@ -66,7 +74,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
     {
       key: '0',
       subject: t('Transaction'),
-      value: spanEvidence.transaction,
+      value: event.title,
     },
     {
       key: '1',

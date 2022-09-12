@@ -353,9 +353,9 @@ export type EventUser = {
 };
 
 export type PerformanceDetectorData = {
-  causes: string[];
-  offenders: string[];
-  parents: string[];
+  cause_span_ids: string[];
+  offender_span_ids: string[];
+  parent_span_ids: string[];
 };
 
 interface EventBase {
@@ -421,7 +421,7 @@ export interface EventTransaction
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  performanceDetectorData?: Record<string, PerformanceDetectorData>;
+  perfProblem?: PerformanceDetectorData;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
