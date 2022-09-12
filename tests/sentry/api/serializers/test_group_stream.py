@@ -1,7 +1,10 @@
 from unittest import mock
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializer,
+    StreamGroupSerializerSnuba,
+)
 from sentry.event_manager import _pull_out_data
 from sentry.models import Environment
 from sentry.testutils import TestCase
@@ -55,7 +58,7 @@ class StreamGroupSerializerTestCase(TestCase):
             return jobs, projects
 
         with mock.patch("sentry.event_manager._pull_out_data", inject_group_ids):
-            cur_time = before_now(minutes=1)
+            cur_time = before_now(minutes=5)
             event_data = {
                 "type": "transaction",
                 "level": "info",
@@ -70,7 +73,11 @@ class StreamGroupSerializerTestCase(TestCase):
                 project_id=self.project.id,
             )
             self.group.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
-            serialized = serialize(self.group)
+            serialized = serialize(
+                self.group, serializer=StreamGroupSerializerSnuba(stats_period="24h")
+            )
             assert serialized["count"] == "1"
             assert serialized["issueCategory"] == "performance"
             assert serialized["issueType"] == "performance_n_plus_one"
+            assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
+            assert serialized["stats"]["24h"][-1][1] == 1
