@@ -75,23 +75,22 @@ function IssueListActions({
     SelectedGroupStore.deselectAll();
   }
 
+  // TODO: Remove this when merging/deleting performance issues is supported
+  // This silently avoids performance issues for bulk actions
+  const queryExcludingPerformanceIssues = organization.features.includes(
+    'performance-issues'
+  )
+    ? `${query ?? ''} !issue.category:performance`
+    : query;
+
   function handleDelete() {
-    const orgId = organization.slug;
-
-    // TODO: Remove this when deleting performance issues is supported
-    // This silently avoids performance issues for bulk actions
-    const modifiedQuery =
-      query && organization.features.includes('performance-issues')
-        ? `${query} !issue.category:performance`
-        : query;
-
     actionSelectedGroups(itemIds => {
       bulkDelete(
         api,
         {
-          orgId,
+          orgId: organization.slug,
           itemIds,
-          query: modifiedQuery,
+          query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -106,20 +105,13 @@ function IssueListActions({
   }
 
   function handleMerge() {
-    // TODO: Remove this when merging performance issues is supported
-    // This silently avoids performance issues for bulk actions
-    const modifiedQuery =
-      query && organization.features.includes('performance-issues')
-        ? `${query} !issue.category:performance`
-        : query;
-
     actionSelectedGroups(itemIds => {
       mergeGroups(
         api,
         {
           orgId: organization.slug,
           itemIds,
-          query: modifiedQuery,
+          query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
