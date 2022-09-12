@@ -125,7 +125,7 @@ function ActionSet({
       label: t('Merge'),
       hidden: !nestMergeAndReview,
       disabled: mergeDisabled,
-      tooltip: makeMergeTooltip(),
+      details: makeMergeTooltip(),
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
@@ -186,7 +186,7 @@ function ActionSet({
       label: t('Delete'),
       priority: 'danger',
       disabled: !deleteSupported,
-      tooltip: deleteDisabledReason,
+      details: deleteDisabledReason,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
