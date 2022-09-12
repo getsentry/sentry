@@ -2,7 +2,7 @@
 from typing import Any, List, Optional, Tuple, Union
 
 from rest_framework.exceptions import ParseError
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Column, Condition, Function, Identifier, Lambda, Op
 from snuba_sdk.conditions import And, Or
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
@@ -20,12 +20,11 @@ OPERATOR_MAP = {
     "<": Op.LT,
     "<=": Op.LTE,
     "IN": Op.IN,
+    "NOT IN": Op.NOT_IN,
 }
 
 
 class Field:
-    attribute_name: Optional[str] = None
-
     def __init__(
         self,
         name: Optional[str] = None,
@@ -36,6 +35,7 @@ class Field:
         operators: Optional[list] = None,
         validators: Optional[list] = None,
     ) -> None:
+        self.attribute_name = None
         self.field_alias = field_alias or name
         self.query_alias = query_alias or name
         self.is_filterable = is_filterable
@@ -52,7 +52,7 @@ class Field:
         else:
             return op, []
 
-    def deserialize_values(self, values: List[str]) -> Tuple[Any, List[str]]:
+    def deserialize_values(self, values: List[str]) -> Tuple[List[Any], List[str]]:
         parsed_values = []
         for value in values:
             parsed_value, errors = self.deserialize_value(value)
@@ -79,14 +79,22 @@ class Field:
 
         return typed_value, []
 
+    def as_condition(
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        return Condition(Column(self.query_alias or self.attribute_name), operator, value)
+
 
 class String(Field):
-    _operators = [Op.EQ, Op.NEQ, Op.IN]
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
     _python_type = str
 
 
 class Number(Field):
-    _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN]
+    _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN, Op.NOT_IN]
     _python_type = int
 
 
@@ -133,6 +141,38 @@ class ListField(Field):
             ),
             Op.EQ,
             1 if operator == Op.IN else 0,
+        )
+
+
+class Tag(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _negation_map = [False, True, False, True]
+    _python_type = str
+
+    def __init__(self, **kwargs):
+        kwargs.pop("operators", None)
+        return super().__init__(**kwargs)
+
+    def deserialize_operator(self, operator: str) -> Tuple[Op, List[str]]:
+        op = OPERATOR_MAP.get(operator)
+        if op is None:
+            return None, ["Operator not found."]
+        elif op not in self._operators:
+            return None, ["Operator not permitted."]
+        else:
+            return op, []
+
+    def as_condition(
+        self,
+        field_alias: str,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        negated = operator not in (Op.EQ, Op.IN)
+        return filter_tag_by_value(
+            key=field_alias,
+            values=value,
+            negated=negated,
         )
 
 
@@ -200,10 +240,10 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     """Coerce SearchFilter syntax to snuba Condition syntax."""
     # Validate field exists and is filterable.
     field_alias = search_filter.key.name
-    field = query_config.get(field_alias)
+    field = query_config.get(field_alias) or query_config.get("*")
     if field is None:
         raise ParseError(f"Invalid field specified: {field_alias}.")
-    elif not field.is_filterable:
+    if not field.is_filterable:
         raise ParseError(f'"{field_alias}" is not filterable.')
 
     # Validate strategy is correct.
@@ -218,7 +258,7 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
     if errors:
         raise ParseError(f"Invalid value specified: {field_alias}.")
 
-    return Condition(Column(field.query_alias or field.attribute_name), operator, value)
+    return field.as_condition(field_alias, operator, value)
 
 
 def attempt_compressed_condition(
@@ -259,3 +299,54 @@ def get_valid_sort_commands(
         raise ParseError(f"Invalid field specified: {field_name}.")
     else:
         return [OrderBy(Column(field.query_alias or field.attribute_name), strategy)]
+
+
+# Tag filtering behavior.
+
+
+def filter_tag_by_value(
+    key: str,
+    values: Union[List[str], str],
+    negated: bool = False,
+) -> Condition:
+    """Helper function that allows filtering a tag by multiple values."""
+    function = "hasAny" if isinstance(values, list) else "has"
+    expected = 0 if negated else 1
+    return Condition(
+        Function(function, parameters=[_all_values_for_tag_key(key), values]),
+        Op.EQ,
+        expected,
+    )
+
+
+def _all_values_for_tag_key(key: str) -> Function:
+    return Function(
+        "arrayFilter",
+        parameters=[
+            Lambda(
+                ["key", "mask"],
+                Function("equals", parameters=[Identifier("mask"), "1"]),
+            ),
+            Column("tv"),
+            _bitmask_on_tag_key(key),
+        ],
+    )
+
+
+def _bitmask_on_tag_key(key: str) -> Function:
+    """Create a bit mask.
+
+    Returns an array where the integer 1 represents a match.
+        e.g.: [0, 0, 1, 0, 1, 0]
+    """
+    return Function(
+        "arrayMap",
+        parameters=[
+            Lambda(
+                ["index", "key"],
+                Function("equals", parameters=[Identifier("key"), key]),
+            ),
+            Function("arrayEnumerate", parameters=[Column("tk")]),
+            Column("tk"),
+        ],
+    )
