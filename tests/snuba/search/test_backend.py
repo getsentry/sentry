@@ -684,7 +684,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 assert not results.next.has_results
 
     def test_pagination_with_environment(self):
-        print(self.group1.timestamp)
         for dt in [
             self.group1.first_seen + timedelta(days=1),
             self.group1.first_seen + timedelta(days=2),
