@@ -417,12 +417,7 @@ class Actions extends Component<Props, State> {
           <ActionButton
             disabled={disabled}
             to={disabled ? '' : this.getDiscoverUrl()}
-            onClick={() => {
-              this.trackIssueAction('open_in_discover');
-              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-                organization,
-              });
-            }}
+            onClick={this.onRedirectDiscover}
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
