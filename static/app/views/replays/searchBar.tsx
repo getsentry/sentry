@@ -56,7 +56,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
 };
 
 function SearchBar(props: SearchBarProps) {
-  const {maxSearchItems, organization, tags, omitTags, projectIds, maxMenuHeight} = props;
+  const {maxSearchItems, organization, omitTags, projectIds, maxMenuHeight} = props;
 
   const api = useApi();
 
@@ -91,24 +91,17 @@ function SearchBar(props: SearchBarProps) {
   );
 
   const getTagList = () => {
-    const combinedTags: TagCollection = Object.fromEntries([
-      ...Object.keys(tags).map(key => [
-        key,
-        {
-          ...tags[key],
-          kind: FieldKind.TAG,
-        },
-      ]),
-      ...REPLAY_TAGS.map(key => [
+    const tags: TagCollection = Object.fromEntries(
+      REPLAY_TAGS.map(key => [
         key,
         {
           ...FIELD_TAGS[key],
           kind: FieldKind.FIELD,
         },
-      ]),
-    ]);
+      ])
+    );
 
-    return omit(combinedTags, omitTags ?? []);
+    return omit(tags, omitTags ?? []);
   };
 
   return (
