@@ -116,7 +116,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       <IconArrow
         color="gray300"
         size="xs"
-        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'up' : 'down'}
+        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'down' : 'up'}
       />
     ) : null;
   };
