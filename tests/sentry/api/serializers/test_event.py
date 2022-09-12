@@ -396,11 +396,11 @@ class DetailedEventSerializerTest(TestCase):
 
         result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
         assert result["perfProblem"] == {
-            "cause_span_ids": ["9179e43ae844b174"],
+            "causeSpanIds": ["9179e43ae844b174"],
             "desc": "SELECT `books_author`.`id`, `books_author`.`name` FROM "
             "`books_author` WHERE `books_author`.`id` = %s LIMIT 21",
             "fingerprint": "19e15e0444e0bc1d5159fb07cd4bd2eb",
-            "offender_span_ids": [
+            "offenderSpanIds": [
                 "b8be6138369491dd",
                 "b2d4826e7b618f1b",
                 "b3fdeea42536dbf1",
@@ -413,6 +413,6 @@ class DetailedEventSerializerTest(TestCase):
                 "bb32cf50fc56b296",
             ],
             "op": "db",
-            "parent_span_ids": ["8dd7a5869a4f4583"],
+            "parentSpanIds": ["8dd7a5869a4f4583"],
             "type": 1006,
         }

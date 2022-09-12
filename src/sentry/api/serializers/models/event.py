@@ -334,18 +334,22 @@ class DetailedEventSerializer(EventSerializer):
             ]
         )
         for event_problem in problems:
-            results[event_problem.event]["perf_problem"] = event_problem.problem.as_dict()
+            results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
         return results
 
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
     def serialize(self, obj, attrs, user):
+        from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
+
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
-        result["perfProblem"] = attrs.get("perf_problem")
+        result["perfProblem"] = convert_dict_key_case(
+            attrs.get("perf_problem"), snake_to_camel_case
+        )
         return result
 
 
