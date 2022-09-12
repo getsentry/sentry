@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import ratelimits, roles
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -79,6 +80,7 @@ def has_download_permission(request, project):
     return roles.get(current_role).priority >= roles.get(required_role).priority
 
 
+@pending_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -243,6 +245,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         return upload_from_request(request, project=project)
 
 
+@pending_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -252,6 +255,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
         return Response({"missing": missing})
 
 
+@pending_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -270,6 +274,7 @@ def find_missing_chunks(organization, chunks):
     return list(set(chunks) - owned)
 
 
+@pending_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -387,6 +392,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         return Response(file_response, status=200)
 
 
+@pending_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 

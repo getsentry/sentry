@@ -19,8 +19,10 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class DeleteProjectTest(TransactionTestCase):
     def test_simple(self):
         project = self.create_project(name="test")
