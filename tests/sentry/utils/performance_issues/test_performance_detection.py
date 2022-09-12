@@ -768,8 +768,6 @@ class EventPerformanceProblemTest(TestCase):
                 for event, problem in all_event_problems + [(event, unsaved_problem)]
             ]
         )
-        print(result)
-
         assert [r.problem if r else None for r in result] == [
             problem for _, problem in all_event_problems
         ] + [None]
