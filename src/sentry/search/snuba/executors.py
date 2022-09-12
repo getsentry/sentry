@@ -459,32 +459,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 "organizations:issue-search-allow-postgres-only-search", projects[0].organization
             )
 
-            # This search is for some time window that ends with "now",
-            # so if the requested sort is `date` (`last_seen`) and there
-            # are no other Snuba-based search predicates, we can simply
-            # return the results from Postgres.
-            if (
-                cursor is None
-                and sort_by == "date"
-                and
-                # This handles tags and date parameters for search filters.
-                not [
-                    sf
-                    for sf in search_filters
-                    if sf.key.name not in self.postgres_only_fields.union(["date"])
-                ]
-            ):
-                group_queryset = group_queryset.order_by("-last_seen")
-                paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
-                metrics.incr("snuba.search.postgres_only")
-                # When its a simple django-only search, we count_hits like normal
-
-                # TODO: Add types to paginators and remove this
-                return cast(
-                    CursorResult[Group],
-                    paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
-                )
-
         # TODO: Presumably we only want to search back to the project's max
         # retention date, which may be closer than 90 days in the past, but
         # apparently `retention_window_start` can be None(?), so we need a
