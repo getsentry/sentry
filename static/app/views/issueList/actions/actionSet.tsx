@@ -14,13 +14,13 @@ import {
   BaseGroup,
   IssueCategory,
   IssueCategoryCapabilities,
-  Organization,
   Project,
   ResolutionStatus,
 } from 'sentry/types';
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -37,7 +37,6 @@ type Props = {
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
-  orgSlug: Organization['slug'];
   query: string;
   queryCount: number;
   sort: string;
@@ -45,7 +44,6 @@ type Props = {
 };
 
 function ActionSet({
-  orgSlug,
   queryCount,
   query,
   allInQuerySelected,
@@ -60,8 +58,16 @@ function ActionSet({
   sort,
   onSortChange,
 }: Props) {
+  const organization = useOrganization();
   const numIssues = issues.size;
-  const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
+  const confirm = getConfirm({
+    numIssues,
+    allInQuerySelected,
+    query,
+    queryCount,
+    organization,
+  });
+
   const label = getLabel(numIssues, allInQuerySelected);
 
   const selectedIssues = [...issues]
@@ -74,10 +80,9 @@ function ActionSet({
     isActionSupported(selectedIssues, 'merge');
   const {enabled: deleteSupported, disabledReason: deleteDisabledReason} =
     isActionSupported(selectedIssues, 'delete');
-  const {enabled: ignoreSupported} = isActionSupported(selectedIssues, 'ignore');
   const mergeDisabled =
     !multiSelected || multipleIssueProjectsSelected || !mergeSupported;
-  const ignoreDisabled = !anySelected || !ignoreSupported;
+  const ignoreDisabled = !anySelected;
 
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
@@ -120,7 +125,7 @@ function ActionSet({
       label: t('Merge'),
       hidden: !nestMergeAndReview,
       disabled: mergeDisabled,
-      tooltip: makeMergeTooltip(),
+      details: makeMergeTooltip(),
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
@@ -181,7 +186,7 @@ function ActionSet({
       label: t('Delete'),
       priority: 'danger',
       disabled: !deleteSupported,
-      tooltip: deleteDisabledReason,
+      details: deleteDisabledReason,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
@@ -197,7 +202,7 @@ function ActionSet({
   return (
     <Wrapper>
       {selectedProjectSlug ? (
-        <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
+        <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
             const selectedProject = projects[0];
             return (
@@ -205,7 +210,7 @@ function ActionSet({
                 onShouldConfirm={onShouldConfirm}
                 onUpdate={onUpdate}
                 anySelected={anySelected}
-                orgSlug={orgSlug}
+                orgSlug={organization.slug}
                 params={{
                   hasReleases: selectedProject.hasOwnProperty('features')
                     ? (selectedProject as Project).features.includes('releases')
@@ -228,7 +233,7 @@ function ActionSet({
           onShouldConfirm={onShouldConfirm}
           onUpdate={onUpdate}
           anySelected={anySelected}
-          orgSlug={orgSlug}
+          orgSlug={organization.slug}
           params={{
             hasReleases: false,
             latestRelease: null,

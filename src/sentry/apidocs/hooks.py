@@ -33,7 +33,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         view = f"{callback.__module__}.{callback.__name__}"
 
         if callback.view_class.public and callback.view_class.private:
-            warn(
+            warn(  # type: ignore[no-untyped-call]
                 "both `public` and `private` cannot be defined at the same time, "
                 "please remove one of the attributes."
             )
@@ -53,7 +53,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             pass
         else:
             # any new endpoint that isn't accounted for should recieve this error when building api docs
-            warn(
+            warn(  # type: ignore[no-untyped-call]
                 f"{view} {method} is unaccounted for. "
                 "Either document the endpoint and define the `public` attribute on the endpoint "
                 "with the public HTTP methods, "

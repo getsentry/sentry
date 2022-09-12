@@ -84,7 +84,7 @@ export type IssueCategoryCapabilities = {
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: Object;
+  headers: object;
   id: string;
   mimetype: string;
   name: string;

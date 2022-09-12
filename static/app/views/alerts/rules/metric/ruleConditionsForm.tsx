@@ -320,7 +320,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 // if the current owner/team isn't part of project selected, update to the first available team
                 const nextSelectedProject =
                   projects.find(({id}) => id === value) ?? selectedProject;
-                const ownerId: String | undefined = model
+                const ownerId: string | undefined = model
                   .getValue('owner')
                   ?.split(':')[1];
                 if (

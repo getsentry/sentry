@@ -10,9 +10,11 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
+from typing import Mapping
 from urllib.parse import urlparse
 
 import sentry
+from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -964,6 +966,8 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
+    # Enable the Commit Context feature
+    "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -1166,12 +1170,16 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
     "organizations:server-side-sampling-ui": False,
+    # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
+    "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable snowflake ids
@@ -2753,6 +2761,7 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
@@ -2793,3 +2802,5 @@ SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", Fa
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+
+SENTRY_REGION_CONFIG: Mapping[str, Region] = {}

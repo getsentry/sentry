@@ -6,7 +6,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-export function generateAnomaliesRoute({orgSlug}: {orgSlug: String}): string {
+export function generateAnomaliesRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/anomalies/`;
 }
 
