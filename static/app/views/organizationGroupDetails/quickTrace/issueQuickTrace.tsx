@@ -140,7 +140,7 @@ class IssueQuickTrace extends Component<Props, State> {
           }
         >
           {tct(
-            'The [type] for this event cannot be found. [link:Read the docs to undersatnd why].',
+            'The [type] for this event cannot be found. [link:Read the docs to understand why].',
             {
               type: type === 'missing' ? t('transaction') : t('trace'),
               link: (
