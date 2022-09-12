@@ -18,7 +18,7 @@ class SiloMode(Enum):
 
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
-    CUSTOMER = "CUSTOMER"
+    REGION = "REGION"
 
     @classmethod
     def resolve(cls, mode: str | SiloMode | None) -> SiloMode:

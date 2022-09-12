@@ -16,7 +16,13 @@ import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
 import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
-import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
+import {
+  Group,
+  IssueCategory,
+  Organization,
+  Project,
+  SharedViewOrganization,
+} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
@@ -148,40 +154,34 @@ function EventEntry({
         />
       );
     case EntryType.SPANS:
+      if (
+        group?.issueCategory === IssueCategory.PERFORMANCE &&
+        organization?.features?.includes('performance-issues')
+      ) {
+        // TODO: Replace this with real data from the entry when possible
+        const SAMPLE_SPAN_EVIDENCE: SpanEvidence = {
+          transaction: '/api/transaction/00',
+          parentSpan: 'index',
+          sourceSpan:
+            'SELECT "sentry_useroption"."id", "sentry_useroption"."user_id", "sentry_useroption"."project_id", "sentry_useroption"."organization_id", "sentry_useroption"."key", "sentry_useroption"."value" FROM "sentry_useroption" WHERE ("sentry_useroption"."organization_id" IS NULL AND "sentry_useroption"."project_id" IS NULL AND "sentry_useroption"."user_id" = %s) ',
+          repeatingSpan:
+            'SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project" WHERE ("sentry_project"."organization_id" = %s AND "sentry_project"."status" = %s AND "sentry_project"."id" IN (%s))',
+        };
+
+        return (
+          <SpanEvidenceSection
+            event={event}
+            organization={organization as Organization}
+            spanEvidence={SAMPLE_SPAN_EVIDENCE}
+            affectedSpanIds={[]}
+          />
+        );
+      }
+
       return (
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
-        />
-      );
-    case EntryType.PERFORMANCE:
-      if (!organization.features?.includes('performance-issues')) {
-        return null;
-      }
-
-      const {affectedSpanIds} = entry.data;
-
-      // TODO: Need to dynamically determine the project slug for this issue
-      const INTERNAL_PROJECT = 'sentry';
-
-      // TODO: Replace this with real data from the entry when possible
-      const SAMPLE_SPAN_EVIDENCE: SpanEvidence = {
-        transaction: '/api/transaction/00',
-        parentSpan: 'index',
-        sourceSpan:
-          'SELECT "sentry_useroption"."id", "sentry_useroption"."user_id", "sentry_useroption"."project_id", "sentry_useroption"."organization_id", "sentry_useroption"."key", "sentry_useroption"."value" FROM "sentry_useroption" WHERE ("sentry_useroption"."organization_id" IS NULL AND "sentry_useroption"."project_id" IS NULL AND "sentry_useroption"."user_id" = %s) ',
-        repeatingSpan:
-          'SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project" WHERE ("sentry_project"."organization_id" = %s AND "sentry_project"."status" = %s AND "sentry_project"."id" IN (%s))',
-      };
-
-      return (
-        <SpanEvidenceSection
-          issue={group as Group}
-          event={event}
-          organization={organization as Organization}
-          spanEvidence={SAMPLE_SPAN_EVIDENCE}
-          projectSlug={INTERNAL_PROJECT}
-          affectedSpanIds={affectedSpanIds}
         />
       );
     default:

@@ -21,6 +21,7 @@ from sentry.models import (
     ProjectOwnership,
     ProjectTeam,
 )
+from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
@@ -693,6 +694,14 @@ class PostProcessGroupAssignmentTest(TestCase):
         assert len(owners) == 2
         assert {(self.user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
+        }
+        activity = Activity.objects.filter(group=event.group).first()
+        assert activity.data == {
+            "assignee": str(self.user.id),
+            "assigneeEmail": self.user.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
+            "rule": str(Rule(Matcher("path", "src/app/*"), [Owner("team", self.team.name)])),
         }
 
     def test_owner_assignment_extra_groups(self):

@@ -83,7 +83,7 @@ def apply_decorators(
         # decorator, or such.
         new_code = re.sub(
             (
-                r"(?:\n@((?:control|customer|pending)_silo_(?:model|endpoint|test)))?"
+                r"(?:\n@((?:control|region|pending)_silo_(?:model|endpoint|test)))?"
                 rf"\n(class\s+{class_name}\()"
             ),
             replace,
@@ -121,9 +121,9 @@ class Keywords:
         return has_included_word and not has_excluded_word
 
 
-def has_customer_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
-    return keywords["customer"].check(name)
+def has_region_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
+    return keywords["region"].check(name)
 
 
 def has_control_name(name: str, keywords: Mapping[str, Keywords]) -> bool:
-    return (not has_customer_name(name, keywords)) and keywords["control"].check(name)
+    return (not has_region_name(name, keywords)) and keywords["control"].check(name)
