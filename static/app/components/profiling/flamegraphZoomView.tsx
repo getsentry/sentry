@@ -5,12 +5,12 @@ import {mat3, vec2} from 'gl-matrix';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
+import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
   useFlamegraphState,
-} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
+} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -66,11 +66,10 @@ function FlamegraphZoomView({
     'pan' | 'click' | 'zoom' | 'scroll' | null
   >(null);
 
-  const [dispatch, {previousState, nextState}] = useDispatchFlamegraphState();
-
+  const dispatch = useDispatchFlamegraphState();
   const scheduler = useMemo(() => new CanvasScheduler(), []);
 
-  const [flamegraphState, dispatchFlamegraphState] = useFlamegraphState();
+  const [flamegraphState, {previousState, nextState}] = useFlamegraphState();
   const [startPanVector, setStartPanVector] = useState<vec2 | null>(null);
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 
@@ -196,7 +195,7 @@ function FlamegraphZoomView({
           }
         }
 
-        dispatchFlamegraphState({type: action});
+        dispatch({type: action});
       }
     };
 
@@ -205,13 +204,7 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [
-    canvasPoolManager,
-    dispatchFlamegraphState,
-    nextState,
-    previousState,
-    flamegraphView,
-  ]);
+  }, [canvasPoolManager, dispatch, nextState, previousState, flamegraphView]);
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
@@ -473,13 +466,7 @@ function FlamegraphZoomView({
       scheduler.off('reset zoom', onResetZoom);
       scheduler.off('zoom at frame', onZoomIntoFrame);
     };
-  }, [
-    flamegraphCanvas,
-    canvasPoolManager,
-    dispatchFlamegraphState,
-    scheduler,
-    flamegraphView,
-  ]);
+  }, [flamegraphCanvas, canvasPoolManager, dispatch, scheduler, flamegraphView]);
 
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);
@@ -526,7 +513,7 @@ function FlamegraphZoomView({
         }
 
         canvasPoolManager.dispatch('highlight frame', [hoveredNode, 'selected']);
-        dispatchFlamegraphState({type: 'set selected root', payload: hoveredNode});
+        dispatch({type: 'set selected root', payload: hoveredNode});
       }
 
       setLastInteraction(null);
@@ -535,7 +522,7 @@ function FlamegraphZoomView({
     [
       configSpaceCursor,
       flamegraphState.profiles.selectedRoot,
-      dispatchFlamegraphState,
+      dispatch,
       hoveredNode,
       canvasPoolManager,
       lastInteraction,
