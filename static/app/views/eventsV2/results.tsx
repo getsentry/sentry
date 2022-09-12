@@ -3,7 +3,6 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -510,9 +509,6 @@ class Results extends Component<Props, State> {
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
 
-    const metricsEventView = cloneDeep(eventView);
-    metricsEventView.query = '';
-
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
         <StyledPageContent>
@@ -555,7 +551,6 @@ class Results extends Component<Props, State> {
                   <MetricsCardinalityProvider
                     organization={organization}
                     location={location}
-                    metricsEventView={metricsEventView}
                   >
                     <ResultsChart
                       router={router}

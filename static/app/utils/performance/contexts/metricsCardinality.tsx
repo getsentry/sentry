@@ -41,7 +41,6 @@ export const MetricsCardinalityProvider = (props: {
   children: ReactNode;
   location: Location;
   organization: Organization;
-  metricsEventView?: EventView;
 }) => {
   const isUsingMetrics = canUseMetricsData(props.organization);
 
@@ -65,9 +64,7 @@ export const MetricsCardinalityProvider = (props: {
     orgSlug: props.organization.slug,
     cursor: '0:0:0',
   };
-  const eventView = props.metricsEventView
-    ? props.metricsEventView
-    : EventView.fromLocation(props.location);
+  const eventView = EventView.fromLocation(props.location);
   eventView.fields = [{field: 'tpm()'}];
   const _eventView = adjustEventViewTime(eventView);
 

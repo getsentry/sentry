@@ -42,6 +42,7 @@ export default function ChartFooter({
   topEvents,
   setShowBaseline,
   showBaseline,
+  organization,
 }: Props) {
   const metricsCardinality = useMetricsCardinalityContext();
   const elements: React.ReactNode[] = [];
@@ -65,9 +66,9 @@ export default function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
-        <Feature features={['organization:discover-metrics-baseline']}>
+        <Feature organization={organization} features={['discover-metrics-baseline']}>
           <Fragment>
-            <SwitchLabel>{t('Processed baseline')}</SwitchLabel>
+            <SwitchLabel>{t('Processed events')}</SwitchLabel>
             <Switch
               isActive={showBaseline}
               isDisabled={metricsCardinality.outcome?.forceTransactionsOnly}
