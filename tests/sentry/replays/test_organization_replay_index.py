@@ -363,6 +363,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Run all the queries individually to determine compliance.
             queries = [
                 "platform:javascript",
+                "releases:version@1.3",
+                "releases:[a,version@1.3]",
                 "duration:>15",
                 "user.id:123",
                 "user.name:username123",
@@ -416,6 +418,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "id:b OR duration:>1000",
                 "a:o",
                 "a:[o,p]",
+                "releases:a",
+                "releases:[a,b]",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?query={query}")
