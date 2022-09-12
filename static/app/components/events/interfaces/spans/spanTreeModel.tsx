@@ -190,14 +190,14 @@ class SpanTreeModel {
     event: Readonly<EventTransaction>;
     filterSpans: FilterSpans | undefined;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    hiddenSpanSubTrees: Set<String>;
+    hiddenSpanSubTrees: Set<string>;
     isLastSibling: boolean;
     isNestedSpanGroupExpanded: boolean;
     isOnlySibling: boolean;
     operationNameFilters: ActiveOperationFilter;
     previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
-    spanAncestors: Set<String>;
+    spanAncestors: Set<string>;
     spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleNestedSpanGroup: (() => void) | undefined;
     treeDepth: number;

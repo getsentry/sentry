@@ -216,7 +216,7 @@ export const GenericQueryBatcher = ({children}: {children: React.ReactNode}) => 
 
 type NodeContext = {
   batchProperty: string;
-  id: Ref<Symbol>;
+  id: Ref<symbol>;
 };
 
 const BatchNodeContext = createContext<NodeContext | undefined>(undefined);

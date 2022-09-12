@@ -4,7 +4,7 @@ import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-export function generateTagsRoute({orgSlug}: {orgSlug: String}): string {
+export function generateTagsRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/tags/`;
 }
 
