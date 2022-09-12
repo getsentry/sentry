@@ -437,7 +437,7 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
-export const REPLAY_FIELDS: Record<ReplayFieldKey, FieldDefinition> = {
+const REPLAY_FIELDS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.CountErrors]: {
     desc: t('Number of errors in the replay'),
     kind: FieldKind.FUNCTION,
