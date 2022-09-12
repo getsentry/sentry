@@ -16,18 +16,18 @@ This is an alternative to add_silo_decorators.py that uses an algorithmic defini
 the silos and aims for 100% coverage. It examines the fields of model classes and
 uses a graph traversal algorithm to find all models that point to the `Organization`
 model, either directly or through a number of steps. Those models are tagged for the
-customer silo, and all others for the control silo.
+region silo, and all others for the control silo.
 
 Instructions for use:
 
 1. Commit or stash any Git changes in progress.
-2. Update foreign key relationships to identify models in the customer silo.
+2. Update foreign key relationships to identify models in the region silo.
 2. From the Sentry project root, do
      ./scripts/silo/decorate_models_by_relation.py
 3. Do `git status` or `git diff` to observe the results. Commit if you're happy.
 """
 
-CUSTOMER_TARGET_RELATIONS = TargetRelations(
+REGION_TARGET_RELATIONS = TargetRelations(
     # Foreign key relationships
     models=[Organization],
     naming_conventions={
@@ -40,4 +40,4 @@ CUSTOMER_TARGET_RELATIONS = TargetRelations(
 )
 
 if __name__ == "__main__":
-    decorate_models_by_relation(target_relations=CUSTOMER_TARGET_RELATIONS)
+    decorate_models_by_relation(target_relations=REGION_TARGET_RELATIONS)

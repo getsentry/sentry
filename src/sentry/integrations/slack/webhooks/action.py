@@ -28,6 +28,7 @@ from sentry.models import (
     NotificationSetting,
     OrganizationMember,
 )
+from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -172,7 +173,15 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if assignee == "none":
             assignee = None
 
-        update_group(group, identity, {"assignedTo": assignee}, request)
+        update_group(
+            group,
+            identity,
+            {
+                "assignedTo": assignee,
+                "integration": ActivityIntegration.SLACK.value,
+            },
+            request,
+        )
         analytics.record("integrations.slack.assign", actor_id=identity.user_id)
 
     def on_status(

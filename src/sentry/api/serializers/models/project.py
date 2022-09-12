@@ -912,6 +912,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         return data
 
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "public": self.public,
+        }
+
 
 class SharedProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
