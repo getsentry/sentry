@@ -62,7 +62,7 @@ def get_ingest_config(
                 internal_metrics_tag="release-health",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
-                cardinality_limiter_cluster_options={},
+                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             )
         )
@@ -93,7 +93,7 @@ def get_ingest_config(
                 internal_metrics_tag="release-health-spanner",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS,
                 writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
-                cardinality_limiter_cluster_options={},
+                cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
             )
         )
