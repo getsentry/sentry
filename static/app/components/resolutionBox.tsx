@@ -13,6 +13,7 @@ import {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
+  Repository,
   ResolutionStatusDetails,
 } from 'sentry/types';
 
@@ -101,9 +102,11 @@ function renderReason(
         <Fragment>
           <CommitLink
             commitId={statusDetails.inCommit.id}
-            repository={statusDetails.inCommit.repository}
+            repository={statusDetails.inCommit.repository as Repository}
           />
-          <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          {statusDetails.inCommit.dateCreated && (
+            <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          )}
         </Fragment>
       ),
     });
