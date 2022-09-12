@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
@@ -165,7 +166,7 @@ describe('EventsV2 > ChartFooter', function () {
     expect(yAxis).toEqual(['failure_count()']);
   });
 
-  it('renders the processed baseline toggle', function () {
+  it('disables processed baseline toggle if metrics cardinality conditions not met', function () {
     const organization = TestStubs.Organization({
       features: [...features, 'discover-metrics-baseline'],
     });
@@ -190,6 +191,46 @@ describe('EventsV2 > ChartFooter', function () {
     render(metricsCardinalityWrapped(chartFooter, organization, project));
 
     expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
+  });
+
+  it('enables processed baseline toggle if metrics cardinality conditions not met', function () {
+    addMetricsDataMock({
+      metricsCount: 100,
+      nullCount: 0,
+      unparamCount: 1,
+    });
+
+    const organization = TestStubs.Organization({
+      features: [
+        ...features,
+        'discover-metrics-baseline',
+        'performance-transaction-name-only-search',
+        'organizations:performance-transaction-name-only-search',
+      ],
+    });
+
+    const chartFooter = (
+      <ChartFooter
+        organization={organization}
+        total={100}
+        yAxisValue={['count()']}
+        yAxisOptions={yAxisOptions}
+        onAxisChange={jest.fn}
+        displayMode={DisplayModes.DEFAULT}
+        displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
+        onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
+      />
+    );
+
+    render(metricsCardinalityWrapped(chartFooter, organization, project));
+
+    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', function () {
