@@ -2,7 +2,6 @@ import time
 from collections import defaultdict
 from typing import Collection, NamedTuple, Optional, Sequence, Tuple
 
-
 from sentry.utils import redis
 from sentry.utils.services import Service
 
