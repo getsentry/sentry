@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import importlib.metadata
 import logging
 import os
 import sys
+from typing import Any, TypeVar
 
 import click
 from django.conf import settings
@@ -12,8 +15,10 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 logger = logging.getLogger("sentry.runner.initializer")
 
+T = TypeVar("T")
 
-def register_plugins(settings, raise_on_plugin_load_failure=False):
+
+def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) -> None:
     from sentry.plugins.base import plugins
 
     # entry_points={
@@ -66,7 +71,7 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
             pass
 
 
-def init_plugin(plugin):
+def init_plugin(plugin: Any) -> None:
     from sentry.plugins.base import bindings
 
     plugin.setup(bindings)
@@ -101,12 +106,12 @@ def init_plugin(plugin):
             settings.CELERY_QUEUES.append(q)
 
 
-def initialize_receivers():
+def initialize_receivers() -> None:
     # force signal registration
     import sentry.receivers  # NOQA
 
 
-def get_asset_version(settings):
+def get_asset_version(settings: Any) -> str:
     path = os.path.join(settings.STATIC_ROOT, "version")
     try:
         with open(path) as fp:
@@ -114,7 +119,7 @@ def get_asset_version(settings):
     except OSError:
         from time import time
 
-        return int(time())
+        return str(int(time()))
 
 
 # Options which must get extracted into Django settings while
@@ -145,7 +150,7 @@ options_mapper = {
 }
 
 
-def bootstrap_options(settings, config=None):
+def bootstrap_options(settings: Any, config: str | None = None) -> None:
     """
     Quickly bootstrap options that come in from a config file
     and convert options into Django settings that are
@@ -156,7 +161,6 @@ def bootstrap_options(settings, config=None):
 
     load_defaults()
 
-    options = {}
     if config is not None:
         # Attempt to load our config yaml file
         from yaml.parser import ParserError
@@ -169,7 +173,7 @@ def bootstrap_options(settings, config=None):
                 options = safe_load(fp)
         except OSError:
             # Gracefully fail if yaml file doesn't exist
-            pass
+            options = {}
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
 
@@ -183,6 +187,8 @@ def bootstrap_options(settings, config=None):
             from .importer import ConfigurationError
 
             raise ConfigurationError("Malformed config.yml file")
+    else:
+        options = {}
 
     from sentry.conf.server import DEAD
 
@@ -213,7 +219,7 @@ def bootstrap_options(settings, config=None):
                 setattr(settings, options_mapper[k], v)
 
 
-def configure_structlog():
+def configure_structlog() -> None:
     """
     Make structlog comply with all of our options.
     """
@@ -226,7 +232,7 @@ def configure_structlog():
     from sentry.logging import LoggingFormat
 
     WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "context_class": WrappedDictClass,
         "wrapper_class": structlog.stdlib.BoundLogger,
         "cache_logger_on_first_use": True,
@@ -274,7 +280,7 @@ def configure_structlog():
     logging.config.dictConfig(settings.LOGGING)
 
 
-def show_big_error(message):
+def show_big_error(message: str | list[str]) -> None:
     if isinstance(message, str):
         lines = message.strip().splitlines()
     else:
@@ -290,7 +296,7 @@ def show_big_error(message):
     click.echo("", err=True)
 
 
-def initialize_app(config, skip_service_validation=False):
+def initialize_app(config: dict[str, Any], skip_service_validation: bool = False) -> None:
     settings = config["settings"]
 
     if settings.DEBUG:
@@ -386,7 +392,7 @@ def initialize_app(config, skip_service_validation=False):
     env.data["start_date"] = timezone.now()
 
 
-def configure_arroyo():
+def configure_arroyo() -> None:
     # Arroyo is configured in such a central place because
     #
     # 1) it doesn't harm any process that doesn't use arroyo
@@ -400,7 +406,7 @@ def configure_arroyo():
     configure_metrics(metrics_wrapper)
 
 
-def setup_services(validate=True):
+def setup_services(validate: bool = True) -> None:
     from sentry import (
         analytics,
         buffer,
@@ -447,7 +453,7 @@ def setup_services(validate=True):
             raise
 
 
-def validate_options(settings):
+def validate_options(settings: Any) -> None:
     from sentry.options import default_manager
 
     default_manager.validate(settings.SENTRY_OPTIONS, warn=True)
@@ -458,7 +464,9 @@ import django.db.models.base
 model_unpickle = django.db.models.base.model_unpickle
 
 
-def __model_unpickle_compat(model_id, attrs=None, factory=None):
+def __model_unpickle_compat(
+    model_id: str, attrs: Any | None = None, factory: Any | None = None
+) -> object:
     if attrs is not None or factory is not None:
         metrics.incr("django.pickle.loaded_19_pickle.__model_unpickle_compat", sample_rate=1)
         logger.error(
@@ -469,11 +477,11 @@ def __model_unpickle_compat(model_id, attrs=None, factory=None):
     return model_unpickle(model_id)
 
 
-def __simple_class_factory_compat(model, attrs):
+def __simple_class_factory_compat(model: T, attrs: Any) -> T:
     return model
 
 
-def monkeypatch_model_unpickle():
+def monkeypatch_model_unpickle() -> None:
     # https://code.djangoproject.com/ticket/27187
     # Django 1.10 breaks pickle compat with 1.9 models.
     django.db.models.base.model_unpickle = __model_unpickle_compat
@@ -484,7 +492,7 @@ def monkeypatch_model_unpickle():
     django.db.models.base.simple_class_factory = __simple_class_factory_compat
 
 
-def monkeypatch_django_migrations():
+def monkeypatch_django_migrations() -> None:
     # This monkeypatches django's migration executor with our own, which
     # adds some small but important customizations.
     from sentry.new_migrations.monkey import monkey_migrations
@@ -492,7 +500,7 @@ def monkeypatch_django_migrations():
     monkey_migrations()
 
 
-def monkeypatch_drf_listfield_serializer_errors():
+def monkeypatch_drf_listfield_serializer_errors() -> None:
     # This patches reverts https://github.com/encode/django-rest-framework/pull/5655,
     # effectively we don't get that slight improvement
     # in serializer error structure introduced in drf 3.8.x,
@@ -507,7 +515,7 @@ def monkeypatch_drf_listfield_serializer_errors():
     from rest_framework.fields import ListField
     from rest_framework.utils import html
 
-    def to_internal_value(self, data):
+    def to_internal_value(self: ListField, data: Any) -> Any:
         if html.is_html_input(data):
             data = html.parse_html_list(data, default=[])
         if isinstance(data, (str, Mapping)) or not hasattr(data, "__iter__"):
@@ -526,7 +534,7 @@ def monkeypatch_drf_listfield_serializer_errors():
     # errors.
 
 
-def bind_cache_to_option_store():
+def bind_cache_to_option_store() -> None:
     # The default ``OptionsStore`` instance is initialized without the cache
     # backend attached. The store itself utilizes the cache during normal
     # operation, but can't use the cache before the options (which typically
@@ -541,7 +549,7 @@ def bind_cache_to_option_store():
     default_store.cache = default_cache
 
 
-def apply_legacy_settings(settings):
+def apply_legacy_settings(settings: Any) -> None:
     from sentry import options
 
     # SENTRY_USE_QUEUE used to determine if Celery was eager or not
@@ -632,7 +640,7 @@ def apply_legacy_settings(settings):
         )
 
 
-def validate_snuba():
+def validate_snuba() -> None:
     """
     Make sure everything related to Snuba is in sync.
 
