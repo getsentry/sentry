@@ -42,14 +42,21 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  constructor(
-    duration: number,
-    startedAt: number,
-    endedAt: number,
-    name: string,
-    unit: string,
-    threadId: number
-  ) {
+  constructor({
+    duration,
+    startedAt,
+    endedAt,
+    name,
+    unit,
+    threadId,
+  }: {
+    duration: number;
+    endedAt: number;
+    name: string;
+    startedAt: number;
+    threadId: number;
+    unit: string;
+  }) {
     this.threadId = threadId;
     this.duration = duration;
     this.startedAt = startedAt;
@@ -58,7 +65,14 @@ export class Profile {
     this.unit = unit;
   }
 
-  static Empty = new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
+  static Empty = new Profile({
+    duration: 1000,
+    startedAt: 0,
+    endedAt: 1000,
+    name: 'Empty Profile',
+    unit: 'milliseconds',
+    threadId: 0,
+  }).build();
 
   isEmpty(): boolean {
     return this === Profile.Empty;
