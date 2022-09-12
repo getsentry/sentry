@@ -49,6 +49,12 @@ function scoreFlamegraph(
   return score;
 }
 
+function isValidHighlightFrame(
+  frame: Partial<FlamegraphProfiles['highlightFrame']> | null | undefined
+): frame is NonNullable<FlamegraphProfiles['highlightFrame']> {
+  return !!frame && typeof frame.name === 'string';
+}
+
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;
   initialState?: DeepPartial<FlamegraphState>;
@@ -62,11 +68,14 @@ export function FlamegraphStateProvider(
     flamegraphStateReducer,
     {
       profiles: {
-        // @ts-ignore
-        highlightFrame:
-          props.initialState?.profiles?.highlightFrame ??
-          DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame ??
-          null,
+        highlightFrame: isValidHighlightFrame(
+          props.initialState?.profiles?.highlightFrame
+        )
+          ? (props.initialState?.profiles
+              ?.highlightFrame as FlamegraphProfiles['highlightFrame'])
+          : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame)
+          ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrame
+          : null,
         selectedRoot: null,
         threadId:
           props.initialState?.profiles?.threadId ??

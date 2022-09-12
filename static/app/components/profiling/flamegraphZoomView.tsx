@@ -311,6 +311,18 @@ function FlamegraphZoomView({
   ]);
 
   const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
+
+  useEffect(() => {
+    if (flamegraphState.profiles.highlightFrame) {
+      selectedFramesRef.current = flamegraph.findAllMatchingFrames(
+        flamegraphState.profiles.highlightFrame.name,
+        flamegraphState.profiles.highlightFrame.package
+      );
+    } else {
+      selectedFramesRef.current = null;
+    }
+  }, [flamegraph, flamegraphState.profiles.highlightFrame]);
+
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
       return undefined;
@@ -353,6 +365,8 @@ function FlamegraphZoomView({
     flamegraphView,
     flamegraphCanvas,
     scheduler,
+    flamegraph,
+    flamegraphState.profiles.highlightFrame,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
@@ -690,6 +704,7 @@ function FlamegraphZoomView({
       return;
     }
 
+    // If all occurences are currently being highlighted, we want to unhighlight them now
     if (
       isHighlightingAllOccurences(
         hoveredNodeOnContextMenuOpen.current,
@@ -702,19 +717,11 @@ function FlamegraphZoomView({
       return;
     }
 
-    const matches: FlamegraphFrame[] = [];
-
-    for (let i = 0; i < flamegraph.frames.length; i++) {
-      if (
-        flamegraph.frames[i].frame.name ===
-        hoveredNodeOnContextMenuOpen.current.node.frame.name
-      ) {
-        matches.push(flamegraph.frames[i]);
-      }
-    }
-
     setHighlightingAllOccurences(true);
-    canvasPoolManager.dispatch('highlight frame', [matches, 'selected']);
+    canvasPoolManager.dispatch('highlight frame', [
+      flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
+      'selected',
+    ]);
   }, [canvasPoolManager, flamegraph, scheduler]);
 
   return (
