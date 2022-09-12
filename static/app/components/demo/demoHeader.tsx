@@ -18,12 +18,74 @@ export default function DemoHeader() {
   const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
+  const walkthrough = localStorage.getItem('new-walkthrough');
 
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
-  return (
-    <Wrapper collapsed={collapsed}>
-      <StyledLogoSentry />
+  let docsBtn, reqDemoBtn, signUpBtn;
+
+  if (walkthrough === 'true') {
+    docsBtn = (
+      <DocsDemoBtn
+        onClick={() =>
+          trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
+        }
+        href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {t('Documentation')}
+      </DocsDemoBtn>
+    );
+
+    reqDemoBtn = (
+      <NewRequestDemoBtn
+        priority="form"
+        onClick={() =>
+          trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
+            organization: null,
+          })
+        }
+        href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        {t('Request a Demo')}
+      </NewRequestDemoBtn>
+    );
+
+    signUpBtn = (
+      <FreeTrial
+        onClick={() => {
+          const url =
+            sandboxData?.cta?.url ||
+            urlAttachQueryParams(
+              'https://sentry.io/signup/',
+              extraQueryParameterWithEmail()
+            );
+
+          // Using window.open instead of href={} because we need to read `email`
+          // from localStorage when the user clicks the button.
+          window.open(url, '_blank');
+
+          trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
+            cta: sandboxData?.cta?.id,
+            organization: null,
+          });
+        }}
+        target="_blank"
+        rel="noreferrer noopener"
+      >
+        <FreeTrialTextLong>
+          {sandboxData?.cta?.title || t('Start Free Trial')}
+        </FreeTrialTextLong>
+        <FreeTrialTextShort>
+          {sandboxData?.cta?.shortTitle || t('Sign Up')}
+        </FreeTrialTextShort>
+      </FreeTrial>
+    );
+  } else {
+    docsBtn = (
       <StyledExternalLink
         onClick={() =>
           trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
@@ -33,6 +95,9 @@ export default function DemoHeader() {
       >
         {t('Documentation')}
       </StyledExternalLink>
+    );
+
+    reqDemoBtn = (
       <RequestDemoBtn
         priority="form"
         onClick={() =>
@@ -46,6 +111,9 @@ export default function DemoHeader() {
       >
         {t('Request a Demo')}
       </RequestDemoBtn>
+    );
+
+    signUpBtn = (
       <GetStarted
         onClick={() => {
           const url =
@@ -74,6 +142,15 @@ export default function DemoHeader() {
           {sandboxData?.cta?.shortTitle || t('Sign Up')}
         </GetStartedTextShort>
       </GetStarted>
+    );
+  }
+
+  return (
+    <Wrapper collapsed={collapsed}>
+      <StyledLogoSentry />
+      {docsBtn}
+      {reqDemoBtn}
+      {signUpBtn}
     </Wrapper>
   );
 }
@@ -155,5 +232,44 @@ const StyledExternalLink = styled(ExternalLink)`
   color: #584774;
   @media (max-width: 500px) {
     display: none;
+  }
+`;
+
+const FreeTrialTextShort = styled('span')`
+  display: none;
+`;
+
+const FreeTrialTextLong = styled('span')``;
+
+const NewBaseButton = styled(Button)`
+  text-transform: uppercase;
+`;
+
+const NewRequestDemoBtn = styled(NewBaseButton)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
+`;
+
+const DocsDemoBtn = styled(NewBaseButton)`
+  @media (max-width: 500px) {
+    display: none;
+  }
+`;
+
+const FreeTrial = styled(NewBaseButton)`
+  border-color: transparent;
+  background-color: #6c5fc7;
+  color: #fff;
+  .short-text {
+    display: none;
+  }
+  @media (max-width: 650px) {
+    ${FreeTrialTextLong} {
+      display: none;
+    }
+    ${FreeTrialTextShort} {
+      display: inline;
+    }
   }
 `;
