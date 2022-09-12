@@ -21,6 +21,7 @@ from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project
 from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
 from sentry.relay.utils import to_camel_case_name
+from sentry.search.utils import get_latest_release
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -179,9 +180,26 @@ def _get_project_config(project, full_config=True, project_keys=None):
         dynamic_sampling = project.get_option("sentry:dynamic_sampling")
         if dynamic_sampling is not None:
             # filter out rules that do not have active set to True
-            cfg["config"]["dynamicSampling"] = {
-                "rules": [r for r in dynamic_sampling["rules"] if r.get("active")]
-            }
+            active_rules = []
+            for rule in dynamic_sampling["rules"]:
+                if rule.get("active"):
+                    # TODO: (andrii) extract to seperate function
+                    inner_rule = rule["condition"]["inner"]
+                    if (
+                        inner_rule
+                        and inner_rule[0]["name"] == "trace.release"
+                        and inner_rule[0]["value"] == ["latest"]
+                    ):
+                        # get latest overall (no environments filters)
+                        environment = None
+                        rule["condition"]["inner"][0]["value"] = get_latest_release(
+                            [project], environment
+                        )
+                    # end TODO
+                    active_rules.append(rule)
+
+            cfg["config"]["dynamicSampling"] = {"rules": active_rules}
+            # TODO(andrii): schedule_recomputation
 
     if not full_config:
         # This is all we need for external Relay processors
