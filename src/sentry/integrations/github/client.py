@@ -87,13 +87,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         own URL.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
         """
-        try:
-            with sentry_sdk.configure_scope() as scope:
+        with sentry_sdk.configure_scope() as scope:
+            if scope.span is not None:
                 parent_span_id = scope.span.span_id
                 trace_id = scope.span.trace_id
-        except AttributeError:
-            parent_span_id = None
-            trace_id = None
+            else:
+                parent_span_id = None
+                trace_id = None
 
         with sentry_sdk.start_transaction(
             op=f"{self.integration_type}.http.pagination",
