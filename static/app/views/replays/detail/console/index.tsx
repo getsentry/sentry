@@ -85,6 +85,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           triggerProps={{
             prefix: t('Log Level'),
           }}
+          triggerLabel={logLevel.length === 0 ? t('Any') : null}
           multiple
           options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
             value: breadcrumbLogLevel,
