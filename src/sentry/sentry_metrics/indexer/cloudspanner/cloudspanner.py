@@ -21,7 +21,7 @@ from sentry.sentry_metrics.indexer.cloudspanner.cloudspanner_model import (
     get_column_names,
 )
 from sentry.sentry_metrics.indexer.id_generator import get_id, reverse_bits
-from sentry.sentry_metrics.indexer.ratelimiters import writes_limiter_factory
+from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
 from sentry.utils.codecs import Codec

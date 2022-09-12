@@ -4,7 +4,7 @@ import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment} from './group';
+import type {IssueAttachment, IssueCategory} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
@@ -387,6 +387,7 @@ interface EventBase {
   device?: Record<string, any>;
   endTimestamp?: number;
   groupID?: string;
+  issueCategory?: IssueCategory;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
   nextEventID?: string | null;
