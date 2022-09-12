@@ -267,7 +267,7 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('disables Open in Discover when the widget contains custom measurements', async function () {
+  it('allows Open in Discover when the widget contains custom measurements', async function () {
     render(
       <WidgetCard
         api={api}
@@ -278,6 +278,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [
             {
               ...multipleQueryWidget.queries[0],
+              conditions: '',
               fields: [],
               columns: [],
               aggregates: ['p99(measurements.custom.measurement)'],
@@ -301,7 +302,9 @@ describe('Dashboards > WidgetCard', function () {
     userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Open in Discover')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Discover'));
-    expect(router.push).not.toHaveBeenCalledWith();
+    expect(router.push).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
+    );
   });
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {

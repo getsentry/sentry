@@ -1,34 +1,32 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
-describe('OrganizationAuditLog', () => {
-  const {routerContext, org} = initializeOrg({
+describe('OrganizationAuditLog', function () {
+  const {routerContext, organization, router} = initializeOrg({
+    ...initializeOrg(),
     projects: [],
     router: {
       params: {orgId: 'org-slug'},
     },
   });
-  const ENDPOINT = `/organizations/${org.slug}/audit-logs/`;
-  const mockLocation = {query: {}};
+  const ENDPOINT = `/organizations/${organization.slug}/audit-logs/`;
 
   beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {rows: TestStubs.AuditLogs(), options: TestStubs.AuditLogsApiEventNames()},
     });
   });
 
-  it('renders', async () => {
+  it('renders', async function () {
     render(
-      <OrganizationAuditLog
-        location={mockLocation}
-        organization={org}
-        params={{orgId: org.slug}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <OrganizationAuditLog location={router.location} />
+      </OrganizationContext.Provider>,
       {
         context: routerContext,
       }
@@ -44,19 +42,17 @@ describe('OrganizationAuditLog', () => {
     expect(screen.getByText('edited project ludic-science')).toBeInTheDocument();
   });
 
-  it('renders empty', async () => {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+  it('renders empty', async function () {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: {rows: [], options: TestStubs.AuditLogsApiEventNames()},
     });
 
     render(
-      <OrganizationAuditLog
-        location={mockLocation}
-        organization={org}
-        params={{orgId: org.slug}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <OrganizationAuditLog location={router.location} />
+      </OrganizationContext.Provider>,
       {
         context: routerContext,
       }
@@ -67,11 +63,9 @@ describe('OrganizationAuditLog', () => {
 
   it('displays whether an action was done by a superuser', async () => {
     render(
-      <OrganizationAuditLog
-        location={mockLocation}
-        organization={org}
-        params={{orgId: org.slug}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <OrganizationAuditLog location={router.location} />
+      </OrganizationContext.Provider>,
       {
         context: routerContext,
       }

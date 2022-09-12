@@ -52,6 +52,34 @@ export enum IssueType {
   PERFORMANCE_N_PLUS_ONE = 'performance_n_plus_one',
 }
 
+type CapabilityInfo = {
+  enabled: boolean;
+  disabledReason?: string;
+};
+
+/**
+ * Defines what capabilities a category of issue has. Not all categories of
+ * issues work the same.
+ */
+export type IssueCategoryCapabilities = {
+  /**
+   * Can the issue be deleted
+   */
+  delete: CapabilityInfo;
+  /**
+   * Can the issue be deleted and discarded
+   */
+  deleteAndDiscard: CapabilityInfo;
+  /**
+   * Can the issue be ignored (and the dropdown options)
+   */
+  ignore: CapabilityInfo;
+  /**
+   * Can the issue be merged
+   */
+  merge: CapabilityInfo;
+};
+
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
@@ -324,6 +352,12 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     assigneeType: string;
     user: Team | User;
     assigneeEmail?: string;
+    /**
+     * If the user was assigned via an integration
+     */
+    integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
+    /** Codeowner or Project owner rule as a string */
+    rule?: string;
   };
   type: GroupActivityType.ASSIGNED;
 }
