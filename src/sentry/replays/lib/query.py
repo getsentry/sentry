@@ -279,7 +279,7 @@ def _all_values_for_tag_key(key: str) -> Function:
         parameters=[
             Lambda(
                 ["key", "mask"],
-                Function("equals", parameters=[Identifier("mask"), "1"]),
+                Function("equals", parameters=[Identifier("mask"), 1]),
             ),
             Column("tv"),
             _bitmask_on_tag_key(key),
