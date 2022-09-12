@@ -25,7 +25,7 @@ export function splitEventsByProcessAndThreadId(
   const collections: Map<ProcessId, Map<ThreadId, ChromeTrace.Event[]>> = new Map();
 
   for (let i = 0; i < trace.length; i++) {
-    const event = trace[i];
+    const event = trace[i]!; // iterating over non empty array
 
     if (typeof event.pid !== 'number') {
       continue;
@@ -103,7 +103,7 @@ function buildProfile(
   const endQueue: Array<ChromeTrace.Event> = [];
 
   for (let i = 0; i < timelineEvents.length; i++) {
-    const event = timelineEvents[i];
+    const event = timelineEvents[i]!; // iterating over non empty array
 
     // M events are not pushed to the queue, we just store their information
     if (event.ph === 'M') {

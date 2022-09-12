@@ -126,6 +126,10 @@ describe('jsSelfProfile', () => {
 
     const root = firstCallee(profile.appendOrderTree);
 
+    if (!root) {
+      throw new Error('root is null');
+    }
+
     expect(root.totalWeight).toEqual(1000);
     expect(root.selfWeight).toEqual(0);
 

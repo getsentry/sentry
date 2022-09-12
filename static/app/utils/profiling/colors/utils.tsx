@@ -60,8 +60,19 @@ export const makeStackToColor = (
     const colorBuffer: number[] = new Array(length * 4 * 6);
 
     for (let index = 0; index < length; index++) {
-      const c = colors.get(frames[index].key);
-      const colorWithAlpha = c ? c.concat(1) : fallback;
+      const frame = frames[index];
+
+      if (!frame) {
+        continue;
+      }
+
+      const c = colors.get(frame.key);
+      const colorWithAlpha: [number, number, number, number] =
+        c && c.length === 3
+          ? (c.concat(1) as [number, number, number, number])
+          : c
+          ? c
+          : fallback;
 
       for (let i = 0; i < 6; i++) {
         const offset = index * 6 * 4 + i * 4;
@@ -142,7 +153,7 @@ export const makeColorMap = (
   const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    const frame = sortedFrames[i];
+    const frame = sortedFrames[i]!;
     const nameKey = frame.frame.name + frame.frame.image ?? '';
 
     if (!colorsByName.has(nameKey)) {
@@ -172,7 +183,7 @@ export const makeColorMapByRecursion = (
   const colorsByName = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    const frame = sortedFrames[i];
+    const frame = sortedFrames[i]!;
     const nameKey = frame.frame.name + frame.frame.image ?? '';
 
     if (!colorsByName.has(nameKey)) {
@@ -204,25 +215,27 @@ export const makeColorMapByImage = (
   );
 
   for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
+    const frame = frames[i]!;
     const key = frame.frame.image ?? '';
 
     if (!reverseFrameToImageIndex[key]) {
       reverseFrameToImageIndex[key] = [];
     }
-    reverseFrameToImageIndex[key].push(frame);
+    // we initialize an empty array above, so this is safe
+    reverseFrameToImageIndex[key]!.push(frame);
   }
 
   for (let i = 0; i < sortedFrames.length; i++) {
     const imageFrames = reverseFrameToImageIndex[sortedFrames[i]?.frame?.image ?? ''];
+    if (!imageFrames) {
+      continue;
+    }
 
     for (let j = 0; j < imageFrames.length; j++) {
+      const frame = imageFrames[j]!;
       colors.set(
-        imageFrames[j].key,
-        colorBucket(
-          Math.floor((255 * i) / sortedFrames.length) / 256,
-          imageFrames[j].frame
-        )
+        frame.key,
+        colorBucket(Math.floor((255 * i) / sortedFrames.length) / 256, frame.frame)
       );
     }
   }
@@ -237,7 +250,7 @@ export const makeColorMapBySystemVsApplication = (
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
 
   for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
+    const frame = frames[i]!; // iterating over non empty array
 
     if (frame.frame.is_application) {
       colors.set(frame.key, colorBucket(0.7, frame.frame));
@@ -260,7 +273,7 @@ export const makeColorMapByFrequency = (
   const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
 
   for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
+    const frame = frames[i]!; // iterating over non empty array
     const key = frame.frame.name + frame.frame.image;
 
     if (!countMap.has(key)) {
@@ -274,12 +287,13 @@ export const makeColorMapByFrequency = (
   }
 
   for (let i = 0; i < frames.length; i++) {
-    const key = frames[i].frame.name + frames[i].frame.image;
+    const frame = frames[i]!; // iterating over non empty array
+    const key = frame.frame.name + frame.frame.image;
     const count = countMap.get(key)!;
-    const [r, g, b] = colorBucket(0.7, frames[i].frame);
+    const [r, g, b] = colorBucket(0.7, frame.frame);
     const color: ColorChannels = [r, g, b, Math.max(count / max, 0.1)];
 
-    colors.set(frames[i].key, color);
+    colors.set(frame.key, color);
   }
 
   return colors;

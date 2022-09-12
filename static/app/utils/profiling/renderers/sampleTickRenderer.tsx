@@ -4,10 +4,22 @@ import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, Rect} from '../gl/utils';
 
-function computeAbsoluteSampleTimestamps(startedAt: number, weights: readonly number[]) {
-  const timeline = [startedAt + weights[0]];
+function computeAbsoluteSampleTimestamps(
+  startedAt: number,
+  weights: readonly number[]
+): number[] {
+  if (!weights.length) {
+    return [];
+  }
+
+  const first = weights[0];
+  if (typeof first !== 'number') {
+    throw new Error('Invalid weights, expected an array of numbers');
+  }
+  const timeline = [startedAt + first];
   for (let i = 1; i < weights.length; i++) {
-    timeline.push(timeline[i - 1] + weights[i]);
+    const previous = timeline[i - 1]!; // i starts at 1, so this is safe
+    timeline.push(previous + weights[i]!); // iterating over non empty array
   }
   return timeline;
 }
@@ -53,7 +65,7 @@ class SampleTickRenderer {
     context.lineWidth = this.theme.SIZES.INTERNAL_SAMPLE_TICK_LINE_WIDTH;
 
     for (let i = 0; i < this.intervals.length; i++) {
-      const interval = this.intervals[i];
+      const interval = this.intervals[i]!; // iterating over a non empty array
 
       if (interval < configView.left) {
         continue;
