@@ -337,7 +337,7 @@ def cron(**options):
 )
 @click.option(
     "--concurrency",
-    default=50,
+    default=5,
     type=int,
     help="Thread pool size for post process worker.",
 )
