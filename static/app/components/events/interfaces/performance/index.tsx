@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Event, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
+import DataSection from '../../eventTagsAndScreenshot/dataSection';
 import KeyValueList from '../keyValueList';
 import TraceView from '../spans/traceView';
 import WaterfallModel from '../spans/waterfallModel';
@@ -55,7 +55,12 @@ export function SpanEvidenceSection({
   ];
 
   return (
-    <EventDataSection type="span-evidence" title={t('Span Evidence')} wrapTitle>
+    <DataSection
+      title={t('Span Evidence')}
+      description={t(
+        'Span Evidence identifies the parent span where the N+1 occurs, the source span that occurs immediately before the repeating spans, and the repeating span itself.'
+      )}
+    >
       <KeyValueList data={data} />
 
       <TraceViewWrapper>
@@ -65,7 +70,7 @@ export function SpanEvidenceSection({
           isEmbedded
         />
       </TraceViewWrapper>
-    </EventDataSection>
+    </DataSection>
   );
 }
 
