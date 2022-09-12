@@ -75,16 +75,22 @@ function IssueListActions({
     SelectedGroupStore.deselectAll();
   }
 
-  function handleDelete() {
-    const orgId = organization.slug;
+  // TODO: Remove this when merging/deleting performance issues is supported
+  // This silently avoids performance issues for bulk actions
+  const queryExcludingPerformanceIssues = organization.features.includes(
+    'performance-issues'
+  )
+    ? `${query ?? ''} !issue.category:performance`
+    : query;
 
+  function handleDelete() {
     actionSelectedGroups(itemIds => {
       bulkDelete(
         api,
         {
-          orgId,
+          orgId: organization.slug,
           itemIds,
-          query,
+          query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -105,7 +111,7 @@ function IssueListActions({
         {
           orgId: organization.slug,
           itemIds,
-          query,
+          query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -176,7 +182,6 @@ function IssueListActions({
           <ActionSet
             sort={sort}
             onSortChange={onSortChange}
-            orgSlug={organization.slug}
             queryCount={queryCount}
             query={query}
             issues={selectedIdsSet}

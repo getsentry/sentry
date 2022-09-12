@@ -1,7 +1,10 @@
+import React from 'react';
 import capitalize from 'lodash/capitalize';
 
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -38,12 +41,39 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
   );
 }
 
-export function getConfirm(
-  numIssues: number,
-  allInQuerySelected: boolean,
-  query: string,
-  queryCount: number
-) {
+function PerformanceIssueAlert({
+  allInQuerySelected,
+  organization,
+  children,
+}: {
+  allInQuerySelected: boolean;
+  children: string;
+  organization: Organization;
+}) {
+  if (!allInQuerySelected || !organization.features.includes('performance-issues')) {
+    return null;
+  }
+
+  return (
+    <Alert type="info" showIcon>
+      {children}
+    </Alert>
+  );
+}
+
+export function getConfirm({
+  numIssues,
+  allInQuerySelected,
+  query,
+  queryCount,
+  organization,
+}: {
+  allInQuerySelected: boolean;
+  numIssues: number;
+  organization: Organization;
+  query: string;
+  queryCount: number;
+}) {
   return function (action: ConfirmAction | string, canBeUndone: boolean, append = '') {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
@@ -56,20 +86,36 @@ export function getConfirm(
     let message;
     switch (action) {
       case ConfirmAction.DELETE:
-        message = tct(
-          'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
-          {
-            link: (
-              <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
-            ),
-          }
+        message = (
+          <React.Fragment>
+            <p>
+              {tct(
+                'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+                {
+                  link: (
+                    <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
+                  ),
+                }
+              )}
+            </p>
+            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+              {t('Deleting performance issues is not yet supported and will be skipped.')}
+            </PerformanceIssueAlert>
+          </React.Fragment>
         );
         break;
       case ConfirmAction.MERGE:
-        message = t('Note that unmerging is currently an experimental feature.');
+        message = (
+          <React.Fragment>
+            <p>{t('Note that unmerging is currently an experimental feature.')}</p>
+            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+              {t('Merging performance issues is not yet supported and will be skipped.')}
+            </PerformanceIssueAlert>
+          </React.Fragment>
+        );
         break;
       default:
-        message = t('This action cannot be undone.');
+        message = <p>{t('This action cannot be undone.')}</p>;
     }
 
     return (
@@ -82,7 +128,7 @@ export function getConfirm(
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && <p>{message}</p>}
+        {!canBeUndone && message}
       </div>
     );
   };

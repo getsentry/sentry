@@ -33,6 +33,7 @@ const defaultProps = {
   onSelectStatsPeriod: jest.fn(),
   realtimeActive: false,
   statsPeriod: '24h',
+  onDelete: jest.fn(),
 };
 
 function WrappedComponent(props) {
@@ -324,6 +325,94 @@ describe('IssueListActions', function () {
       userEvent.click(screen.getByText(/Number of events/));
 
       expect(mockOnSortChange).toHaveBeenCalledWith('freq');
+    });
+  });
+
+  describe('bulk action performance issues', function () {
+    const orgWithPerformanceIssues = TestStubs.Organization({
+      features: ['performance-issues'],
+    });
+
+    it('silently filters out performance issues when bulk deleting', function () {
+      const bulkDeleteMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'DELETE',
+      });
+
+      render(
+        <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+          <GlobalModal />
+          <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+        </OrganizationContext.Provider>
+      );
+
+      userEvent.click(screen.getByRole('checkbox'));
+
+      userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+      userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+
+      const modal = screen.getByRole('dialog');
+
+      expect(
+        within(modal).getByText(/deleting performance issues is not yet supported/i)
+      ).toBeInTheDocument();
+
+      userEvent.click(within(modal).getByRole('button', {name: 'Bulk delete issues'}));
+
+      expect(bulkDeleteMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'is:unresolved !issue.category:performance',
+          }),
+        })
+      );
+    });
+
+    it('silently filters out performance issues when bulk merging', function () {
+      const bulkMergeMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      // Ensure that all issues have the same project so we can merge
+      jest
+        .spyOn(GroupStore, 'get')
+        .mockReturnValue(
+          TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
+        );
+
+      render(
+        <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+          <GlobalModal />
+          <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+        </OrganizationContext.Provider>
+      );
+
+      userEvent.click(screen.getByRole('checkbox'));
+
+      userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+      userEvent.click(screen.getByRole('button', {name: 'Merge Selected Issues'}));
+
+      const modal = screen.getByRole('dialog');
+
+      expect(
+        within(modal).getByText(/merging performance issues is not yet supported/i)
+      ).toBeInTheDocument();
+
+      userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
+
+      expect(bulkMergeMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'is:unresolved !issue.category:performance',
+          }),
+        })
+      );
     });
   });
 });
