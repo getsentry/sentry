@@ -1,7 +1,6 @@
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
-import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashboardWidgetLibraryModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
@@ -273,15 +272,6 @@ export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {
   const mod = await import('sentry/components/modals/dashboardWidgetQuerySelectorModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
-}
-
-export async function openDashboardWidgetLibraryModal(
-  options: DashboardWidgetLibraryModalOptions
-) {
-  const mod = await import('sentry/components/modals/dashboardWidgetLibraryModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
