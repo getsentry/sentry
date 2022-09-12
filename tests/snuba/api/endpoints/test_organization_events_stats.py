@@ -566,7 +566,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
     def test_group_ids_filter(self):
         # store transaction with group ids
         _data = load_data("transaction")
-        # _data["group_ids"] = [123]
+        _data["group_ids"] = [123]
         self.store_event(_data, self.project2.id)
 
         response = self.do_request(
