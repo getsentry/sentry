@@ -40,7 +40,7 @@ describe('jsSelfProfiling', () => {
       };
       expect(
         toStackNames(
-          resolveJSSelfProfilingStack(trace, 5, createFrameIndex(trace.frames))
+          resolveJSSelfProfilingStack(trace, 5, createFrameIndex('web', trace.frames))
         )
       ).toEqual(['baz', 'foobar', 'foobarbaz', 'foobarbazfoo']);
     });
@@ -72,7 +72,12 @@ describe('jsSelfProfiling', () => {
       // The nice thing about it is that it centralizes the stack logic and makes it easier to test.
       expect(
         toStackNames(
-          resolveJSSelfProfilingStack(trace, 5, createFrameIndex(trace.frames), 'gc')
+          resolveJSSelfProfilingStack(
+            trace,
+            5,
+            createFrameIndex('web', trace.frames),
+            'gc'
+          )
         )
       ).toEqual(['baz', 'foobar', 'foobarbaz', 'foobarbazfoo', 'Garbage Collection']);
     });
@@ -87,7 +92,12 @@ describe('jsSelfProfiling', () => {
 
       expect(
         toStackNames(
-          resolveJSSelfProfilingStack(trace, 0, createFrameIndex(trace.frames), 'paint')
+          resolveJSSelfProfilingStack(
+            trace,
+            0,
+            createFrameIndex('web', trace.frames),
+            'paint'
+          )
         )
       ).toEqual(['Paint']);
     });

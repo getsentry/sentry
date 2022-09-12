@@ -23,7 +23,7 @@ const makeFlamegraph = (profile: Profiling.EventedProfile) => {
   return new Flamegraph(
     EventedProfile.FromProfile(
       profile,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}, {name: 'f3'}])
     ),
     0,
     {

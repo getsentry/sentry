@@ -9,13 +9,16 @@ import {CallTreeNode} from '../callTreeNode';
 type FrameIndex = Record<string | number, Frame>;
 
 export function createFrameIndex(
+  type: 'mobile' | 'web',
   frames: Profiling.Schema['shared']['frames']
 ): FrameIndex;
 export function createFrameIndex(
+  type: 'mobile' | 'web',
   frames: JSSelfProfiling.Frame[],
   trace: JSSelfProfiling.Trace
 ): FrameIndex;
 export function createFrameIndex(
+  type: 'mobile' | 'web',
   frames: Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[],
   trace?: JSSelfProfiling.Trace
 ): FrameIndex {
@@ -37,10 +40,13 @@ export function createFrameIndex(
   }
 
   return (frames as Profiling.Schema['shared']['frames']).reduce((acc, frame, index) => {
-    acc[index] = new Frame({
-      key: index,
-      ...frame,
-    });
+    acc[index] = new Frame(
+      {
+        key: index,
+        ...frame,
+      },
+      type
+    );
     return acc;
   }, {});
 }

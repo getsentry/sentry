@@ -26,7 +26,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     expect(profile.duration).toBe(1000);
@@ -52,7 +52,10 @@ describe('jsSelfProfile', () => {
       ],
     };
 
-    const profile = JSSelfProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = JSSelfProfile.FromProfile(
+      trace,
+      createFrameIndex('web', [{name: 'f0'}])
+    );
     expect(profile.stats.discardedSamplesCount).toBe(1);
   });
 
@@ -75,7 +78,10 @@ describe('jsSelfProfile', () => {
       ],
     };
 
-    const profile = JSSelfProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = JSSelfProfile.FromProfile(
+      trace,
+      createFrameIndex('web', [{name: 'f0'}])
+    );
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
 
@@ -108,7 +114,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     profile.forEach(open, close);
@@ -164,7 +170,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     profile.forEach(open, close);
@@ -206,7 +212,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
@@ -238,7 +244,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     expect(
@@ -278,7 +284,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     expect(profile.minFrameDuration).toBe(10);
@@ -309,7 +315,7 @@ describe('jsSelfProfile', () => {
 
     const profile = JSSelfProfile.FromProfile(
       trace,
-      createFrameIndex(trace.frames, trace)
+      createFrameIndex('web', trace.frames, trace)
     );
 
     const {open, close, openSpy, closeSpy, timings} = makeTestingBoilerplate();
