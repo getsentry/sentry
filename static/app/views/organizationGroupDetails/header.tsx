@@ -240,7 +240,7 @@ class GroupHeader extends Component<Props, State> {
   }
 
   getPerformanceIssueTabs() {
-    const {baseUrl, currentTab, location} = this.props;
+    const {baseUrl, currentTab, location, group} = this.props;
 
     const disabledTabs = this.getDisabledTabs();
 
@@ -259,6 +259,17 @@ class GroupHeader extends Component<Props, State> {
         >
           {t('Details')}
         </ListLink>
+        <StyledListLink
+          to={`${baseUrl}activity/${location.search}`}
+          isActive={() => currentTab === Tab.ACTIVITY}
+          disabled={disabledTabs.includes(Tab.ACTIVITY)}
+        >
+          {t('Activity')}
+          <Badge>
+            {group.numComments}
+            <IconChat size="xs" />
+          </Badge>
+        </StyledListLink>
         <ListLink
           to={`${baseUrl}tags/${location.search}`}
           isActive={() => currentTab === Tab.TAGS}
@@ -344,7 +355,7 @@ class GroupHeader extends Component<Props, State> {
             <div className="col-sm-7">
               <TitleWrapper>
                 <h3>
-                  <EventOrGroupTitle hasGuideAnchor data={group} />
+                  <StyledEventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
                 {group.inbox && (
                   <InboxReasonWrapper>
@@ -440,6 +451,10 @@ export default withApi(withRouter(withOrganization(GroupHeader)));
 const TitleWrapper = styled('div')`
   display: flex;
   line-height: 24px;
+`;
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-size: inherit;
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`

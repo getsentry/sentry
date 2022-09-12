@@ -322,12 +322,7 @@ class Actions extends Component<Props, State> {
     );
   };
 
-  openDeleteModal = () => {
-    const {group} = this.props;
-    if (!getIssueCapability(group.issueCategory, 'delete')) {
-      return;
-    }
-
+  openDeleteModal = () =>
     openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
       <Fragment>
         <Body>
@@ -345,13 +340,9 @@ class Actions extends Component<Props, State> {
         </Footer>
       </Fragment>
     ));
-  };
 
   openDiscardModal = () => {
-    const {group, organization} = this.props;
-    if (!getIssueCapability(group.issueCategory, 'deleteAndDiscard')) {
-      return;
-    }
+    const {organization} = this.props;
 
     openModal(this.renderDiscardModal);
     analytics('feature.discard_group.modal_opened', {
@@ -383,6 +374,9 @@ class Actions extends Component<Props, State> {
 
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
+
+    const deleteCap = getIssueCapability(group.issueCategory, 'delete');
+    const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
 
     return (
       <Wrapper>
@@ -475,16 +469,18 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  disabled: !getIssueCapability(group.issueCategory, 'delete'),
-                  onAction: () => this.openDeleteModal(),
+                  disabled: !deleteCap.enabled,
+                  details: deleteCap.disabledReason,
+                  onAction: this.openDeleteModal,
                 },
                 {
                   key: 'delete-and-discard',
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  disabled: !getIssueCapability(group.issueCategory, 'deleteAndDiscard'),
-                  onAction: () => this.openDiscardModal(),
+                  disabled: !deleteDiscardCap.enabled,
+                  details: deleteDiscardCap.disabledReason,
+                  onAction: this.openDiscardModal,
                 },
               ]}
             />

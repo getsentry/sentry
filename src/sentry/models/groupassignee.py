@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from django.conf import settings
 from django.db import models
@@ -24,6 +24,7 @@ class GroupAssigneeManager(BaseManager):
         assigned_to: Team | User,
         acting_user: User | None = None,
         create_only: bool = False,
+        extra: Dict[str, str] | None = None,
     ):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -59,15 +60,18 @@ class GroupAssigneeManager(BaseManager):
             )
 
         if affected:
+            data = {
+                "assignee": str(assigned_to.id),
+                "assigneeEmail": getattr(assigned_to, "email", None),
+                "assigneeType": assignee_type,
+            }
+            if extra:
+                data.update(extra)
             Activity.objects.create_group_activity(
                 group,
                 ActivityType.ASSIGNED,
                 user=acting_user,
-                data={
-                    "assignee": str(assigned_to.id),
-                    "assigneeEmail": getattr(assigned_to, "email", None),
-                    "assigneeType": assignee_type,
-                },
+                data=data,
             )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
