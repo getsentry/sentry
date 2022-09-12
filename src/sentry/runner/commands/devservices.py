@@ -30,7 +30,9 @@ def get_docker_client() -> docker.DockerClient:
         except Exception:
             if not started:
                 if sys.platform == "darwin":
-                    subprocess.check_call(("open", "--background", "-a", "Docker"))
+                    subprocess.check_call(
+                        ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+                    )
                 else:
                     raise click.ClickException("Make sure docker in running.")
                 started = True
