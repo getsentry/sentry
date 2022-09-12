@@ -1,5 +1,7 @@
 from unittest import mock
 
+from freezegun import freeze_time
+
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
@@ -50,6 +52,7 @@ class StreamGroupSerializerTestCase(TestCase):
             )
             assert make_series.call_count == 1
 
+    @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
     def test_perf_issue(self):
         def inject_group_ids(jobs, projects):
             _pull_out_data(jobs, projects)
