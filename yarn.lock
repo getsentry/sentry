@@ -2322,10 +2322,10 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.1.tgz#0ab8be23fd494d80dd0e4ec8ae5f3d13f805b13d"
   integrity sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==
 
-"@sentry/replay@0.5.12":
-  version "0.5.12"
-  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.12.tgz#d9732637349ed4b047f437f35a48143f4c306291"
-  integrity sha512-1LtMutTwki+x38mSDr6zDVdVHS4k2me+qDa8fPf9ikAMbpSSkJb2n8psThLidlRrxeVxlTHojmPz/P6bupa8qg==
+"@sentry/replay@0.5.14":
+  version "0.5.14"
+  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.14.tgz#9dcea46e6b00e2f0862ed356e694963430c88040"
+  integrity sha512-lhlYXOWMx4tBMXSgh+Z6onitL1rvUk5FHVquW6Tq0+P9P3yXZYF1JSqR6QeciyMgCoQ/d1BtcNZZHfbiIceLUw==
   dependencies:
     "@sentry/core" "^7.7.0"
     "@sentry/types" "^7.7.0"
@@ -11507,10 +11507,10 @@ platform@^1.3.3:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-platformicons@^5.3.1:
-  version "5.3.1"
-  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.3.1.tgz#778c9bc4899e9f668cad5bb49efbcfeacbb890c3"
-  integrity sha512-P25aSE/3tup5fxLJHK7yhQEs1QOQny+sqw4o2SU2xLgSMo0zRPr9wkxZ3EEHDqCYOBsYqQtstTECFLUmk9yUFA==
+platformicons@^5.3.2:
+  version "5.3.2"
+  resolved "https://registry.yarnpkg.com/platformicons/-/platformicons-5.3.2.tgz#34ea2bbe2ba87fbadd22cb6191ec1026a56ee7a7"
+  integrity sha512-hZRhCrwu+mPlpaJr0FlpsrHdn+XRUpVEZSgdOXuibdBAv6Clz0Aow2Tfndj/yHAlPJ3X1ZfeMwbinn7jwAplBg==
   dependencies:
     "@types/node" "*"
     "@types/react" "^16 || ^17"
