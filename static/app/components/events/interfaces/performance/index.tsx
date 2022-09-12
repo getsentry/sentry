@@ -1,49 +1,77 @@
 import styled from '@emotion/styled';
 
+import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {EventError, Group, Organization} from 'sentry/types';
-import {useLocation} from 'sentry/utils/useLocation';
+import {Event, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
-import {DurationChart} from './durationChart';
-import {SpanCountChart} from './spanCountChart';
+import KeyValueList from '../keyValueList';
+import TraceView from '../spans/traceView';
+import WaterfallModel from '../spans/waterfallModel';
+
+export type SpanEvidence = {
+  parentSpan: string;
+  repeatingSpan: string;
+  sourceSpan: string;
+  transaction: string;
+};
 
 interface Props {
-  event: EventError;
-  issue: Group;
+  affectedSpanIds: string[];
+  event: Event;
   organization: Organization;
+  spanEvidence: SpanEvidence;
 }
 
-export function PerformanceIssueSection({issue, event, organization}: Props) {
-  const location = useLocation();
+export function SpanEvidenceSection({
+  spanEvidence,
+  event,
+  organization,
+  affectedSpanIds,
+}: Props) {
+  const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
+
+  const data: KeyValueListData = [
+    {
+      key: '0',
+      subject: t('Transaction'),
+      value: transaction,
+    },
+    {
+      key: '1',
+      subject: t('Parent Span'),
+      value: parentSpan,
+    },
+    {
+      key: '2',
+      subject: t('Source Span'),
+      value: sourceSpan,
+    },
+    {
+      key: '3',
+      subject: t('Repeating Span'),
+      value: repeatingSpan,
+    },
+  ];
 
   return (
-    <Wrapper>
-      <Section>
-        <h3>{t('P75 Duration Change')}</h3>
-        <DurationChart
-          issue={issue}
-          location={location}
+    <EventDataSection type="span-evidence" title={t('Span Evidence')} wrapTitle>
+      <KeyValueList data={data} />
+
+      <TraceViewWrapper>
+        <TraceView
           organization={organization}
-          event={event}
+          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
+          isEmbedded
         />
-      </Section>
-      <Section>
-        <h3>{t('Span Count Distribution')}</h3>
-        <SpanCountChart
-          issue={issue}
-          event={event}
-          location={location}
-          organization={organization}
-        />
-      </Section>
-    </Wrapper>
+      </TraceViewWrapper>
+    </EventDataSection>
   );
 }
 
 export const Wrapper = styled('div')`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   border-top: 1px solid ${p => p.theme.innerBorder};
   margin: 0;
   /* Padding aligns with Layout.Body */
@@ -66,11 +94,9 @@ export const Wrapper = styled('div')`
     margin-bottom: 0;
     text-transform: uppercase;
   }
-  div:first-child {
-    margin-right: ${space(3)};
-  }
 `;
 
-const Section = styled('div')`
-  width: 50%;
+const TraceViewWrapper = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
 `;

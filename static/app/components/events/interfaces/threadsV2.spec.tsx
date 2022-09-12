@@ -1,13 +1,43 @@
+import React from 'react';
+import {InjectedRouter} from 'react-router';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
-import {EventOrGroupType} from 'sentry/types';
+import {EventOrGroupType, Organization} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
+
+function TestComponent({
+  organization,
+  router,
+  children,
+}: {
+  children: React.ReactNode;
+  organization: Organization;
+  router: InjectedRouter;
+}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    </OrganizationContext.Provider>
+  );
+}
 
 describe('ThreadsV2', function () {
-  const {project, organization} = initializeOrg();
+  const {project, organization, router} = initializeOrg();
   const org = {...organization, features: ['native-stack-trace-v2']};
 
   describe('non native platform', function () {
@@ -203,9 +233,14 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<ThreadsV2 {...props} />, {
-          organization: org,
-        });
+        const {container} = render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {
+            organization: org,
+          }
+        );
 
         // Title
         expect(screen.getByRole('heading', {name: 'Stack Trace'})).toBeInTheDocument();
@@ -232,7 +267,12 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle full stack trace button', function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -250,7 +290,12 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by display option', function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -290,7 +335,12 @@ describe('ThreadsV2', function () {
       });
 
       it('check display options', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
 
         userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
@@ -863,7 +913,12 @@ describe('ThreadsV2', function () {
       };
 
       it('renders', function () {
-        const {container} = render(<ThreadsV2 {...props} />, {organization: org});
+        const {container} = render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
@@ -891,7 +946,12 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle full stack trace button', function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
@@ -909,7 +969,12 @@ describe('ThreadsV2', function () {
       });
 
       it('toggle sort by option', function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
 
         expect(
           within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
@@ -953,7 +1018,12 @@ describe('ThreadsV2', function () {
       });
 
       it('check display options', async function () {
-        render(<ThreadsV2 {...props} />, {organization: org});
+        render(
+          <TestComponent organization={org} router={router}>
+            <ThreadsV2 {...props} />
+          </TestComponent>,
+          {organization: org}
+        );
 
         userEvent.click(screen.getByRole('button', {name: 'Options'}));
 

@@ -9,18 +9,23 @@ import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useParams} from 'sentry/utils/useParams';
 
 import {FrameStackTable} from './frameStackTable';
+import {ProfileDetails} from './profileDetails';
 
 interface FrameStackProps {
   canvasPoolManager: CanvasPoolManager;
+  flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
+  profileGroup: ProfileGroup;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
@@ -28,8 +33,8 @@ interface FrameStackProps {
 
 const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   const params = useParams();
-  const [flamegraphPreferences, dispatchFlamegraphPreferences] =
-    useFlamegraphPreferences();
+  const flamegraphPreferences = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
@@ -83,21 +88,21 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
   }, []);
 
   const onTableLeftClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table left'});
-  }, [dispatchFlamegraphPreferences]);
+    dispatch({type: 'set layout', payload: 'table left'});
+  }, [dispatch]);
 
   const onTableBottomClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table bottom'});
-  }, [dispatchFlamegraphPreferences]);
+    dispatch({type: 'set layout', payload: 'table bottom'});
+  }, [dispatch]);
 
   const onTableRightClick = useCallback(() => {
-    dispatchFlamegraphPreferences({type: 'set layout', payload: 'table right'});
-  }, [dispatchFlamegraphPreferences]);
+    dispatch({type: 'set layout', payload: 'table right'});
+  }, [dispatch]);
 
   return (
     <FrameDrawer layout={flamegraphPreferences.layout}>
-      <FrameTabs>
-        <ListItem className={tab === 'bottom up' ? 'active' : undefined}>
+      <ProfilingDetailsFrameTabs>
+        <ProfilingDetailsListItem className={tab === 'bottom up' ? 'active' : undefined}>
           <Button
             data-title={t('Bottom Up')}
             priority="link"
@@ -106,8 +111,11 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Bottom Up')}
           </Button>
-        </ListItem>
-        <ListItem margin="none" className={tab === 'call order' ? 'active' : undefined}>
+        </ProfilingDetailsListItem>
+        <ProfilingDetailsListItem
+          margin="none"
+          className={tab === 'call order' ? 'active' : undefined}
+        >
           <Button
             data-title={t('Call Order')}
             priority="link"
@@ -116,9 +124,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Call Order')}
           </Button>
-        </ListItem>
+        </ProfilingDetailsListItem>
         <Separator />
-        <ListItem className={treeType === 'all' ? 'active' : undefined}>
+        <ProfilingDetailsListItem className={treeType === 'all' ? 'active' : undefined}>
           <Button
             data-title={t('All Frames')}
             priority="link"
@@ -127,8 +135,10 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('All Frames')}
           </Button>
-        </ListItem>
-        <ListItem className={treeType === 'application' ? 'active' : undefined}>
+        </ProfilingDetailsListItem>
+        <ProfilingDetailsListItem
+          className={treeType === 'application' ? 'active' : undefined}
+        >
           <Button
             data-title={t('Application Frames')}
             priority="link"
@@ -137,8 +147,11 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('Application Frames')}
           </Button>
-        </ListItem>
-        <ListItem margin="none" className={treeType === 'system' ? 'active' : undefined}>
+        </ProfilingDetailsListItem>
+        <ProfilingDetailsListItem
+          margin="none"
+          className={treeType === 'system' ? 'active' : undefined}
+        >
           <Button
             data-title={t('System Frames')}
             priority="link"
@@ -147,9 +160,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
           >
             {t('System Frames')}
           </Button>
-        </ListItem>
+        </ProfilingDetailsListItem>
         <Separator />
-        <ListItem>
+        <ProfilingDetailsListItem>
           <FrameDrawerLabel>
             <input
               type="checkbox"
@@ -158,8 +171,8 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             />
             {t('Collapse recursion')}
           </FrameDrawerLabel>
-        </ListItem>
-        <ListItem
+        </ProfilingDetailsListItem>
+        <ProfilingDetailsListItem
           style={{
             flex: '1 1 100%',
             cursor:
@@ -169,7 +182,7 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
             flamegraphPreferences.layout === 'table bottom' ? props.onResize : undefined
           }
         />
-        <ListItem margin="none">
+        <ProfilingDetailsListItem margin="none">
           <ExportProfileButton
             variant="xs"
             eventId={params.eventId}
@@ -181,9 +194,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               params.projectId === undefined
             }
           />
-        </ListItem>
+        </ProfilingDetailsListItem>
         <Separator />
-        <ListItem>
+        <ProfilingDetailsListItem>
           <LayoutSelectionContainer>
             <StyledButton
               active={flamegraphPreferences.layout === 'table left'}
@@ -210,8 +223,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
               <IconPanel size="xs" direction="left" />
             </StyledButton>
           </LayoutSelectionContainer>
-        </ListItem>
-      </FrameTabs>
+        </ProfilingDetailsListItem>
+      </ProfilingDetailsFrameTabs>
+
       <FrameStackTable
         {...props}
         recursion={recursion}
@@ -219,6 +233,9 @@ const FrameStack = memo(function FrameStack(props: FrameStackProps) {
         tree={maybeFilteredOrInvertedTree ?? []}
         canvasPoolManager={props.canvasPoolManager}
       />
+
+      <ProfileDetails profileGroup={props.profileGroup} />
+
       {flamegraphPreferences.layout === 'table left' ||
       flamegraphPreferences.layout === 'table right' ? (
         <ResizableVerticalDrawer>
@@ -273,29 +290,31 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   grid-template-areas: ${({layout}) =>
     layout === 'table bottom'
       ? `
-    'tabs'
-    'table'
-    'drawer'
+    'tabs tabs'
+    'table details'
+    'drawer drawer'
     `
       : layout === 'table left'
       ? `
-      'tabs drawer'
-      'table drawer'
+      'tabs tabs drawer'
+      'table table drawer'
+      'details details drawer';
       `
       : `
-      'drawer tabs'
-      'drawer table'
+      'drawer tabs tabs'
+      'drawer table table'
+      'drawer details details';
       `};
 `;
 const Separator = styled('li')`
   width: 1px;
   height: 66%;
   margin: 0 ${space(1)};
-  background: ${p => p.theme.border};
+  background: 1px solid ${p => p.theme.border};
   transform: translateY(29%);
 `;
 
-const FrameTabs = styled('ul')`
+export const ProfilingDetailsFrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
   padding: 0 ${space(1)};
@@ -306,7 +325,10 @@ const FrameTabs = styled('ul')`
   grid-area: tabs;
 `;
 
-const ListItem = styled('li')<{margin?: 'none'}>`
+export const ProfilingDetailsListItem = styled('li')<{
+  margin?: 'none';
+  size?: 'sm';
+}>`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-right: ${p => (p.margin === 'none' ? 0 : space(1))};
 
@@ -316,8 +338,9 @@ const ListItem = styled('li')<{margin?: 'none'}>`
     border-bottom: 2px solid transparent;
     border-radius: 0;
     margin: 0;
-    padding: ${space(0.5)} 0;
+    padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
     color: ${p => p.theme.textColor};
+    max-height: ${p => (p.size === 'sm' ? '24px' : 'auto')};
 
     &::after {
       display: block;

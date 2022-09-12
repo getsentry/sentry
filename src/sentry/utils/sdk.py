@@ -51,7 +51,6 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     # events
-    "sentry-api-0-organization-eventsv2": 0.1,
     "sentry-api-0-organization-events": 1,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
@@ -87,6 +86,9 @@ SAMPLED_URL_NAMES = {
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
+# Tasks not included here are not sampled
+# If a parent task schedules other tasks you should add it in here or the children
+# tasks will not be sampled
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.symbolicate_event": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
@@ -103,6 +105,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    # This is the parent task of the next two tasks.
+    "sentry.tasks.reports.prepare_reports": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
     "sentry.tasks.process_buffer.process_incr": 0.01,
@@ -274,6 +278,7 @@ def configure_sdk():
     relay_dsn = sdk_options.pop("relay_dsn", None)
     experimental_dsn = sdk_options.pop("experimental_dsn", None)
     internal_project_key = get_project_key()
+    # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     upstream_dsn = sdk_options.pop("dsn", None)
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["release"] = (

@@ -135,7 +135,7 @@ class AssigneeSelector extends Component<Props, State> {
   };
 
   memberList(): User[] | undefined {
-    return this.props.memberList ? this.props.memberList : this.state.memberList;
+    return this.props.memberList ?? this.state.memberList;
   }
 
   onGroupChange(itemIds: Set<string>) {
@@ -476,7 +476,7 @@ class AssigneeSelector extends Component<Props, State> {
       />
     ) : suggestedActors && suggestedActors.length > 0 ? (
       <SuggestedAvatarStack
-        size={24}
+        size={28}
         owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={

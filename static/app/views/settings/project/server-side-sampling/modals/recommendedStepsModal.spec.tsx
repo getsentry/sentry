@@ -156,4 +156,26 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
     userEvent.click(screen.getByRole('button', {name: 'Back'}));
     expect(onGoBack).toHaveBeenCalled();
   });
+
+  it('renders 3/3 footer', function () {
+    const {organization, project} = getMockData();
+
+    render(<GlobalModal />);
+
+    openModal(modalProps => (
+      <RecommendedStepsModal
+        {...modalProps}
+        organization={organization}
+        projectId={project.id}
+        recommendedSdkUpgrades={[]}
+        onGoBack={jest.fn()}
+        onSubmit={jest.fn()}
+        onReadDocs={jest.fn()}
+        clientSampleRate={uniformRule.sampleRate}
+        specifiedClientRate={0.1}
+      />
+    ));
+
+    expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
+  });
 });

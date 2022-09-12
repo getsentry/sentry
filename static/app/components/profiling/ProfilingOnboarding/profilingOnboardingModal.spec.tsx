@@ -19,7 +19,7 @@ function selectProject(project: Project) {
     throw new Error(`Selected project requires a name, received ${project.name}`);
   }
 
-  userEvent.click(screen.getAllByRole('textbox')[0]);
+  userEvent.click(screen.getAllByRole('textbox')[0]!);
   userEvent.click(screen.getByText(project.name));
 }
 
@@ -27,6 +27,7 @@ describe('ProfilingOnboarding', function () {
   beforeEach(() => {
     ProjectStore.teardown();
   });
+
   it('renders default step', () => {
     render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
@@ -40,13 +41,13 @@ describe('ProfilingOnboarding', function () {
     render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
     selectProject(TestStubs.Project({name: 'iOS Project'}));
     act(() => {
-      userEvent.click(screen.getAllByText('Next')[0]);
+      userEvent.click(screen.getAllByText('Next')[0]!);
     });
     expect(screen.getByText(/Step 2 of 2/i)).toBeInTheDocument();
 
     // Previous step
     act(() => {
-      userEvent.click(screen.getAllByText('Back')[0]);
+      userEvent.click(screen.getAllByText('Back')[0]!);
     });
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
   });
@@ -59,7 +60,7 @@ describe('ProfilingOnboarding', function () {
     render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
     selectProject(TestStubs.Project({name: 'javascript'}));
     act(() => {
-      userEvent.click(screen.getAllByText('Next')[0]);
+      userEvent.click(screen.getAllByText('Next')[0]!);
     });
     expect(screen.getByRole('button', {name: /Next/i})).toBeDisabled();
   });
