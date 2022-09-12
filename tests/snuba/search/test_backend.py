@@ -684,6 +684,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
                 assert not results.next.has_results
 
     def test_pagination_with_environment(self):
+        print(self.group1.timestamp)
         for dt in [
             self.group1.first_seen + timedelta(days=1),
             self.group1.first_seen + timedelta(days=2),
@@ -2067,6 +2068,7 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
     def setUp(self):
         super().setUp()
         self.base_datetime = (datetime.utcnow() - timedelta(days=3)).replace(tzinfo=pytz.utc)
+
         transaction_event_data = {
             "level": "info",
             "message": "ayoo",
@@ -2162,96 +2164,102 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             self.error_group_2,
         }
 
-    def test_cursor_performance_error_issues(self):
-        # TODO this test is a hot mess
-        pass
-        # is this even in the right class? I am confused. I tried to move it to the one with the EventsDatasetSnubaSearchBackend
-        # but I have to redefine run_test which needs to redefine make_query which takes different args ):
-        transaction_event_data = {
-            "level": "info",
-            "message": "ayoo",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-        }
-
+    def test_cursor_performance_issues(self):
+        # adding a couple events so there is a first and last seen
+        event1 = self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "a" * 32,
+                "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["put-me-in-group1"],
+                "event_id": "b" * 32,
+                "timestamp": iso_format(self.base_datetime),
+            },
+            project_id=self.project.id,
+        )
+        throwaway_group = Group.objects.get(id=event1.group.id)
+        throwaway_group.save()
+        self.store_group(throwaway_group)
         perf_group_1 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
         perf_group_2 = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
         def hack_pull_out_data(jobs, projects):
             _pull_out_data(jobs, projects)
             for job in jobs:
-                job["event"].groups = [
-                    perf_group_1
-                ]  # what about perf_group_2? do I need to redefine a hack_pull_out_data2? that doesn't feel right but I need them in diff groups
+                job["event"].groups = [perf_group_1]
             return jobs, projects
 
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            perf_event_1 = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
+        transaction_event_data = {
+            "level": "info",
+            "message": "ayoo",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            "tags": {
+                "hellboy": "cute",
+            },
+        }
+        events = []
+
+        for dt in [
+            throwaway_group.first_seen + timedelta(days=1),
+            throwaway_group.first_seen + timedelta(days=2),
+            throwaway_group.last_seen + timedelta(days=1),
+        ]:
+            with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+                event = self.store_event(
+                    data={
+                        **transaction_event_data,
+                        "start_timestamp": iso_format(dt),
+                        "timestamp": iso_format(dt),
+                    },
+                    project_id=self.project.id,
+                )
+                events.append(event)
+
+        for event in events:
+            event.group = perf_group_2
+
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:performance hellboy:cute",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
             )
-        perf_event_1.group = perf_group_1
 
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            perf_event_2 = self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-                    "start_timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
+        assert list(results) == [perf_group_1]
+        assert results.hits == 1
+
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:performance hellboy:cute",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
             )
-        perf_event_2.group = perf_group_2
+        assert list(results) == []
+        assert results.hits == 1
 
-        # error_group_3 = self.store_event(
-        #     data={
-        #         "fingerprint": ["put-me-in-group3"],
-        #         "timestamp": iso_format(self.base_datetime + timedelta(days=1)),
-        #         "tags": {"sentry:user": "user2", "my_tag": 1},
-        #     },
-        #     project_id=self.project.id,
-        # ).group
-        # error_group_4 = self.store_event(
-        #     data={
-        #         "fingerprint": ["put-me-in-group7"],
-        #         "timestamp": iso_format(self.base_datetime + timedelta(days=2)),
-        #         "tags": {"sentry:user": "user2", "my_tag": 1},
-        #     },
-        #     project_id=self.project.id,
-        # ).group
-
-        # print(perf_group_1.id)
-        # print(perf_group_2.id)
-        # print(error_group_3.id)
-        # print(error_group_4.id)
-
-        # probably want my_tag:1 instead of is:unresolved but this is the wrong query executor class
-        # not sure what the expected result actually should be w/ 2 perf issues and 2 error issues
-
-        results = self.run_test("is:unresolved", [perf_group_2], 4, limit=1, count_hits=True)
-        results = self.run_test(
-            "is:unresolved", [perf_group_1], 4, limit=1, cursor=results.next, count_hits=True
-        )
-        results = self.run_test(
-            "is:unresolved", [perf_group_2], 4, limit=1, cursor=results.prev, count_hits=True
-        )
-        self.run_test(
-            "is:unresolved",
-            [perf_group_1, self.group1],
-            4,
-            limit=2,
-            cursor=results.next,
-            count_hits=True,
-        )
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:performance hellboy:cute",
+                sort_by="date",
+                limit=1,
+                cursor=results.next,
+                count_hits=True,
+            )
+        assert list(results) == []
+        assert results.hits == 1
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):
