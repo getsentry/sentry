@@ -165,6 +165,7 @@ default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, Tr
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature)
 default_manager.add("organizations:change-alerts", OrganizationFeature)
+default_manager.add('organizations:commit-context', OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)
 default_manager.add("organizations:dashboards-edit", OrganizationFeature)
