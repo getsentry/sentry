@@ -9,9 +9,12 @@ import Confirm from 'sentry/components/confirm';
 import DropdownLink from 'sentry/components/dropdownLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Switch from 'sentry/components/switchButton';
+import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 
 type ContainerProps = {
   onCancel: () => void;
@@ -21,6 +24,7 @@ type ContainerProps = {
 };
 
 type Props = {
+  issueCategory: IssueCategory;
   loading: boolean;
   /**
    * Called when refreshing an existing link
@@ -35,7 +39,15 @@ type Props = {
   shareUrl?: string | null;
 };
 
-function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}: Props) {
+function ShareIssue({
+  loading,
+  onReshare,
+  onToggle,
+  disabled,
+  isShared,
+  shareUrl,
+  issueCategory,
+}: Props) {
   const [hasConfirmModal, setHasConfirmModal] = useState(false);
 
   // State of confirm modal so we can keep dropdown menu opn
@@ -59,7 +71,9 @@ function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}
     }
   };
 
-  return (
+  const {enabled, disabledReason} = getIssueCapability(issueCategory, 'share');
+
+  const renderDropdown = () => (
     <DropdownLink
       shouldIgnoreClickOutside={() => hasConfirmModal}
       customTitle={
@@ -73,7 +87,7 @@ function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}
         </ActionButton>
       }
       onOpen={handleOpen}
-      disabled={disabled}
+      disabled={disabled || !enabled}
       keepMenuOpen
     >
       <DropdownContent>
@@ -98,6 +112,12 @@ function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}
         )}
       </DropdownContent>
     </DropdownLink>
+  );
+
+  return enabled ? (
+    renderDropdown()
+  ) : (
+    <Tooltip title={disabledReason}>{renderDropdown()}</Tooltip>
   );
 }
 

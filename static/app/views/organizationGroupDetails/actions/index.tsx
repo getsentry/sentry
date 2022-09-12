@@ -422,6 +422,7 @@ class Actions extends Component<Props, State> {
             shareUrl={this.getShareUrl(group.shareId)}
             onToggle={this.onToggleShare}
             onReshare={() => this.onShare(true)}
+            issueCategory={group.issueCategory}
           />
         )}
         <SubscribeAction
