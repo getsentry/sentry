@@ -247,9 +247,7 @@ describe('WidgetBuilder', function () {
 
   describe('with eventsv2 > Sort by selectors', function () {
     it('renders', async function () {
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
-      });
+      renderTestComponent();
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
       expect(
@@ -283,7 +281,6 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         dashboard,
         params: {
           widgetIndex: '0',
@@ -337,7 +334,6 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         dashboard,
         params: {
           widgetIndex: '0',
@@ -382,7 +378,6 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         dashboard,
         onSave: handleSave,
         params: {
@@ -433,7 +428,6 @@ describe('WidgetBuilder', function () {
       };
 
       const {router} = renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DISCOVERV2,
           defaultWidgetQuery: urlEncode(defaultWidgetQuery),
@@ -463,9 +457,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('sortBy is only visible on tabular visualizations or when there is a groupBy value selected on time-series visualizations', async function () {
-      renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
-      });
+      renderTestComponent();
 
       // Sort by shall be visible on table visualization
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
@@ -499,7 +491,6 @@ describe('WidgetBuilder', function () {
 
     it('allows for sorting by a custom equation', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -530,7 +521,6 @@ describe('WidgetBuilder', function () {
 
     it('persists the state when toggling between sorting options', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -560,7 +550,6 @@ describe('WidgetBuilder', function () {
 
     it('persists the state when updating y-axes', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -605,7 +594,6 @@ describe('WidgetBuilder', function () {
 
       const dashboard = mockDashboard({widgets: [widget]});
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -623,7 +611,6 @@ describe('WidgetBuilder', function () {
 
     it('displays Operators in the input dropdown', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -641,7 +628,6 @@ describe('WidgetBuilder', function () {
 
     it('hides Custom Equation input and resets orderby when switching to table', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -678,7 +664,6 @@ describe('WidgetBuilder', function () {
 
     it('does not show the Custom Equation input if the only y-axis left is an empty equation', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -694,7 +679,6 @@ describe('WidgetBuilder', function () {
 
     it('persists a sort by a grouping when changing y-axes', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -714,7 +698,6 @@ describe('WidgetBuilder', function () {
 
     it('persists sort by a y-axis when grouping changes', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -737,7 +720,6 @@ describe('WidgetBuilder', function () {
 
     it('does not remove the Custom Equation field if a grouping is updated', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           source: DashboardWidgetSource.DASHBOARDS,
           displayType: DisplayType.LINE,
@@ -787,7 +769,6 @@ describe('WidgetBuilder', function () {
         const dashboard = mockDashboard({widgets: [widget]});
 
         renderTestComponent({
-          orgFeatures: [...defaultOrgFeatures],
           dashboard,
           params: {
             widgetIndex: '0',
@@ -819,7 +800,6 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         dashboard,
         params: {
           widgetIndex: '0',
@@ -841,7 +821,6 @@ describe('WidgetBuilder', function () {
 
     it('will reset the sort field when going from line to table when sorting by a value not in fields', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           displayType: DisplayType.LINE,
         },
@@ -862,7 +841,6 @@ describe('WidgetBuilder', function () {
 
     it('equations in y-axis appear in sort by field for grouped timeseries', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures],
         query: {
           displayType: DisplayType.LINE,
         },
