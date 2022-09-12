@@ -82,7 +82,7 @@ function IssueListActions({
     // This silently avoids performance issues for bulk actions
     const modifiedQuery =
       query && organization.features.includes('performance-issues')
-        ? query + ' ' + '!issue.category:performance'
+        ? `${query} !issue.category:performance`
         : query;
 
     actionSelectedGroups(itemIds => {
@@ -110,7 +110,7 @@ function IssueListActions({
     // This silently avoids performance issues for bulk actions
     const modifiedQuery =
       query && organization.features.includes('performance-issues')
-        ? query + ' ' + '!issue.category:performance'
+        ? `${query} !issue.category:performance`
         : query;
 
     actionSelectedGroups(itemIds => {
