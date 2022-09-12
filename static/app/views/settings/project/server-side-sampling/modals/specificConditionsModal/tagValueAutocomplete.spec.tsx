@@ -110,7 +110,6 @@ describe('TagValueAutocomplete', function () {
       />
     );
 
-
     // Open the select
     userEvent.click(screen.getByLabelText('Search or add an environment'));
 
