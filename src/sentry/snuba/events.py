@@ -33,7 +33,7 @@ class Columns(Enum):
         group_name=None,
         event_name=None,
         transaction_name="group_ids",
-        discover_name="performance.issue_ids",
+        discover_name="group_ids",
         alias="performance.issue_ids",
     )
     PROJECT_ID = Column(
