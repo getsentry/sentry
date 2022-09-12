@@ -672,6 +672,7 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
 
 
+@region_silo_test
 class EventPerformanceProblemTest(TestCase):
     def test_save_and_fetch(self):
         event = Event(self.project.id, "something")
