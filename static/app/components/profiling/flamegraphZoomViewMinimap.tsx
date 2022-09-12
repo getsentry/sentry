@@ -4,7 +4,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
@@ -43,7 +43,7 @@ function FlamegraphZoomViewMinimap({
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | null
   >(null);
 
-  const [dispatch] = useDispatchFlamegraphState();
+  const dispatch = useDispatchFlamegraphState();
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
 

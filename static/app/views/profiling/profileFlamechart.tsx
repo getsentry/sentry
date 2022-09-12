@@ -10,14 +10,16 @@ import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
-  decodeFlamegraphStateFromQueryParams,
   DEFAULT_FLAMEGRAPH_STATE,
-  FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
   FlamegraphState,
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
+import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
+import {
+  decodeFlamegraphStateFromQueryParams,
+  FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
   FlamegraphStateLocalStorageSync,
-  FlamegraphStateProvider,
   FlamegraphStateQueryParamSync,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/index';
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {Profile} from 'sentry/utils/profiling/profile/profile';

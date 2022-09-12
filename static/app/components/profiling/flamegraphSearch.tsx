@@ -7,8 +7,9 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
+import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
@@ -195,7 +196,8 @@ function FlamegraphSearch({
   flamegraphs,
   canvasPoolManager,
 }: FlamegraphSearchProps): React.ReactElement | null {
-  const [search, dispatchSearch] = useFlamegraphSearch();
+  const search = useFlamegraphSearch();
+  const dispatch = useDispatchFlamegraphState();
   const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
 
   const allFrames = useMemo(() => {
@@ -242,11 +244,11 @@ function FlamegraphSearch({
   const handleChange: (value: string) => void = useCallback(
     value => {
       if (!value) {
-        dispatchSearch({type: 'clear search'});
+        dispatch({type: 'clear search'});
         return;
       }
 
-      dispatchSearch({
+      dispatch({
         type: 'set results',
         payload: {
           results: frameSearch(value, allFrames, searchIndex),
@@ -254,7 +256,7 @@ function FlamegraphSearch({
         },
       });
     },
-    [dispatchSearch, allFrames, searchIndex]
+    [dispatch, allFrames, searchIndex]
   );
 
   useEffect(() => {
@@ -272,15 +274,15 @@ function FlamegraphSearch({
     }
 
     if (search.index === null || search.index === frames.length - 1) {
-      dispatchSearch({type: 'set search index position', payload: 0});
+      dispatch({type: 'set search index position', payload: 0});
       return;
     }
 
-    dispatchSearch({
+    dispatch({
       type: 'set search index position',
       payload: search.index + 1,
     });
-  }, [search.results, search.index, dispatchSearch]);
+  }, [search.results, search.index, dispatch]);
 
   const onPreviousSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
@@ -289,18 +291,18 @@ function FlamegraphSearch({
     }
 
     if (search.index === null || search.index === 0) {
-      dispatchSearch({
+      dispatch({
         type: 'set search index position',
         payload: frames.length - 1,
       });
       return;
     }
 
-    dispatchSearch({
+    dispatch({
       type: 'set search index position',
       payload: search.index - 1,
     });
-  }, [search.results, search.index, dispatchSearch]);
+  }, [search.results, search.index, dispatch]);
 
   const handleKeyDown = useCallback(
     (evt: React.KeyboardEvent<HTMLInputElement>) => {
