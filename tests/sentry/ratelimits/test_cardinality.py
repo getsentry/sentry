@@ -2,7 +2,12 @@ from typing import Collection, Optional, Sequence
 
 import pytest
 
-from sentry.ratelimits.cardinality import Quota, RedisCardinalityLimiter, RequestedQuota
+from sentry.ratelimits.cardinality import (
+    GrantedQuota,
+    Quota,
+    RedisCardinalityLimiter,
+    RequestedQuota,
+)
 
 
 @pytest.fixture
@@ -50,9 +55,75 @@ def test_basic(limiter: RedisCardinalityLimiter):
 
     helper.timestamp += 3600
 
-    # some old keys 1, 2 expired, we should be able to admit the same keys
-    # 10..18 again + 2 new keys
+    # an hour has passed, we should be able to admit 10 new keys
+    #
+    # note: we only virtually advanced the timestamp. The
+    # `cardinality:timeseries` keys for 1, 2 still exist in this test setup
+    # (and we would admit them on top of 10..20), but they won't in a
+    # real-world scenario
     assert [helper.add_value(10 + i) for i in range(100)] == list(range(10, 20)) + [None] * 90
+
+
+def test_multiple_prefixes(limiter: RedisCardinalityLimiter):
+    """
+    Test multiple prefixes/organizations and just make sure we're not leaking
+    state between prefixes.
+
+    * `a` only consumes 5 of the quota first and runs out of quota in the
+      second `check_within_quotas` call
+    * `b` immediately exceeds the quota.
+    * `c` fits comfortably into the quota at first (fills out the limit exactly)
+    """
+    quotas = [Quota(window_seconds=3600, granularity_seconds=60, limit=10)]
+    requests = [
+        RequestedQuota(prefix="a", unit_hashes={1, 2, 3, 4, 5}, quotas=quotas),
+        RequestedQuota(prefix="b", unit_hashes={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, quotas=quotas),
+        RequestedQuota(
+            prefix="c", unit_hashes={11, 12, 13, 14, 15, 16, 17, 18, 19, 20}, quotas=quotas
+        ),
+    ]
+    new_timestamp, grants = limiter.check_within_quotas(requests)
+
+    assert grants == [
+        GrantedQuota(request=requests[0], granted_unit_hashes=[1, 2, 3, 4, 5], reached_quotas=[]),
+        GrantedQuota(
+            request=requests[1],
+            granted_unit_hashes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            reached_quotas=quotas,
+        ),
+        GrantedQuota(
+            request=requests[2],
+            granted_unit_hashes=[11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+            reached_quotas=[],
+        ),
+    ]
+    limiter.use_quotas(grants, new_timestamp)
+
+    requests = [
+        RequestedQuota(prefix="a", unit_hashes={6, 7, 8, 9, 10, 11}, quotas=quotas),
+        RequestedQuota(prefix="b", unit_hashes={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, quotas=quotas),
+        RequestedQuota(
+            prefix="c", unit_hashes={11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}, quotas=quotas
+        ),
+    ]
+    new_timestamp, grants = limiter.check_within_quotas(requests)
+
+    assert grants == [
+        GrantedQuota(
+            request=requests[0], granted_unit_hashes=[6, 7, 8, 9, 10], reached_quotas=quotas
+        ),
+        GrantedQuota(
+            request=requests[1],
+            granted_unit_hashes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            reached_quotas=quotas,
+        ),
+        GrantedQuota(
+            request=requests[2],
+            granted_unit_hashes=[11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+            reached_quotas=quotas,
+        ),
+    ]
+    limiter.use_quotas(grants, new_timestamp)
 
 
 def test_sliding(limiter: RedisCardinalityLimiter):

@@ -141,6 +141,10 @@ class CardinalityLimiter(Service):
             indicates how much quota should actually be consumed.
         """
 
+        # TODO: we may want to revisit this abstraction once we move the call
+        # to `use_quotas` in the string indexer to a separate thread.
+        # particularly we are considering to write more recent time windows
+        # synchronously while writing older ones on a separate thread.
         raise NotImplementedError()
 
 
