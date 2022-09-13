@@ -1341,7 +1341,7 @@ class CacheSourceTest(TestCase):
         processor.cache_source(abs_path)
 
         # file is cached, no errors are generated
-        assert processor.cache.get(abs_path) == ""
+        assert processor.cache.get(abs_path)
         assert len(processor.cache.get_errors(abs_path)) == 0
 
     @patch("sentry.lang.javascript.processor.discover_sourcemap")

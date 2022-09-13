@@ -1,3 +1,5 @@
+from symbolic import SourceView
+
 from sentry.utils.strings import codec_lookup
 
 __all__ = ["SourceCache", "SourceMapCache"]
@@ -37,17 +39,19 @@ class SourceCache:
     def add(self, url, source, encoding=None):
         url = self._get_canonical_url(url)
 
-        if isinstance(source, str):
-            source = source.encode("utf-8")
-        # If an encoding is provided and it's not utf-8 compatible
-        # we try to re-encode the source.
-        elif encoding is not None and not is_utf8(encoding):
-            try:
-                source = source.decode(encoding).encode("utf-8")
-            except UnicodeError:
-                pass
-
-        self._cache[url] = source.decode("utf-8")
+        if not isinstance(source, SourceView):
+            if isinstance(source, str):
+                source = source.encode("utf-8")
+            # If an encoding is provided and it's not utf-8 compatible
+            # we try to re-encoding the source and create a source view
+            # from it.
+            elif encoding is not None and not is_utf8(encoding):
+                try:
+                    source = source.decode(encoding).encode("utf-8")
+                except UnicodeError:
+                    pass
+            source = SourceView.from_bytes(source)
+        self._cache[url] = source
 
     def add_error(self, url, error):
         url = self._get_canonical_url(url)

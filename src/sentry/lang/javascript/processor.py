@@ -47,7 +47,7 @@ BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 UNKNOWN_MODULE = "<unknown module>"
 # Names that do not provide any reasonable value, and that can possibly obstruct
 # better available names. In case we encounter one, we fallback to current frame fn name if available.
-useless_fn_names = ["<anonymous>", "__webpack_require__", "__webpack_modules__"]
+USELESS_FN_NAMES = ["<anonymous>", "__webpack_require__", "__webpack_modules__"]
 CLEAN_MODULE_RE = re.compile(
     r"""^
 (?:/|  # Leading slashes
@@ -122,8 +122,6 @@ def trim_line(line, column=0):
 def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     if not source:
         return None, None, None
-
-    source = source.split("\n")
 
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
@@ -743,7 +741,7 @@ def get_max_age(headers):
     return min(max_age, CACHE_CONTROL_MAX)
 
 
-def fetch_sourcemap(url, source="", project=None, release=None, dist=None, allow_scraping=True):
+def fetch_sourcemap(url, source=b"", project=None, release=None, dist=None, allow_scraping=True):
     if is_data_uri(url):
         try:
             body = base64.b64decode(
@@ -770,7 +768,7 @@ def fetch_sourcemap(url, source="", project=None, release=None, dist=None, allow
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.fetch_sourcemap.SmCache.from_bytes"
         ):
-            return SmCache.from_bytes(source.encode("utf-8"), body)
+            return SmCache.from_bytes(source, body)
 
     except Exception as exc:
         # This is in debug because the product shows an error already.
@@ -921,9 +919,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if errors:
             all_errors.extend(errors)
 
-        # Source is used for pre/post and context_line frame expansion.
-        # Initially its pointing to minified source, but can be shadowed with original source down the road.
-        source = self.get_source(frame["abs_path"])
+        # `source` is used for pre/post and `context_line` frame expansion.
+        # Here it's pointing to minified source, however the variable can be shadowed with the original sourceview
+        # (or `None` if the token doesnt provide us with the `context_line`) down the road.
+        source = self.get_sourceview(frame["abs_path"])
         source_context = None
 
         in_app = None
@@ -979,7 +978,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 if token.context_line is not None:
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
-                    source = self.get_source(abs_path)
+                    source = self.get_sourceview(abs_path)
 
                 if source is None:
                     errors = cache.get_errors(abs_path)
@@ -995,7 +994,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame["colno"] = token.col
 
                 # If we have a usable function name from symbolic or we have no initial function name at all
-                if token.function_name not in useless_fn_names or not new_frame.get("function"):
+                if token.function_name not in USELESS_FN_NAMES or not new_frame.get("function"):
                     new_frame["function"] = token.function_name
 
                 filename = token.src
@@ -1094,28 +1093,29 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         Mutate the given frame to include pre- and post-context lines.
         """
 
-        if frame.get("lineno") is not None:
+        if frame.get("lineno") is None:
+            return False
+
+        if source_context is None:
+            source = source or self.get_sourceview(frame["abs_path"])
             if source is None:
-                source = self.get_source(frame["abs_path"])
-                if source is None:
-                    logger.debug("No source found for %s", frame["abs_path"])
-                    return False
+                logger.debug("No source found for %s", frame["abs_path"])
+                return False
 
-            (pre_context, context_line, post_context) = source_context or get_source_context(
-                source=source, lineno=frame["lineno"]
-            )
+        (pre_context, context_line, post_context) = source_context or get_source_context(
+            source=source, lineno=frame["lineno"]
+        )
 
-            if pre_context is not None and len(pre_context) > 0:
-                frame["pre_context"] = [trim_line(x) for x in pre_context]
-            if context_line is not None:
-                frame["context_line"] = trim_line(context_line, frame.get("colno") or 0)
-            if post_context is not None and len(post_context) > 0:
-                frame["post_context"] = [trim_line(x) for x in post_context]
+        if pre_context is not None and len(pre_context) > 0:
+            frame["pre_context"] = [trim_line(x) for x in pre_context]
+        if context_line is not None:
+            frame["context_line"] = trim_line(context_line, frame.get("colno") or 0)
+        if post_context is not None and len(post_context) > 0:
+            frame["post_context"] = [trim_line(x) for x in post_context]
 
-            return True
-        return False
+        return True
 
-    def get_source(self, filename):
+    def get_sourceview(self, filename):
         if filename not in self.cache:
             self.cache_source(filename)
         return self.cache.get(filename)
@@ -1184,7 +1184,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 span.set_data("sourcemap_url", sourcemap_url)
                 sourcemap_cache = fetch_sourcemap(
                     sourcemap_url,
-                    cache.get(filename),
+                    result.body,
                     project=self.project,
                     release=self.release,
                     dist=self.dist,
