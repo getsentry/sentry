@@ -28,10 +28,6 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
-function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
-  return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
-}
-
 function isHighlightingAllOccurences(
   node: FlamegraphFrame | null,
   selectedNodes: FlamegraphFrame[] | null
@@ -73,7 +69,6 @@ function FlamegraphZoomView({
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const [profileGroup] = useProfileGroup();
-  const flamegraphProfile = useFlamegraphProfiles();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
