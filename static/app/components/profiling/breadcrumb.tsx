@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -13,15 +14,14 @@ import {
 } from 'sentry/utils/profiling/routes';
 
 interface BreadcrumbProps {
-  location: Location;
   organization: Organization;
   trails: Trail[];
 }
 
-function Breadcrumb({location, organization, trails}: BreadcrumbProps) {
+function Breadcrumb({organization, trails}: BreadcrumbProps) {
   const crumbs = useMemo(
-    () => trails.map(trail => trailToCrumb(trail, {location, organization})),
-    [location, organization, trails]
+    () => trails.map(trail => trailToCrumb(trail, {organization})),
+    [organization, trails]
   );
   return <StyledBreadcrumbs crumbs={crumbs} />;
 }
@@ -29,10 +29,8 @@ function Breadcrumb({location, organization, trails}: BreadcrumbProps) {
 function trailToCrumb(
   trail: Trail,
   {
-    location,
     organization,
   }: {
-    location: Location;
     organization: Organization;
   }
 ): Crumb {
@@ -40,7 +38,9 @@ function trailToCrumb(
     case 'landing': {
       return {
         to: generateProfilingRouteWithQuery({
-          query: location.query,
+          // cursor and query are not used in the landing page
+          // and break the API call as the qs gets forwarded to the API
+          query: omit(trail.payload.query, ['cursor', 'query']),
           orgSlug: organization.slug,
         }),
         label: t('Profiling'),
@@ -50,7 +50,9 @@ function trailToCrumb(
     case 'profile summary': {
       return {
         to: generateProfileSummaryRouteWithQuery({
-          query: location.query,
+          // cursor and query are not used in the summary page
+          // and break the API call as the qs gets forwarded to the API
+          query: omit(trail.payload.query, ['cursor', 'query']),
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           transaction: trail.payload.transaction,
@@ -66,7 +68,7 @@ function trailToCrumb(
           : generateProfileDetailsRouteWithQuery;
       return {
         to: generateRouteWithQuery({
-          query: location.query,
+          query: trail.payload.query,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           profileId: trail.payload.profileId,
@@ -81,12 +83,16 @@ function trailToCrumb(
 }
 
 type ProfilingTrail = {
+  payload: {
+    query: Location['query'];
+  };
   type: 'landing';
 };
 
 type ProfileSummaryTrail = {
   payload: {
     projectSlug: Project['slug'];
+    query: Location['query'];
     transaction: string;
   };
   type: 'profile summary';
@@ -96,6 +102,7 @@ type FlamegraphTrail = {
   payload: {
     profileId: string;
     projectSlug: string;
+    query: Location['query'];
     tab: 'flamechart' | 'details';
     transaction: string;
   };
