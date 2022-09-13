@@ -238,7 +238,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={
-                    "details": "Unable to parse sdk versions. "
+                    "detail": "Unable to parse sdk versions. "
                     "Please check that sdk versions are valid semantic versions."
                 },
             )
