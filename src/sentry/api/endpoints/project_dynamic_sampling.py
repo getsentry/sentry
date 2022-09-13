@@ -319,7 +319,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST,
                     data={
-                        "details": "Way too many projects in the distributed trace's project breakdown"
+                        "detail": "Way too many projects in the distributed trace's project breakdown"
                     },
                 )
 

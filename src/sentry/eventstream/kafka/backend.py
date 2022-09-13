@@ -8,7 +8,6 @@ from django.conf import settings
 from sentry import options
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
-    _CONCURRENCY_OPTION,
     ErrorsPostProcessForwarderWorker,
     PostProcessForwarderType,
     PostProcessForwarderWorker,
@@ -208,9 +207,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         synchronize_commit_group: str,
         commit_batch_size: int,
         commit_batch_timeout_ms: int,
+        concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
-        concurrency = options.get(_CONCURRENCY_OPTION)
         logger.info(f"Starting post process forwarder to consume {entity} messages")
         if entity == PostProcessForwarderType.TRANSACTIONS:
             worker = TransactionsPostProcessForwarderWorker(concurrency=concurrency)
@@ -260,6 +259,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         synchronize_commit_group: str,
         commit_batch_size: int,
         commit_batch_timeout_ms: int,
+        concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         consumer = self._build_consumer(
@@ -270,6 +270,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             synchronize_commit_group,
             commit_batch_size,
             commit_batch_timeout_ms,
+            concurrency,
             initial_offset_reset,
         )
 
@@ -290,6 +291,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         synchronize_commit_group: str,
         commit_batch_size: int,
         commit_batch_timeout_ms: int,
+        concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         logger.debug("Starting post-process forwarder...")
@@ -302,5 +304,6 @@ class KafkaEventStream(SnubaProtocolEventStream):
             synchronize_commit_group,
             commit_batch_size,
             commit_batch_timeout_ms,
+            concurrency,
             initial_offset_reset,
         )
