@@ -77,7 +77,7 @@ class End2EndTest(APITestCase):
         super().setUp()
         self.middleware = settings.MIDDLEWARE
 
-    def test_with_middleware_no_customer_domain(self):
+    def test_simple(self):
         self.create_organization(name="albertos-apples")
 
         response = self.client.get(
