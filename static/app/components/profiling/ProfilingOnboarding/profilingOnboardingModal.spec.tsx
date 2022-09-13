@@ -27,26 +27,28 @@ describe('ProfilingOnboarding', function () {
   beforeEach(() => {
     ProjectStore.teardown();
   });
+
   it('renders default step', () => {
+    const organization = TestStubs.Organization();
     render(
-      <ProfilingOnboardingModal
-        organization={TestStubs.Organization()}
-        {...MockRenderModalProps}
-      />
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
   });
 
   it('goes to next step and previous step if project is supported', () => {
+    const organization = TestStubs.Organization();
     ProjectStore.loadInitialData([
       TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'}),
     ]);
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [],
+    });
+
     render(
-      <ProfilingOnboardingModal
-        organization={TestStubs.Organization()}
-        {...MockRenderModalProps}
-      />
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
     selectProject(TestStubs.Project({name: 'iOS Project'}));
     act(() => {
@@ -61,29 +63,32 @@ describe('ProfilingOnboarding', function () {
   });
 
   it('does not allow going to next step if project is unsupported', () => {
+    const organization = TestStubs.Organization();
     ProjectStore.loadInitialData([
       TestStubs.Project({name: 'javascript', platform: 'javascript'}),
     ]);
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [],
+    });
+
     render(
-      <ProfilingOnboardingModal
-        organization={TestStubs.Organization()}
-        {...MockRenderModalProps}
-      />
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
     selectProject(TestStubs.Project({name: 'javascript'}));
-    act(() => {
-      userEvent.click(screen.getAllByText('Next')[0]);
-    });
+    userEvent.click(screen.getAllByText('Next')[0]);
+
     expect(screen.getByRole('button', {name: /Next/i})).toBeDisabled();
   });
 
   it('shows sdk updates are required if version is lower than required', async () => {
+    const organization = TestStubs.Organization();
     const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
     ProjectStore.loadInitialData([project]);
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdk-updates/',
+      url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [
         {
           projectId: project.id,
@@ -95,12 +100,10 @@ describe('ProfilingOnboarding', function () {
     });
 
     render(
-      <ProfilingOnboardingModal
-        organization={TestStubs.Organization()}
-        {...MockRenderModalProps}
-      />
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
-    selectProject(TestStubs.Project({name: 'iOS Project'}));
+
+    selectProject(project);
     expect(
       await screen.findByText(/Update your projects SDK version/)
     ).toBeInTheDocument();

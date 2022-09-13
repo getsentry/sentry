@@ -28,16 +28,23 @@ export function useProjectSdkUpdates(
   useEffect(() => {
     let unmounted = false;
 
-    loadSdkUpdates(api, options.organization.slug).then(data => {
-      if (unmounted) {
-        return;
-      }
+    loadSdkUpdates(api, options.organization.slug)
+      .then(data => {
+        if (unmounted) {
+          return;
+        }
 
-      setState({
-        type: 'resolved',
-        data,
+        setState({
+          type: 'resolved',
+          data,
+        });
+      })
+      .catch(e => {
+        setState({
+          type: 'errored',
+          error: e,
+        });
       });
-    });
 
     return () => {
       unmounted = true;
