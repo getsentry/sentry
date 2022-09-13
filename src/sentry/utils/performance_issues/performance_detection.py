@@ -108,7 +108,7 @@ class EventPerformanceProblem:
 
     @classmethod
     def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
-        return cls.fetch_multi((event, problem_hash))[0]
+        return cls.fetch_multi([(event, problem_hash)])[0]
 
     @classmethod
     def fetch_multi(

@@ -771,4 +771,3 @@ class EventPerformanceProblemTest(TestCase):
         assert [r.problem if r else None for r in result] == [
             problem for _, problem in all_event_problems
         ] + [None]
-        assert False
