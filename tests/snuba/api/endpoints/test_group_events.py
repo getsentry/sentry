@@ -7,10 +7,12 @@ from freezegun import freeze_time
 from sentry.event_manager import _pull_out_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

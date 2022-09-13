@@ -205,7 +205,7 @@ describe('EventsV2 > ChartFooter', function () {
     expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
   });
 
-  it('enables processed baseline toggle if metrics cardinality conditions not met', function () {
+  it('enables processed baseline toggle if metrics cardinality conditions met', function () {
     addMetricsDataMock({
       metricsCount: 100,
       nullCount: 0,
