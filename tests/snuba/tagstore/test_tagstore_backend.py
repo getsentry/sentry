@@ -137,9 +137,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
     def test_get_group_tag_keys_and_top_values(self):
         result = list(
-            self.ts.get_group_tag_keys_and_top_values(
-                self.proj1.id, self.proj1group1.id, [self.proj1env1.id]
-            )
+            self.ts.get_group_tag_keys_and_top_values(self.proj1group1, [self.proj1env1.id])
         )
         tags = [r.key for r in result]
         assert set(tags) == {"foo", "baz", "environment", "sentry:release", "sentry:user", "level"}
@@ -159,8 +157,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         # Now with only a specific set of keys,
         result = list(
             self.ts.get_group_tag_keys_and_top_values(
-                self.proj1.id,
-                self.proj1group1.id,
+                self.proj1group1,
                 [self.proj1env1.id],
                 keys=["environment", "sentry:release"],
             )
@@ -265,14 +262,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
             == "foo"
         )
 
-        keys = {
-            k.key: k
-            for k in self.ts.get_group_tag_keys(
-                project_id=self.proj1.id,
-                group_id=self.proj1group1.id,
-                environment_ids=[self.proj1env1.id],
-            )
-        }
+        keys = {k.key: k for k in self.ts.get_group_tag_keys(self.proj1group1, [self.proj1env1.id])}
         assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
 
     def test_get_group_tag_value(self):

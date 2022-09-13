@@ -169,7 +169,7 @@ class SnubaTagStorage(TagStorage):
     def __get_tag_keys(
         self,
         project_id,
-        group_id,
+        group,
         environment_ids,
         limit=1000,
         keys=None,
@@ -180,7 +180,7 @@ class SnubaTagStorage(TagStorage):
     ):
         return self.__get_tag_keys_for_projects(
             get_project_list(project_id),
-            group_id,
+            group,
             environment_ids,
             kwargs.get("start"),
             kwargs.get("end"),
@@ -194,7 +194,7 @@ class SnubaTagStorage(TagStorage):
     def __get_tag_keys_for_projects(
         self,
         projects,
-        group_id,
+        group,
         environments,
         start,
         end,
@@ -229,8 +229,8 @@ class SnubaTagStorage(TagStorage):
         filters = {"project_id": sorted(projects)}
         if environments:
             filters["environment"] = sorted(environments)
-        if group_id is not None:
-            filters["group_id"] = [group_id]
+        if group is not None:
+            filters["group_id"] = [group.id]
         if keys is not None:
             filters["tags_key"] = sorted(keys)
         aggregations = [["count()", "", "count"]]
@@ -240,7 +240,7 @@ class SnubaTagStorage(TagStorage):
         conditions = [DEFAULT_TYPE_CONDITION]
         conditions = []
 
-        should_cache = use_cache and group_id is None
+        should_cache = use_cache and group is None
         result = None
 
         dataset = Dataset.Events
@@ -285,10 +285,10 @@ class SnubaTagStorage(TagStorage):
                 cache.set(cache_key, result, 300)
                 metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
-        if group_id is None:
+        if group is None:
             ctor = TagKey
         else:
-            ctor = functools.partial(GroupTagKey, group_id=group_id)
+            ctor = functools.partial(GroupTagKey, group_id=group.id)
 
         results = set()
 
@@ -401,13 +401,11 @@ class SnubaTagStorage(TagStorage):
             project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT
         )
 
-    def get_group_tag_keys(
-        self, project_id, group_id, environment_ids, limit=None, keys=None, **kwargs
-    ):
+    def get_group_tag_keys(self, group, environment_ids, limit=None, keys=None, **kwargs):
         """Get tag keys for a specific group"""
         return self.__get_tag_keys(
-            project_id,
-            group_id,
+            group.project_id,
+            group,
             environment_ids,
             dataset=Dataset.Events,
             limit=limit,
@@ -532,8 +530,7 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_keys_and_top_values(
         self,
-        project_id,
-        group_id,
+        group,
         environment_ids,
         user=None,
         keys=None,
@@ -546,16 +543,16 @@ class SnubaTagStorage(TagStorage):
         # num_keys * limit.
 
         # First get totals and unique counts by key.
-        keys_with_counts = self.get_group_tag_keys(project_id, group_id, environment_ids, keys=keys)
+        keys_with_counts = self.get_group_tag_keys(group, environment_ids, keys=keys)
 
         # Then get the top values with first_seen/last_seen/count for each
-        filters = {"project_id": get_project_list(project_id)}
+        filters = {"project_id": get_project_list(group.project_id)}
         if environment_ids:
             filters["environment"] = environment_ids
         if keys is not None:
             filters["tags_key"] = keys
-        if group_id is not None:
-            filters["group_id"] = [group_id]
+        if group.id is not None:
+            filters["group_id"] = [group.id]
         conditions = kwargs.get("conditions", [])
         conditions.append(DEFAULT_TYPE_CONDITION)
         aggregations = kwargs.get("aggregations", [])
@@ -579,10 +576,10 @@ class SnubaTagStorage(TagStorage):
         )
 
         # Then supplement the key objects with the top values for each.
-        if group_id is None:
+        if group.id is None:
             value_ctor = TagValue
         else:
-            value_ctor = functools.partial(GroupTagValue, group_id=group_id)
+            value_ctor = functools.partial(GroupTagValue, group_id=group.id)
 
         for keyobj in keys_with_counts:
             key = keyobj.key

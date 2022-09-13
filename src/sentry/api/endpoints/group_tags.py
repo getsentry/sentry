@@ -27,7 +27,7 @@ class GroupTagsEndpoint(GroupEndpoint):
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
         tag_keys = tagstore.get_group_tag_keys_and_top_values(
-            group.project_id, group.id, environment_ids, keys=keys, value_limit=value_limit
+            group, environment_ids, keys=keys, value_limit=value_limit
         )
 
         return Response(serialize(tag_keys, request.user))
