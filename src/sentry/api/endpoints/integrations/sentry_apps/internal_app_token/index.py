@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
@@ -10,6 +11,7 @@ from sentry.models import ApiToken, SentryAppInstallation
 from sentry.models.integrations.sentry_app import MASKED_VALUE
 
 
+@pending_silo_endpoint
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission,)
 

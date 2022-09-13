@@ -3,10 +3,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_model,
     sane_repr,
 )
 
 
+@region_silo_model
 class ReleaseHeadCommit(Model):
     __include_in_export__ = False
 

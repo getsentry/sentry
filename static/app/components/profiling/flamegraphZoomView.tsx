@@ -2,8 +2,6 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import space from 'sentry/styles/space';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -16,7 +14,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -25,8 +23,9 @@ import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRen
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {BoundTooltip} from './boundTooltip';
+import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
 function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
@@ -73,6 +72,8 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const [profileGroup] = useProfileGroup();
+  const flamegraphProfile = useFlamegraphProfiles();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
@@ -751,56 +752,24 @@ function FlamegraphZoomView({
       flamegraphRenderer &&
       flamegraphView &&
       configSpaceCursor &&
-      hoveredNode?.frame?.name ? (
-        <BoundTooltip
-          bounds={canvasBounds}
-          cursor={configSpaceCursor}
+      hoveredNode ? (
+        <FlamegraphTooltip
+          frame={hoveredNode}
+          configSpaceCursor={configSpaceCursor}
           flamegraphCanvas={flamegraphCanvas}
+          flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
-        >
-          <HoveredFrameMainInfo>
-            <FrameColorIndicator
-              backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
-            />
-            {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
-            {formatWeightToProfileDuration(
-              hoveredNode.node,
-              flamegraphRenderer.flamegraph
-            )}{' '}
-            {hoveredNode.frame.name}
-          </HoveredFrameMainInfo>
-          <HoveredFrameTimelineInfo>
-            {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.start)}{' '}
-            {' \u2014 '}
-            {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.end)}
-          </HoveredFrameTimelineInfo>
-        </BoundTooltip>
+          canvasBounds={canvasBounds}
+          platform={
+            profileGroup.type === 'resolved'
+              ? profileGroup.data.metadata.platform
+              : undefined
+          }
+        />
       ) : null}
     </CanvasContainer>
   );
 }
-
-const HoveredFrameTimelineInfo = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const HoveredFrameMainInfo = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const FrameColorIndicator = styled('div')<{
-  backgroundColor: React.CSSProperties['backgroundColor'];
-}>`
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  min-height: 12px;
-  border-radius: 2px;
-  display: inline-block;
-  background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
-`;
 
 const CanvasContainer = styled('div')`
   display: flex;

@@ -73,7 +73,6 @@ def rebucket_histogram(
 
 
 def zoom_histogram(
-    org_id: int,
     histogram_buckets: int = 100,
     histogram_from: Optional[float] = None,
     histogram_to: Optional[float] = None,

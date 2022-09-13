@@ -14,7 +14,6 @@ import {Frame} from './frame';
 export class Flamegraph {
   profile: Profile;
   frames: FlamegraphFrame[] = [];
-
   profileIndex: number;
 
   inverted?: boolean = false;
