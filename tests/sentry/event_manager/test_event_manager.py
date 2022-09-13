@@ -2098,11 +2098,15 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            "projects:performance-suspect-spans-ingestion"
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
@@ -2157,11 +2161,15 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            "projects:performance-suspect-spans-ingestion"
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
