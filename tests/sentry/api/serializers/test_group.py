@@ -19,10 +19,12 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
 
 
+@region_silo_test
 class GroupSerializerTest(TestCase):
     def test_project(self):
         user = self.create_user()

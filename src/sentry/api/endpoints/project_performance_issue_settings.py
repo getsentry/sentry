@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, projectoptions
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 
 MAX_VALUE = 2147483647
@@ -18,6 +19,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     )
 
 
+@region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     private = True  # TODO: Remove after EA.
     permission_classes = (ProjectSettingPermission,)

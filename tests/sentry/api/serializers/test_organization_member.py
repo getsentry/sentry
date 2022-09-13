@@ -4,6 +4,7 @@ from sentry.api.serializers.models.organization_member import (
     OrganizationMemberWithTeamsSerializer,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationMemberSerializerTest(TestCase):
@@ -26,6 +27,7 @@ class OrganizationMemberSerializerTest(TestCase):
         )
 
 
+@region_silo_test
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         projects_ids = [self.project.id, self.project_2.id]
@@ -49,6 +51,7 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
         assert [r["projects"] for r in result] == expected_projects
 
 
+@region_silo_test
 class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(
@@ -68,6 +71,7 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
         assert [r["teamRoles"] for r in result] == expected_team_roles
 
 
+@region_silo_test
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
     def test_simple(self):
         result = serialize(

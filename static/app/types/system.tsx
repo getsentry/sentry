@@ -113,6 +113,7 @@ export interface Config {
   apmSampling: number;
   csrfCookieName: string;
   demoMode: boolean;
+  disableU2FForSUForm: boolean;
   distPrefix: string;
   dsn: string;
   enableAnalytics: boolean;
