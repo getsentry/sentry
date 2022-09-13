@@ -2266,8 +2266,6 @@ class CdcEventsSnubaSearchTest(SharedSnubaTest):
             date_to=date_to,
             cursor=cursor,
         )
-        print("results: ", list(results))
-        print("expected: ", expected_groups)
         assert list(results) == expected_groups
         assert results.hits == expected_hits
         return results
