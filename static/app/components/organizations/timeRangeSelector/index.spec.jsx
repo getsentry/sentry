@@ -452,6 +452,36 @@ describe('TimeRangeSelector', function () {
     });
   });
 
+  it('respects maxPickableDays for arbitrary time ranges', () => {
+    renderComponent({maxPickableDays: 30});
+
+    userEvent.click(screen.getByRole('button'));
+
+    const input = screen.getByRole('textbox');
+    userEvent.type(input, '3');
+
+    // With just the number "3", all unit options should be present
+    expect(screen.getByText('Last 3 seconds')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 minutes')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 hours')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 days')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 weeks')).toBeInTheDocument();
+
+    userEvent.type(input, '1');
+
+    // With "31", days and weeks should not be suggested
+    expect(screen.getByText('Last 31 seconds')).toBeInTheDocument();
+    expect(screen.getByText('Last 31 minutes')).toBeInTheDocument();
+    expect(screen.getByText('Last 31 hours')).toBeInTheDocument();
+    expect(screen.queryByText('Last 31 days')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last 31 weeks')).not.toBeInTheDocument();
+
+    userEvent.type(input, 'd');
+
+    // "31d" should return nothing
+    expect(screen.getByText('No items found')).toBeInTheDocument();
+  });
+
   it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', () => {
     renderComponent({disallowArbitraryRelativeRanges: true});
 

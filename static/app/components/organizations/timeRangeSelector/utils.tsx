@@ -1,6 +1,7 @@
 import moment from 'moment';
 
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
+import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 
@@ -10,6 +11,7 @@ type RelativePeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 
 type RelativeUnitsMapping = {
   [unit in RelativePeriodUnit]: {
+    convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
@@ -25,26 +27,31 @@ const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
     label: (num: number) => tn('Last second', 'Last %s seconds', num),
     searchKey: t('seconds'),
     momentUnit: 'seconds',
+    convertToDaysMultiplier: 1 / (60 * 60 * 24),
   },
   m: {
     label: (num: number) => tn('Last minute', 'Last %s minutes', num),
     searchKey: t('minutes'),
     momentUnit: 'minutes',
+    convertToDaysMultiplier: 1 / (60 * 24),
   },
   h: {
     label: (num: number) => tn('Last hour', 'Last %s hours', num),
     searchKey: t('hours'),
     momentUnit: 'hours',
+    convertToDaysMultiplier: 1 / 24,
   },
   d: {
     label: (num: number) => tn('Last day', 'Last %s days', num),
     searchKey: t('days'),
     momentUnit: 'days',
+    convertToDaysMultiplier: 1,
   },
   w: {
     label: (num: number) => tn('Last week', 'Last %s weeks', num),
     searchKey: t('weeks'),
     momentUnit: 'weeks',
+    convertToDaysMultiplier: 7,
   },
 };
 
@@ -140,6 +147,24 @@ function makeItem(
   };
 }
 
+function timePeriodIsWithinLimit({
+  amount,
+  unit,
+  maxDays,
+}: {
+  amount: number;
+  unit: RelativePeriodUnit;
+  maxDays?: number;
+}) {
+  if (!maxDays) {
+    return true;
+  }
+
+  const daysMultiplier = SUPPORTED_RELATIVE_PERIOD_UNITS[unit].convertToDaysMultiplier;
+
+  return daysMultiplier * amount <= maxDays;
+}
+
 /**
  * A custom autocomplete implementation for <TimeRangeSelector />
  * This function generates relative time ranges based on the user's input (not limited to those present in the initial set).
@@ -153,9 +178,12 @@ function makeItem(
  *
  * If the input does not begin with a number, we do a simple filter of the preset options.
  */
-export const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
-  items,
-  filterValue
+export function timeRangeAutoCompleteFilter(
+  items: ItemsBeforeFilter | null,
+  filterValue: string,
+  options: {
+    maxDays?: number;
+  }
 ) {
   if (!items) {
     return [];
@@ -168,11 +196,15 @@ export const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
 
   const userSuppliedAmountIsValid = !isNaN(userSuppliedAmount) && userSuppliedAmount > 0;
 
-  // If there is a number w/o units, show all unit options
+  // If there is a number w/o units, show all unit options within limit
   if (userSuppliedAmountIsValid && !userSuppliedUnits) {
-    return SUPPORTED_RELATIVE_UNITS_LIST.map((unit, index) =>
-      makeItem(userSuppliedAmount, unit, index)
-    );
+    return SUPPORTED_RELATIVE_UNITS_LIST.filter(unit =>
+      timePeriodIsWithinLimit({
+        amount: userSuppliedAmount,
+        unit,
+        maxDays: options.maxDays,
+      })
+    ).map((unit, index) => makeItem(userSuppliedAmount, unit, index));
   }
 
   // If there is a number followed by units, show the matching number/unit option
@@ -187,11 +219,18 @@ export const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
       );
     });
 
-    if (matchingUnit) {
+    if (
+      matchingUnit &&
+      timePeriodIsWithinLimit({
+        amount: userSuppliedAmount,
+        unit: matchingUnit,
+        maxDays: options.maxDays,
+      })
+    ) {
       return [makeItem(userSuppliedAmount, matchingUnit, 0)];
     }
   }
 
   // Otherwise, do a normal filter search
   return autoCompleteFilter(items, filterValue);
-};
+}
