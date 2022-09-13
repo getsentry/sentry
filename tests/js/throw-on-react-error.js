@@ -32,7 +32,7 @@ jest.spyOn(console, 'error').mockImplementation((message, ...args) => {
     originalConsoleError(message, ...args);
     const err = new Error('Warnings received from console.error()');
     const lines = err.stack?.split('\n');
-    const startIndex = lines?.findIndex(line => line.includes('tests/js/spec'));
+    const startIndex = lines?.findIndex(line => line.includes('.spec.'));
     err.stack = ['\n', lines?.[0], ...lines?.slice(startIndex)].join('\n');
 
     throw err;
