@@ -79,44 +79,20 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.n_plus_one_db.problem-detection',
-    label: t('N+1 (DB) detection rate'),
+    key: 'performance.issues.n_plus_one.problem-detection',
+    label: t('N+1 detection rate'),
     help: t(
       'Controls the rate at which performance problems are detected specifically for N+1 detection. Value of 0 will disable detection, a value of 1.0 fully enables it.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
-    key: 'performance.issues.n_plus_one_db.problem-creation',
-    label: t('N+1 (DB) creation rate'),
+    key: 'performance.issues.n_plus_one.problem-creation',
+    label: t('N+1 creation rate'),
     help: t(
       'Controls the rate at which performance issues are created specifically for N+1 detection. Value of 0 will disable creation, a value of 1.0 fully enables it.'
     ),
     ...HIGH_THROUGHPUT_RATE_OPTION,
-  },
-  {
-    key: 'performance.issues.n_plus_one_db.count_threshold',
-    label: t('N+1 (DB) count threshold'),
-    help: t(
-      'Detector threshold. Controls the number of spans required to trigger performance issues. This affects all organizations system-wide.'
-    ),
-    defaultValue: () => '5',
-    component: NumberField,
-    min: 0,
-    max: Number.MAX_SAFE_INTEGER,
-    step: 1,
-  },
-  {
-    key: 'performance.issues.n_plus_one_db.duration_threshold',
-    label: t('N+1 (DB) duration threshold'),
-    help: t(
-      'Detector threshold. Controls the threshold for the cumulative duration of involved spans required to trigger performance issues. This affects all organizations system-wide.'
-    ),
-    defaultValue: () => '100',
-    component: NumberField,
-    min: 0,
-    max: Number.MAX_SAFE_INTEGER,
-    step: 1,
   },
 ];
 
