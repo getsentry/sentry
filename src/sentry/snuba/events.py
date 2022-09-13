@@ -572,5 +572,5 @@ class Columns(Enum):
         event_name=None,
         transaction_name="app_start_type",
         discover_name="app_start_type",
-        alias="app.start_type",
+        alias="app_start_type",
     )
