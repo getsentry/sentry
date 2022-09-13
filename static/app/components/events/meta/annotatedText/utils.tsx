@@ -1,8 +1,5 @@
-import styled from '@emotion/styled';
-
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {ChunkType, Organization, Project} from 'sentry/types';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {getRuleDescription} from 'sentry/views/settings/components/dataScrubbing/utils';
@@ -58,34 +55,23 @@ export function getTooltipText({
     const rules = convertRelayPiiConfig(organization?.relayPiiConfig);
     const rule = rules.find(({id}) => String(id) === ruleId);
 
-    return (
-      <Wrapper>
-        {tct(
-          '[method] because of the PII rule [break][rule-description] in the settings of the organization [break][slug]',
-          {
-            method,
-            break: <br />,
-            'rule-description': (
-              <RuleDescription>
-                <Link
-                  to={`/settings/${organization.slug}/security-and-privacy/#advanced-data-scrubbing`}
-                >
-                  {rule ? getRuleDescription(rule) : ruleId}
-                </Link>
-              </RuleDescription>
-            ),
-            slug: (
-              <Slug>
-                <Link
-                  to={`/settings/${organization.slug}/security-and-privacy/#advanced-data-scrubbing`}
-                >
-                  {organization.slug}
-                </Link>
-              </Slug>
-            ),
-          }
-        )}
-      </Wrapper>
+    return tct(
+      '[method] because of the PII rule [rule-link] in the settings of the organization [organization-slug]',
+      {
+        method,
+        'rule-link': (
+          <Link
+            to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+          >
+            {rule ? getRuleDescription(rule) : ruleId}
+          </Link>
+        ),
+        'organization-slug': (
+          <Link to={`/settings/${organization.slug}/advanced-data-scrubbing/`}>
+            {organization.slug}
+          </Link>
+        ),
+      }
     );
   }
 
@@ -102,41 +88,23 @@ export function getTooltipText({
   const rule = rules.find(({id}) => String(id) === ruleId);
 
   return tct(
-    '[method] because of the PII rule [break][rule-description] in the settings of the project [break][slug]',
+    '[method] because of the PII rule [rule-link] in the settings of the project [project-link]',
     {
       method,
-      break: <br />,
-      'rule-description': (
-        <RuleDescription>
-          <Link
-            to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/#advanced-data-scrubbing`}
-          >
-            {rule ? getRuleDescription(rule) : ruleId}
-          </Link>
-        </RuleDescription>
+      'rule-link': (
+        <Link
+          to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+        >
+          {rule ? getRuleDescription(rule) : ruleId}
+        </Link>
       ),
-      slug: (
-        <Slug>
-          <Link
-            to={`/settings/${organization.slug}/projects/${project?.slug}/security-and-privacy/#advanced-data-scrubbing`}
-          >
-            {project.slug}
-          </Link>
-        </Slug>
+      'project-link': (
+        <Link
+          to={`/settings/${organization.slug}/projects/${project?.slug}/advanced-data-scrubbing/`}
+        >
+          {project.slug}
+        </Link>
       ),
     }
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${space(0.5)};
-`;
-
-const RuleDescription = styled('div')`
-  margin: ${space(0.5)} 0;
-`;
-
-const Slug = styled('div')`
-  margin-top: ${space(0.5)};
-`;

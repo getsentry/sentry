@@ -69,12 +69,12 @@ describe('Message entry', function () {
       })
     ).toHaveAttribute(
       'href',
-      '/settings/org-slug/security-and-privacy/#advanced-data-scrubbing'
+      '/settings/org-slug/security-and-privacy/advanced-data-scrubbing/0/'
     );
 
     expect(screen.getByRole('link', {name: 'org-slug'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/security-and-privacy/#advanced-data-scrubbing'
+      '/settings/org-slug/advanced-data-scrubbing/'
     );
   });
 });
