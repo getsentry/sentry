@@ -360,7 +360,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             subdata = data[alias][idx]
 
         # Fetch the function args
-        metrics_query_args = set(inspect.signature(self.post_query_func).parameters.keys())
+        metrics_query_args = inspect.signature(self.post_query_func).parameters.keys()
 
         compute_func_dict = {}
         # ToDo(ahmed): Add support for other fields that might be required as function arguments in the future. For now,
@@ -389,7 +389,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
     ) -> Optional[Function]:
         # Fetch the function args
-        metrics_query_args = set(inspect.signature(self.filter_conditions_func).parameters.keys())
+        metrics_query_args = inspect.signature(self.filter_conditions_func).parameters.keys()
 
         kwargs = {}
         if metrics_query_args and params is not None:
