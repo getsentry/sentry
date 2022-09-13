@@ -28,7 +28,7 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const handleFetch = useCallback(async () => {
+  const loadReplays = useCallback(async () => {
     setData(prev => ({
       ...prev,
       isFetching: true,
@@ -45,9 +45,9 @@ function useReplayList({eventView, organization}: Options): Result {
   useEffect(() => {
     if (!querySearchRef.current || querySearchRef.current !== location.search) {
       querySearchRef.current = location.search;
-      handleFetch();
+      loadReplays();
     }
-  }, [handleFetch, location.search]);
+  }, [loadReplays, location.search]);
 
   return data;
 }
