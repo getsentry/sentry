@@ -21,6 +21,7 @@ import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
+import SpanTreeModel from './spanTreeModel';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -956,4 +957,16 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     start: newTimestamps.start.join('.'),
     end: newTimestamps.end.join('.'),
   };
+}
+
+export function groupShouldBeHidden(
+  group: SpanTreeModel[],
+  focusedSpanIDs: Set<string> | undefined
+) {
+  if (!focusedSpanIDs) {
+    return false;
+  }
+
+  // If none of the spans in this group are focused, the group should be hidden
+  return !group.some(spanModel => focusedSpanIDs.has(spanModel.span.span_id));
 }
