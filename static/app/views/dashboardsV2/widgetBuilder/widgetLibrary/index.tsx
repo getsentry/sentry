@@ -22,13 +22,11 @@ interface Props {
   onWidgetSelect: (widget: WidgetTemplate) => void;
   organization: Organization;
   selectedWidgetId: string | null;
-  widgetBuilderNewDesign: boolean;
 }
 
 export function WidgetLibrary({
   bypassOverwriteModal,
   onWidgetSelect,
-  widgetBuilderNewDesign,
   organization,
   selectedWidgetId,
 }: Props) {
@@ -68,14 +66,13 @@ export function WidgetLibrary({
           ];
 
           const displayType =
-            widgetBuilderNewDesign && widget.displayType === DisplayType.TOP_N
+            widget.displayType === DisplayType.TOP_N
               ? DisplayType.TABLE
               : widget.displayType;
 
           const normalizedQueries = normalizeQueries({
             displayType,
             queries: widget.queries,
-            widgetBuilderNewDesign,
             widgetType: widget.widgetType,
           });
 

@@ -7,8 +7,10 @@ from django.urls import reverse
 from sentry.models import File
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import APITestCase, TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectReplayRecordingSegmentTestCase(APITestCase):
     endpoint = "sentry-api-0-project-replay-recording-segment-index"
 
