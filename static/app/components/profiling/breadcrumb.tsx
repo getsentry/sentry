@@ -40,7 +40,7 @@ function trailToCrumb(
     case 'landing': {
       return {
         to: generateProfilingRouteWithQuery({
-          location,
+          query: location.query,
           orgSlug: organization.slug,
         }),
         label: t('Profiling'),
@@ -50,7 +50,7 @@ function trailToCrumb(
     case 'profile summary': {
       return {
         to: generateProfileSummaryRouteWithQuery({
-          location,
+          query: location.query,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           transaction: trail.payload.transaction,
@@ -66,7 +66,7 @@ function trailToCrumb(
           : generateProfileDetailsRouteWithQuery;
       return {
         to: generateRouteWithQuery({
-          location,
+          query: location.query,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           profileId: trail.payload.profileId,

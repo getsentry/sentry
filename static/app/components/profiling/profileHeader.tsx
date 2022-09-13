@@ -56,7 +56,7 @@ function ProfileHeader() {
               orgSlug: organization.slug,
               projectSlug,
               profileId,
-              location,
+              query: location.query,
             })}
           >
             {t('Flamechart')}
@@ -68,7 +68,7 @@ function ProfileHeader() {
               orgSlug: organization.slug,
               projectSlug,
               profileId,
-              location,
+              query: location.query,
             })}
           >
             {t('Details')}
