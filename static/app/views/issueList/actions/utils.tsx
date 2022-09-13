@@ -4,7 +4,7 @@ import capitalize from 'lodash/capitalize';
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, ResolutionStatusDetails} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -74,7 +74,17 @@ export function getConfirm({
   query: string;
   queryCount: number;
 }) {
-  return function (action: ConfirmAction | string, canBeUndone: boolean, append = '') {
+  return function ({
+    action,
+    canBeUndone,
+    append = '',
+    statusDetails,
+  }: {
+    action: ConfirmAction | string;
+    canBeUndone: boolean;
+    append?: string;
+    statusDetails?: ResolutionStatusDetails;
+  }) {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -83,7 +93,7 @@ export function getConfirm({
           numIssues
         );
 
-    let message;
+    let message: React.ReactNode;
     switch (action) {
       case ConfirmAction.DELETE:
         message = (
@@ -114,8 +124,19 @@ export function getConfirm({
           </React.Fragment>
         );
         break;
+      case ConfirmAction.IGNORE:
+        if (statusDetails && !performanceIssuesSupportsIgnoreAction(statusDetails)) {
+          message = (
+            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+              {t(
+                'Ignoring performance issues by time window is not yet supported. Any encountered in this query will be skipped.'
+              )}
+            </PerformanceIssueAlert>
+          );
+        }
+        break;
       default:
-        message = <p>{t('This action cannot be undone.')}</p>;
+        message = canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
     }
 
     return (
@@ -128,7 +149,7 @@ export function getConfirm({
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && message}
+        {message}
       </div>
     );
   };
@@ -147,4 +168,10 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 
     return text + append;
   };
+}
+
+export function performanceIssuesSupportsIgnoreAction(
+  statusDetails: ResolutionStatusDetails
+) {
+  return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }
