@@ -496,9 +496,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_group_ids(self):
-        perf_group = self.create_group(
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, short_id="3571022555"
-        )
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
         def hack_pull_out_data(jobs, projects):
             _pull_out_data(jobs, projects)
