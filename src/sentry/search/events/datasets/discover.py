@@ -114,6 +114,7 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
             SEMVER_PACKAGE_ALIAS: self._semver_package_filter_converter,
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
+            "performance.issue_ids": self._performance_issue_ids_filter_converter,
         }
 
     @property
@@ -1514,6 +1515,31 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
             Op(search_filter.operator),
             internal_value,
         )
+
+    def _performance_issue_ids_filter_converter(
+        self, search_filter: SearchFilter
+    ) -> Optional[WhereType]:
+        name = search_filter.key.name
+        operator = search_filter.operator
+        value = search_filter.value.value
+        value_as_list = to_list(value)
+        value_list_as_ints = [int(v, 16) if v else 0 for v in value_as_list]
+
+        if search_filter.is_in_filter:
+            return Condition(
+                Function("hasAny", [self.builder.column(name), value_list_as_ints]),
+                Op.EQ if operator == "IN" else Op.NEQ,
+                1,
+            )
+        elif search_filter.value.raw_value == "":
+            return Condition(
+                Function("notEmpty", [self.builder.column(name)]),
+                Op.EQ if operator == "!=" else Op.NEQ,
+                1,
+            )
+        else:
+            lhs = self.builder.column(name)
+            return Condition(lhs, Op(search_filter.operator), value_list_as_ints[0])
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
