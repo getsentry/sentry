@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import os
 import signal
 import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING
 
 import click
 import requests
 
-import docker
+if TYPE_CHECKING:
+    import docker
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -19,6 +23,8 @@ if os.path.exists(RAW_SOCKET_HACK_PATH):
 
 
 def get_docker_client() -> docker.DockerClient:
+    import docker
+
     client = docker.from_env()
     try:
         client.ping()
