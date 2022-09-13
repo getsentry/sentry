@@ -21,6 +21,12 @@ function ComponentProviders({
   organization: Organization;
   router: InjectedRouter;
 }) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/auth-provider/`,
+    method: 'GET',
+    body: {},
+  });
+
   return (
     <OrganizationContext.Provider value={organization}>
       <RouteContext.Provider
@@ -38,7 +44,7 @@ function ComponentProviders({
 }
 
 describe('OrganizationSecurityAndPrivacy', function () {
-  it('shows require2fa switch', function () {
+  it('shows require2fa switch', async function () {
     const {organization, router} = initializeOrg();
 
     render(
@@ -52,7 +58,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     );
 
     expect(
-      screen.getByRole('checkbox', {
+      await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     ).toBeInTheDocument();
@@ -79,7 +85,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     );
 
     userEvent.click(
-      screen.getByRole('checkbox', {
+      await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     );
@@ -97,7 +103,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     ).not.toBeChecked();
   });
 
-  it('renders join request switch', function () {
+  it('renders join request switch', async function () {
     const {organization, router} = initializeOrg();
 
     render(
@@ -111,13 +117,13 @@ describe('OrganizationSecurityAndPrivacy', function () {
     );
 
     expect(
-      screen.getByRole('checkbox', {
+      await screen.findByRole('checkbox', {
         name: 'Enable to allow users to request to join your organization',
       })
     ).toBeInTheDocument();
   });
 
-  it('enables require2fa but cancels confirm modal', function () {
+  it('enables require2fa but cancels confirm modal', async function () {
     const {organization, router} = initializeOrg();
 
     const mock = MockApiClient.addMockResponse({
@@ -137,7 +143,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     );
 
     userEvent.click(
-      screen.getByRole('checkbox', {
+      await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     );
@@ -154,7 +160,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     expect(mock).not.toHaveBeenCalled();
   });
 
-  it('enables require2fa with confirm modal', function () {
+  it('enables require2fa with confirm modal', async function () {
     const {organization, router} = initializeOrg();
 
     const mock = MockApiClient.addMockResponse({
@@ -174,7 +180,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     );
 
     userEvent.click(
-      screen.getByRole('checkbox', {
+      await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     );
