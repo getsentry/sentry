@@ -18,6 +18,28 @@ import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
+/**
+ * Semantic Versioning Comparing
+ * #see https://semver.org/
+ * #see https://stackoverflow.com/a/65687141/456536
+ * #see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Collator/Collator#options
+ * Taken from https://gist.github.com/iwill/a83038623ba4fef6abb9efca87ae9ccb
+ * returns -1 for smaller, 0 for equals, and 1 for greater than
+ */
+function semverCompare(a: string, b: string): number {
+  if (a.startsWith(b + '-')) {
+    return -1;
+  }
+  if (b.startsWith(a + '-')) {
+    return 1;
+  }
+  return a.localeCompare(b, undefined, {
+    numeric: true,
+    sensitivity: 'case',
+    caseFirst: 'upper',
+  });
+}
+
 // This is just a doubly linked list of steps
 interface OnboardingStep {
   current: React.ComponentType<OnboardingStepProps>;
@@ -178,6 +200,8 @@ function SelectProjectStep({
     ];
   }, [projects]);
 
+  const sdkUpdates = useProjectSdkUpdates({organization, projectId: project?.id ?? null});
+
   return (
     <ModalBody>
       <ModalHeader>
@@ -199,10 +223,10 @@ function SelectProjectStep({
             </div>
           </li>
           {project?.platform === 'android' ? (
-            <AndroidInstallSteps project={project} organization={organization} />
+            <AndroidInstallSteps sdkUpdates={sdkUpdates} project={project} />
           ) : null}
           {project?.platform === 'apple-ios' ? (
-            <IOSInstallSteps project={project} organization={organization} />
+            <IOSInstallSteps sdkUpdates={sdkUpdates} project={project} />
           ) : null}
         </StyledList>
         <ModalFooter>
@@ -294,23 +318,28 @@ const SDKUpdatesContainer = styled('div')`
 
 function AndroidInstallSteps({
   project,
-  organization,
+  sdkUpdates,
 }: {
-  organization: Organization;
   project: Project;
+  sdkUpdates: RequestState<ProjectSdkUpdates | null>;
 }) {
-  const sdkUpdates = useProjectSdkUpdates({organization, projectId: project.id});
+  const requiresSdkUpdates =
+    sdkUpdates.type === 'resolved' && sdkUpdates.data?.sdkVersion
+      ? semverCompare(sdkUpdates.data.sdkVersion, '6.0.0') < 0
+      : false;
 
   return (
     <Fragment>
-      <li>
-        <StepTitle>{t('Update your projects SDK version')}</StepTitle>
-        <ProjectSdkUpdate
-          minSdkVersion="6.0.0 (sentry-android)"
-          project={project}
-          sdkUpdates={sdkUpdates}
-        />
-      </li>
+      {requiresSdkUpdates ? (
+        <li>
+          <StepTitle>{t('Update your projects SDK version')}</StepTitle>
+          <ProjectSdkUpdate
+            minSdkVersion="6.0.0 (sentry-android)"
+            project={project}
+            sdkUpdates={sdkUpdates}
+          />
+        </li>
+      ) : null}
       <li>
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/android/performance/" />
       </li>
@@ -330,23 +359,28 @@ function AndroidInstallSteps({
 
 function IOSInstallSteps({
   project,
-  organization,
+  sdkUpdates,
 }: {
-  organization: Organization;
   project: Project;
+  sdkUpdates: RequestState<ProjectSdkUpdates | null>;
 }) {
-  const sdkUpdates = useProjectSdkUpdates({organization, projectId: project.id});
+  const requiresSdkUpdates =
+    sdkUpdates.type === 'resolved' && sdkUpdates.data?.sdkVersion
+      ? semverCompare(sdkUpdates.data.sdkVersion, '7.23.0') < 0
+      : false;
 
   return (
     <Fragment>
-      <li>
-        <StepTitle>{t('Update your projects SDK version')}</StepTitle>
-        <ProjectSdkUpdate
-          minSdkVersion="7.23.0 (sentry-cocoa)"
-          project={project}
-          sdkUpdates={sdkUpdates}
-        />
-      </li>
+      {requiresSdkUpdates ? (
+        <li>
+          <StepTitle>{t('Update your projects SDK version')}</StepTitle>
+          <ProjectSdkUpdate
+            minSdkVersion="7.23.0 (sentry-cocoa)"
+            project={project}
+            sdkUpdates={sdkUpdates}
+          />
+        </li>
+      ) : null}
       <li>
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/apple/guides/ios/performance/" />
       </li>

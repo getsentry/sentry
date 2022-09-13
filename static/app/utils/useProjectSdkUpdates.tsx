@@ -14,7 +14,7 @@ function loadSdkUpdates(api: Client, orgSlug: string): Promise<ProjectSdkUpdates
 
 interface UseProjectSdkOptions {
   organization: Organization;
-  projectId: Project['id'];
+  projectId: Project['id'] | null;
 }
 
 export function useProjectSdkUpdates(
@@ -45,6 +45,13 @@ export function useProjectSdkUpdates(
   }, [api, options.organization.slug]);
 
   const stateForProject = useMemo((): RequestState<ProjectSdkUpdates | null> => {
+    if (!options.projectId) {
+      return {
+        ...state,
+        type: 'resolved',
+        data: null,
+      };
+    }
     if (state.type === 'resolved') {
       return {
         ...state,
