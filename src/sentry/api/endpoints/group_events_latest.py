@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api import client
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import EventSerializer, serialize
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+@region_silo_endpoint
 class GroupEventsLatestEndpoint(GroupEndpoint):  # type: ignore
     enforce_rate_limit = True
     rate_limits = {

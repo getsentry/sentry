@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.authentication import QuietBasicAuthentication
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
 from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
@@ -36,6 +36,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
 )
 
 
+@control_silo_endpoint
 class AuthIndexEndpoint(Endpoint):
     """
     Manage session authentication

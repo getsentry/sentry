@@ -1,7 +1,6 @@
 import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -11,10 +10,7 @@ import {
   updateDashboard,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {
-  openAddDashboardWidgetModal,
-  openWidgetViewerModal,
-} from 'sentry/actionCreators/modal';
+import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
@@ -177,35 +173,17 @@ class DashboardDetail extends Component<Props, State> {
             });
           },
           onEdit: () => {
-            if (
-              organization.features.includes('new-widget-builder-experience-design') &&
-              !organization.features.includes(
-                'new-widget-builder-experience-modal-access'
-              )
-            ) {
-              const widgetIndex = dashboard.widgets.indexOf(widget);
-              if (dashboardId) {
-                router.push({
-                  pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
-                  query: {
-                    ...location.query,
-                    source: DashboardWidgetSource.DASHBOARDS,
-                  },
-                });
-                return;
-              }
+            const widgetIndex = dashboard.widgets.indexOf(widget);
+            if (dashboardId) {
+              router.push({
+                pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
+                query: {
+                  ...location.query,
+                  source: DashboardWidgetSource.DASHBOARDS,
+                },
+              });
+              return;
             }
-            openAddDashboardWidgetModal({
-              organization,
-              widget,
-              onUpdateWidget: (nextWidget: Widget) => {
-                const updateIndex = dashboard.widgets.indexOf(widget);
-                const nextWidgetsList = cloneDeep(dashboard.widgets);
-                nextWidgetsList[updateIndex] = nextWidget;
-                this.handleUpdateWidgetList(nextWidgetsList);
-              },
-              source: DashboardWidgetSource.DASHBOARDS,
-            });
           },
         });
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open', {
@@ -491,27 +469,16 @@ class DashboardDetail extends Component<Props, State> {
       modifiedDashboard: cloneDashboard(dashboard),
     });
 
-    if (
-      organization.features.includes('new-widget-builder-experience-design') &&
-      !organization.features.includes('new-widget-builder-experience-modal-access')
-    ) {
-      if (dashboardId) {
-        router.push({
-          pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
-          query: {
-            ...location.query,
-            source: DashboardWidgetSource.DASHBOARDS,
-          },
-        });
-        return;
-      }
+    if (dashboardId) {
+      router.push({
+        pathname: `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/new/`,
+        query: {
+          ...location.query,
+          source: DashboardWidgetSource.DASHBOARDS,
+        },
+      });
+      return;
     }
-    openAddDashboardWidgetModal({
-      organization,
-      dashboard,
-      onAddLibraryWidget: (widgets: Widget[]) => this.handleUpdateWidgetList(widgets),
-      source: DashboardWidgetSource.LIBRARY,
-    });
   };
 
   onCommit = () => {
@@ -648,7 +615,7 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard} = this.state;
 
     return isValidElement(children)
-      ? cloneElement(children, {
+      ? cloneElement<any>(children, {
           dashboard: modifiedDashboard ?? dashboard,
           onSave: this.isEditing ? this.onUpdateWidget : this.handleUpdateWidgetList,
         })

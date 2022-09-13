@@ -41,7 +41,7 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 ];
 
 type Props = {
-  commitId: string;
+  commitId?: string;
   inline?: boolean;
   repository?: Repository;
   showIcon?: boolean;
