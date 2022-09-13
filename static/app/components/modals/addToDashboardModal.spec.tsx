@@ -77,9 +77,6 @@ describe('add to dashboard modal', () => {
   beforeEach(() => {
     initialData = initializeOrg({
       ...initializeOrg(),
-      organization: {
-        features: ['new-widget-builder-experience-design'],
-      },
     });
 
     MockApiClient.addMockResponse({
@@ -189,7 +186,7 @@ describe('add to dashboard modal', () => {
   it('applies dashboard saved filters to visualization', async function () {
     initialData.organization = {
       ...initialData.organization,
-      features: ['new-widget-builder-experience-design', 'dashboards-top-level-filter'],
+      features: ['dashboards-top-level-filter'],
     };
     render(
       <AddToDashboardModal
@@ -312,7 +309,7 @@ describe('add to dashboard modal', () => {
   it('navigates to the widget builder with saved filters', async () => {
     initialData.organization = {
       ...initialData.organization,
-      features: ['new-widget-builder-experience-design', 'dashboards-top-level-filter'],
+      features: ['dashboards-top-level-filter'],
     };
 
     render(
