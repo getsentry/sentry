@@ -249,7 +249,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
     ):
         results = self.make_query(search_filter_query=query, environments=environments)
         sort_key = lambda result: result.id
-        print("results", results.results)
         assert sorted(results, key=sort_key) == sorted(expected_groups, key=sort_key)
 
         if expected_negative_groups is not None:
@@ -2042,7 +2041,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
-                print("fail: ", query)
                 self.fail(f"Query {query} errored. Error info: {e}")
 
         for key in SENTRY_SNUBA_MAP:
