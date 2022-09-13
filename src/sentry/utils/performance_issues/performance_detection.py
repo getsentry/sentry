@@ -173,7 +173,7 @@ def get_detection_settings(project_id: str):
         else {
             "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
             "n_plus_one_db_duration_threshold": options.get(
-                "performnace.issues.n_plus_one_db.duration_threshold"
+                "performance.issues.n_plus_one_db.duration_threshold"
             ),
         }
     )

@@ -171,7 +171,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         with override_options(
             {
                 "performance.issues.n_plus_one_db.count_threshold": 20,
-                "performnace.issues.n_plus_one_db.duration_threshold": 100,
+                "performance.issues.n_plus_one_db.duration_threshold": 100,
             }
         ):
             perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
@@ -180,7 +180,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         with override_options(
             {
                 "performance.issues.n_plus_one_db.count_threshold": 5,
-                "performnace.issues.n_plus_one_db.duration_threshold": 100,
+                "performance.issues.n_plus_one_db.duration_threshold": 100,
             }
         ):
             perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
