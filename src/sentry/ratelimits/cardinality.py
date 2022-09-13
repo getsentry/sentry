@@ -70,9 +70,9 @@ class RequestedQuota(NamedTuple):
     # ...though you can probably omit org_id if it is already in the prefix.
     unit_hashes: Collection[Hash]
 
-    # Which quotas to check against. The number of not-yet-seen hashes must
-    # "fit" into all quotas.
-    quotas: Sequence[Quota]
+    # Which quota to check against. The number of not-yet-seen hashes must
+    # "fit" into `Quota.limit`.
+    quota: Quota
 
 
 class GrantedQuota(NamedTuple):
@@ -84,7 +84,7 @@ class GrantedQuota(NamedTuple):
 
     # If len(granted_unit_hashes) < len(RequestedQuota.unit_hashes), this
     # contains the quotas that were reached.
-    reached_quotas: Sequence[Quota]
+    reached_quota: Optional[Quota]
 
 
 class CardinalityLimiter(Service):
@@ -237,23 +237,21 @@ class RedisCardinalityLimiter(CardinalityLimiter):
     def _get_timeseries_key(request: RequestedQuota, hash: Hash) -> str:
         return f"cardinality:timeseries:{request.prefix}-{hash}"
 
-    def _get_read_sets_keys(
-        self, request: RequestedQuota, quota: Quota, timestamp: Timestamp
-    ) -> Sequence[str]:
-        oldest_time_bucket = list(quota.iter_window(timestamp))[-1]
+    def _get_read_sets_keys(self, request: RequestedQuota, timestamp: Timestamp) -> Sequence[str]:
+        oldest_time_bucket = list(request.quota.iter_window(timestamp))[-1]
         return [
             f"cardinality:sets:{request.prefix}-{shard}-{oldest_time_bucket}"
             for shard in range(self.num_physical_shards)
         ]
 
     def _get_write_sets_keys(
-        self, request: RequestedQuota, quota: Quota, timestamp: Timestamp, hash: Hash
+        self, request: RequestedQuota, timestamp: Timestamp, hash: Hash
     ) -> Sequence[str]:
         shard = hash % self.num_shards
         if shard < self.num_physical_shards:
             return [
                 f"cardinality:sets:{request.prefix}-{shard}-{time_bucket}"
-                for time_bucket in quota.iter_window(timestamp)
+                for time_bucket in request.quota.iter_window(timestamp)
             ]
         else:
             return []
@@ -273,12 +271,10 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         set_keys_to_count: List[str] = []
 
         for request in requests:
-            if request.quotas:
-                for hash in request.unit_hashes:
-                    unit_keys_to_get.append(self._get_timeseries_key(request, hash))
+            for hash in request.unit_hashes:
+                unit_keys_to_get.append(self._get_timeseries_key(request, hash))
 
-            for quota in request.quotas:
-                set_keys_to_count.extend(self._get_read_sets_keys(request, quota, timestamp))
+            set_keys_to_count.extend(self._get_read_sets_keys(request, timestamp))
 
         if not unit_keys_to_get and not set_keys_to_count:
             # If there are no keys to fetch (i.e. there are no quotas to
@@ -286,7 +282,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             # quotas immediately.
             return timestamp, [
                 GrantedQuota(
-                    request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
+                    request=request, granted_unit_hashes=request.unit_hashes, reached_quota=None
                 )
                 for request in requests
             ]
@@ -305,35 +301,17 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         grants = []
         cardinality_sample_factor = self._get_set_cardinality_sample_factor()
         for request in requests:
-            if not request.quotas:
-                grants.append(
-                    GrantedQuota(
-                        request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
-                    )
-                )
-                continue
-
             granted_hashes = []
 
-            quotas_by_remaining_limit = defaultdict(list)
-            for quota in request.quotas:
-                remaining_limit = max(
-                    0,
-                    quota.limit
-                    - cardinality_sample_factor
-                    * sum(
-                        set_counts[k] for k in self._get_read_sets_keys(request, quota, timestamp)
-                    ),
-                )
-                quotas_by_remaining_limit[remaining_limit].append(quota)
+            remaining_limit = max(
+                0,
+                request.quota.limit
+                - cardinality_sample_factor
+                * sum(set_counts[k] for k in self._get_read_sets_keys(request, timestamp)),
+            )
 
-            # Determine the quota(s) with the smallest remaining limit
-            # (quota.limit - <set count from redis>). If we drop any hashes at
-            # all, we can only have hit the most restrictive quota, so we
-            # report those as `reached_quotas`.
-            smallest_remaining_limit = min(quotas_by_remaining_limit)
-            smallest_remaining_limit_running = smallest_remaining_limit
-            reached_quotas = []
+            remaining_limit_running = remaining_limit
+            reached_quota = None
 
             # for each hash in the request, check if:
             # 1. the hash is in `unit_keys`. If so, it has already been seen in
@@ -350,17 +328,17 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             for hash in request.unit_hashes:
                 if unit_keys[self._get_timeseries_key(request, hash)]:
                     granted_hashes.append(hash)
-                elif smallest_remaining_limit_running > 0:
+                elif remaining_limit_running > 0:
                     granted_hashes.append(hash)
-                    smallest_remaining_limit_running -= 1
+                    remaining_limit_running -= 1
                 else:
-                    reached_quotas = quotas_by_remaining_limit[smallest_remaining_limit]
+                    reached_quota = request.quota
 
             grants.append(
                 GrantedQuota(
                     request=request,
                     granted_unit_hashes=granted_hashes,
-                    reached_quotas=reached_quotas,
+                    reached_quota=reached_quota,
                 )
             )
 
@@ -376,19 +354,15 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         set_keys_ttl = {}
 
         for grant in grants:
-            if not grant.request.quotas:
-                continue
-
-            key_ttl = max(quota.window_seconds for quota in grant.request.quotas)
+            key_ttl = grant.request.quota.window_seconds
 
             for hash in grant.granted_unit_hashes:
                 unit_key = self._get_timeseries_key(grant.request, hash)
                 unit_keys_to_set[unit_key] = key_ttl
 
-                for quota in grant.request.quotas:
-                    for set_key in self._get_write_sets_keys(grant.request, quota, timestamp, hash):
-                        set_keys_ttl[set_key] = quota.window_seconds
-                        set_keys_to_add[set_key].add(hash)
+                for set_key in self._get_write_sets_keys(grant.request, timestamp, hash):
+                    set_keys_ttl[set_key] = key_ttl
+                    set_keys_to_add[set_key].add(hash)
 
         if not set_keys_to_add and not unit_keys_to_set:
             # If there are no keys to mutate (i.e. there are no quotas to

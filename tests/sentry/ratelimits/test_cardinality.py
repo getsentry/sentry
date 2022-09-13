@@ -23,7 +23,7 @@ class LimiterHelper:
 
     def __init__(self, limiter: RedisCardinalityLimiter):
         self.limiter = limiter
-        self.quotas = [Quota(window_seconds=3600, granularity_seconds=60, limit=10)]
+        self.quota = Quota(window_seconds=3600, granularity_seconds=60, limit=10)
         self.timestamp = 3600
 
     def add_value(self, value: int) -> Optional[int]:
@@ -33,7 +33,7 @@ class LimiterHelper:
             return value
 
     def add_values(self, values: Sequence[int]) -> Collection[int]:
-        request = RequestedQuota(prefix="hello", unit_hashes=values, quotas=self.quotas)
+        request = RequestedQuota(prefix="hello", unit_hashes=values, quota=self.quota)
         new_timestamp, grants = self.limiter.check_within_quotas(
             [request], timestamp=self.timestamp
         )
@@ -74,53 +74,53 @@ def test_multiple_prefixes(limiter: RedisCardinalityLimiter):
     * `b` immediately exceeds the quota.
     * `c` fits comfortably into the quota at first (fills out the limit exactly)
     """
-    quotas = [Quota(window_seconds=3600, granularity_seconds=60, limit=10)]
+    quota = Quota(window_seconds=3600, granularity_seconds=60, limit=10)
     requests = [
-        RequestedQuota(prefix="a", unit_hashes={1, 2, 3, 4, 5}, quotas=quotas),
-        RequestedQuota(prefix="b", unit_hashes={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, quotas=quotas),
+        RequestedQuota(prefix="a", unit_hashes={1, 2, 3, 4, 5}, quota=quota),
+        RequestedQuota(prefix="b", unit_hashes={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, quota=quota),
         RequestedQuota(
-            prefix="c", unit_hashes={11, 12, 13, 14, 15, 16, 17, 18, 19, 20}, quotas=quotas
+            prefix="c", unit_hashes={11, 12, 13, 14, 15, 16, 17, 18, 19, 20}, quota=quota
         ),
     ]
     new_timestamp, grants = limiter.check_within_quotas(requests)
 
     assert grants == [
-        GrantedQuota(request=requests[0], granted_unit_hashes=[1, 2, 3, 4, 5], reached_quotas=[]),
+        GrantedQuota(request=requests[0], granted_unit_hashes=[1, 2, 3, 4, 5], reached_quota=None),
         GrantedQuota(
             request=requests[1],
             granted_unit_hashes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            reached_quotas=quotas,
+            reached_quota=quota,
         ),
         GrantedQuota(
             request=requests[2],
             granted_unit_hashes=[11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-            reached_quotas=[],
+            reached_quota=None,
         ),
     ]
     limiter.use_quotas(grants, new_timestamp)
 
     requests = [
-        RequestedQuota(prefix="a", unit_hashes={6, 7, 8, 9, 10, 11}, quotas=quotas),
-        RequestedQuota(prefix="b", unit_hashes={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, quotas=quotas),
+        RequestedQuota(prefix="a", unit_hashes={6, 7, 8, 9, 10, 11}, quota=quota),
+        RequestedQuota(prefix="b", unit_hashes={1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, quota=quota),
         RequestedQuota(
-            prefix="c", unit_hashes={11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}, quotas=quotas
+            prefix="c", unit_hashes={11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}, quota=quota
         ),
     ]
     new_timestamp, grants = limiter.check_within_quotas(requests)
 
     assert grants == [
         GrantedQuota(
-            request=requests[0], granted_unit_hashes=[6, 7, 8, 9, 10], reached_quotas=quotas
+            request=requests[0], granted_unit_hashes=[6, 7, 8, 9, 10], reached_quota=quota
         ),
         GrantedQuota(
             request=requests[1],
             granted_unit_hashes=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            reached_quotas=quotas,
+            reached_quota=quota,
         ),
         GrantedQuota(
             request=requests[2],
             granted_unit_hashes=[11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-            reached_quotas=quotas,
+            reached_quota=quota,
         ),
     ]
     limiter.use_quotas(grants, new_timestamp)
@@ -172,13 +172,6 @@ def test_sliding(limiter: RedisCardinalityLimiter):
         helper.timestamp += 36
 
     assert admissions == expected
-
-
-def test_noop(limiter: RedisCardinalityLimiter):
-    helper = LimiterHelper(limiter)
-    helper.quotas = []
-    helper.limiter.client = None
-    assert helper.add_value(1) == 1
 
 
 def test_sampling(limiter: RedisCardinalityLimiter):
