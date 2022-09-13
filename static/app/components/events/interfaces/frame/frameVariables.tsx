@@ -26,7 +26,7 @@ export function FrameVariables({data, meta}: Props) {
       value: Array.isArray(data[key])
         ? (data[key] as unknown as any[]).map((v, i) => {
             if (!v && meta?.[key]?.[i]?.['']) {
-              return <AnnotatedText value={v} meta={meta?.[key]?.[i]?.['']} />;
+              return <AnnotatedText key={key} value={v} meta={meta?.[key]?.[i]?.['']} />;
             }
             return v;
           })
