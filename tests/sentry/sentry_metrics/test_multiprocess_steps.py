@@ -519,6 +519,9 @@ def test_process_messages_cardinality_limited(caplog, settings, monkeypatch) -> 
             # Grant nothing, limit everything
             return 123, []
 
+        def use_quotas(self, grants, timestamp):
+            pass
+
     monkeypatch.setitem(
         cardinality_limiter_factory.rate_limiters,
         "releasehealth",

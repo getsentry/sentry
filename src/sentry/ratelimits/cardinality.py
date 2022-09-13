@@ -123,19 +123,8 @@ class CardinalityLimiter(Service):
             However, consistently providing old timestamps here will work
             correctly.
         """
-        if timestamp is None:
-            timestamp = int(time.time())
-        else:
-            timestamp = int(timestamp)
 
-        grants = [
-            GrantedQuota(
-                request=request, granted_unit_hashes=request.unit_hashes, reached_quotas=[]
-            )
-            for request in requests
-        ]
-
-        return timestamp, grants
+        raise NotImplementedError()
 
     def use_quotas(
         self,
@@ -151,15 +140,17 @@ class CardinalityLimiter(Service):
         :param grants: The return value of `check_within_quotas` which
             indicates how much quota should actually be consumed.
         """
-        pass
+
+        raise NotImplementedError()
 
 
 class RedisCardinalityLimiter(CardinalityLimiter):
     """
     The Redis cardinality limiter stores a key per unit hash, and adds the unit
     hash to a set key prefixed with `RequestedQuota.prefix`. The memory usage
-    grows with the dimensionality of `prefix` and the `unit_hashes` that fit
-    into the limit.
+    grows with the dimensionality of `prefix` and the configured quota limit
+    per prefix (i.e. the maximum cardinality of
+    `GrantedQuota.granted_unit_hashes`).
 
     Many design decisions for this cardinality limiter were copied from the
     sliding_windows rate limiter. You will find the next couple of paragraphs
@@ -217,8 +208,8 @@ class RedisCardinalityLimiter(CardinalityLimiter):
     def __init__(
         self,
         cluster: str = "default",
-        cluster_num_shards: int = 3,
-        cluster_num_physical_shards: int = 3,
+        num_shards: int = 3,
+        num_physical_shards: int = 3,
     ) -> None:
         """
         :param cluster: Name of the redis cluster to use, to be configured with
@@ -233,14 +224,14 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             will be.
         """
         self.client = redis.redis_clusters.get(cluster)
-        assert 0 < cluster_num_physical_shards <= cluster_num_shards
-        self.cluster_num_shards = cluster_num_shards
-        self.cluster_num_physical_shards = cluster_num_physical_shards
+        assert 0 < num_physical_shards <= num_shards
+        self.num_shards = num_shards
+        self.num_physical_shards = num_physical_shards
         super().__init__()
 
     @staticmethod
     def _get_timeseries_key(request: RequestedQuota, hash: Hash) -> str:
-        return f"cardinality:counter:{request.prefix}-{hash}"
+        return f"cardinality:timeseries:{request.prefix}-{hash}"
 
     def _get_read_sets_keys(
         self, request: RequestedQuota, quota: Quota, timestamp: Timestamp
@@ -248,14 +239,14 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         oldest_time_bucket = list(quota.iter_window(timestamp))[-1]
         return [
             f"cardinality:sets:{request.prefix}-{shard}-{oldest_time_bucket}"
-            for shard in range(self.cluster_num_physical_shards)
+            for shard in range(self.num_physical_shards)
         ]
 
     def _get_write_sets_keys(
         self, request: RequestedQuota, quota: Quota, timestamp: Timestamp, hash: Hash
     ) -> Sequence[str]:
-        shard = hash % self.cluster_num_shards
-        if shard < self.cluster_num_physical_shards:
+        shard = hash % self.num_shards
+        if shard < self.num_physical_shards:
             return [
                 f"cardinality:sets:{request.prefix}-{shard}-{time_bucket}"
                 for time_bucket in quota.iter_window(timestamp)
@@ -264,7 +255,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
             return []
 
     def _get_set_cardinality_sample_factor(self) -> float:
-        return self.cluster_num_shards / self.cluster_num_physical_shards
+        return self.num_shards / self.num_physical_shards
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
