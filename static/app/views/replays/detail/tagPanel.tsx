@@ -16,20 +16,12 @@ function TagPanel() {
     return <Placeholder height="100%" />;
   }
 
-  const query = '';
-  const generateUrl = () => '';
-
   return (
     <Panel>
       <FluidPanel>
         <KeyValueTable>
           {Object.entries(replayRecord.tags).map(([key, value]) => (
-            <ReplayTagsTableRow
-              key={key}
-              tag={{key, value}}
-              query={query}
-              generateUrl={generateUrl}
-            />
+            <ReplayTagsTableRow key={key} tag={{key, value}} />
           ))}
         </KeyValueTable>
       </FluidPanel>
