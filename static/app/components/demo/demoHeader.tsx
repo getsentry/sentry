@@ -18,13 +18,14 @@ export default function DemoHeader() {
   const sandboxData = window.SandboxData;
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const extraSearchParams = extraQueryParameter();
+
   const walkthrough = localStorage.getItem('new-walkthrough');
 
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
   let docsBtn, reqDemoBtn, signUpBtn;
 
-  if (walkthrough === 'true') {
+  if (walkthrough === '1') {
     docsBtn = (
       <DocsDemoBtn
         onClick={() =>
