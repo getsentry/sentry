@@ -565,8 +565,7 @@ function BaseChartUnwrapped({
   );
 }
 
-// Contains styling for chart elements as we can't easily style those
-// elements directly
+// Tooltip styles shared for regular and portalled tooltips
 const getTooltipStyles = (p: {theme: Theme}) => css`
   /* Tooltip styling */
   .tooltip-series,
@@ -658,6 +657,8 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
 `;
 
+// Contains styling for chart elements as we can't easily style those
+// elements directly
 const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
 
