@@ -385,6 +385,11 @@ function generateAdditionalConditions(
   return conditions;
 }
 
+/**
+ * Discover queries can query either Errors, Transactions or a combination
+ * of the two datasets. This is a util to determine if the query will excusively
+ * hit the Transactions dataset.
+ */
 export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
   let usesTransactions: boolean = false;
   const parsedQuery = new MutableSearch(eventView.query);
