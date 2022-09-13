@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 export enum TabKey {
   console = 'console',
