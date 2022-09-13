@@ -34,10 +34,10 @@ def get_docker_client() -> docker.DockerClient:
             raise click.ClickException("Make sure docker is running.")
 
         max_wait = 60
-        start = time.monotonic()
+        timeout = time.monotonic() + max_wait
 
         click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
-        while time.monotonic() - start < max_wait:
+        while time.monotonic() < timeout:
             time.sleep(1)
             try:
                 client.ping()
