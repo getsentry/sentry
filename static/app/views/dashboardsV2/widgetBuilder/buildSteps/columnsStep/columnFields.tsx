@@ -48,9 +48,7 @@ export function ColumnFields({
           fieldOptions={fieldOptions}
           organization={organization}
           source={widgetType}
-          showAliasField={organization.features.includes(
-            'new-widget-builder-experience-design'
-          )}
+          showAliasField
           filterAggregateParameters={filterAggregateParameters}
           filterPrimaryOptions={filterPrimaryOptions}
           noFieldsMessage={noFieldsMessage}
