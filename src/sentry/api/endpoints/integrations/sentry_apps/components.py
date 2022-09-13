@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
+from sentry.api.base import pending_silo_endpoint, region_silo_endpoint
 from sentry.api.bases import (
     OrganizationEndpoint,
     SentryAppBaseEndpoint,
@@ -17,6 +18,7 @@ from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
 #  project and the other takes a sentry app. It would be better to have a single
 #  endpoint that can take project_id or sentry_app_id as a query parameter.
+@pending_silo_endpoint
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
@@ -27,6 +29,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
         )
 
 
+@region_silo_endpoint
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:

@@ -139,14 +139,15 @@ class IssueQuickTrace extends Component<Props, State> {
             </Button>
           }
         >
-          {tct('The [type] for this event cannot be found. [link]', {
-            type: type === 'missing' ? t('transaction') : t('trace'),
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting">
-                {t('Read the docs to understand why.')}
-              </ExternalLink>
-            ),
-          })}
+          {tct(
+            'The [type] for this event cannot be found. [link:Read the docs to understand why].',
+            {
+              type: type === 'missing' ? t('transaction') : t('trace'),
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#troubleshooting" />
+              ),
+            }
+          )}
         </StyledAlert>
       );
     }

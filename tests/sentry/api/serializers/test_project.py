@@ -25,9 +25,11 @@ from sentry.models import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class ProjectSerializerTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -199,6 +201,7 @@ class ProjectSerializerTest(TestCase):
         assert_has_features(late_blue, [blue_flag])
 
 
+@region_silo_test
 class ProjectWithTeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -218,6 +221,7 @@ class ProjectWithTeamSerializerTest(TestCase):
         }
 
 
+@region_silo_test
 class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
@@ -522,6 +526,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         check_has_health_data.assert_called()
 
 
+@region_silo_test
 class ProjectWithOrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -537,6 +542,7 @@ class ProjectWithOrganizationSerializerTest(TestCase):
         assert result["organization"] == serialize(organization, user)
 
 
+@region_silo_test
 class BulkFetchProjectLatestReleases(TestCase):
     @fixture
     def project(self):

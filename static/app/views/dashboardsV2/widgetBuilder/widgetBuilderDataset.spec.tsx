@@ -16,7 +16,6 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 
 const defaultOrgFeatures = [
   'performance-view',
-  'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
@@ -249,15 +248,11 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    const releaseHealthFeatureFlags = [
-      ...defaultOrgFeatures,
-      'new-widget-builder-experience-design',
-      'dashboards-releases',
-    ];
+    const releaseHealthFeatureFlags = [...defaultOrgFeatures, 'dashboards-releases'];
 
     it('does not show the Release Health dataset if there is no dashboards-releases flag', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
@@ -751,7 +746,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');
@@ -840,7 +835,7 @@ describe('WidgetBuilder', function () {
         });
       });
 
-      it('raises an alert banner and disables saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
+      it('raises an alert banner but allows saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
         eventsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           method: 'GET',
@@ -887,8 +882,8 @@ describe('WidgetBuilder', function () {
           expect(eventsMock).toHaveBeenCalled();
         });
 
-        screen.getByText('You have inputs that are incompatible with');
-        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+        screen.getByText('Your selection is only applicable to');
+        expect(screen.getByText('Add Widget').closest('button')).toBeEnabled();
       });
 
       it('raises an alert banner if widget result is not metrics data', async function () {

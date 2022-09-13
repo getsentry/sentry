@@ -33,11 +33,13 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -354,6 +356,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
 
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1337,6 +1340,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group1.id).exists()
 
 
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @fixture
     def path(self):
