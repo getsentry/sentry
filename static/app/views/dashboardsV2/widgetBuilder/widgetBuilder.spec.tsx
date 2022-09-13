@@ -1272,7 +1272,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
       await waitFor(() => {
-        expect(eventsStatsMock).toBeCalledWith(
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({excludeOther: '1'}),
@@ -1293,7 +1293,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add Query'));
 
       await waitFor(() => {
-        expect(eventsStatsMock).toBeCalledWith(
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({excludeOther: '1'}),
@@ -1313,7 +1313,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
       await waitFor(() => {
-        expect(eventsStatsMock).toBeCalledWith(
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.not.objectContaining({excludeOther: '1'}),

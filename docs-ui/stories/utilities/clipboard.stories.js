@@ -15,7 +15,7 @@ export default {
 
 export const Default = ({...args}) => (
   <Clipboard {...args}>
-    <span priority="primary">Click to Copy</span>
+    <span>Click to Copy</span>
   </Clipboard>
 );
 
