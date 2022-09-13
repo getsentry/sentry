@@ -54,7 +54,7 @@ describe('useUrlParams', () => {
 
     result.current.setParamValue('page', '4');
 
-    expect(browserHistory.push).toBeCalledWith({
+    expect(browserHistory.push).toHaveBeenCalledWith({
       query: {
         page: '4',
         limit: 50,
@@ -67,7 +67,7 @@ describe('useUrlParams', () => {
 
     result.current.setParamValue('4');
 
-    expect(browserHistory.push).toBeCalledWith({
+    expect(browserHistory.push).toHaveBeenCalledWith({
       query: {
         page: '4',
         limit: 50,
