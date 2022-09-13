@@ -24,7 +24,7 @@ interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
   get(): State;
   init(): void;
   onFetchOrgError(err: RequestError): void;
-  onUpdate(org: Organization, options: UpdateOptions): void;
+  onUpdate(org: Organization, options?: UpdateOptions): void;
   reset(): void;
 }
 
