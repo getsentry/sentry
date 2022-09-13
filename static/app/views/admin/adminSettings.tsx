@@ -98,8 +98,8 @@ export default class AdminSettings extends AsyncView<{}, State> {
               <PanelHeader>Performance Issues</PanelHeader>
               {fields['performance.issues.all.problem-detection']}
               {fields['performance.issues.all.problem-creation']}
-              {fields['performance.issues.n_plus_one.problem-detection']}
-              {fields['performance.issues.n_plus_one.problem-creation']}
+              {fields['performance.issues.n_plus_one_db.problem-detection']}
+              {fields['performance.issues.n_plus_one_db.problem-creation']}
             </Panel>
           </Feature>
         </Form>
