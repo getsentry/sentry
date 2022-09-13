@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
 import {EntryType, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
@@ -8,12 +9,6 @@ import KeyValueList from '../keyValueList';
 import TraceView from '../spans/traceView';
 import {RawSpanType, SpanEntry} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
-
-export type SpanEvidence = {
-  parentSpan: string;
-  repeatingSpan: string;
-  sourceSpan: string;
-};
 
 interface Props {
   event: EventTransaction;
@@ -25,47 +20,16 @@ export function SpanEvidenceSection({event, organization}: Props) {
     return null;
   }
 
-  const {
-    causeSpanIds: causes,
-    offenderSpanIds: offenders,
-    parentSpanIds: parents,
-  } = event.perfProblem;
-
-  // For now, it is safe to assume that there is only one cause and parent span for N+1 issues
-  const sourceSpanId = causes[0];
-  const parentSpanId = parents[0];
-  const repeatingSpanIdSet = new Set(offenders);
-
   // Let's dive into the event to pick off the span evidence data by using the IDs we know
   const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
     return entry.type === EntryType.SPANS;
   });
   const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spansById = keyBy(spans, 'span_id');
 
-  const spanEvidence = spans.reduce(
-    (acc: SpanEvidence & {affectedSpanIds: string[]}, span) => {
-      if (span.span_id === sourceSpanId) {
-        acc.sourceSpan = span.description ?? '';
-      }
-
-      if (span.span_id === parentSpanId) {
-        acc.parentSpan = span.description ?? '';
-      }
-
-      if (repeatingSpanIdSet.has(span.span_id)) {
-        acc.repeatingSpan = span.description ?? '';
-        acc.affectedSpanIds.push(span.span_id);
-      }
-
-      return acc;
-    },
-    {
-      parentSpan: '',
-      sourceSpan: '',
-      repeatingSpan: '',
-      affectedSpanIds: [],
-    }
-  );
+  const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
+  const sourceSpan = spansById[event.perfProblem.causeSpanIds[0]];
+  const repeatingSpan = spansById[event.perfProblem.offenderSpanIds[0]];
 
   const data: KeyValueListData = [
     {
@@ -76,18 +40,24 @@ export function SpanEvidenceSection({event, organization}: Props) {
     {
       key: '1',
       subject: t('Parent Span'),
-      value: spanEvidence.parentSpan,
+      value: parentSpan.description ?? '',
     },
     {
       key: '2',
       subject: t('Source Span'),
-      value: spanEvidence.sourceSpan,
+      value: sourceSpan.description ?? '',
     },
     {
       key: '3',
       subject: t('Repeating Span'),
-      value: spanEvidence.repeatingSpan,
+      value: repeatingSpan.description ?? '',
     },
+  ];
+
+  const affectedSpanIds = [
+    parentSpan.span_id,
+    sourceSpan.span_id,
+    ...event.perfProblem.offenderSpanIds,
   ];
 
   return (
@@ -102,9 +72,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
       <TraceViewWrapper>
         <TraceView
           organization={organization}
-          waterfallModel={
-            new WaterfallModel(event as EventTransaction, spanEvidence.affectedSpanIds)
-          }
+          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
           isEmbedded
         />
       </TraceViewWrapper>
