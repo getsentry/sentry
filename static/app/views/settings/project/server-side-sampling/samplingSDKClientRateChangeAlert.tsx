@@ -35,6 +35,7 @@ export function SamplingSDKClientRateChangeAlert({
     trackAdvancedAnalyticsEvent('sampling.sdk.client.rate.change.alert', {
       organization,
       project_id: projectId,
+      user_role: organization.orgRole,
     });
   }, [recommendChangingClientSdk, organization, projectId]);
 

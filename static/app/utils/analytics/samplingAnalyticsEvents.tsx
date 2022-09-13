@@ -1,108 +1,69 @@
 import {SamplingInnerName} from 'sentry/types/sampling';
 
-type Rule = {
+type SamplingRuleData = {
   conditions: SamplingInnerName[] | string[];
   conditions_stringified: string;
-  project_id: string;
   sampling_rate: number | null;
 };
 
+type CommonSamplingData = {
+  project_id: string;
+  user_role?: string;
+};
+
 export type SamplingEventParameters = {
-  'sampling.sdk.client.rate.change.alert': {
-    project_id: string;
-  };
-  'sampling.sdk.incompatible.alert': {
-    project_id: string;
-  };
-  'sampling.sdk.updgrades.alert': {
-    project_id: string;
-  };
-  'sampling.settings.modal.recommended.next.steps_back': {
-    project_id: string;
-  };
-  'sampling.settings.modal.recommended.next.steps_cancel': {
-    project_id: string;
-  };
-  'sampling.settings.modal.recommended.next.steps_done': {
-    project_id: string;
-  };
-  'sampling.settings.modal.recommended.next.steps_read_docs': {
-    project_id: string;
-  };
-  'sampling.settings.modal.specific.rule.condition_add': {
+  'sampling.sdk.client.rate.change.alert': CommonSamplingData;
+  'sampling.sdk.incompatible.alert': CommonSamplingData;
+  'sampling.sdk.updgrades.alert': CommonSamplingData;
+  'sampling.settings.modal.recommended.next.steps_back': CommonSamplingData;
+  'sampling.settings.modal.recommended.next.steps_cancel': CommonSamplingData;
+  'sampling.settings.modal.recommended.next.steps_done': CommonSamplingData;
+  'sampling.settings.modal.recommended.next.steps_read_docs': CommonSamplingData;
+  'sampling.settings.modal.specific.rule.condition_add': CommonSamplingData & {
     conditions: SamplingInnerName[] | string[];
-    project_id: string;
   };
-  'sampling.settings.modal.specify.client.open': {
-    project_id: string;
+  'sampling.settings.modal.specify.client.open': CommonSamplingData;
+  'sampling.settings.modal.specify.client.rate_cancel': CommonSamplingData;
+  'sampling.settings.modal.specify.client.rate_next': CommonSamplingData;
+  'sampling.settings.modal.specify.client.rate_read_docs': CommonSamplingData;
+  'sampling.settings.modal.uniform.rate_cancel': CommonSamplingData;
+  'sampling.settings.modal.uniform.rate_done': CommonSamplingData;
+  'sampling.settings.modal.uniform.rate_next': CommonSamplingData;
+  'sampling.settings.modal.uniform.rate_read_docs': CommonSamplingData;
+  'sampling.settings.modal.uniform.rate_switch_current': CommonSamplingData;
+  'sampling.settings.modal.uniform.rate_switch_recommended': CommonSamplingData;
+  'sampling.settings.rule.specific_activate': CommonSamplingData & SamplingRuleData;
+  'sampling.settings.rule.specific_create': CommonSamplingData & SamplingRuleData;
+  'sampling.settings.rule.specific_deactivate': CommonSamplingData & SamplingRuleData;
+  'sampling.settings.rule.specific_delete': CommonSamplingData & SamplingRuleData;
+  'sampling.settings.rule.specific_save': CommonSamplingData & SamplingRuleData;
+  'sampling.settings.rule.specific_update': CommonSamplingData &
+    SamplingRuleData & {
+      old_conditions: SamplingRuleData['conditions'];
+      old_conditions_stringified: string;
+      old_sampling_rate: SamplingRuleData['sampling_rate'];
+    };
+  'sampling.settings.rule.uniform_activate': CommonSamplingData & {
+    sampling_rate: SamplingRuleData['sampling_rate'];
   };
-  'sampling.settings.modal.specify.client.rate_cancel': {
-    project_id: string;
+  'sampling.settings.rule.uniform_create': CommonSamplingData & {
+    old_sampling_rate: SamplingRuleData['sampling_rate'];
+    sampling_rate: SamplingRuleData['sampling_rate'];
   };
-  'sampling.settings.modal.specify.client.rate_next': {
-    project_id: string;
+  'sampling.settings.rule.uniform_deactivate': CommonSamplingData & {
+    sampling_rate: SamplingRuleData['sampling_rate'];
   };
-  'sampling.settings.modal.specify.client.rate_read_docs': {
-    project_id: string;
+  'sampling.settings.rule.uniform_save': CommonSamplingData & {
+    old_sampling_rate: SamplingRuleData['sampling_rate'];
+    sampling_rate: SamplingRuleData['sampling_rate'];
   };
-  'sampling.settings.modal.uniform.rate_cancel': {
-    project_id: string;
+  'sampling.settings.rule.uniform_update': CommonSamplingData & {
+    old_sampling_rate: SamplingRuleData['sampling_rate'];
+    sampling_rate: SamplingRuleData['sampling_rate'];
   };
-  'sampling.settings.modal.uniform.rate_done': {
-    project_id: string;
-  };
-  'sampling.settings.modal.uniform.rate_next': {
-    project_id: string;
-  };
-  'sampling.settings.modal.uniform.rate_read_docs': {
-    project_id: string;
-  };
-  'sampling.settings.modal.uniform.rate_switch_current': {
-    project_id: string;
-  };
-  'sampling.settings.modal.uniform.rate_switch_recommended': {
-    project_id: string;
-  };
-  'sampling.settings.rule.specific_activate': Rule;
-  'sampling.settings.rule.specific_create': Rule;
-  'sampling.settings.rule.specific_deactivate': Rule;
-  'sampling.settings.rule.specific_delete': Rule;
-  'sampling.settings.rule.specific_save': Rule;
-  'sampling.settings.rule.specific_update': Rule & {
-    old_conditions: Rule['conditions'];
-    old_conditions_stringified: string;
-    old_sampling_rate: Rule['sampling_rate'];
-  };
-  'sampling.settings.rule.uniform_activate': {
-    project_id: string;
-    sampling_rate: Rule['sampling_rate'];
-  };
-  'sampling.settings.rule.uniform_create': {
-    old_sampling_rate: Rule['sampling_rate'];
-    project_id: string;
-    sampling_rate: Rule['sampling_rate'];
-  };
-  'sampling.settings.rule.uniform_deactivate': {
-    project_id: string;
-    sampling_rate: Rule['sampling_rate'];
-  };
-  'sampling.settings.rule.uniform_save': {
-    old_sampling_rate: Rule['sampling_rate'];
-    project_id: string;
-    sampling_rate: Rule['sampling_rate'];
-  };
-  'sampling.settings.rule.uniform_update': {
-    old_sampling_rate: Rule['sampling_rate'];
-    project_id: string;
-    sampling_rate: Rule['sampling_rate'];
-  };
-  'sampling.settings.view': {project_id: string};
-  'sampling.settings.view_get_started': {
-    project_id: string;
-  };
-  'sampling.settings.view_read_docs': {
-    project_id: string;
-  };
+  'sampling.settings.view': CommonSamplingData;
+  'sampling.settings.view_get_started': CommonSamplingData;
+  'sampling.settings.view_read_docs': CommonSamplingData;
 };
 
 type SamplingAnalyticsKey = keyof SamplingEventParameters;

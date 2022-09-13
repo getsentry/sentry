@@ -38,6 +38,7 @@ export function SpecifyClientRateModal({
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.open', {
       organization,
       project_id: projectId,
+      user_role: organization.orgRole,
     });
   }, [organization, projectId]);
 
@@ -49,6 +50,7 @@ export function SpecifyClientRateModal({
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.rate_read_docs', {
       organization,
       project_id: projectId,
+      user_role: organization.orgRole,
     });
 
     onReadDocs();
@@ -58,6 +60,7 @@ export function SpecifyClientRateModal({
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.rate_next', {
       organization,
       project_id: projectId,
+      user_role: organization.orgRole,
     });
 
     if (!defined(value)) {

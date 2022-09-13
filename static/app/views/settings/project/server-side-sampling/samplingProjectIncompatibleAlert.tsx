@@ -24,6 +24,7 @@ export function SamplingProjectIncompatibleAlert({
       trackAdvancedAnalyticsEvent('sampling.sdk.incompatible.alert', {
         organization,
         project_id: projectId,
+        user_role: organization.orgRole,
       });
     }
   }, [isProjectIncompatible, organization, projectId]);

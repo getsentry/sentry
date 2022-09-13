@@ -82,6 +82,7 @@ export function ServerSideSampling({project}: Props) {
     trackAdvancedAnalyticsEvent('sampling.settings.view', {
       organization,
       project_id: project.id,
+      user_role: organization.orgRole,
     });
   }, [project.id, organization]);
 
@@ -175,6 +176,7 @@ export function ServerSideSampling({project}: Props) {
           organization,
           project_id: project.id,
           sampling_rate: rule.sampleRate,
+          user_role: organization.orgRole,
         }
       );
     } else {
@@ -188,6 +190,7 @@ export function ServerSideSampling({project}: Props) {
         {
           organization,
           project_id: project.id,
+          user_role: organization.orgRole,
           sampling_rate: rule.sampleRate,
           conditions: analyticsConditions,
           conditions_stringified: analyticsConditionsStringified,
@@ -200,6 +203,7 @@ export function ServerSideSampling({project}: Props) {
     trackAdvancedAnalyticsEvent('sampling.settings.view_get_started', {
       organization,
       project_id: project.id,
+      user_role: organization.orgRole,
     });
 
     openModal(
@@ -301,6 +305,7 @@ export function ServerSideSampling({project}: Props) {
     trackAdvancedAnalyticsEvent('sampling.settings.rule.specific_delete', {
       organization,
       project_id: project.id,
+      user_role: organization.orgRole,
       sampling_rate: rule.sampleRate,
       conditions,
       conditions_stringified: conditions.sort().join(', '),
@@ -327,6 +332,7 @@ export function ServerSideSampling({project}: Props) {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
       organization,
       project_id: project.id,
+      user_role: organization.orgRole,
     });
   }
 
@@ -363,6 +369,7 @@ export function ServerSideSampling({project}: Props) {
       {
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
       }
     );
 
@@ -373,6 +380,7 @@ export function ServerSideSampling({project}: Props) {
       {
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
         sampling_rate: newRule.sampleRate,
         old_sampling_rate: rule ? rule.sampleRate : null,
       }
@@ -381,6 +389,7 @@ export function ServerSideSampling({project}: Props) {
     trackAdvancedAnalyticsEvent('sampling.settings.rule.uniform_save', {
       organization,
       project_id: project.id,
+      user_role: organization.orgRole,
       sampling_rate: newRule.sampleRate,
       old_sampling_rate: rule ? rule.sampleRate : null,
     });

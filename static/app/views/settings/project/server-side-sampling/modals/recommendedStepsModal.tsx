@@ -115,6 +115,7 @@ export function RecommendedStepsModal({
     trackAdvancedAnalyticsEvent('sampling.settings.modal.recommended.next.steps_back', {
       organization,
       project_id: projectId,
+      user_role: organization.orgRole,
     });
 
     onGoBack();
@@ -126,6 +127,7 @@ export function RecommendedStepsModal({
       {
         organization,
         project_id: projectId,
+        user_role: organization.orgRole,
       }
     );
 

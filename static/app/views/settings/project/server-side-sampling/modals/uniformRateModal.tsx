@@ -154,6 +154,7 @@ export function UniformRateModal({
         {
           organization,
           project_id: project.id,
+          user_role: organization?.orgRole,
         }
       );
     }

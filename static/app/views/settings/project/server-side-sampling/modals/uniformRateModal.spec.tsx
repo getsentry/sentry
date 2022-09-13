@@ -131,6 +131,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       expect.objectContaining({
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
       })
     );
 
@@ -142,6 +143,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       expect.objectContaining({
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
       })
     );
 
@@ -182,6 +184,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       expect.objectContaining({
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
       })
     );
 
@@ -203,6 +206,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       expect.objectContaining({
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
       })
     );
 
@@ -258,6 +262,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       expect.objectContaining({
         organization,
         project_id: project.id,
+        user_role: organization.orgRole,
       })
     );
   });

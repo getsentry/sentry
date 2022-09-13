@@ -32,6 +32,7 @@ export function SamplingSDKUpgradesAlert({
       trackAdvancedAnalyticsEvent('sampling.sdk.updgrades.alert', {
         organization,
         project_id: projectId,
+        user_role: organization.orgRole,
       });
     }
   }, [recommendedSdkUpgrades.length, organization, projectId]);
