@@ -77,4 +77,32 @@ describe('ProfilingOnboarding', function () {
     });
     expect(screen.getByRole('button', {name: /Next/i})).toBeDisabled();
   });
+
+  it('shows sdk updates are required if version is lower than required', async () => {
+    const project = TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'});
+    ProjectStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry ios',
+          sdkVersion: '6.0.0',
+          suggestions: [],
+        },
+      ],
+    });
+
+    render(
+      <ProfilingOnboardingModal
+        organization={TestStubs.Organization()}
+        {...MockRenderModalProps}
+      />
+    );
+    selectProject(TestStubs.Project({name: 'iOS Project'}));
+    expect(
+      await screen.findByText(/Update your projects SDK version/)
+    ).toBeInTheDocument();
+  });
 });
