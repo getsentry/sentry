@@ -28,26 +28,26 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const init = useCallback(async () => {
-    if (!querySearchRef.current || querySearchRef.current !== location.search) {
-      setData(prev => ({
-        ...prev,
-        isFetching: true,
-      }));
-      const response = await fetchReplayList({
-        api,
-        organization,
-        location,
-        eventView,
-      });
-      setData(response);
-      querySearchRef.current = location.search;
-    }
+  const handleFetch = useCallback(async () => {
+    setData(prev => ({
+      ...prev,
+      isFetching: true,
+    }));
+    const response = await fetchReplayList({
+      api,
+      organization,
+      location,
+      eventView,
+    });
+    setData(response);
   }, [api, organization, location, eventView]);
 
   useEffect(() => {
-    init();
-  }, [init]);
+    if (!querySearchRef.current || querySearchRef.current !== location.search) {
+      querySearchRef.current = location.search;
+      handleFetch();
+    }
+  }, [handleFetch, location.search]);
 
   return data;
 }
