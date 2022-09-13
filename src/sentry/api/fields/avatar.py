@@ -41,9 +41,9 @@ class AvatarField(serializers.Field):
         return value.getvalue()
 
     def to_internal_value(self, data):
-        if not data:
+        if not data or not data.get("avatarUuid"):
             return None
-        data = b64decode(data)
+        data = b64decode(data.get("avatarUuid"))
         if len(data) > self.max_size:
             raise ImageTooLarge()
 
