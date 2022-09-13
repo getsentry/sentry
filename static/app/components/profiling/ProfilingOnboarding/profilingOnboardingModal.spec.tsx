@@ -24,9 +24,17 @@ function selectProject(project: Project) {
 }
 
 describe('ProfilingOnboarding', function () {
+  beforeEach(() => {
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+  });
   afterEach(() => {
     ProjectStore.teardown();
     MockApiClient.clearMockResponses();
+    // @ts-ignore no-console
+    // eslint-disable-next-line no-console
+    console.error.mockRestore();
   });
 
   it('renders default step', () => {
