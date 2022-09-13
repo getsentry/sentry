@@ -4,6 +4,7 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
+from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -159,6 +160,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         converted_filter = self._transform_converted_filter(
             search_filter, converted_filter, project_ids, environment_ids
         )
+        conditions = deepcopy(conditions)
         conditions.append(converted_filter)
         return conditions
 
