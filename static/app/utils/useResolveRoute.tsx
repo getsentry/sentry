@@ -22,8 +22,7 @@ function useResolveRoute(route: string, organization?: OrganizationSummary) {
     return route;
   }
 
-  const {links} = organization;
-  const {organizationUrl} = links;
+  const {organizationUrl} = organization.links;
 
   const useLegacyRoute = shouldUseLegacyRoute(organization);
   if (useLegacyRoute) {
