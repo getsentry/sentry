@@ -47,7 +47,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
         router={router}
         location={router.location}
       >
-        <OrganizationSecurityAndPrivacy organization={organization} />
+        <OrganizationSecurityAndPrivacy />
       </ComponentProviders>
     );
 
@@ -74,7 +74,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
         location={router.location}
       >
         <GlobalModal />
-        <OrganizationSecurityAndPrivacy organization={organization} />
+        <OrganizationSecurityAndPrivacy />
       </ComponentProviders>
     );
 
@@ -106,7 +106,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
         router={router}
         location={router.location}
       >
-        <OrganizationSecurityAndPrivacy organization={organization} />
+        <OrganizationSecurityAndPrivacy />
       </ComponentProviders>
     );
 
@@ -132,7 +132,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
         location={router.location}
       >
         <GlobalModal />
-        <OrganizationSecurityAndPrivacy organization={organization} />
+        <OrganizationSecurityAndPrivacy />
       </ComponentProviders>
     );
 
@@ -169,7 +169,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
         location={router.location}
       >
         <GlobalModal />
-        <OrganizationSecurityAndPrivacy organization={organization} />
+        <OrganizationSecurityAndPrivacy />
       </ComponentProviders>
     );
 

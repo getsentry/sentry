@@ -9,16 +9,14 @@ import organizationSecurityAndPrivacyGroups from 'sentry/data/forms/organization
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DataScrubbing} from '../components/dataScrubbing';
 
-type Props = {
-  organization: Organization;
-};
-
-export default function OrganizationSecurityAndPrivacyContent({organization}: Props) {
+export default function OrganizationSecurityAndPrivacyContent() {
   const api = useApi();
+  const organization = useOrganization();
   const [authProvider, setAuthProvider] = useState<string | null>(null);
 
   useEffect(() => {
