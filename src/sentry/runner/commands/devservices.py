@@ -23,7 +23,7 @@ def get_docker_client() -> docker.DockerClient:
     try:
         client.ping()
         return client
-    except requests.exceptions.ConnectionError:
+    except (requests.exceptions.ConnectionError, docker.errors.APIError):
         click.echo("Attempting to start docker...")
         if sys.platform == "darwin":
             subprocess.check_call(
