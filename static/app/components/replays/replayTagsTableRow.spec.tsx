@@ -71,7 +71,7 @@ describe('ReplayTagsTableRow', () => {
     expect(getByText('bar').closest('a')).toHaveAttribute('href', 'https://foo.bar');
   });
 
-  it('Should not render the tag value as la link if we get the value in the query prop', () => {
+  it('Should not render the tag value as a link if we get the value in the query prop', () => {
     const {getByText} = render(
       <TestComponent>
         <ReplayTagsTableRow
