@@ -70,26 +70,26 @@ export class Flamegraph {
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
 
-    // If the profile duration is 0, set the flamegraph duration
-    // to 1 second so we can render a placeholder grid
-    this.configSpace = new Rect(
-      0,
-      0,
-      this.profile.unit === 'nanoseconds'
-        ? 1e9
-        : this.profile.unit === 'microseconds'
-        ? 1e6
-        : this.profile.unit === 'milliseconds'
-        ? 1e3
-        : 1,
-      this.depth
-    );
-
-    if (this.profile.duration) {
+    if (this.profile.duration > 0) {
       this.configSpace = new Rect(
         configSpace ? configSpace.x : this.profile.startedAt,
         0,
         configSpace ? configSpace.width : this.profile.duration,
+        this.depth
+      );
+    } else {
+      // If the profile duration is 0, set the flamegraph duration
+      // to 1 second so we can render a placeholder grid
+      this.configSpace = new Rect(
+        0,
+        0,
+        this.profile.unit === 'nanoseconds'
+          ? 1e9
+          : this.profile.unit === 'microseconds'
+          ? 1e6
+          : this.profile.unit === 'milliseconds'
+          ? 1e3
+          : 1,
         this.depth
       );
     }

@@ -37,18 +37,29 @@ import {
   watchForResize,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 import {FlamegraphWarnings} from './FlamegraphWarnings';
 import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
 
-function getTransactionConfigSpace(profiles: Profile[]): Rect {
-  const startedAt = Math.min(...profiles.map(p => p.startedAt));
-  const endedAt = Math.max(...profiles.map(p => p.endedAt));
-  return new Rect(startedAt, 0, endedAt - startedAt, 0);
+function getTransactionConfigSpace(
+  profileGroup: ProfileGroup,
+  startedAt: number,
+  unit: ProfilingFormatterUnit | string
+): Rect {
+  const duration = profileGroup.metadata.durationNS;
+
+  // If durationNs is present, use it
+  if (typeof duration === 'number') {
+    return new Rect(startedAt, 0, formatTo(duration, 'nanoseconds', unit), 0);
+  }
+
+  // else fallback to Math.max of profile durations
+  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  return new Rect(startedAt, 0, maxProfileDuration, 0);
 }
 
 const noopFormatDuration = () => '';
@@ -96,7 +107,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       leftHeavy: sorting === 'left heavy',
       configSpace:
         xAxis === 'transaction'
-          ? getTransactionConfigSpace(props.profiles.profiles)
+          ? getTransactionConfigSpace(props.profiles, profile.startedAt, profile.unit)
           : undefined,
     });
   }, [props.profiles, sorting, threadId, view, xAxis]);
