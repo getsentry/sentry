@@ -4,7 +4,6 @@ import pytest
 
 from sentry import options
 from sentry.eventstream.kafka.postprocessworker import (
-    _CONCURRENCY_OPTION,
     ErrorsPostProcessForwarderWorker,
     PostProcessForwarderWorker,
     TransactionsPostProcessForwarderWorker,
@@ -139,23 +138,6 @@ def test_post_process_forwarder_bad_message(kafka_message_payload):
 
     with pytest.raises(InvalidVersion):
         forwarder.flush_batch([future])
-
-    forwarder.shutdown()
-
-
-@pytest.mark.django_db
-def test_post_process_forwarder_concurrency(kafka_message_payload):
-    """
-    Tests that the number of threads change when the option is changed.
-    """
-    forwarder = PostProcessForwarderWorker(concurrency=1)
-
-    forwarder.flush_batch(None)
-    assert forwarder._PostProcessForwarderWorker__current_concurrency == 1
-
-    options.set(_CONCURRENCY_OPTION, 5)
-    forwarder.flush_batch(None)
-    assert forwarder._PostProcessForwarderWorker__current_concurrency == 5
 
     forwarder.shutdown()
 
