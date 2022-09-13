@@ -35,6 +35,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
+        print("lol")
 
         url = f"/api/0/issues/{event1.group.id}/tags/"
         response = self.client.get(url, format="json")
