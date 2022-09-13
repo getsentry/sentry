@@ -74,15 +74,20 @@ def dynamic_sampling_has_latest_release(rules):
     This function checks that one of the active rules
     has value "latest" as release literal
     """
-    for rule in rules:
-        if rule.get("active"):
-            inner_rule = rule["condition"]["inner"]
-            if (
-                inner_rule
-                and inner_rule[0]["name"] == "trace.release"
-                and inner_rule[0]["value"] == ["latest"]
-            ):
-                return True
+
+    # We don't have proper schema and type validate in rules object
+    try:
+        for rule in rules:
+            if rule.get("active"):
+                inner_rule = rule["condition"]["inner"]
+                if (
+                    inner_rule
+                    and inner_rule[0]["name"] == "trace.release"
+                    and inner_rule[0]["value"] == ["latest"]
+                ):
+                    return True
+    except Exception:
+        sentry_sdk.capture_exception()
     return False
 
 
