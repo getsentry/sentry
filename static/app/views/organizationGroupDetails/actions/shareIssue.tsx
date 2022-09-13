@@ -77,7 +77,7 @@ function ShareIssue({
     <DropdownLink
       shouldIgnoreClickOutside={() => hasConfirmModal}
       customTitle={
-        <ActionButton disabled={disabled}>
+        <ActionButton disabled={disabled || !enabled}>
           <DropdownTitleContent>
             <IndicatorDot isShared={isShared} />
             {t('Share')}
