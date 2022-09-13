@@ -69,7 +69,11 @@ class ReleaseCommitError(Exception):
     pass
 
 
-def has_latest_release(rules):
+def dynamic_sampling_has_latest_release(rules):
+    """
+    This function checks that one of the active rules
+    has value "latest" as release literal
+    """
     for rule in rules:
         if rule.get("active"):
             inner_rule = rule["condition"]["inner"]
@@ -82,7 +86,7 @@ def has_latest_release(rules):
     return False
 
 
-class ReleaseProjectManager(BaseManager):
+class ReleaseProjectModelManager(BaseManager):
     def post_save(self, instance, **kwargs):
         # this hook may be called from model hooks during an
         # open transaction. In that case, wait until the current transaction has
@@ -97,7 +101,9 @@ class ReleaseProjectManager(BaseManager):
         )
         if allow_dynamic_sampling:
             dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None and has_latest_release(dynamic_sampling["rules"]):
+            if dynamic_sampling is not None and dynamic_sampling_has_latest_release(
+                dynamic_sampling["rules"]
+            ):
                 transaction.on_commit(
                     lambda: schedule_invalidate_project_config(
                         project_id=instance.project.id, trigger="releaseproject.post_save"
@@ -117,7 +123,9 @@ class ReleaseProjectManager(BaseManager):
         )
         if allow_dynamic_sampling:
             dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None and has_latest_release(dynamic_sampling["rules"]):
+            if dynamic_sampling is not None and dynamic_sampling_has_latest_release(
+                dynamic_sampling["rules"]
+            ):
                 transaction.on_commit(
                     lambda: schedule_invalidate_project_config(
                         project_id=instance.project.id, trigger="releaseproject.post_delete"
@@ -136,7 +144,7 @@ class ReleaseProject(Model):
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)
 
-    objects = ReleaseProjectManager()
+    objects = ReleaseProjectModelManager()
 
     class Meta:
         app_label = "sentry"
