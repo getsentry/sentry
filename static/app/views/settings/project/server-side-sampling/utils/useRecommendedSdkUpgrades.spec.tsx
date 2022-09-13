@@ -18,7 +18,7 @@ describe('useRecommendedSdkUpgrades', function () {
     ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {result} = reactHooks.renderHook(() =>
-      useRecommendedSdkUpgrades({orgSlug: 'org-slug', projectId: '3'})
+      useRecommendedSdkUpgrades({organization: TestStubs.Organization(), projectId: '3'})
     );
 
     expect(result.current.recommendedSdkUpgrades.length).toBe(2);

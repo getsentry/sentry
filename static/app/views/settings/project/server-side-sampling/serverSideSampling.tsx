@@ -126,7 +126,7 @@ export function ServerSideSampling({project}: Props) {
     isProjectIncompatible,
     loading: loadingRecommendedSdkUpgrades,
   } = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId: project.id,
   });
 
