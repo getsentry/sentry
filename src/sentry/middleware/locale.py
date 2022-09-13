@@ -37,6 +37,8 @@ class SentryLocaleMiddleware(LocaleMiddleware):
                 super().process_request(request)
 
     def load_user_conf(self, request: Request):
+        # HACK(Leander): Skipping this since it's throwing errors making requests to Control
+        return
         if not request.user.is_authenticated:
             return
 

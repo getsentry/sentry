@@ -339,6 +339,13 @@ export class Client {
    */
   request(path: string, options: Readonly<RequestOptions> = {}): Request {
     const method = options.method || (options.data ? 'POST' : 'GET');
+    const CONTROL = 'https://control-leeandher.ngrok.io';
+    const REGION = 'https://region-leeandher.ngrok.io';
+    const ORIGIN_MAP = {
+      '/doc-integrations/': CONTROL,
+      '/sentry-apps/': CONTROL,
+    };
+    const origin = ORIGIN_MAP[path] ?? REGION;
 
     let fullUrl = buildRequestUrl(this.baseUrl, path, options.query);
 
@@ -432,14 +439,14 @@ export class Client {
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain
-    const absoluteUrl = new URL(fullUrl, window.location.origin);
+    const absoluteUrl = new URL(fullUrl, origin);
     const isSameOrigin = window.location.origin === absoluteUrl.origin;
 
     if (!csrfSafeMethod(method) && isSameOrigin) {
       headers.set('X-CSRFToken', getCsrfToken());
     }
 
-    const fetchRequest = fetch(fullUrl, {
+    const fetchRequest = fetch(absoluteUrl, {
       method,
       body,
       headers,

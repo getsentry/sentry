@@ -7,7 +7,8 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
-from sentry.models import UserIP
+
+# from sentry.models import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
 
@@ -35,7 +36,9 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                UserIP.log(user, request.META["REMOTE_ADDR"])
+                # HACK(Leander): Skipping this since it's throwing errors making requests to Control
+                # UserIP.log(user, request.META["REMOTE_ADDR"])
+                pass
         request._cached_user = user
     return request._cached_user
 
