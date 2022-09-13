@@ -240,8 +240,6 @@ function ActionSet({
           orgSlug={organization.slug}
           params={{
             hasReleases: false,
-            latestRelease: null,
-            projectId: null,
             confirm,
             label,
           }}
