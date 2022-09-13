@@ -126,6 +126,7 @@ class EventStream(Service):
         synchronize_commit_group: str,
         commit_batch_size: int,
         commit_batch_timeout_ms: int,
+        concurrency: int,
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
     ):
         assert not self.requires_post_process_forwarder()

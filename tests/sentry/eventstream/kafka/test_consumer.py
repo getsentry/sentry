@@ -687,6 +687,7 @@ class BatchedConsumerTest(TestCase):
             synchronize_commit_group=synchronize_commit_group,
             commit_batch_size=1,
             commit_batch_timeout_ms=100,
+            concurrency=1,
             initial_offset_reset="earliest",
         )
 
