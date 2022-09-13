@@ -539,4 +539,6 @@ register("performance.issues.render_blocking_assets.problem-creation", default=0
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
-register("performnace.issues.n_plus_one_db.duration_threshold", default=100.0)
+register(
+    "performnace.issues.n_plus_one_db.duration_threshold", default=100.0
+)  # TODO: Leaving typo in, fixing in subsequent PR.

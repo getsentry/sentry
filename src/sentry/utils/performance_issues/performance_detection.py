@@ -11,9 +11,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
-from sentry import nodestore, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
-from sentry.models import ProjectOption
+from sentry.models import Organization, Project, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 
@@ -47,6 +47,11 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+}
+
+# Detector and the corresponding system option must be added to this list to have issues created.
+DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
+    DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
 }
 
 
@@ -143,21 +148,35 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     return []
 
 
-# Gets some of the thresholds to perform performance detection. Can be made configurable later.
-# Thresholds are in milliseconds.
+# Gets the thresholds to perform performance detection.
+# Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
 def get_detection_settings(project_id: str):
-    default_settings = projectoptions.get_well_known_default(
+    default_project_settings = projectoptions.get_well_known_default(
         "sentry:performance_issue_settings",
         project=project_id,
     )
-    issue_settings = ProjectOption.objects.get_value(
-        project_id, "sentry:performance_issue_settings", default_settings
+    project_settings = ProjectOption.objects.get_value(
+        project_id, "sentry:performance_issue_settings", default_project_settings
     )
-    settings = {
-        **default_settings,
-        **issue_settings,
-    }  # Merge saved settings into default so updating the default works in the future.
+
+    use_project_option_settings = default_project_settings != project_settings
+    merged_project_settings = {
+        **default_project_settings,
+        **project_settings,
+    }  # Merge saved project settings into default so updating the default to add new settings works in the future.
+
+    # Use project settings if they've been adjusted at all, to allow customization, otherwise fetch settings from system-wide options.
+    settings = (
+        merged_project_settings
+        if use_project_option_settings
+        else {
+            "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
+            "n_plus_one_db_duration_threshold": options.get(
+                "performnace.issues.n_plus_one_db.duration_threshold"
+            ),
+        }
+    )
 
     return {
         DetectorType.DUPLICATE_SPANS: [
@@ -236,20 +255,21 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
     }
 
-    # Create performance issues for N+1 DB queries first
-    used_perf_issue_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES}
-
     for span in spans:
         for _, detector in detectors.items():
             detector.visit_span(span)
     for _, detector in detectors.items():
         detector.on_complete()
 
+    # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(event_id, detectors, sdk_span)
+
+    # Get list of detectors that are allowed to create issues.
+    allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
 
     detected_problems = [
         (i, detector_type)
-        for detector_type in used_perf_issue_detectors
+        for detector_type in allowed_perf_issue_detectors
         for _, i in detectors[detector_type].stored_problems.items()
     ]
 
@@ -259,6 +279,23 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         prepare_problem_for_grouping(problem, data, detector_type)
         for problem, detector_type in truncated_problems
     ]
+
+
+# Uses options and flags to determine which orgs and which detectors automatically create performance issues.
+def get_allowed_issue_creation_detectors(project_id: str):
+    project = Project.objects.get_from_cache(id=project_id)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    if not features.has("organizations:performance-issues-ingest", organization):
+        # Only organizations with this non-flagr feature have performance issues created.
+        return {}
+
+    allowed_detectors = set()
+    for detector_type, system_option in DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.items():
+        rate = options.get(system_option)
+        if rate and rate > random.random():
+            allowed_detectors.add(detector_type)
+
+    return allowed_detectors
 
 
 def prepare_problem_for_grouping(
