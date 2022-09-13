@@ -390,21 +390,18 @@ export function usesTransactionsDataset(eventView: EventView, yAxisValue: string
   const parsedQuery = new MutableSearch(eventView.query);
   for (let index = 0; index < yAxisValue.length; index++) {
     const yAxis = yAxisValue[index];
-    if (isMeasurement(getAggregateArg(yAxis) ?? '')) {
+    const aggregateArg = getAggregateArg(yAxis) ?? '';
+    if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
       usesTransactions = true;
       break;
     }
+    const eventTypeFilter = parsedQuery.getFilterValues('event.type');
     if (
-      ['count()', 'failure_rate()', 'epm()', 'eps()', 'failure_count()'].includes(yAxis)
+      eventTypeFilter.length > 0 &&
+      eventTypeFilter.every(filter => filter === 'transaction')
     ) {
-      const eventTypeFilter = parsedQuery.getFilterValues('event.type');
-      if (
-        eventTypeFilter.length > 0 &&
-        eventTypeFilter.every(filter => filter === 'transaction')
-      ) {
-        usesTransactions = true;
-        break;
-      }
+      usesTransactions = true;
+      break;
     }
   }
 
