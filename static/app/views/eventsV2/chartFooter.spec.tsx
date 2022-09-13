@@ -41,7 +41,7 @@ function metricsCardinalityWrapped(
 describe('EventsV2 > ChartFooter', function () {
   const features = ['discover-basic'];
   const yAxisValue = ['count()', 'failure_count()'];
-  const yAxisOptions = [
+  let yAxisOptions = [
     {label: 'count()', value: 'count()'},
     {label: 'failure_count()', value: 'failure_count()'},
   ];
@@ -221,6 +221,56 @@ describe('EventsV2 > ChartFooter', function () {
       ],
     });
 
+    yAxisOptions = [
+      {label: 'count()', value: 'count()'},
+      {label: 'p50(measurements.lcp)', value: 'p50(measurements.lcp)'},
+    ];
+
+    const chartFooter = (
+      <ChartFooter
+        organization={organization}
+        total={100}
+        yAxisValue={['p50(measurements.lcp)']}
+        yAxisOptions={yAxisOptions}
+        onAxisChange={jest.fn}
+        displayMode={DisplayModes.DEFAULT}
+        displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
+        onDisplayChange={() => undefined}
+        onTopEventsChange={() => undefined}
+        topEvents="5"
+        showBaseline={false}
+        setShowBaseline={() => undefined}
+        eventView={eventView}
+      />
+    );
+
+    render(metricsCardinalityWrapped(chartFooter, organization, project));
+
+    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
+  });
+
+  it('disables toggle if discover hits the events dataset', function () {
+    addMetricsDataMock({
+      metricsCount: 100,
+      nullCount: 0,
+      unparamCount: 1,
+    });
+
+    yAxisOptions = [
+      {label: 'count()', value: 'count()'},
+      {label: 'failure_count()', value: 'failure_count()'},
+    ];
+
+    const organization = TestStubs.Organization({
+      features: [
+        ...features,
+        'discover-metrics-baseline',
+        'performance-transaction-name-only-search',
+        'organizations:performance-transaction-name-only-search',
+      ],
+    });
+
     const chartFooter = (
       <ChartFooter
         organization={organization}
@@ -242,7 +292,7 @@ describe('EventsV2 > ChartFooter', function () {
     render(metricsCardinalityWrapped(chartFooter, organization, project));
 
     expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
-    expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
+    expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', function () {
