@@ -69,7 +69,7 @@ export function RecommendedStepsModal({
   onSetRules,
 }: RecommendedStepsModalProps) {
   const {isProjectIncompatible} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId,
   });
   const [saving, setSaving] = useState(false);
