@@ -6,7 +6,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
+from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch, PartitionIdxOffset
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
@@ -647,4 +647,95 @@ def test_one_org_limited(caplog, settings):
             },
             [("mapping_sources", b"ch"), ("metric_type", "d")],
         ),
+    ]
+
+
+def test_cardinality_limiter(caplog, settings):
+    """
+    Test functionality of the indexer batch related to cardinality-limiting. More concretely, assert that `IndexerBatch.filter_messages`:
+
+    1. removes the messages from the outgoing batch
+    2. prevents strings from filtered messages from being extracted & indexed
+    3. does not crash when strings from filtered messages are not passed into reconstruct_messages
+    4. still extracts strings that exist both in filtered and unfiltered messages (eg "environment")
+    """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
+    # the messages come in a certain order, and Python dictionaries preserve
+    # their insertion order. So we can hardcode offsets here.
+    assert keys_to_remove == [
+        PartitionIdxOffset(partition_idx=0, offset=0),
+        PartitionIdxOffset(partition_idx=0, offset=1),
+    ]
+    batch.filter_messages(keys_to_remove)
+    assert batch.extract_strings() == {
+        1: {
+            "environment",
+            "errored",
+            "production",
+            # Note, we only extracted one MRI, of the one metric that we didn't
+            # drop
+            "s:sessions/error@none",
+            "session.status",
+        },
+    }
+
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            1: {
+                "environment": 1,
+                "errored": 2,
+                "production": 3,
+                "s:sessions/error@none": 4,
+                "session.status": 5,
+            },
+        },
+        {
+            1: {
+                "environment": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "production": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+            }
+        },
+    )
+
+    assert _deconstruct_messages(snuba_payloads) == [
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": "environment",
+                        "2": "errored",
+                        "3": "production",
+                        "4": "s:sessions/error@none",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 4,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"1": 3, "5": 2},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "performance",
+                "value": [3],
+            },
+            [
+                ("mapping_sources", b"c"),
+                ("metric_type", "s"),
+            ],
+        )
     ]

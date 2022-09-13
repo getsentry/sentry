@@ -5,8 +5,10 @@ from django.urls import reverse
 
 from sentry import tsdb
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationStatsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)

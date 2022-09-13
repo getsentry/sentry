@@ -1,7 +1,9 @@
 from sentry.models import OrganizationMember
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ListOrganizationMembersTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

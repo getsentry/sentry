@@ -12,7 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {SpanSort, SpanSortOption, SpanSortOthers, SpanSortPercentiles} from './types';
 
-export function generateSpansRoute({orgSlug}: {orgSlug: String}): string {
+export function generateSpansRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/spans/`;
 }
 
