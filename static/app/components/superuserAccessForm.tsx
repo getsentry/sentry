@@ -67,10 +67,6 @@ class SuperuserAccessForm extends Component<Props, State> {
       return;
     }
 
-    if (disableU2FForSUForm) {
-      await api.requestPromise('/auth/', {method: 'PUT', data});
-    }
-
     if (this.state.showAccessForms && !disableU2FForSUForm) {
       this.setState({
         showAccessForms: false,
@@ -78,6 +74,7 @@ class SuperuserAccessForm extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
+      await api.requestPromise('/auth/', {method: 'PUT', data});
       this.handleSuccess();
     }
   };
