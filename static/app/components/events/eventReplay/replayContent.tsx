@@ -70,7 +70,7 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
           <td className="key">{t('Duration')}</td>
           <td className="value">
             <pre className="val-string">
-              <Duration seconds={replayRecord.duration / 1000} fixedDigits={0} />
+              <Duration seconds={replayRecord.duration} fixedDigits={0} />
             </pre>
           </td>
         </tr>
