@@ -73,7 +73,7 @@ describe('GlobalSelectionHeader', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(organization.projects);
     OrganizationActions.update(organization);
-    OrganizationsStore.add(organization);
+    OrganizationsStore.addOrReplace(organization);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
