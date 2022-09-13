@@ -40,6 +40,9 @@ export function useProjectSdkUpdates(
         });
       })
       .catch(e => {
+        if (unmounted) {
+          return;
+        }
         setState({
           type: 'errored',
           error: e,

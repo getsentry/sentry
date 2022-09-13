@@ -30,8 +30,8 @@ describe('ProfilingOnboarding', function () {
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
   });
   afterEach(() => {
-    ProjectStore.teardown();
     MockApiClient.clearMockResponses();
+    ProjectStore.teardown();
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
     console.error.mockRestore();
@@ -39,13 +39,14 @@ describe('ProfilingOnboarding', function () {
 
   it('renders default step', () => {
     const organization = TestStubs.Organization();
-    render(
-      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
-    );
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
+
+    render(
+      <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
+    );
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
   });
 
