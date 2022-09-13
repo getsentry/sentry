@@ -306,7 +306,7 @@ function MemoryChartContainer({
 
 const getChartTooltipStyles = (
   theme: Theme
-): Record<string, Record<string, string | number | {}>> => ({
+): Record<string, Record<string, string | number>> => ({
   '.chart-tooltip-portal .tooltip-series, .chart-tooltip-portal .tooltip-date': {
     color: theme.subText,
     fontFamily: theme.text.family,
@@ -349,6 +349,7 @@ const getChartTooltipStyles = (
     pointerEvents: 'none',
     borderLeft: '8px solid transparent',
     borderRight: '8px solid transparent',
+    borderTop: `8px solid ${theme.backgroundElevated}`,
     marginLeft: '-8px',
   },
   '.chart-tooltip-portal .tooltip-arrow:before': {
