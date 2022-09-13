@@ -1,13 +1,16 @@
 import logging
 from datetime import datetime
-from typing import Any, Collection, Literal, Mapping, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Collection, Literal, Mapping, Optional, Sequence, Union
 
-from sentry.eventstore.models import BaseEvent
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import BaseEvent
 
 
 class ForwarderNotRequired(NotImplementedError):
