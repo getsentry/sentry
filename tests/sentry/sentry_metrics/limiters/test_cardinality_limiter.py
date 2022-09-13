@@ -29,7 +29,6 @@ class MockCardinalityLimiter(CardinalityLimiter):
         grants = []
         granted = 0
         for request in requests:
-            assert request.quotas == self.assert_quotas
             granted_hashes = set()
             for hash in request.unit_hashes:
                 if granted < self.grant_hashes:
@@ -38,7 +37,7 @@ class MockCardinalityLimiter(CardinalityLimiter):
 
             # reached_quotas is incorrect, but we don't necessarily need it for testing
             grants.append(
-                GrantedQuota(request=request, granted_unit_hashes=granted_hashes, reached_quotas=[])
+                GrantedQuota(request=request, granted_unit_hashes=granted_hashes, reached_quota=[])
             )
 
         return timestamp, grants
@@ -52,7 +51,10 @@ class MockCardinalityLimiter(CardinalityLimiter):
 
 
 def test_reject_all(set_sentry_option):
-    set_sentry_option("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", [])
+    set_sentry_option(
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
+    )
     backend = MockCardinalityLimiter()
     backend.grant_hashes = 0
     limiter = TimeseriesCardinalityLimiter("", backend)
