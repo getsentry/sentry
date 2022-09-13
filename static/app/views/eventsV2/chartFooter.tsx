@@ -79,6 +79,7 @@ export default function ChartFooter({
               isActive={showBaseline}
               isDisabled={
                 metricsCardinality.outcome?.forceTransactionsOnly ||
+                displayMode !== 'default' ||
                 !usesTransactionsDataset(eventView, yAxisValue)
               }
               size="lg"

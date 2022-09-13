@@ -235,6 +235,7 @@ describe('EventsV2 > ChartFooter', function () {
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
+        eventView={eventView}
       />
     );
 
