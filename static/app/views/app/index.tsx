@@ -42,10 +42,8 @@ function App({children}: Props) {
     [
       {
         match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        callback: e => {
-          openCommandPalette();
-          e.preventDefault();
-        },
+        includeInputs: true,
+        callback: () => openCommandPalette(),
       },
     ],
     []
@@ -56,10 +54,9 @@ function App({children}: Props) {
     [
       {
         match: ['command+shift+l', 'ctrl+shift+l'],
-        callback: e => {
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-          e.preventDefault();
-        },
+        includeInputs: true,
+        callback: () =>
+          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
       },
     ],
     [config.theme]
