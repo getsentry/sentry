@@ -369,6 +369,7 @@ class Actions extends Component<Props, State> {
 
     const deleteCap = getIssueCapability(group.issueCategory, 'delete');
     const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
+    const shareCap = getIssueCapability(group.issueCategory, 'share');
 
     return (
       <Wrapper>
@@ -416,7 +417,8 @@ class Actions extends Component<Props, State> {
         </Feature>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
-            disabled={disabled}
+            disabled={disabled || !shareCap.enabled}
+            disabledReason={shareCap.disabledReason}
             loading={this.state.shareBusy}
             isShared={group.isPublic}
             shareUrl={this.getShareUrl(group.shareId)}

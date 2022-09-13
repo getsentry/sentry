@@ -10,6 +10,7 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
     deleteAndDiscard: {enabled: true},
     merge: {enabled: true},
     ignore: {enabled: true},
+    share: {enabled: true},
   },
   [IssueCategory.PERFORMANCE]: {
     delete: {
@@ -30,6 +31,10 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
     ignore: {
       enabled: false,
       disabledReason: t('This ignore option is not yet supported for performance issues'),
+    },
+    share: {
+      enabled: false,
+      disabledReason: t('Sharing is not yet supported for performance issues'),
     },
   },
 };

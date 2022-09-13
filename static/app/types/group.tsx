@@ -78,6 +78,10 @@ export type IssueCategoryCapabilities = {
    * Can the issue be merged
    */
   merge: CapabilityInfo;
+  /**
+   * Can the issue be shared
+   */
+  share: CapabilityInfo;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50

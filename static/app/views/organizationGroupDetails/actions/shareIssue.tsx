@@ -9,6 +9,7 @@ import Confirm from 'sentry/components/confirm';
 import DropdownLink from 'sentry/components/dropdownLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Switch from 'sentry/components/switchButton';
+import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -28,6 +29,7 @@ type Props = {
   onReshare: () => void;
   onToggle: () => void;
   disabled?: boolean;
+  disabledReason?: string;
   /**
    * Link is public
    */
@@ -35,7 +37,15 @@ type Props = {
   shareUrl?: string | null;
 };
 
-function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}: Props) {
+function ShareIssue({
+  loading,
+  onReshare,
+  onToggle,
+  disabled,
+  disabledReason,
+  isShared,
+  shareUrl,
+}: Props) {
   const [hasConfirmModal, setHasConfirmModal] = useState(false);
 
   // State of confirm modal so we can keep dropdown menu opn
@@ -59,7 +69,7 @@ function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}
     }
   };
 
-  return (
+  const renderDropdown = () => (
     <DropdownLink
       shouldIgnoreClickOutside={() => hasConfirmModal}
       customTitle={
@@ -98,6 +108,12 @@ function ShareIssue({loading, onReshare, onToggle, disabled, isShared, shareUrl}
         )}
       </DropdownContent>
     </DropdownLink>
+  );
+
+  return disabled ? (
+    <Tooltip title={disabledReason}>{renderDropdown()}</Tooltip>
+  ) : (
+    renderDropdown()
   );
 }
 
