@@ -3,8 +3,9 @@ import {browserHistory} from 'react-router';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import OrganizationActions from 'sentry/actions/organizationActions';
-import OrganizationsActions from 'sentry/actions/organizationsActions';
 import {Client} from 'sentry/api';
+import GuideStore from 'sentry/stores/guideStore';
+import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -75,15 +76,13 @@ export function remove(api: Client, {successMessage, errorMessage, orgId}: Remov
       method: 'DELETE',
     })
     .then(() => {
-      OrganizationsActions.removeSuccess(orgId);
+      OrganizationsStore.onRemoveSuccess(orgId);
 
       if (successMessage) {
         addSuccessMessage(successMessage);
       }
     })
     .catch(() => {
-      OrganizationsActions.removeError();
-
       if (errorMessage) {
         addErrorMessage(errorMessage);
       }
@@ -105,14 +104,15 @@ export function removeAndRedirectToRemainingOrganization(
  * Set active organization
  */
 export function setActiveOrganization(org: Organization) {
-  OrganizationsActions.setActive(org);
+  GuideStore.setActiveOrganization(org);
+  LatestContextStore.onSetActiveOrganization(org);
 }
 
 export function changeOrganizationSlug(
   prev: Organization,
   next: Partial<Organization> & Pick<Organization, 'slug'>
 ) {
-  OrganizationsActions.changeSlug(prev, next);
+  OrganizationsStore.onChangeSlug(prev, next);
 }
 
 /**
@@ -121,7 +121,8 @@ export function changeOrganizationSlug(
  * Accepts a partial organization as it will merge will existing organization
  */
 export function updateOrganization(org: Partial<Organization>) {
-  OrganizationsActions.update(org);
+  OrganizationsStore.onUpdate(org);
+  LatestContextStore.onUpdateOrganization(org);
   OrganizationActions.update(org);
 }
 
