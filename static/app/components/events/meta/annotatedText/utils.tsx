@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {ChunkType, Organization, Project} from 'sentry/types';
@@ -55,23 +57,27 @@ export function getTooltipText({
     const rules = convertRelayPiiConfig(organization?.relayPiiConfig);
     const rule = rules.find(({id}) => String(id) === ruleId);
 
-    return tct(
-      '[method] because of the PII rule [rule-link] in the settings of the organization [organization-slug]',
-      {
-        method,
-        'rule-link': (
-          <Link
-            to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
-          >
-            {rule ? getRuleDescription(rule) : ruleId}
-          </Link>
-        ),
-        'organization-slug': (
-          <Link to={`/settings/${organization.slug}/advanced-data-scrubbing/`}>
-            {organization.slug}
-          </Link>
-        ),
-      }
+    return (
+      <Wrapper>
+        {tct(
+          '[method] because of the PII rule [rule-link] in the settings of the organization [organization-slug]',
+          {
+            method,
+            'rule-link': (
+              <Link
+                to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+              >
+                {rule ? getRuleDescription(rule) : ruleId}
+              </Link>
+            ),
+            'organization-slug': (
+              <Link to={`/settings/${organization.slug}/advanced-data-scrubbing/`}>
+                {organization.slug}
+              </Link>
+            ),
+          }
+        )}
+      </Wrapper>
     );
   }
 
@@ -87,24 +93,32 @@ export function getTooltipText({
   const rules = convertRelayPiiConfig(project?.relayPiiConfig);
   const rule = rules.find(({id}) => String(id) === ruleId);
 
-  return tct(
-    '[method] because of the PII rule [rule-link] in the settings of the project [project-link]',
-    {
-      method,
-      'rule-link': (
-        <Link
-          to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
-        >
-          {rule ? getRuleDescription(rule) : ruleId}
-        </Link>
-      ),
-      'project-link': (
-        <Link
-          to={`/settings/${organization.slug}/projects/${project?.slug}/advanced-data-scrubbing/`}
-        >
-          {project.slug}
-        </Link>
-      ),
-    }
+  return (
+    <Wrapper>
+      {tct(
+        '[method] because of the PII rule [rule-link] in the settings of the project [project-link]',
+        {
+          method,
+          'rule-link': (
+            <Link
+              to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+            >
+              {rule ? getRuleDescription(rule) : ruleId}
+            </Link>
+          ),
+          'project-link': (
+            <Link
+              to={`/settings/${organization.slug}/projects/${project?.slug}/advanced-data-scrubbing/`}
+            >
+              {project.slug}
+            </Link>
+          ),
+        }
+      )}
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  line-height: ${p => p.theme.text.lineHeightBody};
+`;
