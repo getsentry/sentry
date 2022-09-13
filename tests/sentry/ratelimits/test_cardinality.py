@@ -116,8 +116,8 @@ def test_sampling(limiter: RedisCardinalityLimiter):
     shards for an organization are stored, it is still possible to limit the
     exactly correct amount of hashes, for certain hash values.
     """
-    limiter.cluster_num_physical_shards = 1
-    limiter.cluster_num_shards = 10
+    limiter.num_physical_shards = 1
+    limiter.num_shards = 10
     helper = LimiterHelper(limiter)
 
     # when adding "hashes" 0..10 in ascending order, the first hash will fill up the physical shard
@@ -137,8 +137,8 @@ def test_sampling_going_bad(limiter: RedisCardinalityLimiter):
     test an edgecase of set sampling in the cardinality limiter. it is not
     exactly desired behavior but a known sampling artifact
     """
-    limiter.cluster_num_physical_shards = 1
-    limiter.cluster_num_shards = 10
+    limiter.num_physical_shards = 1
+    limiter.num_shards = 10
     helper = LimiterHelper(limiter)
 
     # when adding "hashes" 0..10 in ascending order, the first hash will fill
