@@ -35,9 +35,11 @@ from sentry.models import (
     User,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
 
+@region_silo_test
 class OrganizationTest(TestCase):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
@@ -177,6 +179,26 @@ class OrganizationTest(TestCase):
         user = self.create_user("foo@example.com")
         org = self.create_organization(owner=user)
         assert org.get_default_owner() == user
+
+    def test_default_owner_id(self):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization(owner=user)
+        assert org.default_owner_id == user.id
+
+    def test_default_owner_id_no_owner(self):
+        org = self.create_organization()
+        assert org.default_owner_id is None
+
+    @mock.patch.object(
+        Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
+    )
+    def test_default_owner_id_cached(self, mock_get_owners):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization(owner=user)
+        assert org.default_owner_id == user.id
+        assert mock_get_owners.call_count == 1
+        assert org.default_owner_id == user.id
+        assert mock_get_owners.call_count == 1
 
     def test_flags_have_changed(self):
         org = self.create_organization()

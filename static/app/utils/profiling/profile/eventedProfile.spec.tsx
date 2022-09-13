@@ -15,7 +15,7 @@ describe('EventedProfile', () => {
       events: [],
     };
 
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex([]));
+    const profile = EventedProfile.FromProfile(trace, createFrameIndex('mobile', []));
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
@@ -38,7 +38,10 @@ describe('EventedProfile', () => {
       ],
     };
 
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}])
+    );
 
     expect(profile.stats.discardedSamplesCount).toBe(1);
   });
@@ -57,7 +60,10 @@ describe('EventedProfile', () => {
       ],
     };
 
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}])
+    );
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
 
@@ -81,7 +87,7 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
     profile.forEach(open, close);
@@ -120,7 +126,10 @@ describe('EventedProfile', () => {
       ],
     };
 
-    const profile = EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}])
+    );
 
     expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
   });
@@ -145,7 +154,7 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
     expect(
@@ -171,7 +180,7 @@ describe('EventedProfile', () => {
 
     const profile = EventedProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
     );
 
     expect(profile.minFrameDuration).toBe(0.5);
@@ -197,7 +206,7 @@ describe('EventedProfile', () => {
     expect(() =>
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
       )
     ).toThrow('Sample delta cannot be negative, samples may be corrupt or out of order');
   });
@@ -221,7 +230,7 @@ describe('EventedProfile', () => {
     expect(() =>
       EventedProfile.FromProfile(
         trace,
-        createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+        createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
       )
     ).toThrow('Unbalanced append order stack');
   });

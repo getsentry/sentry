@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.helpers.teams import get_teams
@@ -25,6 +26,7 @@ class KeyTransactionPermission(OrganizationPermission):
     }
 
 
+@pending_silo_endpoint
 class KeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
@@ -131,6 +133,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
 
+@pending_silo_endpoint
 class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 

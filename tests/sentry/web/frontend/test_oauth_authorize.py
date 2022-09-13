@@ -4,8 +4,10 @@ from exam import fixture
 
 from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class OAuthAuthorizeCodeTest(TestCase):
     @fixture
     def path(self):
@@ -239,6 +241,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert authorization.get_scopes() == grant.get_scopes()
 
 
+@control_silo_test
 class OAuthAuthorizeTokenTest(TestCase):
     @fixture
     def path(self):

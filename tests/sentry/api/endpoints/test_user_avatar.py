@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import UserAvatar
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class UserAvatarTest(APITestCase):
     def test_get(self):
         user = self.create_user(email="a@example.com")

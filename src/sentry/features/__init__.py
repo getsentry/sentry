@@ -104,9 +104,6 @@ default_manager.add("organizations:mobile-screenshots", OrganizationFeature, Tru
 default_manager.add("organizations:monitors", OrganizationFeature)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
-default_manager.add("organizations:new-widget-builder-experience", OrganizationFeature, True)
-default_manager.add("organizations:new-widget-builder-experience-design", OrganizationFeature, True)
-default_manager.add("organizations:new-widget-builder-experience-modal-access", OrganizationFeature, True)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)  # Only enabled in sentry.io to enable onboarding flows.
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
@@ -139,6 +136,7 @@ default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, Tr
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
 default_manager.add("organizations:server-side-sampling", OrganizationFeature)
 default_manager.add("organizations:server-side-sampling-ui", OrganizationFeature, True)
+default_manager.add("organizations:server-side-sampling-allow-incompatible-platforms", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
@@ -151,6 +149,7 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
+default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
 default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, True)
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
@@ -163,6 +162,7 @@ default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, Tr
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature)
 default_manager.add("organizations:change-alerts", OrganizationFeature)
+default_manager.add('organizations:commit-context', OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)
 default_manager.add("organizations:dashboards-edit", OrganizationFeature)

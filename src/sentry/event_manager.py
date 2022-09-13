@@ -98,6 +98,7 @@ from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import (
+    EventPerformanceProblem,
     PerformanceProblem,
     detect_performance_problems,
 )
@@ -1979,6 +1980,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
     )
     for job in jobs:
         job["groups"] = []
+        hashes = []
         event = job["event"]
         project = event.project
 
@@ -2002,7 +2004,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
 
-            performance_problems_by_fingerprint = {p.fingerprint: p for p in performance_problems}
+            performance_problems_by_hash = {p.fingerprint: p for p in performance_problems}
             all_group_hashes = [problem.fingerprint for problem in performance_problems]
             group_hashes = all_group_hashes[:MAX_GROUPS]
 
@@ -2039,7 +2041,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
-                        problem = performance_problems_by_fingerprint[new_grouphash]
+                        problem = performance_problems_by_hash[new_grouphash]
                         group_kwargs = kwargs.copy()
                         group_kwargs["type"] = problem.type.value
 
@@ -2065,6 +2067,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         job["groups"].append(
                             GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
                         )
+                        hashes.append(new_grouphash)
 
             if existing_grouphashes:
 
@@ -2074,7 +2077,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                     is_new = False
 
-                    problem = performance_problems_by_fingerprint[existing_grouphash.hash]
+                    problem = performance_problems_by_hash[existing_grouphash.hash]
                     group_kwargs = kwargs.copy()
                     group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
                         group_kwargs["data"]["metadata"], problem
@@ -2087,8 +2090,12 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     job["groups"].append(
                         GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
                     )
+                    hashes.append(existing_grouphash.hash)
 
             job["event"].groups = [group_info.group for group_info in job["groups"]]
+            job["event"].data["hashes"] = hashes
+            for problem_hash in hashes:
+                EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
 @metrics.wraps("event_manager.save_transaction_events")

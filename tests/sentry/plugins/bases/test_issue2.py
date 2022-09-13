@@ -7,6 +7,7 @@ from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils import json
 from social_auth.models import UserSocialAuth
 
@@ -23,6 +24,7 @@ class PluginWithoutFields(IssueTrackingPlugin2):
     issue_fields = None
 
 
+@region_silo_test
 class IssueTrackingPlugin2Test(TestCase):
     def test_issue_label_as_dict(self):
         plugin = PluginWithFields()
@@ -49,6 +51,7 @@ class IssueTrackingPlugin2Test(TestCase):
         assert result == {"id": "test-plugin-without-fields:tid"}
 
 
+@control_silo_test
 class GetAuthForUserTest(TestCase):
     def _get_mock_user(self):
         user = mock.Mock(spec=User(id=1))
@@ -74,6 +77,7 @@ class GetAuthForUserTest(TestCase):
         self.assertEqual(p.get_auth_for_user(user), auth)
 
 
+@region_silo_test
 class IssuePlugin2GroupActionTest(TestCase):
     def setUp(self):
         super().setUp()

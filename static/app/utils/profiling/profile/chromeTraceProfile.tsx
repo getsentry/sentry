@@ -25,7 +25,7 @@ export function splitEventsByProcessAndThreadId(
   const collections: Map<ProcessId, Map<ThreadId, ChromeTrace.Event[]>> = new Map();
 
   for (let i = 0; i < trace.length; i++) {
-    const event = trace[i];
+    const event = trace[i]!; // iterating over non empty array
 
     if (typeof event.pid !== 'number') {
       continue;
@@ -103,7 +103,7 @@ function buildProfile(
   const endQueue: Array<ChromeTrace.Event> = [];
 
   for (let i = 0; i < timelineEvents.length; i++) {
-    const event = timelineEvents[i];
+    const event = timelineEvents[i]!; // iterating over non empty array
 
     // M events are not pushed to the queue, we just store their information
     if (event.ph === 'M') {
@@ -157,14 +157,14 @@ function buildProfile(
     throw new Error('Last end event contains no timestamp');
   }
 
-  const profile = new ChromeTraceProfile(
-    lastTimestamp - firstTimestamp,
-    firstTimestamp,
-    lastTimestamp,
-    `${processName}: ${threadName}`,
-    'microseconds', // the trace event format provides timestamps in microseconds
-    threadId
-  );
+  const profile = new ChromeTraceProfile({
+    duration: lastTimestamp - firstTimestamp,
+    startedAt: firstTimestamp,
+    endedAt: lastTimestamp,
+    name: `${processName}: ${threadName}`,
+    unit: 'microseconds', // the trace event format provides timestamps in microseconds
+    threadId,
+  });
 
   const stack: ChromeTrace.Event[] = [];
   const frameCache = new Map<string, Frame>();
