@@ -1,57 +1,63 @@
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Event, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
+import {EntryType, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
 import DataSection from '../../eventTagsAndScreenshot/dataSection';
 import KeyValueList from '../keyValueList';
 import TraceView from '../spans/traceView';
+import {RawSpanType, SpanEntry} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
-export type SpanEvidence = {
-  parentSpan: string;
-  repeatingSpan: string;
-  sourceSpan: string;
-  transaction: string;
-};
-
 interface Props {
-  affectedSpanIds: string[];
-  event: Event;
+  event: EventTransaction;
   organization: Organization;
-  spanEvidence: SpanEvidence;
 }
 
-export function SpanEvidenceSection({
-  spanEvidence,
-  event,
-  organization,
-  affectedSpanIds,
-}: Props) {
-  const {transaction, parentSpan, sourceSpan, repeatingSpan} = spanEvidence;
+export function SpanEvidenceSection({event, organization}: Props) {
+  if (!event.perfProblem) {
+    return null;
+  }
+
+  // Let's dive into the event to pick off the span evidence data by using the IDs we know
+  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+    return entry.type === EntryType.SPANS;
+  });
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spansById = keyBy(spans, 'span_id');
+
+  const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
+  const sourceSpan = spansById[event.perfProblem.causeSpanIds[0]];
+  const repeatingSpan = spansById[event.perfProblem.offenderSpanIds[0]];
 
   const data: KeyValueListData = [
     {
       key: '0',
       subject: t('Transaction'),
-      value: transaction,
+      value: event.title,
     },
     {
       key: '1',
       subject: t('Parent Span'),
-      value: parentSpan,
+      value: parentSpan.description ?? '',
     },
     {
       key: '2',
       subject: t('Source Span'),
-      value: sourceSpan,
+      value: sourceSpan.description ?? '',
     },
     {
       key: '3',
       subject: t('Repeating Span'),
-      value: repeatingSpan,
+      value: repeatingSpan.description ?? '',
     },
+  ];
+
+  const affectedSpanIds = [
+    parentSpan.span_id,
+    sourceSpan.span_id,
+    ...event.perfProblem.offenderSpanIds,
   ];
 
   return (
@@ -73,33 +79,6 @@ export function SpanEvidenceSection({
     </DataSection>
   );
 }
-
-export const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: 0;
-  /* Padding aligns with Layout.Body */
-  padding: ${space(3)} ${space(2)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)} ${space(3)};
-  }
-  & h3,
-  & h3 a {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: ${p => p.theme.gray300};
-  }
-  & h3 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    padding: ${space(0.75)} 0;
-    margin-bottom: 0;
-    text-transform: uppercase;
-  }
-`;
 
 const TraceViewWrapper = styled('div')`
   border: 1px solid ${p => p.theme.innerBorder};
