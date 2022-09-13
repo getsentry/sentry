@@ -58,6 +58,7 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         date_to=None,
         cursor=None,
     ):
+        print("search_filter_query: ", search_filter_query)
         search_filters = []
         projects = projects if projects is not None else [self.project]
         if search_filter_query is not None:
@@ -1296,7 +1297,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
 
         common_args = {
             "arrayjoin": None,
-            "dataset": Dataset.Events,
+            "dataset": Dataset.Discover,
             "start": Any(datetime),
             "end": Any(datetime),
             "filter_keys": {
@@ -1305,7 +1306,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             },
             "referrer": "search",
             "groupby": ["group_id"],
-            "conditions": [[["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0]],
+            "conditions": [
+                [["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0],
+                ["type", "=", "transaction"],
+            ],
             "selected_columns": [],
             "limit": limit,
             "offset": 0,
@@ -1325,6 +1329,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
                 ["uniq", "group_id", "total"],
             ],
@@ -1337,6 +1342,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
                 ["count()", "", "times_seen"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
                 ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
@@ -1350,7 +1356,11 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         query_mock.call_args[1]["aggregations"].sort()
         assert query_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
-            aggregations=[["count()", "", "times_seen"], ["uniq", "group_id", "total"]],
+            aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
+                ["count()", "", "times_seen"],
+                ["uniq", "group_id", "total"],
+            ],
             having=[["times_seen", "=", 5]],
             **common_args,
         )
@@ -1360,6 +1370,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-user_count", "group_id"],
             aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
                 ["uniq", "group_id", "total"],
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
@@ -2031,6 +2042,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             try:
                 self.make_query(search_filter_query=query)
             except SnubaError as e:
+                print("fail: ", query)
                 self.fail(f"Query {query} errored. Error info: {e}")
 
         for key in SENTRY_SNUBA_MAP:
