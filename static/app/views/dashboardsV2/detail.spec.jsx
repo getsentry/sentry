@@ -23,13 +23,7 @@ describe('Dashboards > Detail', function () {
   enforceActOnUseLegacyStoreHook();
 
   const organization = TestStubs.Organization({
-    features: [
-      'global-views',
-      'dashboards-basic',
-      'dashboards-edit',
-      'discover-query',
-      'dashboard-grid-layout',
-    ],
+    features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [TestStubs.Project()];
 
@@ -124,12 +118,7 @@ describe('Dashboards > Detail', function () {
       });
       initialData = initializeOrg({
         organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'discover-query',
-            'dashboard-grid-layout',
-          ],
+          features: ['global-views', 'dashboards-basic', 'discover-query'],
           projects: [TestStubs.Project()],
         }),
       });
@@ -927,7 +916,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -990,7 +978,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1036,7 +1023,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1092,7 +1078,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1154,7 +1139,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1212,7 +1196,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1251,7 +1234,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1297,7 +1279,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1355,7 +1336,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),
@@ -1417,7 +1397,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-basic',
             'discover-query',
-            'dashboard-grid-layout',
             'dashboards-top-level-filter',
           ],
         }),

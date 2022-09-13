@@ -8,10 +8,10 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
-    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+    features: ['dashboards-basic', 'dashboards-edit'],
   });
   const organizationWithFlag = TestStubs.Organization({
-    features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+    features: ['dashboards-basic', 'dashboards-edit'],
   });
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
@@ -308,7 +308,7 @@ describe('Dashboards > Dashboard', () => {
       const testData = initializeOrg({
         ...initializeOrg(),
         organization: {
-          features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
+          features: ['dashboards-basic', 'dashboards-edit'],
         },
       });
       const dashboardWithOneWidget = {
