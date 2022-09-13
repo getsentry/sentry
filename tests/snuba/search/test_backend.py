@@ -58,7 +58,6 @@ class SharedSnubaTest(TestCase, SnubaTestCase):
         date_to=None,
         cursor=None,
     ):
-        print("search_filter_query: ", search_filter_query)
         search_filters = []
         projects = projects if projects is not None else [self.project]
         if search_filter_query is not None:
