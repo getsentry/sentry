@@ -116,11 +116,6 @@ class AvatarChooser extends Component<Props, State> {
     const {model, dataUrl} = this.state;
 
     ev.preventDefault();
-    // before saving make sure user has selected an file
-    if (dataUrl === null) {
-      addErrorMessage('Please select a file to upload.');
-      return;
-    }
     const avatarType = model?.avatar?.avatarType;
     const avatarPhoto = dataUrl?.split(',')[1];
 
