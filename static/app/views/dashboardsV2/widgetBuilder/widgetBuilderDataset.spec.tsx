@@ -16,7 +16,6 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 
 const defaultOrgFeatures = [
   'performance-view',
-  'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
@@ -249,15 +248,11 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    const releaseHealthFeatureFlags = [
-      ...defaultOrgFeatures,
-      'new-widget-builder-experience-design',
-      'dashboards-releases',
-    ];
+    const releaseHealthFeatureFlags = [...defaultOrgFeatures, 'dashboards-releases'];
 
     it('does not show the Release Health dataset if there is no dashboards-releases flag', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
@@ -751,7 +746,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');

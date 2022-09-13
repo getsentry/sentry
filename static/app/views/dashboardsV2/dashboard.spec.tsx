@@ -308,12 +308,7 @@ describe('Dashboards > Dashboard', () => {
       const testData = initializeOrg({
         ...initializeOrg(),
         organization: {
-          features: [
-            'dashboards-basic',
-            'dashboards-edit',
-            'dashboard-grid-layout',
-            'new-widget-builder-experience-design',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'dashboard-grid-layout'],
         },
       });
       const dashboardWithOneWidget = {

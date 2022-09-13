@@ -969,7 +969,6 @@ describe('Dashboards > WidgetQueries', function () {
     const testData = initializeOrg({
       organization: {
         ...TestStubs.Organization(),
-        features: ['new-widget-builder-experience-design'],
       },
     });
     const eventsStatsMock = MockApiClient.addMockResponse({

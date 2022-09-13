@@ -10,7 +10,6 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -80,6 +79,7 @@ import {Header} from './header';
 import {
   DataSet,
   DEFAULT_RESULTS_LIMIT,
+  generateOrderOptions,
   getIsTimeseriesChart,
   getParsedDefaultWidgetQuery,
   getResultsLimit,
@@ -169,10 +169,6 @@ function WidgetBuilder({
     defaultTableColumns = [defaultTableColumns];
   }
 
-  // Feature flag for new widget builder design. This feature is still a work in progress and not yet available internally.
-  const widgetBuilderNewDesign = organization.features.includes(
-    'new-widget-builder-experience-design'
-  );
   const hasReleaseHealthFeature = organization.features.includes('dashboards-releases');
 
   const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
@@ -215,9 +211,8 @@ function WidgetBuilder({
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType:
-        (widgetBuilderNewDesign && displayType === DisplayType.TOP_N
-          ? DisplayType.AREA
-          : displayType) ?? DisplayType.TABLE,
+        (displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType) ??
+        DisplayType.TABLE,
       interval: '5m',
       queries: [],
       limit: limit ? Number(limit) : undefined,
@@ -230,21 +225,17 @@ function WidgetBuilder({
     };
 
     if (defaultWidgetQuery) {
-      if (widgetBuilderNewDesign) {
-        defaultState.queries = [
-          {
-            ...defaultWidgetQuery,
-            orderby:
-              defaultWidgetQuery.orderby ||
-              (datasetConfig.getTableSortOptions
-                ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
-                    .value
-                : ''),
-          },
-        ];
-      } else {
-        defaultState.queries = [{...defaultWidgetQuery}];
-      }
+      defaultState.queries = [
+        {
+          ...defaultWidgetQuery,
+          orderby:
+            defaultWidgetQuery.orderby ||
+            (datasetConfig.getTableSortOptions
+              ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+                  .value
+              : ''),
+        },
+      ];
 
       if (
         ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
@@ -298,7 +289,6 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
         }).map(query => ({
           ...query,
           // Use the last aggregate because that's where the y-axis is stored
@@ -311,7 +301,6 @@ function WidgetBuilder({
           displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
         });
       }
 
@@ -362,15 +351,13 @@ function WidgetBuilder({
       fetchDashboards();
     }
 
-    if (widgetBuilderNewDesign) {
-      setState(prevState => ({
-        ...prevState,
-        selectedDashboard: {
-          label: dashboard.title,
-          value: dashboard.id || NEW_DASHBOARD_ID,
-        },
-      }));
-    }
+    setState(prevState => ({
+      ...prevState,
+      selectedDashboard: {
+        label: dashboard.title,
+        value: dashboard.id || NEW_DASHBOARD_ID,
+      },
+    }));
   }, [
     api,
     dashboard.id,
@@ -378,7 +365,6 @@ function WidgetBuilder({
     notDashboardsOrigin,
     organization.slug,
     source,
-    widgetBuilderNewDesign,
   ]);
 
   useEffect(() => {
@@ -442,7 +428,6 @@ function WidgetBuilder({
             displayType: newDisplayType,
             queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
             widgetType: WidgetType.DISCOVER,
-            widgetBuilderNewDesign,
           })
         );
         set(newState, 'dataSet', DataSet.EVENTS);
@@ -454,7 +439,6 @@ function WidgetBuilder({
         displayType: newDisplayType,
         queries: prevState.queries,
         widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
-        widgetBuilderNewDesign,
       });
 
       if (newDisplayType === DisplayType.TOP_N) {
@@ -499,22 +483,20 @@ function WidgetBuilder({
 
       set(newState, 'queries', normalized);
 
-      if (widgetBuilderNewDesign) {
-        if (
-          getIsTimeseriesChart(newDisplayType) &&
-          normalized[0].columns.filter(column => !!column).length
-        ) {
-          // If a limit already exists (i.e. going between timeseries) then keep it,
-          // otherwise calculate a limit
-          newState.limit =
-            prevState.limit ??
-            Math.min(
-              getResultsLimit(normalized.length, normalized[0].columns.length),
-              DEFAULT_RESULTS_LIMIT
-            );
-        } else {
-          newState.limit = undefined;
-        }
+      if (
+        getIsTimeseriesChart(newDisplayType) &&
+        normalized[0].columns.filter(column => !!column).length
+      ) {
+        // If a limit already exists (i.e. going between timeseries) then keep it,
+        // otherwise calculate a limit
+        newState.limit =
+          prevState.limit ??
+          Math.min(
+            getResultsLimit(normalized.length, normalized[0].columns.length),
+            DEFAULT_RESULTS_LIMIT
+          );
+      } else {
+        newState.limit = undefined;
       }
 
       set(newState, 'userHasModified', true);
@@ -738,7 +720,6 @@ function WidgetBuilder({
       } else if (!newQuery.orderby) {
         const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
           columns: query.columns,
           aggregates: query.aggregates,
         });
@@ -816,19 +797,8 @@ function WidgetBuilder({
       widgetData.layout = widgetToBeUpdated?.layout;
     }
 
-    // Only Table and Top N views need orderby
-    if (!widgetBuilderNewDesign && !isTabularChart) {
-      widgetData.queries.forEach(query => {
-        query.orderby = '';
-      });
-    }
-
-    if (!widgetBuilderNewDesign) {
-      widgetData.queries.forEach(query => omit(query, 'fieldAliases'));
-    }
-
     // Only Time Series charts shall have a limit
-    if (widgetBuilderNewDesign && !isTimeseriesChart) {
+    if (!isTimeseriesChart) {
       widgetData.limit = undefined;
     }
 
@@ -1027,9 +997,7 @@ function WidgetBuilder({
 
   // The SortBy field shall only be displayed in tabular visualizations or
   // on time-series visualizations when at least one groupBy value is selected
-  const displaySortByStep =
-    (widgetBuilderNewDesign && isTimeseriesChart && groupByValueSelected) ||
-    isTabularChart;
+  const displaySortByStep = (isTimeseriesChart && groupByValueSelected) || isTabularChart;
 
   if (isEditing && !isValidWidgetIndex) {
     return (
@@ -1138,7 +1106,7 @@ function WidgetBuilder({
                         dashboardFilters={dashboard.filters}
                         location={location}
                       />
-                      {widgetBuilderNewDesign && isTimeseriesChart && (
+                      {isTimeseriesChart && (
                         <GroupByStep
                           columns={columns
                             .filter(field => !(field === 'equation|'))
@@ -1157,7 +1125,6 @@ function WidgetBuilder({
                           displayType={state.displayType}
                           queries={state.queries}
                           dataSet={state.dataSet}
-                          widgetBuilderNewDesign={widgetBuilderNewDesign}
                           error={state.errors?.orderby}
                           onSortByChange={handleSortByChange}
                           onLimitChange={handleLimitChange}
@@ -1179,7 +1146,6 @@ function WidgetBuilder({
                 <Side>
                   <WidgetLibrary
                     organization={organization}
-                    widgetBuilderNewDesign={widgetBuilderNewDesign}
                     selectedWidgetId={
                       state.userHasModified ? null : state.prebuiltWidgetId
                     }

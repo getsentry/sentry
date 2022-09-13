@@ -30,7 +30,6 @@ interface Props {
   organization: Organization;
   queries: WidgetQuery[];
   tags: TagCollection;
-  widgetBuilderNewDesign: boolean;
   widgetType: WidgetType;
   error?: string;
   limit?: number;

@@ -337,14 +337,10 @@ function filterYAxisOptions(displayType: DisplayType) {
 
 function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
-  widgetQuery: WidgetQuery,
-  organization: Organization
+  widgetQuery: WidgetQuery
 ): Series[] {
   let output: Series[] = [];
   const queryAlias = widgetQuery.name;
-
-  const widgetBuilderNewDesign =
-    organization.features.includes('new-widget-builder-experience-design') || false;
 
   if (isMultiSeriesStats(data)) {
     let seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -355,7 +351,7 @@ function transformEventsResponseToSeries(
     // are created when multiple yAxis are used. Convert the timeseries
     // data into a multi-series data set.  As the server will have
     // replied with a map like: {[titleString: string]: EventsStats}
-    if (widgetBuilderNewDesign && isMultiSeriesDataWithGrouping) {
+    if (isMultiSeriesDataWithGrouping) {
       seriesWithOrdering = flattenMultiSeriesDataWithGrouping(data, queryAlias);
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
