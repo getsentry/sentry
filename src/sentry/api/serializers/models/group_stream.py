@@ -20,6 +20,7 @@ from sentry.constants import StatsPeriod
 from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
@@ -52,7 +53,7 @@ class GroupStatsMixin:
     CUSTOM_ROLLUP_6H = timedelta(hours=6).total_seconds()  # rollups should be increments of 6hs
 
     @abstractmethod
-    def query_tsdb(self, group_ids: Sequence[int], query_params: MutableMapping[str, Any]):
+    def query_tsdb(self, groups: Sequence[Group], query_params: MutableMapping[str, Any]):
         pass
 
     def get_stats(
@@ -60,8 +61,6 @@ class GroupStatsMixin:
     ):
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
-            group_ids = [g.id for g in item_list]
-
             if stats_query_args.stats_period == "auto":
                 total_period = (
                     stats_query_args.stats_period_end - stats_query_args.stats_period_start
@@ -100,7 +99,7 @@ class GroupStatsMixin:
                     "rollup": int(interval.total_seconds()),
                 }
 
-            return self.query_tsdb(group_ids, query_params, **kwargs)
+            return self.query_tsdb(item_list, query_params, **kwargs)
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
@@ -158,15 +157,15 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 
         return result
 
-    def query_tsdb(self, group_ids, query_params, **kwargs):
+    def query_tsdb(self, groups: Sequence[Group], query_params, **kwargs):
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
-            stats = {key: tsdb.make_series(0, **query_params) for key in group_ids}
+            stats = {g.id: tsdb.make_series(0, **query_params) for g in groups}
         else:
             stats = tsdb.get_range(
                 model=tsdb.models.group,
-                keys=group_ids,
+                keys=[g.id for g in groups],
                 environment_ids=environment and [environment.id],
                 **query_params,
             )
@@ -359,14 +358,29 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         return result
 
-    def query_tsdb(self, group_ids, query_params, conditions=None, environment_ids=None, **kwargs):
-        return snuba_tsdb.get_range(
-            model=snuba_tsdb.models.group,
-            keys=group_ids,
+    def query_tsdb(
+        self, groups: Sequence[Group], query_params, conditions=None, environment_ids=None, **kwargs
+    ):
+        error_issue_ids = [
+            group.id for group in groups if GroupCategory.ERROR == group.issue_category
+        ]
+        perf_issue_ids = [
+            group.id for group in groups if GroupCategory.PERFORMANCE == group.issue_category
+        ]
+        results = {}
+        get_range = functools.partial(
+            snuba_tsdb.get_range,
             environment_ids=environment_ids,
             conditions=conditions,
             **query_params,
         )
+        if error_issue_ids:
+            results.update(get_range(model=snuba_tsdb.models.group, keys=error_issue_ids))
+        if perf_issue_ids:
+            results.update(
+                get_range(model=snuba_tsdb.models.group_performance, keys=perf_issue_ids)
+            )
+        return results
 
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
