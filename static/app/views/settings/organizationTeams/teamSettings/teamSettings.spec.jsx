@@ -24,11 +24,7 @@ describe('TeamSettings', function () {
     });
 
     const wrapper = mountWithTheme(
-      <TeamSettings
-        team={team}
-        onTeamChange={() => {}}
-        params={{orgId: 'org', teamId: team.slug}}
-      />
+      <TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />
     );
 
     wrapper
@@ -57,11 +53,7 @@ describe('TeamSettings', function () {
     const team = TestStubs.Team();
 
     const wrapper = mountWithTheme(
-      <TeamSettings
-        team={team}
-        onTeamChange={() => {}}
-        params={{orgId: 'org', teamId: team.slug}}
-      />,
+      <TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />,
       TestStubs.routerContext([
         {
           organization: TestStubs.Organization({access: []}),
@@ -86,11 +78,7 @@ describe('TeamSettings', function () {
     ]);
 
     const wrapper = mountWithTheme(
-      <TeamSettings
-        params={{orgId: 'org', teamId: team.slug}}
-        team={team}
-        onTeamChange={() => {}}
-      />
+      <TeamSettings params={{orgId: 'org', teamId: team.slug}} team={team} />
     );
 
     // Click "Remove Team button
