@@ -29,10 +29,11 @@ export const TraceSearchBar = styled(SearchBar)`
 `;
 
 export const TraceViewHeaderContainer = styled(SecondaryHeader)`
-  position: static;
-  top: auto;
   border-top: none;
   border-bottom: 1px solid ${p => p.theme.border};
+  position: sticky;
+  top: 0;
+  z-index: 1;
 `;
 
 export const TraceDetailHeader = styled('div')`
@@ -48,7 +49,7 @@ export const TraceDetailHeader = styled('div')`
 `;
 
 export const TraceDetailBody = styled('div')`
-  margin-top: ${space(2)};
+  height: 100%;
 `;
 
 export const TraceViewContainer = styled('div')`
@@ -58,7 +59,8 @@ export const TraceViewContainer = styled('div')`
 `;
 
 export const TracePanel = styled(Panel)`
-  overflow: hidden;
+  height: 100%;
+  overflow: auto;
 `;
 
 export const ProjectBadgeContainer = styled('span')`
