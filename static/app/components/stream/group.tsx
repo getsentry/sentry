@@ -3,6 +3,7 @@ import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
+import shallow from 'zustand/shallow';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -23,7 +24,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {
@@ -46,6 +46,8 @@ import {
   isForReviewQuery,
   Query,
 } from 'sentry/views/issueList/utils';
+
+import useSelectedGroups from './useSelectedGroups';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 
@@ -89,8 +91,14 @@ function BaseGroupRow({
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
 
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[id];
+  const {isSelected, toggleSelect, shiftToggleItems} = useSelectedGroups(
+    s => ({
+      isSelected: s.records[id],
+      toggleSelect: s.toggleSelect,
+      shiftToggleItems: s.shiftToggleItems,
+    }),
+    shallow
+  );
 
   const {selection} = usePageFilters();
 
@@ -173,13 +181,13 @@ function BaseGroupRow({
       }
 
       if (evt.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        shiftToggleItems(group.id);
         window.getSelection()?.removeAllRanges();
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, shiftToggleItems, toggleSelect]
   );
 
   const checkboxToggle = useCallback(
@@ -187,12 +195,12 @@ function BaseGroupRow({
       const mouseEvent = evt.nativeEvent as MouseEvent;
 
       if (mouseEvent.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
+        shiftToggleItems(group.id);
       } else {
-        SelectedGroupStore.toggleSelect(group.id);
+        toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group.id, shiftToggleItems, toggleSelect]
   );
 
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {

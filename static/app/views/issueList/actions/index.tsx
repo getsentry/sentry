@@ -6,10 +6,9 @@ import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
+import useSelectedGroups from 'sentry/components/stream/useSelectedGroups';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Group, PageFilters} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
@@ -61,6 +60,8 @@ function IssueListActions({
     selectedIdsSet,
     selectedProjectSlug,
     setAllInQuerySelected,
+    deselectAll,
+    toggleSelectAll,
   } = useSelectedGroupsState();
 
   const numIssues = selectedIdsSet.size;
@@ -72,7 +73,7 @@ function IssueListActions({
 
     callback(selectedIds);
 
-    SelectedGroupStore.deselectAll();
+    deselectAll();
   }
 
   // TODO: Remove this when merging/deleting performance issues is supported
@@ -173,7 +174,7 @@ function IssueListActions({
       <StyledFlex>
         <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
           <Checkbox
-            onChange={() => SelectedGroupStore.toggleSelectAll()}
+            onChange={() => toggleSelectAll()}
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
             disabled={displayReprocessingActions}
           />
@@ -253,11 +254,12 @@ function IssueListActions({
 }
 
 function useSelectedGroupsState() {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedIds = useLegacyStore(SelectedGroupStore);
+  const state = useSelectedGroups();
+  const {allSelected, multiSelected, anySelected, selectedIds} = state.computed;
 
-  const selected = SelectedGroupStore.getSelectedIds();
-  const projects = [...selected]
+  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
+
+  const projects = [...selectedIds]
     .map(id => GroupStore.get(id))
     .filter((group): group is Group => !!(group && group.project))
     .map(group => group.project.slug);
@@ -268,23 +270,19 @@ function useSelectedGroupsState() {
   // can behave correctly.
   const selectedProjectSlug = uniqProjects.length === 1 ? uniqProjects[0] : undefined;
 
-  const pageSelected = SelectedGroupStore.allSelected();
-  const multiSelected = SelectedGroupStore.multiSelected();
-  const anySelected = SelectedGroupStore.anySelected();
-  const selectedIdsSet = SelectedGroupStore.getSelectedIds();
-
   useEffect(() => {
     setAllInQuerySelected(false);
   }, [selectedIds]);
 
   return {
-    pageSelected,
+    selectedIdsSet: selectedIds,
+    pageSelected: allSelected,
     multiSelected,
     anySelected,
     allInQuerySelected,
-    selectedIdsSet,
     selectedProjectSlug,
     setAllInQuerySelected,
+    ...state,
   };
 }
 
