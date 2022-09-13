@@ -13,7 +13,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types';
 
 type ContainerProps = {
   onCancel: () => void;
@@ -23,7 +22,6 @@ type ContainerProps = {
 };
 
 type Props = {
-  issueCategory: IssueCategory;
   loading: boolean;
   /**
    * Called when refreshing an existing link
