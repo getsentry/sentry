@@ -173,20 +173,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return stats
 
 
-class TagBasedStreamGroupSerializer(StreamGroupSerializer):
-    def __init__(self, tags, **kwargs):
-        super().__init__(**kwargs)
-        self.tags = tags
-
-    def serialize(
-        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
-    ) -> BaseGroupSerializerResponse:
-        result = super().serialize(obj, attrs, user)
-        result["tagLastSeen"] = self.tags[obj.id].last_seen
-        result["tagFirstSeen"] = self.tags[obj.id].first_seen
-        return result
-
-
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
