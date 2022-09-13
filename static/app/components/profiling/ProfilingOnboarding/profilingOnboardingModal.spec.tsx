@@ -24,8 +24,9 @@ function selectProject(project: Project) {
 }
 
 describe('ProfilingOnboarding', function () {
-  beforeEach(() => {
+  afterEach(() => {
     ProjectStore.teardown();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders default step', () => {
@@ -33,6 +34,10 @@ describe('ProfilingOnboarding', function () {
     render(
       <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [],
+    });
     expect(screen.getByText(/Select a Project/i)).toBeInTheDocument();
   });
 
@@ -104,6 +109,7 @@ describe('ProfilingOnboarding', function () {
     );
 
     selectProject(project);
+
     expect(
       await screen.findByText(/Update your projects SDK version/)
     ).toBeInTheDocument();
