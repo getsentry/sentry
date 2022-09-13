@@ -886,11 +886,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         platform = frame.get("platform") or self.data.get("platform")
         return platform in ("javascript", "node")
 
-    def preprocess_frame(self, processable_frame):
-        # Stores the resolved token.  This is used to cross refer to other
-        # frames for function name resolution by call site.
-        processable_frame.data = {"token": None}
-
     def process_frame(self, processable_frame, processing_task):
         """
         Attempt to demangle the given frame.
