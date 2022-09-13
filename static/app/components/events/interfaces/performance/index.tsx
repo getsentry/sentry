@@ -26,9 +26,9 @@ export function SpanEvidenceSection({event, organization}: Props) {
   }
 
   const {
-    cause_span_ids: causes,
-    offender_span_ids: offenders,
-    parent_span_ids: parents,
+    causeSpanIds: causes,
+    offenderSpanIds: offenders,
+    parentSpanIds: parents,
   } = event.perfProblem;
 
   // For now, it is safe to assume that there is only one cause and parent span for N+1 issues

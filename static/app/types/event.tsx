@@ -353,9 +353,9 @@ export type EventUser = {
 };
 
 export type PerformanceDetectorData = {
-  cause_span_ids: string[];
-  offender_span_ids: string[];
-  parent_span_ids: string[];
+  causeSpanIds: string[];
+  offenderSpanIds: string[];
+  parentSpanIds: string[];
 };
 
 interface EventBase {
