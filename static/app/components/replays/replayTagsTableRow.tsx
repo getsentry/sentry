@@ -24,13 +24,7 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
         return (
           <React.Fragment key={value}>
             {index > 0 && ', '}
-            <Version
-              key={index}
-              version={value}
-              anchor={false}
-              withPackage
-              data-test-id="release-version"
-            />
+            <Version key={index} version={value} anchor={false} withPackage />
           </React.Fragment>
         );
       });
@@ -43,13 +37,7 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
       return (
         <React.Fragment key={value}>
           {index > 0 && ', '}
-          {target ? (
-            <Link to={target} data-test-id="tag-value">
-              {value}
-            </Link>
-          ) : (
-            <AnnotatedText value={value} />
-          )}
+          {target ? <Link to={target}>{value}</Link> : <AnnotatedText value={value} />}
         </React.Fragment>
       );
     });
