@@ -53,7 +53,8 @@ class SuperuserAccessForm extends Component<Props, State> {
     });
   };
 
-  handleSubmit = data => {
+  handleSubmit = async data => {
+    const {api} = this.props;
     const {superuserAccessCategory, superuserReason, authenticators} = this.state;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
 
@@ -73,6 +74,7 @@ class SuperuserAccessForm extends Component<Props, State> {
         superuserReason: suReason,
       });
     } else {
+      await api.requestPromise('/auth/', {method: 'PUT', data});
       this.handleSuccess();
     }
   };
