@@ -548,6 +548,13 @@ class PerformanceDetectionTest(unittest.TestCase):
             )
         ]
 
+    @patch("sentry.utils.metrics.incr")
+    def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
+        _detect_performance_problems(n_plus_one_event, Mock())
+        unexpected_call = call("performance.performance_issue.truncated_np1_db")
+        assert unexpected_call not in incr_mock.mock_calls
+
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
     ):
@@ -623,6 +630,12 @@ class PerformanceDetectionTest(unittest.TestCase):
                 n_plus_one_fingerprint = args[0][1]
         assert not n_plus_one_fingerprint
 
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock):
+        truncated_source_event = EVENTS["n-plus-one-in-django-new-view-truncated-source"]
+        _detect_performance_problems(truncated_source_event, Mock())
+        incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
+
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
@@ -688,3 +701,73 @@ class EventPerformanceProblemTest(TestCase):
 
         EventPerformanceProblem(event, problem).save()
         assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
+
+    def test_fetch_multi(self):
+        event_1 = Event(self.project.id, "something")
+        event_1_problems = [
+            PerformanceProblem(
+                "test",
+                "db",
+                "something bad happened",
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["1"],
+                ["2", "3", "4"],
+                ["4", "5", "6"],
+            ),
+            PerformanceProblem(
+                "test_2",
+                "db",
+                "something horrible happened",
+                GroupType.PERFORMANCE_SLOW_SPAN,
+                ["234"],
+                ["67", "87686", "786"],
+                ["4", "5", "6"],
+            ),
+        ]
+        event_2 = Event(self.project.id, "something else")
+        event_2_problems = [
+            PerformanceProblem(
+                "event_2_test",
+                "db",
+                "something happened",
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["1"],
+                ["a", "b", "c"],
+                ["d", "e", "f"],
+            ),
+            PerformanceProblem(
+                "event_2_test_2",
+                "db",
+                "hello",
+                GroupType.PERFORMANCE_SLOW_SPAN,
+                ["234"],
+                ["fdgh", "gdhgf", "gdgh"],
+                ["gdf", "yu", "kjl"],
+            ),
+        ]
+        all_event_problems = [
+            (event, problem)
+            for event, problems in ((event_1, event_1_problems), (event_2, event_2_problems))
+            for problem in problems
+        ]
+        for event, problem in all_event_problems:
+            EventPerformanceProblem(event, problem).save()
+
+        unsaved_problem = PerformanceProblem(
+            "fake_fingerprint",
+            "db",
+            "hello",
+            GroupType.PERFORMANCE_SLOW_SPAN,
+            ["234"],
+            ["fdgh", "gdhgf", "gdgh"],
+            ["gdf", "yu", "kjl"],
+        )
+        result = EventPerformanceProblem.fetch_multi(
+            [
+                (event, problem.fingerprint)
+                for event, problem in all_event_problems + [(event, unsaved_problem)]
+            ]
+        )
+        assert [r.problem if r else None for r in result] == [
+            problem for _, problem in all_event_problems
+        ] + [None]

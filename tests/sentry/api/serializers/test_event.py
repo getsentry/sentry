@@ -2,12 +2,17 @@ from unittest import mock
 
 from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import DetailedEventSerializer, SharedEventSerializer
+from sentry.event_manager import EventManager
 from sentry.models import EventError
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 from sentry.utils.samples import load_data
+from tests.sentry.event_manager.test_event_manager import make_event
+from tests.sentry.utils.performance_issues.test_performance_detection import EVENTS
 
 
 @region_silo_test
@@ -296,7 +301,7 @@ class SimpleEventSerializerTest(TestCase):
 
 
 @region_silo_test
-class EventSerializerSdkUpdatesTest(TestCase):
+class DetailedEventSerializerTest(TestCase):
     @mock.patch(
         "sentry.sdk_updates.SdkIndexState",
         return_value=SdkIndexState(sdk_versions={"example.sdk": "2.0.0"}),
@@ -375,3 +380,55 @@ class EventSerializerSdkUpdatesTest(TestCase):
 
         result = serialize(event, None, DetailedEventSerializer())
         assert result["sdkUpdates"] == []
+
+    @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    def test_performance_problem(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            "projects:performance-suspect-spans-ingestion"
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+        group_event = event.for_group(event.groups[0])
+
+        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        assert result["perfProblem"] == {
+            "causeSpanIds": ["9179e43ae844b174"],
+            "desc": "SELECT `books_author`.`id`, `books_author`.`name` FROM "
+            "`books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            "fingerprint": "19e15e0444e0bc1d5159fb07cd4bd2eb",
+            "offenderSpanIds": [
+                "b8be6138369491dd",
+                "b2d4826e7b618f1b",
+                "b3fdeea42536dbf1",
+                "b409e78a092e642f",
+                "86d2ede57bbf48d4",
+                "8e554c84cdc9731e",
+                "94d6230f3f910e12",
+                "a210b87a2191ceb6",
+                "88a5ccaf25b9bd8f",
+                "bb32cf50fc56b296",
+            ],
+            "op": "db",
+            "parentSpanIds": ["8dd7a5869a4f4583"],
+            "type": 1006,
+        }
+
+    @override_options({"store.use-ingest-performance-detection-only": 1.0})
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    def test_performance_problem_no_stored_data(self):
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
+            "sentry.event_manager.EventPerformanceProblem"
+        ), self.feature("projects:performance-suspect-spans-ingestion"):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+        group_event = event.for_group(event.groups[0])
+
+        result = json.loads(json.dumps(serialize(group_event, None, DetailedEventSerializer())))
+        assert result["perfProblem"] is None
