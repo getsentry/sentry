@@ -84,7 +84,7 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_TYPE]: {
         key: FieldKey.ISSUE_TYPE,
         name: 'Issue Type',
-        values: [],
+        values: ['performance_n_plus_one_db_queries'],
         predefined: true,
       },
       [FieldKey.LAST_SEEN]: {
