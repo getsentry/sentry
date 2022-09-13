@@ -4,16 +4,15 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 import ReplayTagsTableRow from './replayTagsTableRow';
 
-const tags = [
-  {
-    key: 'foo',
-    value: ['bar', 'baz'],
-  },
-  {
-    key: 'release',
-    value: ['1.0.0', '2.0.0'],
-  },
-];
+const releaseTag = {
+  key: 'release',
+  value: ['1.0.0', '2.0.0'],
+};
+
+const genericTag = {
+  key: 'foo',
+  value: ['bar', 'baz'],
+};
 
 function TestComponent({children}) {
   const {organization, router} = initializeOrg();
@@ -38,7 +37,7 @@ describe('ReplayTagsTableRow', () => {
   it('Should render tag key and value correctly', () => {
     render(
       <TestComponent>
-        <ReplayTagsTableRow tag={tags[0]} />
+        <ReplayTagsTableRow tag={genericTag} />
       </TestComponent>
     );
 
@@ -50,7 +49,7 @@ describe('ReplayTagsTableRow', () => {
   it('Should render release tags correctly', () => {
     render(
       <TestComponent>
-        <ReplayTagsTableRow tag={tags[1]} />
+        <ReplayTagsTableRow tag={releaseTag} />
       </TestComponent>
     );
 
@@ -62,7 +61,7 @@ describe('ReplayTagsTableRow', () => {
   it('Should render the tag value as a link if we get a link result from generateUrl', () => {
     render(
       <TestComponent>
-        <ReplayTagsTableRow tag={tags[0]} generateUrl={() => 'https://foo.bar'} />
+        <ReplayTagsTableRow tag={genericTag} generateUrl={() => 'https://foo.bar'} />
       </TestComponent>
     );
 
@@ -78,7 +77,7 @@ describe('ReplayTagsTableRow', () => {
     render(
       <TestComponent>
         <ReplayTagsTableRow
-          tag={tags[0]}
+          tag={genericTag}
           generateUrl={() => 'https://foo.bar'}
           query="foo:bar"
         />
