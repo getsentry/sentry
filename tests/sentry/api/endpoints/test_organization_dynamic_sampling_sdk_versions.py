@@ -451,6 +451,6 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                 f"start=2022-08-06T00:02:00+00:00&"
                 f"end=2022-08-07T00:00:02+00:00"
             )
-            assert response.json()["details"] == (
+            assert response.json()["detail"] == (
                 "Unable to parse sdk versions. Please check that sdk versions are valid semantic versions."
             )
