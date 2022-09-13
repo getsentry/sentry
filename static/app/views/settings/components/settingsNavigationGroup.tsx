@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import space from 'sentry/styles/space';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
@@ -65,11 +66,11 @@ const NavSection = styled('div')`
 `;
 
 const SettingsHeading = styled('div')`
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.text};
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  margin-bottom: ${space(0.5)};
 `;
 
 export default SettingsNavigationGroup;
