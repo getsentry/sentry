@@ -381,10 +381,14 @@ class SmartSearchBar extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {query} = this.props;
-    const {query: lastQuery} = prevProps;
+    const {query, customPerformanceMetrics} = this.props;
+    const {query: lastQuery, customPerformanceMetrics: lastCustomPerformanceMetrics} =
+      prevProps;
 
-    if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
+    if (
+      (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
+      customPerformanceMetrics !== lastCustomPerformanceMetrics
+    ) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
     }
