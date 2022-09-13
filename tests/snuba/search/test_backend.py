@@ -41,9 +41,6 @@ def date_to_query_format(date):
 
 
 class SharedSnubaTest(TestCase, SnubaTestCase):
-    def setUp(self):
-        super().setUp()
-
     def build_search_filter(self, query, projects=None, user=None, environments=None):
         user = user if user is not None else self.user
         projects = projects if projects is not None else [self.project]

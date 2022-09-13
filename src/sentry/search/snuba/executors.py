@@ -260,35 +260,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ]  # ensure stable sort within the same score
             referrer = "search"
 
-        organization = Organization.objects.get(id=organization_id)
-        if not features.has("organizations:performance-issues", organization):
-            snuba_results = snuba.aliased_query(
-                dataset=self.dataset,
-                start=start,
-                end=end,
-                selected_columns=selected_columns,
-                groupby=["group_id"],
-                conditions=conditions,
-                having=having,
-                filter_keys=filters,
-                aggregations=aggregations,
-                orderby=orderby,
-                referrer=referrer,
-                limit=limit,
-                offset=offset,
-                totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
-                turbo=get_sample,  # Turn off FINAL when in sampling mode
-                sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
-                condition_resolver=snuba.get_snuba_column_name,
-            )
-            rows = snuba_results["data"]
-            total = snuba_results["totals"]["total"]
-
-            if not get_sample:
-                metrics.timing("snuba.search.num_result_groups", len(rows))
-
-            return [(row["group_id"], row[sort_field]) for row in rows], total
-
         query_partial = functools.partial(
             snuba.aliased_query,
             dataset=snuba.Dataset.Discover,
@@ -344,21 +315,24 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        error_rows = snuba_error_results["data"]
+        rows = snuba_error_results["data"]
         txn_rows = snuba_transaction_results["data"]
-        total = (
-            snuba_error_results["totals"]["total"] + snuba_transaction_results["totals"]["total"]
-        )
-
-        if not get_sample:
-            metrics.timing("snuba.search.num_result_groups", len(error_rows) + len(txn_rows))
+        total = snuba_error_results["totals"]["total"]
+        row_length = len(rows)
 
         def keyfunc(row: Dict[str, int]) -> Optional[int]:
             return row.get("group_id")
 
-        return [
-            (row["group_id"], row[sort_field]) for row in merge(error_rows, txn_rows, key=keyfunc)
-        ], total
+        organization = Organization.objects.get(id=organization_id)
+        if features.has("organizations:performance-issues", organization):
+            total += snuba_transaction_results["totals"]["total"]
+            row_length += len(txn_rows)
+            rows = merge(rows, txn_rows, key=keyfunc)
+
+        if not get_sample:
+            metrics.timing("snuba.search.num_result_groups", row_length)
+
+        return [(row["group_id"], row[sort_field]) for row in rows], total
 
     def _transform_converted_filter(
         self,
