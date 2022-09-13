@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -18,7 +18,7 @@ interface Props {
 }
 
 function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
-  const renderTagValue = useCallback(() => {
+  const renderTagValue = useMemo(() => {
     if (tag.key === 'release') {
       return tag.value.map((value, index) => {
         return (
@@ -63,8 +63,8 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
         </StyledTooltip>
       }
       value={
-        <StyledTooltip title={renderTagValue()} isHoverable showOnlyOnOverflow>
-          {renderTagValue()}
+        <StyledTooltip title={renderTagValue} isHoverable showOnlyOnOverflow>
+          {renderTagValue}
         </StyledTooltip>
       }
     />
