@@ -14,7 +14,6 @@ import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types';
-import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 
 type ContainerProps = {
   onCancel: () => void;
@@ -32,6 +31,7 @@ type Props = {
   onReshare: () => void;
   onToggle: () => void;
   disabled?: boolean;
+  disabledReason?: string;
   /**
    * Link is public
    */
@@ -44,9 +44,9 @@ function ShareIssue({
   onReshare,
   onToggle,
   disabled,
+  disabledReason,
   isShared,
   shareUrl,
-  issueCategory,
 }: Props) {
   const [hasConfirmModal, setHasConfirmModal] = useState(false);
 
@@ -71,13 +71,11 @@ function ShareIssue({
     }
   };
 
-  const {enabled, disabledReason} = getIssueCapability(issueCategory, 'share');
-
   const renderDropdown = () => (
     <DropdownLink
       shouldIgnoreClickOutside={() => hasConfirmModal}
       customTitle={
-        <ActionButton disabled={disabled || !enabled}>
+        <ActionButton disabled={disabled}>
           <DropdownTitleContent>
             <IndicatorDot isShared={isShared} />
             {t('Share')}
@@ -87,7 +85,7 @@ function ShareIssue({
         </ActionButton>
       }
       onOpen={handleOpen}
-      disabled={disabled || !enabled}
+      disabled={disabled}
       keepMenuOpen
     >
       <DropdownContent>
@@ -114,10 +112,10 @@ function ShareIssue({
     </DropdownLink>
   );
 
-  return enabled ? (
-    renderDropdown()
-  ) : (
+  return disabled ? (
     <Tooltip title={disabledReason}>{renderDropdown()}</Tooltip>
+  ) : (
+    renderDropdown()
   );
 }
 
