@@ -2073,44 +2073,6 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
 
-        # def hack_pull_out_data(jobs, projects):
-        #     _pull_out_data(jobs, projects)
-        #     for job in jobs:
-        #         job["event"].groups = [self.group]
-        #     return jobs, projects
-
-        # with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-        #     transaction_event = self.store_event(
-        #         data={
-        #             **transaction_event_data,
-        #             "event_id": "a" * 32,
-        #             "timestamp": iso_format(before_now(minutes=1)),
-        #             "start_timestamp": iso_format(before_now(minutes=1)),
-        #             "tags": {"my_tag": 1},
-        #         },
-        #         project_id=self.project.id,
-        #     )
-
-        # transaction_event.group = self.group
-        # self.perf_group_1 = Group.objects.get(id=transaction_event.group_id)
-        # self.perf_group_1.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-
-        # with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-        #     transaction_event = self.store_event(
-        #         data={
-        #             **transaction_event_data,
-        #             "event_id": "b" * 32,
-        #             "timestamp": iso_format(before_now(minutes=1)),
-        #             "start_timestamp": iso_format(before_now(minutes=1)),
-        #             "tags": {"my_tag": 1},
-        #         },
-        #         project_id=self.project.id,
-        #     )
-
-        # transaction_event.group = self.group
-        # self.perf_group_2 = Group.objects.get(id=transaction_event.group_id)
-        # self.perf_group_2.update(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-
         injected_group = None
 
         def hack_pull_out_data(jobs, projects):
