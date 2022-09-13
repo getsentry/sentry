@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
@@ -114,6 +114,16 @@ class EventPerformanceProblem:
                 nodestore.get(cls.build_identifier(event.event_id, problem_hash))
             ),
         )
+        return cls.fetch_multi((event, problem_hash))[0]
+
+    @classmethod
+    def fetch_multi(cls, items: Sequence[Tuple[Event, str]]) -> Sequence[EventPerformanceProblem]:
+        ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
+        results = nodestore.get_multi(ids)
+        return [
+            cls(event, PerformanceProblem.from_dict(results[_id]))
+            for _id, (event, _) in zip(ids, items)
+        ]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -812,9 +822,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return query and not query.endswith("...")
 
     def _maybe_use_as_source(self, span: Span):
-        if not self._contains_complete_query(span):
-            return
-
         parent_span_id = span.get("parent_span_id", None)
         if not parent_span_id or parent_span_id not in self.potential_parents:
             return
@@ -822,9 +829,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.source_span = span
 
     def _continues_n_plus_1(self, span: Span):
-        if not self._contains_complete_query(span):
-            return False
-
         if self._overlaps_last_span(span):
             return False
 
@@ -880,6 +884,14 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return
         parent_span = self.potential_parents[parent_span_id]
         if not parent_span:
+            return
+
+        # Track how many N+1-looking problems we found but dropped because we
+        # couldn't be sure (maybe the truncated part of the query differs).
+        if not self._contains_complete_query(self.source_span) or not self._contains_complete_query(
+            self.n_spans[0]
+        ):
+            metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
         fingerprint = self._fingerprint(

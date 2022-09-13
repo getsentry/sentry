@@ -4,6 +4,9 @@ import {Flamegraph} from 'sentry/components/profiling/flamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import ProfileGroupProvider from 'sentry/views/profiling/profileGroupProvider';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const FlamegraphContainer = styled('div')`
   display: flex;
@@ -15,20 +18,43 @@ export default {
   title: 'Components/Profiling/FlamegraphZoomView',
 };
 
+const emptyRouteContext = {
+  location: {
+    pathname: '',
+  },
+  params: {},
+};
+
+function FlamegraphStory({profiles}) {
+  return (
+    <RouteContext.Provider value={emptyRouteContext}>
+      <OrganizationContext.Provider value={{}}>
+        <ProfileGroupProvider>
+          <FlamegraphStateProvider
+            initialState={{
+              profiles: {
+                threadId: profiles.profiles[0].threadId,
+              },
+            }}
+          >
+            <FlamegraphThemeProvider>
+              <FlamegraphContainer>
+                {profiles && <Flamegraph profiles={profiles} />}
+              </FlamegraphContainer>
+            </FlamegraphThemeProvider>
+          </FlamegraphStateProvider>
+        </ProfileGroupProvider>
+      </OrganizationContext.Provider>
+    </RouteContext.Provider>
+  );
+}
+
 const eventedProfiles = importProfile(
   require('sentry/utils/profiling/profile/formats/android/trace.json')
 );
 
 export const EventedTrace = () => {
-  return (
-    <FlamegraphStateProvider>
-      <FlamegraphThemeProvider>
-        <FlamegraphContainer>
-          <Flamegraph profiles={eventedProfiles} />
-        </FlamegraphContainer>
-      </FlamegraphThemeProvider>
-    </FlamegraphStateProvider>
-  );
+  return <FlamegraphStory profiles={eventedProfiles} />;
 };
 
 const sampledTrace = importProfile(
@@ -36,15 +62,7 @@ const sampledTrace = importProfile(
 );
 
 export const SampledTrace = () => {
-  return (
-    <FlamegraphStateProvider>
-      <FlamegraphThemeProvider>
-        <FlamegraphContainer>
-          <Flamegraph profiles={sampledTrace} />
-        </FlamegraphContainer>
-      </FlamegraphThemeProvider>
-    </FlamegraphStateProvider>
-  );
+  return <FlamegraphStory profiles={sampledTrace} />;
 };
 
 const jsSelfProfile = importProfile(
@@ -52,15 +70,7 @@ const jsSelfProfile = importProfile(
 );
 
 export const JSSelfProfiling = () => {
-  return (
-    <FlamegraphStateProvider>
-      <FlamegraphThemeProvider>
-        <FlamegraphContainer>
-          {jsSelfProfile ? <Flamegraph profiles={jsSelfProfile} /> : null}
-        </FlamegraphContainer>
-      </FlamegraphThemeProvider>
-    </FlamegraphStateProvider>
-  );
+  return <FlamegraphStory profiles={jsSelfProfile} />;
 };
 
 const typescriptProfile = importProfile(
@@ -68,13 +78,5 @@ const typescriptProfile = importProfile(
 );
 
 export const TypescriptProfile = () => {
-  return (
-    <FlamegraphStateProvider>
-      <FlamegraphThemeProvider>
-        <FlamegraphContainer>
-          {typescriptProfile ? <Flamegraph profiles={typescriptProfile} /> : null}
-        </FlamegraphContainer>
-      </FlamegraphThemeProvider>
-    </FlamegraphStateProvider>
-  );
+  return <FlamegraphStory profiles={typescriptProfile} />;
 };

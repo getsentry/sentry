@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user_identity_config import (
@@ -73,6 +74,7 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
     return itertools.chain(social_identities, global_identities, org_identities)
 
 
+@control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
     def get(self, request: Request, user) -> Response:
         """
@@ -87,6 +89,7 @@ class UserIdentityConfigEndpoint(UserEndpoint):
         return Response(serialize(identities))
 
 
+@control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     @staticmethod
     def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
