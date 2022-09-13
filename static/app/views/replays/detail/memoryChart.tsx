@@ -1,5 +1,5 @@
-import {forwardRef, Fragment, memo, useEffect, useRef} from 'react';
-import {Global, useTheme} from '@emotion/react';
+import {forwardRef, memo, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -15,7 +15,6 @@ import space from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
-import type {Theme} from 'sentry/utils/theme';
 import type {MemorySpanType} from 'sentry/views/replays/types';
 
 interface Props {
@@ -58,8 +57,8 @@ function MemoryChart({
     }),
     tooltip: Tooltip({
       appendToBody: true,
-      className: 'chart-tooltip-portal',
       trigger: 'axis',
+      renderMode: 'html',
       formatter: values => {
         const seriesTooltips = values.map(
           value => `
@@ -297,71 +296,8 @@ function MemoryChartContainer({
   }, [currentHoverTime, startTimestampMs, theme]);
 
   return (
-    <Fragment>
-      <Global styles={getChartTooltipStyles(theme)} />
-      <MemoizedMemoryChart ref={chart} startTimestampMs={startTimestampMs} {...props} />
-    </Fragment>
+    <MemoizedMemoryChart ref={chart} startTimestampMs={startTimestampMs} {...props} />
   );
 }
-
-const getChartTooltipStyles = (
-  theme: Theme
-): Record<string, Record<string, string | number>> => ({
-  '.chart-tooltip-portal .tooltip-series, .chart-tooltip-portal .tooltip-date': {
-    color: theme.subText,
-    fontFamily: theme.text.family,
-    fontVariantNumeric: 'tabular-nums',
-    padding: `${space(1)} ${space(2)}`,
-    borderRadius: `${theme.borderRadius} ${theme.borderRadius} 0 0`,
-  },
-  '.chart-tooltip-portal .tooltip-series': {
-    borderBottom: 'none',
-  },
-  '.chart-tooltip-portal .tooltip-series-solo': {
-    borderRadius: theme.borderRadius,
-  },
-  '.chart-tooltip-portal .tooltip-label': {
-    marginRight: space(1),
-  },
-  '.chart-tooltip-portal .tooltip-label strong': {
-    fontWeight: 'normal',
-    color: theme.textColor,
-  },
-  '.chart-tooltip-portal .tooltip-label-indent': {
-    marginLeft: '18px',
-  },
-  '.chart-tooltip-portal .tooltip-series > div': {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-  },
-  '.chart-tooltip-portal .tooltip-date': {
-    borderTop: `solid 1px ${theme.innerBorder}`,
-    textAlign: 'center',
-    position: 'relative',
-    width: 'auto',
-    borderRadius: theme.borderRadiusBottom,
-  },
-  '.chart-tooltip-portal .tooltip-arrow': {
-    top: '100%',
-    left: '50%',
-    position: 'absolute',
-    pointerEvents: 'none',
-    borderLeft: '8px solid transparent',
-    borderRight: '8px solid transparent',
-    borderTop: `8px solid ${theme.backgroundElevated}`,
-    marginLeft: '-8px',
-  },
-  '.chart-tooltip-portal .tooltip-arrow:before': {
-    content: '""',
-    borderLeft: '8px solid transparent',
-    borderRight: '8px solid transparent',
-    borderTop: `8px solid ${theme.translucentBorder}`,
-    position: 'absolute',
-    top: '-7px',
-    left: '-8px',
-    zIndex: -1,
-  },
-});
 
 export default MemoryChartContainer;

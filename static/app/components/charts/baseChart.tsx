@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -465,6 +465,8 @@ function BaseChartUnwrapped({
       : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 
+  const isTooltipPortalled = tooltip?.appendToBody;
+
   const tooltipOrNone =
     tooltip !== null
       ? Tooltip({
@@ -474,6 +476,9 @@ function BaseChartUnwrapped({
           utc,
           bucketSize,
           ...tooltip,
+          className: isTooltipPortalled
+            ? `${tooltip?.className ?? ''} chart-tooltip-portal`
+            : tooltip?.className,
         })
       : undefined;
 
@@ -538,6 +543,7 @@ function BaseChartUnwrapped({
 
   return (
     <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
+      {isTooltipPortalled && <Global styles={getPortalledTooltipStyles(theme)} />}
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -661,6 +667,95 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     }
   }
 `;
+
+// Global styles to inject with the chart. (for portalled tooltips)
+const getPortalledTooltipStyles = (
+  theme: Theme
+): Record<string, Record<string, string | number>> => ({
+  '.chart-tooltip-portal .tooltip-series, .chart-tooltip-portal .tooltip-date': {
+    color: theme.subText,
+    fontFamily: theme.text.family,
+    fontVariantNumeric: 'tabular-nums',
+    padding: `${space(1)} ${space(2)}`,
+    borderRadius: `${theme.borderRadius} ${theme.borderRadius} 0 0`,
+  },
+  '.chart-tooltip-portal .tooltip-series': {
+    borderBottom: 'none',
+  },
+  '.chart-tooltip-portal .tooltip-series-solo': {
+    borderRadius: theme.borderRadius,
+  },
+  '.chart-tooltip-portal .tooltip-label': {
+    marginRight: space(1),
+  },
+  '.chart-tooltip-portal .tooltip-label strong': {
+    fontWeight: 'normal',
+    color: theme.textColor,
+  },
+  '.chart-tooltip-portal .tooltip-label-indent': {
+    marginLeft: '18px',
+  },
+  '.chart-tooltip-portal .tooltip-series > div': {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  '.chart-tooltip-portal .tooltip-date': {
+    borderTop: `solid 1px ${theme.innerBorder}`,
+    textAlign: 'center',
+    position: 'relative',
+    width: 'auto',
+    borderRadius: theme.borderRadiusBottom,
+  },
+  '.chart-tooltip-portal .tooltip-arrow': {
+    top: '100%',
+    left: '50%',
+    position: 'absolute',
+    pointerEvents: 'none',
+    borderLeft: '8px solid transparent',
+    borderRight: '8px solid transparent',
+    borderTop: `8px solid ${theme.backgroundElevated}`,
+    marginLeft: '-8px',
+  },
+  '.chart-tooltip-portal .tooltip-arrow:before': {
+    content: '""',
+    borderLeft: '8px solid transparent',
+    borderRight: '8px solid transparent',
+    borderTop: `8px solid ${theme.translucentBorder}`,
+    position: 'absolute',
+    top: '-7px',
+    left: '-8px',
+    zIndex: -1,
+  },
+  '.chart-tooltip-portal .tooltip-description': {
+    color: theme.white,
+    borderRadius: theme.borderRadius,
+    background: '#000',
+    opacity: 0.9,
+    padding: '5px 10px',
+    position: 'relative',
+    fontWeight: 'bold',
+    fontSize: theme.fontSizeSmall,
+    lineHeight: 1.4,
+    fontFamily: theme.text.family,
+    maxWidth: 230,
+    minWidth: 230,
+    whiteSpace: 'normal',
+    textAlign: 'center',
+  },
+  '.chart-tooltip-portal .tooltip-description:after': {
+    content: '""',
+    position: 'absolute',
+    top: '100%',
+    left: '50%',
+    width: 0,
+    height: 0,
+    borderLeft: '5px solid transparent',
+    borderRight: '5px solid transparent',
+    borderTop: '5px solid #000',
+    transform: 'translateX(-50%)',
+  },
+});
 
 const BaseChart = forwardRef<ReactEchartsRef, Props>((props, ref) => (
   <BaseChartUnwrapped forwardedRef={ref} {...props} />
