@@ -22,7 +22,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    control_silo_model,
+    all_silo_model,
     region_silo_model,
 )
 from sentry.locks import locks
@@ -109,7 +109,7 @@ def get_storage(config=None):
     return storage(**options)
 
 
-@control_silo_model
+@all_silo_model
 class FileBlob(Model):
     __include_in_export__ = False
 
@@ -318,7 +318,7 @@ class FileBlob(Model):
         return storage.open(self.path)
 
 
-@control_silo_model
+@all_silo_model
 class File(Model):
     __include_in_export__ = False
 
@@ -480,7 +480,7 @@ class File(Model):
         )
 
 
-@control_silo_model
+@all_silo_model
 class FileBlobIndex(Model):
     __include_in_export__ = False
 
