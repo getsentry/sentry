@@ -20,8 +20,6 @@ class FeatureHandler:
     option_ttl = 60  # cache the options for 60s
 
     def __init__(self):
-        super().__init__()
-
         self.last_updated = None
         self.cached_rollouts = {}
 
