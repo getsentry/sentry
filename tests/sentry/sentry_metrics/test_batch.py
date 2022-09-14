@@ -326,6 +326,134 @@ def test_all_resolved(caplog, settings):
 
 
 @pytest.mark.django_db
+def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_option):
+    """
+    Tests that the indexer batch skips resolving tag values for indexing and
+    sends the raw tag value to Snuba if the sentry option
+    "sentry-metrics.performance.index-tag-values" is set to False.
+
+    The difference between this test and the one above is that the tag values are
+    strings instead of integers. And the indexed tag keys are different. Also,
+    mapping_meta is smaller because the tag values are not indexed.
+    """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    set_sentry_option("sentry-metrics.performance.index-tag-values",
+                      False)
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    assert batch.extract_strings() == (
+        {
+            1: {
+                "c:sessions/session@none",
+                "d:sessions/duration@second",
+                "environment",
+                "s:sessions/error@none",
+                "session.status",
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "s:sessions/error@none": 4,
+                "session.status": 5,
+            }
+        },
+        {
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=4,
+                                                  fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5,
+                                           fetch_type=FetchType.CACHE_HIT),
+            }
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+    assert _deconstruct_messages(snuba_payloads) == [
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": "c:sessions/session@none",
+                        "3": "environment",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "5": "init"},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "performance",
+                "value": 1.0,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "c")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "2": "d:sessions/duration@second",
+                        "3": "environment",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "5": "healthy"},
+                "timestamp": ts,
+                "type": "d",
+                "unit": "seconds",
+                "use_case_id": "performance",
+                "value": [4, 5, 6],
+            },
+            [("mapping_sources", b"c"), ("metric_type", "d")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "4": "s:sessions/error@none",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 8,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "5": "errored"},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "performance",
+                "value": [3],
+            },
+            [("mapping_sources", b"c"), ("metric_type", "s")],
+        ),
+    ]
+
+
+@pytest.mark.django_db
 def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(

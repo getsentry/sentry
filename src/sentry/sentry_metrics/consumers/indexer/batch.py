@@ -241,7 +241,6 @@ class IndexerBatch:
                 for k, v in tags.items():
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
-                    new_v = mapping[org_id][v]
                     if new_k is None:
                         metadata = bulk_record_meta[org_id].get(k)
                         if (
@@ -254,19 +253,24 @@ class IndexerBatch:
                             exceeded_org_quotas += 1
                         continue
 
-                    if new_v is None:
-                        metadata = bulk_record_meta[org_id].get(v)
-                        if (
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ):
-                            exceeded_global_quotas += 1
+                    value_to_write = v
+                    if self._should_index_tag_values():
+                        new_v = mapping[org_id][v]
+                        if new_v is None:
+                            metadata = bulk_record_meta[org_id].get(v)
+                            if (
+                                metadata
+                                and metadata.fetch_type_ext
+                                and metadata.fetch_type_ext.is_global
+                            ):
+                                exceeded_global_quotas += 1
+                            else:
+                                exceeded_org_quotas += 1
+                            continue
                         else:
-                            exceeded_org_quotas += 1
-                        continue
+                            value_to_write = new_v
 
-                    new_tags[str(new_k)] = new_v
+                    new_tags[str(new_k)] = value_to_write
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
