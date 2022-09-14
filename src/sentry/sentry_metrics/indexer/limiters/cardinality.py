@@ -58,6 +58,8 @@ def _construct_quotas(use_case_id: UseCaseKey) -> Optional[Quota]:
 
         return Quota(**quota_args[0])
 
+    return None
+
 
 class InboundMessage(TypedDict):
     # Note: This is only the subset of fields we access in this file.
