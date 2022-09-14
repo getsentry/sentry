@@ -277,6 +277,7 @@ class SpanTree extends Component<PropType> {
               occurrence={payload.occurrence}
               onWheel={onWheel}
               generateContentSpanBarRef={generateContentSpanBarRef}
+              isEmbeddedSpanTree={!!waterfallModel.focusedSpanIds}
             />
           );
           acc.spanNumber = spanNumber + 1;

@@ -21,6 +21,7 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -88,4 +89,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue.quick_trace_status': 'Issue Quick Trace Status',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
+
+  // Performance Issue specific events here
+  'issue_details.performance.autogrouped_siblings_toggle':
+    'Performance Issue Details: Autogrouped Siblings Toggled',
 };
