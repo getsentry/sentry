@@ -148,7 +148,7 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
         },
         {
           multiple: true,
-          defaultValue: isSkippingInactive ? SKIP_OPTION_VALUE : undefined,
+          defaultValue: isSkippingInactive ? [SKIP_OPTION_VALUE] : [],
           label: '',
           value: 'fast_forward',
           onChange: (value: typeof SKIP_OPTION_VALUE[]) => {

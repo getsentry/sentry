@@ -89,3 +89,18 @@ register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
 # Default span attributes config
 register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
+
+# Rate at which performance issues are created per project. Defaults to on (rate of 1.0), system flags and options will determine if an organization creates issues.
+# Can be used to turn off a projects detection for users if there is a project-specific issue.
+register(key="sentry:performance_issue_creation_rate", default=1.0)
+
+# A dict containing all the specific detection thresholds and rates.
+register(
+    key="sentry:performance_issue_settings",
+    default={
+        "n_plus_one_db_detection_rate": 0,
+        "n_plus_one_db_issue_rate": 0,
+        "n_plus_one_db_count": 5,
+        "n_plus_one_db_duration_threshold": 500,
+    },
+)

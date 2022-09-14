@@ -1,9 +1,10 @@
 from django.db.models import DateTimeField, Index
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 
 
+@region_silo_model
 class RuleFireHistory(Model):  # type: ignore
     __include_in_export__ = False
 

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api import ApiClient, client
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -28,6 +28,7 @@ from sentry.models import (
     NotificationSetting,
     OrganizationMember,
 )
+from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -122,6 +123,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return is_message
 
 
+@pending_silo_endpoint
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
@@ -172,7 +174,15 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if assignee == "none":
             assignee = None
 
-        update_group(group, identity, {"assignedTo": assignee}, request)
+        update_group(
+            group,
+            identity,
+            {
+                "assignedTo": assignee,
+                "integration": ActivityIntegration.SLACK.value,
+            },
+            request,
+        )
         analytics.record("integrations.slack.assign", actor_id=identity.user_id)
 
     def on_status(

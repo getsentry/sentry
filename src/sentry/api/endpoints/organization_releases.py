@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, release_health
-from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
+from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
@@ -187,6 +187,10 @@ def debounce_update_release_health_data(organization, project_ids):
                 # should not happen
                 continue
 
+            # Ignore versions that were saved with an empty string before validation was added
+            if version == "":
+                continue
+
             # We might have never observed the release.  This for instance can
             # happen if the release only had health data so far.  For these cases
             # we want to create the release the first time we observed it on the
@@ -203,6 +207,7 @@ def debounce_update_release_health_data(organization, project_ids):
     cache.set_many(dict(zip(should_update.values(), [True] * len(should_update))), 60)
 
 
+@region_silo_endpoint
 class OrganizationReleasesEndpoint(
     OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
 ):
@@ -560,6 +565,7 @@ class OrganizationReleasesEndpoint(
             return Response(serializer.errors, status=400)
 
 
+@region_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     def get(self, request: Request, organization) -> Response:
         """

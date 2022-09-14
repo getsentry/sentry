@@ -4,6 +4,7 @@ from sentry.models import AuditLogEntry, ProjectOption
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
 class ProjectPluginDetailsTestBase(APITestCase):
@@ -16,6 +17,7 @@ class ProjectPluginDetailsTestBase(APITestCase):
         assert not AuditLogEntry.objects.filter(target_object=self.project.id).exists()
 
 
+@region_silo_test
 class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(
@@ -40,6 +42,7 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
         ]
 
 
+@region_silo_test
 class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "put"
 
@@ -59,6 +62,7 @@ class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
         )
 
 
+@region_silo_test
 class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
@@ -93,6 +97,7 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
             assert config.get("value") is None
 
 
+@region_silo_test
 class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "delete"
 

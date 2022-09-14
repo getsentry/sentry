@@ -7,7 +7,7 @@ import {Applications, MethodType, PiiConfig, Rule, RuleDefault, RuleType} from '
 // For the time being the PII config format is documented at
 // https://getsentry.github.io/relay/pii-config/
 
-function convertRelayPiiConfig(relayPiiConfig?: string) {
+export function convertRelayPiiConfig(relayPiiConfig?: string): Rule[] {
   const piiConfig = relayPiiConfig ? JSON.parse(relayPiiConfig) : {};
   const rules: PiiConfig = piiConfig.rules || {};
   const applications: Applications = piiConfig.applications || {};
@@ -88,5 +88,3 @@ function convertRelayPiiConfig(relayPiiConfig?: string) {
 
   return convertedRules;
 }
-
-export default convertRelayPiiConfig;

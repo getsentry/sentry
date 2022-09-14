@@ -119,6 +119,7 @@ function useOverlay({
 
   return {
     isOpen: openState.isOpen,
+    state: openState,
     triggerProps: {
       ref: setTriggerElement,
       ...mergeProps(buttonProps, triggerProps),

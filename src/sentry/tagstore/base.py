@@ -40,8 +40,10 @@ class TagStorage(Service):
             "get_group_tag_value",
             "get_group_tag_values",
             "get_group_list_tag_value",
+            "get_perf_group_list_tag_value",
             "get_tag_keys_for_projects",
             "get_groups_user_counts",
+            "get_perf_groups_user_counts",
             "get_group_event_filter",
             "get_group_tag_value_count",
             "get_top_group_tag_values",
@@ -160,7 +162,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys(self, project_id, group_id, environment_ids, limit=None, keys=None):
+    def get_group_tag_keys(self, group, environment_ids, limit=None, keys=None):
         """
         >>> get_group_tag_key(1, 2, [3])
         """
@@ -181,8 +183,13 @@ class TagStorage(Service):
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         """
-        >>> get_group_tag_value([1, 2], [1, 2, 3, 4, 5], [3], "key1", "value1")
+        >>> get_group_list_tag_value([1, 2], [1, 2, 3, 4, 5], [3], "key1", "value1")
         """
+        raise NotImplementedError
+
+    def get_perf_group_list_tag_value(
+        self, project_ids, group_id_list, environment_ids, key, value
+    ):
         raise NotImplementedError
 
     def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
@@ -250,6 +257,11 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
+    def get_perf_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None
+    ):
+        raise NotImplementedError
+
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
         """
         >>> get_group_tag_value_count(1, 2, 3, 'key1')
@@ -296,8 +308,7 @@ class TagStorage(Service):
 
     def get_group_tag_keys_and_top_values(
         self,
-        project_id,
-        group_id,
+        group,
         environment_ids,
         keys=None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
@@ -309,16 +320,16 @@ class TagStorage(Service):
             environment_ids = environment_ids[:1]
 
         # If keys is unspecified, we will grab all tag keys for this group.
-        tag_keys = self.get_group_tag_keys(project_id, group_id, environment_ids, keys=keys)
+        tag_keys = self.get_group_tag_keys(group, environment_ids, keys=keys)
 
         environment_id = environment_ids[0] if environment_ids else None
         for tk in tag_keys:
             tk.top_values = self.get_top_group_tag_values(
-                project_id, group_id, environment_id, tk.key, limit=value_limit
+                group.project_id, group.id, environment_id, tk.key, limit=value_limit
             )
             if tk.count is None:
                 tk.count = self.get_group_tag_value_count(
-                    project_id, group_id, environment_id, tk.key
+                    group.project_id, group.id, environment_id, tk.key
                 )
 
         return tag_keys

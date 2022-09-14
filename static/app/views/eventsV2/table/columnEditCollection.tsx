@@ -13,7 +13,7 @@ import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   AGGREGATIONS,
   Column,
@@ -146,11 +146,7 @@ class ColumnEditCollection extends Component<Props, State> {
   handleAddEquation = () => {
     const {organization} = this.props;
     const newColumn: Column = {kind: FieldValueKind.EQUATION, field: ''};
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.add_equation',
-      eventName: 'Discoverv2: Equation added',
-      organization_id: parseInt(organization.id, 10),
-    });
+    trackAdvancedAnalyticsEvent('discover_v2.add_equation', {organization});
     this.props.onChange([...this.props.columns, newColumn]);
   };
 

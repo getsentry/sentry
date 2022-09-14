@@ -10,17 +10,27 @@ export enum Query {
 }
 
 type OverviewTab = {
-  /** Emitted analytics event tab name  */
+  /**
+   * Emitted analytics event tab name
+   */
   analyticsName: string;
-  /** Will fetch a count to display on this tab */
+  /**
+   * Will fetch a count to display on this tab
+   */
   count: boolean;
-  /** Tabs can be disabled via flag */
+  /**
+   * Tabs can be disabled via flag
+   */
   enabled: boolean;
   name: string;
-  /** Tooltip text for each tab */
-  tooltipTitle: React.ReactNode;
-  /** Tooltip text to be hoverable when text has links */
+  /**
+   * Tooltip text to be hoverable when text has links
+   */
   tooltipHoverable?: boolean;
+  /**
+   * Tooltip text for each tab
+   */
+  tooltipTitle?: React.ReactNode;
 };
 
 /**
@@ -35,7 +45,6 @@ export function getTabs(organization: Organization) {
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
-        tooltipTitle: t(`All unresolved issues.`),
       },
     ],
     [

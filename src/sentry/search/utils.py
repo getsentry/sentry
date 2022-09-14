@@ -99,21 +99,21 @@ def parse_size(value, size):
     elif size == "bytes":
         byte = size_value
     elif size == "kb":
-        byte = size_value * 1024
+        byte = size_value * 1000
     elif size == "mb":
-        byte = size_value * 1024**2
+        byte = size_value * 1000**2
     elif size == "gb":
-        byte = size_value * 1024**3
+        byte = size_value * 1000**3
     elif size == "tb":
-        byte = size_value * 1024**4
+        byte = size_value * 1000**4
     elif size == "pb":
-        byte = size_value * 1024**5
+        byte = size_value * 1000**5
     elif size == "eb":
-        byte = size_value * 1024**6
+        byte = size_value * 1000**6
     elif size == "zb":
-        byte = size_value * 1024**7
+        byte = size_value * 1000**7
     elif size == "yb":
-        byte = size_value * 1024**8
+        byte = size_value * 1000**8
     else:
         raise InvalidQuery(
             f"{size} is not a valid size type, must be bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb"

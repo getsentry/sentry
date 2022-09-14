@@ -39,6 +39,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
@@ -55,7 +56,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -86,7 +86,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
-  seriesResultsType?: string;
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -380,7 +380,7 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const parsedQuery = !name && !!conditions ? parseSearch(conditions) : null;
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
@@ -806,7 +806,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
-                timeseriesResultsType={seriesResultsType}
+                timeseriesResultsTypes={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}
@@ -1031,12 +1031,6 @@ function OpenButton({
       to={path}
       priority="primary"
       type="button"
-      disabled={isCustomMeasurementWidget(widget)}
-      title={
-        isCustomMeasurementWidget(widget)
-          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
-          : undefined
-      }
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,

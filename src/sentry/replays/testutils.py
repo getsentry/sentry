@@ -13,7 +13,14 @@ def assert_expected_response(
         assert key in response, key
         response_value = response.pop(key)
 
-        if isinstance(response_value, list):
+        if isinstance(response_value, dict):
+            assert isinstance(value, dict)
+            for k, v in value.items():
+                if isinstance(v, list):
+                    assert sorted(response_value[k]) == sorted(v)
+                else:
+                    assert response_value[k] == v
+        elif isinstance(response_value, list):
             assert len(response_value) == len(value), f'"{response_value}" "{value}"'
             for item in response_value:
                 assert item in value, f"{key}, {item}"
@@ -49,7 +56,7 @@ def mock_expected_response(
         "longestTransaction": kwargs.pop("longest_transaction", 0),
         "platform": kwargs.pop("platform", "javascript"),
         "environment": kwargs.pop("environment", "production"),
-        "release": kwargs.pop("release", "version@1.3"),
+        "releases": kwargs.pop("releases", ["version@1.3"]),
         "dist": kwargs.pop("dist", "abc123"),
         "os": {
             "name": kwargs.pop("os_name", "iOS"),
@@ -71,11 +78,12 @@ def mock_expected_response(
         },
         "user": {
             "id": kwargs.pop("user_id", "123"),
+            "displayName": kwargs.pop("user_display_name", "username"),
             "email": kwargs.pop("user_email", "username@example.com"),
             "name": kwargs.pop("user_name", "username"),
             "ip_address": kwargs.pop("user_ip_address", "127.0.0.1"),
         },
-        "tags": {"customtag": "is_set"},
+        "tags": kwargs.pop("tags", {}),
     }
 
 
@@ -85,6 +93,9 @@ def mock_replay(
     replay_id: str,
     **kwargs: typing.Dict[str, typing.Any],
 ) -> typing.Dict[str, typing.Any]:
+    tags = kwargs.pop("tags", {})
+    tags.update({"transaction": kwargs.pop("title", "Title")})
+
     return {
         "type": "replay_event",
         "start_time": int(timestamp.timestamp()),
@@ -98,10 +109,7 @@ def mock_replay(
                         "type": "replay_event",
                         "replay_id": replay_id,
                         "segment_id": kwargs.pop("segment_id", 0),
-                        "tags": {
-                            "customtag": "is_set",
-                            "transaction": kwargs.pop("title", "Title"),
-                        },
+                        "tags": tags,
                         "urls": kwargs.pop("urls", []),
                         "error_ids": kwargs.pop(
                             "error_ids", ["a3a62ef6-ac86-415b-83c2-416fc2f76db1"]

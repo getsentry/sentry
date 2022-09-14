@@ -23,6 +23,7 @@ import {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {
+  AggregationOutputType,
   errorsAndTransactionsAggregateFunctionOutputType,
   getAggregateAlias,
   isEquation,
@@ -151,7 +152,6 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
-  filterTableOptions,
   filterAggregateParams,
   getSeriesResultType,
 };
@@ -337,14 +337,10 @@ function filterYAxisOptions(displayType: DisplayType) {
 
 function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
-  widgetQuery: WidgetQuery,
-  organization: Organization
+  widgetQuery: WidgetQuery
 ): Series[] {
   let output: Series[] = [];
   const queryAlias = widgetQuery.name;
-
-  const widgetBuilderNewDesign =
-    organization.features.includes('new-widget-builder-experience-design') || false;
 
   if (isMultiSeriesStats(data)) {
     let seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -355,7 +351,7 @@ function transformEventsResponseToSeries(
     // are created when multiple yAxis are used. Convert the timeseries
     // data into a multi-series data set.  As the server will have
     // replied with a map like: {[titleString: string]: EventsStats}
-    if (widgetBuilderNewDesign && isMultiSeriesDataWithGrouping) {
+    if (isMultiSeriesDataWithGrouping) {
       seriesWithOrdering = flattenMultiSeriesDataWithGrouping(data, queryAlias);
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
@@ -387,13 +383,18 @@ function transformEventsResponseToSeries(
 function getSeriesResultType(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
-) {
+): Record<string, AggregationOutputType> {
   const field = widgetQuery.aggregates[0];
+  const resultTypes = {};
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
-    return data[Object.keys(data)[0]].meta?.fields[getAggregateAlias(field)];
+    Object.keys(data).forEach(
+      key => (resultTypes[key] = data[key].meta?.fields[getAggregateAlias(key)])
+    );
+  } else {
+    resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
   }
-  return data.meta?.fields[getAggregateAlias(field)];
+  return resultTypes;
 }
 
 function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunctionBaggage) {
@@ -469,7 +470,9 @@ function getEventsRequest(
   cursor?: string,
   referrer?: string
 ) {
-  const isMEPEnabled = organization.features.includes('dashboards-mep');
+  const isMEPEnabled =
+    organization.features.includes('dashboards-mep') ||
+    organization.features.includes('mep-rollout-flag');
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -584,11 +587,6 @@ function getEventsSeriesRequest(
   }
 
   return doEventsRequest<true>(api, requestData);
-}
-
-// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
-function filterTableOptions(option: FieldValueOption) {
-  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements

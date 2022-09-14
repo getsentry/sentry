@@ -4,13 +4,13 @@ import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment} from './group';
+import type {IssueAttachment, IssueCategory} from './group';
 import type {Release} from './release';
 import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
 // TODO(epurkhiser): objc and cocoa should almost definitely be moved into PlatformKey
 export type PlatformType = PlatformKey | 'objc' | 'cocoa';
 
-export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample';
+export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
 /**
  * Grouping Configuration.
@@ -249,18 +249,6 @@ type EntrySpans = {
   type: EntryType.SPANS; // data is not used
 };
 
-export type EntrySpanTree = {
-  data: {
-    focusedSpanIds: string[];
-  };
-  type: EntryType.SPANTREE;
-};
-
-export type EntryPerformance = {
-  data: any; // data is not used
-  type: EntryType.PERFORMANCE;
-};
-
 type EntryMessage = {
   data: {
     formatted: string;
@@ -310,8 +298,6 @@ export type Entry =
   | EntryException
   | EntryStacktrace
   | EntrySpans
-  | EntrySpanTree
-  | EntryPerformance
   | EntryMessage
   | EntryRequest
   | EntryTemplate
@@ -366,6 +352,12 @@ export type EventUser = {
   username?: string | null;
 };
 
+export type PerformanceDetectorData = {
+  causeSpanIds: string[];
+  offenderSpanIds: string[];
+  parentSpanIds: string[];
+};
+
 interface EventBase {
   contexts: EventContexts;
   crashFile: IssueAttachment | null;
@@ -401,6 +393,7 @@ interface EventBase {
   device?: Record<string, any>;
   endTimestamp?: number;
   groupID?: string;
+  issueCategory?: IssueCategory;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
   nextEventID?: string | null;
@@ -428,6 +421,7 @@ export interface EventTransaction
   entries: (EntrySpans | EntryRequest)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
+  perfProblem?: PerformanceDetectorData;
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
@@ -437,8 +431,6 @@ export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
     | EntryRequest
     | EntryThreads
     | EntryDebugMeta
-    | EntryPerformance
-    | EntrySpanTree
   )[];
   type: EventOrGroupType.ERROR;
 }

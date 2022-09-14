@@ -1,11 +1,18 @@
+from __future__ import annotations
+
 import logging
-from typing import Optional
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Collection, Literal, Mapping, Optional, Sequence, Union
 
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import BaseEvent
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -60,15 +67,14 @@ class EventStream(Service):
 
     def insert(
         self,
-        group,
-        event,
-        is_new,
-        is_regression,
-        is_new_group_environment,
-        primary_hash,
-        received_timestamp,  # type: float
-        skip_consume=False,
-    ):
+        event: BaseEvent,
+        is_new: bool,
+        is_regression: bool,
+        is_new_group_environment: bool,
+        primary_hash: str,
+        received_timestamp: float,
+        skip_consume: bool = False,
+    ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,
             event.project_id,
@@ -80,54 +86,66 @@ class EventStream(Service):
             skip_consume,
         )
 
-    def start_delete_groups(self, project_id, group_ids):
+    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         pass
 
-    def end_delete_groups(self, state):
+    def end_delete_groups(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def start_merge(self, project_id, previous_group_ids, new_group_id):
+    def start_merge(
+        self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
+    ) -> Mapping[str, Any]:
         pass
 
-    def end_merge(self, state):
+    def end_merge(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def start_unmerge(self, project_id, hashes, previous_group_id, new_group_id):
+    def start_unmerge(
+        self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
+    ) -> Mapping[str, Any]:
         pass
 
-    def end_unmerge(self, state):
+    def end_unmerge(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def start_delete_tag(self, project_id, tag):
+    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
         pass
 
-    def end_delete_tag(self, state):
+    def end_delete_tag(self, state: Mapping[str, Any]) -> None:
         pass
 
     def tombstone_events_unsafe(
-        self, project_id, event_ids, old_primary_hash=False, from_timestamp=None, to_timestamp=None
-    ):
+        self,
+        project_id: int,
+        event_ids: Sequence[str],
+        old_primary_hash: Union[str, bool] = False,
+        from_timestamp: Optional[datetime] = None,
+        to_timestamp: Optional[datetime] = None,
+    ) -> None:
         pass
 
-    def replace_group_unsafe(self, project_id, event_ids, new_group_id):
+    def replace_group_unsafe(
+        self, project_id: int, event_ids: Sequence[str], new_group_id: int
+    ) -> None:
         pass
 
-    def exclude_groups(self, project_id, group_ids):
+    def exclude_groups(self, project_id: int, group_ids: Sequence[int]) -> None:
         pass
 
-    def requires_post_process_forwarder(self):
+    def requires_post_process_forwarder(self) -> bool:
         return False
 
     def run_post_process_forwarder(
         self,
-        entity,
-        consumer_group,
+        entity: Union[Literal["all"], Literal["errors"], Literal["transactions"]],
+        consumer_group: str,
         topic: Optional[str],
-        commit_log_topic,
-        synchronize_commit_group,
-        commit_batch_size=100,
-        commit_batch_timeout_ms=5000,
-        initial_offset_reset="latest",
-    ):
+        commit_log_topic: str,
+        synchronize_commit_group: str,
+        commit_batch_size: int,
+        commit_batch_timeout_ms: int,
+        concurrency: int,
+        initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
+    ) -> None:
         assert not self.requires_post_process_forwarder()
         raise ForwarderNotRequired

@@ -170,10 +170,7 @@ from sentry.api.endpoints.organization_details import OrganizationDetailsEndpoin
 from sentry.api.endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from sentry.api.endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from sentry.api.endpoints.organization_eventid import EventIdLookupEndpoint
-from sentry.api.endpoints.organization_events import (
-    OrganizationEventsGeoEndpoint,
-    OrganizationEventsV2Endpoint,
-)
+from sentry.api.endpoints.organization_events import OrganizationEventsGeoEndpoint
 from sentry.api.endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from sentry.api.endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -224,15 +221,6 @@ from sentry.api.endpoints.organization_member import (
 )
 from sentry.api.endpoints.organization_member.team_details import (
     OrganizationMemberTeamDetailsEndpoint,
-)
-from sentry.api.endpoints.organization_member_issues_assigned import (
-    OrganizationMemberIssuesAssignedEndpoint,
-)
-from sentry.api.endpoints.organization_member_issues_bookmarked import (
-    OrganizationMemberIssuesBookmarkedEndpoint,
-)
-from sentry.api.endpoints.organization_member_issues_viewed import (
-    OrganizationMemberIssuesViewedEndpoint,
 )
 from sentry.api.endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
@@ -301,7 +289,6 @@ from sentry.api.endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from sentry.api.endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from sentry.api.endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from sentry.api.endpoints.organization_user_issues_search import (
     OrganizationUserIssuesSearchEndpoint,
 )
@@ -720,7 +707,6 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationConfigIntegrationsEndpoint,
     OrganizationConfigRepositoriesEndpoint,
     OrganizationSdkUpdatesEndpoint,
-    OrganizationEventsV2Endpoint,
     OrganizationEventDetailsEndpoint,
     OrganizationEventsStatsEndpoint,
     OrganizationEventsGeoEndpoint,
@@ -777,13 +763,9 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationSearchDetailsEndpoint,
     OrganizationSearchesEndpoint,
     OrganizationUserIssuesSearchEndpoint,
-    OrganizationUserIssuesEndpoint,
     OrganizationIssuesResolvedInReleaseEndpoint,
     OrganizationMemberDetailsEndpoint,
     OrganizationMemberUnreleasedCommitsEndpoint,
-    OrganizationMemberIssuesAssignedEndpoint,
-    OrganizationMemberIssuesBookmarkedEndpoint,
-    OrganizationMemberIssuesViewedEndpoint,
     OrganizationProcessingIssuesEndpoint,
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsSentFirstEventEndpoint,

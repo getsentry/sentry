@@ -5,10 +5,12 @@ from django.urls import reverse
 
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test
 class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
     endpoint = "sentry-api-0-organization-measurements-meta"
     METRIC_STRINGS = [
@@ -63,6 +65,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
                     "sum",
                     "percentile",
                 ],
+                "unit": "millisecond",
             }
         }
 

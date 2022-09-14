@@ -7,7 +7,7 @@ import ReplayView from 'sentry/components/replays/replayView';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/focusTabs';
@@ -187,6 +187,10 @@ const VideoSection = styled(FluidHeight)`
 
   background: ${p => p.theme.background};
   gap: ${space(1)};
+
+  :fullscreen {
+    padding: ${space(1)};
+  }
 `;
 
 export default ReplayLayout;
