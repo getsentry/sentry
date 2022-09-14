@@ -92,9 +92,16 @@ function Sidebar({location, organization}: Props) {
   }, [bcl]);
 
   useEffect(() => {
-    if (location?.hash === '#whats-new') {
-      togglePanel(SidebarPanelKey.Broadcasts);
-    }
+    [
+      SidebarPanelKey.Broadcasts,
+      SidebarPanelKey.OnboardingWizard,
+      SidebarPanelKey.PerformanceOnboarding,
+      SidebarPanelKey.ServiceIncidents,
+    ].forEach(sidebarValue => {
+      if (location?.hash === `#sidebar-${sidebarValue}`) {
+        togglePanel(sidebarValue);
+      }
+    });
   }, [location?.hash]);
 
   // Add sidebar collapse classname to body
