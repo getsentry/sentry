@@ -210,6 +210,11 @@ def handle_group_owners(project, group, owners, owner_source):
             for key in new_owners:
                 if key not in keeping_owners:
                     owner_type, owner_id, owner_source = key
+                    group_owner_type = (
+                        GroupOwnerType.OWNERSHIP_RULE.value
+                        if owner_source == OwnerRuleType.OWNERSHIP_RULE.value
+                        else GroupOwnerType.CODEOWNERS.value
+                    )
                     user_id = None
                     team_id = None
                     if owner_type is User:
@@ -219,7 +224,7 @@ def handle_group_owners(project, group, owners, owner_source):
                     new_group_owners.append(
                         GroupOwner(
                             group=group,
-                            type=GroupOwnerType.OWNERSHIP_RULE.value,
+                            type=group_owner_type,
                             user_id=user_id,
                             team_id=team_id,
                             project=project,
