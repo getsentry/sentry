@@ -69,7 +69,7 @@ export enum LayoutKey {
    * │        >          │
    * │^^^^^^^ >          |
    * │ Crumbs >          │
-   * │        >          │
+   * │ Tabs   >          │
    * └────────┴──────────┘
    */
   sidebar_left = 'sidebar_left',

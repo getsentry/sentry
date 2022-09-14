@@ -165,17 +165,40 @@ function ReplayLayout({
   }
 
   if (layout === 'sidebar_left') {
+    const mainArea = (
+      <ErrorBoundary mini>
+        <FluidPanel title={<SmallMarginFocusTabs />}>
+          <FocusArea />
+        </FluidPanel>
+      </ErrorBoundary>
+    );
+
+    const sideContent = (
+      <SplitPanel
+        key={layout}
+        top={{
+          content: video,
+          default: '50%',
+          min: MIN_CONTENT_WIDTH,
+        }}
+        bottom={{
+          content: <SideCrumbsTags crumbs={crumbsWithoutTitle} />,
+          min: MIN_SIDEBAR_WIDTH,
+        }}
+      />
+    );
+
     return (
       <BodyContent>
         {timeline}
         <SplitPanel
           key={layout}
           left={{
-            content: <SidebarContent video={video} crumbs={crumbsWithTitle} />,
+            content: sideContent,
             min: MIN_SIDEBAR_WIDTH,
           }}
           right={{
-            content,
+            content: mainArea,
             default: '60%',
             min: MIN_CONTENT_WIDTH,
           }}
