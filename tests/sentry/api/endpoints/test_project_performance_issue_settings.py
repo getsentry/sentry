@@ -1,6 +1,8 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry import projectoptions
+from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -77,3 +79,17 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 )
             ]
         }
+
+    def test_delete_all_project_settings(self):
+        self.project.update_option(SETTINGS_PROJECT_OPTION_KEY, {"n_plus_one_db_count": 42})
+        assert self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["n_plus_one_db_count"] == 42
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.delete(
+                self.url,
+                data={},
+            )
+
+        assert response.status_code == 204, response.content
+        assert self.project.get_option(
+            SETTINGS_PROJECT_OPTION_KEY
+        ) == projectoptions.get_well_known_default(SETTINGS_PROJECT_OPTION_KEY)

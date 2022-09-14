@@ -19,8 +19,9 @@ const optionsAvailable = [
   'beacon.anonymous',
   'performance.issues.all.problem-detection',
   'performance.issues.all.problem-creation',
-  'performance.issues.n_plus_one.problem-detection',
-  'performance.issues.n_plus_one.problem-creation',
+  'performance.issues.n_plus_one_db.problem-creation',
+  'performance.issues.n_plus_one_db.count_threshold',
+  'performance.issues.n_plus_one_db.duration_threshold',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -95,11 +96,15 @@ export default class AdminSettings extends AsyncView<{}, State> {
 
           <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
-              <PanelHeader>Performance Issues</PanelHeader>
+              <PanelHeader>Performance Issues - All</PanelHeader>
               {fields['performance.issues.all.problem-detection']}
               {fields['performance.issues.all.problem-creation']}
-              {fields['performance.issues.n_plus_one.problem-detection']}
-              {fields['performance.issues.n_plus_one.problem-creation']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - Detectors</PanelHeader>
+              {fields['performance.issues.n_plus_one_db.problem-creation']}
+              {fields['performance.issues.n_plus_one_db.count_threshold']}
+              {fields['performance.issues.n_plus_one_db.duration_threshold']}
             </Panel>
           </Feature>
         </Form>
