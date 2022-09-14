@@ -24,6 +24,7 @@ from sentry.lang.javascript.processor import (
     fetch_release_file,
     fetch_sourcemap,
     generate_module,
+    get_function_for_token,
     get_max_age,
     get_release_file_cache_key,
     get_release_file_cache_key_meta,
@@ -993,6 +994,31 @@ class GenerateModuleTest(unittest.TestCase):
             generate_module("~/app/components/projectHeader/projectSelector.jsx")
             == "app/components/projectHeader/projectSelector"
         )
+
+
+class GetFunctionForTokenTest(unittest.TestCase):
+    # There is no point in pulling down `SourceMapCacheToken` and creating a constructor for it.
+    def get_token(self, name):
+        class Token:
+            def __init__(self, name):
+                self.function_name = name
+
+        return Token(name)
+
+    def test_valid_name(self):
+        frame = {"function": "original"}
+        token = self.get_token("lookedup")
+        assert get_function_for_token(frame, token) == "lookedup"
+
+    def test_useless_name(self):
+        frame = {"function": "original"}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token) == "original"
+
+    def test_useless_name_but_no_original(self):
+        frame = {"function": None}
+        token = self.get_token("__webpack_require__")
+        assert get_function_for_token(frame, token) == "__webpack_require__"
 
 
 class FetchSourcemapTest(TestCase):

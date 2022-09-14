@@ -811,6 +811,22 @@ def is_valid_frame(frame):
     return frame is not None and frame.get("lineno") is not None
 
 
+def get_function_for_token(frame, token):
+    """
+    Get function name for a given frame, based on the looked up token.
+    Return tokens name if we have a usable value from symbolic or we have no initial function name at all,
+    otherwise, fallback to frames current function name.
+    """
+
+    frame_function_name = frame.get("function")
+    token_function_name = token.function_name
+
+    if token_function_name not in USELESS_FN_NAMES or not frame_function_name:
+        return token_function_name
+
+    return frame_function_name
+
+
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Attempts to fetch source code for javascript frames.
@@ -987,10 +1003,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # The tokens are 1-indexed.
                 new_frame["lineno"] = token.line
                 new_frame["colno"] = token.col
-
-                # If we have a usable function name from symbolic or we have no initial function name at all
-                if token.function_name not in USELESS_FN_NAMES or not new_frame.get("function"):
-                    new_frame["function"] = token.function_name
+                new_frame["function"] = get_function_for_token(new_frame, token)
 
                 filename = token.src
                 # special case webpack support
