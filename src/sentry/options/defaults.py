@@ -520,6 +520,9 @@ register("store.use-ingest-performance-detection-only", default=0.0)
 # and the creation of performance problems, which will eventually get turned into issues.
 register("performance.issues.all.problem-detection", default=0.0)
 register("performance.issues.all.problem-creation", default=0.0)
+register(
+    "performance.issues.all.early-adopter-rollout", default=0.0
+)  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.duplicates.problem-detection", default=0.0)
