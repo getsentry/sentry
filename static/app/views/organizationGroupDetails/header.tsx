@@ -83,6 +83,7 @@ class GroupHeader extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
       action_type: 'assign',
       // Alert properties track if the user came from email/slack alerts
       alert_date:
