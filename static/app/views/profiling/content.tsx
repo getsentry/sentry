@@ -7,6 +7,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -20,6 +21,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -116,6 +118,12 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     });
   }, []);
 
+  const onGiveFeedbackClick = useCallback(() => {
+    openModal(props => {
+      return <FeedbackModal featureName="profiling" {...props} />;
+    });
+  }, []);
+
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
     if (transactions.type !== 'resolved') {
       return false;
@@ -135,7 +143,12 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
             <Layout.Header>
               <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
-                <Button onClick={onSetupProfilingClick}>Set Up Profiling</Button>
+                <HeadingActions>
+                  <Button onClick={onSetupProfilingClick}>Set Up Profiling</Button>
+                  <Button onClick={onGiveFeedbackClick} icon={<IconMegaphone />}>
+                    Give Feedback
+                  </Button>
+                </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>
             <Layout.Body>
@@ -207,6 +220,15 @@ const StyledLayoutHeaderContent = styled(Layout.HeaderContent)`
   display: flex;
   justify-content: space-between;
   flex-direction: row;
+`;
+
+const HeadingActions = styled('div')`
+  display: flex;
+  align-items: center;
+
+  button:not(:last-child) {
+    margin-right: ${space(1)};
+  }
 `;
 
 const StyledHeading = styled(PageHeading)`
