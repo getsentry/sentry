@@ -186,9 +186,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(
-                group.project_id, group.id, environment_ids, limit=100
-            )
+            tags = tagstore.get_group_tag_keys(group, environment_ids, limit=100)
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)
