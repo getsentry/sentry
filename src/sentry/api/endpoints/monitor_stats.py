@@ -4,11 +4,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import StatsMixin
+from sentry.api.base import StatsMixin, pending_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.models import CheckInStatus, MonitorCheckIn
 
 
+@pending_silo_endpoint
 class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
     def get(self, request: Request, project, monitor) -> Response:

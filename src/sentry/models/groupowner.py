@@ -7,7 +7,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry import features
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.release import Release
@@ -38,6 +38,7 @@ class OwnersSerializedWithCommits(TypedDict):
     commits: List[ReleaseCommit]
 
 
+@region_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
@@ -152,6 +153,7 @@ def get_release_committers_for_group(group: Group, include_commits: bool = False
                 commits=rc_data["commits"],
             )
             for rc_data in owners_data.values()
+            if "commits" in rc_data
         ]
 
     return [
@@ -161,4 +163,5 @@ def get_release_committers_for_group(group: Group, include_commits: bool = False
             date_added=rc_data["date_added"],
         )
         for rc_data in owners_data.values()
+        if "owner" in rc_data
     ]

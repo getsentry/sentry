@@ -33,10 +33,13 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -353,6 +356,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert [int(r["id"]) for r in response.data] == [event.group.id]
 
 
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1203,6 +1207,25 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
+    @patch("sentry.api.helpers.group_index.update.uuid4")
+    @patch("sentry.api.helpers.group_index.update.merge_groups")
+    @patch("sentry.api.helpers.group_index.update.eventstream")
+    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
+        mock_uuid4.return_value = self.get_mock_uuid()
+        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        self.create_group()
+
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group1.id}&id={group2.id}&id={group3.id}"
+        response = self.client.put(url, data={"merge": "1"}, format="json")
+
+        assert response.status_code == 400, response.content
+
     def test_assign(self):
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)
@@ -1317,6 +1340,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group1.id).exists()
 
 
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     @fixture
     def path(self):
@@ -1386,6 +1410,38 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
+    @patch("sentry.api.helpers.group_index.delete.eventstream")
+    @patch("sentry.eventstream")
+    def test_delete_performance_issue_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = {"event_stream_state": uuid4()}
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
+        group1 = self.create_group(
+            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        )
+        group2 = self.create_group(
+            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        )
+
+        hashes = []
+        for g in group1, group2:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group1.id}&id={group2.id}"
+
+        response = self.client.delete(url, format="json")
+
+        assert response.status_code == 400
+
+        assert Group.objects.filter(id=group1.id).exists()
+        assert GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.filter(id=group2.id).exists()
+        assert GroupHash.objects.filter(group_id=group2.id).exists()
+
     def test_bulk_delete(self):
         groups = []
         for i in range(10, 41):
@@ -1426,3 +1482,31 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_bulk_delete_performance_issues(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    status=GroupStatus.RESOLVED,
+                    type=GroupType.PERFORMANCE_SLOW_SPAN.value,
+                )
+            )
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        self.login_as(user=self.user)
+
+        # if query is '' it defaults to is:unresolved
+        url = self.path + "?query="
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 400
+
+        for group in groups:
+            assert Group.objects.filter(id=group.id).exists()
+            assert GroupHash.objects.filter(group_id=group.id).exists()

@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features, tagstore
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.builder import QueryBuilder
@@ -57,6 +58,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         return params, aggregate_column, filter_query
 
 
+@region_silo_endpoint
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
     def get(self, request: Request, organization) -> Response:
         try:
@@ -122,6 +124,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
             )
 
 
+@region_silo_endpoint
 class OrganizationEventsFacetsPerformanceHistogramEndpoint(
     OrganizationEventsFacetsPerformanceEndpointBase
 ):
@@ -453,7 +456,7 @@ def query_facet_performance(
         )
 
         results = tag_query.run_query(f"{referrer}.tag_values".format(referrer, "tag_values"))
-        results = discover.transform_results(results, tag_query.function_alias_map, {}, None)
+        results = discover.transform_results(results, tag_query, {}, None)
 
         return results
 

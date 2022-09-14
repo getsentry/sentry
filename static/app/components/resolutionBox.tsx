@@ -13,6 +13,7 @@ import {
   GroupActivity,
   GroupActivitySetByResolvedInRelease,
   GroupActivityType,
+  Repository,
   ResolutionStatusDetails,
 } from 'sentry/types';
 
@@ -95,15 +96,17 @@ function renderReason(
           ),
         });
   }
-  if (!!statusDetails.inCommit) {
+  if (statusDetails.inCommit) {
     return tct('This issue has been marked as resolved by [commit]', {
       commit: (
         <Fragment>
           <CommitLink
             commitId={statusDetails.inCommit.id}
-            repository={statusDetails.inCommit.repository}
+            repository={statusDetails.inCommit.repository as Repository}
           />
-          <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          {statusDetails.inCommit.dateCreated && (
+            <StyledTimeSince date={statusDetails.inCommit.dateCreated} />
+          )}
         </Fragment>
       ),
     });

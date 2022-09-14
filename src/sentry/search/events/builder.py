@@ -1,6 +1,19 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Match,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import sentry_sdk
 from django.utils import timezone
@@ -46,6 +59,7 @@ from sentry.search.events.constants import (
     METRICS_GRANULARITIES,
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
+    PERCENT_UNITS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
     QUERY_TIPS,
     SIZE_UNITS,
@@ -86,6 +100,10 @@ from sentry.utils.snuba import (
     Dataset,
     QueryOutsideRetentionError,
     bulk_snql_query,
+    is_duration_measurement,
+    is_measurement,
+    is_percentage_measurement,
+    is_span_op_breakdown,
     raw_snql_query,
     resolve_column,
 )
@@ -141,6 +159,7 @@ class QueryBuilder:
         self.columns: List[SelectType] = []
         self.orderby: List[OrderBy] = []
         self.groupby: List[SelectType] = []
+
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.equation_alias_map: Dict[str, SelectType] = {}
@@ -826,6 +845,57 @@ class QueryBuilder:
         return flattened
 
     @cached_property  # type: ignore
+    def custom_measurement_map(self) -> List[MetricMeta]:
+        # Both projects & org are required, but might be missing for the search parser
+        if "project_id" not in self.params or self.organization_id is None:
+            return []
+
+        from sentry.snuba.metrics.datasource import get_custom_measurements
+
+        result: List[MetricMeta] = get_custom_measurements(
+            project_ids=self.params["project_id"],
+            organization_id=self.organization_id,
+            start=datetime.today() - timedelta(days=90),
+            end=datetime.today(),
+        )
+        return result
+
+    def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
+        # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
+        if not is_measurement(name):
+            return None
+
+        for measurement in self.custom_measurement_map:
+            if measurement["name"] == name and measurement["metric_id"] is not None:
+                return measurement
+        return None
+
+    def get_field_type(self, field: str) -> Optional[str]:
+        if (
+            field == "transaction.duration"
+            or is_duration_measurement(field)
+            or is_span_op_breakdown(field)
+        ):
+            return "duration"
+
+        if is_percentage_measurement(field):
+            return "percentage"
+        measurement = self.get_measument_by_name(field)
+        # let the caller decide what to do
+        if measurement is None:
+            return None
+
+        unit: str = measurement["unit"]
+        if unit in SIZE_UNITS or unit in DURATION_UNITS:
+            return unit
+        elif unit == "none":
+            return "integer"
+        elif unit in PERCENT_UNITS:
+            return "percentage"
+        else:
+            return "number"
+
+    @cached_property  # type: ignore
     def project_slugs(self) -> Mapping[str, int]:
         project_ids = cast(List[int], self.params.get("project_id", []))
 
@@ -1108,7 +1178,7 @@ class QueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
-            and name != "event.type"
+            and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
             # between a value and a null will result to null, so we need to
@@ -1588,10 +1658,76 @@ class HistogramQueryBuilder(QueryBuilder):
 
 
 class SessionsQueryBuilder(QueryBuilder):
+    # ToDo(ahmed): Rename this to AlertsSessionsQueryBuilder as it is exclusively used for crash rate alerts
     def resolve_params(self) -> List[WhereType]:
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
         return conditions
+
+
+class SessionsV2QueryBuilder(QueryBuilder):
+    filter_allowlist_fields = {"project", "project_id", "environment", "release"}
+
+    def __init__(
+        self,
+        *args: Any,
+        granularity: Optional[int] = None,
+        extra_filter_allowlist_fields: Optional[Sequence[str]] = None,
+        **kwargs: Any,
+    ):
+        self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
+        self.granularity = Granularity(granularity) if granularity is not None else None
+        super().__init__(*args, **kwargs)
+
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
+        return conditions
+
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+        """
+        The default QueryBuilder `resolve_groupby` function needs to be overridden here because, it only adds the
+        columns in the groupBy clause to the query if the query has `aggregates` present in it. For this specific case
+        of the `sessions` dataset, the session fields are aggregates but these aggregate definitions are hidden away in
+        snuba so if we rely on the default QueryBuilder `resolve_groupby` method, then it won't add the requested
+        groupBy columns as it does not consider these fields as aggregates, and so we end up with clickhouse error that
+        the column is not under an aggregate function or in the `groupBy` basically.
+        """
+        if groupby_columns is None:
+            return []
+        return list({self.resolve_column(column) for column in groupby_columns})
+
+    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        if name in self.filter_allowlist_fields or name in self._extra_filter_allowlist_fields:
+            return super()._default_filter_converter(search_filter)
+        raise InvalidSearchQuery(f"Invalid search filter: {name}")
+
+
+class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
+    time_column = "bucketed_started"
+
+    def get_snql_query(self) -> Request:
+        self.validate_having_clause()
+
+        return Request(
+            dataset=self.dataset.value,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value, sample=self.sample_rate),
+                select=[Column(self.time_column)] + self.columns,
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=[Column(self.time_column)] + self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                granularity=self.granularity,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
+        )
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -1611,7 +1747,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self._custom_measurement_cache: Optional[List[MetricMeta]] = None
         self.tag_values_are_strings = options.get(
             "sentry-metrics.performance.tags-values-are-strings"
         )
@@ -1634,19 +1769,6 @@ class MetricsQueryBuilder(QueryBuilder):
     @property
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
-
-    @property
-    def custom_measurement_map(self) -> List[MetricMeta]:
-        if self._custom_measurement_cache is None:
-            from sentry.snuba.metrics.datasource import get_custom_measurements
-
-            self._custom_measurement_cache = get_custom_measurements(
-                project_ids=self.params["project_id"],
-                organization_id=self.organization_id,
-                start=datetime.today() - timedelta(days=90),
-                end=datetime.today(),
-            )
-        return self._custom_measurement_cache
 
     def resolve_query(
         self,
@@ -1870,6 +1992,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        if self.dry_run:
+            return -1
         if value not in self._indexer_cache:
             if self.is_performance:
                 use_case_id = UseCaseKey.PERFORMANCE
@@ -1901,7 +2025,7 @@ class MetricsQueryBuilder(QueryBuilder):
             lhs = lhs.exp
 
         # resolve_column will try to resolve this name with indexer, and if its a tag the Column will be tags[1]
-        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_tag = isinstance(lhs, Column) and lhs.subscriptable in ["tags", "tags_raw"]
         if is_tag:
             if isinstance(value, list):
                 resolved_value = []
@@ -1944,8 +2068,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def _resolve_environment_filter_value(self, value: str) -> int:
-        value_id: Optional[int] = self.config.resolve_value(f"{value}")
+    def _resolve_environment_filter_value(self, value: str) -> Union[int, str]:
+        value_id: Optional[Union[int, str]] = self.resolve_tag_value(f"{value}")
         if value_id is None:
             raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
 
@@ -1961,9 +2085,15 @@ class MetricsQueryBuilder(QueryBuilder):
         value = search_filter.value.value
         values_set = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(
-            self._resolve_environment_filter_value(value) if value else 0 for value in values_set
-        )
+        values = []
+        for value in values_set:
+            if value:
+                values.append(self._resolve_environment_filter_value(value))
+            elif self.tag_values_are_strings:
+                values.append("")
+            else:
+                values.append(0)
+        values.sort()
         environment = self.column("environment")
         if len(values) == 1:
             operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
@@ -2109,7 +2239,10 @@ class MetricsQueryBuilder(QueryBuilder):
         """Check that the orderby doesn't include any direct tags, this shouldn't raise an error for project since we
         transform it"""
         for orderby in self.orderby:
-            if (isinstance(orderby.exp, Column) and orderby.exp.subscriptable == "tags") or (
+            if (
+                isinstance(orderby.exp, Column)
+                and orderby.exp.subscriptable in ["tags", "tags_raw"]
+            ) or (
                 isinstance(orderby.exp, Function) and orderby.exp.alias in ["transaction", "title"]
             ):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
@@ -2278,7 +2411,6 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
-            self.organization_id,
             self.num_buckets,
             self.min_bin,
             self.max_bin,

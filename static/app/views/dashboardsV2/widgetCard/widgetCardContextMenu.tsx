@@ -10,7 +10,6 @@ import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -18,11 +17,8 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {
-  getWidgetDiscoverUrl,
-  getWidgetIssueUrl,
-  isCustomMeasurementWidget,
-} from 'sentry/views/dashboardsV2/utils';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
@@ -43,7 +39,7 @@ type Props = {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
-  seriesResultsType?: string;
+  seriesResultsType?: Record<string, AggregationOutputType>;
   showContextMenu?: boolean;
   showWidgetViewerButton?: boolean;
   tableData?: TableDataWithTitle[];
@@ -76,8 +72,7 @@ function WidgetCardContextMenu({
   }
 
   const menuOptions: MenuItemProps[] = [];
-  const usingCustomMeasurements = isCustomMeasurementWidget(widget);
-  const disabledKeys: string[] = usingCustomMeasurements ? ['open-in-discover'] : [];
+  const disabledKeys: string[] = [];
 
   const openWidgetViewerPath = (id: string | undefined) => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -163,38 +158,22 @@ function WidgetCardContextMenu({
       );
       menuOptions.push({
         key: 'open-in-discover',
-        label: usingCustomMeasurements ? (
-          <Tooltip
-            skipWrapper
-            title={t(
-              'Widget using custom performance metrics cannot be opened in Discover.'
-            )}
-          >
-            {t('Open in Discover')}
-          </Tooltip>
-        ) : (
-          t('Open in Discover')
-        ),
-        to:
-          !usingCustomMeasurements && widget.queries.length === 1
-            ? discoverPath
-            : undefined,
+        label: t('Open in Discover'),
+        to: widget.queries.length === 1 ? discoverPath : undefined,
         onAction: () => {
-          if (!usingCustomMeasurements) {
-            if (widget.queries.length === 1) {
-              trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
-                organization,
-                widget_type: widget.displayType,
-              });
-              return;
-            }
-
-            trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+          if (widget.queries.length === 1) {
+            trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
               organization,
               widget_type: widget.displayType,
             });
-            openDashboardWidgetQuerySelectorModal({organization, widget, isMetricsData});
+            return;
           }
+
+          trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
+            organization,
+            widget_type: widget.displayType,
+          });
+          openDashboardWidgetQuerySelectorModal({organization, widget, isMetricsData});
         },
       });
     }

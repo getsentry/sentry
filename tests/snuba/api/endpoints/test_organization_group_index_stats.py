@@ -1,8 +1,10 @@
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index-stats"
 
@@ -57,6 +59,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "firstSeen" in response_data[0]
         assert "lastSeen" in response_data[0]
         assert "count" in response_data[0]
+        assert "userCount" in response_data[0]
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
 

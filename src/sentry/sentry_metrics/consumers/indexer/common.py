@@ -80,7 +80,7 @@ class MetricsBatchBuilder:
             return False
 
 
-class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
+class BatchMessages(ProcessingStep[KafkaPayload]):
     """
     First processing step in the MetricsConsumerStrategyFactory.
     Keeps track of a batch of messages (using the MetricsBatchBuilder)

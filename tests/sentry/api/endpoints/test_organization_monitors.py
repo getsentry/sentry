@@ -1,5 +1,6 @@
 from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationMonitorsTestBase(APITestCase):
@@ -10,6 +11,7 @@ class OrganizationMonitorsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@region_silo_test
 class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
         assert [str(monitor.guid) for monitor in expected_monitors] == [
@@ -27,6 +29,7 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
         self.check_valid_response(response, [monitor])
 
 
+@region_silo_test
 class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
     method = "post"
 

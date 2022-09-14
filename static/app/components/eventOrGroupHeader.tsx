@@ -63,11 +63,13 @@ function EventOrGroupHeader({
     return (
       <Fragment>
         {!hideLevel && level && (
-          <GroupLevel level={level}>
-            <Tooltip title={tct('Error level: [level]', {level: capitalize(level)})}>
-              <span />
-            </Tooltip>
-          </GroupLevel>
+          <Tooltip
+            skipWrapper
+            disabled={level === 'unknown'}
+            title={tct('Error level: [level]', {level: capitalize(level)})}
+          >
+            <GroupLevel level={level} />
+          </Tooltip>
         )}
         {!hideIcons && status === 'ignored' && (
           <IconWrapper>
@@ -186,7 +188,7 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
         `
       : css`
           > a:first-child {
-            display: flex;
+            display: inline-flex;
             min-height: ${space(3)};
           }
         `}
@@ -239,12 +241,6 @@ const GroupLevel = styled('div')<{level: Level}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
-
-  & span {
-    display: block;
-    width: 9px;
-    height: 15px;
-  }
 `;
 
 export default withRouter(withOrganization(EventOrGroupHeader));

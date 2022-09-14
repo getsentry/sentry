@@ -99,6 +99,12 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
             {...props}
             clearable={allowClear}
             multiple={multiple}
+            styles={{
+              control: provided => ({
+                ...provided,
+                height: 'auto',
+              }),
+            }}
             onChange={val => {
               try {
                 if (!confirm) {

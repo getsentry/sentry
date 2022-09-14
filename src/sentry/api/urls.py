@@ -239,11 +239,7 @@ from .endpoints.organization_dynamic_sampling_sdk_versions import (
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
-from .endpoints.organization_events import (
-    OrganizationEventsEndpoint,
-    OrganizationEventsGeoEndpoint,
-    OrganizationEventsV2Endpoint,
-)
+from .endpoints.organization_events import OrganizationEventsEndpoint, OrganizationEventsGeoEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -300,11 +296,6 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
-from .endpoints.organization_member_issues_bookmarked import (
-    OrganizationMemberIssuesBookmarkedEndpoint,
-)
-from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
@@ -367,7 +358,6 @@ from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
@@ -402,6 +392,7 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
+from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
@@ -1112,12 +1103,6 @@ urlpatterns = [
                     OrganizationSdkUpdatesEndpoint.as_view(),
                     name="sentry-api-0-organization-sdk-updates",
                 ),
-                # TODO add an alias for /organizations/:slug/events/ and deprecate eventsv2
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
-                    OrganizationEventsV2Endpoint.as_view(),
-                    name="sentry-api-0-organization-eventsv2",
-                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events/$",
                     OrganizationEventsEndpoint.as_view(),
@@ -1358,11 +1343,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-issue-search",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/issues/$",
-                    OrganizationUserIssuesEndpoint.as_view(),
-                    name="sentry-api-0-organization-user-issues",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
                     OrganizationIssuesResolvedInReleaseEndpoint.as_view(),
                     name="sentry-api-0-organization-release-resolved",
@@ -1376,21 +1356,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
                     OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
                     name="sentry-api-0-organization-member-unreleased-commits",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$",
-                    OrganizationMemberIssuesAssignedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-assigned",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/bookmarked/$",
-                    OrganizationMemberIssuesBookmarkedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-bookmarked",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/viewed/$",
-                    OrganizationMemberIssuesViewedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-viewed",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
@@ -2242,6 +2207,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
                     ProjectTransactionThresholdEndpoint.as_view(),
                     name="sentry-api-0-project-transaction-threshold",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance-issues/configure/$",
+                    ProjectPerformanceIssueSettingsEndpoint.as_view(),
+                    name="sentry-api-0-project-performance-issue-settings",
                 ),
                 # Load plugin project urls
                 url(

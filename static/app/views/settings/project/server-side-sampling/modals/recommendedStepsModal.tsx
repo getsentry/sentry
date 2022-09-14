@@ -22,6 +22,7 @@ import {
   SamplingRule,
   UniformModalsSubmit,
 } from 'sentry/types/sampling';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -29,7 +30,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
 import {projectStatsToSampleRates} from '../utils/projectStatsToSampleRates';
-import useProjectStats from '../utils/useProjectStats';
+import {useProjectStats} from '../utils/useProjectStats';
 import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {FooterActions, Stepper} from './uniformRateModal';
@@ -45,6 +46,7 @@ export type RecommendedStepsModalProps = ModalRenderProps & {
   onSubmit?: UniformModalsSubmit;
   recommendedSampleRate?: boolean;
   serverSampleRate?: number;
+  specifiedClientRate?: number;
   uniformRule?: SamplingRule;
 };
 
@@ -62,23 +64,17 @@ export function RecommendedStepsModal({
   serverSampleRate,
   uniformRule,
   projectId,
+  specifiedClientRate,
   recommendedSampleRate,
   onSetRules,
 }: RecommendedStepsModalProps) {
   const {isProjectIncompatible} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId,
   });
   const [saving, setSaving] = useState(false);
-  const {projectStats} = useProjectStats({
-    orgSlug: organization.slug,
-    projectId,
-    interval: '1h',
-    statsPeriod: '48h',
-    disable: !!clientSampleRate,
-    groupBy: 'outcome',
-  });
-  const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats);
+  const {projectStats48h} = useProjectStats();
+  const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats48h.data);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
 
   const isValid =
@@ -231,7 +227,9 @@ export function RecommendedStepsModal({
           <ButtonBar gap={1}>
             {onGoBack && (
               <Fragment>
-                <Stepper>{t('Step 2 of 2')}</Stepper>
+                <Stepper>
+                  {defined(specifiedClientRate) ? t('Step 3 of 3') : t('Step 2 of 2')}
+                </Stepper>
                 <Button onClick={handleGoBack}>{t('Back')}</Button>
               </Fragment>
             )}

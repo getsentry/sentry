@@ -8,9 +8,11 @@ from freezegun import freeze_time
 from sentry.constants import DataCategory
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OutcomesSnubaTest
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
+@region_silo_test
 class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()

@@ -21,9 +21,9 @@ import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
+import SpanTreeModel from './spanTreeModel';
 import {
   EnhancedSpan,
-  FocusedSpanIDMap,
   GapSpanType,
   OrphanSpanType,
   OrphanTreeDepth,
@@ -503,6 +503,7 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
     'sentry.javascript.nextjs',
     'sentry.javascript.electron',
     'sentry.javascript.remix',
+    'sentry.javascript.svelte',
   ].includes(sdkName.toLowerCase());
 }
 
@@ -873,13 +874,6 @@ export class SpansInViewMap {
   }
 }
 
-export function isSpanIdFocused(spanId: string, focusedSpanIds: FocusedSpanIDMap) {
-  return (
-    spanId in focusedSpanIds ||
-    Object.values(focusedSpanIds).some(relatedSpans => relatedSpans.has(spanId))
-  );
-}
-
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level'>[]
 ): keyof Theme['alert'] | undefined {
@@ -894,7 +888,7 @@ export function getCumulativeAlertLevelFromErrors(
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
 }
 
-// Maps the six known error levels to one of three Alert component types
+// Maps the known error levels to an Alert component types
 const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
   fatal: 'error',
   error: 'error',
@@ -902,6 +896,7 @@ const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert'
   warning: 'warning',
   sample: 'info',
   info: 'info',
+  unknown: 'muted',
 };
 
 // Allows sorting errors according to their level of severity
@@ -912,4 +907,66 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   warning: 3,
   sample: 2,
   info: 1,
+  unknown: 0,
 };
+
+/**
+ * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length
+ */
+export function getFormattedTimeRangeWithLeadingAndTrailingZero(
+  start: number,
+  end: number
+) {
+  const startStrings = String(start).split('.');
+  const endStrings = String(end).split('.');
+
+  if (startStrings.length !== 2 || endStrings.length !== 2) {
+    return {
+      start: String(start),
+      end: String(end),
+    };
+  }
+
+  const newTimestamps = startStrings.reduce(
+    (acc, startString, index) => {
+      if (startString.length > endStrings[index].length) {
+        acc.start.push(startString);
+        acc.end.push(
+          index === 0
+            ? endStrings[index].padStart(startString.length, '0')
+            : endStrings[index].padEnd(startString.length, '0')
+        );
+        return acc;
+      }
+
+      acc.start.push(
+        index === 0
+          ? startString.padStart(endStrings[index].length, '0')
+          : startString.padEnd(endStrings[index].length, '0')
+      );
+      acc.end.push(endStrings[index]);
+      return acc;
+    },
+    {start: [], end: []} as {
+      end: string[];
+      start: string[];
+    }
+  );
+
+  return {
+    start: newTimestamps.start.join('.'),
+    end: newTimestamps.end.join('.'),
+  };
+}
+
+export function groupShouldBeHidden(
+  group: SpanTreeModel[],
+  focusedSpanIDs: Set<string> | undefined
+) {
+  if (!focusedSpanIDs) {
+    return false;
+  }
+
+  // If none of the spans in this group are focused, the group should be hidden
+  return !group.some(spanModel => focusedSpanIDs.has(spanModel.span.span_id));
+}

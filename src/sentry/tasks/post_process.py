@@ -121,16 +121,30 @@ def handle_owner_assignment(project, group, event):
                 auto_assignment = False
                 owners = []
                 assigned_by_codeowners = False
+                auto_assignment_rule = None
             else:
                 (
                     auto_assignment,
                     owners,
                     assigned_by_codeowners,
+                    auto_assignment_rule,
                 ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
 
         with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
             if auto_assignment and owners and not assignees_exists:
-                assignment = GroupAssignee.objects.assign(group, owners[0], create_only=True)
+                from sentry.models.activity import ActivityIntegration
+
+                assignment = GroupAssignee.objects.assign(
+                    group,
+                    owners[0],
+                    create_only=True,
+                    extra={
+                        "integration": ActivityIntegration.CODEOWNERS.value
+                        if assigned_by_codeowners
+                        else ActivityIntegration.PROJECT_OWNERSHIP.value,
+                        "rule": str(auto_assignment_rule),
+                    },
+                )
                 if assignment["new_assignment"] or assignment["updated_assignment"]:
                     analytics.record(
                         "codeowners.assignment"
@@ -265,7 +279,7 @@ def post_process_group(
 
         set_current_event_project(event.project_id)
 
-        is_transaction_event = not bool(event.group_id)
+        is_transaction_event = event.get_event_type() == "transaction"
 
         from sentry.models import EventDict, Organization, Project
 
@@ -278,20 +292,23 @@ def post_process_group(
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
-        event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project.set_cached_field_value(
-            "organization", Organization.objects.get_from_cache(id=event.project.organization_id)
-        )
+        with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
+            event.project = Project.objects.get_from_cache(id=event.project_id)
+            event.project.set_cached_field_value(
+                "organization",
+                Organization.objects.get_from_cache(id=event.project.organization_id),
+            )
 
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
-            transaction_processed.send_robust(
-                sender=post_process_group,
-                project=event.project,
-                event=event,
-            )
+            with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
+                transaction_processed.send_robust(
+                    sender=post_process_group,
+                    project=event.project,
+                    event=event,
+                )
 
             return
 
@@ -312,10 +329,12 @@ def post_process_group(
         # from cache, which may contain a stale group and project
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
         # stats.
-        fetch_buffered_group_stats(event.group)
+        with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+            fetch_buffered_group_stats(event.group)
 
         event.group.project = event.project
         event.group.project.set_cached_field_value("organization", event.project.organization)

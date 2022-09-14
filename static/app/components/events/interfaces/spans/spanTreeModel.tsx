@@ -11,7 +11,6 @@ import {
   EnhancedSpan,
   FetchEmbeddedChildrenState,
   FilterSpans,
-  FocusedSpanIDMap,
   OrphanTreeDepth,
   RawSpanType,
   SpanChildrenLookupType,
@@ -24,9 +23,9 @@ import {
   getSiblingGroupKey,
   getSpanID,
   getSpanOperation,
+  groupShouldBeHidden,
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
-  isSpanIdFocused,
   parseTrace,
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -192,18 +191,18 @@ class SpanTreeModel {
     event: Readonly<EventTransaction>;
     filterSpans: FilterSpans | undefined;
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    hiddenSpanSubTrees: Set<String>;
+    hiddenSpanSubTrees: Set<string>;
     isLastSibling: boolean;
     isNestedSpanGroupExpanded: boolean;
     isOnlySibling: boolean;
     operationNameFilters: ActiveOperationFilter;
     previousSiblingEndTimestamp: number | undefined;
     removeTraceBounds: (eventSlug: string) => void;
-    spanAncestors: Set<String>;
+    spanAncestors: Set<string>;
     spanNestedGrouping: EnhancedSpan[] | undefined;
     toggleNestedSpanGroup: (() => void) | undefined;
     treeDepth: number;
-    focusedSpanIds?: FocusedSpanIDMap;
+    focusedSpanIds?: Set<string>;
   }): EnhancedProcessedSpanType[] => {
     const {
       operationNameFilters,
@@ -222,7 +221,6 @@ class SpanTreeModel {
       addTraceBounds,
       removeTraceBounds,
       focusedSpanIds,
-      directParent,
     } = props;
     let {treeDepth, continuingTreeDepths} = props;
     const parentSpanID = getSpanID(this.span);
@@ -232,15 +230,6 @@ class SpanTreeModel {
     const descendantsSource = this.showEmbeddedChildren
       ? [...this.embeddedChildren, ...this.children]
       : this.children;
-
-    if (focusedSpanIds && this.span.span_id in focusedSpanIds) {
-      // Since this is a focused span, show this span's direct parent, and also its children
-      directParent && focusedSpanIds[this.span.span_id].add(directParent.span.span_id);
-
-      descendantsSource.forEach(descendant =>
-        focusedSpanIds[this.span.span_id].add(descendant.span.span_id)
-      );
-    }
 
     const isNotLastSpanOfGroup =
       isOnlySibling && !this.isRoot && descendantsSource.length === 1;
@@ -444,12 +433,6 @@ class SpanTreeModel {
           return acc;
         }
 
-        // NOTE: I am making the assumption here that grouped sibling spans will not have children.
-        // By making this assumption, I can immediately wrap the grouped spans here without having
-        // to recursively traverse them.
-
-        // This may not be the case, and needs to be looked into later
-
         const key = getSiblingGroupKey(group[0].span, occurrence);
         if (this.expandedSiblingGroups.has(key)) {
           // This check is needed here, since it is possible that a user could be filtering for a specific span ID.
@@ -457,7 +440,7 @@ class SpanTreeModel {
           group.forEach((spanModel, index) => {
             if (
               this.isSpanFilteredOut(props, spanModel) ||
-              (focusedSpanIds && !isSpanIdFocused(spanModel.span.span_id, focusedSpanIds))
+              (focusedSpanIds && !focusedSpanIds.has(spanModel.span.span_id))
             ) {
               acc.descendants.push({
                 type: 'filtered_out',
@@ -499,7 +482,10 @@ class SpanTreeModel {
         // Since we are not recursively traversing elements in this group, need to check
         // if the spans are filtered or out of bounds here
 
-        if (this.isSpanFilteredOut(props, group[0])) {
+        if (
+          this.isSpanFilteredOut(props, group[0]) ||
+          groupShouldBeHidden(group, focusedSpanIds)
+        ) {
           group.forEach(spanModel => {
             acc.descendants.push({
               type: 'filtered_out',
@@ -508,8 +494,6 @@ class SpanTreeModel {
           });
           return acc;
         }
-
-        // TODO: Check within the group if any of the focusedSpanIDs are present
 
         const bounds = generateBounds({
           startTimestamp: group[0].span.start_timestamp,
@@ -578,7 +562,7 @@ class SpanTreeModel {
 
     if (
       this.isSpanFilteredOut(props, this) ||
-      (focusedSpanIds && !isSpanIdFocused(this.span.span_id, focusedSpanIds))
+      (focusedSpanIds && !focusedSpanIds.has(this.span.span_id))
     ) {
       return [
         {

@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, features
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.sentryapps import SentryAppBaseEndpoint, catch_raised_errors
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
@@ -14,6 +15,7 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
+@pending_silo_endpoint
 class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     def get(self, request: Request, sentry_app) -> Response:
         return Response(serialize(sentry_app, request.user, access=request.access))

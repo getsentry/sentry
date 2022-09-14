@@ -1,4 +1,3 @@
-import isArray from 'lodash/isArray';
 import {createStore} from 'reflux';
 
 import {Indicator} from 'sentry/actionCreators/indicator';
@@ -12,7 +11,6 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -24,7 +22,7 @@ type ChangeId = string;
 
 type Change = {
   data: any;
-  itemId: string;
+  itemIds: string[];
 };
 
 type Item = BaseGroup | Group | GroupCollapseRelease;
@@ -45,6 +43,7 @@ interface InternalDefinition {
 interface GroupStoreDefinition extends CommonStoreDefinition<Item[]>, InternalDefinition {
   add: (items: Item[]) => void;
   addStatus: (id: string, status: string) => void;
+  addToFront: (items: Item[]) => void;
   clearStatus: (id: string, status: string) => void;
 
   get: (id: string) => Item | undefined;
@@ -114,22 +113,13 @@ const storeConfig: GroupStoreDefinition = {
     this.trigger(itemIds);
   },
 
-  add(items) {
-    if (!isArray(items)) {
-      items = [items];
-    }
+  mergeItems(items: Item[]) {
+    const itemsById = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
 
-    const itemsById: Record<string, Item> = {};
-    const itemIds = new Set<string>();
-    items.forEach(item => {
-      itemsById[item.id] = item;
-      itemIds.add(item.id);
-    });
-
-    // See if any existing items are updated by this new set of items
-    this.items.forEach((item, idx) => {
+    // Merge these items into the store and return a mapping of any that aren't already in the store
+    this.items.forEach((item, itemIndex) => {
       if (itemsById[item.id]) {
-        this.items[idx] = {
+        this.items[itemIndex] = {
           ...item,
           ...itemsById[item.id],
         };
@@ -137,11 +127,37 @@ const storeConfig: GroupStoreDefinition = {
       }
     });
 
-    // New items
-    const newItems = items.filter(item => itemsById.hasOwnProperty(item.id));
-    this.items = this.items.concat(newItems);
+    return items.filter(item => itemsById.hasOwnProperty(item.id));
+  },
 
-    this.trigger(itemIds);
+  /**
+   * Adds the provided items to the end of the list.
+   * If any items already exist, they will merged into the existing item index.
+   */
+  add(items) {
+    if (!Array.isArray(items)) {
+      items = [items];
+    }
+    const newItems = this.mergeItems(items);
+
+    this.items = [...this.items, ...newItems];
+
+    this.trigger(new Set(items.map(item => item.id)));
+  },
+
+  /**
+   * Adds the provided items to the front of the list.
+   * If any items already exist, they will be moved to the front in the order provided.
+   */
+  addToFront(items) {
+    if (!Array.isArray(items)) {
+      items = [items];
+    }
+    const itemMap = items.reduce((acc, item) => ({...acc, [item.id]: item}), {});
+
+    this.items = [...items, ...this.items.filter(item => !itemMap[item.id])];
+
+    this.trigger(new Set(items.map(item => item.id)));
   },
 
   /**
@@ -261,8 +277,10 @@ const storeConfig: GroupStoreDefinition = {
     const pendingById: Record<string, Change[]> = {};
 
     this.pendingChanges.forEach(change => {
-      const existing = pendingById[change.itemId] ?? [];
-      pendingById[change.itemId] = [...existing, change];
+      change.itemIds.forEach(itemId => {
+        const existing = pendingById[itemId] ?? [];
+        pendingById[itemId] = [...existing, change];
+      });
     });
 
     // Merge pending changes into the item if it has them
@@ -401,8 +419,8 @@ const storeConfig: GroupStoreDefinition = {
 
     ids.forEach(itemId => {
       this.addStatus(itemId, 'update');
-      this.pendingChanges.set(changeId, {itemId, data});
     });
+    this.pendingChanges.set(changeId, {itemIds: ids, data});
 
     this.trigger(new Set(ids));
   },
@@ -467,5 +485,5 @@ const storeConfig: GroupStoreDefinition = {
   },
 };
 
-const GroupStore = createStore(makeSafeRefluxStore(storeConfig));
+const GroupStore = createStore(storeConfig);
 export default GroupStore;

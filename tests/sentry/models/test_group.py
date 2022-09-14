@@ -17,8 +17,10 @@ from sentry.models import (
 from sentry.models.release import _get_cache_key
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -319,6 +321,7 @@ class GroupTest(TestCase, SnubaTestCase):
         assert group2.get_last_release() is None
 
 
+@region_silo_test
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group

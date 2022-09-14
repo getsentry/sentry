@@ -1,7 +1,9 @@
 from sentry.rules.conditions.event_attribute import EventAttributeCondition, MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class EventAttributeConditionTest(RuleTestCase):
     rule_cls = EventAttributeCondition
 
@@ -284,6 +286,57 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "exception.type", "value": "TypeError"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_handled(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ]
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "False"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_handled_not_defined(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.handled", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_unhandled(self):
+        event = self.get_event(
+            exception={
+                "values": [
+                    {
+                        "type": "Generic",
+                        "value": "hello world",
+                        "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                    }
+                ],
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "False"}
         )
         self.assertDoesNotPass(rule, event)
 

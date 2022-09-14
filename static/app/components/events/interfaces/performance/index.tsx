@@ -1,76 +1,86 @@
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {EventError, Group, Organization} from 'sentry/types';
-import {useLocation} from 'sentry/utils/useLocation';
+import {EntryType, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
 
-import {DurationChart} from './durationChart';
-import {SpanCountChart} from './spanCountChart';
+import DataSection from '../../eventTagsAndScreenshot/dataSection';
+import KeyValueList from '../keyValueList';
+import TraceView from '../spans/traceView';
+import {RawSpanType, SpanEntry} from '../spans/types';
+import WaterfallModel from '../spans/waterfallModel';
 
 interface Props {
-  event: EventError;
-  issue: Group;
+  event: EventTransaction;
   organization: Organization;
 }
 
-export function PerformanceIssueSection({issue, event, organization}: Props) {
-  const location = useLocation();
+export function SpanEvidenceSection({event, organization}: Props) {
+  if (!event.perfProblem) {
+    return null;
+  }
+
+  // Let's dive into the event to pick off the span evidence data by using the IDs we know
+  const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
+    return entry.type === EntryType.SPANS;
+  });
+  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spansById = keyBy(spans, 'span_id');
+
+  const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
+  const sourceSpan = spansById[event.perfProblem.causeSpanIds[0]];
+  const repeatingSpan = spansById[event.perfProblem.offenderSpanIds[0]];
+
+  const data: KeyValueListData = [
+    {
+      key: '0',
+      subject: t('Transaction'),
+      value: event.title,
+    },
+    {
+      key: '1',
+      subject: t('Parent Span'),
+      value: parentSpan.description ?? '',
+    },
+    {
+      key: '2',
+      subject: t('Source Span'),
+      value: sourceSpan.description ?? '',
+    },
+    {
+      key: '3',
+      subject: t('Repeating Span'),
+      value: repeatingSpan.description ?? '',
+    },
+  ];
+
+  const affectedSpanIds = [
+    parentSpan.span_id,
+    sourceSpan.span_id,
+    ...event.perfProblem.offenderSpanIds,
+  ];
 
   return (
-    <Wrapper>
-      <Section>
-        <h3>{t('P75 Duration Change')}</h3>
-        <DurationChart
-          issue={issue}
-          location={location}
+    <DataSection
+      title={t('Span Evidence')}
+      description={t(
+        'Span Evidence identifies the parent span where the N+1 occurs, the source span that occurs immediately before the repeating spans, and the repeating span itself.'
+      )}
+    >
+      <KeyValueList data={data} />
+
+      <TraceViewWrapper>
+        <TraceView
           organization={organization}
-          event={event}
+          waterfallModel={new WaterfallModel(event as EventTransaction, affectedSpanIds)}
+          isEmbedded
         />
-      </Section>
-      <Section>
-        <h3>{t('Span Count Distribution')}</h3>
-        <SpanCountChart
-          issue={issue}
-          event={event}
-          location={location}
-          organization={organization}
-        />
-      </Section>
-    </Wrapper>
+      </TraceViewWrapper>
+    </DataSection>
   );
 }
 
-export const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  margin: 0;
-  /* Padding aligns with Layout.Body */
-  padding: ${space(3)} ${space(2)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(3)} ${space(4)} ${space(3)};
-  }
-  & h3,
-  & h3 a {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    color: ${p => p.theme.gray300};
-  }
-  & h3 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
-    padding: ${space(0.75)} 0;
-    margin-bottom: 0;
-    text-transform: uppercase;
-  }
-  div:first-child {
-    margin-right: ${space(3)};
-  }
-`;
-
-const Section = styled('div')`
-  width: 50%;
+const TraceViewWrapper = styled('div')`
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
 `;

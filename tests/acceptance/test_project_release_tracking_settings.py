@@ -1,6 +1,8 @@
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectReleaseTrackingSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
