@@ -4,8 +4,10 @@ from django.utils import timezone
 
 from sentry.models import Rule, RuleFireHistory
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationAlertRuleDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

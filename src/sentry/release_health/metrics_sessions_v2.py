@@ -55,7 +55,7 @@ from sentry.release_health.base import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.snuba.metrics.query import MetricField, MetricsQuery, OrderBy
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery, OrderBy
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
     InvalidParams,
@@ -542,7 +542,13 @@ def run_sessions_query(
         query.end,
         Granularity(query.rollup),
         where=where,
-        groupby=list({column for field in fields.values() for column in field.get_groupby()}),
+        groupby=list(
+            {
+                MetricGroupByField(column)
+                for field in fields.values()
+                for column in field.get_groupby()
+            }
+        ),
         orderby=orderby_sequence,
         limit=limit,
         offset=Offset(query.offset or 0),

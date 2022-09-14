@@ -18,7 +18,7 @@ export enum TransactionFilterOptions {
   RECENT = 'recent',
 }
 
-export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: String}): string {
+export function generateTransactionSummaryRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/`;
 }
 

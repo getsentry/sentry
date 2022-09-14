@@ -22,16 +22,13 @@ describe('importProfile', () => {
     const imported = importProfile(
       {
         activeProfileIndex: 0,
-        durationNS: 0,
-        platform: 'android',
         profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [eventedProfile],
         projectID: 1,
         shared: {
           frames: [],
         },
-        transactionName: 'profile',
-        version: '1.1.0 (build 2)',
+        metadata: {} as Profiling.Schema['metadata'],
       },
       ''
     );
@@ -53,16 +50,13 @@ describe('importProfile', () => {
     const imported = importProfile(
       {
         activeProfileIndex: 0,
-        durationNS: 0,
-        platform: 'cocoa',
         profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [sampledProfile],
         projectID: 1,
         shared: {
           frames: [],
         },
-        transactionName: 'profile',
-        version: '7.14.0 (build 1)',
+        metadata: {} as Profiling.Schema['metadata'],
       },
       ''
     );
@@ -95,6 +89,22 @@ describe('importProfile', () => {
     const imported = importProfile(typescriptProfile, '');
     expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
+  it('imports a nodejs profile', () => {
+    const nodeProfile: Profiling.NodeProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      threadID: 0,
+      unit: 'milliseconds',
+      type: 'sampled',
+      weights: [],
+      samples: [],
+      frames: [],
+    };
+
+    const imported = importProfile([nodeProfile, {}], '');
+    expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
+  });
   it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
       resources: ['app.js', 'vendor.js'],
@@ -118,16 +128,13 @@ describe('importProfile', () => {
     const imported = importProfile(
       {
         activeProfileIndex: 0,
-        durationNS: 0,
-        platform: 'typescript',
         profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         profiles: [jsSelfProfile],
         projectID: 1,
+        metadata: {} as Profiling.Schema['metadata'],
         shared: {
           frames: [],
         },
-        transactionName: 'profile',
-        version: '7.14.0 (build 1)',
       },
       ''
     );
@@ -222,8 +229,6 @@ describe('importDroppedProfile', () => {
   it('imports dropped schema file', async () => {
     const schema: Profiling.Schema = {
       activeProfileIndex: 0,
-      durationNS: 0,
-      platform: 'cocoa',
       profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       profiles: [
         {
@@ -241,8 +246,7 @@ describe('importDroppedProfile', () => {
       shared: {
         frames: [],
       },
-      transactionName: 'profile',
-      version: '7.14.0 (build 1)',
+      metadata: {} as Profiling.Schema['metadata'],
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
     const imported = await importDroppedProfile(file);

@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -625,6 +626,83 @@ describe('EventsRequest', function () {
             end: 1627402398000,
           },
         })
+      );
+    });
+  });
+
+  describe('custom performance metrics', function () {
+    beforeEach(function () {
+      doEventsRequest.mockClear();
+    });
+
+    it('passes timeseriesResultTypes to child', async function () {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ]]],
+          start: 1627402280,
+          end: 1627402398,
+          meta: {
+            fields: {
+              p95_measurements_custom: 'size',
+            },
+            units: {
+              p95_measurements_custom: 'kibibyte',
+            },
+          },
+        })
+      );
+      render(
+        <EventsRequest {...DEFAULTS} yAxis="p95(measurements.custom)">
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            timeseriesResultsTypes: {'p95(measurements.custom)': 'size'},
+          })
+        )
+      );
+    });
+
+    it('scales timeseries values according to unit meta', async function () {
+      doEventsRequest.mockImplementation(() =>
+        Promise.resolve({
+          data: [[new Date(), [COUNT_OBJ]]],
+          start: 1627402280,
+          end: 1627402398,
+          meta: {
+            fields: {
+              p95_measurements_custom: 'size',
+            },
+            units: {
+              p95_measurements_custom: 'mebibyte',
+            },
+          },
+        })
+      );
+      render(
+        <EventsRequest
+          {...DEFAULTS}
+          yAxis="p95(measurements.custom)"
+          currentSeriesNames={['p95(measurements.custom)']}
+        >
+          {mock}
+        </EventsRequest>
+      );
+
+      await waitFor(() =>
+        expect(mock).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            timeseriesData: [
+              {
+                data: [{name: 1508208080000000, value: 128974848}],
+                seriesName: 'p95(measurements.custom)',
+              },
+            ],
+          })
+        )
       );
     });
   });

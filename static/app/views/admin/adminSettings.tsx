@@ -93,13 +93,15 @@ export default class AdminSettings extends AsyncView<{}, State> {
             {fields['beacon.anonymous']}
           </Panel>
 
-          <Feature features={['organizations:performance-issues']}>
+          <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
               <PanelHeader>Performance Issues</PanelHeader>
               {fields['performance.issues.all.problem-detection']}
               {fields['performance.issues.all.problem-creation']}
-              {fields['performance.issues.n_plus_one.problem-detection']}
-              {fields['performance.issues.n_plus_one.problem-creation']}
+              {fields['performance.issues.n_plus_one_db.problem-detection']}
+              {fields['performance.issues.n_plus_one_db.problem-creation']}
+              {fields['performance.issues.n_plus_one_db.count_threshold']}
+              {fields['performance.issues.n_plus_one_db.duration_threshold']}
             </Panel>
           </Feature>
         </Form>

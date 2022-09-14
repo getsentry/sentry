@@ -1,6 +1,7 @@
 import functools
 import logging
 from datetime import timedelta
+from typing import Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import tagstore, tsdb
 from sentry.api import client
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
@@ -32,6 +33,7 @@ from sentry.utils.safe import safe_execute
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
@@ -115,6 +117,33 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             PluginSerializer(project),
         )
 
+    @staticmethod
+    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
+        get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
+        # choose the model based off the group.category
+        model = (
+            tsdb.models.group_performance
+            if group.issue_category == GroupCategory.PERFORMANCE
+            else tsdb.models.group
+        )
+
+        now = timezone.now()
+        hourly_stats = tsdb.rollup(
+            get_range(model=model, keys=[group.id], end=now, start=now - timedelta(days=1)),
+            3600,
+        )[group.id]
+        daily_stats = tsdb.rollup(
+            get_range(
+                model=model,
+                keys=[group.id],
+                end=now,
+                start=now - timedelta(days=30),
+            ),
+            3600 * 24,
+        )[group.id]
+
+        return hourly_stats, daily_stats
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve an Issue
@@ -157,36 +186,19 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
-
             tags = tagstore.get_group_tag_keys(
                 group.project_id, group.id, environment_ids, limit=100
             )
-            if not environment_ids:
-                user_reports = UserReport.objects.filter(group_id=group.id)
-            else:
-                user_reports = UserReport.objects.filter(
+
+            user_reports = (
+                UserReport.objects.filter(group_id=group.id)
+                if not environment_ids
+                else UserReport.objects.filter(
                     group_id=group.id, environment_id__in=environment_ids
                 )
+            )
 
-            now = timezone.now()
-            hourly_stats = tsdb.rollup(
-                get_range(
-                    model=tsdb.models.group, keys=[group.id], end=now, start=now - timedelta(days=1)
-                ),
-                3600,
-            )[group.id]
-            daily_stats = tsdb.rollup(
-                get_range(
-                    model=tsdb.models.group,
-                    keys=[group.id],
-                    end=now,
-                    start=now - timedelta(days=30),
-                ),
-                3600 * 24,
-            )[group.id]
-
-            participants = GroupSubscriptionManager.get_participating_users(group)
+            hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
@@ -198,7 +210,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "participants": serialize(participants, request.user),
+                    "participants": serialize(
+                        GroupSubscriptionManager.get_participating_users(group), request.user
+                    ),
                     "pluginActions": action_list,
                     "pluginIssues": self._get_available_issue_plugins(request, group),
                     "pluginContexts": self._get_context_plugins(request, group),

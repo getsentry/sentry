@@ -20,7 +20,10 @@ describe('AddCodeOwnerModal', function () {
     id: '5',
     name: 'example/hello-there',
   });
-  const codeMapping = TestStubs.RepositoryProjectPathConfig(project, repo, integration, {
+  const codeMapping = TestStubs.RepositoryProjectPathConfig({
+    project,
+    repo,
+    integration,
     stackRoot: 'stack/root',
     sourceRoot: 'source/root',
   });

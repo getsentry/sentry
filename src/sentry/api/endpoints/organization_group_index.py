@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, search
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
@@ -134,6 +135,7 @@ def inbox_search(
     return results
 
 
+@region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
@@ -273,9 +275,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 }
                 groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
-                    response = Response(
-                        serialize(groups, request.user, serializer(matching_event_id=event_id))
-                    )
+                    serialized_groups = serialize(groups, request.user, serializer())
+                    if event_id:
+                        serialized_groups[0]["matchingEventId"] = event_id
+                    response = Response(serialized_groups)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 

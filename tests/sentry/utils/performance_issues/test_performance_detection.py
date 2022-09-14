@@ -2,12 +2,16 @@ import os
 import unittest
 from unittest.mock import Mock, call, patch
 
+from sentry.eventstore.models import Event
+from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
+    EventPerformanceProblem,
     PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
@@ -19,6 +23,7 @@ from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 _fixture_path = os.path.join(os.path.dirname(__file__), "events")
 
 EVENTS = {}
+PROJECT_ID = 1
 
 for filename in os.listdir(_fixture_path):
     if not filename.endswith(".json"):
@@ -27,7 +32,9 @@ for filename in os.listdir(_fixture_path):
     [event_name, _extension] = filename.split(".")
 
     with open(os.path.join(_fixture_path, filename)) as f:
-        EVENTS[event_name] = json.load(f)
+        event = json.load(f)
+        event["project"] = PROJECT_ID
+        EVENTS[event_name] = event
 
 
 # Duration is in ms
@@ -53,10 +60,16 @@ def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %
 
 
 def create_event(spans, event_id="a" * 16):
-    return {"event_id": event_id, "spans": spans}
+    return {"event_id": event_id, "project": PROJECT_ID, "spans": spans}
 
 
 class PerformanceDetectionTest(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
+        self.project_option_mock = patch_project_option_get.start()
+        self.addCleanup(patch_project_option_get.stop)
+
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
         event = {}
@@ -70,6 +83,41 @@ class PerformanceDetectionTest(unittest.TestCase):
             with override_options({"performance.issues.all.problem-detection": 1.0}):
                 detect_performance_problems(event)
         assert mock.call_count == 1
+
+    def test_project_option_overrides_default(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                op="db",
+                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                parent_span_ids=["8dd7a5869a4f4583"],
+                cause_span_ids=["9179e43ae844b174"],
+                offender_span_ids=[
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            )
+        ]
+
+        self.project_option_mock.return_value = {
+            "n_plus_one_db_duration_threshold": 100000,
+        }
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
 
     def test_calls_detect_duplicate(self):
         no_duplicate_event = create_event([create_span("db")] * 4)
@@ -352,6 +400,7 @@ class PerformanceDetectionTest(unittest.TestCase):
     def test_calls_detect_render_blocking_asset(self):
         render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -364,6 +413,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         non_render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -379,6 +429,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         no_fcp_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": None,
@@ -391,6 +442,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         short_render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -470,17 +522,18 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_n_plus_one_db_fp",
                     "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 ),
-                call("_pi_n_plus_one_db", "9179e43ae844b174"),
+                call("_pi_n_plus_one_db", "b8be6138369491dd"),
             ]
         )
         assert perf_problems == [
             PerformanceProblem(
                 fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
                 op="db",
-                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                spans_involved=[
-                    "9179e43ae844b174",
+                parent_span_ids=["8dd7a5869a4f4583"],
+                cause_span_ids=["9179e43ae844b174"],
+                offender_span_ids=[
                     "b8be6138369491dd",
                     "b2d4826e7b618f1b",
                     "b3fdeea42536dbf1",
@@ -494,6 +547,13 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ],
             )
         ]
+
+    @patch("sentry.utils.metrics.incr")
+    def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
+        _detect_performance_problems(n_plus_one_event, Mock())
+        unexpected_call = call("performance.performance_issue.truncated_np1_db")
+        assert unexpected_call not in incr_mock.mock_calls
 
     def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
         self,
@@ -527,6 +587,20 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
+    def test_finds_n_plus_one_with_db_dot_something_spans(self):
+        activerecord_n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-activerecord"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(activerecord_n_plus_one_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert (
+            n_plus_one_fingerprint
+            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8"
+        )
+
     def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self):
         query_waterfall_event = EVENTS["query-waterfall-in-django-random-view"]
         sdk_span_mock = Mock()
@@ -544,6 +618,23 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_slow_span", "870ada8266466319"),
             ]
         )
+
+    def test_does_not_detect_n_plus_one_where_source_is_truncated(self):
+        truncated_source_event = EVENTS["n-plus-one-in-django-new-view-truncated-source"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(truncated_source_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert not n_plus_one_fingerprint
+
+    @patch("sentry.utils.metrics.incr")
+    def test_reports_metric_on_truncated_query_n_plus_one(self, incr_mock):
+        truncated_source_event = EVENTS["n-plus-one-in-django-new-view-truncated-source"]
+        _detect_performance_problems(truncated_source_event, Mock())
+        incr_mock.assert_has_calls([call("performance.performance_issue.truncated_np1_db")])
 
     def test_detects_slow_span_in_solved_n_plus_one_query(self):
         n_plus_one_event = EVENTS["solved-n-plus-one-in-django-index-view"]
@@ -578,10 +669,13 @@ class PrepareProblemForGroupingTest(unittest.TestCase):
             op="db",
             type=GroupType.PERFORMANCE_N_PLUS_ONE,
             desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-            spans_involved=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
+            parent_span_ids=None,
+            cause_span_ids=None,
+            offender_span_ids=["b3fdeea42536dbf1", "b2d4826e7b618f1b"],
         )
 
 
+@region_silo_test
 class DetectorTypeToGroupTypeTest(unittest.TestCase):
     def test(self):
         # Make sure we don't forget to include a mapping to `GroupType`
@@ -589,3 +683,91 @@ class DetectorTypeToGroupTypeTest(unittest.TestCase):
             assert (
                 detector_type in DETECTOR_TYPE_TO_GROUP_TYPE
             ), f"{detector_type} must have a corresponding entry in DETECTOR_TYPE_TO_GROUP_TYPE"
+
+
+@region_silo_test
+class EventPerformanceProblemTest(TestCase):
+    def test_save_and_fetch(self):
+        event = Event(self.project.id, "something")
+        problem = PerformanceProblem(
+            "test",
+            "db",
+            "something bad happened",
+            GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            ["1"],
+            ["2", "3", "4"],
+            ["4", "5", "6"],
+        )
+
+        EventPerformanceProblem(event, problem).save()
+        assert EventPerformanceProblem.fetch(event, problem.fingerprint).problem == problem
+
+    def test_fetch_multi(self):
+        event_1 = Event(self.project.id, "something")
+        event_1_problems = [
+            PerformanceProblem(
+                "test",
+                "db",
+                "something bad happened",
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["1"],
+                ["2", "3", "4"],
+                ["4", "5", "6"],
+            ),
+            PerformanceProblem(
+                "test_2",
+                "db",
+                "something horrible happened",
+                GroupType.PERFORMANCE_SLOW_SPAN,
+                ["234"],
+                ["67", "87686", "786"],
+                ["4", "5", "6"],
+            ),
+        ]
+        event_2 = Event(self.project.id, "something else")
+        event_2_problems = [
+            PerformanceProblem(
+                "event_2_test",
+                "db",
+                "something happened",
+                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                ["1"],
+                ["a", "b", "c"],
+                ["d", "e", "f"],
+            ),
+            PerformanceProblem(
+                "event_2_test_2",
+                "db",
+                "hello",
+                GroupType.PERFORMANCE_SLOW_SPAN,
+                ["234"],
+                ["fdgh", "gdhgf", "gdgh"],
+                ["gdf", "yu", "kjl"],
+            ),
+        ]
+        all_event_problems = [
+            (event, problem)
+            for event, problems in ((event_1, event_1_problems), (event_2, event_2_problems))
+            for problem in problems
+        ]
+        for event, problem in all_event_problems:
+            EventPerformanceProblem(event, problem).save()
+
+        unsaved_problem = PerformanceProblem(
+            "fake_fingerprint",
+            "db",
+            "hello",
+            GroupType.PERFORMANCE_SLOW_SPAN,
+            ["234"],
+            ["fdgh", "gdhgf", "gdgh"],
+            ["gdf", "yu", "kjl"],
+        )
+        result = EventPerformanceProblem.fetch_multi(
+            [
+                (event, problem.fingerprint)
+                for event, problem in all_event_problems + [(event, unsaved_problem)]
+            ]
+        )
+        assert [r.problem if r else None for r in result] == [
+            problem for _, problem in all_event_problems
+        ] + [None]

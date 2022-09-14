@@ -451,6 +451,14 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
 
+# Temporary option to be removed after rollout.
+# This sends events for the project IDs being passed here to the KAFKA_NEW_TRANSACTIONS
+# topic (default "transactions") instead of the KAFKA_TRANSACTIONS topic (currently "events").
+# e.g. [{"project_id": 2}, {"project_id": 3}]
+# Once transactions is fully rolled out and KAFKA_TRANSACTIONS is mapped to "transactions" instead
+# of "events" this should be removed.
+register("kafka.send-project-transactions-to-new-topic", default=[])
+
 # Rate to project_configs_v3, no longer used.
 register("relay.project-config-v3-enable", default=0.0)
 
@@ -518,6 +526,8 @@ register("performance.issues.duplicates.problem-detection", default=0.0)
 register("performance.issues.duplicates.problem-creation", default=0.0)
 register("performance.issues.n_plus_one.problem-detection", default=0.0)
 register("performance.issues.n_plus_one.problem-creation", default=0.0)
+register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
+register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 register("performance.issues.slow_span.problem-detection", default=0.0)
 register("performance.issues.slow_span.problem-creation", default=0.0)
 register("performance.issues.sequential.problem-detection", default=0.0)
@@ -526,3 +536,7 @@ register("performance.issues.long_task.problem-detection", default=0.0)
 register("performance.issues.long_task.problem-creation", default=0.0)
 register("performance.issues.render_blocking_assets.problem-detection", default=0.0)
 register("performance.issues.render_blocking_assets.problem-creation", default=0.0)
+
+# System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
+register("performance.issues.n_plus_one_db.count_threshold", default=5)
+register("performnace.issues.n_plus_one_db.duration_threshold", default=100.0)

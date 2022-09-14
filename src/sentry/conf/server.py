@@ -10,9 +10,11 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
+from typing import Mapping
 from urllib.parse import urlparse
 
 import sentry
+from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -964,6 +966,8 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
+    # Enable the Commit Context feature
+    "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -987,6 +991,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable metrics baseline in discover
+    "organizations:discover-metrics-baseline": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1011,6 +1017,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Whether to allow issue only search on the issue list
+    "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
@@ -1019,12 +1027,6 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Enable the new widget builder experience on Dashboards
-    "organizations:new-widget-builder-experience": False,
-    # Enable the new widget builder experience "design" on Dashboards
-    "organizations:new-widget-builder-experience-design": False,
-    # Enable access to the Add to Dashboard modal for metrics work
-    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1143,6 +1145,10 @@ SENTRY_FEATURES = {
     "organizations:native-stack-trace-v2": False,
     # Enable performance issues
     "organizations:performance-issues": False,
+    # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
+    "organizations:performance-issues-ingest": False,
+    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    "organizations:performance-issues-dev": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1158,12 +1164,16 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
     "organizations:server-side-sampling-ui": False,
+    # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
+    "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable snowflake ids
@@ -2136,7 +2146,6 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
-
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
@@ -2404,6 +2413,10 @@ KAFKA_EVENTS = "events"
 # changes to support different topic, switch this to "transactions" to start
 # producing to the new topic.
 KAFKA_TRANSACTIONS = "events"
+# TODO: KAFKA_NEW_TRANSACTIONS only exists in order to facilitate the errors/transactions
+# split. It is only supposed to exist briefly so we can map transactions of a subset of
+# projects to the new topic first before migrating them all over.
+KAFKA_NEW_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2442,6 +2455,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_NEW_TRANSACTIONS: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2741,6 +2755,7 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
@@ -2781,3 +2796,5 @@ SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", Fa
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+
+SENTRY_REGION_CONFIG: Mapping[str, Region] = {}

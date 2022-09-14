@@ -22,6 +22,10 @@ declare namespace Profiling {
     type: 'sampled';
   }
 
+  interface NodeProfile extends Profiling.SampledProfile {
+    frames: Profiling.FrameInfo[];
+  }
+
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 
   type Span = {
@@ -43,13 +47,23 @@ declare namespace Profiling {
     image?: string;
     resource?: string;
     threadId?: number;
+
+    // nodejs only
+    columnNumber?: number;
+    lineNumber?: number;
+    scriptName?: string;
+    scriptId?: number;
   };
 
-  type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
+  type ProfileTypes =
+    | EventedProfile
+    | SampledProfile
+    | JSSelfProfiling.Trace
+    | NodeProfile;
 
   type ImportedProfiles = {
     name: string;
-    traceID: string;
+    profileID: string;
     activeProfileIndex: number;
     profiles: ProfileTypes[];
   };
@@ -57,17 +71,32 @@ declare namespace Profiling {
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
-    durationNS: number;
-    platform: string;
     profileID: string;
     profiles: ReadonlyArray<ProfileTypes>;
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
     };
-    transactionName: string;
-    version: string;
     activeProfileIndex?: number;
-    androidClock?: 'Global' | 'Dual' | 'Wall' | 'Cpu';
+    metadata: {
+      androidAPILevel: number;
+      deviceClassification: string;
+      deviceLocale: string;
+      deviceManufacturer: string;
+      deviceModel: string;
+      deviceOSName: string;
+      deviceOSVersion: string;
+      durationNS: number;
+      environment: string;
+      organizationID: number;
+      platform: string;
+      profileID: string;
+      projectID: number;
+      received: string;
+      traceID: string;
+      transactionID: string;
+      transactionName: string;
+      version: string;
+    };
   };
 }

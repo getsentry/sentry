@@ -21,9 +21,7 @@ function Tags({event, organization, projectSlug, location}: Props) {
   return (
     <StyledDataSection
       title={t('Tags')}
-      description={t(
-        'Tags help you quickly both access related events and view the tag distribution for a set of events'
-      )}
+      description={t('The default and custom tags associated with this event')}
       data-test-id="event-tags"
     >
       <EventTags

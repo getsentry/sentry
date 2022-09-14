@@ -9,17 +9,19 @@ from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.kafka_eventstream = KafkaEventStream()
-        self.kafka_eventstream.errors_producer = Mock()
-        self.kafka_eventstream.transactions_producer = Mock()
+        self.producer_mock = Mock()
+        self.kafka_eventstream.get_producer = Mock(return_value=self.producer_mock)
 
     def __build_event(self, timestamp):
         raw_event = {
@@ -46,11 +48,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
-        producer = (
-            self.kafka_eventstream.transactions_producer
-            if is_transaction_event
-            else self.kafka_eventstream.errors_producer
-        )
+        producer = self.producer_mock
 
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args

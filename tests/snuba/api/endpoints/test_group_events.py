@@ -1,12 +1,18 @@
 from datetime import timedelta
+from unittest import mock
 
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.event_manager import _pull_out_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class GroupEventsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -350,3 +356,27 @@ class GroupEventsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200, response.content
             assert len(response.data) == 1, response.data
             assert list(map(lambda x: x["eventID"], response.data)) == [str(event.event_id)]
+
+    def test_perf_issue(self):
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [perf_group]
+            return jobs, projects
+
+        event_data = load_data("transaction")
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            event_1 = self.store_event(data=event_data, project_id=self.project.id)
+            event_2 = self.store_event(data=event_data, project_id=self.project.id)
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{perf_group.id}/events/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
+            [str(event_1.event_id), str(event_2.event_id)]
+        )
