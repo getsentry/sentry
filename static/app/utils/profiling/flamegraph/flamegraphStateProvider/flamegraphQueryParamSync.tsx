@@ -68,7 +68,7 @@ export function decodeFlamegraphStateFromQueryParams(
 ): DeepPartial<FlamegraphState> {
   return {
     profiles: {
-      focusFrame:
+      highlightFrame:
         typeof query.frameName === 'string' && typeof query.framePackage === 'string'
           ? {
               name: query.frameName,
@@ -103,12 +103,20 @@ export function decodeFlamegraphStateFromQueryParams(
 }
 
 export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
+  const highlightFrame = state.profiles.highlightFrame
+    ? {
+        frameName: state.profiles.highlightFrame?.name,
+        framePackage: state.profiles.highlightFrame?.package,
+      }
+    : {};
+
   return {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
     view: state.preferences.view,
     xAxis: state.preferences.xAxis,
     query: state.search.query,
+    ...highlightFrame,
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
       : {fov: Rect.encode(state.position.view)}),
@@ -116,6 +124,14 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
       ? {tid: state.profiles.threadId}
       : {}),
   };
+}
+
+function maybeOmitHighlightedFrame(query: Query, state: FlamegraphState) {
+  if (!state.profiles.highlightFrame && query.frameName && query.framePackage) {
+    const {frameName: _, framePackage: __, ...rest} = query;
+    return rest;
+  }
+  return query;
 }
 
 export function FlamegraphStateQueryParamSync() {
@@ -126,7 +142,7 @@ export function FlamegraphStateQueryParamSync() {
     browserHistory.replace({
       ...location,
       query: {
-        ...location.query,
+        ...maybeOmitHighlightedFrame(location.query, state),
         ...encodeFlamegraphStateToQueryParams(state),
       },
     });

@@ -28,8 +28,8 @@ class SelectedFrameRenderer {
       // We draw the border in the center of the flamegraph, so we need to increase
       // the width by border width and negatively offset it by half the border width
       const borderRect = frameInPhysicalSpace
-        .withWidth(frameInPhysicalSpace.width - style.BORDER_WIDTH)
-        .withHeight(frameInPhysicalSpace.height - style.BORDER_WIDTH)
+        .withWidth(frameInPhysicalSpace.width - style.BORDER_WIDTH * 2)
+        .withHeight(frameInPhysicalSpace.height - style.BORDER_WIDTH * 2)
         .translate(
           frameInPhysicalSpace.x + style.BORDER_WIDTH / 2,
           frameInPhysicalSpace.y + style.BORDER_WIDTH / 2
