@@ -16,6 +16,8 @@ export enum FieldKey {
   ASSIGNED = 'assigned',
   ASSIGNED_OR_SUGGESTED = 'assigned_or_suggested',
   BOOKMARKS = 'bookmarks',
+  BROWSER_NAME = 'browser.name',
+  BROWSER_VERSION = 'browser.version',
   CULPRIT = 'culprit',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -500,6 +502,16 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   },
   [FieldKey.BOOKMARKS]: {
     desc: t('The issues bookmarked by a user ID'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.BROWSER_NAME]: {
+    desc: t('Name of the web browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.BROWSER_VERSION]: {
+    desc: t('Browser version'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
