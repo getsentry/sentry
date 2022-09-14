@@ -977,6 +977,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": True,
+    # Enable using All Events as the landing page for Discover
+    "organizations:discover-query-builder-as-landing-page": False,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
@@ -1507,6 +1509,7 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Cardinality limits during metric bucket ingestion.
 # Which cluster to use. Example: {"cluster": "default"}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
 
 # Release Health
