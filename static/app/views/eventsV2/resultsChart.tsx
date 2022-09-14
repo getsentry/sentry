@@ -275,6 +275,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
           total={total}
           yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
+          eventView={eventView}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}
