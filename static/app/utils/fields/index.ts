@@ -23,6 +23,7 @@ export enum FieldKey {
   DEVICE_CHARGING = 'device.charging',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
+  DEVICE_MODEL = 'device.model',
   DEVICE_MODEL_ID = 'device.model_id',
   DEVICE_NAME = 'device.name',
   DEVICE_ONLINE = 'device.online',
@@ -60,6 +61,7 @@ export enum FieldKey {
   OS = 'os',
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
+  OS_VERSION = 'os.version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROJECT = 'project',
@@ -97,6 +99,8 @@ export enum FieldKey {
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
+  USER_IP_ADDRESS = 'user.ipAddress',
+  USER_NAME = 'user.name',
   USER_USERNAME = 'user.username',
 }
 
@@ -173,6 +177,8 @@ export enum AggregationKey {
 enum ReplayFieldKey {
   CountErrors = 'countErrors',
   CountSegments = 'countSegments',
+  Duration = 'duration',
+  ProjectId = 'projectId',
 }
 
 export interface FieldDefinition {
@@ -448,6 +454,16 @@ const REPLAY_FIELDS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FUNCTION,
     valueType: FieldValueType.INTEGER,
   },
+  [ReplayFieldKey.Duration]: {
+    desc: t('Duration of the replay'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.DURATION,
+  },
+  [ReplayFieldKey.ProjectId]: {
+    desc: t('Project ID'),
+    kind: FieldKind.FUNCTION,
+    valueType: FieldValueType.STRING,
+  },
 };
 
 type AllFieldKeys =
@@ -514,6 +530,11 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   },
   [FieldKey.DEVICE_LOCALE]: {
     desc: t("The locale of the user's device"),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.DEVICE_MODEL]: {
+    desc: t('Internal hardware revision'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -688,6 +709,11 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.OS_KERNEL_VERSION]: {
+    desc: t('Version number'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OS_VERSION]: {
     desc: t('Version number'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
@@ -889,6 +915,16 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   },
   [FieldKey.USER_IP]: {
     desc: t('IP Address of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.USER_IP_ADDRESS]: {
+    desc: t('IP Address of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.USER_NAME]: {
+    desc: t('Name of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
