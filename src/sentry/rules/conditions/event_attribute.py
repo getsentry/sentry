@@ -11,6 +11,8 @@ ATTR_CHOICES = [
     "platform",
     "environment",
     "type",
+    "error.handled",
+    "error.unhandled",
     "exception.type",
     "exception.value",
     "user.id",
@@ -106,6 +108,19 @@ class EventAttributeCondition(EventCondition):
                 return []
 
             return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
+
+        elif path[0] == "error":
+            if path[1] not in ("handled", "unhandled"):
+                return []
+
+            # Flip "handled" to "unhandled"
+            negate = path[1] == "unhandled"
+
+            return [
+                e.mechanism.handled != negate
+                for e in event.interfaces["exception"].values
+                if e.mechanism is not None and getattr(e.mechanism, "handled") is not None
+            ]
 
         elif path[0] == "user":
             if path[1] in ("id", "ip_address", "email", "username"):
