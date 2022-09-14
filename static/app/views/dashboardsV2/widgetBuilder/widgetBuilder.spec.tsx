@@ -1149,10 +1149,9 @@ describe('WidgetBuilder', function () {
 
       const handleSave = jest.fn();
 
-      await act(async () => {
-        renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
-        await tick();
+      renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
+      await act(async () => {
         userEvent.click(await screen.findByLabelText('Add Query'));
 
         // Triggering the onBlur of the new field should not error
@@ -1160,6 +1159,7 @@ describe('WidgetBuilder', function () {
           screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
         );
         userEvent.keyboard('{esc}');
+
         // Run all timers because the handleBlur contains a setTimeout
         jest.runAllTimers();
       });
