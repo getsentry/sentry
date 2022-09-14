@@ -247,13 +247,14 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             path="/graphql",
             data={"query": query},
         )
-        return (
+        results: Sequence[Mapping[str, Any]] = (
             contents.get("data", {})
             .get("repository", {})
             .get("ref", {})
             .get("target", {})
             .get("blame", [])
-        )  # type: ignore[no-any-return]
+        )
+        return results
 
 
 class GitHubAppsClient(GitHubClientMixin):
