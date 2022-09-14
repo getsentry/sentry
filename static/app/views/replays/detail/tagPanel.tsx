@@ -5,8 +5,8 @@ import {KeyValueTable} from 'sentry/components/keyValueTable';
 import {Panel as BasePanel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import ReplayTagsTableRow from 'sentry/components/replays/replayTagsTableRow';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
 function TagPanel() {
   const {replay} = useReplayContext();

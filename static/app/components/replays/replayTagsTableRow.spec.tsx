@@ -1,7 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+
 import ReplayTagsTableRow from './replayTagsTableRow';
 
 const releaseTag = {
