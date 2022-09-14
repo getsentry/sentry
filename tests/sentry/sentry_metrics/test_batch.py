@@ -435,7 +435,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_opti
                         "5": "session.status",
                     },
                 },
-                "metric_id": 8,
+                "metric_id": 4,
                 "org_id": 1,
                 "project_id": 3,
                 "retention_days": 90,
