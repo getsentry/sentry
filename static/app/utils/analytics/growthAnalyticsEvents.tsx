@@ -198,8 +198,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
-  'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Docs',
-  'growth.demo_modal_clicked_docs': 'Growth: Demo Modal Clicked Continue',
+  'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
+  'growth.demo_modal_clicked_docs': 'Growth: Demo Modal Clicked Docs',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
   'growth.sample_transaction_docs_link_clicked':
