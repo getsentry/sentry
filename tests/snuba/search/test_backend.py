@@ -1306,7 +1306,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "groupby": ["group_id"],
             "conditions": [
                 [["positionCaseInsensitive", ["message", "'foo'"]], "!=", 0],
-                ["type", "=", "transaction"],
+                ["type", "!=", "transaction"],
             ],
             "selected_columns": [],
             "limit": limit,
@@ -1327,7 +1327,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
                 ["uniq", "group_id", "total"],
             ],
@@ -1340,7 +1339,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["count()", "", "times_seen"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
                 ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", "", "priority"],
@@ -1355,7 +1353,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["count()", "", "times_seen"],
                 ["uniq", "group_id", "total"],
             ],
@@ -1368,7 +1365,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert query_mock.call_args == mock.call(
             orderby=["-user_count", "group_id"],
             aggregations=[
-                ["arrayJoin", ["group_ids"], "group_id"],
                 ["uniq", "group_id", "total"],
                 ["uniq", "tags[sentry:user]", "user_count"],
             ],
