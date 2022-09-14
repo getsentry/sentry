@@ -17,11 +17,18 @@ from sentry.models.releasecommit import ReleaseCommit
 class GroupOwnerType(Enum):
     SUSPECT_COMMIT = 0
     OWNERSHIP_RULE = 1
+    CODEOWNERS = 2
+
+
+class OwnerRuleType(Enum):
+    OWNERSHIP_RULE = "ownership_rule"
+    CODEOWNERS = "codeowners"
 
 
 GROUP_OWNER_TYPE = {
     GroupOwnerType.SUSPECT_COMMIT: "suspectCommit",
     GroupOwnerType.OWNERSHIP_RULE: "ownershipRule",
+    GroupOwnerType.CODEOWNERS: "codeowners",
 }
 
 
@@ -53,6 +60,7 @@ class GroupOwner(Model):
         choices=(
             (GroupOwnerType.SUSPECT_COMMIT, "Suspect Commit"),
             (GroupOwnerType.OWNERSHIP_RULE, "Ownership Rule"),
+            (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
