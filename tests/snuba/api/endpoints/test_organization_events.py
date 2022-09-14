@@ -565,8 +565,6 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
             self.store_event(data=data, project_id=project.id)
 
-        print("group", short_id)
-
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
