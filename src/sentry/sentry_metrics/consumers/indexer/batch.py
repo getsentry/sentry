@@ -84,8 +84,9 @@ class IndexerBatch:
         """
         Helper function to determine if we should index tag values or not
         """
-        if self.use_case_id == UseCaseKey.PERFORMANCE and \
-                not options.get("sentry-metrics.performance.index-tag-values"):
+        if self.use_case_id == UseCaseKey.PERFORMANCE and not options.get(
+            "sentry-metrics.performance.index-tag-values"
+        ):
             return False
         return True
 
