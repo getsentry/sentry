@@ -100,7 +100,7 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if ((nextProps.savedQuery && !prevState.savedQuery) || !nextProps.loading) {
+    if (nextProps.savedQuery || !nextProps.loading) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
         nextProps.location
@@ -155,6 +155,7 @@ class Results extends Component<Props, State> {
     if (prevProps.location.query?.id !== location.query?.id) {
       this.setState({
         savedQuery: undefined,
+        // TODO: This still pulls location settings when clicking "Discover" sidebar
         eventView: EventView.fromSavedQueryOrLocation(undefined, location),
       });
     }
