@@ -299,37 +299,39 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         mod_agg = aggregations.copy() if aggregations else []
         mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
-        transaction_conditions = self.update_conditions(
-            "event.type",
-            "=",
-            "transaction",
-            organization_id,
-            project_ids,
-            environments,
-            environment_ids,
-            conditions,
-        )
-        snuba_transaction_results = query_partial(
-            conditions=transaction_conditions,
-            aggregations=mod_agg,
-            condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
-            ),
-        )
-
         rows = snuba_error_results["data"]
-        txn_rows = snuba_transaction_results["data"]
         total = snuba_error_results["totals"]["total"]
-        transaction_total = snuba_transaction_results["totals"]["total"]
         row_length = len(rows)
-
-        def keyfunc(row: Dict[str, int]) -> Optional[int]:
-            return row.get("group_id")
 
         organization = Organization.objects.get(id=organization_id)
         if features.has("organizations:performance-issues", organization):
+            transaction_conditions = self.update_conditions(
+                "event.type",
+                "=",
+                "transaction",
+                organization_id,
+                project_ids,
+                environments,
+                environment_ids,
+                conditions,
+            )
+            snuba_transaction_results = query_partial(
+                conditions=transaction_conditions,
+                aggregations=mod_agg,
+                condition_resolver=functools.partial(
+                    snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
+                ),
+            )
+
+            def keyfunc(row: Dict[str, int]) -> Optional[int]:
+                return row.get("group_id")
+
+            txn_rows = snuba_transaction_results["data"]
+            transaction_total = snuba_transaction_results["totals"]["total"]
+
             if transaction_total:
                 total += transaction_total
+
             if txn_rows:
                 row_length += len(txn_rows)
                 rows = merge(rows, txn_rows, key=keyfunc)
