@@ -503,7 +503,7 @@ class EndpointSiloLimit(SiloLimit):
             (decorated_class,),
             {
                 "dispatch": dispatch_override,
-                "__silo_limit": self,  # For internal tooling only
+                "silo_limit": self,
             },
         )
         new_class.__module__ = decorated_class.__module__

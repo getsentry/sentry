@@ -13,7 +13,7 @@ class SiloLimitCoverageTest(TestCase):
 
         for model_class in django.apps.apps.get_models():
             if model_class._meta.app_label == "sentry" and not hasattr(
-                model_class._meta, "_ModelSiloLimit__silo_limit"
+                model_class._meta, "silo_limit"
             ):
                 undecorated_model_classes.append(model_class)
 
@@ -31,7 +31,7 @@ class SiloLimitCoverageTest(TestCase):
             if (
                 view_class
                 and issubclass(view_class, Endpoint)
-                and not hasattr(view_class, "__silo_limit")
+                and not hasattr(view_class, "silo_limit")
             ):
                 undecorated_endpoint_classes.append(view_class)
 
