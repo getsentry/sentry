@@ -54,6 +54,19 @@ set_payload = {
     "project_id": 3,
 }
 
+extracted_string_output = {
+    1: {
+        "c:sessions/session@none",
+        "d:sessions/duration@second",
+        "environment",
+        "errored",
+        "healthy",
+        "init",
+        "production",
+        "s:sessions/error@none",
+        "session.status",
+    }
+}
 
 def _construct_messages(payloads):
     message_batch = []
@@ -122,6 +135,64 @@ def _get_string_indexer_log_records(caplog):
     ]
 
 
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "use_case_key, option_setting, expected",
+    [
+        pytest.param(
+            UseCaseKey.RELEASE_HEALTH,
+            True,
+            extracted_string_output,
+            id="release health index tag values performance true",
+        ),
+        pytest.param(
+            UseCaseKey.RELEASE_HEALTH,
+            False,
+            extracted_string_output,
+            id="release health index tag values performance false",
+        ),
+        pytest.param(
+            UseCaseKey.PERFORMANCE,
+            True,
+            extracted_string_output,
+            id="performance index tag values performance true",
+        ),
+        pytest.param(
+            UseCaseKey.PERFORMANCE,
+            False,
+            {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "s:sessions/error@none",
+                    "session.status",
+                }
+            },
+            id="performance index tag values performance false",
+        ),
+    ],
+)
+def test_extract_strings(use_case_key, option_setting, expected, set_sentry_option):
+    """
+    Test that the indexer batch extracts the correct strings from the messages
+    based on the use case key and the option setting.
+    """
+    set_sentry_option("sentry-metrics.performance.index-tag-values",
+                      option_setting)
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(use_case_key, outer_message)
+
+    assert batch.extract_strings() == expected
+
+
+@pytest.mark.django_db
 def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -254,6 +325,7 @@ def test_all_resolved(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 def test_metric_id_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -350,6 +422,7 @@ def test_metric_id_rate_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 def test_tag_key_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -428,6 +501,7 @@ def test_tag_key_rate_limited(caplog, settings):
     assert _deconstruct_messages(snuba_payloads) == []
 
 
+@pytest.mark.django_db
 def test_tag_value_rate_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -546,6 +620,7 @@ def test_tag_value_rate_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 def test_one_org_limited(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -650,6 +725,7 @@ def test_one_org_limited(caplog, settings):
     ]
 
 
+@pytest.mark.django_db
 def test_cardinality_limiter(caplog, settings):
     """
     Test functionality of the indexer batch related to cardinality-limiting. More concretely, assert that `IndexerBatch.filter_messages`:

@@ -20,6 +20,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message
 from django.conf import settings
 
+from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import Metadata
@@ -78,6 +79,15 @@ class IndexerBatch:
         self.outer_message = outer_message
 
         self._extract_messages()
+
+    def _should_index_tag_values(self) -> bool:
+        """
+        Helper function to determine if we should index tag values or not
+        """
+        if self.use_case_id == UseCaseKey.PERFORMANCE and \
+                not options.get("sentry-metrics.performance.index-tag-values"):
+            return False
+        return True
 
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
@@ -180,8 +190,11 @@ class IndexerBatch:
             parsed_strings = {
                 metric_name,
                 *tags.keys(),
-                *tags.values(),
             }
+
+            if self._should_index_tag_values():
+                parsed_strings.update([*tags.values()])
+
             org_strings[org_id].update(parsed_strings)
 
         string_count = 0
