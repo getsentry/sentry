@@ -530,6 +530,7 @@ class Organization(Model, SnowflakeIdMixin):
         return frozenset(scopes)
 
 
+@region_silo_model
 class OrganizationRegionMap(Model):
     """
     This Table is a stopgap to allow the mapping of an organization to a region key.
