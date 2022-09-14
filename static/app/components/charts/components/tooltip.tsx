@@ -252,6 +252,10 @@ function getFormatter({
 type Props = ChartProps['tooltip'] &
   Pick<ChartProps, NeededChartProps> &
   Pick<FormatterOptions, 'addSecondsToTimeFormat'> & {
+    /**
+     * An ID for the chart when using renderToBody to portal the tooltip.
+     * A reference to the chart is needed to calculate the tooltip position.
+     */
     chartId?: string;
   };
 
