@@ -33,6 +33,7 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):  # type: ign
             result = {
                 item["name"]: {
                     "functions": METRIC_FUNCTION_LIST_BY_TYPE[item["type"]],
+                    "unit": item["unit"],
                 }
                 for item in metric_meta
             }
