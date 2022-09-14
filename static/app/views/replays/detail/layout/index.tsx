@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -22,36 +21,27 @@ const MIN_CONTENT_WIDTH = {px: 325};
 const MIN_SIDEBAR_WIDTH = {px: 325};
 const MIN_VIDEO_HEIGHT = {px: 200};
 const MIN_CONTENT_HEIGHT = {px: 200};
-const MIN_CRUMBS_HEIGHT = {px: 200};
 
 type Props = {
   layout?: LayoutKey;
-  showCrumbs?: boolean;
-  showTimeline?: boolean;
-  showVideo?: boolean;
 };
 
-function ReplayLayout({
-  layout = LayoutKey.topbar,
-  showCrumbs = true,
-  showTimeline = true,
-  showVideo = true,
-}: Props) {
+function ReplayLayout({layout = LayoutKey.topbar}: Props) {
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
-  const timeline = showTimeline ? (
+  const timeline = (
     <ErrorBoundary mini>
       <ReplayTimeline />
     </ErrorBoundary>
-  ) : null;
+  );
 
-  const video = showVideo ? (
+  const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
         <ReplayView toggleFullscreen={toggleFullscreen} />
       </ErrorBoundary>
     </VideoSection>
-  ) : null;
+  );
 
   if (layout === 'video_only') {
     return (
@@ -62,38 +52,27 @@ function ReplayLayout({
     );
   }
 
-  const crumbsWithTitle = showCrumbs ? (
+  const focusArea = (
     <ErrorBoundary mini>
-      <Breadcrumbs showTitle />
+      <FluidPanel title={<SmallMarginFocusTabs />}>
+        <FocusArea />
+      </FluidPanel>
     </ErrorBoundary>
-  ) : null;
-
-  const crumbsWithoutTitle = showCrumbs ? (
-    <ErrorBoundary mini>
-      <Breadcrumbs showTitle={false} />
-    </ErrorBoundary>
-  ) : null;
+  );
 
   if (layout === 'no_video') {
-    const mainArea = (
-      <ErrorBoundary mini>
-        <FluidPanel title={<SmallMarginFocusTabs />}>
-          <FocusArea />
-        </FluidPanel>
-      </ErrorBoundary>
-    );
     return (
       <BodyContent>
         {timeline}
         <SplitPanel
           key={layout}
           left={{
-            content: mainArea,
+            content: focusArea,
             default: '75%',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
-            content: <SideCrumbsTags crumbs={crumbsWithoutTitle} />,
+            content: <SideCrumbsTags />,
             min: MIN_SIDEBAR_WIDTH,
           }}
         />
@@ -101,16 +80,8 @@ function ReplayLayout({
     );
   }
 
-  const content = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<FocusTabs />}>
-        <FocusArea />
-      </FluidPanel>
-    </ErrorBoundary>
-  );
-
   if (layout === 'top') {
-    const mainArea = (
+    const mainSplit = (
       <SplitPanel
         key={layout + '_main'}
         top={{
@@ -119,7 +90,7 @@ function ReplayLayout({
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
-          content,
+          content: focusArea,
           min: MIN_CONTENT_HEIGHT,
         }}
       />
@@ -131,18 +102,33 @@ function ReplayLayout({
         <SplitPanel
           key={layout}
           left={{
-            content: mainArea,
+            content: mainSplit,
             default: '75%',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
-            content: <SideCrumbsTags crumbs={crumbsWithoutTitle} />,
+            content: <SideCrumbsTags />,
             min: MIN_SIDEBAR_WIDTH,
           }}
         />
       </BodyContent>
     );
   }
+
+  const sideVideoCrumbs = (
+    <SplitPanel
+      key={layout}
+      top={{
+        content: video,
+        default: '50%',
+        min: MIN_CONTENT_WIDTH,
+      }}
+      bottom={{
+        content: <SideCrumbsTags />,
+        min: MIN_SIDEBAR_WIDTH,
+      }}
+    />
+  );
 
   if (layout === 'sidebar_right') {
     return (
@@ -151,12 +137,12 @@ function ReplayLayout({
         <SplitPanel
           key={layout}
           left={{
-            content,
+            content: focusArea,
             default: '60%',
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
-            content: <SidebarContent video={video} crumbs={crumbsWithTitle} />,
+            content: sideVideoCrumbs,
             min: MIN_SIDEBAR_WIDTH,
           }}
         />
@@ -165,40 +151,17 @@ function ReplayLayout({
   }
 
   if (layout === 'sidebar_left') {
-    const mainArea = (
-      <ErrorBoundary mini>
-        <FluidPanel title={<SmallMarginFocusTabs />}>
-          <FocusArea />
-        </FluidPanel>
-      </ErrorBoundary>
-    );
-
-    const sideContent = (
-      <SplitPanel
-        key={layout}
-        top={{
-          content: video,
-          default: '50%',
-          min: MIN_CONTENT_WIDTH,
-        }}
-        bottom={{
-          content: <SideCrumbsTags crumbs={crumbsWithoutTitle} />,
-          min: MIN_SIDEBAR_WIDTH,
-        }}
-      />
-    );
-
     return (
       <BodyContent>
         {timeline}
         <SplitPanel
           key={layout}
           left={{
-            content: sideContent,
+            content: sideVideoCrumbs,
             min: MIN_SIDEBAR_WIDTH,
           }}
           right={{
-            content: mainArea,
+            content: focusArea,
             default: '60%',
             min: MIN_CONTENT_WIDTH,
           }}
@@ -208,6 +171,12 @@ function ReplayLayout({
   }
 
   // layout === 'topbar' or default
+  const crumbsWithTitle = (
+    <ErrorBoundary mini>
+      <Breadcrumbs showTitle />
+    </ErrorBoundary>
+  );
+
   return (
     <BodyContent>
       {timeline}
@@ -230,7 +199,7 @@ function ReplayLayout({
           min: MIN_VIDEO_HEIGHT,
         }}
         bottom={{
-          content,
+          content: focusArea,
           default: '60%',
           min: MIN_CONTENT_HEIGHT,
         }}
@@ -239,7 +208,7 @@ function ReplayLayout({
   );
 }
 
-function SideCrumbsTags({crumbs}) {
+function SideCrumbsTags() {
   const {getParamValue} = useUrlParams('t_side', 'crumbs');
   const sideTabs = <SmallMarginSideTabs tags={['crumbs', 'tags']} />;
   if (getParamValue() === 'tags') {
@@ -249,41 +218,13 @@ function SideCrumbsTags({crumbs}) {
       </FluidPanel>
     );
   }
-  return <FluidPanel title={sideTabs}>{crumbs}</FluidPanel>;
-}
 
-function SidebarContent({video, crumbs}) {
-  const {getParamValue} = useUrlParams('t_side', 'video');
-  const sideTabs = <SideTabs tags={['video', 'tags']} />;
-  if (getParamValue() === 'tags') {
-    return (
-      <FluidPanel title={sideTabs}>
-        <TagPanel />
-      </FluidPanel>
-    );
-  }
-  if (video && crumbs) {
-    return (
-      <FluidPanel title={sideTabs}>
-        <SplitPanel
-          top={{
-            content: video,
-            default: '55%',
-            min: MIN_VIDEO_HEIGHT,
-          }}
-          bottom={{
-            content: crumbs,
-            min: MIN_CRUMBS_HEIGHT,
-          }}
-        />
-      </FluidPanel>
-    );
-  }
   return (
-    <Fragment>
-      {video}
-      {crumbs}
-    </Fragment>
+    <FluidPanel title={sideTabs}>
+      <ErrorBoundary mini>
+        <Breadcrumbs showTitle={false} />
+      </ErrorBoundary>
+    </FluidPanel>
   );
 }
 
