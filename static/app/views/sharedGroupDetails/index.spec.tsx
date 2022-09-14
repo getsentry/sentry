@@ -28,7 +28,7 @@ describe('SharedGroupDetails', function () {
 
   it('renders', function () {
     const {container} = render(
-      <RouteContext.Provider value={router}>
+      <RouteContext.Provider value={{router, ...router}}>
         <SharedGroupDetails
           params={params}
           api={new MockApiClient()}
