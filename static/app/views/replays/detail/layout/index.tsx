@@ -187,6 +187,10 @@ const VideoSection = styled(FluidHeight)`
 
   background: ${p => p.theme.background};
   gap: ${space(1)};
+
+  :fullscreen {
+    padding: ${space(1)};
+  }
 `;
 
 export default ReplayLayout;
