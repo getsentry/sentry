@@ -508,11 +508,19 @@ def test_process_messages_rate_limited(caplog, settings) -> None:
     assert "dropped_message" in caplog.text
 
 
-def test_process_messages_cardinality_limited(caplog, settings, monkeypatch) -> None:
+def test_process_messages_cardinality_limited(
+    caplog, settings, monkeypatch, set_sentry_option
+) -> None:
     """
     Test that the message processor correctly calls the cardinality limiter.
     """
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+
+    # set any limit at all to ensure we actually use the underlying rate limiter
+    set_sentry_option(
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
+    )
 
     class MockCardinalityLimiter(CardinalityLimiter):
         def check_within_quotas(self, requested_quotas):
