@@ -1,6 +1,8 @@
 import time
 from typing import Optional, Sequence, Tuple
 
+import pytest
+
 from sentry.ratelimits.cardinality import (
     CardinalityLimiter,
     GrantedQuota,
@@ -11,6 +13,11 @@ from sentry.ratelimits.cardinality import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.sentry_metrics.indexer.limiters.cardinality import TimeseriesCardinalityLimiter
+
+
+@pytest.fixture(autouse=True)
+def rollout_all_orgs(set_sentry_option):
+    set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0)
 
 
 class MockCardinalityLimiter(CardinalityLimiter):
@@ -113,3 +120,57 @@ def test_accept_all(set_sentry_option):
     )
 
     assert not result.keys_to_remove
+
+
+def test_sample_rate_zero(set_sentry_option):
+    """
+    Assert that with a rollout rate of zero, no quotas are applied.
+    """
+
+    set_sentry_option(
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
+    )
+
+    set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 0.0)
+
+    backend = MockCardinalityLimiter()
+    backend.grant_hashes = 0
+    limiter = TimeseriesCardinalityLimiter("", backend)
+
+    result = limiter.check_cardinality_limits(
+        UseCaseKey.RELEASE_HEALTH,
+        {
+            PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
+            PartitionIdxOffset(0, 1): {"org_id": 1, "name": "bar", "tags": {}},
+            PartitionIdxOffset(0, 2): {"org_id": 1, "name": "baz", "tags": {}},
+        },
+    )
+
+    assert not result.keys_to_remove
+
+
+def test_sample_rate_half(set_sentry_option):
+    set_sentry_option(
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
+    )
+
+    set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 0.5)
+
+    backend = MockCardinalityLimiter()
+    backend.grant_hashes = 0
+    backend.assert_quota = Quota(window_seconds=3600, granularity_seconds=60, limit=0)
+    limiter = TimeseriesCardinalityLimiter("", backend)
+
+    result = limiter.check_cardinality_limits(
+        UseCaseKey.RELEASE_HEALTH,
+        {
+            PartitionIdxOffset(0, 0): {"org_id": 1, "name": "foo", "tags": {}},
+            PartitionIdxOffset(0, 1): {"org_id": 99, "name": "bar", "tags": {}},
+        },
+    )
+
+    # We are sampling org_id=1 into cardinality limiting. Because our quota is
+    # zero, only that org's metrics are dropped.
+    assert result.keys_to_remove == [PartitionIdxOffset(0, 0)]
