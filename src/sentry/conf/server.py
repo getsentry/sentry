@@ -1192,7 +1192,7 @@ SENTRY_FEATURES = {
     # then in the group UI.
     "projects:minidump": True,
     # Enable ingestion for suspect spans
-    "projects:performance-suspect-spans-ingestion": False,
+    "projects:performance-suspect-spans-ingestion": True,
     # Enable functionality for project plugins.
     "projects:plugins": True,
     # Enable alternative version of group creation that is supposed to be less racy.
