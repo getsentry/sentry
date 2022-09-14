@@ -79,6 +79,7 @@ function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
 
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
+  flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
   recursion: 'collapsed' | null;
@@ -93,6 +94,7 @@ export function FrameStackTable({
   getFrameColor,
   formatDuration,
   recursion,
+  flamegraph,
 }: FrameStackTableProps) {
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
@@ -109,7 +111,6 @@ export function FrameStackTable({
     useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
 
   const contextMenu = useContextMenu({container: scrollContainerRef});
-
   const handleZoomIntoFrameClick = useCallback(() => {
     if (!clickedContextMenuNode) {
       return;
@@ -117,10 +118,21 @@ export function FrameStackTable({
 
     canvasPoolManager.dispatch('zoom at frame', [clickedContextMenuNode.node, 'exact']);
     canvasPoolManager.dispatch('highlight frame', [
-      clickedContextMenuNode.node,
+      [clickedContextMenuNode.node],
       'selected',
     ]);
   }, [canvasPoolManager, clickedContextMenuNode]);
+
+  const onHighlightAllOccurencesClick = useCallback(() => {
+    if (!clickedContextMenuNode) {
+      return;
+    }
+
+    canvasPoolManager.dispatch('highlight frame', [
+      flamegraph.findAllMatchingFrames(clickedContextMenuNode.node),
+      'selected',
+    ]);
+  }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
     (
@@ -219,6 +231,7 @@ export function FrameStackTable({
         </FrameCallersTableHeader>
         <FrameStackContextMenu
           onZoomIntoFrameClick={handleZoomIntoFrameClick}
+          onHighlightAllFramesClick={onHighlightAllOccurencesClick}
           contextMenu={contextMenu}
         />
         <TableItemsContainer>

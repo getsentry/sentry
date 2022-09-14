@@ -292,20 +292,23 @@ def post_process_group(
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
-        event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project.set_cached_field_value(
-            "organization", Organization.objects.get_from_cache(id=event.project.organization_id)
-        )
+        with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
+            event.project = Project.objects.get_from_cache(id=event.project_id)
+            event.project.set_cached_field_value(
+                "organization",
+                Organization.objects.get_from_cache(id=event.project.organization_id),
+            )
 
         # Simplified post processing for transaction events.
         # This should eventually be completely removed and transactions
         # will not go through any post processing.
         if is_transaction_event:
-            transaction_processed.send_robust(
-                sender=post_process_group,
-                project=event.project,
-                event=event,
-            )
+            with sentry_sdk.start_span(op="tasks.post_process_group.transaction_processed_signal"):
+                transaction_processed.send_robust(
+                    sender=post_process_group,
+                    project=event.project,
+                    event=event,
+                )
 
             return
 
@@ -326,10 +329,12 @@ def post_process_group(
         # from cache, which may contain a stale group and project
         event.group, _ = get_group_with_redirect(event.group_id)
         event.group_id = event.group.id
+
         # We fetch buffered updates to group aggregates here and populate them on the Group. This
         # helps us avoid problems with processing group ignores and alert rules that rely on these
         # stats.
-        fetch_buffered_group_stats(event.group)
+        with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+            fetch_buffered_group_stats(event.group)
 
         event.group.project = event.project
         event.group.project.set_cached_field_value("organization", event.project.organization)
