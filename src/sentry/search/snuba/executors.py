@@ -320,6 +320,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         rows = snuba_error_results["data"]
         txn_rows = snuba_transaction_results["data"]
         total = snuba_error_results["totals"]["total"]
+        transaction_total = snuba_transaction_results["totals"]["total"]
         row_length = len(rows)
 
         def keyfunc(row: Dict[str, int]) -> Optional[int]:
@@ -327,9 +328,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         organization = Organization.objects.get(id=organization_id)
         if features.has("organizations:performance-issues", organization):
-            total += snuba_transaction_results["totals"]["total"]
-            row_length += len(txn_rows)
-            rows = merge(rows, txn_rows, key=keyfunc)
+            if transaction_total:
+                total += transaction_total
+            if txn_rows:
+                row_length += len(txn_rows)
+                rows = merge(rows, txn_rows, key=keyfunc)
 
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", row_length)
