@@ -139,6 +139,7 @@ class Organization(Model, SnowflakeIdMixin):
         through_fields=("organization", "user"),
     )
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    region_key = models.CharField(max_length=64, null=True)
 
     flags = BitField(
         flags=(
