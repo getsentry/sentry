@@ -1,6 +1,9 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import {IconExpand, IconPanel, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 
 const layoutToLabel: Record<LayoutKey, string> = {
@@ -8,45 +11,38 @@ const layoutToLabel: Record<LayoutKey, string> = {
   sidebar_left: t('Player Left'),
   sidebar_right: t('Player Right'),
   top: t('Top'),
-  no_video: t('Data'),
-  video_only: t('Video'),
+  no_video: t('Data Only'),
+  video_only: t('Video Only'),
 };
-
-const layoutToIcon: Record<LayoutKey, JSX.Element> = {
-  topbar: <IconPanel size="sm" direction="up" />,
-  sidebar_left: <IconPanel size="sm" direction="left" />,
-  sidebar_right: <IconPanel size="sm" direction="right" />,
-  top: <IconPanel size="sm" direction="right" />,
-  no_video: <IconTerminal size="sm" />,
-  video_only: <IconExpand size="sm" />,
-};
-
-function getLayoutIcon(layout: LayoutKey) {
-  return layoutToIcon[layout];
-}
 
 type Props = {};
 
 function ChooseLayout({}: Props) {
   const {getLayout, setLayout} = useReplayLayout();
 
+  const currentLabel = layoutToLabel[getLayout()];
   return (
     <CompactSelect
-      triggerProps={{
-        size: 'xs',
-        icon: getLayoutIcon(getLayout()),
-      }}
-      triggerLabel=""
+      triggerProps={{size: 'xs'}}
+      triggerLabel={
+        <Fragment>
+          Page Layout: <Current>{currentLabel}</Current>
+        </Fragment>
+      }
       value={getLayout()}
       placement="bottom right"
       onChange={opt => setLayout(opt?.value)}
       options={Object.entries(layoutToLabel).map(([value, label]) => ({
         value,
         label,
-        leadingItems: getLayoutIcon(value as LayoutKey),
       }))}
     />
   );
 }
+
+const Current = styled('span')`
+  font-weight: normal;
+  padding-left: ${space(0.5)};
+`;
 
 export default ChooseLayout;
