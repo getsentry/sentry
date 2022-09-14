@@ -1559,7 +1559,7 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
 
         for v in value:
             if isinstance(v, str):
-                value_list_as_ints.append(int(v, 16) if v else 0)
+                value_list_as_ints.append(int(v) if v else 0)
             else:
                 value_list_as_ints.append(v)
 

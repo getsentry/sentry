@@ -496,9 +496,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_performance_issue_ids_filter(self):
-        project = self.create_project(name="foo bar")
+        project = self.create_project(name="hello")
         _perf_group = self.create_group(
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, project=project
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+            project=project,
+            short_id=project.next_short_id(),
         )
 
         def hack_pull_out_data(jobs, projects):
@@ -517,14 +519,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         query = {
             "field": ["count()"],
-            "statsPeriod": "1h",
+            "statsPeriod": "2h",
             "query": f"project:{project.slug} performance.issue_ids:{_perf_group.id}",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_has_performance_group_id(self):
+    def test_has_performance_issue_ids(self):
         perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
 
         def hack_pull_out_data(jobs, projects):
