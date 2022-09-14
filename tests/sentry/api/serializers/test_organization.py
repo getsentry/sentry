@@ -36,6 +36,7 @@ class OrganizationSerializerTest(TestCase):
             "data-forwarding",
             "dashboards-basic",
             "dashboards-edit",
+            "dashboard-grid-layout",
             "discover-basic",
             "discover-query",
             "event-attachments",
