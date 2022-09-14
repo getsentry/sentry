@@ -27,6 +27,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.roles.manager import Role
@@ -527,3 +528,19 @@ class Organization(Model, SnowflakeIdMixin):
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+
+class OrganizationRegionMap(Model):
+    """
+    This Table is a stopgap to allow the mapping of an organization to a region key.
+
+    This table should be removed once the issue regarding
+    """
+
+    __include_in_export__ = False
+    organization = FlexibleForeignKey("sentry.Organization", unique=True)
+    region_key = models.CharField(max_length=64)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_organizationregionmap"
