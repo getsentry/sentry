@@ -51,6 +51,7 @@ filter
   / numeric_in_filter
   / numeric_filter
   / aggregate_duration_filter
+  / aggregate_size_filter
   / aggregate_numeric_filter
   / aggregate_percentage_filter
   / aggregate_date_filter
@@ -130,6 +131,14 @@ aggregate_duration_filter
       return tc.predicateFilter(FilterType.AggregateDuration, key)
   } {
       return tc.tokenFilter(FilterType.AggregateDuration, key, value, op, !!negation);
+    }
+
+// aggregate file size filter
+aggregate_size_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:size_format &{
+      return tc.predicateFilter(FilterType.AggregateSize, key)
+  } {
+      return tc.tokenFilter(FilterType.AggregateSize, key, value, op, !!negation);
     }
 
 // aggregate percentage filter

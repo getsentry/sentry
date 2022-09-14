@@ -91,6 +91,7 @@ export enum FilterType {
   NumericIn = 'numericIn',
   Boolean = 'boolean',
   AggregateDuration = 'aggregateDuration',
+  AggregateSize = 'aggregateSize',
   AggregatePercentage = 'aggregatePercentage',
   AggregateNumeric = 'aggregateNumeric',
   AggregateDate = 'aggregateDate',
@@ -201,6 +202,12 @@ export const filterTypeConfig = {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueDuration],
+    canNegate: true,
+  },
+  [FilterType.AggregateSize]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueSize],
     canNegate: true,
   },
   [FilterType.AggregateNumeric]: {
