@@ -91,6 +91,12 @@ function Sidebar({location, organization}: Props) {
     return () => bcl.remove('body-sidebar');
   }, [bcl]);
 
+  useEffect(() => {
+    if (location?.hash === '#whats-new') {
+      togglePanel(SidebarPanelKey.Broadcasts);
+    }
+  }, [location?.hash]);
+
   // Add sidebar collapse classname to body
   useEffect(() => {
     if (collapsed) {
