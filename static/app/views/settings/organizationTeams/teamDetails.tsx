@@ -1,5 +1,5 @@
 import {cloneElement, isValidElement, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -12,8 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
-import {Team} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
@@ -24,29 +22,24 @@ type Props = {
 
 function TeamDetails({children, ...props}: Props) {
   const api = useApi();
-  const [currentTeam, setCurrentTeam] = useState(
-    TeamStore.getBySlug(props.params.teamId)
-  );
   const [requesting, setRequesting] = useState(false);
+  const {teams, initiallyLoaded} = useTeams({slugs: [props.params.teamId]});
+  const team = teams.find(({slug}) => slug === props.params.teamId);
 
-  function handleRequestAccess(team: Team) {
-    if (!team) {
-      return;
-    }
-
+  function handleRequestAccess(teamSlug: string) {
     setRequesting(true);
 
     joinTeam(
       api,
       {
         orgId: props.params.orgId,
-        teamId: team.slug,
+        teamId: teamSlug,
       },
       {
         success: () => {
           addSuccessMessage(
             tct('You have requested access to [team]', {
-              team: `#${team.slug}`,
+              team: `#${teamSlug}`,
             })
           );
           setRequesting(false);
@@ -54,22 +47,13 @@ function TeamDetails({children, ...props}: Props) {
         error: () => {
           addErrorMessage(
             tct('Unable to request access to [team]', {
-              team: `#${team.slug}`,
+              team: `#${teamSlug}`,
             })
           );
           setRequesting(false);
         },
       }
     );
-  }
-
-  function onTeamChange(data: Team) {
-    if (currentTeam !== data) {
-      const orgId = props.params.orgId;
-      browserHistory.replace(`/organizations/${orgId}/teams/${data.slug}/settings/`);
-    } else {
-      setCurrentTeam({...currentTeam, ...data});
-    }
   }
 
   // `/organizations/${orgId}/teams/${teamId}`;
@@ -94,62 +78,46 @@ function TeamDetails({children, ...props}: Props) {
     </ListLink>,
   ];
 
-  const {teams, initiallyLoaded} = useTeams({slugs: [props.params.teamId]});
+  if (!initiallyLoaded) {
+    return <LoadingIndicator />;
+  }
+
+  if (!team) {
+    return (
+      <Alert type="warning">
+        <div>{t('You do not have access to this team.')}</div>
+      </Alert>
+    );
+  }
 
   return (
     <div>
-      {initiallyLoaded ? (
-        teams.length ? (
-          teams.map((team, i) => {
-            if (!team || !team.hasAccess) {
-              return (
-                <Alert type="warning">
-                  {team ? (
-                    <RequestAccessWrapper>
-                      {tct('You do not have access to the [teamSlug] team.', {
-                        teamSlug: <strong>{`#${team.slug}`}</strong>,
-                      })}
-                      <Button
-                        disabled={requesting || team.isPending}
-                        size="sm"
-                        onClick={() => handleRequestAccess(team)}
-                      >
-                        {team.isPending ? t('Request Pending') : t('Request Access')}
-                      </Button>
-                    </RequestAccessWrapper>
-                  ) : (
-                    <div>{t('You do not have access to this team.')}</div>
-                  )}
-                </Alert>
-              );
-            }
-            return (
-              <div key={i}>
-                <SentryDocumentTitle
-                  title={t('Team Details')}
-                  orgSlug={props.params.orgId}
-                />
-                <h3>
-                  <IdBadge hideAvatar team={team} avatarSize={36} />
-                </h3>
+      <SentryDocumentTitle title={t('Team Details')} orgSlug={props.params.orgId} />
+      {team.hasAccess ? (
+        <div>
+          <h3>
+            <IdBadge hideAvatar team={team} avatarSize={36} />
+          </h3>
 
-                <NavTabs underlined>{navigationTabs}</NavTabs>
+          <NavTabs underlined>{navigationTabs}</NavTabs>
 
-                {isValidElement(children) &&
-                  cloneElement<any>(children, {
-                    team,
-                    onTeamChange: () => onTeamChange(team),
-                  })}
-              </div>
-            );
-          })
-        ) : (
-          <Alert type="warning">
-            <div>{t('You do not have access to this team.')}</div>
-          </Alert>
-        )
+          {isValidElement(children) ? cloneElement<any>(children, {team}) : null}
+        </div>
       ) : (
-        <LoadingIndicator />
+        <Alert type="warning">
+          <RequestAccessWrapper>
+            {tct('You do not have access to the [teamSlug] team.', {
+              teamSlug: <strong>{`#${team.slug}`}</strong>,
+            })}
+            <Button
+              disabled={requesting || team.isPending}
+              size="sm"
+              onClick={() => handleRequestAccess(team.slug)}
+            >
+              {team.isPending ? t('Request Pending') : t('Request Access')}
+            </Button>
+          </RequestAccessWrapper>
+        </Alert>
       )}
     </div>
   );

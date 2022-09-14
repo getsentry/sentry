@@ -35,11 +35,11 @@ const storeConfig: OrganizationsStoreDefinition = {
     this.loaded = false;
   },
 
-  onUpdate(org: Organization) {
+  onUpdate(org) {
     this.add(org);
   },
 
-  onChangeSlug(prev: Organization, next: Organization) {
+  onChangeSlug(prev, next) {
     if (prev.slug === next.slug) {
       return;
     }
@@ -48,11 +48,11 @@ const storeConfig: OrganizationsStoreDefinition = {
     this.add(next);
   },
 
-  onRemoveSuccess(slug: string) {
+  onRemoveSuccess(slug) {
     this.remove(slug);
   },
 
-  get(slug: Organization['slug']) {
+  get(slug) {
     return this.state.find((item: Organization) => item.slug === slug);
   },
 
@@ -64,12 +64,12 @@ const storeConfig: OrganizationsStoreDefinition = {
     return this.state;
   },
 
-  remove(slug: Organization['slug']) {
+  remove(slug) {
     this.state = this.state.filter(item => slug !== item.slug);
     this.trigger(this.state);
   },
 
-  add(item: Organization) {
+  add(item) {
     let match = false;
     this.state.forEach((existing, idx) => {
       if (existing.id === item.id) {

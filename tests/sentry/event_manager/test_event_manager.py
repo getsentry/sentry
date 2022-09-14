@@ -19,7 +19,7 @@ from fixtures.github import (
     GET_PRIOR_COMMIT_EXAMPLE,
     LATER_COMMIT_SHA,
 )
-from sentry import nodestore, tsdb
+from sentry import audit_log, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.event_manager import (
@@ -56,6 +56,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     UserReport,
 )
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
@@ -2095,14 +2096,24 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             project = Project.objects.get(id=self.project.id)
             assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
+            # and we should see an audit log record.
+            record = AuditLogEntry.objects.first()
+            assert record.event == audit_log.get_event_id("PROJECT_EDIT")
+            assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
+            assert record.data["slug"] == self.project.slug
+
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            "projects:performance-suspect-spans-ingestion"
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
@@ -2157,11 +2168,15 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            "projects:performance-suspect-spans-ingestion"
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
         ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()

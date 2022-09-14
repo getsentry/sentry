@@ -120,16 +120,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Environment.DoesNotExist:
                     pass
 
-                response = Response(
-                    serialize(
-                        [matching_group],
-                        request.user,
-                        serializer(
-                            matching_event_id=getattr(matching_event, "event_id", None),
-                            matching_event_environment=matching_event_environment,
-                        ),
-                    )
+                serialized_groups = serialize(
+                    [matching_group],
+                    request.user,
+                    serializer(),
                 )
+                matching_event_id = getattr(matching_event, "event_id", None)
+                if matching_event_id:
+                    serialized_groups[0]["matchingEventId"] = getattr(
+                        matching_event, "event_id", None
+                    )
+                if matching_event_environment:
+                    serialized_groups[0]["matchingEventEnvironment"] = matching_event_environment
+
+                response = Response(serialized_groups)
+
                 response["X-Sentry-Direct-Hit"] = "1"
                 return response
 
