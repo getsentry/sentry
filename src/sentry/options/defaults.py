@@ -478,6 +478,10 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # switch all metrics usage over to using strings for tag values
 register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
+# Flag to determine whether performance metrics indexer should index tag
+# values or not
+register("sentry-metrics.performance.index-tag-values", default=True)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
