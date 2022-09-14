@@ -210,7 +210,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
 
 function SideCrumbsTags() {
   const {getParamValue} = useUrlParams('t_side', 'crumbs');
-  const sideTabs = <SmallMarginSideTabs tags={['crumbs', 'tags']} />;
+  const sideTabs = <SmallMarginSideTabs />;
   if (getParamValue() === 'tags') {
     return (
       <FluidPanel title={sideTabs}>

@@ -6,28 +6,24 @@ const TABS = {
   crumbs: t('Breadcrumbs'),
   tags: t('Tags'),
 };
-type TabKey = keyof typeof TABS;
 
 type Props = {
-  tags: TabKey[];
   className?: string;
 };
 
-function SideTabs({tags, className}: Props) {
+function SideTabs({className}: Props) {
   const {getParamValue, setParamValue} = useUrlParams('t_side', 'crumbs');
   const active = getParamValue();
 
   return (
     <NavTabs underlined className={className}>
-      {Object.entries(TABS)
-        .filter(([tab]) => tags.includes(tab as TabKey))
-        .map(([tab, label]) => {
-          return (
-            <li key={tab} className={active === tab ? 'active' : ''}>
-              <a onClick={() => setParamValue(tab)}>{label}</a>
-            </li>
-          );
-        })}
+      {Object.entries(TABS).map(([tab, label]) => {
+        return (
+          <li key={tab} className={active === tab ? 'active' : ''}>
+            <a onClick={() => setParamValue(tab)}>{label}</a>
+          </li>
+        );
+      })}
     </NavTabs>
   );
 }
