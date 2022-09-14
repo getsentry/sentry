@@ -151,7 +151,7 @@ describe('AlertRulesList', () => {
     userEvent.click(btn, {skipHover: true});
     userEvent.click(screen.getByText('#team-slug'));
 
-    expect(assignMock).edWith(
+    expect(assignMock).toHaveBeenCalledWith(
       '/projects/org-slug/earth/rules/123/',
       expect.objectContaining({
         data: expect.objectContaining({owner: 'team:1'}),
