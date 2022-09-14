@@ -25,9 +25,11 @@ function CrumbPlaceholder({number}: {number: number}) {
   );
 }
 
-type Props = {};
+type Props = {
+  showTitle: boolean;
+};
 
-function Breadcrumbs({}: Props) {
+function Breadcrumbs({showTitle = true}: Props) {
   const {currentHoverTime, currentTime, replay} = useReplayContext();
 
   const replayRecord = replay?.getReplay();
@@ -85,7 +87,7 @@ function Breadcrumbs({}: Props) {
     <Panel>
       <FluidPanel
         bodyRef={crumbListContainerRef}
-        title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+        title={showTitle ? <PanelHeader>{t('Breadcrumbs')}</PanelHeader> : undefined}
       >
         {content}
       </FluidPanel>
