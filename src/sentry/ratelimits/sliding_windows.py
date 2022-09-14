@@ -114,8 +114,7 @@ class Quota:
 
     def iter_window(self, request_timestamp: int) -> Iterator[int]:
         """
-        Iterate over the quota's window, yielding values representing each
-        (absolute) granule.
+        Iterate over the quota's window, yielding timestamps representing each granule.
 
         This function is used to calculate keys for storing the number of
         requests made in each granule.
@@ -124,12 +123,11 @@ class Quota:
         starting with the key to which a currently-processed request should be
         added. That request's timestamp is `request_timestamp`.
 
+        * `request_timestamp / self.granularity_seconds`
         * `request_timestamp / self.granularity_seconds - 1`
         * `request_timestamp / self.granularity_seconds - 2`
-        * `request_timestamp / self.granularity_seconds - 3`
         * ...
         """
-
         value = request_timestamp // self.granularity_seconds
 
         for granule_i in range(self.window_seconds // self.granularity_seconds):
