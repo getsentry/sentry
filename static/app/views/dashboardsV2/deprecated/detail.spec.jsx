@@ -334,44 +334,53 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
         body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       expect(mockVisit).toHaveBeenCalledTimes(1);
 
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+      await act(async () => {
+        // Enter edit mode.
+        wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
+        await tick();
 
-      const card = wrapper.find('WidgetCard').first();
-      card.find('WidgetCardPanel').simulate('mouseOver');
+        const card = wrapper.find('WidgetCard').first();
+        card.find('WidgetCardPanel').simulate('mouseOver');
 
-      // Remove the second and third widgets
-      wrapper
-        .find('WidgetCard')
-        .at(1)
-        .find('Button[data-test-id="widget-delete"]')
-        .simulate('click');
+        // Remove the second and third widgets
+        wrapper
+          .find('WidgetCard')
+          .at(1)
+          .find('Button[data-test-id="widget-delete"]')
+          .simulate('click');
+        await tick();
 
-      wrapper
-        .find('WidgetCard')
-        .at(1)
-        .find('Button[data-test-id="widget-delete"]')
-        .simulate('click');
+        wrapper
+          .find('WidgetCard')
+          .at(1)
+          .find('Button[data-test-id="widget-delete"]')
+          .simulate('click');
+        await tick();
 
-      // Save changes
-      wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
-      await tick();
+        // Save changes
+
+        wrapper
+          .find('Controls Button[data-test-id="dashboard-commit"]')
+          .simulate('click');
+      });
 
       expect(updateMock).toHaveBeenCalled();
       expect(updateMock).toHaveBeenCalledWith(
@@ -397,19 +406,21 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
         statusCode: 400,
       });
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
@@ -442,19 +453,21 @@ describe('Dashboards > Detail', function () {
     });
 
     it('shows add widget option', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
@@ -465,19 +478,21 @@ describe('Dashboards > Detail', function () {
     it('hides add widget option', async function () {
       types.MAX_WIDGETS = 1;
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
@@ -493,35 +508,39 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={newOrg.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={newOrg.router}
-            location={newOrg.router.location}
-          />
-        </OrganizationContext.Provider>,
-        newOrg.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={newOrg.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={newOrg.router}
+              location={newOrg.router.location}
+            />
+          </OrganizationContext.Provider>,
+          newOrg.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       const breadcrumbs = wrapper.find('Breadcrumbs');
 
@@ -607,19 +626,21 @@ describe('Dashboards > Detail', function () {
     });
 
     it('enters view mode when not given a new widget in location query', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
       expect(wrapper.find('DashboardDetail').props().initialState).toEqual(
         DashboardState.VIEW
       );
@@ -640,19 +661,21 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       expect(wrapper.find('WidgetCard')).toHaveLength(3);
       expect(
