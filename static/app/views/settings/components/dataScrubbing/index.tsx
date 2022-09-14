@@ -63,7 +63,7 @@ export function DataScrubbing({
   const handleCloseModal = useCallback(() => {
     const path = project?.slug
       ? `/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/`
-      : `/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/`;
+      : `/settings/${organization.slug}/security-and-privacy/`;
 
     navigate(path);
   }, [navigate, organization.slug, project?.slug]);
@@ -193,7 +193,7 @@ export function DataScrubbing({
           <Button href={ADVANCED_DATASCRUBBING_LINK} external>
             {t('Read Docs')}
           </Button>
-          <Button disabled={disabled} onClick={() => handleAdd()} priority="primary">
+          <Button disabled={disabled} onClick={handleAdd} priority="primary">
             {t('Add Rule')}
           </Button>
         </PanelAction>

@@ -74,7 +74,7 @@ describe('Message entry', function () {
 
     expect(screen.getByRole('link', {name: 'org-slug'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/advanced-data-scrubbing/'
+      '/settings/org-slug/'
     );
   });
 });

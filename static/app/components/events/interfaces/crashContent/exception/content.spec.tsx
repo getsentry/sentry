@@ -153,7 +153,7 @@ describe('Exception Content', function () {
 
     expect(screen.getByRole('link', {name: 'project-slug'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/projects/project-slug/advanced-data-scrubbing/'
+      '/settings/org-slug/projects/project-slug/'
     );
   });
 });

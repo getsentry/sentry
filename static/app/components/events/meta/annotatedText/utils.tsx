@@ -34,10 +34,9 @@ export function getTooltipText({
 
   // default data scrubbing
   if (KNOWN_RULES[rule_id]) {
-    return tct('[method] because of the PII rule [break][rule-description]', {
+    return tct('[method] because of the PII rule [ruleDescription]', {
       method,
-      break: <br />,
-      'rule-description': KNOWN_RULES[rule_id],
+      ruleDescription: KNOWN_RULES[rule_id],
     });
   }
 
@@ -47,11 +46,14 @@ export function getTooltipText({
   if (level === 'organization') {
     // if organization is not available, fall back to the default message
     if (!organization) {
-      return tct('[method] because of the PII rule [break][rule-description]', {
-        method,
-        break: <br />,
-        'rule-description': rule_id,
-      });
+      return (
+        <Wrapper>
+          {tct('[method] because of the PII rule [ruleDescription]', {
+            method,
+            ruleDescription: rule_id,
+          })}
+        </Wrapper>
+      );
     }
 
     const rules = convertRelayPiiConfig(organization?.relayPiiConfig);
@@ -60,20 +62,18 @@ export function getTooltipText({
     return (
       <Wrapper>
         {tct(
-          '[method] because of the PII rule [rule-link] in the settings of the organization [organization-slug]',
+          '[method] because of the PII rule [ruleDescription] in the settings of the organization [organizationSlug]',
           {
             method,
-            'rule-link': (
+            ruleDescription: (
               <Link
                 to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
               >
                 {rule ? getRuleDescription(rule) : ruleId}
               </Link>
             ),
-            'organization-slug': (
-              <Link to={`/settings/${organization.slug}/advanced-data-scrubbing/`}>
-                {organization.slug}
-              </Link>
+            organizationSlug: (
+              <Link to={`/settings/${organization.slug}/`}>{organization.slug}</Link>
             ),
           }
         )}
@@ -83,11 +83,14 @@ export function getTooltipText({
 
   // if project and organization are not available, fall back to the default message
   if (!project || !organization) {
-    return tct('[method] because of the PII rule [break][rule-description]', {
-      method,
-      break: <br />,
-      'rule-description': rule_id,
-    });
+    return (
+      <Wrapper>
+        {tct('[method] because of the PII rule [ruleDescription]', {
+          method,
+          ruleDescription: rule_id,
+        })}
+      </Wrapper>
+    );
   }
 
   const rules = convertRelayPiiConfig(project?.relayPiiConfig);
@@ -96,20 +99,18 @@ export function getTooltipText({
   return (
     <Wrapper>
       {tct(
-        '[method] because of the PII rule [rule-link] in the settings of the project [project-link]',
+        '[method] because of the PII rule [ruleDescription] in the settings of the project [projectSlug]',
         {
           method,
-          'rule-link': (
+          ruleDescription: (
             <Link
               to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
             >
               {rule ? getRuleDescription(rule) : ruleId}
             </Link>
           ),
-          'project-link': (
-            <Link
-              to={`/settings/${organization.slug}/projects/${project?.slug}/advanced-data-scrubbing/`}
-            >
+          projectSlug: (
+            <Link to={`/settings/${organization.slug}/projects/${project?.slug}/`}>
               {project.slug}
             </Link>
           ),

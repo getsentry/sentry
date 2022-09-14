@@ -66,7 +66,7 @@ export class OrganizationRules extends Component<Props, State> {
         rules: convertRelayPiiConfig(this.props.organization.relayPiiConfig),
       });
     } catch {
-      addErrorMessage(t('Unable to load organization rules'));
+      addErrorMessage(t('Unable to load data scrubbing rules'));
     }
   }
 
