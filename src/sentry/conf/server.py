@@ -137,18 +137,24 @@ CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
 
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
-DATABASES = {
-    "default": {
-        "ENGINE": "sentry.db.postgres",
-        "NAME": "sentry",
-        "USER": "postgres",
-        "PASSWORD": "",
-        "HOST": "127.0.0.1",
-        "PORT": "",
-        "AUTOCOMMIT": True,
-        "ATOMIC_REQUESTS": False,
-    }
+base_db = {
+    "ENGINE": "sentry.db.postgres",
+    "NAME": "sentry",
+    "USER": "postgres",
+    "PASSWORD": "",
+    "HOST": "127.0.0.1",
+    "PORT": "",
+    "AUTOCOMMIT": True,
+    "ATOMIC_REQUESTS": False,
 }
+
+DATABASES = {
+    "default": base_db,
+    "control_silo": {**base_db, **{"NAME": "control_silo"}},
+    "region_silo": base_db,
+}
+
+DATABASE_ROUTERS = ("sentry.db.router.MultiDatabaseRouter",)
 
 if "DATABASE_URL" in os.environ:
     url = urlparse(os.environ["DATABASE_URL"])

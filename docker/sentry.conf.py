@@ -51,7 +51,24 @@ if postgres:
             "PASSWORD": (env("SENTRY_DB_PASSWORD") or env("POSTGRES_ENV_POSTGRES_PASSWORD") or ""),
             "HOST": postgres,
             "PORT": (env("SENTRY_POSTGRES_PORT") or ""),
-        }
+        },
+        # TODO(hybrid-cloud): Add config vars for control silo configuration
+        "control_silo": {
+            "ENGINE": "sentry.db.postgres",
+            "NAME": (env("SENTRY_DB_NAME") or env("POSTGRES_ENV_POSTGRES_USER") or "control_silo"),
+            "USER": (env("SENTRY_DB_USER") or env("POSTGRES_ENV_POSTGRES_USER") or "control_silo"),
+            "PASSWORD": (env("SENTRY_DB_PASSWORD") or env("POSTGRES_ENV_POSTGRES_PASSWORD") or ""),
+            "HOST": postgres,
+            "PORT": (env("SENTRY_POSTGRES_PORT") or ""),
+        },
+        "region_silo": {
+            "ENGINE": "sentry.db.postgres",
+            "NAME": (env("SENTRY_DB_NAME") or env("POSTGRES_ENV_POSTGRES_USER") or "postgres"),
+            "USER": (env("SENTRY_DB_USER") or env("POSTGRES_ENV_POSTGRES_USER") or "postgres"),
+            "PASSWORD": (env("SENTRY_DB_PASSWORD") or env("POSTGRES_ENV_POSTGRES_PASSWORD") or ""),
+            "HOST": postgres,
+            "PORT": (env("SENTRY_POSTGRES_PORT") or ""),
+        },
     }
 
 # You should not change this setting after your database has been created
