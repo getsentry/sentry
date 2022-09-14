@@ -412,3 +412,16 @@ def test_sentinel_and_prefix(action, type):
     actions[0][1].update_frame_components_contributions([component], frames, 0)
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [
+        {"function": "foo"},
+        {"function": "foo", "in_app": False},
+    ],
+)
+def test_app_no_matches(frame):
+    enhancements = Enhancements.from_config_string("app:no +app")
+    enhancements.apply_modifications_to_frame([frame], "native", None)
+    assert frame.get("in_app")
