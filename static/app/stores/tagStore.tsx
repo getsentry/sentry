@@ -49,7 +49,7 @@ const storeConfig: TagStoreDefinition = {
       return a.toLowerCase().localeCompare(b.toLowerCase());
     });
 
-    return {
+    const tagCollection = {
       [FieldKey.IS]: {
         key: FieldKey.IS,
         name: 'Status',
@@ -128,6 +128,15 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
     };
+
+    // Ony include fields that that are part of the ISSUE_FIELDS. This is
+    // because we may sometimes have fields that are turned off by removing
+    // them from ISSUE_FIELDS
+    const filteredCollection = Object.entries(tagCollection).filter(([key]) =>
+      ISSUE_FIELDS.includes(key as FieldKey)
+    );
+
+    return Object.fromEntries(filteredCollection);
   },
 
   /**
