@@ -136,7 +136,7 @@ export function getConfirm({
         }
         break;
       default:
-        message = canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
+        message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
     }
 
     return (
