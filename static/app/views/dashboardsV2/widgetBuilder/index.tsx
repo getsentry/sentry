@@ -14,7 +14,7 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
 
   return (
     <Feature
-      features={['new-widget-builder-experience-design', 'dashboards-edit']}
+      features={['dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
         <PageContent>
