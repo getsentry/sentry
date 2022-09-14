@@ -229,7 +229,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        print(data)
         # 0 transactions with LCP 0/0
         assert [attrs for time, attrs in response.data["data"]] == [
             [{"count": 0}],
