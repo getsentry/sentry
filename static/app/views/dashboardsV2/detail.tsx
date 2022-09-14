@@ -33,6 +33,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withApi from 'sentry/utils/withApi';
@@ -667,19 +668,35 @@ class DashboardDetail extends Component<Props, State> {
               <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
             </StyledPageFilterBar>
-            <Dashboard
-              paramDashboardId={dashboardId}
-              dashboard={modifiedDashboard ?? dashboard}
-              organization={organization}
-              isEditing={this.isEditing}
-              widgetLimitReached={widgetLimitReached}
-              onUpdate={this.onUpdateWidget}
-              handleUpdateWidgetList={this.handleUpdateWidgetList}
-              handleAddCustomWidget={this.handleAddCustomWidget}
-              isPreview={this.isPreview}
-              router={router}
-              location={location}
-            />
+            <MetricsCardinalityProvider organization={organization} location={location}>
+              <MetricsDataSwitcher
+                organization={organization}
+                eventView={EventView.fromLocation(location)}
+                location={location}
+                hideLoadingIndicator
+              >
+                {metricsDataSide => (
+                  <MEPSettingProvider
+                    location={location}
+                    forceTransactions={metricsDataSide.forceTransactionsOnly}
+                  >
+                    <Dashboard
+                      paramDashboardId={dashboardId}
+                      dashboard={modifiedDashboard ?? dashboard}
+                      organization={organization}
+                      isEditing={this.isEditing}
+                      widgetLimitReached={widgetLimitReached}
+                      onUpdate={this.onUpdateWidget}
+                      handleUpdateWidgetList={this.handleUpdateWidgetList}
+                      handleAddCustomWidget={this.handleAddCustomWidget}
+                      isPreview={this.isPreview}
+                      router={router}
+                      location={location}
+                    />
+                  </MEPSettingProvider>
+                )}
+              </MetricsDataSwitcher>
+            </MetricsCardinalityProvider>
           </NoProjectMessage>
         </PageContent>
       </PageFiltersContainer>
