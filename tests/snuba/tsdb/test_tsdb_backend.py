@@ -10,6 +10,7 @@ from sentry.event_manager import _pull_out_data
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -508,6 +509,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             assert snuba.query.call_args[1]["limit"] == 5
 
 
+@region_silo_test
 class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

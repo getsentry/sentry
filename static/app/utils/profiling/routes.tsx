@@ -42,26 +42,22 @@ export function generateProfileDetailsRoute({
 }
 
 export function generateProfilingRouteWithQuery({
-  location,
   orgSlug,
   query,
 }: {
   orgSlug: Organization['slug'];
-  location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfilingRoute({orgSlug});
   return {
     pathname,
     query: {
-      ...location?.query,
       ...query,
     },
   };
 }
 
 export function generateProfileSummaryRouteWithQuery({
-  location,
   orgSlug,
   projectSlug,
   transaction,
@@ -70,14 +66,12 @@ export function generateProfileSummaryRouteWithQuery({
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   transaction: string;
-  location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfileSummaryRoute({orgSlug, projectSlug});
   return {
     pathname,
     query: {
-      ...location?.query,
       ...query,
       transaction,
     },
@@ -85,7 +79,6 @@ export function generateProfileSummaryRouteWithQuery({
 }
 
 export function generateProfileFlamechartRouteWithQuery({
-  location,
   orgSlug,
   projectSlug,
   profileId,
@@ -94,7 +87,6 @@ export function generateProfileFlamechartRouteWithQuery({
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
-  location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfileFlamechartRoute({
@@ -105,14 +97,12 @@ export function generateProfileFlamechartRouteWithQuery({
   return {
     pathname,
     query: {
-      ...location?.query,
       ...query,
     },
   };
 }
 
 export function generateProfileDetailsRouteWithQuery({
-  location,
   orgSlug,
   projectSlug,
   profileId,
@@ -121,14 +111,12 @@ export function generateProfileDetailsRouteWithQuery({
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
-  location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfileDetailsRoute({orgSlug, projectSlug, profileId});
   return {
     pathname,
     query: {
-      ...location?.query,
       ...query,
     },
   };

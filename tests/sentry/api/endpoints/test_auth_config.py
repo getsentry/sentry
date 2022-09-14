@@ -4,8 +4,10 @@ from django.test.utils import override_settings
 
 from sentry import newsletter
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class AuthConfigEndpointTest(APITestCase):
     path = "/api/0/auth/config/"
 

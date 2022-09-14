@@ -20,6 +20,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 from sentry.testutils.cases import MetricsAPIBaseTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -35,6 +36,7 @@ rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 pytestmark = [pytest.mark.sentry_metrics]
 
 
+@region_silo_test
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -1163,6 +1165,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
+    @pytest.mark.skip(reason="flaky: INGEST-1174")
     def test_one_field_orderby_with_no_groupby_returns_one_row(self):
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
