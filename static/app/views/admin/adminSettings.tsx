@@ -19,6 +19,7 @@ const optionsAvailable = [
   'beacon.anonymous',
   'performance.issues.all.problem-detection',
   'performance.issues.all.problem-creation',
+  'performance.issues.all.early-adopter-rollout',
   'performance.issues.n_plus_one_db.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
   'performance.issues.n_plus_one_db.duration_threshold',
@@ -99,6 +100,7 @@ export default class AdminSettings extends AsyncView<{}, State> {
               <PanelHeader>Performance Issues - All</PanelHeader>
               {fields['performance.issues.all.problem-detection']}
               {fields['performance.issues.all.problem-creation']}
+              {fields['performance.issues.all.early-adopter-rollout']}
             </Panel>
             <Panel>
               <PanelHeader>Performance Issues - Detectors</PanelHeader>
