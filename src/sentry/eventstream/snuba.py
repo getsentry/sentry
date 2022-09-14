@@ -166,7 +166,7 @@ class SnubaProtocolEventStream(EventStream):
             is_transaction_event=is_transaction_event,
         )
 
-    def start_delete_groups(self, project_id, group_ids):
+    def start_delete_groups(self, project_id: int, group_ids):
         if not group_ids:
             return
 
