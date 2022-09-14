@@ -1460,6 +1460,7 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
                 error_group_filter_values.extend(error_groups)
                 perf_group_filter_values.extend(performance_groups)
 
+        # TODO (udameli): if both groups present, return data for both
         if error_groups:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(

@@ -496,7 +496,10 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_performance_issue_ids_filter(self):
-        _perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        project = self.create_project(name="foo bar")
+        _perf_group = self.create_group(
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, project=project
+        )
 
         def hack_pull_out_data(jobs, projects):
             _pull_out_data(jobs, projects)
@@ -510,12 +513,12 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             start_timestamp=before_now(minutes=11),
         )
         with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(data=data, project_id=self.project.id)
+            self.store_event(data=data, project_id=project.id)
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"performance.issue_ids:{_perf_group.id}",
+            "query": f"project:{project.slug} performance.issue_ids:{_perf_group.id}",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
