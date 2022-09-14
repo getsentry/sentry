@@ -1,10 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
+
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import habitsSuccessfulCustomer from 'sentry/components/habitsSuccessfulCustomer.jpg';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
