@@ -44,7 +44,7 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
 
   return (
     <Layout.Header>
-      <Layout.HeaderContent style={{marginBottom: 0}}>
+      <Layout.HeaderContent>
         <Breadcrumb
           organization={organization}
           trails={[
