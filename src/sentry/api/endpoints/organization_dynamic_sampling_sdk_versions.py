@@ -10,6 +10,7 @@ from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import compare_version as compare_version_relay
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.snuba import discover
 from sentry.utils.dates import ensure_aware
@@ -45,6 +46,7 @@ class QueryBoundsException(Exception):
     pass
 
 
+@region_silo_endpoint
 class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
     private = True
 
@@ -236,7 +238,7 @@ class OrganizationDynamicSamplingSDKVersionsEndpoint(OrganizationEndpoint):
             return Response(
                 status=status.HTTP_400_BAD_REQUEST,
                 data={
-                    "details": "Unable to parse sdk versions. "
+                    "detail": "Unable to parse sdk versions. "
                     "Please check that sdk versions are valid semantic versions."
                 },
             )

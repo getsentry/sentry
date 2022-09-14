@@ -24,7 +24,7 @@ interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
   get(): State;
   init(): void;
   onFetchOrgError(err: RequestError): void;
-  onUpdate(org: Organization, options: UpdateOptions): void;
+  onUpdate(org: Organization, options?: UpdateOptions): void;
   reset(): void;
 }
 
@@ -51,7 +51,7 @@ const storeConfig: OrganizationStoreDefinition = {
     this.trigger(this.get());
   },
 
-  onUpdate(updatedOrg: Organization, {replace = false}: UpdateOptions = {}) {
+  onUpdate(updatedOrg, {replace = false} = {}) {
     this.loading = false;
     this.error = null;
     this.errorType = null;
@@ -60,7 +60,7 @@ const storeConfig: OrganizationStoreDefinition = {
     this.trigger(this.get());
   },
 
-  onFetchOrgError(err: RequestError) {
+  onFetchOrgError(err) {
     this.organization = null;
     this.errorType = null;
 

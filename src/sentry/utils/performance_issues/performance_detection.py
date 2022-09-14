@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import random
@@ -5,11 +7,11 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
-from sentry import options, projectoptions
+from sentry import nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.models import ProjectOption
 from sentry.types.issues import GroupType
@@ -57,6 +59,67 @@ class PerformanceProblem:
     parent_span_ids: Optional[Sequence[str]]
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
+
+    def to_dict(self) -> str:
+        return {
+            "fingerprint": self.fingerprint,
+            "op": self.op,
+            "desc": self.desc,
+            "type": self.type.value,
+            "parent_span_ids": self.parent_span_ids,
+            "cause_span_ids": self.cause_span_ids,
+            "offender_span_ids": self.offender_span_ids,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> PerformanceProblem:
+        return cls(
+            data["fingerprint"],
+            data["op"],
+            data["desc"],
+            GroupType(data["type"]),
+            data["parent_span_ids"],
+            data["cause_span_ids"],
+            data["offender_span_ids"],
+        )
+
+
+class EventPerformanceProblem:
+    """
+    Wrapper that binds an Event and PerformanceProblem together and allow the problem to be saved
+    to and fetch from Nodestore
+    """
+
+    def __init__(self, event: Event, problem: PerformanceProblem):
+        self.event = event
+        self.problem = problem
+
+    @property
+    def identifier(self) -> str:
+        return self.build_identifier(self.event.event_id, self.problem.fingerprint)
+
+    @classmethod
+    def build_identifier(cls, event_id: str, problem_hash: str) -> str:
+        identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
+        return f"p-i-e:{identifier}"
+
+    def save(self):
+        nodestore.set(self.identifier, self.problem.to_dict())
+
+    @classmethod
+    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem:
+        return cls.fetch_multi([(event, problem_hash)])[0]
+
+    @classmethod
+    def fetch_multi(
+        cls, items: Sequence[Tuple[Event, str]]
+    ) -> Sequence[Optional[EventPerformanceProblem]]:
+        ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
+        results = nodestore.get_multi(ids)
+        return [
+            cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
+            for _id, (event, _) in zip(ids, items)
+        ]
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -755,9 +818,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return query and not query.endswith("...")
 
     def _maybe_use_as_source(self, span: Span):
-        if not self._contains_complete_query(span):
-            return
-
         parent_span_id = span.get("parent_span_id", None)
         if not parent_span_id or parent_span_id not in self.potential_parents:
             return
@@ -765,9 +825,6 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         self.source_span = span
 
     def _continues_n_plus_1(self, span: Span):
-        if not self._contains_complete_query(span):
-            return False
-
         if self._overlaps_last_span(span):
             return False
 
@@ -823,6 +880,14 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             return
         parent_span = self.potential_parents[parent_span_id]
         if not parent_span:
+            return
+
+        # Track how many N+1-looking problems we found but dropped because we
+        # couldn't be sure (maybe the truncated part of the query differs).
+        if not self._contains_complete_query(self.source_span) or not self._contains_complete_query(
+            self.n_spans[0]
+        ):
+            metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
         fingerprint = self._fingerprint(

@@ -12,6 +12,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 
 
 class InviteRequestBase(APITestCase):
@@ -52,6 +53,7 @@ class InviteRequestBase(APITestCase):
         )
 
 
+@region_silo_test
 class OrganizationInviteRequestGetTest(InviteRequestBase):
     def test_get_invalid(self):
         self.login_as(user=self.user)
@@ -75,6 +77,7 @@ class OrganizationInviteRequestGetTest(InviteRequestBase):
         assert resp.data["teams"] == []
 
 
+@region_silo_test
 class OrganizationInviteRequestDeleteTest(InviteRequestBase):
     method = "delete"
 
@@ -100,6 +103,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
 
+@region_silo_test
 class OrganizationInviteRequestUpdateTest(InviteRequestBase):
     method = "put"
 
@@ -164,6 +168,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
         assert resp.status_code == 403
 
 
+@region_silo_test
 class OrganizationInviteRequestApproveTest(InviteRequestBase):
     method = "put"
 

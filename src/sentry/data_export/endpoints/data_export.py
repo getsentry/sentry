@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, pending_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import InvalidParams, get_date_range_from_params
@@ -106,6 +106,7 @@ class DataExportQuerySerializer(serializers.Serializer):
         return data
 
 
+@pending_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
     permission_classes = (OrganizationDataExportPermission,)
 

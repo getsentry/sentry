@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import OrganizationAccessRequest, OrganizationMemberTeam
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class UpdateOrganizationAccessRequestTest(APITestCase):
     def test_approve_request(self):
         self.login_as(user=self.user)
