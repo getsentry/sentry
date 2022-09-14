@@ -447,6 +447,7 @@ const storeConfig: GroupingStoreDefinition = {
       this.mergedItems.size <= 1 ||
       this.unmergeList.size === 0 ||
       this.isAllUnmergedSelected();
+
     this.enableFingerprintCompare = this.unmergeList.size === 2;
 
     this.triggerUnmergeState();
@@ -631,7 +632,26 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   getState(): State {
-    return this.state;
+    return {
+      ...pick(this, [
+        'enableFingerprintCompare',
+        'error',
+        'filteredSimilarItems',
+        'loading',
+        'mergeDisabled',
+        'mergeList',
+        'mergeState',
+        'mergeState',
+        'mergedItems',
+        'mergedLinks',
+        'similarItems',
+        'similarLinks',
+        'unmergeDisabled',
+        'unmergeLastCollapsed',
+        'unmergeList',
+        'unmergeState',
+      ]),
+    };
   },
 };
 
