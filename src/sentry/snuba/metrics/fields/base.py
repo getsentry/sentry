@@ -33,11 +33,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.fields.histogram import (
-    ClickhouseHistogram,
-    rebucket_histogram,
-    zoom_histogram,
-)
+from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
@@ -53,7 +49,9 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
+    histogram,
     miserable_users,
+    rate,
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
@@ -65,11 +63,9 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GENERIC_OP_TO_SNUBA_FUNCTION,
-    GENERIC_OPERATIONS_TO_ENTITY,
     GRANULARITY,
     METRIC_TYPE_TO_ENTITY,
     OP_TO_SNUBA_FUNCTION,
-    OPERATIONS_TO_ENTITY,
     TS_COL_QUERY,
     UNIT_TO_TYPE,
     DerivedMetricParseException,
@@ -306,17 +302,17 @@ class MetricOperation(MetricOperationDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
-    ) -> Optional[Function]:
+    def generate_snql_function(
+        self, entity, use_case_id, alias, aggregate_filter: Function, params=None
+    ) -> Function:
         raise NotImplementedError
 
 
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
-    post_query_func: Callable[..., PostQueryFuncReturnType] = lambda *args: args
-    filter_conditions_func: Callable[..., Optional[Function]] = lambda _: None
+    post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
+    snql_func: Callable[..., Optional[Function]] = lambda _: None
 
 
 class RawOp(MetricOperation):
@@ -333,10 +329,18 @@ class RawOp(MetricOperation):
     ) -> SnubaDataType:
         return data
 
-    def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
-    ) -> None:
-        return
+    def generate_snql_function(
+        self, entity, use_case_id, alias, aggregate_filter: Function, params=None
+    ) -> Function:
+        if use_case_id is UseCaseKey.PERFORMANCE:
+            snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
+        else:
+            snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
+        return Function(
+            snuba_function,
+            [Column("value"), aggregate_filter],
+            alias=alias,
+        )
 
 
 class DerivedOp(DerivedOpDefinition, MetricOperation):
@@ -377,6 +381,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
                 except KeyError:
                     continue
 
+        # ToDo(ahmed): Add try/catch here in case of some missing required arguments for a better error message
         subdata = self.post_query_func(**compute_func_dict)
 
         if idx is None:
@@ -385,13 +390,17 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             data[alias][idx] = subdata
         return data
 
-    def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseKey, params: Optional[MetricOperationParams] = None
-    ) -> Optional[Function]:
-        # Fetch the function args
-        metrics_query_args = inspect.signature(self.filter_conditions_func).parameters.keys()
-
+    def generate_snql_function(
+        self, entity, use_case_id, alias, aggregate_filter: Function, params=None
+    ) -> Function:
+        metrics_query_args = inspect.signature(self.snql_func).parameters.keys()
         kwargs = {}
+
+        if "alias" in metrics_query_args:
+            kwargs["alias"] = alias
+        if "aggregate_filter" in metrics_query_args:
+            kwargs["aggregate_filter"] = aggregate_filter
+
         if metrics_query_args and params is not None:
             for field in metrics_query_args:
                 try:
@@ -399,7 +408,10 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
                     kwargs[field] = params[field]
                 except KeyError:
                     continue
-        return self.filter_conditions_func(**kwargs)
+        try:
+            return self.snql_func(**kwargs)
+        except TypeError as e:
+            raise InvalidParams(e)
 
 
 class MetricExpressionBase(ABC):
@@ -541,9 +553,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         return f"{self.metric_operation.op}({self.metric_object.metric_mri})"
 
     def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
-        if use_case_id is UseCaseKey.PERFORMANCE:
-            return GENERIC_OPERATIONS_TO_ENTITY[self.metric_operation.op]
-        return OPERATIONS_TO_ENTITY[self.metric_operation.op]
+        return _get_known_entity_of_metric_mri(self.metric_object.metric_mri).value
 
     def generate_select_statements(
         self,
@@ -622,27 +632,17 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         alias: str,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if use_case_id is UseCaseKey.PERFORMANCE:
-            snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
-        else:
-            snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.metric_operation.op]
-
         # We don't pass params to the metric object because params are usually applied on the operation not on the
         # metric object/name
         conditions = self.metric_object.generate_filter_snql_conditions(
             org_id=org_id, use_case_id=use_case_id
         )
-
-        operation_based_filter = self.metric_operation.generate_filter_snql_conditions(
-            org_id=org_id, params=params, use_case_id=use_case_id
-        )
-        if operation_based_filter is not None:
-            conditions = Function("and", [conditions, operation_based_filter])
-
-        return Function(
-            snuba_function,
-            [Column("value"), conditions],
+        return self.metric_operation.generate_snql_function(
             alias=alias,
+            aggregate_filter=conditions,
+            use_case_id=use_case_id,
+            entity=entity,
+            params=params,
         )
 
 
@@ -1029,6 +1029,8 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
             compute_func_args.append(data[key]) if idx is None else compute_func_args.append(
                 data[key][idx]
             )
+        # ToDo(ahmed): This won't work if there is not post_query_func because there is an assumption that this function
+        #  will aggregate the result somehow
         return self.post_query_func(*compute_func_args)
 
 
@@ -1308,7 +1310,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="histogram",
             can_orderby=False,
             post_query_func=rebucket_histogram,
-            filter_conditions_func=zoom_histogram,
+            snql_func=histogram,
+        ),
+        DerivedOp(
+            op="rate",
+            can_orderby=False,
+            snql_func=rate,
         ),
     ]
 }

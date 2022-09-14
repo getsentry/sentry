@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, Optional
 
 from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
+from sentry.snuba.metrics.fields.histogram import zoom_histogram
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
@@ -304,3 +305,40 @@ def session_duration_filters(org_id):
             ),
         )
     ]
+
+
+def histogram(
+    aggregate_filter,
+    histogram_buckets: int = 100,
+    histogram_from: Optional[float] = None,
+    histogram_to: Optional[float] = None,
+    alias=None,
+):
+    zoom_conditions = zoom_histogram(
+        histogram_buckets=histogram_buckets,
+        histogram_from=histogram_from,
+        histogram_to=histogram_to,
+    )
+    if zoom_conditions is not None:
+        conditions = Function("and", [zoom_conditions, aggregate_filter])
+    else:
+        conditions = aggregate_filter
+
+    return Function(
+        "histogramIf(250)",
+        [Column("value"), conditions],
+        alias=alias,
+    )
+
+
+def rate(aggregate_filter, numerator, denominator=None, alias=None):
+    if denominator is None:
+        denominator = 1.0
+    return Function(
+        "divide",
+        [
+            Function("countIf", [Column("value"), aggregate_filter]),
+            Function("divide", [numerator, denominator]),
+        ],
+        alias=alias,
+    )
