@@ -41,6 +41,7 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -547,18 +548,23 @@ class Results extends Component<Props, State> {
                       />
                     )}
                   </CustomMeasurementsContext.Consumer>
-                  <ResultsChart
-                    router={router}
+                  <MetricsCardinalityProvider
                     organization={organization}
-                    eventView={eventView}
                     location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    total={totalValues}
-                    confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
-                  />
+                  >
+                    <ResultsChart
+                      router={router}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      onTopEventsChange={this.handleTopEventsChange}
+                      total={totalValues}
+                      confirmedQuery={confirmedQuery}
+                      yAxis={yAxisArray}
+                    />
+                  </MetricsCardinalityProvider>
                 </Top>
                 <Layout.Main fullWidth={!showTags}>
                   <Table

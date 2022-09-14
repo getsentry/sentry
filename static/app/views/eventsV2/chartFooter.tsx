@@ -1,3 +1,7 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import Feature from 'sentry/components/acl/feature';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -5,9 +9,11 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 
 type Props = {
   displayMode: string;
@@ -16,6 +22,8 @@ type Props = {
   onDisplayChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
   organization: Organization;
+  setShowBaseline: (value: boolean) => void;
+  showBaseline: boolean;
   topEvents: string;
   total: number | null;
   yAxisOptions: SelectValue<string>[];
@@ -32,7 +40,11 @@ export default function ChartFooter({
   onDisplayChange,
   onTopEventsChange,
   topEvents,
+  setShowBaseline,
+  showBaseline,
+  organization,
 }: Props) {
+  const metricsCardinality = useMetricsCardinalityContext();
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
@@ -54,6 +66,18 @@ export default function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
+        <Feature organization={organization} features={['discover-metrics-baseline']}>
+          <Fragment>
+            <SwitchLabel>{t('Processed events')}</SwitchLabel>
+            <Switch
+              data-test-id="processed-events-toggle"
+              isActive={showBaseline}
+              isDisabled={metricsCardinality.outcome?.forceTransactionsOnly}
+              size="lg"
+              toggle={() => setShowBaseline(!showBaseline)}
+            />
+          </Fragment>
+        </Feature>
         <OptionSelector
           title={t('Display')}
           selected={displayMode}
@@ -92,3 +116,8 @@ export default function ChartFooter({
     </ChartControls>
   );
 }
+
+const SwitchLabel = styled('div')`
+  padding-right: 4px;
+  font-weight: bold;
+`;
