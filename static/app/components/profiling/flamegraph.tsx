@@ -23,8 +23,9 @@ import {
 import {ThreadMenuSelector} from 'sentry/components/profiling/threadSelector';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
-import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -36,18 +37,29 @@ import {
   watchForResize,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 
 import {FlamegraphWarnings} from './FlamegraphWarnings';
 import {ProfilingFlamechartLayout} from './profilingFlamechartLayout';
 
-function getTransactionConfigSpace(profiles: Profile[]): Rect {
-  const startedAt = Math.min(...profiles.map(p => p.startedAt));
-  const endedAt = Math.max(...profiles.map(p => p.endedAt));
-  return new Rect(startedAt, 0, endedAt - startedAt, 0);
+function getTransactionConfigSpace(
+  profileGroup: ProfileGroup,
+  startedAt: number,
+  unit: ProfilingFormatterUnit | string
+): Rect {
+  const duration = profileGroup.metadata.durationNS;
+
+  // If durationNs is present, use it
+  if (typeof duration === 'number') {
+    return new Rect(startedAt, 0, formatTo(duration, 'nanoseconds', unit), 0);
+  }
+
+  // else fallback to Math.max of profile durations
+  const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  return new Rect(startedAt, 0, maxProfileDuration, 0);
 }
 
 const noopFormatDuration = () => '';
@@ -59,10 +71,11 @@ interface FlamegraphProps {
 function Flamegraph(props: FlamegraphProps): ReactElement {
   const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
   const devicePixelRatio = useDevicePixelRatio();
+  const dispatch = useDispatchFlamegraphState();
 
   const flamegraphTheme = useFlamegraphTheme();
-  const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
-  const [{threadId, selectedRoot}, dispatchThreadId] = useFlamegraphProfiles();
+  const {sorting, view, xAxis} = useFlamegraphPreferences();
+  const {threadId, selectedRoot} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -94,7 +107,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       leftHeavy: sorting === 'left heavy',
       configSpace:
         xAxis === 'transaction'
-          ? getTransactionConfigSpace(props.profiles.profiles)
+          ? getTransactionConfigSpace(props.profiles, profile.startedAt, profile.unit)
           : undefined,
     });
   }, [props.profiles, sorting, threadId, view, xAxis]);
@@ -292,7 +305,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
           profileGroup={props.profiles}
           threadId={threadId}
           onThreadIdChange={newThreadId =>
-            dispatchThreadId({type: 'set thread id', payload: newThreadId})
+            dispatch({type: 'set thread id', payload: newThreadId})
           }
         />
         <FlamegraphViewSelectMenu
@@ -344,6 +357,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         frameStack={
           <FrameStack
+            profileGroup={props.profiles}
+            flamegraph={flamegraph}
             referenceNode={referenceNode}
             rootNodes={rootNodes}
             getFrameColor={getFrameColor}

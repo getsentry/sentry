@@ -10,7 +10,6 @@ import {
 import {Client} from 'sentry/api';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -27,15 +26,15 @@ type State = {
   // "Compare" button state
   enableFingerprintCompare: boolean;
   error: boolean;
-  filteredSimilarItems: [];
+  filteredSimilarItems: SimilarItem[];
   loading: boolean;
   mergeDisabled: boolean;
   mergeList: Array<string>;
   mergeState: Map<any, any>;
   // List of fingerprints that belong to issue
-  mergedItems: [];
+  mergedItems: Fingerprint[];
   mergedLinks: string;
-  similarItems: [];
+  similarItems: SimilarItem[];
   similarLinks: string;
   // Disabled state of "Unmerge" button in "Merged" tab (for Issues)
   unmergeDisabled: boolean;
@@ -80,6 +79,20 @@ export type Fingerprint = {
   parentId?: string;
   parentLabel?: string;
   state?: string;
+};
+
+export type SimilarItem = {
+  isBelowThreshold: boolean;
+  issue: Group;
+  aggregate?: {
+    exception: number;
+    message: number;
+  };
+  score?: Record<string, number | null>;
+  scoresByInterface?: {
+    exception: Array<[string, number | null]>;
+    message: Array<[string, any | null]>;
+  };
 };
 
 type ResponseProcessors = {
@@ -622,5 +635,5 @@ const storeConfig: GroupingStoreDefinition = {
   },
 };
 
-const GroupingStore = createStore(makeSafeRefluxStore(storeConfig));
+const GroupingStore = createStore(storeConfig);
 export default GroupingStore;

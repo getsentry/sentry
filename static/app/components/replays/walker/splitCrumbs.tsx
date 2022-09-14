@@ -103,9 +103,9 @@ function SummarySegment({
 }) {
   const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
 
-  const summaryItems = crumbs.map(crumb => (
+  const summaryItems = crumbs.map((crumb, i) => (
     <BreadcrumbItem
-      key={crumb.id}
+      key={crumb.id || i}
       crumb={crumb}
       startTimestampMs={startTimestampMs}
       isHovered={false}
@@ -129,6 +129,7 @@ const Span = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
+  max-width: 120px;
 `;
 
 const Link = styled('a')`

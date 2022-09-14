@@ -9,16 +9,19 @@ from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.kafka_eventstream = KafkaEventStream()
-        self.kafka_eventstream.producer = Mock()
+        self.producer_mock = Mock()
+        self.kafka_eventstream.get_producer = Mock(return_value=self.producer_mock)
 
     def __build_event(self, timestamp):
         raw_event = {
@@ -39,10 +42,15 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         return manager.save(self.project.id)
 
     def __produce_event(self, *insert_args, **insert_kwargs):
+
+        is_transaction_event = insert_kwargs["event"].get_event_type() == "transaction"
+
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
-        produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
+        producer = self.producer_mock
+
+        produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
         assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
         assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
@@ -58,7 +66,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             self.project.id,
             "insert",
             (payload1, payload2),
-            is_transaction_event=insert_kwargs["event"].get_event_type() == "transaction",
+            is_transaction_event=is_transaction_event,
         )
 
     @patch("sentry.eventstream.insert")
@@ -123,7 +131,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = None
-        event.group_ids = [self.group.id]
+        event.groups = [self.group]
         insert_args = ()
         insert_kwargs = {
             "event": event,

@@ -183,7 +183,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
             message={t(`Are you sure you want to remove this external ${type} mapping?`)}
             disabled={!hasAccess}
             onAction={() => onDelete(mapping)}
-            title={t(`Delete External ${capitalize(type)}`)}
+            aria-label={t(`Delete External ${capitalize(type)}`)}
             data-test-id="delete-mapping-button"
           >
             <RedText>{t('Delete')}</RedText>

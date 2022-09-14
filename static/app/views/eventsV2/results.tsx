@@ -32,6 +32,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
@@ -40,6 +41,7 @@ import {
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -532,27 +534,37 @@ class Results extends Component<Props, State> {
                     <EnvironmentPageFilter />
                     <DatePageFilter alignDropdown="left" />
                   </StyledPageFilterBar>
-                  <StyledSearchBar
-                    searchSource="eventsv2"
+                  <CustomMeasurementsContext.Consumer>
+                    {contextValue => (
+                      <StyledSearchBar
+                        searchSource="eventsv2"
+                        organization={organization}
+                        projectIds={eventView.project}
+                        query={query}
+                        fields={fields}
+                        onSearch={this.handleSearch}
+                        maxQueryLength={MAX_QUERY_LENGTH}
+                        customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      />
+                    )}
+                  </CustomMeasurementsContext.Consumer>
+                  <MetricsCardinalityProvider
                     organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    fields={fields}
-                    onSearch={this.handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                  <ResultsChart
-                    router={router}
-                    organization={organization}
-                    eventView={eventView}
                     location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    total={totalValues}
-                    confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
-                  />
+                  >
+                    <ResultsChart
+                      router={router}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      onTopEventsChange={this.handleTopEventsChange}
+                      total={totalValues}
+                      confirmedQuery={confirmedQuery}
+                      yAxis={yAxisArray}
+                    />
+                  </MetricsCardinalityProvider>
                 </Top>
                 <Layout.Main fullWidth={!showTags}>
                   <Table

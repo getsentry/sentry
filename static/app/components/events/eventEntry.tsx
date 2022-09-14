@@ -5,7 +5,7 @@ import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
-import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
+import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance';
 import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -13,10 +13,14 @@ import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
 import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
-import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
-
-import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
+import {
+  Group,
+  IssueCategory,
+  Organization,
+  Project,
+  SharedViewOrganization,
+} from 'sentry/types';
+import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -147,39 +151,21 @@ function EventEntry({
         />
       );
     case EntryType.SPANS:
+      if (
+        group?.issueCategory === IssueCategory.PERFORMANCE &&
+        organization?.features?.includes('performance-issues')
+      ) {
+        return (
+          <SpanEvidenceSection
+            event={event as EventTransaction}
+            organization={organization as Organization}
+          />
+        );
+      }
+
       return (
         <Spans
           event={event as EventTransaction}
-          organization={organization as Organization}
-        />
-      );
-    case EntryType.SPANTREE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
-        return null;
-      }
-
-      const {affectedSpanIds} = entry.data;
-
-      // TODO: Need to dynamically determine the project slug for this issue
-      const INTERNAL_PROJECT = 'sentry';
-
-      return (
-        <EmbeddedSpanTree
-          event={event}
-          organization={organization as Organization}
-          projectSlug={INTERNAL_PROJECT}
-          affectedSpanIds={affectedSpanIds}
-        />
-      );
-    case EntryType.PERFORMANCE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
-        return null;
-      }
-
-      return (
-        <PerformanceIssueSection
-          issue={group as Group}
-          event={event as EventError}
           organization={organization as Organization}
         />
       );

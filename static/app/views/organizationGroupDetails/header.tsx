@@ -30,7 +30,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import {Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -51,7 +51,7 @@ type Props = WithRouterProps & {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  replaysCount: number | null;
+  replaysCount: number | undefined;
   event?: Event;
 };
 
@@ -230,7 +230,8 @@ class GroupHeader extends Component<Props, State> {
             to={`${baseUrl}replays/${location.search}`}
             isActive={() => currentTab === Tab.REPLAYS}
           >
-            {t('Replays')} <Badge text={replaysCount ?? ''} />
+            {t('Replays')}{' '}
+            {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
             <ReplaysFeatureBadge noTooltip />
           </ListLink>
         </Feature>
@@ -239,7 +240,7 @@ class GroupHeader extends Component<Props, State> {
   }
 
   getPerformanceIssueTabs() {
-    const {baseUrl, currentTab, location} = this.props;
+    const {baseUrl, currentTab, location, group} = this.props;
 
     const disabledTabs = this.getDisabledTabs();
 
@@ -258,6 +259,17 @@ class GroupHeader extends Component<Props, State> {
         >
           {t('Details')}
         </ListLink>
+        <StyledListLink
+          to={`${baseUrl}activity/${location.search}`}
+          isActive={() => currentTab === Tab.ACTIVITY}
+          disabled={disabledTabs.includes(Tab.ACTIVITY)}
+        >
+          {t('Activity')}
+          <Badge>
+            {group.numComments}
+            <IconChat size="xs" />
+          </Badge>
+        </StyledListLink>
         <ListLink
           to={`${baseUrl}tags/${location.search}`}
           isActive={() => currentTab === Tab.TAGS}
@@ -278,8 +290,9 @@ class GroupHeader extends Component<Props, State> {
 
   render() {
     const {project, group, baseUrl, event, organization, location} = this.props;
+    const {memberList} = this.state;
 
-    const userCount = group.userCount;
+    const {userCount} = group;
 
     let className = 'group-detail';
 
@@ -291,7 +304,6 @@ class GroupHeader extends Component<Props, State> {
       className += ' isResolved';
     }
 
-    const {memberList} = this.state;
     const message = getMessage(group);
 
     const searchTermWithoutQuery = omit(location.query, 'query');
@@ -325,9 +337,6 @@ class GroupHeader extends Component<Props, State> {
       </GuideAnchor>
     );
 
-    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
-    const isPerformanceIssue = !!event?.contexts?.performance_issue;
-
     return (
       <Layout.Header>
         <div className={className}>
@@ -346,7 +355,7 @@ class GroupHeader extends Component<Props, State> {
             <div className="col-sm-7">
               <TitleWrapper>
                 <h3>
-                  <EventOrGroupTitle hasGuideAnchor data={group} />
+                  <StyledEventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
                 {group.inbox && (
                   <InboxReasonWrapper>
@@ -427,7 +436,7 @@ class GroupHeader extends Component<Props, State> {
             query={location.query}
           />
           <NavTabs>
-            {isPerformanceIssue
+            {group.issueCategory === IssueCategory.PERFORMANCE
               ? this.getPerformanceIssueTabs()
               : this.getErrorIssueTabs()}
           </NavTabs>
@@ -442,6 +451,10 @@ export default withApi(withRouter(withOrganization(GroupHeader)));
 const TitleWrapper = styled('div')`
   display: flex;
   line-height: 24px;
+`;
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-size: inherit;
 `;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`

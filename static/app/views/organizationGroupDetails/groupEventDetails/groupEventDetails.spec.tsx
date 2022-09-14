@@ -182,7 +182,6 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    CommitterStore.teardown();
     (browserHistory.replace as jest.Mock).mockClear();
   });
 
@@ -297,7 +296,6 @@ describe('EventCauseEmpty', () => {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     (browserHistory.replace as jest.Mock).mockClear();
-    CommitterStore.teardown();
   });
 
   it('renders empty state', async function () {

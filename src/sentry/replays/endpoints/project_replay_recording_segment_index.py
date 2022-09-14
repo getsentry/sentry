@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -13,10 +14,10 @@ from sentry.models.file import File
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
-CHUNKSIZE = 4096
 FILE_FETCH_THREADPOOL_SIZE = 4
 
 
+@region_silo_endpoint
 class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
     private = True
 
@@ -26,13 +27,18 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
+        queryset = ReplayRecordingSegment.objects.filter(
+            project_id=project.id,
+            replay_id=replay_id,
+        )
+
+        if queryset.count() == 0:
+            return self.respond(status=404)
+
         if request.GET.get("download") is not None:
             return self.paginate(
                 request=request,
-                queryset=ReplayRecordingSegment.objects.filter(
-                    project_id=project.id,
-                    replay_id=replay_id.replace("-", ""),
-                ),
+                queryset=queryset,
                 order_by="segment_id",
                 on_results=self.on_download_results,
                 response_cls=StreamingHttpResponse,
@@ -43,10 +49,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         else:
             return self.paginate(
                 request=request,
-                queryset=ReplayRecordingSegment.objects.filter(
-                    project_id=project.id,
-                    replay_id=replay_id.replace("-", ""),
-                ),
+                queryset=queryset,
                 order_by="segment_id",
                 on_results=lambda x: {
                     "data": serialize(x, request.user, ReplayRecordingSegmentSerializer())
@@ -79,7 +82,8 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
 
         for i, file in enumerate(recording_segments):
             if self.is_compressed(file):
-                yield from self.decompress_blob_stream(file)
+                buffer = file.read()
+                yield zlib.decompress(buffer, zlib.MAX_WBITS | 32)
             else:
                 yield file.read().decode("utf-8")
 
@@ -95,11 +99,3 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         if first_char == b"{":
             return False
         return True
-
-    @staticmethod
-    def decompress_blob_stream(blob):
-        decompressobj = zlib.decompressobj()
-        buffer = blob.read(CHUNKSIZE)
-        while buffer:
-            yield decompressobj.decompress(buffer).decode("utf-8")
-            buffer = blob.read(CHUNKSIZE)

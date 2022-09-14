@@ -96,7 +96,7 @@ def convert_status_value(value, projects, user, environments):
 
 def convert_category_value(value, projects, user, environments):
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    if features.has("organizations:performance-issue-details-backend", projects[0].organization):
+    if features.has("organizations:performance-issues", projects[0].organization):
         results = []
         for category in value:
             group_category = getattr(GroupCategory, category.upper(), None)
@@ -108,7 +108,7 @@ def convert_category_value(value, projects, user, environments):
 
 def convert_type_value(value, projects, user, environments):
     """Convert a value like 'error' or 'performance_n_plus_one' to the GroupType value for issue lookup"""
-    if features.has("organizations:performance-issue-details-backend", projects[0].organization):
+    if features.has("organizations:performance-issues", projects[0].organization):
         results = []
         for type in value:
             group_type = getattr(GroupType, type.upper(), None)
@@ -127,8 +127,8 @@ value_converters = {
     "release": convert_release_value,
     "status": convert_status_value,
     "regressed_in_release": convert_first_release_value,
-    "category": convert_category_value,
-    "type": convert_type_value,
+    "issue.category": convert_category_value,
+    "issue.type": convert_type_value,
 }
 
 

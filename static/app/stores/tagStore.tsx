@@ -3,7 +3,6 @@ import {createStore} from 'reflux';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -18,7 +17,6 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getIssueAttributes(): TagCollection;
   getIssueTags(): TagCollection;
-  getStateTags(): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -26,7 +24,6 @@ interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
 
 const storeConfig: TagStoreDefinition = {
   state: {},
-  unsubscribeListeners: [],
 
   init() {
     this.state = {};
@@ -78,6 +75,18 @@ const storeConfig: TagStoreDefinition = {
         values: [],
         predefined: true,
       },
+      [FieldKey.ISSUE_CATEGORY]: {
+        key: FieldKey.ISSUE_CATEGORY,
+        name: 'Issue Category',
+        values: ['error', 'performance'],
+        predefined: true,
+      },
+      [FieldKey.ISSUE_TYPE]: {
+        key: FieldKey.ISSUE_TYPE,
+        name: 'Issue Type',
+        values: ['performance_n_plus_one_db_queries'],
+        predefined: true,
+      },
       [FieldKey.LAST_SEEN]: {
         key: FieldKey.LAST_SEEN,
         name: 'Last Seen',
@@ -106,7 +115,8 @@ const storeConfig: TagStoreDefinition = {
         key: FieldKey.TIMES_SEEN,
         name: 'Times Seen',
         isInput: true,
-        // Below values are required or else SearchBar will attempt to get values // This is required or else SearchBar will attempt to get values
+        // Below values are required or else SearchBar will attempt to get values
+        // This is required or else SearchBar will attempt to get values
         values: [],
         predefined: true,
       },
@@ -134,13 +144,6 @@ const storeConfig: TagStoreDefinition = {
     };
   },
 
-  /**
-   * Get only tags loaded from the backend
-   */
-  getStateTags() {
-    return this.getState();
-  },
-
   getState() {
     return this.state;
   },
@@ -165,5 +168,5 @@ const storeConfig: TagStoreDefinition = {
   },
 };
 
-const TagStore = createStore(makeSafeRefluxStore(storeConfig));
+const TagStore = createStore(storeConfig);
 export default TagStore;

@@ -1,5 +1,5 @@
+import io
 import platform
-import tempfile
 from unittest.mock import patch
 
 import brotli
@@ -72,12 +72,10 @@ def test_fetch_file():
         responses.GET, "http://example.com", body="foo bar", content_type="application/json"
     )
 
-    temp = tempfile.TemporaryFile()
+    temp = io.BytesIO()
     result = http.fetch_file(url="http://example.com", domain_lock_enabled=False, outfile=temp)
-    temp.seek(0)
     assert result.body is None
-    assert temp.read() == b"foo bar"
-    temp.close()
+    assert temp.getvalue() == b"foo bar"
 
 
 @responses.activate
@@ -91,9 +89,7 @@ def test_fetch_file_brotli():
         adding_headers={"Content-Encoding": "br"},
     )
 
-    temp = tempfile.TemporaryFile()
+    temp = io.BytesIO()
     result = http.fetch_file(url="http://example.com", domain_lock_enabled=False, outfile=temp)
-    temp.seek(0)
     assert result.body is None
-    assert temp.read() == b"foo bar"
-    temp.close()
+    assert temp.getvalue() == b"foo bar"

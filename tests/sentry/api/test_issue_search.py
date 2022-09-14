@@ -23,6 +23,8 @@ from sentry.api.issue_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
+from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -217,6 +219,7 @@ class ConvertActorOrNoneValueTest(TestCase):
         )
 
 
+@control_silo_test
 class ConvertUserValueTest(TestCase):
     def test_me(self):
         assert convert_user_value(["me"], [self.project], self.user, None) == [self.user]
@@ -253,22 +256,27 @@ class ConvertFirstReleaseValueTest(TestCase):
 
 class ConvertCategoryValueTest(TestCase):
     def test(self):
-        with self.feature("organizations:performance-issue-details-backend"):
-            assert convert_category_value(["error"], [self.project], self.user, None) == [1]
-            assert convert_category_value(["performance"], [self.project], self.user, None) == [
-                1000,
-                1001,
-            ]
-            assert convert_category_value(
-                ["error", "performance"], [self.project], self.user, None
-            ) == [1, 1000, 1001]
+        with self.feature("organizations:performance-issues"):
+            assert set(convert_category_value(["error"], [self.project], self.user, None)) == {
+                gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.ERROR]
+            }
+            assert set(
+                convert_category_value(["performance"], [self.project], self.user, None)
+            ) == {gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]}
+            assert set(
+                convert_category_value(["error", "performance"], [self.project], self.user, None)
+            ) == {
+                gt.value
+                for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.ERROR]
+                + GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]
+            }
             with pytest.raises(InvalidSearchQuery):
                 convert_category_value(["hellboy"], [self.project], self.user, None)
 
 
 class ConvertTypeValueTest(TestCase):
     def test(self):
-        with self.feature("organizations:performance-issue-details-backend"):
+        with self.feature("organizations:performance-issues"):
             assert convert_type_value(["error"], [self.project], self.user, None) == [1]
             assert convert_type_value(
                 ["performance_n_plus_one"], [self.project], self.user, None

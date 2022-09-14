@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {fetchProjectStats30d} from 'sentry/actionCreators/serverSideSampling';
+import {fetchProjectStats} from 'sentry/actionCreators/serverSideSampling';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -30,7 +30,6 @@ import useApi from 'sentry/utils/useApi';
 import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {
   getClientSampleRates,
   isValidSampleRate,
@@ -94,13 +93,21 @@ export function UniformRateModal({
 
   const {projectStats30d, projectStats48h} = useProjectStats();
 
-  const {recommendedSdkUpgrades, affectedProjects, isProjectIncompatible} =
-    useRecommendedSdkUpgrades({
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+  const {
+    recommendedSdkUpgrades,
+    affectedProjects,
+    isProjectIncompatible,
+    isProjectOnOldSDK,
+    loading: sdkUpgradesLoading,
+  } = useRecommendedSdkUpgrades({
+    organization,
+    projectId: project.id,
+  });
 
-  const loading = projectStats30d.loading || projectStats48h.loading;
+  const loading =
+    projectStats30d.loading || projectStats48h.loading || sdkUpgradesLoading;
+
+  const error = projectStats30d.error || projectStats48h.error;
 
   useEffect(() => {
     if (loading || !projectStats30d.data) {
@@ -117,14 +124,22 @@ export function UniformRateModal({
     );
 
     setActiveStep(
-      clientDiscard ? Step.SET_UNIFORM_SAMPLE_RATE : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
+      clientDiscard || !isProjectOnOldSDK
+        ? Step.SET_UNIFORM_SAMPLE_RATE
+        : Step.SET_CURRENT_CLIENT_SAMPLE_RATE
     );
-  }, [loading, projectStats30d.data]);
+  }, [loading, projectStats30d.data, isProjectOnOldSDK]);
 
   const shouldUseConservativeSampleRate =
     hasFirstBucketsEmpty(projectStats30d.data, 27) &&
     hasFirstBucketsEmpty(projectStats48h.data, 3) &&
     !defined(specifiedClientRate);
+
+  const isWithoutTransactions =
+    projectStats30d.data?.groups.reduce(
+      (acc, group) => acc + group.totals['sum(quantity)'],
+      0
+    ) === 0;
 
   useEffect(() => {
     // updated or created rules will always have a new id,
@@ -249,23 +264,23 @@ export function UniformRateModal({
     });
   }
 
-  async function handleRefetchProjectStats30d() {
-    await fetchProjectStats30d({api, orgSlug: organization.slug, projId: project.id});
+  async function handleRefetchProjectStats() {
+    await fetchProjectStats({api, orgSlug: organization.slug, projId: project.id});
   }
 
-  if (activeStep === undefined || loading || projectStats30d.error) {
+  if (activeStep === undefined || loading || error) {
     return (
       <Fragment>
         <Header closeButton>
-          {projectStats30d.error ? (
+          {error ? (
             <h4>{t('Set a global sample rate')}</h4>
           ) : (
             <Placeholder height="22px" />
           )}
         </Header>
         <Body>
-          {projectStats30d.error ? (
-            <LoadingError onRetry={handleRefetchProjectStats30d} />
+          {error ? (
+            <LoadingError onRetry={handleRefetchProjectStats} />
           ) : (
             <LoadingIndicator />
           )}
@@ -281,7 +296,7 @@ export function UniformRateModal({
             </Button>
             <ButtonBar gap={1}>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
-              {projectStats30d.error ? (
+              {error ? (
                 <Button
                   priority="primary"
                   title={t('There was an error loading data')}
@@ -336,6 +351,7 @@ export function UniformRateModal({
         projectId={project.id}
         recommendedSampleRate={!isEdited}
         onSetRules={setRules}
+        specifiedClientRate={specifiedClientRate}
       />
     );
   }
@@ -530,13 +546,7 @@ export function UniformRateModal({
             </Fragment>
           </StyledPanelTable>
 
-          <SamplingProjectIncompatibleAlert
-            organization={organization}
-            projectId={project.id}
-            isProjectIncompatible={isProjectIncompatible}
-          />
-
-          {shouldUseConservativeSampleRate && (
+          {!isWithoutTransactions && shouldUseConservativeSampleRate && (
             <Alert type="info" showIcon>
               {t(
                 "For accurate suggestions, we need at least 48hrs to ingest transactions. Meanwhile, here's a conservative server-side sampling rate which can be changed later on."
@@ -544,7 +554,7 @@ export function UniformRateModal({
             </Alert>
           )}
 
-          {affectedProjects.length > 0 && (
+          {!isProjectIncompatible && affectedProjects.length > 0 && (
             <Alert
               data-test-id="affected-sdk-alert"
               type="info"
@@ -600,10 +610,15 @@ export function UniformRateModal({
                 saving ||
                 !isValid ||
                 selectedStrategy === Strategy.CURRENT ||
-                isProjectIncompatible
+                isProjectIncompatible ||
+                isWithoutTransactions
               }
               title={
-                selectedStrategy === Strategy.CURRENT
+                isProjectIncompatible
+                  ? t('Your project is currently incompatible with Server-Side Sampling.')
+                  : isWithoutTransactions
+                  ? t('You need at least one transaction to set up Server-Side Sampling.')
+                  : selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
                   : !isValid
                   ? t('Sample rate is not valid')

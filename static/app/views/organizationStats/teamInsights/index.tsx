@@ -15,7 +15,7 @@ function TeamInsightsContainer({children, organization}: Props) {
     <Feature organization={organization} features={['team-insights']}>
       <NoProjectMessage organization={organization}>
         {children && isValidElement(children)
-          ? cloneElement(children, {
+          ? cloneElement<any>(children, {
               organization,
             })
           : (children as React.ReactChild)}

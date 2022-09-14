@@ -1,9 +1,9 @@
 import {cloneElement, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
+import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {useFlamegraphPreferencesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {
   useResizableDrawer,
@@ -21,7 +21,7 @@ interface ProfilingFlamechartLayoutProps {
 
 export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps) {
   const flamegraphTheme = useFlamegraphTheme();
-  const {layout} = useFlamegraphPreferencesValue();
+  const {layout} = useFlamegraphPreferences();
   const frameStackRef = useRef<HTMLDivElement>(null);
 
   const resizableOptions: UseResizableDrawerOptions = useMemo(() => {
@@ -32,16 +32,23 @@ export function ProfilingFlamechartLayout(props: ProfilingFlamechartLayoutProps)
         flamegraphTheme.SIZES.BAR_HEIGHT,
     ];
 
-    const onResize = (newDimensions: [number, number]) => {
+    const onResize = (
+      newDimensions: [number, number],
+      maybeOldDimensions: [number, number] | undefined
+    ) => {
       if (!frameStackRef.current) {
         return;
       }
 
       if (layout === 'table left' || layout === 'table right') {
-        frameStackRef.current.style.width = `${newDimensions[0]}px`;
+        frameStackRef.current.style.width = `${
+          maybeOldDimensions?.[0] ?? newDimensions[0]
+        }px`;
         frameStackRef.current.style.height = `100%`;
       } else {
-        frameStackRef.current.style.height = `${newDimensions[1]}px`;
+        frameStackRef.current.style.height = `${
+          maybeOldDimensions?.[1] ?? newDimensions[1]
+        }px`;
         frameStackRef.current.style.width = `100%`;
       }
     };

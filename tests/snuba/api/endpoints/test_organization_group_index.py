@@ -54,11 +54,14 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
 @apply_feature_flag_on_cls("organizations:release-committer-assignees")
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -454,6 +457,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
+    def test_perf_issue(self):
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        self.login_as(user=self.user)
+        with self.feature("organizations:issue-search-allow-postgres-only-search"):
+            response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
+
     def test_lookup_by_event_id(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -586,7 +597,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=2))},
             project_id=project.id,
         )
         event2 = self.store_event(
@@ -1667,7 +1678,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
@@ -1688,7 +1698,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
@@ -1708,7 +1717,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
@@ -1728,7 +1736,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
@@ -1748,7 +1755,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["base"]
@@ -1917,6 +1923,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert owners[1]["type"] == "releaseCommit"
 
 
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3041,6 +3048,26 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             eventstream_state=eventstream_state,
         )
 
+    @patch("sentry.api.helpers.group_index.update.uuid4")
+    @patch("sentry.api.helpers.group_index.update.merge_groups")
+    @patch("sentry.api.helpers.group_index.update.eventstream")
+    def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
+        eventstream_state = object()
+        mock_eventstream.start_merge = Mock(return_value=eventstream_state)
+
+        mock_uuid4.return_value = self.get_mock_uuid()
+        group1 = self.create_group(times_seen=1, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group2 = self.create_group(times_seen=50, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        group3 = self.create_group(times_seen=2, type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.get_error_response(
+            qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
+        )
+
+        assert response.status_code == 400, response.content
+
     def test_assign(self):
         group1 = self.create_group(is_public=True)
         group2 = self.create_group(is_public=True)
@@ -3201,6 +3228,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"
@@ -3280,6 +3308,37 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
+    @patch("sentry.api.helpers.group_index.delete.eventstream")
+    @patch("sentry.eventstream")
+    def test_delete_performance_issue_by_id(self, mock_eventstream_task, mock_eventstream_api):
+        eventstream_state = {"event_stream_state": uuid4()}
+        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+
+        group1 = self.create_group(
+            status=GroupStatus.RESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        )
+        group2 = self.create_group(
+            status=GroupStatus.UNRESOLVED, type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        )
+
+        hashes = []
+        for g in group1, group2:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+
+        self.login_as(user=self.user)
+        with self.feature("organizations:global-views"):
+            response = self.get_response(qs_params={"id": [group1.id, group2.id]})
+
+        assert response.status_code == 400
+
+        assert Group.objects.filter(id=group1.id).exists()
+        assert GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.filter(id=group2.id).exists()
+        assert GroupHash.objects.filter(group_id=group2.id).exists()
+
     def test_bulk_delete(self):
         groups = []
         for i in range(10, 41):
@@ -3326,3 +3385,30 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             for i in range(5):
                 self.get_success_response()
             self.get_error_response(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_bulk_delete_performance_issues(self):
+        groups = []
+        for i in range(10, 41):
+            groups.append(
+                self.create_group(
+                    project=self.project,
+                    status=GroupStatus.RESOLVED,
+                    type=GroupType.PERFORMANCE_SLOW_SPAN.value,
+                )
+            )
+
+        hashes = []
+        for group in groups:
+            hash = uuid4().hex
+            hashes.append(hash)
+            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+
+        self.login_as(user=self.user)
+
+        # if query is '' it defaults to is:unresolved
+        response = self.get_response(qs_params={"query": ""})
+        assert response.status_code == 400
+
+        for group in groups:
+            assert Group.objects.filter(id=group.id).exists()
+            assert GroupHash.objects.filter(group_id=group.id).exists()

@@ -526,14 +526,12 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
         }
 
-        if features.has(
-            "organizations:performance-issue-details-backend", projects[0].organization
-        ):
+        if features.has("organizations:performance-issues", projects[0].organization):
             queryset_conditions.update(
-                {"category": QCallbackCondition(lambda categories: Q(type__in=categories))}
+                {"issue.category": QCallbackCondition(lambda categories: Q(type__in=categories))}
             )
             queryset_conditions.update(
-                {"type": QCallbackCondition(lambda types: Q(type__in=types))}
+                {"issue.type": QCallbackCondition(lambda types: Q(type__in=types))}
             )
 
         if environments is not None:

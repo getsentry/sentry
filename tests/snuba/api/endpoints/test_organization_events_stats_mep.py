@@ -4,12 +4,15 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry import options
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -527,6 +530,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         ]
 
     def test_search_query_if_environment_does_not_exist_on_indexer(self):
+        if options.get("sentry-metrics.performance.tags-values-are-strings"):
+            pytest.skip("test does not apply if tag values are in clickhouse")
         self.create_environment(self.project, name="prod")
         self.create_environment(self.project, name="dev")
         self.store_transaction_metric(
@@ -553,3 +558,69 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 0}],
         ]
         assert not response.data["isMetricsData"]
+
+    def test_custom_performance_metric_meta_contains_field_and_unit_data(self):
+        self.store_transaction_metric(
+            123,
+            timestamp=self.day_ago + timedelta(hours=1),
+            internal_metric="d:transactions/measurements.custom@kibibyte",
+            entity="metrics_distributions",
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": "p99(measurements.custom)",
+                "query": "",
+            },
+        )
+
+        assert response.status_code == 200
+        meta = response.data["meta"]
+        assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
+        assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
+
+    def test_multi_series_custom_performance_metric_meta_contains_field_and_unit_data(self):
+        self.store_transaction_metric(
+            123,
+            timestamp=self.day_ago + timedelta(hours=1),
+            internal_metric="d:transactions/measurements.custom@kibibyte",
+            entity="metrics_distributions",
+        )
+        self.store_transaction_metric(
+            123,
+            timestamp=self.day_ago + timedelta(hours=1),
+            internal_metric="d:transactions/measurements.another.custom@pebibyte",
+            entity="metrics_distributions",
+        )
+        response = self.do_request(
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "yAxis": [
+                    "p95(measurements.custom)",
+                    "p99(measurements.custom)",
+                    "p99(measurements.another.custom)",
+                ],
+                "query": "",
+            },
+        )
+
+        assert response.status_code == 200
+        meta = response.data["p95(measurements.custom)"]["meta"]
+        assert meta["fields"] == {
+            "time": "date",
+            "p95_measurements_custom": "size",
+            "p99_measurements_custom": "size",
+            "p99_measurements_another_custom": "size",
+        }
+        assert meta["units"] == {
+            "time": None,
+            "p95_measurements_custom": "kibibyte",
+            "p99_measurements_custom": "kibibyte",
+            "p99_measurements_another_custom": "pebibyte",
+        }
+        assert meta == response.data["p99(measurements.custom)"]["meta"]
+        assert meta == response.data["p99(measurements.another.custom)"]["meta"]
