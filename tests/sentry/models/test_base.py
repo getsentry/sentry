@@ -87,10 +87,14 @@ class AvailableOnTest(TestCase):
         app_config = MagicMock()
         app_config.get_model.side_effect = test_models.get
 
-        assert get_model_if_available(app_config, "BogusModel") is None
-
         with override_settings(SILO_MODE=SiloMode.REGION):
             assert get_model_if_available(app_config, "ControlModel") is None
             assert get_model_if_available(app_config, "RegionModel") is self.RegionModel
             assert get_model_if_available(app_config, "ReadOnlyModel") is None
             assert get_model_if_available(app_config, "ModelOnMonolith") is self.ModelOnMonolith
+
+    def test_get_model_with_nonexistent_name(self):
+        app_config = MagicMock()
+        app_config.get_model.side_effect = LookupError
+        assert get_model_if_available(app_config, "BogusModel") is None
+        app_config.get_model.assert_called_with("BogusModel")
