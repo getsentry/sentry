@@ -92,7 +92,7 @@ describe('useMetricsContext', function () {
   });
 
   it('throw when provider is not set', function () {
-    // Error is expect, do not fail when calling console.error
+    // Error is expected, do not fail when calling console.error
     jest.spyOn(console, 'error').mockImplementation();
     expect(() => render(<TestComponent other="value" />)).toThrow(
       /useMetricsContext was called outside of MetricsProvider/

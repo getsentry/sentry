@@ -35,7 +35,7 @@ describe('useRoutes', () => {
   });
 
   it('throws error when called outside of routes provider', function () {
-    // Error is expect, do not fail when calling console.error
+    // Error is expected, do not fail when calling console.error
     jest.spyOn(console, 'error').mockImplementation();
     const memoryHistory = createMemoryHistory();
     memoryHistory.push('/');
