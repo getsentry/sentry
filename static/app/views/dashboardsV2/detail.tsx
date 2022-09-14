@@ -34,6 +34,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -783,93 +784,100 @@ class DashboardDetail extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    {(organization.features.includes('dashboards-mep') ||
-                      organization.features.includes('mep-rollout-flag')) &&
-                    isDashboardUsingTransaction ? (
-                      <MetricsDataSwitcher
-                        organization={organization}
-                        eventView={eventView}
-                        location={location}
-                        hideLoadingIndicator
-                      >
-                        {metricsDataSide => (
-                          <MetricsDataSwitcherAlert
-                            organization={organization}
-                            eventView={eventView}
-                            projects={projects}
-                            location={location}
-                            router={router}
-                            {...metricsDataSide}
-                          />
-                        )}
-                      </MetricsDataSwitcher>
-                    ) : null}
-                  </MetricsCardinalityProvider>
-                  <FiltersBar
-                    filters={(modifiedDashboard ?? dashboard).filters}
-                    location={location}
-                    hasUnsavedChanges={hasUnsavedFilters}
-                    isEditingDashboard={
-                      dashboardState !== DashboardState.CREATE && this.isEditing
-                    }
-                    isPreview={this.isPreview}
-                    onDashboardFilterChange={this.handleChangeFilter}
-                    onCancel={() => {
-                      resetPageFilters(dashboard, location);
-                      this.setState({
-                        modifiedDashboard: {
-                          ...(modifiedDashboard ?? dashboard),
-                          filters: dashboard.filters,
-                        },
-                      });
-                    }}
-                    onSave={() => {
-                      const newModifiedDashboard = {
-                        ...cloneDashboard(modifiedDashboard ?? dashboard),
-                        ...getCurrentPageFilters(location),
-                        filters:
-                          getDashboardFiltersFromURL(location) ??
-                          (modifiedDashboard ?? dashboard).filters,
-                      };
-                      updateDashboard(api, organization.slug, newModifiedDashboard).then(
-                        (newDashboard: DashboardDetails) => {
-                          if (onDashboardUpdate) {
-                            onDashboardUpdate(newDashboard);
-                            this.setState({
-                              modifiedDashboard: null,
-                            });
-                          }
-                          addSuccessMessage(t('Dashboard filters updated'));
-                          browserHistory.replace({
-                            pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                            query: omit(
-                              location.query,
-                              Object.values(DashboardFilterKeys)
-                            ),
-                          });
-                        },
-                        () => undefined
-                      );
-                    }}
-                  />
-
-                  <WidgetViewerContext.Provider value={{seriesData, setData}}>
-                    <Dashboard
-                      paramDashboardId={dashboardId}
-                      dashboard={modifiedDashboard ?? dashboard}
+                    <MetricsDataSwitcher
                       organization={organization}
-                      isEditing={this.isEditing}
-                      widgetLimitReached={widgetLimitReached}
-                      onUpdate={this.onUpdateWidget}
-                      handleUpdateWidgetList={this.handleUpdateWidgetList}
-                      handleAddCustomWidget={this.handleAddCustomWidget}
-                      router={router}
+                      eventView={eventView}
                       location={location}
-                      newWidget={newWidget}
-                      onSetNewWidget={onSetNewWidget}
-                      isPreview={this.isPreview}
-                    />
-                  </WidgetViewerContext.Provider>
+                      hideLoadingIndicator
+                    >
+                      {metricsDataSide => (
+                        <MEPSettingProvider
+                          location={location}
+                          forceTransactions={metricsDataSide.forceTransactionsOnly}
+                        >
+                          {isDashboardUsingTransaction ? (
+                            <MetricsDataSwitcherAlert
+                              organization={organization}
+                              eventView={eventView}
+                              projects={projects}
+                              location={location}
+                              router={router}
+                              {...metricsDataSide}
+                            />
+                          ) : null}
+                          <FiltersBar
+                            filters={(modifiedDashboard ?? dashboard).filters}
+                            location={location}
+                            hasUnsavedChanges={hasUnsavedFilters}
+                            isEditingDashboard={
+                              dashboardState !== DashboardState.CREATE && this.isEditing
+                            }
+                            isPreview={this.isPreview}
+                            onDashboardFilterChange={this.handleChangeFilter}
+                            onCancel={() => {
+                              resetPageFilters(dashboard, location);
+                              this.setState({
+                                modifiedDashboard: {
+                                  ...(modifiedDashboard ?? dashboard),
+                                  filters: dashboard.filters,
+                                },
+                              });
+                            }}
+                            onSave={() => {
+                              const newModifiedDashboard = {
+                                ...cloneDashboard(modifiedDashboard ?? dashboard),
+                                ...getCurrentPageFilters(location),
+                                filters:
+                                  getDashboardFiltersFromURL(location) ??
+                                  (modifiedDashboard ?? dashboard).filters,
+                              };
+                              updateDashboard(
+                                api,
+                                organization.slug,
+                                newModifiedDashboard
+                              ).then(
+                                (newDashboard: DashboardDetails) => {
+                                  if (onDashboardUpdate) {
+                                    onDashboardUpdate(newDashboard);
+                                    this.setState({
+                                      modifiedDashboard: null,
+                                    });
+                                  }
+                                  addSuccessMessage(t('Dashboard filters updated'));
+                                  browserHistory.replace({
+                                    pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
+                                    query: omit(
+                                      location.query,
+                                      Object.values(DashboardFilterKeys)
+                                    ),
+                                  });
+                                },
+                                () => undefined
+                              );
+                            }}
+                          />
+
+                          <WidgetViewerContext.Provider value={{seriesData, setData}}>
+                            <Dashboard
+                              paramDashboardId={dashboardId}
+                              dashboard={modifiedDashboard ?? dashboard}
+                              organization={organization}
+                              isEditing={this.isEditing}
+                              widgetLimitReached={widgetLimitReached}
+                              onUpdate={this.onUpdateWidget}
+                              handleUpdateWidgetList={this.handleUpdateWidgetList}
+                              handleAddCustomWidget={this.handleAddCustomWidget}
+                              router={router}
+                              location={location}
+                              newWidget={newWidget}
+                              onSetNewWidget={onSetNewWidget}
+                              isPreview={this.isPreview}
+                            />
+                          </WidgetViewerContext.Provider>
+                        </MEPSettingProvider>
+                      )}
+                    </MetricsDataSwitcher>
+                  </MetricsCardinalityProvider>
                 </Layout.Main>
               </Layout.Body>
             </NoProjectMessage>
