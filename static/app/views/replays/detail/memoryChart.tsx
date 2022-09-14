@@ -59,6 +59,7 @@ function MemoryChart({
       appendToBody: true,
       trigger: 'axis',
       renderMode: 'html',
+      chartId: 'replay-memory-chart',
       formatter: values => {
         const seriesTooltips = values.map(
           value => `
@@ -203,7 +204,7 @@ function MemoryChart({
   ];
 
   return (
-    <MemoryChartWrapper>
+    <MemoryChartWrapper id="replay-memory-chart">
       <AreaChart forwardedRef={forwardedRef} series={series} {...chartOptions} />
     </MemoryChartWrapper>
   );

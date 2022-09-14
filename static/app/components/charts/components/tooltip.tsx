@@ -251,7 +251,9 @@ function getFormatter({
 
 type Props = ChartProps['tooltip'] &
   Pick<ChartProps, NeededChartProps> &
-  Pick<FormatterOptions, 'addSecondsToTimeFormat'>;
+  Pick<FormatterOptions, 'addSecondsToTimeFormat'> & {
+    chartId?: string;
+  };
 
 export default function Tooltip({
   filter,
@@ -268,6 +270,7 @@ export default function Tooltip({
   markerFormatter,
   hideDelay,
   subLabels,
+  chartId,
   ...props
 }: Props = {}): TooltipComponentOption {
   const theme = useTheme();
@@ -315,12 +318,19 @@ export default function Tooltip({
       // Center the tooltip slightly above the cursor.
       const [tipWidth, tipHeight] = size.contentSize;
 
+      let parentNode: Element = document.body;
+      if (dom.parentNode instanceof Element) {
+        parentNode = dom.parentNode;
+      }
+
+      const chartElement: Element =
+        props.appendToBody && chartId
+          ? document.getElementById(chartId) ?? parentNode
+          : parentNode;
+
       // Get the left offset of the tip container (the chart)
       // so that we can estimate overflows
-      const chartLeft =
-        dom.parentNode instanceof Element
-          ? dom.parentNode.getBoundingClientRect().left
-          : 0;
+      const chartLeft = chartElement.getBoundingClientRect().left ?? 0;
 
       // Determine the new left edge.
       let leftPos = Number(pos[0]) - tipWidth / 2;
