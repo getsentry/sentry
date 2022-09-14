@@ -68,6 +68,7 @@ extracted_string_output = {
     }
 }
 
+
 def _construct_messages(payloads):
     message_batch = []
     for i, (payload, headers) in enumerate(payloads):
@@ -178,8 +179,7 @@ def test_extract_strings(use_case_key, option_setting, expected, set_sentry_opti
     Test that the indexer batch extracts the correct strings from the messages
     based on the use case key and the option setting.
     """
-    set_sentry_option("sentry-metrics.performance.index-tag-values",
-                      option_setting)
+    set_sentry_option("sentry-metrics.performance.index-tag-values", option_setting)
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -337,8 +337,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_opti
     mapping_meta is smaller because the tag values are not indexed.
     """
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-    set_sentry_option("sentry-metrics.performance.index-tag-values",
-                      False)
+    set_sentry_option("sentry-metrics.performance.index-tag-values", False)
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -376,10 +375,8 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_opti
                 "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
                 "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
                 "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                "s:sessions/error@none": Metadata(id=4,
-                                                  fetch_type=FetchType.CACHE_HIT),
-                "session.status": Metadata(id=5,
-                                           fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
             }
         },
     )
