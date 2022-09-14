@@ -27,7 +27,6 @@ class OrganizationSentryFunctionDetails(APITestCase):
     def test_get_valid_function(self):
         with Feature("organizations:sentry-functions"):
             get_function_endpoint = reverse(self.endpoint, args=[self.organization.slug, "foo"])
-            print(get_function_endpoint)
             get_response = self.client.get(get_function_endpoint)
             assert get_response.status_code == 200
             assert get_response.data["name"] == "foo"
@@ -83,7 +82,6 @@ class OrganizationSentryFunctionDetails(APITestCase):
             delete_function_endpoint = reverse(
                 self.endpoint, args=[self.organization.slug, self.sentryFunction.slug]
             )
-            print(delete_function_endpoint)
             delete_response = self.client.delete(delete_function_endpoint)
             get_response = self.client.get(delete_function_endpoint)
             assert delete_response.status_code == 204

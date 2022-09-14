@@ -99,7 +99,6 @@ class JavaScriptSdkLoaderTest(TestCase):
     ):
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
         resp = self.client.get(self.path)
-        print(resp.content)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/8.3.15/bundle.es5.min.js" in resp.content
