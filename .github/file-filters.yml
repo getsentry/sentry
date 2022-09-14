@@ -59,6 +59,7 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
   - 'fixtures/search-syntax/**/*'
+  - 'tests/**'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
