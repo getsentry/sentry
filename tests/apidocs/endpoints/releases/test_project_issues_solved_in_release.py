@@ -5,8 +5,10 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models import Commit, GroupLink, GroupResolution, ReleaseCommit, Repository
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectIssuesResolvedInReleaseEndpointTest(APIDocsTestCase):
     endpoint = "sentry-api-0-project-release-resolved"
     method = "get"

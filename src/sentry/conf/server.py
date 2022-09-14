@@ -10,9 +10,11 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
+from typing import Mapping
 from urllib.parse import urlparse
 
 import sentry
+from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -964,6 +966,8 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
+    # Enable the Commit Context feature
+    "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -1023,12 +1027,6 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Enable the new widget builder experience on Dashboards
-    "organizations:new-widget-builder-experience": False,
-    # Enable the new widget builder experience "design" on Dashboards
-    "organizations:new-widget-builder-experience-design": False,
-    # Enable access to the Add to Dashboard modal for metrics work
-    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -2798,3 +2796,5 @@ SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", Fa
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+
+SENTRY_REGION_CONFIG: Mapping[str, Region] = {}

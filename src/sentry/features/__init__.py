@@ -104,9 +104,6 @@ default_manager.add("organizations:mobile-screenshots", OrganizationFeature, Tru
 default_manager.add("organizations:monitors", OrganizationFeature)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
-default_manager.add("organizations:new-widget-builder-experience", OrganizationFeature, True)
-default_manager.add("organizations:new-widget-builder-experience-design", OrganizationFeature, True)
-default_manager.add("organizations:new-widget-builder-experience-modal-access", OrganizationFeature, True)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)  # Only enabled in sentry.io to enable onboarding flows.
 default_manager.add("organizations:org-subdomains", OrganizationFeature)
@@ -165,6 +162,7 @@ default_manager.add("organizations:enable-snowflake-id", OrganizationFeature, Tr
 default_manager.add("organizations:advanced-search", OrganizationFeature)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature)
 default_manager.add("organizations:change-alerts", OrganizationFeature)
+default_manager.add('organizations:commit-context', OrganizationFeature)
 default_manager.add("organizations:custom-symbol-sources", OrganizationFeature)
 default_manager.add("organizations:dashboards-basic", OrganizationFeature)
 default_manager.add("organizations:dashboards-edit", OrganizationFeature)

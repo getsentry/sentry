@@ -46,15 +46,15 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
     <Layout.Header>
       <Layout.HeaderContent style={{marginBottom: 0}}>
         <Breadcrumb
-          location={location}
           organization={organization}
           trails={[
-            {type: 'landing'},
+            {type: 'landing', payload: {query: location.query}},
             {
               type: 'profile summary',
               payload: {
                 projectSlug,
                 transaction,
+                query: location.query,
               },
             },
             {
@@ -63,6 +63,7 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
                 transaction,
                 profileId,
                 projectSlug,
+                query: location.query,
                 tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
               },
             },
@@ -83,7 +84,7 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
               orgSlug: organization.slug,
               projectSlug,
               profileId,
-              location,
+              query: location.query,
             })}
           >
             {t('Flamechart')}
@@ -95,7 +96,7 @@ function ProfileHeader({profiles}: ProfileHeaderProps) {
               orgSlug: organization.slug,
               projectSlug,
               profileId,
-              location,
+              query: location.query,
             })}
           >
             {t('Details')}

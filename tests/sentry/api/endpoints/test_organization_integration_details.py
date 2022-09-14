@@ -8,6 +8,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
@@ -38,12 +39,14 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         )
 
 
+@region_silo_test
 class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
 
+@region_silo_test
 class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest):
     method = "post"
 
@@ -58,6 +61,7 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
         assert org_integration.config == config
 
 
+@region_silo_test
 class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTest):
     method = "delete"
 
@@ -73,6 +77,7 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         )
 
 
+@region_silo_test
 class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):
     method = "put"
 
