@@ -92,9 +92,9 @@ function Sidebar({location, organization}: Props) {
   }, [bcl]);
 
   useEffect(() => {
-    Object.values(SidebarPanelKey).forEach(sidebarValue => {
-      if (location?.hash === `#sidebar-${sidebarValue}`) {
-        togglePanel(sidebarValue);
+    Object.values(SidebarPanelKey).forEach(key => {
+      if (location?.hash === `#sidebar-${key}`) {
+        togglePanel(key);
       }
     });
   }, [location?.hash]);
