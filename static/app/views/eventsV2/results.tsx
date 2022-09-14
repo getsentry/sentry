@@ -100,7 +100,7 @@ function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQu
 
 class Results extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
-    if (nextProps.savedQuery || !nextProps.loading) {
+    if ((nextProps.savedQuery && !prevState.savedQuery) || !nextProps.loading) {
       const eventView = EventView.fromSavedQueryOrLocation(
         nextProps.savedQuery,
         nextProps.location
@@ -151,6 +151,13 @@ class Results extends Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {api, location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
+
+    if (prevProps.location.query?.id !== location.query?.id) {
+      this.setState({
+        savedQuery: undefined,
+        eventView: EventView.fromSavedQueryOrLocation(undefined, location),
+      });
+    }
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
@@ -633,6 +640,13 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  componentDidUpdate(prevProps) {
+    const {location} = this.props;
+    if (prevProps.location.query?.id !== location.query?.id) {
+      this.setState({savedQuery: undefined});
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     if (location.query.id) {
