@@ -1,8 +1,11 @@
+# Note: It must be possible to import this module directly without having to
+# initialize Sentry. I.e., opening a bare python shell and typing `import
+# sentry.sentry_metrics.configuration` should work.
+#
+# If not, the parallel indexer breaks.
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
-
-from django.conf import settings
 
 
 class UseCaseKey(Enum):
@@ -52,6 +55,8 @@ def get_ingest_config(
     use_case_key: UseCaseKey, db_backend: IndexerStorage
 ) -> MetricsIngestConfiguration:
     if len(_METRICS_INGEST_CONFIG_BY_USE_CASE) == 0:
+        from django.conf import settings
+
         _register_ingest_config(
             MetricsIngestConfiguration(
                 db_backend=IndexerStorage.POSTGRES,
@@ -131,3 +136,41 @@ def get_ingest_config(
         )
 
     return _METRICS_INGEST_CONFIG_BY_USE_CASE[(use_case_key, db_backend)]
+
+
+def initialize_sentry_and_global_consumer_state(config: MetricsIngestConfiguration) -> None:
+    """
+    Initialization function for subprocesses spawned by the parallel indexer.
+
+    It does the same thing as `initialize_global_consumer_state` except it
+    initializes the Sentry Django app from scratch as well.
+
+    `config` is pickleable, and this function lives in a module that can be
+    imported without any upfront initialization of the Django app. Meaning that
+    an object like
+    `functools.partial(initialize_sentry_and_global_consumer_state, config)` is
+    pickleable as well (which we pass as initialization callback to arroyo).
+    """
+    from sentry.runner import configure
+
+    configure()
+
+    initialize_global_consumer_state(config)
+
+
+def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None:
+    """
+    Initialization function for the main process of the metrics indexer.
+
+    This primarily sets global tags for instrumentation in both our
+    statsd/metrics usage and the Sentry SDK.
+    """
+
+    import sentry_sdk
+
+    sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
+
+    from sentry.utils.metrics import global_tags
+
+    ctx = global_tags(_all_threads=True, pipeline=config.internal_metrics_tag)
+    ctx.__enter__()
