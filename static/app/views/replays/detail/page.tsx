@@ -32,8 +32,8 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
         <ChooseLayout />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>
 
       {replayRecord && crumbs ? (

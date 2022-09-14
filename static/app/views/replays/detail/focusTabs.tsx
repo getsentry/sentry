@@ -15,15 +15,15 @@ const ReplayTabs: Record<TabKey, string> = {
   memory: t('Memory'),
 };
 
-type Props = {};
+type Props = {className?: string};
 
-function FocusTabs({}: Props) {
+function FocusTabs({className}: Props) {
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab();
   const activeTab = getActiveTab();
 
   return (
-    <NavTabs underlined>
+    <NavTabs underlined className={className}>
       {Object.entries(ReplayTabs).map(([tab, label]) => (
         <li key={tab} className={activeTab === tab ? 'active' : ''}>
           <a
