@@ -1968,12 +1968,6 @@ def _calculate_span_grouping(jobs, projects):
             event = job["event"]
             project = projects[job["project_id"]]
 
-            if not features.has(
-                "projects:performance-suspect-spans-ingestion",
-                project=project,
-            ):
-                continue
-
             groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 

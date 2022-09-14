@@ -209,7 +209,6 @@ def _get_project_config(project, full_config=True, project_keys=None):
             "drop": False,
         }
 
-    if features.has("projects:performance-suspect-spans-ingestion", project=project):
         cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         cfg["config"]["filterSettings"] = get_filter_settings(project)

@@ -1457,65 +1457,64 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         assert data["type"] == "transaction"
 
     def test_transaction_event_span_grouping(self):
-        with self.feature("projects:performance-suspect-spans-ingestion"):
-            manager = EventManager(
-                make_event(
-                    **{
-                        "transaction": "wait",
-                        "contexts": {
-                            "trace": {
-                                "parent_span_id": "bce14471e0e9654d",
-                                "op": "foobar",
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "span_id": "bf5be759039ede9a",
-                            }
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
                         },
-                        "spans": [
-                            {
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "parent_span_id": "bf5be759039ede9a",
-                                "span_id": "a" * 16,
-                                "start_timestamp": 0,
-                                "timestamp": 1,
-                                "same_process_as_parent": True,
-                                "op": "default",
-                                "description": "span a",
-                            },
-                            {
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "parent_span_id": "bf5be759039ede9a",
-                                "span_id": "b" * 16,
-                                "start_timestamp": 0,
-                                "timestamp": 1,
-                                "same_process_as_parent": True,
-                                "op": "default",
-                                "description": "span a",
-                            },
-                            {
-                                "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                                "parent_span_id": "bf5be759039ede9a",
-                                "span_id": "c" * 16,
-                                "start_timestamp": 0,
-                                "timestamp": 1,
-                                "same_process_as_parent": True,
-                                "op": "default",
-                                "description": "span b",
-                            },
-                        ],
-                        "timestamp": "2019-06-14T14:01:40Z",
-                        "start_timestamp": "2019-06-14T14:01:40Z",
-                        "type": "transaction",
-                    }
-                )
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                }
             )
-            manager.normalize()
-            event = manager.save(self.project.id)
-            data = event.data
-            assert data["type"] == "transaction"
-            assert data["span_grouping_config"]["id"] == "default:2021-08-25"
-            spans = [{"hash": span["hash"]} for span in data["spans"]]
-            # the basic strategy is to simply use the description
-            assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+        data = event.data
+        assert data["type"] == "transaction"
+        assert data["span_grouping_config"]["id"] == "default:2021-08-25"
+        spans = [{"hash": span["hash"]} for span in data["spans"]]
+        # the basic strategy is to simply use the description
+        assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
     def test_sdk(self):
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
@@ -2108,9 +2107,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            "projects:performance-suspect-spans-ingestion"
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature({}):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2167,9 +2164,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
-            "projects:performance-suspect-spans-ingestion"
-        ):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature({}):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)
