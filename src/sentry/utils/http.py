@@ -9,8 +9,16 @@ from sentry import options
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
-def absolute_uri(url: Optional[str] = None) -> str:
+def absolute_uri(url: Optional[str] = None, use_region: bool = False) -> str:
     prefix = options.get("system.url-prefix")
+    if use_region:
+        # HACK(Leander): Exact copy of generate_region_url()
+        region_url_template = options.get("system.region-api-url-template")
+        region = options.get("system.region") or None
+        if not region_url_template or not region:
+            prefix = options.get("system.url-prefix")
+        prefix = region_url_template.replace("{region}", region)
+
     if not url:
         return prefix
     return urljoin(prefix.rstrip("/") + "/", url.lstrip("/"))

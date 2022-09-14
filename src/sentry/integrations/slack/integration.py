@@ -128,7 +128,7 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         identity_pipeline_config = {
             "oauth_scopes": self.identity_oauth_scopes,
             "user_scopes": self.user_scopes,
-            "redirect_url": absolute_uri("/extensions/slack/setup/"),
+            "redirect_url": absolute_uri("/extensions/slack/setup/", True),
         }
 
         identity_pipeline_view = NestedPipelineView(
@@ -185,7 +185,6 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
                 "data": {},
             },
         }
-
         return integration
 
     def post_install(
