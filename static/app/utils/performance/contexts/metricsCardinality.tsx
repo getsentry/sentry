@@ -101,7 +101,7 @@ export const MetricsCardinalityProvider = (props: {
   );
 };
 
-export const MetricCardinalityConsumer = _Context.Consumer;
+export const MetricsCardinalityConsumer = _Context.Consumer;
 
 export const useMetricsCardinalityContext = _useContext;
 

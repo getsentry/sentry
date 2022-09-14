@@ -145,6 +145,7 @@ class ResultsChart extends Component<ResultsChartProps> {
 type ContainerProps = {
   api: Client;
   confirmedQuery: boolean;
+  disableProcessedBaselineToggle: boolean;
   eventView: EventView;
   location: Location;
   onAxisChange: (value: string[]) => void;
@@ -221,6 +222,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       organization,
       confirmedQuery,
       yAxis,
+      disableProcessedBaselineToggle,
     } = this.props;
 
     const {yAxisOptions, showBaseline} = this.state;
@@ -273,6 +275,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
         <ChartFooter
           organization={organization}
           total={total}
+          disableProcessedBaselineToggle={disableProcessedBaselineToggle}
           yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
           eventView={eventView}

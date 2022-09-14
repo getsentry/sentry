@@ -14,11 +14,9 @@ import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
-
-import {usesTransactionsDataset} from './utils';
 
 type Props = {
+  disableProcessedBaselineToggle: boolean;
   displayMode: string;
   displayOptions: SelectValue<string>[];
   eventView: EventView;
@@ -47,9 +45,8 @@ export default function ChartFooter({
   setShowBaseline,
   showBaseline,
   organization,
-  eventView,
+  disableProcessedBaselineToggle,
 }: Props) {
-  const metricsCardinality = useMetricsCardinalityContext();
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
@@ -77,11 +74,7 @@ export default function ChartFooter({
             <Switch
               data-test-id="processed-events-toggle"
               isActive={showBaseline}
-              isDisabled={
-                metricsCardinality.outcome?.forceTransactionsOnly ||
-                displayMode !== 'default' ||
-                !usesTransactionsDataset(eventView, yAxisValue)
-              }
+              isDisabled={disableProcessedBaselineToggle}
               size="lg"
               toggle={() => setShowBaseline(!showBaseline)}
             />
