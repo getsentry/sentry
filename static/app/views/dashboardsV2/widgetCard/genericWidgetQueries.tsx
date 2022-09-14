@@ -58,7 +58,6 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   api: Client;
   children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
   config: DatasetConfig<SeriesResponse, TableResponse>;
-  mepSetting: MEPState | null;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -75,6 +74,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   dashboardFilters?: DashboardFilters;
   limit?: number;
   loading?: boolean;
+  mepSetting?: MEPState | null;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
