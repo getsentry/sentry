@@ -19,6 +19,7 @@ import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 const MIN_VIDEO_WIDTH = {px: 325};
 const MIN_CONTENT_WIDTH = {px: 325};
+const MIN_SIDEBAR_WIDTH = {px: 325};
 const MIN_VIDEO_HEIGHT = {px: 200};
 const MIN_CONTENT_HEIGHT = {px: 200};
 const MIN_CRUMBS_HEIGHT = {px: 200};
@@ -52,11 +53,53 @@ function ReplayLayout({
     </VideoSection>
   ) : null;
 
-  const crumbs = showCrumbs ? (
+  if (layout === 'video_only') {
+    return (
+      <BodyContent>
+        {timeline}
+        {video}
+      </BodyContent>
+    );
+  }
+
+  const crumbsWithTitle = showCrumbs ? (
     <ErrorBoundary mini>
-      <Breadcrumbs />
+      <Breadcrumbs showTitle />
     </ErrorBoundary>
   ) : null;
+
+  const crumbsWithoutTitle = showCrumbs ? (
+    <ErrorBoundary mini>
+      <Breadcrumbs showTitle={false} />
+    </ErrorBoundary>
+  ) : null;
+
+  if (layout === 'no_video') {
+    const mainArea = (
+      <ErrorBoundary mini>
+        <FluidPanel title={<SmallMarginFocusTabs />}>
+          <FocusArea />
+        </FluidPanel>
+      </ErrorBoundary>
+    );
+    return (
+      <BodyContent>
+        {timeline}
+        <SplitPanel
+          key={layout}
+          left={{
+            content: mainArea,
+            default: '75%',
+            min: MIN_CONTENT_WIDTH,
+          }}
+          right={{
+            content: <SideCrumbsTags crumbs={crumbsWithoutTitle} />,
+            min: MIN_SIDEBAR_WIDTH,
+          }}
+        />
+      </BodyContent>
+    );
+  }
 
   const content = (
     <ErrorBoundary mini>
@@ -65,6 +108,41 @@ function ReplayLayout({
       </FluidPanel>
     </ErrorBoundary>
   );
+
+  if (layout === 'top') {
+    const mainArea = (
+      <SplitPanel
+        key={layout + '_main'}
+        top={{
+          content: video,
+          default: '50%',
+          min: MIN_VIDEO_HEIGHT,
+        }}
+        bottom={{
+          content,
+          min: MIN_CONTENT_HEIGHT,
+        }}
+      />
+    );
+
+    return (
+      <BodyContent>
+        {timeline}
+        <SplitPanel
+          key={layout}
+          left={{
+            content: mainArea,
+            default: '75%',
+            min: MIN_CONTENT_WIDTH,
+          }}
+          right={{
+            content: <SideCrumbsTags crumbs={crumbsWithoutTitle} />,
+            min: MIN_SIDEBAR_WIDTH,
+          }}
+        />
+      </BodyContent>
+    );
+  }
 
   if (layout === 'sidebar_right') {
     return (
@@ -78,8 +156,8 @@ function ReplayLayout({
             min: MIN_CONTENT_WIDTH,
           }}
           right={{
-            content: <SidebarContent video={video} crumbs={crumbs} />,
-            min: MIN_VIDEO_WIDTH,
+            content: <SidebarContent video={video} crumbs={crumbsWithTitle} />,
+            min: MIN_SIDEBAR_WIDTH,
           }}
         />
       </BodyContent>
@@ -93,8 +171,8 @@ function ReplayLayout({
         <SplitPanel
           key={layout}
           left={{
-            content: <SidebarContent video={video} crumbs={crumbs} />,
-            min: MIN_VIDEO_WIDTH,
+            content: <SidebarContent video={video} crumbs={crumbsWithTitle} />,
+            min: MIN_SIDEBAR_WIDTH,
           }}
           right={{
             content,
@@ -121,7 +199,7 @@ function ReplayLayout({
                 min: MIN_VIDEO_WIDTH,
               }}
               right={{
-                content: crumbs,
+                content: crumbsWithTitle,
               }}
             />
           ),
@@ -138,18 +216,32 @@ function ReplayLayout({
   );
 }
 
-function SidebarContent({video, crumbs}) {
-  const {getParamValue} = useUrlParams('t_side', 'video');
+function SideCrumbsTags({crumbs}) {
+  const {getParamValue} = useUrlParams('t_side', 'crumbs');
+  const sideTabs = <SmallMarginSideTabs tags={['crumbs', 'tags']} />;
   if (getParamValue() === 'tags') {
     return (
-      <FluidPanel title={<SideTabs />}>
+      <FluidPanel title={sideTabs}>
+        <TagPanel />
+      </FluidPanel>
+    );
+  }
+  return <FluidPanel title={sideTabs}>{crumbs}</FluidPanel>;
+}
+
+function SidebarContent({video, crumbs}) {
+  const {getParamValue} = useUrlParams('t_side', 'video');
+  const sideTabs = <SideTabs tags={['video', 'tags']} />;
+  if (getParamValue() === 'tags') {
+    return (
+      <FluidPanel title={sideTabs}>
         <TagPanel />
       </FluidPanel>
     );
   }
   if (video && crumbs) {
     return (
-      <FluidPanel title={<SideTabs />}>
+      <FluidPanel title={sideTabs}>
         <SplitPanel
           top={{
             content: video,
@@ -180,6 +272,13 @@ const BodyContent = styled('main')`
   grid-template-rows: auto 1fr;
   overflow: hidden;
   padding: ${space(2)};
+`;
+
+const SmallMarginFocusTabs = styled(FocusTabs)`
+  margin-bottom: ${space(1)};
+`;
+const SmallMarginSideTabs = styled(SideTabs)`
+  margin-bottom: ${space(1)};
 `;
 
 const VideoSection = styled(FluidHeight)`

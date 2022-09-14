@@ -2,26 +2,34 @@ import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
-type Props = {};
-
 const TABS = {
+  crumbs: t('Breadcrumbs'),
   video: t('Replay'),
   tags: t('Tags'),
 };
+type TabKey = keyof typeof TABS;
 
-function SideTabs({}: Props) {
-  const {getParamValue, setParamValue} = useUrlParams('t_side', 'video');
+type Props = {
+  tags: TabKey[];
+  className?: string;
+};
+
+function SideTabs({tags, className}: Props) {
+  const defaultTab = tags.includes('video') ? 'video' : 'crumbs';
+  const {getParamValue, setParamValue} = useUrlParams('t_side', defaultTab);
   const active = getParamValue();
 
   return (
-    <NavTabs underlined>
-      {Object.entries(TABS).map(([tab, label]) => {
-        return (
-          <li key={tab} className={active === tab ? 'active' : ''}>
-            <a onClick={() => setParamValue(tab)}>{label}</a>
-          </li>
-        );
-      })}
+    <NavTabs underlined className={className}>
+      {Object.entries(TABS)
+        .filter(([tab]) => tags.includes(tab as TabKey))
+        .map(([tab, label]) => {
+          return (
+            <li key={tab} className={active === tab ? 'active' : ''}>
+              <a onClick={() => setParamValue(tab)}>{label}</a>
+            </li>
+          );
+        })}
     </NavTabs>
   );
 }
