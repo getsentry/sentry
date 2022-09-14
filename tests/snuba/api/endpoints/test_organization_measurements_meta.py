@@ -65,6 +65,7 @@ class OrganizationMeasurementsMetaEndpoint(MetricsEnhancedPerformanceTestCase):
                     "sum",
                     "percentile",
                 ],
+                "unit": "millisecond",
             }
         }
 
