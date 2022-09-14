@@ -81,7 +81,9 @@ function ProfileGroupProvider(props: FlamegraphViewProps): React.ReactElement {
 
   return (
     <ProfileGroupContext.Provider value={[profileGroupState, setProfileGroupState]}>
-      <ProfileHeader />
+      <ProfileHeader
+        profiles={profileGroupState.type === 'resolved' ? profileGroupState.data : null}
+      />
       {props.children}
     </ProfileGroupContext.Provider>
   );

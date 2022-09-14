@@ -1,9 +1,8 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import _Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
@@ -13,17 +12,17 @@ import {
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 
-interface BreadcrumbProps {
+interface BreadcrumbsProps {
   organization: Organization;
   trails: Trail[];
 }
 
-function Breadcrumb({organization, trails}: BreadcrumbProps) {
+function Breadcrumb({organization, trails}: BreadcrumbsProps) {
   const crumbs = useMemo(
     () => trails.map(trail => trailToCrumb(trail, {organization})),
     [organization, trails]
   );
-  return <StyledBreadcrumbs crumbs={crumbs} />;
+  return <_Breadcrumbs crumbs={crumbs} />;
 }
 
 function trailToCrumb(
@@ -110,9 +109,5 @@ type FlamegraphTrail = {
 };
 
 type Trail = ProfilingTrail | ProfileSummaryTrail | FlamegraphTrail;
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
-`;
 
 export {Breadcrumb};
