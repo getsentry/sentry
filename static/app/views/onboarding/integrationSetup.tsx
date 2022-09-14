@@ -14,7 +14,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IntegrationProvider, Organization} from 'sentry/types';
+import {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -26,12 +26,13 @@ import FirstEventFooter from './components/firstEventFooter';
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
-import {StepProps} from './types';
 
-type Props = StepProps & {
+type Props = {
   api: Client;
   integrationSlug: string;
   organization: Organization;
+  platform: PlatformKey | null;
+  project: Project | null;
 };
 
 type State = {
