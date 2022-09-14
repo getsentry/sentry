@@ -183,7 +183,6 @@ def _get_project_config(project, full_config=True, project_keys=None):
             active_rules = []
             for rule in dynamic_sampling["rules"]:
                 if rule.get("active"):
-                    # TODO: (andrii) extract to seperate function
                     inner_rule = rule["condition"]["inner"]
                     if (
                         inner_rule
@@ -195,11 +194,9 @@ def _get_project_config(project, full_config=True, project_keys=None):
                         rule["condition"]["inner"][0]["value"] = get_latest_release(
                             [project], environment
                         )
-                    # end TODO
                     active_rules.append(rule)
 
             cfg["config"]["dynamicSampling"] = {"rules": active_rules}
-            # TODO(andrii): schedule_recomputation
 
     if not full_config:
         # This is all we need for external Relay processors
