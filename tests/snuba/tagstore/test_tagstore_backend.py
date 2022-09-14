@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
+from sentry.event_manager import _pull_out_data
 from sentry.models import (
     Environment,
     EventUser,
@@ -28,7 +29,8 @@ from sentry.tagstore.exceptions import (
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.issues import GroupType
 
 exception = {
     "values": [
@@ -174,6 +176,85 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert len(top_release_values) == 2
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
+
+    def test_get_group_tag_keys_and_top_values_perf_issue(self):
+        env_name = "test"
+        transaction_event_data = {
+            "message": "hello",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            "environment": env_name,
+        }
+        env = Environment.objects.get(name=env_name)
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [perf_group]
+            return jobs, projects
+
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(before_now(minutes=1)),
+                    "start_timestamp": iso_format(before_now(minutes=1)),
+                    "tags": {"foo": "bar", "biz": "baz"},
+                    "release": "releaseme",
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "b" * 32,
+                    "timestamp": iso_format(before_now(minutes=2)),
+                    "start_timestamp": iso_format(before_now(minutes=2)),
+                    "tags": {"foo": "quux"},
+                    "release": "releaseme",
+                },
+                project_id=self.project.id,
+            )
+
+        result = list(self.ts.get_group_tag_keys_and_top_values(perf_group, [env.id]))
+        tags = [r.key for r in result]
+        assert set(tags) == {"foo", "biz", "environment", "sentry:release", "level", "transaction"}
+
+        result.sort(key=lambda r: r.key)
+        assert result[0].key == "biz"
+        assert result[0].top_values[0].value == "baz"
+        assert result[0].count == 1
+
+        assert result[4].key == "sentry:release"
+        assert result[4].count == 2
+        top_release_values = result[4].top_values
+        assert len(top_release_values) == 1
+        assert {v.value for v in top_release_values} == {"releaseme"}
+        assert all(v.times_seen == 2 for v in top_release_values)
+
+        # Now with only a specific set of keys,
+        result = list(
+            self.ts.get_group_tag_keys_and_top_values(
+                perf_group,
+                [env.id],
+                keys=["environment", "sentry:release"],
+            )
+        )
+        tags = [r.key for r in result]
+        assert set(tags) == {"environment", "sentry:release"}
+
+        result.sort(key=lambda r: r.key)
+        assert result[0].key == "environment"
+        assert result[0].top_values[0].value == "test"
+
+        assert result[1].key == "sentry:release"
+        top_release_values = result[1].top_values
+        assert len(top_release_values) == 1
+        assert {v.value for v in top_release_values} == {"releaseme"}
+        assert all(v.times_seen == 2 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
         resp = self.ts.get_top_group_tag_values(

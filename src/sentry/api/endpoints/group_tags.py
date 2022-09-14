@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,10 +11,13 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 
+if TYPE_CHECKING:
+    from sentry.models import Group
+
 
 @region_silo_endpoint
-class GroupTagsEndpoint(GroupEndpoint):
-    def get(self, request: Request, group) -> Response:
+class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
+    def get(self, request: Request, group: Group) -> Response:
 
         # optional queryparam `key` can be used to get results
         # only for specific keys.

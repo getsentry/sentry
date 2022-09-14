@@ -11,6 +11,7 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import default_start_end_dates
 from sentry.models import (
+    Group,
     Project,
     Release,
     ReleaseEnvironment,
@@ -38,6 +39,7 @@ from sentry.tagstore.exceptions import (
     TagValueNotFound,
 )
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
+from sentry.types.issues import GroupCategory
 from sentry.utils import metrics, snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
@@ -226,26 +228,33 @@ class SnubaTagStorage(TagStorage):
         if end is None:
             end = default_end
 
+        dataset = Dataset.Events
+        if include_transactions:
+            dataset = Dataset.Discover
+        conditions = []
+        aggregations = [["count()", "", "count"]]
+
         filters = {"project_id": sorted(projects)}
         if environments:
             filters["environment"] = sorted(environments)
         if group is not None:
-            filters["group_id"] = [group.id]
+            # We override dataset changes from `include_transactions` here. They aren't relevant
+            # when filtering by a group.
+            dataset = Dataset.Events
+            if group.issue_category == GroupCategory.PERFORMANCE:
+                dataset = Dataset.Transactions
+                conditions.append([["has", ["group_ids", group.id]], "=", 1])
+            else:
+                filters["group_id"] = [group.id]
+
         if keys is not None:
             filters["tags_key"] = sorted(keys)
-        aggregations = [["count()", "", "count"]]
 
         if include_values_seen:
             aggregations.append(["uniq", "tags_value", "values_seen"])
-        conditions = [DEFAULT_TYPE_CONDITION]
-        conditions = []
 
         should_cache = use_cache and group is None
         result = None
-
-        dataset = Dataset.Events
-        if include_transactions:
-            dataset = Dataset.Discover
 
         cache_key = None
         if should_cache:
@@ -530,11 +539,10 @@ class SnubaTagStorage(TagStorage):
 
     def get_group_tag_keys_and_top_values(
         self,
-        group,
-        environment_ids,
-        user=None,
-        keys=None,
-        value_limit=TOP_VALUES_DEFAULT_LIMIT,
+        group: Group,
+        environment_ids: Sequence[int],
+        keys: Optional[Sequence[str]] = None,
+        value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -547,14 +555,18 @@ class SnubaTagStorage(TagStorage):
 
         # Then get the top values with first_seen/last_seen/count for each
         filters = {"project_id": get_project_list(group.project_id)}
+        conditions = kwargs.get("conditions", [])
+
         if environment_ids:
             filters["environment"] = environment_ids
         if keys is not None:
             filters["tags_key"] = keys
-        if group.id is not None:
+        dataset = Dataset.Events
+        if group.issue_category == GroupCategory.PERFORMANCE:
+            dataset = Dataset.Transactions
+            conditions.append([["has", ["group_ids", group.id]], "=", 1])
+        else:
             filters["group_id"] = [group.id]
-        conditions = kwargs.get("conditions", [])
-        conditions.append(DEFAULT_TYPE_CONDITION)
         aggregations = kwargs.get("aggregations", [])
         aggregations += [
             ["count()", "", "count"],
@@ -563,7 +575,7 @@ class SnubaTagStorage(TagStorage):
         ]
 
         values_by_key = snuba.query(
-            dataset=Dataset.Events,
+            dataset=dataset,
             start=kwargs.get("start"),
             end=kwargs.get("end"),
             groupby=["tags_key", "tags_value"],
@@ -576,16 +588,12 @@ class SnubaTagStorage(TagStorage):
         )
 
         # Then supplement the key objects with the top values for each.
-        if group.id is None:
-            value_ctor = TagValue
-        else:
-            value_ctor = functools.partial(GroupTagValue, group_id=group.id)
-
         for keyobj in keys_with_counts:
             key = keyobj.key
             values = values_by_key.get(key, dict())
             keyobj.top_values = [
-                value_ctor(
+                GroupTagValue(
+                    group_id=group.id,
                     key=keyobj.key,
                     value=value,
                     times_seen=data["count"],
