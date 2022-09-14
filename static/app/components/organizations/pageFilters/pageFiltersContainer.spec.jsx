@@ -40,7 +40,7 @@ const mountWithThemeAndOrg = (component, opts, organization) =>
     ),
   });
 
-describe('GlobalSelectionHeader', function () {
+describe('PageFiltersContainer', function () {
   enforceActOnUseLegacyStoreHook();
 
   let wrapper;
