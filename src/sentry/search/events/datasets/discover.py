@@ -1461,7 +1461,7 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
                 perf_group_filter_values.extend(performance_groups)
 
         # TODO (udameli): if both groups present, return data for both
-        if error_groups:
+        if error_group_filter_values:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(
                     SearchKey("issue.id"),
@@ -1474,6 +1474,7 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
                 )
             )
 
+        # TODO (udameli): handle the has:issue case for transactions
         if performance_groups:
             return self.builder.convert_search_filter_to_condition(
                 SearchFilter(

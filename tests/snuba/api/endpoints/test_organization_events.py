@@ -548,7 +548,16 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
-    def test_performance_short_group_id_(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "!has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 0
+
+    def test_performance_short_group_id(self):
         project = self.create_project(name="foo bar")
         perf_group = self.create_group(
             project=project,
@@ -575,6 +584,42 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
+
+    @pytest.mark.skip("Need to enable has:issue for performance issues")
+    def test_has_performance_issue(self):
+        project = self.create_project(name="foo bar")
+        perf_group = self.create_group(
+            project=project,
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+        )
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [perf_group]
+            return jobs, projects
+
+        data = load_data("transaction")
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} has:issue",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} !has:issue",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 0
 
     def test_multiple_performance_short_group_ids_filter(self):
         project = self.create_project(name="foo bar")
