@@ -45,6 +45,7 @@ FRONTEND = [
     "javascript-vue",
     "javascript-nextjs",
     "javascript-remix",
+    "javascript-svelte",
     "unity",
 ]
 
@@ -216,6 +217,7 @@ RELEASE_HEALTH = [
     "javascript-vue",
     "javascript-nextjs",
     "javascript-remix",
+    "javascript-svelte",
     # mobile
     "android",
     "apple-ios",

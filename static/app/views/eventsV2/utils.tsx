@@ -3,16 +3,12 @@ import {urlEncode} from '@sentry/utils';
 import {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
-import {
-  openAddDashboardWidgetModal,
-  openAddToDashboardModal,
-} from 'sentry/actionCreators/modal';
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -26,6 +22,7 @@ import {
   explodeFieldString,
   Field,
   getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
@@ -384,6 +381,34 @@ function generateAdditionalConditions(
   return conditions;
 }
 
+/**
+ * Discover queries can query either Errors, Transactions or a combination
+ * of the two datasets. This is a util to determine if the query will excusively
+ * hit the Transactions dataset.
+ */
+export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
+  let usesTransactions: boolean = false;
+  const parsedQuery = new MutableSearch(eventView.query);
+  for (let index = 0; index < yAxisValue.length; index++) {
+    const yAxis = yAxisValue[index];
+    const aggregateArg = getAggregateArg(yAxis) ?? '';
+    if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
+      usesTransactions = true;
+      break;
+    }
+    const eventTypeFilter = parsedQuery.getFilterValues('event.type');
+    if (
+      eventTypeFilter.length > 0 &&
+      eventTypeFilter.every(filter => filter === 'transaction')
+    ) {
+      usesTransactions = true;
+      break;
+    }
+  }
+
+  return usesTransactions;
+}
+
 function generateExpandedConditions(
   eventView: EventView,
   additionalConditions: Record<string, string>,
@@ -587,11 +612,9 @@ export function eventViewToWidgetQuery({
   eventView,
   yAxis,
   displayType,
-  widgetBuilderNewDesign,
 }: {
   displayType: DisplayType;
   eventView: EventView;
-  widgetBuilderNewDesign?: boolean;
   yAxis?: string | string[];
 }) {
   const fields = eventView.fields.map(({field}) => field);
@@ -618,13 +641,8 @@ export function eventViewToWidgetQuery({
   }
   let newAggregates = aggregates;
 
-  if (widgetBuilderNewDesign && displayType !== DisplayType.TABLE) {
+  if (displayType !== DisplayType.TABLE) {
     newAggregates = queryYAxis;
-  } else if (!widgetBuilderNewDesign) {
-    newAggregates = [
-      ...(displayType === DisplayType.TOP_N ? aggregates : []),
-      ...queryYAxis,
-    ];
   }
 
   const widgetQuery: WidgetQuery = {
@@ -654,79 +672,51 @@ export function handleAddQueryToDashboard({
   yAxis?: string | string[];
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
-  const defaultTableFields = eventView.fields.map(({field}) => field);
   const defaultWidgetQuery = eventViewToWidgetQuery({
     eventView,
     displayType,
     yAxis,
-    widgetBuilderNewDesign: organization.features.includes(
-      'new-widget-builder-experience-design'
-    ),
   });
 
-  if (organization.features.includes('new-widget-builder-experience-design')) {
-    const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
-      eventView,
-      query,
-      organization,
-      yAxis,
-      location,
-    });
-    openAddToDashboardModal({
-      organization,
-      selection: {
-        projects: eventView.project,
-        environments: eventView.environment,
-        datetime: {
-          start: eventView.start,
-          end: eventView.end,
-          period: eventView.statsPeriod,
-          utc: eventView.utc,
+  const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
+    eventView,
+    query,
+    organization,
+    yAxis,
+    location,
+  });
+  openAddToDashboardModal({
+    organization,
+    selection: {
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+        utc: eventView.utc,
+      },
+    },
+    widget: {
+      title: query?.name ?? eventView.name,
+      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+      queries: [
+        {
+          ...defaultWidgetQuery,
+          aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
         },
-      },
-      widget: {
-        title: query?.name ?? eventView.name,
-        displayType:
-          organization.features.includes('new-widget-builder-experience-design') &&
-          displayType === DisplayType.TOP_N
-            ? DisplayType.AREA
-            : displayType,
-        queries: [
-          {
-            ...defaultWidgetQuery,
-            aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
-          },
-        ],
-        interval: eventView.interval,
-        limit:
-          organization.features.includes('new-widget-builder-experience-design') &&
-          displayType === DisplayType.TOP_N
-            ? Number(eventView.topEvents) || TOP_N
-            : undefined,
-      },
-      router,
-      widgetAsQueryParams,
-      location,
-    });
-    return;
-  }
-
-  openAddDashboardWidgetModal({
-    organization,
-    start: eventView.start,
-    end: eventView.end,
-    statsPeriod: eventView.statsPeriod,
-    source: DashboardWidgetSource.DISCOVERV2,
-    defaultWidgetQuery,
-    defaultTableColumns: defaultTableFields,
-    defaultTitle:
-      query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined),
-    displayType,
+      ],
+      interval: eventView.interval,
+      limit:
+        displayType === DisplayType.TOP_N
+          ? Number(eventView.topEvents) || TOP_N
+          : undefined,
+    },
+    router,
+    widgetAsQueryParams,
+    location,
   });
-  trackAdvancedAnalyticsEvent('discover_views.add_to_dashboard.modal_open', {
-    organization,
-    saved_query: !!query,
-  });
+  return;
 }
 
 export function constructAddQueryToDashboardLink({
@@ -748,9 +738,6 @@ export function constructAddQueryToDashboardLink({
     eventView,
     displayType,
     yAxis,
-    widgetBuilderNewDesign: organization.features.includes(
-      'new-widget-builder-experience-design'
-    ),
   });
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
@@ -766,13 +753,8 @@ export function constructAddQueryToDashboardLink({
       defaultWidgetQuery: urlEncode(defaultWidgetQuery),
       defaultTableColumns: defaultTableFields,
       defaultTitle,
-      displayType:
-        organization.features.includes('new-widget-builder-experience-design') &&
-        displayType === DisplayType.TOP_N
-          ? DisplayType.AREA
-          : displayType,
+      displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       limit:
-        organization.features.includes('new-widget-builder-experience-design') &&
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
           : undefined,

@@ -22,6 +22,7 @@ import {
   SamplingRule,
   UniformModalsSubmit,
 } from 'sentry/types/sampling';
+import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -45,6 +46,7 @@ export type RecommendedStepsModalProps = ModalRenderProps & {
   onSubmit?: UniformModalsSubmit;
   recommendedSampleRate?: boolean;
   serverSampleRate?: number;
+  specifiedClientRate?: number;
   uniformRule?: SamplingRule;
 };
 
@@ -62,11 +64,12 @@ export function RecommendedStepsModal({
   serverSampleRate,
   uniformRule,
   projectId,
+  specifiedClientRate,
   recommendedSampleRate,
   onSetRules,
 }: RecommendedStepsModalProps) {
   const {isProjectIncompatible} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId,
   });
   const [saving, setSaving] = useState(false);
@@ -224,7 +227,9 @@ export function RecommendedStepsModal({
           <ButtonBar gap={1}>
             {onGoBack && (
               <Fragment>
-                <Stepper>{t('Step 2 of 2')}</Stepper>
+                <Stepper>
+                  {defined(specifiedClientRate) ? t('Step 3 of 3') : t('Step 2 of 2')}
+                </Stepper>
                 <Button onClick={handleGoBack}>{t('Back')}</Button>
               </Fragment>
             )}

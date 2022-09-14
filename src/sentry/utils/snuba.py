@@ -1025,7 +1025,7 @@ def resolve_column(dataset) -> Callable[[str], str]:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
-            if isinstance(col, (list, tuple)) or col == "project_id":
+            if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         else:
             if (

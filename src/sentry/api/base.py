@@ -42,7 +42,8 @@ __all__ = [
     "EnvironmentMixin",
     "StatsMixin",
     "control_silo_endpoint",
-    "customer_silo_endpoint",
+    "region_silo_endpoint",
+    "pending_silo_endpoint",
 ]
 
 ONE_MINUTE = 60
@@ -497,7 +498,7 @@ def resolve_region(request: Request):
 class EndpointSiloLimit(SiloLimit):
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
-        return type(
+        new_class = type(
             decorated_class.__name__,
             (decorated_class,),
             {
@@ -505,6 +506,8 @@ class EndpointSiloLimit(SiloLimit):
                 "__silo_limit": self,  # For internal tooling only
             },
         )
+        new_class.__module__ = decorated_class.__module__
+        return new_class
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
         return self.create_override(decorated_method)
@@ -542,4 +545,11 @@ class EndpointSiloLimit(SiloLimit):
 
 
 control_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL)
-customer_silo_endpoint = EndpointSiloLimit(SiloMode.CUSTOMER)
+region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
+
+# Use this decorator to mark endpoints that still need to be marked as either
+# control_silo_endpoint or region_silo_endpoint. Marking a class with
+# pending_silo_endpoint keeps it from tripping SiloLimitCoverageTest, while ensuring
+# that the test will fail if a new endpoint is added with no decorator at all.
+# Eventually we should replace all instances of this decorator and delete it.
+pending_silo_endpoint = EndpointSiloLimit()

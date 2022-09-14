@@ -184,7 +184,41 @@ export class MutableSearch {
   }
 
   removeFilter(key: string) {
+    const removeErroneousAndOrOps = () => {
+      let toRemove = -1;
+      do {
+        if (toRemove >= 0) {
+          this.tokens.splice(toRemove, 1);
+          toRemove = -1;
+        }
+
+        for (let i = 0; i < this.tokens.length; i++) {
+          const token = this.tokens[i];
+          const prev = this.tokens[i - 1];
+          const next = this.tokens[i + 1];
+          if (isOp(token) && isBooleanOp(token.value)) {
+            if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
+              // Want to avoid removing `(term) OR (term)` and `term OR (term)`
+              if (
+                prev &&
+                next &&
+                (isParen(prev, ')') || !isOp(prev)) &&
+                (isParen(next, '(') || !isOp(next))
+              ) {
+                continue;
+              }
+              toRemove = i;
+              break;
+            }
+          }
+        }
+      } while (toRemove >= 0);
+    };
+
     this.tokens = this.tokens.filter(token => token.key !== key);
+
+    // Remove any AND/OR operators that have become erroneous due to filtering out tokens
+    removeErroneousAndOrOps();
 
     // Now the really complicated part: removing parens that only have one element in them.
     // Since parens are themselves tokens, this gets tricky. In summary, loop through the
@@ -237,29 +271,7 @@ export class MutableSearch {
     // cases like `a OR OR b` would remove both operators, when only one should be removed. So
     // instead, we loop until we find an operator to remove, then go back to the start and loop
     // again.
-    let toRemove = -1;
-    do {
-      if (toRemove >= 0) {
-        this.tokens.splice(toRemove, 1);
-        toRemove = -1;
-      }
-
-      for (let i = 0; i < this.tokens.length; i++) {
-        const token = this.tokens[i];
-        const prev = this.tokens[i - 1];
-        const next = this.tokens[i + 1];
-        if (isOp(token) && isBooleanOp(token.value)) {
-          if (prev === undefined || isOp(prev) || next === undefined || isOp(next)) {
-            // Want to avoid removing `(term) OR (term)`
-            if (isParen(prev, ')') && isParen(next, '(')) {
-              continue;
-            }
-            toRemove = i;
-            break;
-          }
-        }
-      }
-    } while (toRemove >= 0);
+    removeErroneousAndOrOps();
 
     return this;
   }

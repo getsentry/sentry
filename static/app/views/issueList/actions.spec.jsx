@@ -1,6 +1,5 @@
 import React from 'react';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   fireEvent,
   render,
@@ -12,47 +11,55 @@ import {
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {IssueCategory} from 'sentry/types';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
-describe('IssueListActions', function () {
-  let org, defaultProps;
+import {OrganizationContext} from '../organizationContext';
 
+const organization = TestStubs.Organization();
+
+const defaultProps = {
+  allResultsVisible: false,
+  query: '',
+  queryCount: 15,
+  projectId: 'project-slug',
+  selection: {
+    projects: [1],
+    environments: [],
+    datetime: {start: null, end: null, period: null, utc: true},
+  },
+  groupIds: ['1', '2', '3'],
+  onRealtimeChange: jest.fn(),
+  onSelectStatsPeriod: jest.fn(),
+  realtimeActive: false,
+  statsPeriod: '24h',
+  onDelete: jest.fn(),
+};
+
+function WrappedComponent(props) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <GlobalModal />
+      <IssueListActions {...defaultProps} {...props} />
+    </OrganizationContext.Provider>
+  );
+}
+
+describe('IssueListActions', function () {
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   beforeEach(() => {
-    const organization = initializeOrg();
-    org = organization.org;
-
     GroupStore.reset();
     SelectedGroupStore.reset();
     SelectedGroupStore.add(['1', '2', '3']);
-
-    defaultProps = {
-      api: new MockApiClient(),
-      allResultsVisible: false,
-      query: '',
-      queryCount: 15,
-      organization: org,
-      projectId: 'project-slug',
-      selection: {
-        projects: [1],
-        environments: [],
-        datetime: {start: null, end: null, period: null, utc: true},
-      },
-      groupIds: ['1', '2', '3'],
-      onRealtimeChange: jest.fn(),
-      onSelectStatsPeriod: jest.fn(),
-      realtimeActive: false,
-      statsPeriod: '24h',
-    };
   });
 
   describe('Bulk', function () {
     describe('Total results greater than bulk limit', function () {
       it('after checking "Select all" checkbox, displays bulk select message', function () {
-        render(<IssueListActions {...defaultProps} queryCount={1500} />);
+        render(<WrappedComponent queryCount={1500} />);
 
         userEvent.click(screen.getByRole('checkbox'));
 
@@ -60,7 +67,7 @@ describe('IssueListActions', function () {
       });
 
       it('can bulk select', function () {
-        render(<IssueListActions {...defaultProps} queryCount={1500} />);
+        render(<WrappedComponent queryCount={1500} />);
 
         userEvent.click(screen.getByRole('checkbox'));
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
@@ -74,12 +81,7 @@ describe('IssueListActions', function () {
           method: 'PUT',
         });
 
-        render(
-          <React.Fragment>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} queryCount={1500} />
-          </React.Fragment>
-        );
+        render(<WrappedComponent queryCount={1500} />);
         userEvent.click(screen.getByRole('checkbox'));
 
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
@@ -104,7 +106,7 @@ describe('IssueListActions', function () {
 
     describe('Total results less than bulk limit', function () {
       it('after checking "Select all" checkbox, displays bulk select message', function () {
-        render(<IssueListActions {...defaultProps} queryCount={15} />);
+        render(<WrappedComponent queryCount={15} />);
 
         userEvent.click(screen.getByRole('checkbox'));
 
@@ -112,7 +114,7 @@ describe('IssueListActions', function () {
       });
 
       it('can bulk select', function () {
-        render(<IssueListActions {...defaultProps} queryCount={15} />);
+        render(<WrappedComponent queryCount={15} />);
 
         userEvent.click(screen.getByRole('checkbox'));
 
@@ -127,12 +129,7 @@ describe('IssueListActions', function () {
           method: 'PUT',
         });
 
-        render(
-          <React.Fragment>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} queryCount={15} />
-          </React.Fragment>
-        );
+        render(<WrappedComponent queryCount={15} />);
 
         userEvent.click(screen.getByRole('checkbox'));
 
@@ -167,9 +164,7 @@ describe('IssueListActions', function () {
 
         jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-        render(
-          <IssueListActions {...defaultProps} groupIds={['1', '2', '3', '6', '9']} />
-        );
+        render(<WrappedComponent groupIds={['1', '2', '3', '6', '9']} />);
 
         const resolveButton = screen.getByRole('button', {name: 'Resolve'});
         expect(resolveButton).toBeEnabled();
@@ -194,12 +189,7 @@ describe('IssueListActions', function () {
         });
         jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-        render(
-          <React.Fragment>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} />
-          </React.Fragment>
-        );
+        render(<WrappedComponent {...defaultProps} />);
 
         userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
         fireEvent.click(screen.getByText(/Until this affects an additional/));
@@ -249,7 +239,7 @@ describe('IssueListActions', function () {
       }
     });
 
-    render(<IssueListActions {...defaultProps} />);
+    render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
     expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
@@ -274,7 +264,7 @@ describe('IssueListActions', function () {
         });
       });
 
-      render(<IssueListActions {...defaultProps} onMarkReviewed={mockOnMarkReviewed} />);
+      render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
@@ -288,7 +278,7 @@ describe('IssueListActions', function () {
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
 
-      render(<IssueListActions {...defaultProps} />);
+      render(<WrappedComponent {...defaultProps} />);
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
@@ -297,13 +287,144 @@ describe('IssueListActions', function () {
   describe('sort', function () {
     it('calls onSortChange with new sort value', function () {
       const mockOnSortChange = jest.fn();
-      render(<IssueListActions {...defaultProps} onSortChange={mockOnSortChange} />);
+      render(<WrappedComponent onSortChange={mockOnSortChange} />);
 
       userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
 
       userEvent.click(screen.getByText(/Number of events/));
 
       expect(mockOnSortChange).toHaveBeenCalledWith('freq');
+    });
+  });
+
+  describe('performance issues', function () {
+    it('disables options that are not supported for performance issues', () => {
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set(['1', '2']));
+      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+        switch (id) {
+          case '1':
+            return TestStubs.Group({
+              issueCategory: IssueCategory.ERROR,
+            });
+          default:
+            return TestStubs.Group({
+              issueCategory: IssueCategory.PERFORMANCE,
+            });
+        }
+      });
+
+      render(<WrappedComponent />);
+
+      // Resolve and ignore are supported
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Ignore'})).toBeEnabled();
+
+      // Merge is not supported and should be disabled
+      expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
+
+      // Open overflow menu
+      userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+
+      // 'Add to Bookmarks' is supported
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to Bookmarks'})
+      ).toHaveAttribute('aria-disabled', 'false');
+
+      // Deleting is not supported and menu item should be disabled
+      expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    describe('bulk action performance issues', function () {
+      const orgWithPerformanceIssues = TestStubs.Organization({
+        features: ['performance-issues'],
+      });
+
+      it('silently filters out performance issues when bulk deleting', function () {
+        const bulkDeleteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'DELETE',
+        });
+
+        render(
+          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+          </OrganizationContext.Provider>
+        );
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+
+        const modal = screen.getByRole('dialog');
+
+        expect(
+          within(modal).getByText(/deleting performance issues is not yet supported/i)
+        ).toBeInTheDocument();
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk delete issues'}));
+
+        expect(bulkDeleteMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved !issue.category:performance',
+            }),
+          })
+        );
+      });
+
+      it('silently filters out performance issues when bulk merging', function () {
+        const bulkMergeMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        // Ensure that all issues have the same project so we can merge
+        jest
+          .spyOn(GroupStore, 'get')
+          .mockReturnValue(
+            TestStubs.Group({project: TestStubs.Project({slug: 'project-1'})})
+          );
+
+        render(
+          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+          </OrganizationContext.Provider>
+        );
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        userEvent.click(screen.getByRole('button', {name: 'Merge Selected Issues'}));
+
+        const modal = screen.getByRole('dialog');
+
+        expect(
+          within(modal).getByText(/merging performance issues is not yet supported/i)
+        ).toBeInTheDocument();
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
+
+        expect(bulkMergeMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved !issue.category:performance',
+            }),
+          })
+        );
+      });
     });
   });
 });

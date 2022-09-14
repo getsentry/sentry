@@ -190,7 +190,7 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
+      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
         with:
           python-version: 3.8.13
       - name: check requirements
@@ -240,7 +240,7 @@ jobs:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-*.txt'
 
-      - uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
+      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
         with:
           python-version: 3.8.13
           cache: pip
@@ -440,7 +440,7 @@ jobs:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
       - name: Setup Python
-        uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
+        uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
         with:
           python-version: 3.8.13
           cache: pip
@@ -448,14 +448,10 @@ jobs:
 
       # We don't call setup-sentry, because we don't need devservices.
       - name: Setup backend typing
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          pip install -r requirements-dev-frozen.txt
+        run: pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        run: |
-          make backend-typing
+        run: make backend-typing
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)

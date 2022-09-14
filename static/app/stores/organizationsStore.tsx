@@ -9,6 +9,7 @@ interface OrganizationsStoreDefinition extends StoreDefinition {
   get(slug: string): Organization | undefined;
 
   getAll(): Organization[];
+  getState(): Organization[];
   load(items: Organization[]): void;
   loaded: boolean;
   onChangeSlug(prev: Organization, next: Organization): void;
@@ -34,11 +35,11 @@ const storeConfig: OrganizationsStoreDefinition = {
     this.loaded = false;
   },
 
-  onUpdate(org: Organization) {
+  onUpdate(org) {
     this.add(org);
   },
 
-  onChangeSlug(prev: Organization, next: Organization) {
+  onChangeSlug(prev, next) {
     if (prev.slug === next.slug) {
       return;
     }
@@ -47,11 +48,11 @@ const storeConfig: OrganizationsStoreDefinition = {
     this.add(next);
   },
 
-  onRemoveSuccess(slug: string) {
+  onRemoveSuccess(slug) {
     this.remove(slug);
   },
 
-  get(slug: Organization['slug']) {
+  get(slug) {
     return this.state.find((item: Organization) => item.slug === slug);
   },
 
@@ -59,12 +60,16 @@ const storeConfig: OrganizationsStoreDefinition = {
     return this.state;
   },
 
-  remove(slug: Organization['slug']) {
+  getState() {
+    return this.state;
+  },
+
+  remove(slug) {
     this.state = this.state.filter(item => slug !== item.slug);
     this.trigger(this.state);
   },
 
-  add(item: Organization) {
+  add(item) {
     let match = false;
     this.state.forEach((existing, idx) => {
       if (existing.id === item.id) {

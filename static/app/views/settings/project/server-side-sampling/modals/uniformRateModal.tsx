@@ -100,7 +100,7 @@ export function UniformRateModal({
     isProjectOnOldSDK,
     loading: sdkUpgradesLoading,
   } = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId: project.id,
   });
 
@@ -351,6 +351,7 @@ export function UniformRateModal({
         projectId={project.id}
         recommendedSampleRate={!isEdited}
         onSetRules={setRules}
+        specifiedClientRate={specifiedClientRate}
       />
     );
   }

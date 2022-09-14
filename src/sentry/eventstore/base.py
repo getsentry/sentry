@@ -3,10 +3,10 @@ from copy import deepcopy
 import sentry_sdk
 
 from sentry import nodestore
+from sentry.eventstore.models import Event
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
-
-from .models import Event
 
 
 class Filter:
@@ -124,8 +124,6 @@ class EventStorage(Service):
         "get_unfetched_events",
         "get_prev_event_id",
         "get_next_event_id",
-        "get_earliest_event_id",
-        "get_latest_event_id",
         "bind_nodes",
         "get_unfetched_transactions",
     )
@@ -134,7 +132,15 @@ class EventStorage(Service):
     # event. If the client is planning on loading the entire event body from
     # nodestore anyway, we may as well only fetch the minimum from snuba to
     # avoid duplicated work.
-    minimal_columns = [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP]
+    minimal_columns = {
+        Dataset.Events: [Columns.EVENT_ID, Columns.GROUP_ID, Columns.PROJECT_ID, Columns.TIMESTAMP],
+        Dataset.Transactions: [
+            Columns.EVENT_ID,
+            Columns.GROUP_IDS,
+            Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
+        ],
+    }
 
     def get_events(
         self,
@@ -212,28 +218,6 @@ class EventStorage(Service):
     def get_prev_event_id(self, event, snuba_filter):
         """
         Gets the previous event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_earliest_event_id(self, event, snuba_filter):
-        """
-        Gets the earliest event given a current event and some conditions/filters.
-        Returns a tuple of (project_id, event_id)
-
-        Arguments:
-        event (Event): Event object
-        snuba_filter (Filter): Filter
-        """
-        raise NotImplementedError
-
-    def get_latest_event_id(self, event, snuba_filter):
-        """
-        Gets the latest event given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id)
 
         Arguments:

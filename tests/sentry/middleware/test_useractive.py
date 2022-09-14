@@ -6,8 +6,10 @@ from exam import fixture
 
 from sentry.middleware.user import UserActiveMiddleware
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class UserActiveMiddlewareTest(TestCase):
     middleware = fixture(UserActiveMiddleware)
     factory = fixture(RequestFactory)

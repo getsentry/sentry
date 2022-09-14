@@ -7,9 +7,11 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import get_frame_paths, get_serialized_event_file_committers
 
 
+@region_silo_test
 class TestGroupOwners(TestCase):
     def setUp(self):
         self.project = self.create_project()

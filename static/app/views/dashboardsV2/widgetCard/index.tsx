@@ -7,7 +7,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -31,7 +30,6 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
-import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -312,7 +310,8 @@ class WidgetCard extends Component<Props, State> {
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
-            <Feature organization={organization} features={['dashboards-mep']}>
+            {(organization.features.includes('dashboards-mep') ||
+              organization.features.includes('mep-rollout-flag')) && (
               <DashboardsMEPConsumer>
                 {({isMetricsData}) => {
                   if (
@@ -320,24 +319,6 @@ class WidgetCard extends Component<Props, State> {
                     isMetricsData === false &&
                     widget.widgetType === WidgetType.DISCOVER
                   ) {
-                    if (isCustomMeasurementWidget(widget)) {
-                      return (
-                        <StoredDataAlert showIcon type="error">
-                          {tct(
-                            'You have inputs that are incompatible with [customPerformanceMetrics: custom performance metrics]. See all compatible fields and functions [here: here]. Update your inputs or remove any custom performance metrics.',
-                            {
-                              customPerformanceMetrics: (
-                                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/metrics/#custom-performance-measurements" />
-                              ),
-                              here: (
-                                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#properties-table" />
-                              ),
-                            }
-                          )}
-                          <FeatureBadge type="beta" />
-                        </StoredDataAlert>
-                      );
-                    }
                     if (!widgetContainsErrorFields) {
                       return (
                         <StoredDataAlert showIcon>
@@ -357,7 +338,7 @@ class WidgetCard extends Component<Props, State> {
                   return null;
                 }}
               </DashboardsMEPConsumer>
-            </Feature>
+            )}
           </React.Fragment>
         )}
       </ErrorBoundary>

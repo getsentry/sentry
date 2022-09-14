@@ -1,10 +1,10 @@
 import {useRef} from 'react';
-import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
 
 import {Search} from 'sentry/components/search';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 const MIN_SEARCH_LENGTH = 1;
 const MAX_RESULTS = 10;
@@ -12,10 +12,7 @@ const MAX_RESULTS = 10;
 function SettingsSearch() {
   const searchInput = useRef<HTMLInputElement>(null);
 
-  useHotkeys('/', e => {
-    e.preventDefault();
-    searchInput.current?.focus();
-  });
+  useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
 
   return (
     <Search
