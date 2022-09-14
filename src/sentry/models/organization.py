@@ -534,7 +534,7 @@ class OrganizationRegionMap(Model):
     """
     This Table is a stopgap to allow the mapping of an organization to a region key.
 
-    This table should be removed once the issue regarding
+    This table should be removed once this issue (https://github.com/getsentry/sentry/issues/38821) is resolved
     """
 
     __include_in_export__ = False
