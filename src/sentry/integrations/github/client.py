@@ -253,7 +253,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             .get("ref", {})
             .get("target", {})
             .get("blame", [])
-        )
+        )  # type: ignore[no-any-return]
 
 
 class GitHubAppsClient(GitHubClientMixin):
