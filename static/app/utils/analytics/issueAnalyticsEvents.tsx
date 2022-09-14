@@ -22,6 +22,7 @@ export type IssueEventParameters = {
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
+  'issue_details.performance.hidden_spans_expanded': {};
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -93,4 +94,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
     'Performance Issue Details: Autogrouped Siblings Toggled',
+  'issue_details.performance.hidden_spans_expanded':
+    'Performance Issue Details: Hidden Spans Expanded',
 };
