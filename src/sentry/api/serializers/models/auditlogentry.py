@@ -1,6 +1,7 @@
 import re
 
 from django.db.models import prefetch_related_objects
+from sentry_sdk import capture_exception
 
 from sentry import audit_log
 from sentry.api.serializers import Serializer, register, serialize
@@ -58,12 +59,19 @@ class AuditLogEntrySerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         audit_log_event = audit_log.get(obj.event)
+
+        try:
+            note = audit_log_event.render(obj)
+        except KeyError as exc:
+            note = ""
+            capture_exception(exc)
+
         return {
             "id": str(obj.id),
             "actor": attrs["actor"],
             "event": audit_log_event.api_name,
             "ipAddress": obj.ip_address,
-            "note": audit_log_event.render(obj),
+            "note": note,
             "targetObject": obj.target_object,
             "targetUser": attrs["targetUser"],
             "data": fix(obj.data),
