@@ -123,7 +123,7 @@ const performanceOptionDefinitions: Field[] = [
     step: 1,
   },
   {
-    key: 'performance.issues.n_plus_one_db.duration_threshold',
+    key: 'performance.issues.n_plus_one_db.duration_threshold', // TODO: For fixing typo later.
     label: t('N+1 (DB) duration threshold'),
     help: t(
       'Detector threshold. Controls the threshold for the cumulative duration of involved spans required to trigger performance issues. This affects all organizations system-wide.'
