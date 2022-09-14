@@ -48,7 +48,7 @@ from sentry.notifications.utils.legacy_mappings import get_option_value_from_boo
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
-#: Maximum number of sensitive fields the user can configure.
+#: Maximum total number of characters in sensitiveFields.
 #: Relay compiles this list into a regex which cannot exceed a certain size.
 #: https://github.com/getsentry/relay/blob/2b40f88560c34a10300659f3b9ac2b6a0762307c/relay-general/src/pii/convert.rs#L50-L66
 MAX_SENSITIVE_FIELD_CHARS = 10_000
