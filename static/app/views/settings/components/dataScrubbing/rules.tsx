@@ -14,8 +14,8 @@ import {getRuleDescription} from './utils';
 type Props = {
   rules: Array<Rule>;
   disabled?: boolean;
-  onDeleteRule?: (id: Rule['id']) => () => void;
-  onEditRule?: (id: Rule['id']) => () => void;
+  onDeleteRule?: (id: Rule['id']) => void;
+  onEditRule?: (id: Rule['id']) => void;
 };
 
 const Rules = forwardRef(function RulesList(
@@ -34,7 +34,7 @@ const Rules = forwardRef(function RulesList(
               <Button
                 aria-label={t('Edit Rule')}
                 size="sm"
-                onClick={onEditRule(id)}
+                onClick={() => onEditRule(id)}
                 icon={<IconEdit />}
                 disabled={disabled}
                 title={
@@ -46,9 +46,7 @@ const Rules = forwardRef(function RulesList(
               <ConfirmDelete
                 message={t('Are you sure you wish to delete this rule?')}
                 priority="danger"
-                onConfirm={() => {
-                  onDeleteRule(id)();
-                }}
+                onConfirm={() => onDeleteRule(id)}
                 confirmInput={ruleDescription}
                 disabled={disabled}
                 stopPropagation

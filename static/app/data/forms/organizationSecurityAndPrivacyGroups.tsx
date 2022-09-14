@@ -18,6 +18,9 @@ export default [
         type: 'boolean',
         label: t('Require Two-Factor Authentication'),
         help: t('Require and enforce two-factor authentication for all members'),
+        'aria-label': t(
+          'Enable to require and enforce two-factor authentication for all members'
+        ),
         confirm: {
           true: t(
             'This will remove all members without two-factor authentication' +
@@ -104,6 +107,7 @@ export default [
 
         label: t('Allow Join Requests'),
         help: t('Allow users to request to join your organization'),
+        'aria-label': t('Enable to allow users to request to join your organization'),
         confirm: {
           true: t(
             'Are you sure you want to allow users to request to join your organization?'
@@ -121,6 +125,7 @@ export default [
         type: 'boolean',
         label: t('Require Data Scrubber'),
         help: t('Require server-side data scrubbing be enabled for all projects'),
+        'aria-label': t('Enable server-side data scrubbing'),
         confirm: {
           false: t(
             'Disabling this can have privacy implications for ALL projects, are you sure you want to continue?'
@@ -133,6 +138,9 @@ export default [
         label: t('Require Using Default Scrubbers'),
         help: t(
           'Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects'
+        ),
+        'aria-label': t(
+          'Enable to apply default scrubbers to prevent things like passwords and credit cards from being stored'
         ),
         confirm: {
           false: t(
@@ -152,6 +160,9 @@ export default [
         help: t(
           'Additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
         ),
+        'aria-label': t(
+          'Enter additional field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.'
+        ),
         extraHelp: t(
           'Note: These fields will be used in addition to project specific fields.'
         ),
@@ -170,6 +181,9 @@ export default [
         help: t(
           'Field names which data scrubbers should ignore. Separate multiple entries with a newline.'
         ),
+        'aria-label': t(
+          'Enter field names which data scrubbers should ignore. Separate multiple entries with a newline.'
+        ),
         extraHelp: t(
           'Note: These fields will be used in addition to project specific fields'
         ),
@@ -182,6 +196,9 @@ export default [
         label: t('Prevent Storing of IP Addresses'),
         help: t(
           'Preventing IP addresses from being stored for new events on all projects'
+        ),
+        'aria-label': t(
+          'Enable to prevent IP addresses from being stored for new events'
         ),
         confirm: {
           false: t(

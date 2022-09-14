@@ -1,29 +1,45 @@
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 
 import Rules from './rules';
 import {Rule} from './types';
 
 type Props = {
-  rules: Array<Rule>;
+  organization: Organization;
 };
 
 type State = {
   isCollapsed: boolean;
+  rules: Rule[];
   contentHeight?: string;
 };
 
-class OrganizationRules extends Component<Props, State> {
+export class OrganizationRules extends Component<Props, State> {
   state: State = {
     isCollapsed: true,
+    rules: [],
   };
 
-  componentDidUpdate() {
+  componentDidMount() {
+    this.loadRules();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (
+      prevProps.organization.relayPiiConfig !== this.props.organization.relayPiiConfig
+    ) {
+      this.loadRules();
+      return;
+    }
+
     this.loadContentHeight();
   }
 
@@ -44,9 +60,18 @@ class OrganizationRules extends Component<Props, State> {
     }));
   };
 
+  loadRules() {
+    try {
+      this.setState({
+        rules: convertRelayPiiConfig(this.props.organization.relayPiiConfig),
+      });
+    } catch {
+      addErrorMessage(t('Unable to load data scrubbing rules'));
+    }
+  }
+
   render() {
-    const {rules} = this.props;
-    const {isCollapsed, contentHeight} = this.state;
+    const {isCollapsed, contentHeight, rules} = this.state;
 
     if (rules.length === 0) {
       return (
@@ -77,8 +102,6 @@ class OrganizationRules extends Component<Props, State> {
     );
   }
 }
-
-export default OrganizationRules;
 
 const Content = styled('div')`
   transition: height 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
