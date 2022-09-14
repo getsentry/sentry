@@ -4,7 +4,6 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 
 const TABS = {
   crumbs: t('Breadcrumbs'),
-  video: t('Replay'),
   tags: t('Tags'),
 };
 type TabKey = keyof typeof TABS;
@@ -15,8 +14,7 @@ type Props = {
 };
 
 function SideTabs({tags, className}: Props) {
-  const defaultTab = tags.includes('video') ? 'video' : 'crumbs';
-  const {getParamValue, setParamValue} = useUrlParams('t_side', defaultTab);
+  const {getParamValue, setParamValue} = useUrlParams('t_side', 'crumbs');
   const active = getParamValue();
 
   return (
