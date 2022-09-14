@@ -275,9 +275,10 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 }
                 groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
                 if len(groups) == 1:
-                    response = Response(
-                        serialize(groups, request.user, serializer(matching_event_id=event_id))
-                    )
+                    serialized_groups = serialize(groups, request.user, serializer())
+                    if event_id:
+                        serialized_groups[0]["matchingEventId"] = event_id
+                    response = Response(serialized_groups)
                     response["X-Sentry-Direct-Hit"] = "1"
                     return response
 
