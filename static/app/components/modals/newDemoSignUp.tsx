@@ -33,8 +33,11 @@ const NewDemoSignUpModal = ({closeModal}: Props) => {
         <TrialCheckInfo>
           <Subheader>{t('Sign Up')}</Subheader>
           <h2>{t('Hey, like what you see?')}</h2>
-          <p>{t('Start your free trial, and create your first project to see')}</p>
-          <p> {t("what's broken in your code and how to fix it")}</p>
+          <p>
+            {t(
+              "Start your free trial, and create your first project to see what's broken in your code and how to fix it"
+            )}
+          </p>
         </TrialCheckInfo>
         <StyledButtonBar gap={1}>
           <Button
@@ -59,11 +62,21 @@ const NewDemoSignUpModal = ({closeModal}: Props) => {
           >
             {t('Keep exploring')}
           </Button>
-          <Button priority="default" href={demoUrl}>
+          <Button
+            priority="default"
+            href={demoUrl}
+            onClick={() =>
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_docs', {
+                organization: null,
+              })
+            }
+          >
             {t('Request a demo')}
           </Button>
         </StyledButtonBar>
-        <PositionRight src={habitsSuccessfulCustomer} width="325px" />
+      </div>
+      <div>
+        <PositionRight src={habitsSuccessfulCustomer} />
       </div>
     </HighlightCornerContainer>
   );
@@ -82,11 +95,13 @@ const TrialCheckInfo = styled('div')`
 
 export const modalCss = css`
   width: 100%;
-  max-width: 900px;
+  max-width: 1000px;
   [role='document'] {
     position: relative;
     padding: 70px 80px;
     overflow: hidden;
+    display: flex;
+    gap: ${space(3)};
   }
 `;
 
@@ -100,15 +115,10 @@ const Subheader = styled('h4')`
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(2)};
-  max-width: 420px;
 `;
 
-const PositionRight = styled('img')<{width: string}>`
-  position: absolute;
+const PositionRight = styled('img')`
   border-radius: 0.5rem;
-  width: ${p => p.width};
-  right: 15px;
-  bottom: 70px;
   pointer-events: none;
 `;
 
