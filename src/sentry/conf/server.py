@@ -1074,7 +1074,7 @@ SENTRY_FEATURES = {
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": False,
+    "organizations:dashboard-grid-layout": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
