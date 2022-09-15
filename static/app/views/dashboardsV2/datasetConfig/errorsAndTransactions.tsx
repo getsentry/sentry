@@ -76,7 +76,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
-type SeriesWithOrdering = [order: number, series: Series];
+export type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,

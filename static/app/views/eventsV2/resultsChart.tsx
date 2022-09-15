@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {LineSeriesOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -38,6 +39,7 @@ type ResultsChartProps = {
   organization: Organization;
   router: InjectedRouter;
   yAxisValue: string[];
+  processedLineSeries?: LineSeriesOption[];
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -53,8 +55,16 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router, confirmedQuery, yAxisValue} =
-      this.props;
+    const {
+      api,
+      eventView,
+      location,
+      organization,
+      router,
+      confirmedQuery,
+      yAxisValue,
+      processedLineSeries,
+    } = this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
@@ -133,6 +143,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               referrer={referrer}
               fromDiscover
               disableableSeries={disableableSeries}
+              additionalSeries={processedLineSeries}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -157,6 +168,7 @@ type ContainerProps = {
   // chart footer props
   total: number | null;
   yAxis: string[];
+  processedLineSeries?: LineSeriesOption[];
 };
 
 type ContainerState = {
@@ -223,6 +235,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       confirmedQuery,
       yAxis,
       disableProcessedBaselineToggle,
+      processedLineSeries,
     } = this.props;
 
     const {yAxisOptions, showBaseline} = this.state;
@@ -270,6 +283,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
             router={router}
             confirmedQuery={confirmedQuery}
             yAxisValue={yAxis}
+            processedLineSeries={processedLineSeries}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter

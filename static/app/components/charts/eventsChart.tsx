@@ -4,6 +4,7 @@ import {withTheme} from '@emotion/react';
 import type {
   EChartsOption,
   LegendComponentOption,
+  LineSeriesOption,
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
@@ -66,6 +67,7 @@ type ChartProps = {
   timeseriesData: Series[];
   yAxis: string;
   zoomRenderProps: ZoomRenderProps;
+  additionalSeries?: LineSeriesOption[];
   chartComponent?: ChartComponent;
   chartOptions?: Omit<EChartsOption, 'xAxis' | 'yAxis'> & {
     xAxis?: XAXisComponentOption;
@@ -126,7 +128,8 @@ class Chart extends React.Component<ChartProps, State> {
       isEqual(this.props.timeseriesData, nextProps.timeseriesData) &&
       isEqual(this.props.releaseSeries, nextProps.releaseSeries) &&
       isEqual(this.props.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-      isEqual(this.props.tableData, nextProps.tableData)
+      isEqual(this.props.tableData, nextProps.tableData) &&
+      isEqual(this.props.additionalSeries, nextProps.additionalSeries)
     ) {
       return false;
     }
@@ -380,6 +383,7 @@ export type EventsChartProps = {
    * The aggregate/metric to plot.
    */
   yAxis: string | string[];
+  additionalSeries?: LineSeriesOption[];
   /**
    * Markup for optional chart header
    */
@@ -530,6 +534,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       height,
       withoutZerofill,
       fromDiscover,
+      additionalSeries,
       ...props
     } = this.props;
 
@@ -596,6 +601,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             currentSeriesNames={currentSeriesNames}
             previousSeriesNames={previousSeriesNames}
             seriesTransformer={seriesTransformer}
+            additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
             yAxis={yAxisArray[0]}

@@ -11,6 +11,7 @@ export type AreaChartSeries = Series & Omit<LineSeriesOption, 'data' | 'name'>;
 
 export interface AreaChartProps extends Omit<ChartProps, 'series'> {
   series: AreaChartSeries[];
+  additionalSeries?: LineSeriesOption[];
   stacked?: boolean;
 }
 

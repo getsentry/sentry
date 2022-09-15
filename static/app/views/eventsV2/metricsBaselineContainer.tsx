@@ -1,14 +1,21 @@
 import {useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
+import {LineSeriesOption} from 'echarts';
 import {Location} from 'history';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
+import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {isMultiSeriesStats, lightenHexToRgb} from 'sentry/components/charts/utils';
 import {EventsStats, MultiSeriesEventsStats, Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import theme from 'sentry/utils/theme';
+import {transformSeries} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
+
+import {SeriesWithOrdering} from '../dashboardsV2/datasetConfig/errorsAndTransactions';
 
 import ResultsChart from './resultsChart';
 import {usesTransactionsDataset} from './utils';
@@ -61,8 +68,9 @@ export function MetricsBaselineContainer({
     EventsStats | MultiSeriesEventsStats | null
   >(null);
   const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
-
-  const additionalSeries: EventsStats | MultiSeriesEventsStats | undefined = undefined;
+  const [processedLineSeries, setProcessedLineSeries] = useState<
+    LineSeriesOption[] | undefined
+  >(undefined);
 
   useEffect(() => {
     let shouldCancelRequest = false;
@@ -70,6 +78,7 @@ export function MetricsBaselineContainer({
     if (disableProcessedBaselineToggle) {
       setMetricsResponse(null);
       setMetricsCompatible(false);
+      setProcessedLineSeries(undefined);
       return undefined;
     }
 
@@ -90,8 +99,68 @@ export function MetricsBaselineContainer({
         if (shouldCancelRequest) {
           return;
         }
+        // let eventsStats: EventsStats;
+        // if (isMultiSeriesStats(response)) {
+        //   const key = Object.keys(response)[0];
+        //   eventsStats = response[key];
+        // } else {
+        //   eventsStats = response;
+        // }
+
+        const additionalSeries: LineSeriesOption[] = [];
+
+        if (isMultiSeriesStats(response)) {
+          let seriesWithOrdering: SeriesWithOrdering[] = [];
+
+          seriesWithOrdering = Object.keys(response).map((seriesName: string) => {
+            const prefixedName = `processed events: ${seriesName}`;
+            const seriesData: EventsStats = response[seriesName];
+            return [
+              seriesData.order || 0,
+              transformSeries(seriesData, prefixedName, seriesName),
+            ];
+          });
+
+          const color = theme.charts.getColorPalette(seriesWithOrdering.length);
+          const additionalSeriesColor = lightenHexToRgb(color);
+
+          seriesWithOrdering.forEach(([order, series]) =>
+            additionalSeries.push(
+              LineSeries({
+                name: series.seriesName,
+                data: series.data.map(({name, value}) => [name, value]),
+                lineStyle: {
+                  color: additionalSeriesColor[order],
+                  type: 'dashed',
+                  width: 1,
+                },
+                itemStyle: {color: additionalSeriesColor[order]},
+                animation: false,
+                animationThreshold: 1,
+                animationDuration: 0,
+              })
+            )
+          );
+        } else {
+          const field = yAxis[0];
+          const prefixedName = `processed events: ${field}`;
+          const transformed = transformSeries(response, prefixedName, field);
+          additionalSeries.push(
+            LineSeries({
+              name: transformed.seriesName,
+              data: transformed.data.map(({name, value}) => [name, value]),
+              lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
+              itemStyle: {color: theme.gray200},
+              animation: false,
+              animationThreshold: 1,
+              animationDuration: 0,
+            })
+          );
+        }
+
         setMetricsResponse(response);
         setMetricsCompatible(true);
+        setProcessedLineSeries(additionalSeries);
       })
       .catch(() => {
         if (shouldCancelRequest) {
@@ -121,6 +190,7 @@ export function MetricsBaselineContainer({
       eventView={eventView}
       location={location}
       yAxis={yAxis}
+      processedLineSeries={processedLineSeries}
       disableProcessedBaselineToggle={
         disableProcessedBaselineToggle || !metricsCompatible
       }
