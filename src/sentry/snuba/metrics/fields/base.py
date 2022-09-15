@@ -569,7 +569,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         return f"{self.metric_operation.op}({self.metric_object.metric_mri})"
 
     def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
-        return _get_entity_of_metric_mri(projects, self.metric_object.metric_mri, use_case_id).value  # type: ignore
+        return _get_entity_of_metric_mri(projects, self.metric_object.metric_mri, use_case_id).value
 
     def generate_select_statements(
         self,
