@@ -1,9 +1,18 @@
+from __future__ import annotations
+
 import os
 import signal
+import subprocess
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import TYPE_CHECKING
 
 import click
+import requests
+
+if TYPE_CHECKING:
+    import docker
 
 # Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
 RAW_SOCKET_HACK_PATH = os.path.expanduser(
@@ -13,15 +22,36 @@ if os.path.exists(RAW_SOCKET_HACK_PATH):
     os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
 
 
-def get_docker_client():
+def get_docker_client() -> docker.DockerClient:
     import docker
 
     client = docker.from_env()
     try:
         client.ping()
         return client
-    except Exception:
-        raise click.ClickException("Make sure Docker is running.")
+    except (requests.exceptions.ConnectionError, docker.errors.APIError):
+        click.echo("Attempting to start docker...")
+        if sys.platform == "darwin":
+            subprocess.check_call(
+                ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+            )
+        else:
+            click.echo("Unable to start docker.")
+            raise click.ClickException("Make sure docker is running.")
+
+        max_wait = 60
+        timeout = time.monotonic() + max_wait
+
+        click.echo(f"Waiting for docker to be ready.... (timeout in {max_wait}s)")
+        while time.monotonic() < timeout:
+            time.sleep(1)
+            try:
+                client.ping()
+                return client
+            except (requests.exceptions.ConnectionError, docker.errors.APIError):
+                continue
+
+        raise click.ClickException("Failed to start docker.")
 
 
 def get_or_create(client, thing, name):

@@ -155,7 +155,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
     expect(
       await screen.findByText('The issue you were looking for was not found.')
     ).toBeInTheDocument();
@@ -173,7 +176,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
     expect(
       await screen.findByText(
         'No teams have access to this project yet. Ask an admin to add your team to this project.'
@@ -186,7 +192,9 @@ describe('groupDetails', () => {
       selection: {environments: ['staging']},
     });
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
 
     expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });

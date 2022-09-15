@@ -131,10 +131,10 @@ type FetchOrganizationByMemberParams = {
 };
 
 export async function fetchOrganizationByMember(
+  api: Client,
   memberId: string,
   {addOrg, fetchOrgDetails}: FetchOrganizationByMemberParams
 ) {
-  const api = new Client();
   const data = await api.requestPromise(`/organizations/?query=member_id:${memberId}`);
 
   if (!data.length) {
@@ -145,12 +145,12 @@ export async function fetchOrganizationByMember(
 
   if (addOrg) {
     // add org to SwitchOrganization dropdown
-    OrganizationsStore.add(org);
+    OrganizationsStore.addOrReplace(org);
   }
 
   if (fetchOrgDetails) {
     // load SidebarDropdown with org details including `access`
-    await fetchOrganizationDetails(org.slug, {setActive: true, loadProjects: true});
+    await fetchOrganizationDetails(api, org.slug, {setActive: true, loadProjects: true});
   }
 
   return org;
@@ -173,10 +173,10 @@ type FetchOrganizationDetailsParams = {
   setActive?: boolean;
 };
 export async function fetchOrganizationDetails(
+  api: Client,
   orgId: string,
   {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
 ) {
-  const api = new Client();
   const data = await api.requestPromise(`/organizations/${orgId}/`);
 
   if (setActive) {

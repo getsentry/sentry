@@ -58,7 +58,7 @@ describe('IgnoreActions', function () {
           issueCategory={IssueCategory.ERROR}
           onUpdate={spy}
           shouldConfirm
-          confirmMessage="confirm me"
+          confirmMessage={() => 'confirm me'}
         />
       );
       renderGlobalModal();

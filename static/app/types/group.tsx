@@ -63,6 +63,10 @@ type CapabilityInfo = {
  */
 export type IssueCategoryCapabilities = {
   /**
+   * Are codeowner features enabled for this issue
+   */
+  codeowners: CapabilityInfo;
+  /**
    * Can the issue be deleted
    */
   delete: CapabilityInfo;
@@ -78,6 +82,10 @@ export type IssueCategoryCapabilities = {
    * Can the issue be merged
    */
   merge: CapabilityInfo;
+  /**
+   * Can the issue be shared
+   */
+  share: CapabilityInfo;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -169,7 +177,11 @@ export type InboxDetails = {
   reason?: number;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule' | 'releaseCommit';
+export type SuggestedOwnerReason =
+  | 'suspectCommit'
+  | 'ownershipRule'
+  | 'codeowners'
+  | 'releaseCommit';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
