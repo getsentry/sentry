@@ -314,10 +314,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             row_length = len(rows)
 
         organization = Organization.objects.get(id=organization_id)
-        if (
-            features.has("organizations:performance-issues", organization)
-            and not group_categories
-            or GroupCategory.PERFORMANCE in group_categories
+        if features.has("organizations:performance-issues", organization) and (
+            not group_categories or GroupCategory.PERFORMANCE in group_categories
         ):
             transaction_conditions = self.update_conditions(
                 "event.type",
