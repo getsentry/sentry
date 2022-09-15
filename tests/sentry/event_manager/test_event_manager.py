@@ -2102,7 +2102,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
@@ -2165,7 +2164,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 ],
             )
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
