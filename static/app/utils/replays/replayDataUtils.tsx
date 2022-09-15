@@ -51,7 +51,7 @@ export function breadcrumbFactory(
   rawCrumbs: ReplayCrumb[],
   spans: ReplaySpan[]
 ): Crumb[] {
-  const initialUrl = replayRecord.tags.url;
+  const initialUrl = replayRecord.tags.url?.join(', ');
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
     timestamp: replayRecord.startedAt.toISOString(),
