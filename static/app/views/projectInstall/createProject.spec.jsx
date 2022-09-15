@@ -20,6 +20,18 @@ describe('CreateProject', function () {
     },
   };
 
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/projects/testOrg/rule-conditions/`,
+      body: {},
+      statusCode: 500,
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
   it('should block if you have access to no teams', function () {
     const wrapper = render(<CreateProject {...baseProps} />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
