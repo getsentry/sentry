@@ -43,8 +43,8 @@ const mockedReplay: Partial<ReplayReader> = {
       id: '',
       name: '',
       email: '',
-      ip_address: '73.241.205.8',
-      displayName: '73.241.205.8',
+      ip_address: '127.0.0.1',
+      displayName: '127.0.0.1',
     },
     sdk: {
       name: 'sentry.javascript.browser',
