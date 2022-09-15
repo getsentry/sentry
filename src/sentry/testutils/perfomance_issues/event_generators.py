@@ -1,7 +1,8 @@
 import os
 
 from sentry.utils import json
-from tests.sentry.spans.grouping.test_strategy import SpanBuilder
+
+from .span_builder import SpanBuilder
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "events")
 
