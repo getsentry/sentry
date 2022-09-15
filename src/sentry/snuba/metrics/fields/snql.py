@@ -4,7 +4,7 @@ from snuba_sdk import Column, Function
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
-from sentry.snuba.metrics.fields.histogram import zoom_histogram
+from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
 from sentry.snuba.metrics.naming_layer.public import (
     TransactionSatisfactionTagValue,
     TransactionStatusTagValue,
@@ -325,7 +325,7 @@ def histogram(
         conditions = aggregate_filter
 
     return Function(
-        "histogramIf(250)",
+        f"histogramIf({MAX_HISTOGRAM_BUCKET})",
         [Column("value"), conditions],
         alias=alias,
     )
