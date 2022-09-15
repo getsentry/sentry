@@ -50,9 +50,9 @@ from sentry.snuba.metrics.fields.snql import (
     errored_all_users,
     errored_preaggr_sessions,
     failure_count_transaction,
-    histogram,
+    histogram_snql_factory,
     miserable_users,
-    rate,
+    rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
@@ -1326,12 +1326,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="histogram",
             can_orderby=False,
             post_query_func=rebucket_histogram,
-            snql_func=histogram,
+            snql_func=histogram_snql_factory,
         ),
         DerivedOp(
             op="rate",
             can_orderby=False,
-            snql_func=rate,
+            snql_func=rate_snql_factory,
         ),
     ]
 }

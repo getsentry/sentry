@@ -762,7 +762,9 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
         with pytest.raises(
             InvalidParams,
-            match=re.escape("rate() missing 1 required positional argument: 'numerator'"),
+            match=re.escape(
+                "rate_snql_factory() missing 1 required positional argument: 'numerator'"
+            ),
         ):
             get_series(
                 [self.project],

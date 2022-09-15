@@ -307,7 +307,7 @@ def session_duration_filters(org_id):
     ]
 
 
-def histogram(
+def histogram_snql_factory(
     aggregate_filter,
     histogram_buckets: int = 100,
     histogram_from: Optional[float] = None,
@@ -331,7 +331,7 @@ def histogram(
     )
 
 
-def rate(aggregate_filter, numerator, denominator=1.0, alias=None):
+def rate_snql_factory(aggregate_filter, numerator, denominator=1.0, alias=None):
     return Function(
         "divide",
         [

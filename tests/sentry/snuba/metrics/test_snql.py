@@ -19,7 +19,7 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     failure_count_transaction,
     miserable_users,
-    rate,
+    rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
@@ -406,7 +406,7 @@ class DerivedMetricSnQLTestCase(TestCase):
         ]
 
     def test_rate_snql(self):
-        assert rate(
+        assert rate_snql_factory(
             aggregate_filter=Function(
                 "equals",
                 [Column("metric_id"), 5],
@@ -425,7 +425,7 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="rate_alias",
         )
 
-        assert rate(
+        assert rate_snql_factory(
             aggregate_filter=Function(
                 "equals",
                 [Column("metric_id"), 5],
