@@ -1,6 +1,7 @@
 """
 Metrics Service Layer Tests for Performance
 """
+import re
 import time
 from datetime import timedelta
 from unittest import mock
@@ -11,6 +12,7 @@ from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
@@ -26,12 +28,16 @@ from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionM
 from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
 from sentry.testutils import BaseMetricsTestCase, TestCase
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
+    def setUp(self):
+        super().setUp()
+        self.now = timezone.now()
+
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
             {
@@ -64,8 +70,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_alias_on_different_metrics_expression(self):
-        now = before_now(minutes=0)
-
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_metric(
@@ -94,8 +98,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_fcp",
                 ),
             ],
-            start=now - timedelta(hours=1),
-            end=now,
+            start=self.now - timedelta(hours=1),
+            end=self.now,
             granularity=Granularity(granularity=3600),
             groupby=[MetricGroupByField(name="transaction", alias="transaction_group")],
             orderby=[
@@ -151,7 +155,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_alias_on_same_metrics_expression_but_different_aliases(self):
-        now = before_now(minutes=0)
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_metric(
@@ -180,8 +183,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_lcp_2",
                 ),
             ],
-            start=now - timedelta(hours=1),
-            end=now,
+            start=self.now - timedelta(hours=1),
+            end=self.now,
             granularity=Granularity(granularity=3600),
             groupby=[
                 MetricGroupByField("transaction", alias="transaction_group"),
@@ -239,8 +242,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
 
     @freeze_time()
     def test_alias_on_single_entity_derived_metrics(self):
-        now = timezone.now()
-
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
@@ -253,7 +254,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
-                timestamp=now.timestamp(),
+                timestamp=self.now.timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -268,8 +269,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=now - timedelta(minutes=1),
-            end=now,
+            start=self.now - timedelta(minutes=1),
+            end=self.now,
             granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
@@ -406,8 +407,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_histogram_transaction_duration(self):
-        now = timezone.now()
-
         for tag, value, numbers in (
             ("tag1", "value1", [1, 2, 3]),
             ("tag1", "value2", [10, 100, 1000]),
@@ -450,8 +449,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="histogram_lcp_2",
                 ),
             ],
-            start=now - timedelta(hours=1),
-            end=now,
+            start=self.now - timedelta(hours=1),
+            end=self.now,
             granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -473,6 +472,306 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 },
             }
         ]
+
+    def test_rate_epm_hour_rollup(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for _ in range(count):
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags={},
+                    timestamp=(self.now - timedelta(hours=hour)).timestamp(),
+                    value=1,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "6h",
+                "interval": "1h",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="rate",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"numerator": 3600, "denominator": 60},
+                ),
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
+        # the expected rates would be each of those event counts divided by 3600 / 60
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {
+                    "rate(transaction.duration)": [0.05, 0, 0.05, 0.1, 0, 0.1],
+                    "count(transaction.duration)": [3, 0, 3, 6, 0, 6],
+                },
+                "totals": {"rate(transaction.duration)": 0.3, "count(transaction.duration)": 18},
+            }
+        ]
+
+    def test_rate_epm_day_rollup(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags={},
+                    timestamp=(self.now - timedelta(hours=hour)).timestamp(),
+                    value=1,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "6h",
+                "interval": "1h",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="rate",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"numerator": 86400, "denominator": 60},
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
+        # the expected rates would be each of those event counts divided by 86400 / 60
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {
+                    "rate(transaction.duration)": [3 / 1440, 0, 3 / 1440, 6 / 1440, 0, 6 / 1440],
+                },
+                "totals": {"rate(transaction.duration)": 18 / 1440},
+            }
+        ]
+
+    @pytest.mark.skip(reason="Contains granularity/rollup logic that is not yet implemented")
+    def test_throughput_epm_hour_rollup_offset_of_hour(self):
+        # Each of these denotes how many events to create in each hour
+        day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        event_counts = [6, 0, 6, 3, 0, 3]
+
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            type="distribution",
+            name=TransactionMRI.DURATION.value,
+            tags={},
+            timestamp=(day_ago + timedelta(hours=0, minutes=25)).timestamp(),
+            value=1,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        for hour, count in enumerate(event_counts):
+            for minute in range(count):
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags={},
+                    timestamp=(day_ago + timedelta(hours=hour, minutes=minute + 30)).timestamp(),
+                    value=1,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="rate",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"numerator": 3600, "denominator": 60},
+                ),
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                ),
+            ],
+            start=day_ago + timedelta(minutes=30),
+            end=day_ago + timedelta(hours=6, minutes=30),
+            granularity=Granularity(granularity=1800),
+            limit=Limit(limit=5),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+
+        start, end, rollup = get_date_range(
+            {
+                "start": iso_format(day_ago + timedelta(minutes=30)),
+                "end": iso_format(day_ago + timedelta(hours=6, minutes=30)),
+            }
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        assert data
+
+    def test_throughput_eps_minute_rollup(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for minute, count in enumerate(event_counts):
+            for _ in range(count):
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags={},
+                    timestamp=(self.now - timedelta(minutes=minute)).timestamp(),
+                    value=1,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "6m",
+                "interval": "1m",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="rate",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"numerator": 60},
+                ),
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        # The order they will be in is the reverse of the order they were inserted so -> [3, 0, 3, 6, 0, 6] and hence
+        # the expected rates would be each of those event counts divided by 86400 / 60
+        assert data["groups"] == [
+            {
+                "by": {},
+                "series": {
+                    "rate(transaction.duration)": [3 / 60, 0, 3 / 60, 6 / 60, 0, 6 / 60],
+                    "count(transaction.duration)": [3, 0, 3, 6, 0, 6],
+                },
+                "totals": {
+                    "rate(transaction.duration)": 18 / 60,
+                    "count(transaction.duration)": 18,
+                },
+            }
+        ]
+
+    def test_rate_with_missing_numerator_value(self):
+        event_counts = [6, 0, 6, 3, 0, 3]
+        for minute, count in enumerate(event_counts):
+            for _ in range(count):
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags={},
+                    timestamp=(self.now - timedelta(minutes=minute)).timestamp(),
+                    value=1,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "6m",
+                "interval": "1m",
+            }
+        )
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="rate",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                ),
+            ],
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=True,
+        )
+        with pytest.raises(
+            InvalidParams,
+            match=re.escape(
+                "rate_snql_factory() missing 1 required positional argument: 'numerator'"
+            ),
+        ):
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):

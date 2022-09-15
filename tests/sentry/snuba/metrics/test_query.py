@@ -106,7 +106,7 @@ def test_validate_select():
         InvalidParams,
         match=(
             "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
-            "histogram, p50, p75, p90, p95, p99"
+            "histogram, rate, p50, p75, p90, p95, p99"
         ),
     ):
         MetricsQuery(
@@ -149,7 +149,7 @@ def test_validate_order_by():
         InvalidParams,
         match=(
             "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
-            "histogram, p50, p75, p90, p95, p99"
+            "histogram, rate, p50, p75, p90, p95, p99"
         ),
     ):
         MetricsQuery(
@@ -324,7 +324,7 @@ def test_validate_many_order_by_fields_are_in_select():
     # This example should pass because both session crash free rate
     # and sum(session) both go to the entity counters
     metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="sum", metric_name=SessionMetricKey.DURATION.value)
+    metric_field_2 = MetricField(op="sum", metric_name="sentry.sessions.session")
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
