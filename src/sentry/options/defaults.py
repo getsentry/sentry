@@ -518,7 +518,6 @@ register("sentry-metrics.cardinality-limiter.limits.performance.per-org", defaul
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 
-
 # A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
 register("store.use-ingest-performance-detection-only", default=0.0)
 
