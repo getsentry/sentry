@@ -9,19 +9,19 @@ import {DataCategory} from 'sentry/types';
  * anywhere else! Instead, use the theme prop or import useTheme.
  */
 export const lightColors = {
-  black: '#1D1127',
-  white: '#FFFFFF',
+  black: 'red',
+  white: 'red',
 
-  surface100: '#FAF9FB',
-  surface200: '#FFFFFF',
-  surface300: '#FFFFFF',
-  surface400: '#F5F3F7',
+  surface100: 'red',
+  surface200: 'red',
+  surface300: 'red',
+  surface400: 'red',
 
-  gray500: '#2B2233',
-  gray400: '#3E3446',
-  gray300: '#80708F',
-  gray200: '#DBD6E1',
-  gray100: '#EBE6EF',
+  gray500: 'red',
+  gray400: 'red',
+  gray300: 'red',
+  gray200: 'red',
+  gray100: 'red',
 
   /**
    * Alternative version of gray200 that's translucent.
@@ -30,33 +30,33 @@ export const lightColors = {
   translucentGray200: 'rgba(58, 17, 95, 0.18)',
   translucentGray100: 'rgba(45, 0, 85, 0.1)',
 
-  purple400: '#584AC0',
-  purple300: '#6C5FC7',
+  purple400: 'red',
+  purple300: 'red',
   purple200: 'rgba(108, 95, 199, 0.5)',
   purple100: 'rgba(108, 95, 199, 0.08)',
 
-  blue400: '#2562D4',
-  blue300: '#3C74DD',
+  blue400: 'red',
+  blue300: 'red',
   blue200: 'rgba(60, 116, 221, 0.5)',
   blue100: 'rgba(60, 116, 221, 0.09)',
 
-  green400: '#268D75',
-  green300: '#2BA185',
+  green400: 'red',
+  green300: 'red',
   green200: 'rgba(43, 161, 133, 0.55)',
   green100: 'rgba(43, 161, 133, 0.13)',
 
-  yellow400: '#E5A500',
-  yellow300: '#F5B000',
+  yellow400: 'red',
+  yellow300: 'red',
   yellow200: 'rgba(245, 176, 0, 0.55)',
   yellow100: 'rgba(245, 176, 0, 0.08)',
 
-  red400: '#F32F35',
-  red300: '#F55459',
+  red400: 'red',
+  red300: 'red',
   red200: 'rgba(245, 84, 89, 0.5)',
   red100: 'rgba(245, 84, 89, 0.09)',
 
-  pink400: '#E50675',
-  pink300: '#F91A8A',
+  pink400: 'red',
+  pink300: 'red',
   pink200: 'rgba(249, 26, 138, 0.5)',
   pink100: 'rgba(249, 26, 138, 0.1)',
 };
@@ -66,19 +66,19 @@ export const lightColors = {
  * anywhere else! Instead, use the theme prop or import useTheme.
  */
 export const darkColors = {
-  black: '#1D1127',
-  white: '#FFFFFF',
+  black: 'red',
+  white: 'red',
 
-  surface100: '#1A141F',
-  surface200: '#241D2A',
-  surface300: '#2C2433',
-  surface400: '#362E3E',
+  surface100: 'red',
+  surface200: 'red',
+  surface300: 'red',
+  surface400: 'red',
 
-  gray500: '#EBE6EF',
-  gray400: '#D6D0DC',
-  gray300: '#998DA5',
-  gray200: '#43384C',
-  gray100: '#342B3B',
+  gray500: 'red',
+  gray400: 'red',
+  gray300: 'red',
+  gray200: 'red',
+  gray100: 'red',
 
   /**
    * Alternative version of gray200 that's translucent.
@@ -87,33 +87,33 @@ export const darkColors = {
   translucentGray200: 'rgba(218, 184, 245, 0.18)',
   translucentGray100: 'rgba(208, 168, 240, 0.1)',
 
-  purple400: '#6859CF',
-  purple300: '#7669D3',
+  purple400: 'red',
+  purple300: 'red',
   purple200: 'rgba(108, 95, 199, 0.6)',
   purple100: 'rgba(118, 105, 211, 0.1)',
 
-  blue400: '#4284FF',
-  blue300: '#5C95FF',
+  blue400: 'red',
+  blue300: 'red',
   blue200: 'rgba(92, 149, 255, 0.4)',
   blue100: 'rgba(92, 149, 255, 0.1)',
 
-  green400: '#26B593',
-  green300: '#2AC8A3',
+  green400: 'red',
+  green300: 'red',
   green200: 'rgba(42, 200, 163, 0.4)',
   green100: 'rgba(42, 200, 163, 0.1)',
 
-  yellow400: '#F5B000',
-  yellow300: '#FFC227',
+  yellow400: 'red',
+  yellow300: 'red',
   yellow200: 'rgba(255, 194, 39, 0.35)',
   yellow100: 'rgba(255, 194, 39, 0.07)',
 
-  red400: '#FA2E34',
-  red300: '#FA4F54',
+  red400: 'red',
+  red300: 'red',
   red200: 'rgba(250, 79, 84, 0.4)',
   red100: 'rgba(250, 79, 84, 0.1)',
 
-  pink400: '#C4317A',
-  pink300: '#D1478C',
+  pink400: 'red',
+  pink300: 'red',
   pink200: 'rgba(209, 71, 140, 0.55)',
   pink100: 'rgba(209, 71, 140, 0.13)',
 };
@@ -136,8 +136,8 @@ const darkShadows = {
  * Unfortunately the exact colors cannot be used, as the theme-color tag does not support linear-gradient()
  */
 const sidebarBackground = {
-  light: '#2f1937',
-  dark: '#181622',
+  light: 'red',
+  dark: 'red',
 };
 
 type BaseColors = typeof lightColors;
@@ -478,7 +478,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
   // Hardcoded legacy color (orange400). We no longer use orange anywhere
   // else in the app (except for the chart palette). This needs to be harcoded
   // here because existing users may still associate orange with the "error" level.
-  error: '#FF7738',
+  error: 'red',
   fatal: colors.red300,
   default: colors.gray300,
   unknown: colors.gray200,
@@ -692,9 +692,9 @@ const commonTheme = {
   },
 
   sidebar: {
-    boxShadow: '0 3px 3px #2f2936',
-    color: '#9586a5',
-    divider: '#493e54',
+    boxShadow: '0 3px 3px red',
+    color: 'red',
+    divider: 'red',
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
@@ -820,12 +820,12 @@ const commonTheme = {
 
   // Similarity spectrum used in "Similar Issues" in group details
   similarity: {
-    empty: '#e2dee6',
-    colors: ['#ec5e44', '#f38259', '#f9a66d', '#98b480', '#57be8c'],
+    empty: 'red',
+    colors: ['red', 'red', 'red', 'red', 'red'],
   },
 
   // used as a gradient,
-  businessIconColors: ['#EA5BC2', '#6148CE'],
+  businessIconColors: ['red', 'red'],
 
   demo: {
     headerSize: '70px',
@@ -854,7 +854,7 @@ export const lightTheme = {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
   },
-  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,#452650 92.42%,#452650 92.42%)`,
+  sidebarGradient: `linear-gradient(294.17deg,${sidebarBackground.light} 35.57%,red 92.42%,red 92.42%)`,
   sidebarBorder: 'transparent',
 };
 
@@ -877,7 +877,7 @@ export const darkTheme: Theme = {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
   },
-  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, #1B1825 100%)`,
+  sidebarGradient: `linear-gradient(180deg, ${sidebarBackground.dark} 0%, red 100%)`,
   sidebarBorder: darkAliases.border,
 };
 

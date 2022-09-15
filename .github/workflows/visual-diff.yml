@@ -19,10 +19,10 @@ jobs:
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
 
       - name: Check for files changed
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5 # v2
         id: changes
         with:
           token: ${{ github.token }}
@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@9dd5bca45f9531ac28738a73d6f9af20a8df9459 # main
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'

@@ -33,10 +33,10 @@ jobs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
       backend: ${{ steps.changes.outputs.backend }}
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
 
       - name: Check for backend file changes
-        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5  # v2
+        uses: getsentry/paths-filter@66f7f1844185eb7fb6738ea4ea59d74bb99199e5 # v2
         id: changes
         with:
           token: ${{ github.token }}
@@ -59,7 +59,7 @@ jobs:
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
         name: Checkout sentry
 
         with:
@@ -88,20 +88,20 @@ jobs:
           JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
-        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2
+        uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2
         with:
           retention-days: 14
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41  # main
+        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@9dd5bca45f9531ac28738a73d6f9af20a8df9459 # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -133,7 +133,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
 
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
         name: Checkout sentry
 
       - uses: ./.github/actions/setup-volta
@@ -143,7 +143,7 @@ jobs:
         run: echo "::set-output name=webpack-path::.webpack_cache"
 
       - name: webpack cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8 # v3.0.8
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -179,7 +179,7 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@9dd5bca45f9531ac28738a73d6f9af20a8df9459 # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -208,7 +208,7 @@ jobs:
       VISUAL_SNAPSHOT_ENABLE: 1
 
     steps:
-      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e # v2
         with:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
@@ -221,7 +221,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8 # v3.0.8
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -242,7 +242,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@9dd5bca45f9531ac28738a73d6f9af20a8df9459 # main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -268,7 +268,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
+        uses: getsentry/action-visual-snapshot@9dd5bca45f9531ac28738a73d6f9af20a8df9459 # main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
