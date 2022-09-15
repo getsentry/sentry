@@ -58,7 +58,7 @@ def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]
     return stack
 
 
-def add_global_tags(_all_threads: bool = False, **tags: TagValue):
+def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
     """
     Set multiple metric tags onto the global or thread-local stack which then
     apply to all metrics.
