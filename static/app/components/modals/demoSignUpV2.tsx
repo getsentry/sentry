@@ -7,21 +7,22 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   extraQueryParameter,
-  extraQueryParameterWithEmail,
+  extraQueryParameterWithEmailV2,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
 type Props = ModalRenderProps;
 
-const NewDemoSignUpModal = ({closeModal}: Props) => {
+const DemoSignUpModalV2 = ({closeModal}: Props) => {
   const signupUrl = urlAttachQueryParams(
     'https://sentry.io/signup/',
-    extraQueryParameterWithEmail()
+    extraQueryParameterWithEmailV2()
   );
   const demoUrl = urlAttachQueryParams(
     'https://sentry.io/_/demo/',
@@ -30,6 +31,19 @@ const NewDemoSignUpModal = ({closeModal}: Props) => {
 
   return (
     <HighlightCornerContainer>
+      <div>
+        <CloseButton
+          icon={<IconClose size="xs" />}
+          size="xs"
+          aria-label={t('Close')}
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_close', {
+              organization: null,
+            });
+            closeModal();
+          }}
+        />
+      </div>
       <div>
         <TrialCheckInfo>
           <Subheader>{t('Sign Up')}</Subheader>
@@ -54,20 +68,9 @@ const NewDemoSignUpModal = ({closeModal}: Props) => {
           </Button>
           <Button
             priority="default"
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_continue', {
-                organization: null,
-              });
-              closeModal();
-            }}
-          >
-            {t('Keep exploring')}
-          </Button>
-          <Button
-            priority="default"
             href={demoUrl}
             onClick={() =>
-              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_docs', {
+              trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_demo', {
                 organization: null,
               })
             }
@@ -100,7 +103,7 @@ export const modalCss = css`
   [role='document'] {
     position: relative;
     padding: 70px 80px;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     gap: ${space(3)};
   }
@@ -123,4 +126,15 @@ const PositionRight = styled('img')`
   pointer-events: none;
 `;
 
-export default NewDemoSignUpModal;
+const CloseButton = styled(Button)`
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  height: 30px;
+  width: 30px;
+  border-radius: 50%;
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+`;
+
+export default DemoSignUpModalV2;

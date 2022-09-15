@@ -5,26 +5,21 @@ import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 type Props = {
   children: React.ReactNode;
-  topWidth: string;
 };
 
-export default function HighlightCornerContainer({topWidth, children}: Props) {
+export default function HighlightCornerContainer({children}: Props) {
   return (
     <Fragment>
-      <PositionTopRight src={TopRight} width={topWidth} />
+      <PositionTopRight src={TopRight} />
       {children}
     </Fragment>
   );
 }
 
-const PositionTopRight = styled('img')<{width: string}>`
+const PositionTopRight = styled('img')`
   position: absolute;
-  width: ${p => p.width};
+  width: 350px;
   right: 0;
   top: 0;
   pointer-events: none;
 `;
-
-HighlightCornerContainer.defaultProps = {
-  topWidth: '350px',
-};
