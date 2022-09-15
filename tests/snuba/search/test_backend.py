@@ -2154,11 +2154,37 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert list(results) == [self.perf_group_1, self.perf_group_2]
-        assert False
+
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                search_filter_query="issue.type:[performance_n_plus_one, performance_slow_span] my_tag:1"
+            )
+        assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self):
         with self.feature("organizations:performance-issues"):
             results = self.make_query(search_filter_query="my_tag:1")
+        assert list(results) == [
+            self.perf_group_1,
+            self.perf_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                search_filter_query="issue.category:[performance, error] my_tag:1"
+            )
+        assert list(results) == [
+            self.perf_group_1,
+            self.perf_group_2,
+            self.error_group_2,
+            self.error_group_1,
+        ]
+
+        with self.feature("organizations:performance-issues"):
+            results = self.make_query(
+                search_filter_query="issue.type:[performance_slow_span, error] my_tag:1"
+            )
         assert list(results) == [
             self.perf_group_1,
             self.perf_group_2,
