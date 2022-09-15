@@ -146,16 +146,23 @@ class ProjectOwnership(Model):
 
         We combine the schemas from IssueOwners and CodeOwners.
 
-        Returns a tuple of (auto_assignment_enabled, list_of_owners, assigned_by_codeowners: boolean).
+        Returns a tuple of (
+            auto_assignment_enabled: boolean,
+            list_of_owners,
+            assigned_by_codeowners: boolean,
+            auto_assigned_rule: Rule | None,
+            owner_source: List[str]
+        )
         """
         from sentry.models import ProjectCodeOwners
+        from sentry.models.groupowner import OwnerRuleType
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
             codeowners = ProjectCodeOwners.get_codeowners_cached(project_id)
             assigned_by_codeowners = False
             if not (ownership or codeowners):
-                return False, [], assigned_by_codeowners, None
+                return False, [], assigned_by_codeowners, None, []
 
             if not ownership:
                 ownership = cls(project_id=project_id)
@@ -166,7 +173,7 @@ class ProjectOwnership(Model):
             )
 
             if not (codeowners_rules or ownership_rules):
-                return ownership.auto_assignment, [], assigned_by_codeowners, None
+                return ownership.auto_assignment, [], assigned_by_codeowners, None, []
 
             ownership_actors = cls._find_actors(project_id, ownership_rules, limit)
             codeowners_actors = cls._find_actors(project_id, codeowners_rules, limit)
@@ -174,10 +181,14 @@ class ProjectOwnership(Model):
             # Can happen if the ownership rule references a user/team that no longer
             # is assigned to the project or has been removed from the org.
             if not (ownership_actors or codeowners_actors):
-                return ownership.auto_assignment, [], assigned_by_codeowners, None
+                return ownership.auto_assignment, [], assigned_by_codeowners, None, []
 
             # Ownership rules take precedence over codeowner rules.
             actors = [*ownership_actors, *codeowners_actors][:limit]
+            actor_source = [
+                *([OwnerRuleType.OWNERSHIP_RULE.value] * len(ownership_actors)),
+                *([OwnerRuleType.CODEOWNERS.value] * len(codeowners_actors)),
+            ][:limit]
 
             # Only the first item in the list is used for assignment, the rest are just used to suggest suspect owners.
             # So if ownership_actors is empty, it will be assigned by codeowners_actors
@@ -196,6 +207,7 @@ class ProjectOwnership(Model):
                 ActorTuple.resolve_many(actors),
                 assigned_by_codeowners,
                 auto_assignment_rule,
+                actor_source,
             )
 
     @classmethod
