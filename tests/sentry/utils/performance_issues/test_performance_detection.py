@@ -123,9 +123,8 @@ class PerformanceDetectionTest(unittest.TestCase):
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_enabled(self, mock):
         event = {}
-        with override_options({"store.use-ingest-performance-detection-only": 1.0}):
-            with override_options({"performance.issues.all.problem-detection": 1.0}):
-                detect_performance_problems(event)
+        with override_options({"performance.issues.all.problem-detection": 1.0}):
+            detect_performance_problems(event)
         assert mock.call_count == 1
 
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
