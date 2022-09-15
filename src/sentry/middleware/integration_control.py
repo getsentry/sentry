@@ -1,14 +1,23 @@
 import re
 from typing import Sequence
 
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.models import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.silo import SiloMode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 class BaseRequestParser:
+    # These are paths that will not be have their requests forwarded, and will be
+    # handled by the Control Silo directly.
+    exempt_paths = []
+
     def __init__(self, request):
         self.request = request
+
+    def should_operate(self):
+        return self.request.path not in self.exempt_paths
 
     def get_organizations(self):
         raise NotImplementedError
@@ -19,7 +28,27 @@ class BaseRequestParser:
 
 
 class SlackRequestParser(BaseRequestParser):
+    exempt_paths = ["/extensions/slack/setup/"]
+
     def get_organizations(self):
+        slack_request = SlackRequest(self.request)
+
+        try:
+            slack_request._authorize()
+            slack_request._validate_integration()
+        except SlackRequestError:
+            # TODO(Leander): Log this occurance
+            return []
+
+        try:
+            organizations = OrganizationIntegration.objects.filter(
+                integration_id=slack_request.integration
+            ).select_related("organization")
+            print(organizations)
+        except RuntimeError:
+            # TODO(Leander): Log this occurance
+            return []
+
         return []
 
 
@@ -52,14 +81,19 @@ class IntegrationControlMiddleware:
         return is_correct_silo and is_webhook
 
     def __call__(self, request):
-
         if not self._should_operate(request):
             return self.get_response(request)
 
         provider = self._identify_provider(request)
         # TODO(Leander): Catch errors at this stage
-        parser = self.integration_parsers.get(provider)
-        parser
+        parser = self.integration_parsers.get(provider)(request)
+
+        if not parser.should_operate():
+            return self.get_response
+
+        regions = parser.get_regions()
+        print("This middleware should forward the webhooks to the following regions:")
+        print(regions)
 
         # Code to be executed for each request before
         # the view (and later middleware) are called.
