@@ -71,7 +71,6 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    PageFiltersStore.teardown();
   });
 
   it('displays boost performance card', async function () {

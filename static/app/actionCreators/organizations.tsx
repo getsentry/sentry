@@ -145,7 +145,7 @@ export async function fetchOrganizationByMember(
 
   if (addOrg) {
     // add org to SwitchOrganization dropdown
-    OrganizationsStore.add(org);
+    OrganizationsStore.addOrReplace(org);
   }
 
   if (fetchOrgDetails) {

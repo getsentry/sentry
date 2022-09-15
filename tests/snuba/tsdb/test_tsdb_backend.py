@@ -620,8 +620,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
     def test_range_groups_single(self):
         from sentry.snuba.dataset import Dataset
 
-        now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -708,8 +708,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         }
 
     def test_range_groups_mult(self):
-        now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -744,7 +744,9 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
     def test_range_groups_simple(self):
         project = self.create_project()
         group = self.create_group(project=project)
-        now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC)
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        )
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]

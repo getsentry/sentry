@@ -3,11 +3,50 @@ import {useCallback} from 'react';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useUrlParams from 'sentry/utils/replays/hooks/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import {getDefaultLayout} from 'sentry/views/replays/detail/layout/utils';
 
 export enum LayoutKey {
+  /**
+   * ### Top
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├───────────┬────────┤
+   *│ Video     > Crumbs │
+   *│           >        │
+   *├^^^^^^^^^^^>        |
+   *│ Details   >        │
+   *│           >        │
+   *└───────────┴────────┘
+   */
+  top = 'top',
+  /**
+   * ### Top
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├───────────┬────────┤
+   *│ Details   > Crumbs │
+   *│           >        │
+   *│           >        |
+   *│           >        │
+   *│           >        │
+   *└───────────┴────────┘
+   */
+  no_video = 'no_video',
+  /**
+   * ### Video Only
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├────────────────────┤
+   *│                    │
+   *│                    |
+   *│       Video        │
+   *│                    │
+   *│                    │
+   *└────────────────────┘
+   */
+  video_only = 'video_only',
   /**
    * ### Topbar
    *┌────────────────────┐
@@ -30,7 +69,7 @@ export enum LayoutKey {
    * │        >          │
    * │^^^^^^^ >          |
    * │ Crumbs >          │
-   * │        >          │
+   * │ Tabs   >          │
    * └────────┴──────────┘
    */
   sidebar_left = 'sidebar_left',
@@ -43,7 +82,7 @@ export enum LayoutKey {
    * │          >        │
    * │          >^^^^^^^^┤
    * │          > Crumbs │
-   * │          >        │
+   * │          > Tabs   │
    * └──────────┴────────┘
    */
   sidebar_right = 'sidebar_right',
