@@ -323,7 +323,7 @@ export const icons: IconData[] = [
   {
     id: 'link',
     groups: ['action'],
-    keywords: ['hyperlink', 'anchor'],
+    keywords: ['hyperlink'],
   },
   {
     id: 'attachment',
@@ -523,11 +523,6 @@ export const icons: IconData[] = [
     id: 'siren',
     groups: ['product'],
     keywords: ['alert', 'important', 'warning'],
-  },
-  {
-    id: 'anchor',
-    groups: ['action'],
-    keywords: [],
   },
   {
     id: 'circle',
