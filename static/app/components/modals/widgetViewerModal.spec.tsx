@@ -139,7 +139,6 @@ describe('Modals -> WidgetViewerModal', function () {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    PageFiltersStore.teardown();
   });
 
   describe('Discover Widgets', function () {

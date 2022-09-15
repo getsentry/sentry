@@ -478,6 +478,10 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # switch all metrics usage over to using strings for tag values
 register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
+# Flag to determine whether performance metrics indexer should index tag
+# values or not
+register("sentry-metrics.performance.index-tag-values", default=True)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -512,6 +516,8 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[]
 # effectively reset it, as the previous data can't/won't be converted.
 register("sentry-metrics.cardinality-limiter.limits.performance.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
+register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
+
 
 # A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
 register("store.use-ingest-performance-detection-only", default=0.0)
