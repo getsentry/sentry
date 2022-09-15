@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
+import sentry_sdk
+from arroyo import configure_metrics
+
 
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
@@ -165,9 +168,6 @@ def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None
     This primarily sets global tags for instrumentation in both our
     statsd/metrics usage and the Sentry SDK.
     """
-
-    import sentry_sdk
-    from arroyo import configure_metrics
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
 
