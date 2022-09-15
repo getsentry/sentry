@@ -24,6 +24,7 @@ describe('CreateProject', function () {
     MockApiClient.addMockResponse({
       url: `/projects/testOrg/rule-conditions/`,
       body: {},
+      // Not required for these tests
       statusCode: 500,
     });
   });
