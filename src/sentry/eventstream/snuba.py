@@ -19,7 +19,7 @@ import pytz
 import urllib3
 
 from sentry import quotas
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import EventStream
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
