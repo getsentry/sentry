@@ -39,7 +39,7 @@ from sentry.models import Environment, Group, Optional, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
-from sentry.types.issues import GroupCategory, GroupType, get_category_type_mapping
+from sentry.types.issues import GROUP_TYPE_TO_CATEGORY, GroupCategory, GroupType
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -201,10 +201,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         conditions = []
         having = []
-        group_types = set()
+        group_categories = set()
         for search_filter in search_filters:
             if search_filter.key.name in ("issue.category", "issue.type"):
-                group_types.update(value for value in search_filter.value.raw_value)
+                group_categories.update(
+                    GROUP_TYPE_TO_CATEGORY[GroupType(value)]
+                    for value in search_filter.value.raw_value
+                )
             if (
                 # Don't filter on postgres fields here, they're not available
                 search_filter.key.name in self.postgres_only_fields
@@ -284,11 +287,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
         )
         group_categories = set()
-
-        for group_type in group_types:
-            for category, types in get_category_type_mapping().items():
-                if GroupType(group_type) in types:
-                    group_categories.add(category)
 
         rows = []
         total = 0
