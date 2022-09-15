@@ -213,6 +213,7 @@ OPERATIONS = (
     "min",
     "sum",
     "histogram",
+    "rate",
 ) + OPERATIONS_PERCENTILES
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
@@ -229,6 +230,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "sum": 0,
     "percentage": None,
     "histogram": [],
+    "rate": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}
