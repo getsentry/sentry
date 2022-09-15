@@ -6,6 +6,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
+from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
     ErrorsPostProcessForwarderWorker,
@@ -119,6 +120,13 @@ class KafkaEventStream(SnubaProtocolEventStream):
         skip_consume=False,
         **kwargs,
     ):
+        if isinstance(event, GroupEvent):
+            logger.error(
+                "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+                exc_info=True,
+            )
+            return
+
         message_type = "transaction" if self._is_transaction_event(event) else "error"
 
         if message_type == "transaction" and self.assign_transaction_partitions_randomly:
