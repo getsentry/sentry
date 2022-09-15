@@ -113,7 +113,7 @@ jobs:
         if: steps.dependencies.outcome == 'success'
         run: |
           set -o pipefail
-          yarn tsc -p config/tsconfig.build.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
+          yarn tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
 
       - name: monitor-tsc
         continue-on-error: true

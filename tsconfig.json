@@ -1,8 +1,7 @@
 {
-  "extends": "./config/tsconfig.build.json",
+  "extends": "./config/tsconfig.base.json",
   "compilerOptions": {
     "allowJs": true
   },
-  "include": ["static", "tests/js", "docs-ui"],
-  "exclude": ["node_modules", "**/*.benchmark.ts"]
+  "include": ["static/app", "tests/js", "fixtures/js-stubs", "docs-ui", "config"]
 }
