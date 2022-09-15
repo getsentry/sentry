@@ -167,10 +167,20 @@ def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None
     """
 
     import sentry_sdk
+    from arroyo import configure_metrics
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
 
-    from sentry.utils.metrics import global_tags
+    from sentry.utils.metrics import backend, global_tags
 
-    ctx = global_tags(_all_threads=True, pipeline=config.internal_metrics_tag)
+    global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
+
+    ctx = global_tags(_all_threads=True, **global_tag_map)
+    # Intentionally leak our global indexer tags and never call __exit__, so
+    # that they persist until the end of the process.
     ctx.__enter__()
+
+    from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
+
+    metrics_wrapper = MetricsWrapper(backend, name="sentry_metrics.indexer", tags=global_tag_map)
+    configure_metrics(metrics_wrapper)
