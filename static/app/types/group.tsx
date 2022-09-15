@@ -63,6 +63,10 @@ type CapabilityInfo = {
  */
 export type IssueCategoryCapabilities = {
   /**
+   * Are codeowner features enabled for this issue
+   */
+  codeowners: CapabilityInfo;
+  /**
    * Can the issue be deleted
    */
   delete: CapabilityInfo;
