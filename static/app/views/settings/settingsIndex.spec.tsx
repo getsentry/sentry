@@ -82,7 +82,7 @@ describe('SettingsIndex', function () {
         </BreadcrumbContextProvider>
       );
 
-      expect(spy).toHaveBeenCalledWith(organization.slug, {
+      expect(spy).toHaveBeenCalledWith(expect.anything(), organization.slug, {
         setActive: true,
         loadProjects: true,
       });

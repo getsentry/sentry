@@ -35,9 +35,9 @@ class AllTeamsRow extends Component<Props, State> {
   };
 
   reloadProjects() {
-    const {organization} = this.props;
+    const {api, organization} = this.props;
     // After a change in teams has happened, refresh the project store
-    fetchOrganizationDetails(organization.slug, {
+    fetchOrganizationDetails(api, organization.slug, {
       loadProjects: true,
     });
   }
