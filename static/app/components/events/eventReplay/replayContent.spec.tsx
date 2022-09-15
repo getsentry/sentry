@@ -8,6 +8,11 @@ import ReplayContent from './replayContent';
 const testOrgSlug = 'sentry-emerging-tech';
 const testReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 
+const mockStartedAt = 'Sep 12, 2022 11:29:13 PM UTC';
+const mockFinishedAt = 'Sep 15, 2022 17:22:07 PM UTC';
+
+const mockedReplayDuration = 670; // seconds (11 minutes, 10 seconds)
+
 // Mock screenfull library
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -30,9 +35,9 @@ const mockedReplay: Partial<ReplayReader> = {
     dist: '',
     traceIds: [],
     errorIds: ['5c83aaccfffb4a708ae893bad9be3a1c'],
-    startedAt: new Date(1663025353247),
-    finishedAt: new Date(1663026023116),
-    duration: 670,
+    startedAt: new Date(mockStartedAt),
+    finishedAt: new Date(mockFinishedAt),
+    duration: mockedReplayDuration,
     countSegments: 14,
     countErrors: 1,
     id: '761104e184c64d439ee1014b72b4d83b',
@@ -88,7 +93,7 @@ const mockedReplay: Partial<ReplayReader> = {
     },
   ],
   getDurationMs() {
-    return 670 * 1000;
+    return mockedReplayDuration * 1000; // milliseconds
   },
 };
 
@@ -145,7 +150,7 @@ describe('ReplayContent', () => {
     // Expect Id to be correct
     expect(screen.getByText('Id')).toBeInTheDocument();
     expect(screen.getByTestId('replay-id')).toHaveTextContent(
-      '761104e184c64d439ee1014b72b4d83b'
+      mockedReplay.getReplay?.().id ?? ''
     );
 
     // Expect Duration value to be correct
@@ -154,12 +159,12 @@ describe('ReplayContent', () => {
 
     // Expect Timestamp value to be correct
     expect(screen.getByText('Timestamp')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-timestamp')).toHaveTextContent(
-      'Sep 12, 2022 11:29:13 PM UTC'
-    );
+    expect(screen.getByTestId('replay-timestamp')).toHaveTextContent(mockStartedAt);
 
     // Expect the URL value to be correct
     expect(screen.getByText('Duration')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-url')).toHaveTextContent('http://localhost:3000/');
+    expect(screen.getByTestId('replay-url')).toHaveTextContent(
+      mockedReplay.getReplay?.().urls[0] ?? ''
+    );
   });
 });
