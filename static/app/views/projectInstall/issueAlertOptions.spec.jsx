@@ -1,46 +1,26 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import selectEvent from 'react-select-event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
-  const {organization, routerContext} = initializeOrg();
+  const {organization} = initializeOrg();
   const URL = `/projects/${organization.slug}/rule-conditions/`;
-  let props;
-  const baseProps = {
-    onChange: _ => {},
+  const props = {
+    onChange: jest.fn(),
   };
   beforeEach(() => {
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/rule-conditions/`,
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
-    props = {...baseProps};
   });
-
-  const selectControlVerifier = async (wrapper, dataTestId, optionsText) => {
-    wrapper
-      .find(`[data-test-id="${dataTestId}"] input[id*="react-select"]`)
-      .last()
-      .simulate('focus');
-
-    await tick();
-    wrapper.update();
-
-    expect(
-      wrapper.find(`InlineSelectControl[data-test-id="${dataTestId}"] Option`)
-    ).toHaveLength(optionsText.length);
-
-    optionsText.forEach((metricText, idx) =>
-      expect(
-        wrapper
-          .find(`InlineSelectControl[data-test-id="${dataTestId}"] Option`)
-          .at(idx)
-          .text()
-      ).toBe(metricText)
-    );
-  };
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
 
   it('should render only the `Default Rule` and `Create Later` option on empty response:[]', () => {
     MockApiClient.addMockResponse({
@@ -48,8 +28,8 @@ describe('IssueAlertOptions', function () {
       body: [],
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(2);
+    render(<IssueAlertOptions {...props} />, {organization});
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
   it('should render only the `Default Rule` and `Create Later` option on empty response:{}', () => {
@@ -58,8 +38,8 @@ describe('IssueAlertOptions', function () {
       body: {},
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(2);
+    render(<IssueAlertOptions {...props} />, {organization});
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
   it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', () => {
@@ -68,8 +48,8 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_INCONSISTENT_INTERVALS,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(2);
+    render(<IssueAlertOptions {...props} />, {organization});
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
   it('should render all(three) options on responses with different placeholder values', () => {
@@ -77,19 +57,25 @@ describe('IssueAlertOptions', function () {
       url: URL,
       body: TestStubs.MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
     });
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(3);
+    render(<IssueAlertOptions {...props} />, {organization});
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
-  it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition`', () => {
+  it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition`', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(3);
-    selectControlVerifier(wrapper, 'metric-select-control', ['users affected by']);
+    render(<IssueAlertOptions {...props} />, {organization});
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
+    await selectEvent.select(screen.getByText('Select...'), 'users affected by');
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultRules: false,
+        shouldCreateCustomRule: true,
+      })
+    );
   });
 
   it('should render all(three) options on a valid response', () => {
@@ -98,26 +84,24 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-    expect(wrapper.find('RadioLineItem')).toHaveLength(3);
+    render(<IssueAlertOptions {...props} />);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
-  it('should pre-populate fields from server response', () => {
+  it('should pre-populate fields from server response', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-
-    [
-      ['metric-select-control', ['occurrences of', 'users affected by']],
-      [
-        'interval-select-control',
-        ['one minute', 'one hour', 'one day', 'one week', '30 days'],
-      ],
-    ].forEach(([dataTestId, options]) =>
-      selectControlVerifier(wrapper, dataTestId, options)
+    render(<IssueAlertOptions {...props} />);
+    await selectEvent.select(screen.getByText('occurrences of'), 'users affected by');
+    await selectEvent.select(screen.getByText('one minute'), '30 days');
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultRules: false,
+        shouldCreateCustomRule: true,
+      })
     );
   });
 
@@ -127,8 +111,7 @@ describe('IssueAlertOptions', function () {
       body: TestStubs.MOCK_RESP_VERBOSE,
     });
 
-    const wrapper = mountWithTheme(<IssueAlertOptions {...props} />, routerContext);
-
-    expect(wrapper.find('input[data-test-id="range-input"]').props().value).toBe('');
+    render(<IssueAlertOptions {...props} />);
+    expect(screen.getByTestId('range-input')).toHaveValue(null);
   });
 });
