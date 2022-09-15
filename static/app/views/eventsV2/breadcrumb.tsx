@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import EventView from 'sentry/utils/discover/eventView';
-import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {getDiscoverLandingUrl, getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 
 type Props = {
   eventView: EventView;
@@ -18,7 +18,9 @@ function DiscoverBreadcrumb({eventView, event, organization, location}: Props) {
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
-        pathname: getDiscoverLandingUrl(organization),
+        pathname: organization.features.includes('discover-query-builder-as-landing-page')
+          ? getDiscoverQueriesUrl(organization)
+          : getDiscoverLandingUrl(organization),
         query: {
           ...location.query,
           ...eventView.generateBlankQueryStringObject(),
