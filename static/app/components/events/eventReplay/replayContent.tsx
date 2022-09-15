@@ -82,6 +82,7 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
 const PlayerContainer = styled(FluidHeight)`
   margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
+  gap: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
