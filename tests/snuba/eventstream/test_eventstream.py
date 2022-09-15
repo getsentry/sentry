@@ -171,7 +171,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "received_timestamp": event.data["received"],
         }
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
-        assert not self.kafka_eventstream.producer.produce.called
+        assert not self.producer_mock.produce.called
         logger.error.assert_called_with(
             "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
             exc_info=True,
