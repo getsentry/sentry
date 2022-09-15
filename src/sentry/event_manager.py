@@ -2038,15 +2038,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
-                granted_quota = issue_rate_limiter.check_and_use_quotas(
-                    [
-                        RequestedQuota(
-                            f"performance-issues:{project.id}",
-                            new_grouphashes_count,
-                            [PERFORMANCE_ISSUE_QUOTA],
-                        )
-                    ]
-                )[0]
+                with metrics.timer("performance.performance_issue.check_write_limits"):
+                    granted_quota = issue_rate_limiter.check_and_use_quotas(
+                        [
+                            RequestedQuota(
+                                f"performance-issues:{project.id}",
+                                new_grouphashes_count,
+                                [PERFORMANCE_ISSUE_QUOTA],
+                            )
+                        ]
+                    )[0]
 
                 # Log how many groups didn't get created because of rate limiting
                 _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted
