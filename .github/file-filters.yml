@@ -34,7 +34,6 @@ frontend_src: &frontend_src
 frontend_all: &frontend_all
   - *frontend_src
   - '**/*.[tj]{s,sx}'
-  - 'tests/js/**'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
