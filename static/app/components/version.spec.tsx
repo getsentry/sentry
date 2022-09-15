@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Version from 'sentry/components/version';
 
@@ -42,8 +42,10 @@ describe('Version', () => {
     expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 
     // Activate tooltip
-    userEvent.hover(screen.getByText('1.0.0 (20200101)'));
-    jest.advanceTimersByTime(50);
+    act(() => {
+      userEvent.hover(screen.getByText('1.0.0 (20200101)'));
+      jest.advanceTimersByTime(50);
+    });
 
     expect(screen.getByText(VERSION)).toBeInTheDocument();
   });

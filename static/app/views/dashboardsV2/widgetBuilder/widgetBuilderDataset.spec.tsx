@@ -22,7 +22,9 @@ const defaultOrgFeatures = [
 ];
 
 // Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
+jest.mock('sentry/components/charts/worldMapChart', () => ({
+  WorldMapChart: () => null,
+}));
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
