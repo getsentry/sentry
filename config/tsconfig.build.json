@@ -4,8 +4,8 @@
     "allowJs": true
   },
   "exclude": [
-    "tests/js",
-    "fixtures/js-stubs",
+    "../tests/js",
+    "../fixtures/js-stubs",
     "../static/app/**/*.spec.*",
     "../static/app/**/*.benchmark.ts"
   ]
