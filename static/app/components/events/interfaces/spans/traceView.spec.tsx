@@ -16,6 +16,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType, EventTransaction} from 'sentry/types';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function initializeData(settings) {
   const data = _initializeData(settings);
@@ -77,6 +78,12 @@ function generateSampleSpan(
   return span;
 }
 
+const WrappedTraceView = ({organization, waterfallModel}) => (
+  <OrganizationContext.Provider value={organization}>
+    <TraceView organization={organization} waterfallModel={waterfallModel} />
+  </OrganizationContext.Provider>
+);
+
 describe('TraceView', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -128,7 +135,10 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(event);
 
       render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        <WrappedTraceView
+          organization={data.organization}
+          waterfallModel={waterfallModel}
+        />
       );
 
       expect(await screen.findByTestId('minimap-sibling-group-bar')).toBeInTheDocument();
@@ -184,7 +194,10 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(event);
 
       render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        <WrappedTraceView
+          organization={data.organization}
+          waterfallModel={waterfallModel}
+        />
       );
 
       const groupedSiblingsSpan = await screen.findByText('Autogrouped — http —');
@@ -256,7 +269,10 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(event);
 
       render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        <WrappedTraceView
+          organization={data.organization}
+          waterfallModel={waterfallModel}
+        />
       );
 
       expect(await screen.findByText('group me')).toBeInTheDocument();
@@ -306,7 +322,10 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(event);
 
       render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        <WrappedTraceView
+          organization={data.organization}
+          waterfallModel={waterfallModel}
+        />
       );
 
       const grouped = await screen.findByText('group me');
@@ -394,7 +413,10 @@ describe('TraceView', () => {
       const waterfallModel = new WaterfallModel(event);
 
       render(
-        <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+        <WrappedTraceView
+          organization={data.organization}
+          waterfallModel={waterfallModel}
+        />
       );
 
       expect(screen.queryAllByText('group me')).toHaveLength(2);
@@ -504,7 +526,10 @@ describe('TraceView', () => {
         <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
           {results => (
             <QuickTraceContext.Provider value={results}>
-              <TraceView organization={organization} waterfallModel={waterfallModel} />
+              <WrappedTraceView
+                organization={organization}
+                waterfallModel={waterfallModel}
+              />
             </QuickTraceContext.Provider>
           )}
         </QuickTraceQuery>
@@ -565,7 +590,7 @@ describe('TraceView', () => {
       );
 
       const {rerender} = render(
-        <TraceView
+        <WrappedTraceView
           organization={data.organization}
           waterfallModel={new WaterfallModel(event1)}
         />
@@ -582,7 +607,7 @@ describe('TraceView', () => {
       generateSampleSpan(null, 'http', 'f000000000000000', 'a000000000000000', event2);
 
       rerender(
-        <TraceView
+        <WrappedTraceView
           organization={data.organization}
           waterfallModel={new WaterfallModel(event2)}
         />
@@ -600,7 +625,7 @@ describe('TraceView', () => {
       generateSampleSpan(null, null, 'f000000000000000', 'a000000000000000', event3);
 
       rerender(
-        <TraceView
+        <WrappedTraceView
           organization={data.organization}
           waterfallModel={new WaterfallModel(event3)}
         />
@@ -660,7 +685,10 @@ describe('TraceView', () => {
 
       render(
         <AnchorLinkManager.Provider>
-          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+          <WrappedTraceView
+            organization={data.organization}
+            waterfallModel={waterfallModel}
+          />
         </AnchorLinkManager.Provider>
       );
 
@@ -714,7 +742,10 @@ describe('TraceView', () => {
 
       render(
         <AnchorLinkManager.Provider>
-          <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+          <WrappedTraceView
+            organization={data.organization}
+            waterfallModel={waterfallModel}
+          />
         </AnchorLinkManager.Provider>
       );
 
@@ -769,7 +800,10 @@ describe('TraceView', () => {
     const waterfallModel = new WaterfallModel(event);
 
     render(
-      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+      <WrappedTraceView
+        organization={data.organization}
+        waterfallModel={waterfallModel}
+      />
     );
 
     const fcpLabelContainer = screen.getByText(/fcp/i).parentElement?.parentElement;
