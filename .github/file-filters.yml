@@ -3,7 +3,7 @@
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
 frontend_components_lintable: &frontend_components_lintable
-  - '!(tests)/**/*.[tj]{s,sx}'
+  - '**/*.[tj]{s,sx}'
 
 frontend_lintable: &frontend_lintable
   - *frontend_components_lintable
@@ -18,8 +18,8 @@ eslint_config: &eslint_config
 
 frontend_src: &frontend_src
   - *yarn_lockfile
-  - *frontend_lintable
   - *eslint_config
+  - '!(test)/**/*.[tj]{s,sx}'
   - '**/*.less'
   - 'docs-ui/**'
   - 'static/**'
@@ -28,6 +28,7 @@ frontend_src: &frontend_src
 
 frontend_all: &frontend_all
   - *frontend_src
+  - '**/*.[tj]{s,sx}'
   - 'tests/js/**'
 
 frontend_modified_lintable:
