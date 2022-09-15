@@ -1,7 +1,7 @@
-import {useEffect, useRef} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import {useTab} from '@react-aria/tabs';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
@@ -11,7 +11,6 @@ interface TabProps<T> {
   item: Node<T>;
   orientation: Orientation;
   overflowing: boolean;
-  setRef: (ref: React.RefObject<HTMLLIElement>) => void;
   state: TabListState<T>;
 }
 
@@ -20,18 +19,14 @@ interface TabProps<T> {
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-export function Tab<T>({item, state, orientation, overflowing, setRef}: TabProps<T>) {
-  const ref = useRef<HTMLLIElement>(null);
+function BaseTab<T>(
+  {item, state, orientation, overflowing}: TabProps<T>,
+  forwardedRef: React.ForwardedRef<HTMLLIElement>
+) {
+  const ref = useObjectRef(forwardedRef);
 
   const {key, rendered} = item;
   const {tabProps, isSelected, isDisabled} = useTab({key}, state, ref);
-
-  useEffect(() => {
-    // Send ref object to parent (TabsList), so TabsList can use IntersectionObserver to
-    // detect if this tab is overflowing the outer wrap (in which case this tab will be
-    // moved to an overflow menu)
-    setRef(ref);
-  }, [setRef]);
 
   return (
     <TabWrap
@@ -49,6 +44,8 @@ export function Tab<T>({item, state, orientation, overflowing, setRef}: TabProps
     </TabWrap>
   );
 }
+
+export const Tab = forwardRef(BaseTab);
 
 const TabWrap = styled('li')<{
   disabled: boolean;

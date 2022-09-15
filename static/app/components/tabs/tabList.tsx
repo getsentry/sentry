@@ -22,17 +22,17 @@ interface TabListProps<T> extends TabListStateProps<T>, AriaTabListProps<T> {
  * containing of keys of overflowing tabs.
  */
 function useOverflowTabs({
-  tabListRef,
-  tabRefs,
+  tabList,
+  tabs,
 }: {
-  tabListRef: React.RefObject<HTMLUListElement>;
-  tabRefs: React.RefObject<Record<React.Key, React.RefObject<HTMLLIElement>>>;
+  tabList: HTMLUListElement | null;
+  tabs: Record<React.Key, HTMLLIElement | null>;
 }) {
   const [overflowTabs, setOverflowTabs] = useState<React.Key[]>([]);
 
   useEffect(() => {
     const options = {
-      root: tabListRef.current,
+      root: tabList,
       // Nagative right margin to account for overflow menu's trigger button
       rootMargin: `0px -42px 0px ${space(1)}`,
       threshold: 1,
@@ -56,13 +56,11 @@ function useOverflowTabs({
     };
 
     const observer = new IntersectionObserver(callback, options);
-    Object.values(tabRefs.current ?? []).forEach(
-      tabRef => tabRef.current && observer.observe(tabRef.current)
-    );
+    Object.values(tabs ?? {}).forEach(element => element && observer.observe(element));
 
     return () => observer.disconnect();
     // Suppress an exhaustive-deps warning about adding `tabListRef` and
-    // `tabRefs` to the deps array, without knowing that both are ref objects
+    // `tabRefs` to the deps array, without knowing that both are ref values
     // and so don't need to be added.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -114,8 +112,11 @@ export function TabList<T>({className, ...props}: TabListProps<T>) {
   }, [state.collection]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
-  const tabRefs = useRef<Record<React.Key, React.RefObject<HTMLLIElement>>>({});
-  const overflowTabs = useOverflowTabs({tabListRef, tabRefs});
+  const tabElements = useRef<Record<React.Key, HTMLLIElement | null>>({});
+  const overflowTabs = useOverflowTabs({
+    tabList: tabListRef.current,
+    tabs: tabElements.current,
+  });
   const overflowMenuItems = useMemo(() => {
     // Sort overflow items in the order that they appear in TabList
     const sortedKeys = [...state.collection].map(item => item.key);
@@ -142,8 +143,8 @@ export function TabList<T>({className, ...props}: TabListProps<T>) {
             item={item}
             state={state}
             orientation={orientation}
-            setRef={ref => (tabRefs.current[item.key] = ref)}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            ref={element => (tabElements.current[item.key] = element)}
           />
         ))}
       </TabListWrap>
