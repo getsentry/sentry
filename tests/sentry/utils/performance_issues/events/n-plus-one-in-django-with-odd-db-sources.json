@@ -19,7 +19,7 @@
     ["runtime", "CPython 3.8.9"],
     ["runtime.name", "CPython"],
     ["user", "id:1"],
-    ["server_name", "Adams-MBP-2.localdomain"],
+    ["server_name", "MBP.localdomain"],
     ["transaction", "/"],
     ["url", "http://127.0.0.1:8000/"]
   ],
@@ -604,9 +604,9 @@
   "type": "transaction",
   "user": {
     "id": "1",
-    "email": "adammckerlie@gmail.com",
+    "email": "user@example.com",
     "ip_address": "127.0.0.1",
-    "username": "adam"
+    "username": "user"
   },
   "version": "7"
 }
