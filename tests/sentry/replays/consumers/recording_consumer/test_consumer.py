@@ -60,7 +60,7 @@ class TestRecordingsConsumerEndToEnd(TestCase):
         worker = ReplayRecordingBatchWorker()
 
         segment_id = 0
-        consumer_messages = [
+        consumer_messages1 = [
             {
                 "payload": f'{{"segment_id":{segment_id}}}\ntest'.encode(),
                 "replay_id": self.replay_id,
@@ -78,6 +78,8 @@ class TestRecordingsConsumerEndToEnd(TestCase):
                 },
                 "project_id": self.project.id,
             },
+        ]
+        consumer_messages2 = [
             {
                 "payload": f'{{"segment_id":{segment_id}}}\nduplicatedyadada'.encode(),
                 "replay_id": self.replay_id,
@@ -96,7 +98,10 @@ class TestRecordingsConsumerEndToEnd(TestCase):
                 "project_id": self.project.id,
             },
         ]
-        batch = [worker.process_message(msgpack.packb(message)) for message in consumer_messages]
+        batch = [worker.process_message(msgpack.packb(message)) for message in consumer_messages1]
+        worker.flush_batch(batch)
+
+        batch = [worker.process_message(msgpack.packb(message)) for message in consumer_messages2]
         worker.flush_batch(batch)
 
         recording_file_name = f"rr:{self.replay_id}:{segment_id}"
