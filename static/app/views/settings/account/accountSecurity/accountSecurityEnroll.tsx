@@ -311,10 +311,14 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
     // the organization when completing 2fa enrollment. We should reload the
     // organization context in that case to assign them to the org.
     if (this.pendingInvitation) {
-      await fetchOrganizationByMember(this.pendingInvitation.memberId.toString(), {
-        addOrg: true,
-        fetchOrgDetails: true,
-      });
+      await fetchOrganizationByMember(
+        this.api,
+        this.pendingInvitation.memberId.toString(),
+        {
+          addOrg: true,
+          fetchOrgDetails: true,
+        }
+      );
     }
 
     this.props.router.push('/settings/account/security/');
