@@ -18,13 +18,13 @@ export interface TabsProps<T> extends TabListProps<T>, AriaTabListProps<T> {
   disabled?: boolean;
 }
 
-interface TabsContext<T> {
+interface TabContext<T> {
   rootProps: TabsProps<T> & {orientation: Orientation};
   setTabListState: (state: TabListState<T>) => void;
   tabListState?: TabListState<T>;
 }
 
-export const TabsContext = createContext<TabsContext<any>>({
+export const TabsContext = createContext<TabContext<any>>({
   rootProps: {orientation: 'horizontal', children: []},
   setTabListState: () => {},
 });

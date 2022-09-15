@@ -4,7 +4,7 @@ import {AriaTabPanelProps, useTabPanel} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import {TabListState} from '@react-stately/tabs';
-import {Node, Orientation, CollectionBase} from '@react-types/shared';
+import {CollectionBase, Node, Orientation} from '@react-types/shared';
 
 import space from 'sentry/styles/space';
 

@@ -31,7 +31,7 @@ export function Tab<T>({item, state, orientation, overflowing, setRef}: TabProps
     // detect if this tab is overflowing the outer wrap (in which case this tab will be
     // moved to an overflow menu)
     setRef(ref);
-  }, []);
+  }, [setRef]);
 
   return (
     <TabWrap
