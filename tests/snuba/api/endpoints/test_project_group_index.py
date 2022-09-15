@@ -1504,7 +1504,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         # if query is '' it defaults to is:unresolved
         url = self.path + "?query="
-        response = self.client.delete(url, format="json")
+        with self.feature("organizations:performance-issues"):
+            response = self.client.delete(url, format="json")
         assert response.status_code == 400
 
         for group in groups:

@@ -1194,19 +1194,21 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, project_id, group_id, environment_ids, key, callbacks=(), limit=1000, offset=0
+        self, group, environment_ids, key, callbacks=(), limit=1000, offset=0
     ):
         filters = {
-            "project_id": get_project_list(project_id),
+            "project_id": get_project_list(group.project_id),
             "tags_key": [key],
-            "group_id": [group_id],
         }
+        dataset, conditions, filters = self.apply_group_filters_conditions(group, [], filters)
+
         if environment_ids:
             filters["environment"] = environment_ids
         results = snuba.query(
-            dataset=Dataset.Events,
+            dataset=dataset,
             groupby=["tags_value"],
             filter_keys=filters,
+            conditions=conditions,
             aggregations=[
                 ["count()", "", "times_seen"],
                 ["min", "timestamp", "first_seen"],
@@ -1219,7 +1221,7 @@ class SnubaTagStorage(TagStorage):
         )
 
         group_tag_values = [
-            GroupTagValue(group_id=group_id, key=key, value=value, **fix_tag_value_data(data))
+            GroupTagValue(group_id=group.id, key=key, value=value, **fix_tag_value_data(data))
             for value, data in results.items()
         ]
 
@@ -1228,9 +1230,7 @@ class SnubaTagStorage(TagStorage):
 
         return group_tag_values
 
-    def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_ids, key, order_by="-id"
-    ):
+    def get_group_tag_value_paginator(self, group, environment_ids, key, order_by="-id"):
         from sentry.api.paginator import SequencePaginator
 
         if order_by in ("-last_seen", "-first_seen", "-times_seen"):
@@ -1241,7 +1241,7 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(project_id, group_id, environment_ids, key)
+        group_tag_values = self.get_group_tag_value_iter(group, environment_ids, key)
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
