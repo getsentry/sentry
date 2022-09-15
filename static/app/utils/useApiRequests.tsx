@@ -28,7 +28,7 @@ type UseApiRequestData<T extends Record<string, any>> = {
   [Property in keyof T as `${Property & string}PageLinks`]: string | null;
 };
 
-interface State<T> {
+interface State<T extends Record<string, any>> {
   /**
    * Mapping of results from the configured endpoints
    */
