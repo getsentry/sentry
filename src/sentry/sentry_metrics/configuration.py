@@ -171,14 +171,11 @@ def initialize_global_consumer_state(config: MetricsIngestConfiguration) -> None
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
 
-    from sentry.utils.metrics import backend, global_tags
+    from sentry.utils.metrics import add_global_tags, backend
 
     global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
 
-    ctx = global_tags(_all_threads=True, **global_tag_map)
-    # Intentionally leak our global indexer tags and never call __exit__, so
-    # that they persist until the end of the process.
-    ctx.__enter__()
+    add_global_tags(_all_threads=True, **global_tag_map)
 
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
 
