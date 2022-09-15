@@ -626,7 +626,7 @@ class IssueListOverview extends Component<Props, State> {
           page,
           query,
           num_perf_issues: numPerfIssues,
-          total_issues: data.length,
+          num_total_issues: data.length,
         });
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
