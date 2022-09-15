@@ -71,16 +71,6 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
 
-        for i in range(3):
-            self.store_event(
-                data={
-                    "tags": {"foo": "bar"},
-                    "fingerprint": ["group1"],
-                    "timestamp": iso_format(before_now(seconds=1)),
-                },
-                project_id=self.project.id,
-            )
-
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{perf_group.id}/tags/foo/"
