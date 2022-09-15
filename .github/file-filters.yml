@@ -46,7 +46,7 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - 'pyproject.toml'
 
-backend: &backend
+backend_no_tests: &backend_no_tests
   - *backend_build_changes
   - *backend_dependencies
   - '!(tests)/**/*.py'
@@ -56,6 +56,10 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
   - 'fixtures/search-syntax/**/*'
+
+backend: &backend
+  - *backend_no_tests
+  - '**/*.py'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
