@@ -44,6 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_users,
     apdex,
     complement,
+    count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -309,6 +310,7 @@ class MetricOperation(MetricOperationDefinition, ABC):
         use_case_id: UseCaseKey,
         alias: str,
         aggregate_filter: Function,
+        org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
         raise NotImplementedError
@@ -341,6 +343,7 @@ class RawOp(MetricOperation):
         use_case_id: UseCaseKey,
         alias: str,
         aggregate_filter: Function,
+        org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
         if use_case_id is UseCaseKey.PERFORMANCE:
@@ -407,6 +410,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         use_case_id: UseCaseKey,
         alias: str,
         aggregate_filter: Function,
+        org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
         metrics_query_args = inspect.signature(self.snql_func).parameters.keys()
@@ -416,6 +420,8 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             kwargs["alias"] = alias
         if "aggregate_filter" in metrics_query_args:
             kwargs["aggregate_filter"] = aggregate_filter
+        if "org_id" in metrics_query_args:
+            kwargs["org_id"] = org_id
 
         if metrics_query_args and params is not None:
             for field in metrics_query_args:
@@ -659,6 +665,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
             use_case_id=use_case_id,
             entity=entity,
             params=params,
+            org_id=org_id,
         )
 
 
@@ -1332,6 +1339,11 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="rate",
             can_orderby=False,
             snql_func=rate_snql_factory,
+        ),
+        DerivedOp(
+            op="count_web_vitals",
+            can_orderby=True,
+            snql_func=count_web_vitals_snql_factory,
         ),
     ]
 }
