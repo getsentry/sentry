@@ -90,7 +90,9 @@ export default function ChartFooter({
             />
           </Fragment>
         </Feature>
-        <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
+        <Feature organization={organization} features={['discover-interval-selector']}>
+          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
+        </Feature>
         <OptionSelector
           title={t('Display')}
           selected={displayMode}
