@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent
+    from sentry.eventstore.models import Event
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -67,7 +67,7 @@ class EventStream(Service):
 
     def insert(
         self,
-        event: BaseEvent,
+        event: Event,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
