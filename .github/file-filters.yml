@@ -16,10 +16,15 @@ yarn_lockfile: &yarn_lockfile
 eslint_config: &eslint_config
   - '.eslint*'
 
+# `frontend_src` filters on files that are frontend changes excluding
+# changes to the tests/ directory.
+# If you want to filter on *all* frontend files, use the `frontend_all` filter.
 frontend_src: &frontend_src
   - *yarn_lockfile
   - *eslint_config
   - '!(test)/**/*.[tj]{s,sx}'
+  - '**/tsconfig*.json'
+  - '{package,now,vercel}.json'
   - '**/*.less'
   - 'docs-ui/**'
   - 'static/**'
