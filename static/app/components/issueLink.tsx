@@ -41,7 +41,7 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
     <div className={className}>
       <Section>
         <Title>
-          <EventOrGroupTitle data={issue} />
+          <StyledEventOrGroupTitle data={issue} />
         </Title>
 
         <HovercardEventMessage
@@ -100,16 +100,19 @@ const IssueLink = ({children, orgId, issue, to, card = true}: Props) => {
 
 export default IssueLink;
 
-const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  margin: 0 0 ${space(0.5)};
+const Title = styled('div')`
   ${p => p.theme.overflowEllipsis};
+  margin: 0 0 ${space(0.5)};
+`;
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeMedium};
 
   em {
     font-style: normal;
     font-weight: 400;
-    color: ${p => p.theme.gray300};
-    font-size: 90%;
+    font-size: ${p => p.theme.fontSizeSmall};
   }
 `;
 

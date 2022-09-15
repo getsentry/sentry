@@ -16,7 +16,7 @@ describe('SampledProfile', () => {
       samples: [],
     };
 
-    const profile = SampledProfile.FromProfile(trace, createFrameIndex([]));
+    const profile = SampledProfile.FromProfile(trace, createFrameIndex('mobile', []));
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
@@ -37,7 +37,10 @@ describe('SampledProfile', () => {
       samples: [[0]],
     };
 
-    const profile = SampledProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}])
+    );
     expect(profile.stats.discardedSamplesCount).toBe(1);
   });
 
@@ -53,7 +56,10 @@ describe('SampledProfile', () => {
       samples: [[0], [0]],
     };
 
-    const profile = SampledProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}]));
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}])
+    );
     expect(profile.stats.negativeSamplesCount).toBe(1);
   });
 
@@ -76,7 +82,7 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
     profile.forEach(open, close);
@@ -113,7 +119,7 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
     expect(firstCallee(firstCallee(profile.appendOrderTree)).isRecursive()).toBe(true);
@@ -133,7 +139,7 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}])
     );
 
     expect(
@@ -158,7 +164,7 @@ describe('SampledProfile', () => {
 
     const profile = SampledProfile.FromProfile(
       trace,
-      createFrameIndex([{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}])
     );
 
     expect(profile.minFrameDuration).toBe(0.5);

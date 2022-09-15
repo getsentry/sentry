@@ -205,7 +205,7 @@ describe('OrganizationMembersList', function () {
         id: 'active',
       },
     });
-    OrganizationsStore.add(secondOrg);
+    OrganizationsStore.addOrReplace(secondOrg);
 
     const wrapper = mountWithTheme(
       <OrganizationMembersList {...defaultProps} params={{orgId: 'org-id'}} />,

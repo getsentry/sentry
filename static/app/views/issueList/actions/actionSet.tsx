@@ -14,13 +14,13 @@ import {
   BaseGroup,
   IssueCategory,
   IssueCategoryCapabilities,
-  Organization,
   Project,
   ResolutionStatus,
 } from 'sentry/types';
 import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
@@ -37,7 +37,6 @@ type Props = {
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
-  orgSlug: Organization['slug'];
   query: string;
   queryCount: number;
   sort: string;
@@ -45,7 +44,6 @@ type Props = {
 };
 
 function ActionSet({
-  orgSlug,
   queryCount,
   query,
   allInQuerySelected,
@@ -60,8 +58,16 @@ function ActionSet({
   sort,
   onSortChange,
 }: Props) {
+  const organization = useOrganization();
   const numIssues = issues.size;
-  const confirm = getConfirm(numIssues, allInQuerySelected, query, queryCount);
+  const confirm = getConfirm({
+    numIssues,
+    allInQuerySelected,
+    query,
+    queryCount,
+    organization,
+  });
+
   const label = getLabel(numIssues, allInQuerySelected);
 
   const selectedIssues = [...issues]
@@ -74,10 +80,9 @@ function ActionSet({
     isActionSupported(selectedIssues, 'merge');
   const {enabled: deleteSupported, disabledReason: deleteDisabledReason} =
     isActionSupported(selectedIssues, 'delete');
-  const {enabled: ignoreSupported} = isActionSupported(selectedIssues, 'ignore');
   const mergeDisabled =
     !multiSelected || multipleIssueProjectsSelected || !mergeSupported;
-  const ignoreDisabled = !anySelected || !ignoreSupported;
+  const ignoreDisabled = !anySelected;
 
   const canMarkReviewed =
     anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
@@ -120,12 +125,12 @@ function ActionSet({
       label: t('Merge'),
       hidden: !nestMergeAndReview,
       disabled: mergeDisabled,
-      tooltip: makeMergeTooltip(),
+      details: makeMergeTooltip(),
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
           onConfirm: onMerge,
-          message: confirm(ConfirmAction.MERGE, false),
+          message: confirm({action: ConfirmAction.MERGE, canBeUndone: false}),
           confirmText: label('merge'),
         });
       },
@@ -145,7 +150,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.BOOKMARK),
           onConfirm: () => onUpdate({isBookmarked: true}),
-          message: confirm(ConfirmAction.BOOKMARK, false),
+          message: confirm({action: ConfirmAction.BOOKMARK, canBeUndone: false}),
           confirmText: label('bookmark'),
         });
       },
@@ -158,7 +163,11 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNBOOKMARK),
           onConfirm: () => onUpdate({isBookmarked: false}),
-          message: confirm('remove', false, ' from your bookmarks'),
+          message: confirm({
+            action: ConfirmAction.UNBOOKMARK,
+            canBeUndone: false,
+            append: ' from your bookmarks',
+          }),
           confirmText: label('remove', ' from your bookmarks'),
         });
       },
@@ -171,7 +180,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
           onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
-          message: confirm(ConfirmAction.UNRESOLVE, true),
+          message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
       },
@@ -181,13 +190,13 @@ function ActionSet({
       label: t('Delete'),
       priority: 'danger',
       disabled: !deleteSupported,
-      tooltip: deleteDisabledReason,
+      details: deleteDisabledReason,
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
           onConfirm: onDelete,
           priority: 'danger',
-          message: confirm(ConfirmAction.DELETE, false),
+          message: confirm({action: ConfirmAction.DELETE, canBeUndone: false}),
           confirmText: label('delete'),
         });
       },
@@ -197,7 +206,7 @@ function ActionSet({
   return (
     <Wrapper>
       {selectedProjectSlug ? (
-        <Projects orgId={orgSlug} slugs={[selectedProjectSlug]}>
+        <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
             const selectedProject = projects[0];
             return (
@@ -205,7 +214,7 @@ function ActionSet({
                 onShouldConfirm={onShouldConfirm}
                 onUpdate={onUpdate}
                 anySelected={anySelected}
-                orgSlug={orgSlug}
+                orgSlug={organization.slug}
                 params={{
                   hasReleases: selectedProject.hasOwnProperty('features')
                     ? (selectedProject as Project).features.includes('releases')
@@ -228,11 +237,9 @@ function ActionSet({
           onShouldConfirm={onShouldConfirm}
           onUpdate={onUpdate}
           anySelected={anySelected}
-          orgSlug={orgSlug}
+          orgSlug={organization.slug}
           params={{
             hasReleases: false,
-            latestRelease: null,
-            projectId: null,
             confirm,
             label,
           }}
@@ -242,7 +249,9 @@ function ActionSet({
       <IgnoreActions
         onUpdate={onUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={confirm(ConfirmAction.IGNORE, true)}
+        confirmMessage={statusDetails =>
+          confirm({action: ConfirmAction.IGNORE, canBeUndone: true, statusDetails})
+        }
         confirmLabel={label('ignore')}
         issueCategory={issueCategory}
         disabled={ignoreDisabled}
@@ -257,7 +266,7 @@ function ActionSet({
           disabled={mergeDisabled}
           onAction={onMerge}
           shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-          message={confirm(ConfirmAction.MERGE, false)}
+          message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
           confirmLabel={label('merge')}
           title={makeMergeTooltip()}
         >

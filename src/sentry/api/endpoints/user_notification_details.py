@@ -4,6 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import Serializer, serialize
@@ -72,6 +73,7 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
     )
 
 
+@control_silo_endpoint
 class UserNotificationDetailsEndpoint(UserEndpoint):
     def get(self, request: Request, user) -> Response:
         serialized = serialize(user, request.user, UserNotificationsSerializer())

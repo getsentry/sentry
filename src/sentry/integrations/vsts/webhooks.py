@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.models import Integration
 from sentry.utils.email import parse_email
@@ -18,6 +18,7 @@ logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
+@pending_silo_endpoint
 class WorkItemWebhook(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()

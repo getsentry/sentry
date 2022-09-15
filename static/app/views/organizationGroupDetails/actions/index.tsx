@@ -88,14 +88,14 @@ class Actions extends Component<Props, State> {
 
   getDiscoverUrl() {
     const {group, project, organization} = this.props;
-    const {title, id, type} = group;
+    const {title, type, shortId} = group;
 
     const discoverQuery = {
       id: undefined,
       name: title || type,
       fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
-      query: `issue.id:${id}`,
+      query: `issue:${shortId}`,
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
@@ -241,14 +241,6 @@ class Actions extends Component<Props, State> {
     this.trackIssueAction('subscribed');
   };
 
-  onRedirectDiscover = () => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-      organization,
-    });
-    browserHistory.push(this.getDiscoverUrl());
-  };
-
   onDiscard = () => {
     const {group, project, organization, api} = this.props;
     const id = uniqueId();
@@ -377,6 +369,7 @@ class Actions extends Component<Props, State> {
 
     const deleteCap = getIssueCapability(group.issueCategory, 'delete');
     const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
+    const shareCap = getIssueCapability(group.issueCategory, 'share');
 
     return (
       <Wrapper>
@@ -417,19 +410,15 @@ class Actions extends Component<Props, State> {
           <ActionButton
             disabled={disabled}
             to={disabled ? '' : this.getDiscoverUrl()}
-            onClick={() => {
-              this.trackIssueAction('open_in_discover');
-              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-                organization,
-              });
-            }}
+            onClick={() => this.trackIssueAction('open_in_discover')}
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
-            disabled={disabled}
+            disabled={disabled || !shareCap.enabled}
+            disabledReason={shareCap.disabledReason}
             loading={this.state.shareBusy}
             isShared={group.isPublic}
             shareUrl={this.getShareUrl(group.shareId)}
@@ -470,7 +459,7 @@ class Actions extends Component<Props, State> {
                   label: t('Delete'),
                   hidden: !hasAccess,
                   disabled: !deleteCap.enabled,
-                  tooltip: deleteCap.disabledReason,
+                  details: deleteCap.disabledReason,
                   onAction: this.openDeleteModal,
                 },
                 {
@@ -479,7 +468,7 @@ class Actions extends Component<Props, State> {
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
                   disabled: !deleteDiscardCap.enabled,
-                  tooltip: deleteDiscardCap.disabledReason,
+                  details: deleteDiscardCap.disabledReason,
                   onAction: this.openDiscardModal,
                 },
               ]}

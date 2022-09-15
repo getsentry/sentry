@@ -14,6 +14,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -1019,6 +1020,7 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
         }
 
 
+@region_silo_test
 @parametrize_backend
 class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
     def test_empty(self):
@@ -1437,6 +1439,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
             assert set(actual) == {(p1.id, 4), (p2.id, 2)}
 
 
+@control_silo_test
 @parametrize_backend
 class InitWithoutUserTestCase(TestCase, SnubaTestCase):
     def setUp(self):

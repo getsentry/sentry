@@ -7,7 +7,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry import features
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.release import Release
@@ -38,6 +39,7 @@ class OwnersSerializedWithCommits(TypedDict):
     commits: List[ReleaseCommit]
 
 
+@region_silo_model
 class GroupOwner(Model):
     """
     Tracks the "owners" or "suggested assignees" of a group.
@@ -54,6 +56,7 @@ class GroupOwner(Model):
             (GroupOwnerType.OWNERSHIP_RULE, "Ownership Rule"),
         )
     )
+    context = JSONField(null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)

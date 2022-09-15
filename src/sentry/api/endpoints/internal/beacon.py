@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.tasks.beacon import send_beacon_metric
 
 logger = logging.getLogger("beacon")
@@ -36,6 +36,7 @@ class MetricsSerializer(serializers.Serializer):
         return attrs
 
 
+@pending_silo_endpoint
 class InternalBeaconEndpoint(Endpoint):
     permission_classes = ()
 

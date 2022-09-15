@@ -3,10 +3,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
 
 
+@pending_silo_endpoint
 class InternalQuotasEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 

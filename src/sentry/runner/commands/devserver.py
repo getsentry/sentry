@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+import shutil
 import threading
 import types
+from typing import NoReturn
 from urllib.parse import urlparse
 
 import click
@@ -49,7 +53,7 @@ _DEFAULT_DAEMONS = {
 }
 
 
-def add_daemon(name, command):
+def add_daemon(name: str, command: list[str]) -> None:
     """
     Used by getsentry to add additional workers to the devserver setup.
     """
@@ -58,7 +62,7 @@ def add_daemon(name, command):
     _DEFAULT_DAEMONS[name] = command
 
 
-def _get_daemon(name, *args, **kwargs):
+def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
     display_name = name
     if "suffix" in kwargs:
         display_name = "{}-{}".format(name, kwargs["suffix"])
@@ -99,21 +103,21 @@ def _get_daemon(name, *args, **kwargs):
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
-@log_options()
-@configuration
+@log_options()  # type: ignore[misc]  # needs this decorator to be typed
+@configuration  # type: ignore[misc]  # needs this decorator to be typed
 def devserver(
-    reload,
-    watchers,
-    workers,
-    ingest,
-    experimental_spa,
-    styleguide,
-    prefix,
-    pretty,
-    environment,
-    debug_server,
-    bind,
-):
+    reload: bool,
+    watchers: bool,
+    workers: bool,
+    ingest: bool,
+    experimental_spa: bool,
+    styleguide: bool,
+    prefix: bool,
+    pretty: bool,
+    environment: str,
+    debug_server: bool,
+    bind: str | None,
+) -> NoReturn:
     "Starts a lightweight web server for development."
 
     if ingest:
@@ -134,11 +138,10 @@ and run `sentry devservices up kafka zookeeper`.
         bind = "127.0.0.1:8000"
 
     if ":" in bind:
-        host, port = bind.split(":", 1)
-        port = int(port)
+        host, port_s = bind.split(":", 1)
+        port = int(port_s)
     else:
-        host = bind
-        port = None
+        raise SystemExit(f"expected <host>:<port>, got {bind}")
 
     import os
 
@@ -156,26 +159,19 @@ and run `sentry devservices up kafka zookeeper`.
     parsed_url = urlparse(url_prefix)
     # Make sure we're trying to use a port that we can actually bind to
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
-    has_https = False
+    has_https = shutil.which("https") is not None
 
-    if needs_https:
-        from subprocess import check_output
+    if needs_https and not has_https:
+        from sentry.runner.initializer import show_big_error
 
-        try:
-            check_output(["which", "https"])
-            has_https = True
-        except Exception:
-            has_https = False
-            from sentry.runner.initializer import show_big_error
+        show_big_error(
+            [
+                "missing `https` on your `$PATH`, but https is needed",
+                "`$ brew install mattrobenolt/stuff/https`",
+            ]
+        )
 
-            show_big_error(
-                [
-                    "missing `https` on your `$PATH`, but https is needed",
-                    "`$ brew install mattrobenolt/stuff/https`",
-                ]
-            )
-
-    uwsgi_overrides = {
+    uwsgi_overrides: dict[str, int | bool | str | None] = {
         "http-keepalive": True,
         # Make sure we reload really quickly for local dev in case it
         # doesn't want to shut down nicely on it's own, NO MERCY
@@ -323,7 +319,7 @@ and run `sentry devservices up kafka zookeeper`.
     # If we don't need any other daemons, just launch a normal uwsgi webserver
     # and avoid dealing with subprocesses
     if not daemons:
-        return server.run()
+        server.run()
 
     import sys
     from subprocess import list2cmdline

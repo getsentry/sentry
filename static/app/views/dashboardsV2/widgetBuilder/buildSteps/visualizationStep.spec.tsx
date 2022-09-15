@@ -49,12 +49,7 @@ describe('VisualizationStep', function () {
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
     organization: {
-      features: [
-        'dashboards-edit',
-        'global-views',
-        'new-widget-builder-experience-design',
-        'dashboards-mep',
-      ],
+      features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },
     router: {
       location: {

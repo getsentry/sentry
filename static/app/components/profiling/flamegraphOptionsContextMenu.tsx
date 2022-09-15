@@ -6,8 +6,10 @@ import {
   FlamegraphColorCodings,
   FlamegraphSorting,
   FlamegraphViewOptions,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/useFlamegraphPreferences';
+} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 import {
@@ -31,10 +33,14 @@ const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions = ['standalone', 'transacti
 
 interface FlameGraphOptionsContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
+  hoveredNode: FlamegraphFrame | null;
+  isHighlightingAllOccurences: boolean;
+  onHighlightAllOccurencesClick: () => void;
 }
 
 export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenuProps) {
-  const [preferences, dispatch] = useFlamegraphPreferences();
+  const preferences = useFlamegraphPreferences();
+  const dispatch = useDispatchFlamegraphState();
 
   return props.contextMenu.open ? (
     <Fragment>
@@ -48,12 +54,32 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
           maxHeight: props.contextMenu.containerCoordinates?.height ?? 'auto',
         }}
       >
+        {props.hoveredNode ? (
+          <ProfilingContextMenuGroup>
+            <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
+            <ProfilingContextMenuItemCheckbox
+              {...props.contextMenu.getMenuItemProps({
+                onClick: props.onHighlightAllOccurencesClick,
+              })}
+              onClick={e => {
+                // We need to prevent the click from propagating to the context menu layer.
+                e.preventDefault();
+                props.onHighlightAllOccurencesClick();
+              }}
+              checked={props.isHighlightingAllOccurences}
+            >
+              {t('Highlight all occurrences')}
+            </ProfilingContextMenuItemCheckbox>
+          </ProfilingContextMenuGroup>
+        ) : null}
         <ProfilingContextMenuGroup>
           <ProfilingContextMenuHeading>{t('Color Coding')}</ProfilingContextMenuHeading>
           {FLAMEGRAPH_COLOR_CODINGS.map((coding, idx) => (
             <ProfilingContextMenuItemCheckbox
               key={idx}
-              {...props.contextMenu.getMenuItemProps()}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set color coding', payload: coding}),
+              })}
               onClick={() => dispatch({type: 'set color coding', payload: coding})}
               checked={preferences.colorCoding === coding}
             >
@@ -66,7 +92,9 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
           {FLAMEGRAPH_VIEW_OPTIONS.map((view, idx) => (
             <ProfilingContextMenuItemCheckbox
               key={idx}
-              {...props.contextMenu.getMenuItemProps()}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set view', payload: view}),
+              })}
               onClick={() => dispatch({type: 'set view', payload: view})}
               checked={preferences.view === view}
             >
@@ -79,7 +107,9 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
           {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => (
             <ProfilingContextMenuItemCheckbox
               key={idx}
-              {...props.contextMenu.getMenuItemProps()}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+              })}
               onClick={() => dispatch({type: 'set sorting', payload: sorting})}
               checked={preferences.sorting === sorting}
             >
@@ -92,7 +122,9 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
           {FLAMEGRAPH_AXIS_OPTIONS.map((axis, idx) => (
             <ProfilingContextMenuItemCheckbox
               key={idx}
-              {...props.contextMenu.getMenuItemProps()}
+              {...props.contextMenu.getMenuItemProps({
+                onClick: () => dispatch({type: 'set xAxis', payload: axis}),
+              })}
               onClick={() => dispatch({type: 'set xAxis', payload: axis})}
               checked={preferences.xAxis === axis}
             >

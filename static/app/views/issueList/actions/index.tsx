@@ -11,13 +11,18 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Group, PageFilters} from 'sentry/types';
+import {Group, PageFilters, ResolutionStatusDetails} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
-import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
+import {
+  BULK_LIMIT,
+  BULK_LIMIT_STR,
+  ConfirmAction,
+  performanceIssuesSupportsIgnoreAction,
+} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -75,16 +80,22 @@ function IssueListActions({
     SelectedGroupStore.deselectAll();
   }
 
-  function handleDelete() {
-    const orgId = organization.slug;
+  // TODO: Remove this when merging/deleting performance issues is supported
+  // This silently avoids performance issues for bulk actions
+  const queryExcludingPerformanceIssues = organization.features.includes(
+    'performance-issues'
+  )
+    ? `${query ?? ''} !issue.category:performance`
+    : query;
 
+  function handleDelete() {
     actionSelectedGroups(itemIds => {
       bulkDelete(
         api,
         {
-          orgId,
+          orgId: organization.slug,
           itemIds,
-          query,
+          query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -105,7 +116,7 @@ function IssueListActions({
         {
           orgId: organization.slug,
           itemIds,
-          query,
+          query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -119,6 +130,16 @@ function IssueListActions({
     const hasIssueListRemovalAction = organization.features.includes(
       'issue-list-removal-action'
     );
+
+    // TODO: Remove this check when performance issues supports ignoring by time window
+    const ignoreStatusDetails = data?.statusDetails as
+      | ResolutionStatusDetails
+      | undefined;
+    const unsupportedByPerformanceIssues =
+      ignoreStatusDetails && !performanceIssuesSupportsIgnoreAction(ignoreStatusDetails);
+    const bulkUpdateQuery = unsupportedByPerformanceIssues
+      ? queryExcludingPerformanceIssues
+      : query;
 
     actionSelectedGroups(itemIds => {
       // TODO(Kelly): remove once issue-list-removal-action feature is stable
@@ -146,7 +167,7 @@ function IssueListActions({
           orgId: organization.slug,
           itemIds,
           data,
-          query,
+          query: bulkUpdateQuery,
           environment: selection.environments,
           ...projectConstraints,
           ...selection.datetime,
@@ -176,7 +197,6 @@ function IssueListActions({
           <ActionSet
             sort={sort}
             onSortChange={onSortChange}
-            orgSlug={organization.slug}
             queryCount={queryCount}
             query={query}
             issues={selectedIdsSet}

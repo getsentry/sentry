@@ -20,6 +20,7 @@ from sentry.models import (
 from sentry.models.integrations.sentry_app import MASKED_VALUE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 POPULARITY = 27
@@ -139,6 +140,7 @@ class SentryAppsTest(APITestCase):
         )
 
 
+@control_silo_test
 class SuperUserGetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
@@ -274,6 +276,7 @@ class GetSentryAppsTest(SentryAppsTest):
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
 
 
+@control_silo_test
 class SuperUserPostSentryAppsTest(SentryAppsTest):
     method = "post"
 

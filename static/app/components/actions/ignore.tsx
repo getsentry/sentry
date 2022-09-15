@@ -18,20 +18,36 @@ import {
   ResolutionStatusDetails,
   SelectValue,
 } from 'sentry/types';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 
-const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
+const ONE_HOUR = 60;
+
+/**
+ * Ignore durations are in munutes
+ */
+const IGNORE_DURATIONS = [
+  ONE_HOUR / 2,
+  ONE_HOUR * 2,
+  ONE_HOUR * 6,
+  ONE_HOUR * 24,
+  ONE_HOUR * 24 * 7,
+];
+
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
+
 const IGNORE_WINDOWS: SelectValue<number>[] = [
-  {value: 60, label: t('per hour')},
-  {value: 24 * 60, label: t('per day')},
-  {value: 24 * 7 * 60, label: t('per week')},
+  {value: ONE_HOUR, label: t('per hour')},
+  {value: ONE_HOUR * 24, label: t('per day')},
+  {value: ONE_HOUR * 24 * 7, label: t('per week')},
 ];
 
 type Props = {
   issueCategory: IssueCategory;
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
-  confirmMessage?: React.ReactNode;
+  confirmMessage?: (
+    statusDetails: ResolutionStatusDetails | undefined
+  ) => React.ReactNode;
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
@@ -54,7 +70,7 @@ const IgnoreActions = ({
           status: ResolutionStatus.IGNORED,
           statusDetails,
         }),
-      message: confirmMessage,
+      message: confirmMessage?.(statusDetails) ?? null,
       confirmText: confirmLabel,
     });
   };
@@ -119,6 +135,8 @@ const IgnoreActions = ({
   // In the future, all options will be enabled and so we can revert this to what it was before (a single constant array of dropdown items)
   const getDropdownItems = () => {
     if (issueCategory === IssueCategory.PERFORMANCE) {
+      const disabledReason = getIssueCapability(issueCategory, 'ignore').disabledReason;
+
       return [
         {
           key: 'for',
@@ -158,6 +176,7 @@ const IgnoreActions = ({
                 ...IGNORE_WINDOWS.map(({label}) => ({
                   key: `until-reoccur-${count}-times-from-${label}`,
                   label,
+                  details: disabledReason,
                   disabled: true,
                 })),
               ],
@@ -190,6 +209,7 @@ const IgnoreActions = ({
                 ...IGNORE_WINDOWS.map(({label}) => ({
                   key: `until-affect-${count}-users-from-${label}`,
                   label,
+                  details: disabledReason,
                   disabled: true,
                 })),
               ],

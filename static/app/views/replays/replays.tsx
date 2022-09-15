@@ -3,8 +3,6 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DetailedError from 'sentry/components/errors/detailedError';
-import List from 'sentry/components/list';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
@@ -54,30 +52,6 @@ function Replays({location}: Props) {
     eventView,
   });
 
-  if (fetchError && !isFetching) {
-    const reasons = [
-      t('The search parameters you selected are invalid in some way'),
-      t('There is an internal systems error or active issue'),
-    ];
-
-    return (
-      <DetailedError
-        hideSupportLinks
-        heading={t('Sorry, the list of replays could not be found.')}
-        message={
-          <div>
-            <p>{t('This could be due to a handful of reasons:')}</p>
-            <List symbol="bullet">
-              {reasons.map((reason, i) => (
-                <li key={i}>{reason}</li>
-              ))}
-            </List>
-          </div>
-        }
-      />
-    );
-  }
-
   return (
     <Fragment>
       <StyledPageHeader>
@@ -105,6 +79,7 @@ function Replays({location}: Props) {
           />
           <ReplayTable
             isFetching={isFetching}
+            fetchError={fetchError}
             replays={replays}
             showProjectColumn={minWidthIsSmall}
             sort={eventView.sorts[0]}
