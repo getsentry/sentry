@@ -152,14 +152,6 @@ class Results extends Component<Props, State> {
     const {api, location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
-    if (prevProps.location.query?.id !== location.query?.id) {
-      this.setState({
-        savedQuery: undefined,
-        // TODO: This still pulls location settings when clicking "Discover" sidebar
-        eventView: EventView.fromSavedQueryOrLocation(undefined, location),
-      });
-    }
-
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
@@ -643,7 +635,10 @@ type SavedQueryState = AsyncComponent['state'] & {
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   componentDidUpdate(prevProps) {
     const {location} = this.props;
-    if (prevProps.location.query?.id !== location.query?.id) {
+    if (
+      !defined(location.query?.id) &&
+      prevProps.location.query?.id !== location.query?.id
+    ) {
       this.setState({savedQuery: undefined});
     }
   }
