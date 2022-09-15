@@ -70,7 +70,7 @@ backend_all: &backend_all
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
   - *backend_all
-  - *frontend
+  - *frontend_all
   # This is verbose because backend_build_changes includes it, however,
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
