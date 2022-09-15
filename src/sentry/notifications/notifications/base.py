@@ -8,7 +8,7 @@ import sentry_sdk
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Environment, NotificationSetting, Team
+from sentry.models import Environment, NotificationSetting, Team, User
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -16,7 +16,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, User
+    from sentry.models import Organization, Project
 
 
 # TODO: add abstractmethod decorators
