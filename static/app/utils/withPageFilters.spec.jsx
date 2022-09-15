@@ -8,9 +8,8 @@ describe('withPageFilters HoC', function () {
   beforeEach(() => {
     PageFiltersStore.init();
   });
-
   afterEach(() => {
-    PageFiltersStore.teardown();
+    PageFiltersStore.reset();
   });
 
   it('handles projects', function () {

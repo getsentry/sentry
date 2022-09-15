@@ -44,7 +44,6 @@ describe('ProjectPageFilter', function () {
 
   afterEach(() => {
     OrganizationStore.teardown();
-    PageFiltersStore.teardown();
     PageFiltersStore.reset();
   });
 
