@@ -460,7 +460,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_perf_issue(self):
         perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
         self.login_as(user=self.user)
-        with self.feature("organizations:issue-search-allow-postgres-only-search"):
+        with self.feature(
+            [
+                "organizations:issue-search-allow-postgres-only-search",
+                "organizations:performance-issues",
+            ]
+        ):
             response = self.get_success_response(query="issue.category:performance")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(perf_group.id)
@@ -3406,7 +3411,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
+        with self.feature("organizations:performance-issues"):
+            response = self.get_response(qs_params={"query": ""})
         assert response.status_code == 400
 
         for group in groups:

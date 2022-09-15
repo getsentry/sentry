@@ -75,7 +75,8 @@ class GroupTagValues extends AsyncComponent<
       baseUrl,
       project,
       environments: environment,
-      params: {orgId, groupId, tagKey},
+      group,
+      params: {orgId, tagKey},
     } = this.props;
     const {tagValueList, tag} = this.state;
     const discoverFields = [
@@ -100,7 +101,7 @@ class GroupTagValues extends AsyncComponent<
           ...discoverFields.filter(field => field !== key),
         ],
         orderby: '-timestamp',
-        query: `issue.id:${groupId} ${issuesQuery}`,
+        query: `issue:${group.shortId} ${issuesQuery}`,
         projects: [Number(project?.id)],
         environment,
         version: 2 as SavedQueryVersions,

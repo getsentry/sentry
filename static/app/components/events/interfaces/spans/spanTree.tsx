@@ -6,6 +6,7 @@ import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
@@ -82,7 +83,7 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     } = input;
 
-    const {focusedSpanIds, waterfallModel} = this.props;
+    const {focusedSpanIds, waterfallModel, organization} = this.props;
 
     const messages: React.ReactNode[] = [];
 
@@ -131,7 +132,13 @@ class SpanTree extends Component<PropType> {
       <MessageRow
         onClick={
           focusedSpanIds
-            ? () => waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0))
+            ? () => {
+                trackAdvancedAnalyticsEvent(
+                  'issue_details.performance.hidden_spans_expanded',
+                  {organization}
+                );
+                waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
+              }
             : undefined
         }
         cursor={focusedSpanIds ? 'pointer' : 'default'}
@@ -277,6 +284,7 @@ class SpanTree extends Component<PropType> {
               occurrence={payload.occurrence}
               onWheel={onWheel}
               generateContentSpanBarRef={generateContentSpanBarRef}
+              isEmbeddedSpanTree={!!waterfallModel.focusedSpanIds}
             />
           );
           acc.spanNumber = spanNumber + 1;

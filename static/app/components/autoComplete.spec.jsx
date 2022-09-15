@@ -502,6 +502,20 @@ describe('AutoComplete', function () {
       expect(input).toHaveValue('Pineapple');
     });
 
+    it('only scrolls highlighted item into view on keyboard events', function () {
+      const scrollIntoViewMock = jest.fn();
+      Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+      createWrapper({isOpen: true});
+      expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
+
+      fireEvent.mouseEnter(screen.getByText('Pineapple'));
+      expect(scrollIntoViewMock).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(input, {key: 'ArrowDown', charCode: 40});
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    });
+
     it('can reset input value when menu closes', function () {
       const wrapper = createWrapper({isOpen: true});
       jest.useFakeTimers();

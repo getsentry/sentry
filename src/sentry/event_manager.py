@@ -2004,11 +2004,13 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
         event = job["event"]
         project = event.project
 
+        if not features.has("organizations:performance-issues-ingest", project.organization):
+            continue
         # General system-wide option
         rate = options.get("performance.issues.all.problem-creation") or 0
 
         # More granular, per-project option
-        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 0)
+        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
         if rate > random.random() and per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
@@ -2036,15 +2038,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
-                granted_quota = issue_rate_limiter.check_and_use_quotas(
-                    [
-                        RequestedQuota(
-                            f"performance-issues:{project.id}",
-                            new_grouphashes_count,
-                            [PERFORMANCE_ISSUE_QUOTA],
-                        )
-                    ]
-                )[0]
+                with metrics.timer("performance.performance_issue.check_write_limits"):
+                    granted_quota = issue_rate_limiter.check_and_use_quotas(
+                        [
+                            RequestedQuota(
+                                f"performance-issues:{project.id}",
+                                new_grouphashes_count,
+                                [PERFORMANCE_ISSUE_QUOTA],
+                            )
+                        ]
+                    )[0]
 
                 # Log how many groups didn't get created because of rate limiting
                 _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted
@@ -2054,9 +2057,9 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                     # GROUP DOES NOT EXIST
                     with sentry_sdk.start_span(
-                        op="event_manager.create_group_transaction"
+                        op="event_manager.create_performance_group_transaction"
                     ) as span, metrics.timer(
-                        "event_manager.create_group_transaction"
+                        "event_manager.create_performance_group_transaction"
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
