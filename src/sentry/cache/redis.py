@@ -18,17 +18,12 @@ class CommonRedisCache(BaseCache):
         self.client = client
         BaseCache.__init__(self, **options)
 
-    def set(self, key, value, timeout, version=None, raw=False, pipeline=None):
-        client = pipeline or self.client
-
-        key = self.make_key(key, version=version)
-        v = json.dumps(value) if not raw else value
-        if len(v) > self.max_size:
-            raise ValueTooLarge(f"Cache key too large: {key!r} {len(v)!r}")
+    def set(self, key, value, timeout, version=None, raw=False):
+        processed_key, processed_value = self._prepare_set(key, value, version, raw)
         if timeout:
-            client.setex(key, int(timeout), v)
+            self.client.setex(processed_key, int(timeout), processed_value)
         else:
-            client.set(key, v)
+            self.client.set(processed_key, processed_value)
 
         self._mark_transaction("set")
 
@@ -40,10 +35,41 @@ class CommonRedisCache(BaseCache):
         raw: bool = False,
     ) -> None:
         """Set multiple keys in Redis with an expiry."""
+        payload_iterator = iter(
+            self._prepare_set(key, value, version, raw) for key, value in payload
+        )
+
+        if timeout:
+            self._msetex(payload_iterator, int(timeout))
+        else:
+            self._mset(payload, version, raw)
+
+        self._mark_transaction("multi_set")
+
+    def _msetex(self, items, timeout: int) -> None:
+        """Set multiple keys in Redis with an expiry."""
         pipeline = self.client.pipeline()
-        for key, value in payload:
-            self.set(key, value, timeout, version=version, raw=raw, pipeline=pipeline)
+        for key, value in items:
+            pipeline.setex(key, timeout, value)
         pipeline.execute()
+
+    def _mset(self, items) -> None:
+        """Set multiple keys in Redis with no expiry."""
+        self.client.mset(dict(items))
+
+    def _prepare_set(
+        self,
+        key: str,
+        value: Any,
+        version: Optional[str],
+        raw: bool,
+    ) -> Tuple[str, Any]:
+        processed_key = self.make_key(key, version=version)
+        processed_value = json.dumps(value) if not raw else value
+        if len(processed_value) > self.max_size:
+            raise ValueTooLarge(f"Cache key too large: {key!r} {len(processed_value)!r}")
+
+        return processed_key, processed_value
 
     def delete(self, key, version=None):
         key = self.make_key(key, version=version)
