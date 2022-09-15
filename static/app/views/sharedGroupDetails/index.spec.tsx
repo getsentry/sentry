@@ -1,5 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/views/routeContext';
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
@@ -27,15 +28,17 @@ describe('SharedGroupDetails', function () {
 
   it('renders', function () {
     const {container} = render(
-      <SharedGroupDetails
-        params={params}
-        api={new MockApiClient()}
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-      />
+      <RouteContext.Provider value={{router, ...router}}>
+        <SharedGroupDetails
+          params={params}
+          api={new MockApiClient()}
+          route={{}}
+          router={router}
+          routes={router.routes}
+          routeParams={router.params}
+          location={router.location}
+        />
+      </RouteContext.Provider>
     );
 
     expect(container).toSnapshot();
