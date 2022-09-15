@@ -1,6 +1,8 @@
 /* global process */
 import '@visual-snapshot/jest';
 
+import failOnConsole from 'jest-fail-on-console';
+
 // The `@visual-snapshot/jest` package includes these types, but for some reason
 // Google Cloud Build's `tsc` fails to include the types (GHA works as expected).
 export {};
@@ -18,4 +20,23 @@ declare global {
 process.on('unhandledRejection', reason => {
   // eslint-disable-next-line no-console
   console.error(reason);
+});
+
+failOnConsole({
+  shouldFailOnWarn: false,
+  silenceMessage: errorMessage => {
+    // Ignore the following warnings
+
+    if (
+      /Warning: componentWill(Mount|ReceiveProps) has been renamed/.test(errorMessage)
+    ) {
+      return true;
+    }
+
+    if (/HTMLMediaElement.prototype.play/.test(errorMessage)) {
+      return true;
+    }
+
+    return false;
+  },
 });

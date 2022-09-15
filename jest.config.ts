@@ -166,7 +166,6 @@ const config: Config.InitialOptions = {
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
-    '<rootDir>/tests/js/throw-on-react-error.js',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
@@ -218,7 +217,7 @@ const config: Config.InitialOptions = {
       init: {
         // jest project under Sentry organization (dev productivity team)
         dsn: 'https://3fe1dce93e3a4267979ebad67f3de327@sentry.io/4857230',
-        environment: !!CI ? 'ci' : 'local',
+        environment: CI ? 'ci' : 'local',
         tracesSampleRate: 1.0,
       },
       transactionOptions: {
