@@ -282,7 +282,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     if len(performance_problems) > 0:
         metrics.incr(
-            "performance.performance_issue.performance_problem_emitted", len(performance_problems)
+            "performance.performance_issue.performance_problem_emitted",
+            len(performance_problems),
+            sample_rate=1.0,
         )
 
     return performance_problems
