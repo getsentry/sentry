@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Callable, Mapping
 
 from arroyo.types import Message
@@ -79,6 +80,8 @@ class MessageProcessor:
             record_result = self._indexer.bulk_record(
                 use_case_id=self._config.use_case_id, org_strings=org_strings
             )
+
+            time.sleep(0.013)
 
         mapping = record_result.get_mapped_results()
         bulk_record_meta = record_result.get_fetch_metadata()
