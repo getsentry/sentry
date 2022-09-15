@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -19,6 +19,7 @@ type Result = State;
 function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
+  const querySearchRef = useRef<string>();
 
   const [data, setData] = useState<State>({
     fetchError: undefined,
@@ -27,7 +28,7 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const init = useCallback(async () => {
+  const loadReplays = useCallback(async () => {
     setData(prev => ({
       ...prev,
       isFetching: true,
@@ -42,8 +43,11 @@ function useReplayList({eventView, organization}: Options): Result {
   }, [api, organization, location, eventView]);
 
   useEffect(() => {
-    init();
-  }, [init]);
+    if (!querySearchRef.current || querySearchRef.current !== location.search) {
+      querySearchRef.current = location.search;
+      loadReplays();
+    }
+  }, [loadReplays, location.search]);
 
   return data;
 }

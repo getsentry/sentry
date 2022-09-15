@@ -6,7 +6,6 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import {
   getDatetimeFromState,
   getStateFromQuery,
@@ -32,10 +31,6 @@ import {
 import {defined, valueIsEqual} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 
-/**
- * NOTE: this is the internal project.id, NOT the slug
- */
-type ProjectId = string | number;
 type EnvironmentId = Environment['id'];
 
 type Options = {
@@ -65,9 +60,9 @@ type PageFiltersUpdate = {
   end?: DateString;
   environment?: string[] | null;
   period?: string | null;
-  project?: Array<string | number> | null;
+  project?: number[] | null;
   start?: DateString;
-  utc?: string | boolean | null;
+  utc?: boolean | null;
 };
 
 /**
@@ -89,7 +84,7 @@ type Router = InjectedRouter | null | undefined;
  * Reset values in the page filters store
  */
 export function resetPageFilters() {
-  PageFiltersActions.reset();
+  PageFiltersStore.onReset();
 }
 
 function getProjectIdFromProject(project: MinimalProject) {
@@ -249,7 +244,7 @@ export function initializeUrlState({
   }
 
   const pinnedFilters = storedPageFilters?.pinnedFilters ?? new Set();
-  PageFiltersActions.initializeUrlState(pageFilters, pinnedFilters);
+  PageFiltersStore.onInitializeUrlState(pageFilters, pinnedFilters);
   updateDesyncedUrlState(router, shouldForceProject);
 
   const newDatetime = {
@@ -269,7 +264,7 @@ export function initializeUrlState({
   }
 }
 
-function isProjectsValid(projects: ProjectId[]) {
+function isProjectsValid(projects: number[]) {
   return Array.isArray(projects) && projects.every(isInteger);
 }
 
@@ -281,7 +276,7 @@ function isProjectsValid(projects: ProjectId[]) {
  * projects, you may need to clear environments.
  */
 export function updateProjects(
-  projects: ProjectId[],
+  projects: number[],
   router?: Router,
   options?: Options & {environments?: EnvironmentId[]}
 ) {
@@ -293,7 +288,7 @@ export function updateProjects(
     return;
   }
 
-  PageFiltersActions.updateProjects(projects, options?.environments);
+  PageFiltersStore.updateProjects(projects, options?.environments ?? null);
   updateParams({project: projects, environment: options?.environments}, router, options);
   persistPageFilters('projects', options);
   if (options?.environments) {
@@ -315,7 +310,7 @@ export function updateEnvironments(
   router?: Router,
   options?: Options
 ) {
-  PageFiltersActions.updateEnvironments(environment);
+  PageFiltersStore.updateEnvironments(environment);
   updateParams({environment}, router, options);
   persistPageFilters('environments', options);
   updateDesyncedUrlState(router);
@@ -334,7 +329,8 @@ export function updateDateTime(
   router?: Router,
   options?: Options
 ) {
-  PageFiltersActions.updateDateTime(datetime);
+  const {selection} = PageFiltersStore.getState();
+  PageFiltersStore.updateDateTime({...selection.datetime, ...datetime});
   updateParams(datetime, router, options);
   persistPageFilters('datetime', options);
   updateDesyncedUrlState(router);
@@ -344,7 +340,7 @@ export function updateDateTime(
  * Pins a particular filter so that it is read out of local storage
  */
 export function pinFilter(filter: PinnedPageFilter, pin: boolean) {
-  PageFiltersActions.pin(filter, pin);
+  PageFiltersStore.pin(filter, pin);
   persistPageFilters(null, {save: true});
 }
 
@@ -433,7 +429,7 @@ async function updateDesyncedUrlState(router?: Router, shouldForceProject?: bool
 
   // If we don't have any stored page filters then we do not check desynced state
   if (!storedPageFilters) {
-    PageFiltersActions.updateDesyncedFilters(new Set<PinnedPageFilter>());
+    PageFiltersStore.updateDesyncedFilters(new Set<PinnedPageFilter>());
     return;
   }
 
@@ -482,7 +478,7 @@ async function updateDesyncedUrlState(router?: Router, shouldForceProject?: bool
     differingFilters.add('datetime');
   }
 
-  PageFiltersActions.updateDesyncedFilters(differingFilters);
+  PageFiltersStore.updateDesyncedFilters(differingFilters);
 }
 
 /**

@@ -2004,11 +2004,13 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
         event = job["event"]
         project = event.project
 
+        if not features.has("organizations:performance-issues-ingest", project.organization):
+            continue
         # General system-wide option
         rate = options.get("performance.issues.all.problem-creation") or 0
 
         # More granular, per-project option
-        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 0)
+        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
         if rate > random.random() and per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
@@ -2036,15 +2038,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
-                granted_quota = issue_rate_limiter.check_and_use_quotas(
-                    [
-                        RequestedQuota(
-                            f"performance-issues:{project.id}",
-                            new_grouphashes_count,
-                            [PERFORMANCE_ISSUE_QUOTA],
-                        )
-                    ]
-                )[0]
+                with metrics.timer("performance.performance_issue.check_write_limits"):
+                    granted_quota = issue_rate_limiter.check_and_use_quotas(
+                        [
+                            RequestedQuota(
+                                f"performance-issues:{project.id}",
+                                new_grouphashes_count,
+                                [PERFORMANCE_ISSUE_QUOTA],
+                            )
+                        ]
+                    )[0]
 
                 # Log how many groups didn't get created because of rate limiting
                 _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted

@@ -2,6 +2,7 @@ import os
 import unittest
 from unittest.mock import Mock, call, patch
 
+from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
@@ -63,12 +64,55 @@ def create_event(spans, event_id="a" * 16):
     return {"event_id": event_id, "project": PROJECT_ID, "spans": spans}
 
 
+def assert_n_plus_one_db_problem(perf_problems):
+    assert perf_problems == [
+        PerformanceProblem(
+            fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+            op="db",
+            desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+            parent_span_ids=["8dd7a5869a4f4583"],
+            cause_span_ids=["9179e43ae844b174"],
+            offender_span_ids=[
+                "b8be6138369491dd",
+                "b2d4826e7b618f1b",
+                "b3fdeea42536dbf1",
+                "b409e78a092e642f",
+                "86d2ede57bbf48d4",
+                "8e554c84cdc9731e",
+                "94d6230f3f910e12",
+                "a210b87a2191ceb6",
+                "88a5ccaf25b9bd8f",
+                "bb32cf50fc56b296",
+            ],
+        )
+    ]
+
+
 class PerformanceDetectionTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
         patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
         self.project_option_mock = patch_project_option_get.start()
         self.addCleanup(patch_project_option_get.stop)
+
+        patch_project = patch("sentry.models.Project.objects.get_from_cache")
+        self.project_mock = patch_project.start()
+        self.addCleanup(patch_project.stop)
+
+        patch_organization = patch("sentry.models.Organization.objects.get_from_cache")
+        self.organization_mock = patch_organization.start()
+        self.addCleanup(patch_organization.stop)
+
+        self.features = ["organizations:performance-issues-ingest"]
+
+        def has_feature(feature, org):
+            return feature in self.features
+
+        patch_features = patch("sentry.features.has")
+        self.features_mock = patch_features.start()
+        self.features_mock.side_effect = has_feature
+        self.addCleanup(patch_features.stop)
 
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
@@ -84,33 +128,13 @@ class PerformanceDetectionTest(unittest.TestCase):
                 detect_performance_problems(event)
         assert mock.call_count == 1
 
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_project_option_overrides_default(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-        assert perf_problems == [
-            PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
-                op="db",
-                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
-                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                parent_span_ids=["8dd7a5869a4f4583"],
-                cause_span_ids=["9179e43ae844b174"],
-                offender_span_ids=[
-                    "b8be6138369491dd",
-                    "b2d4826e7b618f1b",
-                    "b3fdeea42536dbf1",
-                    "b409e78a092e642f",
-                    "86d2ede57bbf48d4",
-                    "8e554c84cdc9731e",
-                    "94d6230f3f910e12",
-                    "a210b87a2191ceb6",
-                    "88a5ccaf25b9bd8f",
-                    "bb32cf50fc56b296",
-                ],
-            )
-        ]
+        assert_n_plus_one_db_problem(perf_problems)
 
         self.project_option_mock.return_value = {
             "n_plus_one_db_duration_threshold": 100000,
@@ -118,6 +142,49 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert perf_problems == []
+
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_no_feature_flag_disables_creation(self):
+        self.features = []
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
+
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0})
+    def test_system_option_disables_detector_issue_creation(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
+
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_system_option_used_when_project_option_is_default(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        self.project_option_mock.return_value = projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings", project=1
+        )
+        with override_options(
+            {
+                "performance.issues.n_plus_one_db.count_threshold": 20,
+                "performance.issues.n_plus_one_db.duration_threshold": 100,
+            }
+        ):
+            perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+            assert perf_problems == []
+
+        with override_options(
+            {
+                "performance.issues.n_plus_one_db.count_threshold": 5,
+                "performance.issues.n_plus_one_db.duration_threshold": 100,
+            }
+        ):
+            perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+            assert_n_plus_one_db_problem(perf_problems)
 
     def test_calls_detect_duplicate(self):
         no_duplicate_event = create_event([create_span("db")] * 4)
@@ -492,6 +559,7 @@ class PerformanceDetectionTest(unittest.TestCase):
 
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_detects_multiple_performance_issues_in_n_plus_one_query(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
@@ -525,27 +593,44 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_n_plus_one_db", "b8be6138369491dd"),
             ]
         )
+        assert_n_plus_one_db_problem(perf_problems)
+
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_detects_n_plus_one_with_multiple_potential_sources(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-with-odd-db-sources"]
+        self.project_option_mock.return_value = {"n_plus_one_db_duration_threshold": 0}
+        perf_problems = _detect_performance_problems(n_plus_one_event, Mock())
         assert perf_problems == [
             PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
                 op="db",
-                desc="SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
                 type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-                parent_span_ids=["8dd7a5869a4f4583"],
-                cause_span_ids=["9179e43ae844b174"],
+                desc='SELECT "expense_expenses"."id", "expense_expenses"."report_id", "expense_expenses"."amount" FROM "expense_expenses" WHERE "expense_expenses"."report_id" = %s',
+                parent_span_ids=["81a4b462bdc5c764"],
+                cause_span_ids=["99797d06e2fa9750"],
                 offender_span_ids=[
-                    "b8be6138369491dd",
-                    "b2d4826e7b618f1b",
-                    "b3fdeea42536dbf1",
-                    "b409e78a092e642f",
-                    "86d2ede57bbf48d4",
-                    "8e554c84cdc9731e",
-                    "94d6230f3f910e12",
-                    "a210b87a2191ceb6",
-                    "88a5ccaf25b9bd8f",
-                    "bb32cf50fc56b296",
+                    "9c7876a6d7a26c72",
+                    "b31f67541d38ad0c",
+                    "aff9d1545b41f1de",
+                    "86a56025d94edb85",
+                    "b5e340041cfc2532",
+                    "b77a0b154e782baa",
+                    "9c46a977962d6ed1",
+                    "b03da8752eeddebe",
+                    "8c173716d4c7e41b",
+                    "b4e6f90c66e90238",
+                    "987affc4f2faa24b",
+                    "b7d323b4f5f8b2b0",
+                    "a4f0a57410b61072",
+                    "a6120e2d88c86ea4",
+                    "a87019f03438311e",
+                    "b5487ad7228cfd6e",
+                    "bc44d59a63a4115c",
+                    "84b05df439e4a6ee",
+                    "be85dffe4a9a3120",
+                    "a3c381b1952dd7fb",
                 ],
-            )
+            ),
         ]
 
     @patch("sentry.utils.metrics.incr")

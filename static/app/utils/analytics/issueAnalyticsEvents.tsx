@@ -21,6 +21,8 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.performance.autogrouped_siblings_toggle': {};
+  'issue_details.performance.hidden_spans_expanded': {};
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -36,6 +38,11 @@ export type IssueEventParameters = {
     error: string;
     search_source: string;
     search_type: string;
+  };
+  'issues_stream.count_perf_issues': {
+    num_perf_issues: number;
+    page: number;
+    query: string;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
@@ -88,4 +95,12 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue.quick_trace_status': 'Issue Quick Trace Status',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
+
+  // Performance Issue specific events here
+  'issue_details.performance.autogrouped_siblings_toggle':
+    'Performance Issue Details: Autogrouped Siblings Toggled',
+  'issue_details.performance.hidden_spans_expanded':
+    'Performance Issue Details: Hidden Spans Expanded',
+  'issues_stream.count_perf_issues':
+    'Issues Stream: Number of Performance Issues on Current Page',
 };
