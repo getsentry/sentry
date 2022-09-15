@@ -33,9 +33,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = tagstore.get_group_tag_key(
-                group.project_id, group.id, environment_id, lookup_key
-            )
+            group_tag_key = tagstore.get_group_tag_key(group, environment_id, lookup_key)
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
@@ -46,7 +44,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         if group_tag_key.top_values is None:
             group_tag_key.top_values = tagstore.get_top_group_tag_values(
-                group.project_id, group.id, environment_id, lookup_key
+                group, environment_id, lookup_key
             )
 
         return Response(serialize(group_tag_key, request.user))

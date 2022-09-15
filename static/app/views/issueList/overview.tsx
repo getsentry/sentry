@@ -37,6 +37,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {
   BaseGroup,
   Group,
+  IssueCategory,
   Member,
   Organization,
   PageFilters,
@@ -613,6 +614,20 @@ class IssueListOverview extends Component<Props, State> {
             GroupStore.remove(this.state.reviewedIds);
           }
         }
+
+        const numPerfIssues = data.filter(
+          (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
+        ).length;
+
+        const page = parseInt(this.props.location.query.page, 10);
+
+        trackAdvancedAnalyticsEvent('issues_stream.count_perf_issues', {
+          organization,
+          page,
+          query,
+          num_perf_issues: numPerfIssues,
+          num_total_issues: data.length,
+        });
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 

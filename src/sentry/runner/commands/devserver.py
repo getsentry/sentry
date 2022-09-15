@@ -123,8 +123,8 @@ def devserver(
     if ingest:
         # Ingest requires kakfa+zookeeper to be running.
         # They're too heavyweight to startup on-demand with devserver.
-        docker = get_docker_client()
-        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        with get_docker_client() as docker:
+            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
         if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
             raise SystemExit(
                 """

@@ -54,8 +54,15 @@ export function eventDetailsRouteWithEventView({
  * feature flags.
  */
 export function getDiscoverLandingUrl(organization: OrganizationSummary): string {
-  if (organization.features.includes('discover-query')) {
-    return `/organizations/${organization.slug}/discover/queries/`;
+  if (
+    organization.features.includes('discover-query') &&
+    !organization.features.includes('discover-query-builder-as-landing-page')
+  ) {
+    return getDiscoverQueriesUrl(organization);
   }
   return `/organizations/${organization.slug}/discover/results/`;
+}
+
+export function getDiscoverQueriesUrl(organization: OrganizationSummary): string {
+  return `/organizations/${organization.slug}/discover/queries/`;
 }

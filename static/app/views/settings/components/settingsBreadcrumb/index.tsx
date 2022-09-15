@@ -72,11 +72,6 @@ export default SettingsBreadcrumb;
 const CrumbLink = styled(Link)`
   display: block;
 
-  &.focus-visible {
-    outline: none;
-    box-shadow: ${p => p.theme.blue300} 0 2px 0;
-  }
-
   color: ${p => p.theme.subText};
   &:hover {
     color: ${p => p.theme.textColor};
