@@ -234,6 +234,7 @@ function SetupDocs({
   );
 
   const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
+  const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   useEffect(() => {
     // should not redirect if we don't have an active client state or projects aren't loaded
@@ -255,6 +256,12 @@ function SetupDocs({
     if (!project?.platform) {
       return;
     }
+    if (integrationSlug && !integrationUseManualSetup) {
+      setLoadedPlatform(project.platform);
+      setPlatformDocs(null);
+      setHasError(false);
+      return;
+    }
     try {
       const loadedDocs = await loadDocs(
         api,
@@ -269,7 +276,7 @@ function SetupDocs({
       setHasError(error);
       throw error;
     }
-  }, [project, api, organization]);
+  }, [project, api, organization, integrationSlug, integrationUseManualSetup]);
 
   useEffect(() => {
     fetchData();
@@ -319,11 +326,13 @@ function SetupDocs({
           />
         </SidebarWrapper>
         <MainContent>
-          {integrationSlug ? (
+          {integrationSlug && !integrationUseManualSetup ? (
             <IntegrationSetup
               integrationSlug={integrationSlug}
-              platform={loadedPlatform}
               project={project}
+              onClickManualSetup={() => {
+                setIntegrationUseManualSetup(true);
+              }}
             />
           ) : (
             <ProjecDocs
