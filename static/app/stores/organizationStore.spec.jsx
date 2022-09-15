@@ -1,4 +1,3 @@
-import {updateOrganization} from 'sentry/actionCreators/organizations';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationStore from 'sentry/stores/organizationStore';
 
@@ -44,7 +43,7 @@ describe('OrganizationStore', function () {
 
   it('updates correctly from setting changes', async function () {
     const organization = TestStubs.Organization();
-    updateOrganization(organization);
+    OrganizationStore.onUpdate(organization);
     await tick();
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
