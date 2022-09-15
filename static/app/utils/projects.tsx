@@ -61,7 +61,7 @@ type RenderProps = {
    * Calls API and searches for project, accepts a callback function with signature:
    * fn(searchTerm, {append: bool})
    */
-  onSearch: (searchTerm: string, {append: boolean}) => void;
+  onSearch: (searchTerm: string, options: {append: boolean}) => void;
 
   /**
    * We want to make sure that at the minimum, we return a list of objects with only `slug`

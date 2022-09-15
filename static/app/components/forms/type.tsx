@@ -95,7 +95,7 @@ type BaseField = {
 
   /** Does editing this field require the Form to load new configs? */
   updatesForm?: boolean;
-  validate?: ({id: String, form: object}) => string[][];
+  validate?: (data: {form: Record<string, any>; id: string}) => string[][];
   visible?: boolean | ((props: any) => boolean);
 };
 
