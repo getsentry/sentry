@@ -24,6 +24,8 @@ const USER_ACTIONS = [
   BreadcrumbType.USER,
 ];
 
+const UNWANTED_CRUMB_CATEGORIES = ['ui.focus', 'ui.blur'];
+
 function ReplayTimeline({}: Props) {
   const {replay} = useReplayContext();
 
@@ -35,7 +37,11 @@ function ReplayTimeline({}: Props) {
   const startTimestampMs = replay.getReplay().startedAt.getTime();
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
-  const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  const userCrumbs = crumbs.filter(
+    crumb =>
+      USER_ACTIONS.includes(crumb.type) &&
+      !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '')
+  );
 
   const networkSpans = spans.filter(replay.isNetworkSpan);
 

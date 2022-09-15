@@ -29,6 +29,8 @@ type Props = {
   showTitle: boolean;
 };
 
+const UNWANTED_CRUMB_CATEGORIES = ['ui.focus', 'ui.blur', 'console'];
+
 function Breadcrumbs({showTitle = true}: Props) {
   const {currentHoverTime, currentTime, replay} = useReplayContext();
 
@@ -45,7 +47,9 @@ function Breadcrumbs({showTitle = true}: Props) {
   const isLoaded = Boolean(replayRecord);
 
   const crumbs =
-    allCrumbs?.filter(crumb => !['console'].includes(crumb.category || '')) || [];
+    allCrumbs?.filter(
+      crumb => !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '')
+    ) || [];
 
   const currentUserAction = getPrevBreadcrumb({
     crumbs,
