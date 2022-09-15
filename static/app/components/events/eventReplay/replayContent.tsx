@@ -30,7 +30,13 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
   const replayRecord = replay?.getReplay();
 
   if (fetching || !replayRecord) {
-    return <StyledPlaceholder height="400px" width="100%" />;
+    return (
+      <StyledPlaceholder
+        testId="replay-loading-placeholder"
+        height="400px"
+        width="100%"
+      />
+    );
   }
 
   return (
@@ -40,7 +46,7 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
           <td className="key">{t('Replay')}</td>
           <td className="value">
             <ReplayContextProvider replay={replay} initialTimeOffset={0}>
-              <PlayerContainer ref={fullscreenRef}>
+              <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
                 <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
               </PlayerContainer>
             </ReplayContextProvider>
@@ -49,19 +55,23 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
         <tr key="id">
           <td className="key">{t('Id')}</td>
           <td className="value">
-            <pre className="val-string">{replayRecord.id}</pre>
+            <pre className="val-string" data-test-id="replay-id">
+              {replayRecord.id}
+            </pre>
           </td>
         </tr>
         <tr key="url">
           <td className="key">{t('URL')}</td>
           <td className="value">
-            <pre className="val-string">{replayRecord.urls[0]}</pre>
+            <pre className="val-string" data-test-id="replay-url">
+              {replayRecord.urls[0]}
+            </pre>
           </td>
         </tr>
         <tr key="timestamp">
           <td className="key">{t('Timestamp')}</td>
           <td className="value">
-            <pre className="val-string">
+            <pre className="val-string" data-test-id="replay-timestamp">
               <DateTime year seconds utc date={replayRecord.startedAt} />
             </pre>
           </td>
@@ -69,8 +79,8 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
         <tr key="duration">
           <td className="key">{t('Duration')}</td>
           <td className="value">
-            <pre className="val-string">
-              <Duration seconds={replayRecord.duration / 1000} fixedDigits={0} />
+            <pre className="val-string" data-test-id="replay-duration">
+              <Duration seconds={replayRecord.duration} fixedDigits={0} />
             </pre>
           </td>
         </tr>
