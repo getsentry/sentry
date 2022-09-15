@@ -75,7 +75,7 @@ function Exception({
   return (
     <EventDataSection
       type={EntryType.EXCEPTION}
-      title={<CrashTitle title={t('Exception')} {...commonCrashHeaderProps} />}
+      title={<CrashTitle title={t('Stack Trace')} {...commonCrashHeaderProps} />}
       actions={
         <CrashActions
           stackType={stackType}

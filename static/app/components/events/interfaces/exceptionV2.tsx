@@ -61,7 +61,7 @@ function Exception({
 
   return (
     <TraceEventDataSection
-      title={<PermalinkTitle>{t('Exception')}</PermalinkTitle>}
+      title={<PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>}
       type={EntryType.EXCEPTION}
       stackType={STACK_TYPE.ORIGINAL}
       projectId={projectId}
