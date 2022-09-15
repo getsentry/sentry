@@ -30,8 +30,8 @@ const mockedReplay: Partial<ReplayReader> = {
     dist: '',
     traceIds: [],
     errorIds: ['5c83aaccfffb4a708ae893bad9be3a1c'],
-    startedAt: new Date(),
-    finishedAt: new Date(),
+    startedAt: new Date(1663025353247.3),
+    finishedAt: new Date(1663026023116),
     duration: 670,
     countSegments: 14,
     countErrors: 1,
@@ -155,7 +155,7 @@ describe('ReplayContent', () => {
     // Expect Timestamp value to be correct
     expect(screen.getByText('Timestamp')).toBeInTheDocument();
     expect(screen.getByTestId('replay-timestamp')).toHaveTextContent(
-      'Oct 17, 2017 2:41:20 AM UTC'
+      'Sep 12, 2022 11:29:13 PM UTC'
     );
 
     // Expect the URL value to be correct
