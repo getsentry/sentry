@@ -8,6 +8,7 @@ from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import DetailedEventSerializer, serialize
+from sentry.issues.query import apply_performance_conditions
 
 
 @region_silo_endpoint
@@ -49,7 +50,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
                 features.has("organizations:performance-issues", project.organization)
                 and event.get_event_type() == "transaction"
             ):
-                conditions = [[["has", ["group_ids", group_id]], "=", 1]]
+                conditions = apply_performance_conditions([], event.group)
                 _filter = eventstore.Filter(
                     conditions=conditions,
                     project_ids=[event.project_id],
