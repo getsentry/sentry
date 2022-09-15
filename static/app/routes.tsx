@@ -145,6 +145,7 @@ function buildRoutes() {
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
 
@@ -413,11 +414,19 @@ function buildRoutes() {
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
       />
-      <Route
-        path="security-and-privacy/"
-        name={t('Security & Privacy')}
-        component={make(() => import('sentry/views/settings/projectSecurityAndPrivacy'))}
-      />
+      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          )}
+        />
+        <Route
+          path="advanced-data-scrubbing/:scrubbingId/"
+          component={make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          )}
+        />
+      </Route>
       <Route
         path="debug-symbols/"
         name={t('Debug Information Files')}
@@ -658,13 +667,20 @@ function buildRoutes() {
           () => import('sentry/views/settings/organizationGeneralSettings')
         )}
       />
-      <Route
-        path="security-and-privacy/"
-        name={t('Security & Privacy')}
-        component={make(
-          () => import('sentry/views/settings/organizationSecurityAndPrivacy')
-        )}
-      />
+      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          )}
+        />
+        <Route
+          path="advanced-data-scrubbing/:scrubbingId/"
+          component={make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          )}
+        />
+      </Route>
+
       <Route name={t('Teams')} path="teams/">
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}

@@ -80,9 +80,11 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, "project"):
             return Response(status=403)
 
-        queryset = Team.objects.filter(
-            organization=organization, status=TeamStatus.VISIBLE
-        ).order_by("slug")
+        queryset = (
+            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
+            .order_by("slug")
+            .select_related("organization")  # Used in TeamSerializer
+        )
 
         query = request.GET.get("query")
 
