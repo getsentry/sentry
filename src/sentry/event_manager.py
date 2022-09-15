@@ -2059,7 +2059,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                     with sentry_sdk.start_span(
                         op="event_manager.create_performance_group_transaction"
                     ) as span, metrics.timer(
-                        "event_manager.create__performance_group_transaction"
+                        "event_manager.create_performance_group_transaction"
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
