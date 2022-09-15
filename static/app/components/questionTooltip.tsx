@@ -16,7 +16,7 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
 
   & svg {
     transition: 120ms opacity;
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.gray300};
     opacity: 0.6;
 
     &:hover {
