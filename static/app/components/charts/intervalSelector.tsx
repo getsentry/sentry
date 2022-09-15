@@ -22,7 +22,7 @@ const INTERVAL_OPTIONS: IntervalOption[] = [
     rangeStart: 90 * 24,
     min: 1,
     default: '4h',
-    options: ['30m', '1h', '4h', '1d', '5d'],
+    options: ['1h', '4h', '1d', '5d'],
   },
   {
     rangeStart: 30 * 24,
