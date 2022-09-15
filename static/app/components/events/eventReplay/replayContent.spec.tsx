@@ -30,7 +30,7 @@ const mockedReplay: Partial<ReplayReader> = {
     dist: '',
     traceIds: [],
     errorIds: ['5c83aaccfffb4a708ae893bad9be3a1c'],
-    startedAt: new Date(1663025353247.3),
+    startedAt: new Date(1663025353247),
     finishedAt: new Date(1663026023116),
     duration: 670,
     countSegments: 14,
