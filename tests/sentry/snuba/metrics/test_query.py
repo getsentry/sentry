@@ -8,6 +8,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
+    OPERATIONS,
     DerivedMetricParseException,
     Groupable,
     MetricField,
@@ -104,10 +105,7 @@ def test_validate_select():
 
     with pytest.raises(
         InvalidParams,
-        match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
-            "histogram, rate, p50, p75, p90, p95, p99"
-        ),
+        match=(f"Invalid operation 'foo'. Must be one of {', '.join(OPERATIONS)}"),
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
@@ -147,10 +145,7 @@ def test_validate_select_invalid_use_case_ids():
 def test_validate_order_by():
     with pytest.raises(
         InvalidParams,
-        match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
-            "histogram, rate, p50, p75, p90, p95, p99"
-        ),
+        match=(f"Invalid operation 'foo'. Must be one of {', '.join(OPERATIONS)}"),
     ):
         MetricsQuery(
             **MetricsQueryBuilder()

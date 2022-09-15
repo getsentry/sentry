@@ -340,3 +340,30 @@ def rate_snql_factory(aggregate_filter, numerator, denominator=1.0, alias=None):
         ],
         alias=alias,
     )
+
+
+def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, alias=None):
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    aggregate_filter,
+                    Function(
+                        "equals",
+                        (
+                            Column(
+                                resolve_tag_key(
+                                    UseCaseKey.PERFORMANCE, org_id, "measurement_rating"
+                                )
+                            ),
+                            resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, measurement_rating),
+                        ),
+                    ),
+                ],
+            ),
+        ],
+        alias=alias,
+    )

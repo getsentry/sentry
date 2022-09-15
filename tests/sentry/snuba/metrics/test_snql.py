@@ -12,6 +12,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_transactions,
     all_users,
     complement,
+    count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -441,4 +442,41 @@ class DerivedMetricSnQLTestCase(TestCase):
                 Function("divide", [3600, 1]),
             ],
             alias="rate_alias",
+        )
+
+    def test_count_web_vitals_snql(self):
+        assert count_web_vitals_snql_factory(
+            aggregate_filter=Function(
+                "equals",
+                [Column("metric_id"), 5],
+            ),
+            org_id=self.org_id,
+            measurement_rating="good",
+            alias="count_web_vitals_alias",
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [Column("metric_id"), 5],
+                        ),
+                        Function(
+                            "equals",
+                            (
+                                Column(
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE, self.org_id, "measurement_rating"
+                                    )
+                                ),
+                                resolve_tag_value(UseCaseKey.PERFORMANCE, self.org_id, "good"),
+                            ),
+                        ),
+                    ],
+                ),
+            ],
+            alias="count_web_vitals_alias",
         )

@@ -773,6 +773,134 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
+    def test_measurement_rating(self):
+        min_ago = before_now(minutes=1)
+
+        for tags, metric, metric_mri, value in (
+            (
+                {"measurement_rating": "good", "transaction": "foo_transaction"},
+                TransactionMetricKey.MEASUREMENTS_LCP.value,
+                TransactionMRI.MEASUREMENTS_LCP.value,
+                50,
+            ),
+            (
+                {"measurement_rating": "good", "transaction": "foo_transaction"},
+                TransactionMetricKey.MEASUREMENTS_FP.value,
+                TransactionMRI.MEASUREMENTS_FP.value,
+                15,
+            ),
+            (
+                {"measurement_rating": "meh", "transaction": "foo_transaction"},
+                TransactionMetricKey.MEASUREMENTS_FCP.value,
+                TransactionMRI.MEASUREMENTS_FCP.value,
+                1500,
+            ),
+            (
+                {"measurement_rating": "meh", "transaction": "foo_transaction"},
+                TransactionMetricKey.MEASUREMENTS_FID.value,
+                TransactionMRI.MEASUREMENTS_FID.value,
+                125,
+            ),
+            (
+                {"measurement_rating": "good", "transaction": "foo_transaction"},
+                TransactionMetricKey.MEASUREMENTS_CLS.value,
+                TransactionMRI.MEASUREMENTS_CLS.value,
+                0.15,
+            ),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=metric_mri,
+                tags=tags,
+                timestamp=min_ago.timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "1h",
+                "interval": "1h",
+            }
+        )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count_web_vitals",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    params={"measurement_rating": "good"},
+                    alias="count_web_vitals_measurements_lcp_good",
+                ),
+                MetricField(
+                    op="count_web_vitals",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_FP.value,
+                    params={"measurement_rating": "good"},
+                    alias="count_web_vitals_measurements_fp_good",
+                ),
+                MetricField(
+                    op="count_web_vitals",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                    params={"measurement_rating": "meh"},
+                    alias="count_web_vitals_measurements_fcp_meh",
+                ),
+                MetricField(
+                    op="count_web_vitals",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_FID.value,
+                    params={"measurement_rating": "meh"},
+                    alias="count_web_vitals_measurements_fid_meh",
+                ),
+                MetricField(
+                    op="count_web_vitals",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_CLS.value,
+                    params={"measurement_rating": "good"},
+                    alias="count_web_vitals_measurements_cls_good",
+                ),
+            ],
+            start=start,
+            groupby=[
+                MetricGroupByField(
+                    name="transaction",
+                )
+            ],
+            end=end,
+            granularity=Granularity(granularity=rollup),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        group_totals = data["groups"][0]["totals"]
+
+        assert group_totals["count_web_vitals_measurements_lcp_good"] == 1
+        assert group_totals["count_web_vitals_measurements_fp_good"] == 1
+        assert group_totals["count_web_vitals_measurements_fcp_meh"] == 1
+        assert group_totals["count_web_vitals_measurements_cls_good"] == 1
+        assert group_totals["count_web_vitals_measurements_fid_meh"] == 1
+
+        assert data["meta"] == sorted(
+            [
+                {"name": "count_web_vitals_measurements_cls_good", "type": "UInt64"},
+                {"name": "count_web_vitals_measurements_fcp_meh", "type": "UInt64"},
+                {"name": "count_web_vitals_measurements_fid_meh", "type": "UInt64"},
+                {"name": "count_web_vitals_measurements_fp_good", "type": "UInt64"},
+                {"name": "count_web_vitals_measurements_lcp_good", "type": "UInt64"},
+                {"name": "transaction", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
     METRIC_STRINGS = [
