@@ -39,6 +39,7 @@ from sentry.models import Environment, Group, Optional, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -482,6 +483,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 .filter(last_seen__gte=start, last_seen__lte=end)
                 .order_by("-last_seen")
             )
+            if not features.has("organizations:performance-issues", projects[0].organization):
+                # Make sure we only see error issues if the performance issue feature is disabled
+                group_queryset = group_queryset.filter(type=GroupCategory.ERROR.value)
+
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
             metrics.incr("snuba.search.postgres_only")
             # When it's a simple django-only search, we count_hits like normal
