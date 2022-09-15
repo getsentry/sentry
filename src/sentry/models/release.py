@@ -69,7 +69,7 @@ class ReleaseCommitError(Exception):
     pass
 
 
-def dynamic_sampling_has_latest_release(rules):
+def ds_rules_contain_latest_release_rule(rules):
     """
     This function checks that one of the active rules
     has value "latest" as release literal
@@ -106,7 +106,7 @@ class ReleaseProjectModelManager(BaseManager):
         )
         if allow_dynamic_sampling:
             dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None and dynamic_sampling_has_latest_release(
+            if dynamic_sampling is not None and ds_rules_contain_latest_release_rule(
                 dynamic_sampling["rules"]
             ):
                 transaction.on_commit(
@@ -128,7 +128,7 @@ class ReleaseProjectModelManager(BaseManager):
         )
         if allow_dynamic_sampling:
             dynamic_sampling = instance.project.get_option("sentry:dynamic_sampling")
-            if dynamic_sampling is not None and dynamic_sampling_has_latest_release(
+            if dynamic_sampling is not None and ds_rules_contain_latest_release_rule(
                 dynamic_sampling["rules"]
             ):
                 transaction.on_commit(
