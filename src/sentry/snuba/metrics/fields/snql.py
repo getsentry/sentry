@@ -331,9 +331,7 @@ def histogram(
     )
 
 
-def rate(aggregate_filter, numerator, denominator=None, alias=None):
-    if denominator is None:
-        denominator = 1.0
+def rate(aggregate_filter, numerator, denominator=1.0, alias=None):
     return Function(
         "divide",
         [
