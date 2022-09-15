@@ -82,6 +82,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -126,6 +127,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -162,6 +164,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.TOP5, value: DisplayModes.TOP5}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -192,6 +195,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -237,6 +241,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -282,6 +287,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -312,6 +318,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}

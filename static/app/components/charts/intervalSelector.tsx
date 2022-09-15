@@ -85,13 +85,13 @@ function bindInterval(
 
   if (intervalHours < intervalOption.min) {
     interval = intervalOption.default;
-  } else if (intervalHours > optionMax * 24) {
-    if (optionMax > 1) {
-      interval = `${optionMax}d`;
-    } else if (optionMax > 1 / 24) {
-      interval = `${optionMax / 24}h`;
+  } else if (intervalHours > optionMax) {
+    if (optionMax >= 24) {
+      interval = `${optionMax / 24}d`;
+    } else if (optionMax >= 1) {
+      interval = `${optionMax}h`;
     } else {
-      interval = `${optionMax / 24 / 60}m`;
+      interval = `${optionMax * 60}m`;
     }
   }
   return interval;
