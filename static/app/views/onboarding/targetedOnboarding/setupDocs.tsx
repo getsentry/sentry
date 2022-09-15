@@ -287,6 +287,10 @@ function SetupDocs({
   }
 
   const setNewProject = (newProjectId: string) => {
+    setLoadedPlatform(null);
+    setPlatformDocs(null);
+    setHasError(false);
+    setIntegrationUseManualSetup(false);
     const searchParams = new URLSearchParams({
       sub_step: 'project',
       project_id: newProjectId,
