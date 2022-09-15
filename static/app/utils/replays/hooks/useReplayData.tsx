@@ -170,16 +170,16 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         return [];
       }
 
-      const response = await api.requestPromise(`/organizations/${orgSlug}/events/`, {
-        query: {
-          field: ['id', 'error.value', 'timestamp', 'error.type', 'issue.id'],
-          projects: [-1],
-          start: replayRecord.startedAt.toISOString(),
-          end: replayRecord.finishedAt.toISOString(),
-          query: `id:[${String(replayRecord.errorIds)}]`,
-          referrer: 'api.replay.details-page',
-        },
-      });
+      const response = await api.requestPromise(
+        `/organizations/${orgSlug}/replays_events_meta/`,
+        {
+          query: {
+            start: replayRecord.startedAt.toISOString(),
+            end: replayRecord.finishedAt.toISOString(),
+            query: `id:[${String(replayRecord.errorIds)}]`,
+          },
+        }
+      );
       return response.data;
     },
     [api, orgSlug]
