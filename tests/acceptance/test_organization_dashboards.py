@@ -28,7 +28,6 @@ FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",
-    "organizations:global-views",
 ]
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]

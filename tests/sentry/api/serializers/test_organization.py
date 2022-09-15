@@ -37,7 +37,6 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-basic",
             "dashboards-edit",
             "dashboard-grid-layout",
-            "dashboards-top-level-filter",
             "discover-basic",
             "discover-query",
             "event-attachments",
