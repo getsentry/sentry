@@ -50,8 +50,8 @@ from sentry.utils import json
 
 #: Maximum total number of characters in sensitiveFields.
 #: Relay compiles this list into a regex which cannot exceed a certain size.
-#: https://github.com/getsentry/relay/blob/2b40f88560c34a10300659f3b9ac2b6a0762307c/relay-general/src/pii/convert.rs#L50-L66
-MAX_SENSITIVE_FIELD_CHARS = 10_000
+#: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
+MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
 def clean_newline_inputs(value, case_insensitive=True):
