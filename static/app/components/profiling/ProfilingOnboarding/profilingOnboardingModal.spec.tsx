@@ -64,4 +64,34 @@ describe('ProfilingOnboarding', function () {
     });
     expect(screen.getByRole('button', {name: /Next/i})).toBeDisabled();
   });
+
+  it('shows performance setup when "firstTransactionEvent=false"', () => {
+    ProjectStore.loadInitialData([
+      TestStubs.Project({
+        name: 'iOS Project',
+        platform: 'apple-ios',
+        firstTransactionEvent: false,
+      }),
+    ]);
+
+    render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
+    selectProject(TestStubs.Project({name: 'iOS Project'}));
+
+    expect(screen.queryByText(/Setup Performance Monitoring/)).toBeInTheDocument();
+  });
+
+  it('hides performance setup  when "firstTransactionEvent=true"', () => {
+    ProjectStore.loadInitialData([
+      TestStubs.Project({
+        name: 'iOS Project',
+        platform: 'apple-ios',
+        firstTransactionEvent: true,
+      }),
+    ]);
+
+    render(<ProfilingOnboardingModal {...MockRenderModalProps} />);
+    selectProject(TestStubs.Project({name: 'iOS Project'}));
+
+    expect(screen.queryByText(/Setup Performance Monitoring/)).not.toBeInTheDocument();
+  });
 });

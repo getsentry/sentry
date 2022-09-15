@@ -189,8 +189,12 @@ function SelectProjectStep({
               />
             </div>
           </li>
-          {project?.platform === 'android' ? <AndroidInstallSteps /> : null}
-          {project?.platform === 'apple-ios' ? <IOSInstallSteps /> : null}
+          {project?.platform === 'android' ? (
+            <AndroidInstallSteps hidePerformanceSetup={project.firstTransactionEvent} />
+          ) : null}
+          {project?.platform === 'apple-ios' ? (
+            <IOSInstallSteps hidePerformanceSetup={project.firstTransactionEvent} />
+          ) : null}
         </StyledList>
         <ModalFooter>
           <ModalActions>
@@ -230,7 +234,11 @@ function SetupPerformanceMonitoringStep({href}: {href: string}) {
   );
 }
 
-function AndroidInstallSteps() {
+interface InstallStepsProps {
+  hidePerformanceSetup: boolean;
+}
+
+function AndroidInstallSteps({hidePerformanceSetup}: InstallStepsProps) {
   return (
     <Fragment>
       <li>
@@ -241,9 +249,11 @@ function AndroidInstallSteps() {
           )}
         </p>
       </li>
-      <li>
-        <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/android/performance/" />
-      </li>
+      {!hidePerformanceSetup && (
+        <li>
+          <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/android/performance/" />
+        </li>
+      )}
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
         <CodeContainer>
@@ -258,7 +268,7 @@ function AndroidInstallSteps() {
   );
 }
 
-function IOSInstallSteps() {
+function IOSInstallSteps({hidePerformanceSetup}: InstallStepsProps) {
   return (
     <Fragment>
       <li>
@@ -269,9 +279,11 @@ function IOSInstallSteps() {
           )}
         </p>
       </li>
-      <li>
-        <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/apple/guides/ios/performance/" />
-      </li>
+      {!hidePerformanceSetup && (
+        <li>
+          <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/apple/guides/ios/performance/" />
+        </li>
+      )}
       <li>
         <StepTitle>
           {t('Enable profiling in your app by configuring the SDKs like below:')}
