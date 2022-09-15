@@ -16,7 +16,7 @@ from sentry.sentry_metrics.indexer.limiters.cardinality import TimeseriesCardina
 class MockCardinalityLimiter(CardinalityLimiter):
     def __init__(self):
         self.grant_hashes = 10
-        self.assert_quotas = []
+        self.assert_quota = None
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
@@ -29,7 +29,7 @@ class MockCardinalityLimiter(CardinalityLimiter):
         grants = []
         granted = 0
         for request in requests:
-            assert request.quotas == self.assert_quotas
+            assert request.quota == self.assert_quota
             granted_hashes = set()
             for hash in request.unit_hashes:
                 if granted < self.grant_hashes:
@@ -38,7 +38,9 @@ class MockCardinalityLimiter(CardinalityLimiter):
 
             # reached_quotas is incorrect, but we don't necessarily need it for testing
             grants.append(
-                GrantedQuota(request=request, granted_unit_hashes=granted_hashes, reached_quotas=[])
+                GrantedQuota(
+                    request=request, granted_unit_hashes=granted_hashes, reached_quota=None
+                )
             )
 
         return timestamp, grants
@@ -52,8 +54,12 @@ class MockCardinalityLimiter(CardinalityLimiter):
 
 
 def test_reject_all(set_sentry_option):
-    set_sentry_option("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", [])
+    set_sentry_option(
+        "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+        [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
+    )
     backend = MockCardinalityLimiter()
+    backend.assert_quota = Quota(window_seconds=3600, granularity_seconds=60, limit=0)
     backend.grant_hashes = 0
     limiter = TimeseriesCardinalityLimiter("", backend)
 
@@ -75,9 +81,7 @@ def test_reject_partial(set_sentry_option):
     )
 
     backend = MockCardinalityLimiter()
-    backend.assert_quotas = [
-        Quota(window_seconds=3600, granularity_seconds=60, limit=1),
-    ]
+    backend.assert_quota = Quota(window_seconds=3600, granularity_seconds=60, limit=1)
     backend.grant_hashes = 1
     limiter = TimeseriesCardinalityLimiter("", backend)
 
