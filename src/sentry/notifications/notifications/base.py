@@ -113,10 +113,13 @@ class BaseNotification(abc.ABC):
         return None
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
-        return {
+        params = {
             "organization_id": self.organization.id,
             "actor_id": recipient.actor_id,
         }
+        if isinstance(recipient, User):
+            params["user_id"] = recipient.id
+        return params
 
     def get_custom_analytics_params(self, recipient: Team | User) -> Mapping[str, Any]:
         """
