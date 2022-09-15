@@ -11,7 +11,7 @@ const testReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockStartedAt = 'Sep 12, 2022 11:29:13 PM UTC';
 const mockFinishedAt = 'Sep 15, 2022 17:22:07 PM UTC';
 
-const mockedReplayDuration = 670; // seconds (11 minutes, 10 seconds)
+const mockReplayDuration = 670; // seconds (11 minutes, 10 seconds)
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -24,7 +24,7 @@ jest.mock('screenfull', () => ({
 }));
 
 // Mock replay object with the props we need for ReplayContent
-const mockedReplay: Partial<ReplayReader> = {
+const mockReplay: Partial<ReplayReader> = {
   getReplay: () => ({
     userAgent:
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
@@ -37,7 +37,7 @@ const mockedReplay: Partial<ReplayReader> = {
     errorIds: ['5c83aaccfffb4a708ae893bad9be3a1c'],
     startedAt: new Date(mockStartedAt),
     finishedAt: new Date(mockFinishedAt),
-    duration: mockedReplayDuration,
+    duration: mockReplayDuration,
     countSegments: 14,
     countErrors: 1,
     id: '761104e184c64d439ee1014b72b4d83b',
@@ -93,7 +93,7 @@ const mockedReplay: Partial<ReplayReader> = {
     },
   ],
   getDurationMs() {
-    return mockedReplayDuration * 1000; // milliseconds
+    return mockReplayDuration * 1000; // milliseconds
   },
 };
 
@@ -103,7 +103,7 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
     __esModule: true,
     default: jest.fn(() => {
       return {
-        replay: mockedReplay,
+        replay: mockReplay,
         fetching: false,
       };
     }),
@@ -115,7 +115,7 @@ describe('ReplayContent', () => {
     // Change the mocked hook to return a loading state
     (useReplayData as jest.Mock).mockImplementationOnce(() => {
       return {
-        replay: mockedReplay,
+        replay: mockReplay,
         fetching: true,
       };
     });
@@ -150,7 +150,7 @@ describe('ReplayContent', () => {
     // Expect Id to be correct
     expect(screen.getByText('Id')).toBeInTheDocument();
     expect(screen.getByTestId('replay-id')).toHaveTextContent(
-      mockedReplay.getReplay?.().id ?? ''
+      mockReplay.getReplay?.().id ?? ''
     );
 
     // Expect Duration value to be correct
@@ -164,7 +164,7 @@ describe('ReplayContent', () => {
     // Expect the URL value to be correct
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.getByTestId('replay-url')).toHaveTextContent(
-      mockedReplay.getReplay?.().urls[0] ?? ''
+      mockReplay.getReplay?.().urls[0] ?? ''
     );
   });
 });
