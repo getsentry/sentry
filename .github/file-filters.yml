@@ -46,6 +46,9 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - 'pyproject.toml'
 
+# `backend_no_tests` filters on files that are backend changes excluding
+# changes to the tests/ directory.
+# If you want to filter on *all* backend files, use the `backend` filter.
 backend_no_tests: &backend_no_tests
   - *backend_build_changes
   - *backend_dependencies
