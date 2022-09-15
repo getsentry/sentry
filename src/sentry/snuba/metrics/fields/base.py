@@ -15,6 +15,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    MutableMapping,
     Optional,
     Sequence,
     Set,
@@ -303,7 +304,12 @@ class MetricOperation(MetricOperationDefinition, ABC):
 
     @abstractmethod
     def generate_snql_function(
-        self, entity, use_case_id, alias, aggregate_filter: Function, params=None
+        self,
+        entity: MetricEntity,
+        use_case_id: UseCaseKey,
+        alias: str,
+        aggregate_filter: Function,
+        params: Optional[MetricOperationParams] = None,
     ) -> Function:
         raise NotImplementedError
 
@@ -330,7 +336,12 @@ class RawOp(MetricOperation):
         return data
 
     def generate_snql_function(
-        self, entity, use_case_id, alias, aggregate_filter: Function, params=None
+        self,
+        entity: MetricEntity,
+        use_case_id: UseCaseKey,
+        alias: str,
+        aggregate_filter: Function,
+        params: Optional[MetricOperationParams] = None,
     ) -> Function:
         if use_case_id is UseCaseKey.PERFORMANCE:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
@@ -391,10 +402,15 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         return data
 
     def generate_snql_function(
-        self, entity, use_case_id, alias, aggregate_filter: Function, params=None
+        self,
+        entity: MetricEntity,
+        use_case_id: UseCaseKey,
+        alias: str,
+        aggregate_filter: Function,
+        params: Optional[MetricOperationParams] = None,
     ) -> Function:
         metrics_query_args = inspect.signature(self.snql_func).parameters.keys()
-        kwargs = {}
+        kwargs: MutableMapping[str, Union[float, int, str]] = {}
 
         if "alias" in metrics_query_args:
             kwargs["alias"] = alias
@@ -553,7 +569,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         return f"{self.metric_operation.op}({self.metric_object.metric_mri})"
 
     def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> MetricEntity:
-        return _get_known_entity_of_metric_mri(self.metric_object.metric_mri).value
+        return _get_known_entity_of_metric_mri(self.metric_object.metric_mri).value  # type: ignore
 
     def generate_select_statements(
         self,
