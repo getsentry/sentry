@@ -14,6 +14,7 @@ import DeprecatedDropdownMenu, {
   GetActorArgs,
   GetMenuArgs,
 } from 'sentry/components/deprecatedDropdownMenu';
+import {uniqueId} from 'sentry/utils/guid';
 
 const defaultProps = {
   itemToString: () => '',
@@ -170,6 +171,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   }
 
   private _mounted: boolean = false;
+  private _id = `autocomplete-${uniqueId()}`;
 
   /**
    * Used to track keyboard navigation of items.
@@ -200,6 +202,17 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   get isOpen() {
     return this.isOpenIsControlled ? this.props.isOpen : this.state.isOpen;
   }
+
+  makeItemId = (index: number) => {
+    return `${this._id}-item-${index}`;
+  };
+
+  getItemElement = (index: number) => {
+    const id = this.makeItemId(index);
+    const element = document.getElementById(id);
+
+    return element;
+  };
 
   /**
    * Resets `this.items` and `this.state.highlightedIndex`.
@@ -381,7 +394,14 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     // Make sure new index is within bounds
     newIndex = Math.max(0, Math.min(newIndex, listSize - 1));
 
-    this.setState({highlightedIndex: newIndex});
+    this.setState({highlightedIndex: newIndex}, () => {
+      // Scroll the newly highlighted element into view
+      const highlightedElement = this.getItemElement(newIndex);
+
+      if (highlightedElement && typeof highlightedElement.scrollIntoView === 'function') {
+        highlightedElement.scrollIntoView({block: 'nearest'});
+      }
+    });
   }
 
   /**
@@ -439,10 +459,11 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   }
 
   getItemProps = (itemProps: GetItemArgs<T>) => {
-    const {item, index: _index, ...props} = itemProps ?? {};
+    const {item, index, ...props} = itemProps ?? {};
 
     return {
       ...props,
+      id: this.makeItemId(index),
       role: 'option',
       'data-test-id': item['data-test-id'],
       onClick: this.makeHandleItemClick(itemProps),

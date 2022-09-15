@@ -595,6 +595,44 @@ class PerformanceDetectionTest(unittest.TestCase):
         )
         assert_n_plus_one_db_problem(perf_problems)
 
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_detects_n_plus_one_with_multiple_potential_sources(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-with-odd-db-sources"]
+        self.project_option_mock.return_value = {"n_plus_one_db_duration_threshold": 0}
+        perf_problems = _detect_performance_problems(n_plus_one_event, Mock())
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-e55ea09e1cff0ca2369f287cf624700f98cf4b50",
+                op="db",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                desc='SELECT "expense_expenses"."id", "expense_expenses"."report_id", "expense_expenses"."amount" FROM "expense_expenses" WHERE "expense_expenses"."report_id" = %s',
+                parent_span_ids=["81a4b462bdc5c764"],
+                cause_span_ids=["99797d06e2fa9750"],
+                offender_span_ids=[
+                    "9c7876a6d7a26c72",
+                    "b31f67541d38ad0c",
+                    "aff9d1545b41f1de",
+                    "86a56025d94edb85",
+                    "b5e340041cfc2532",
+                    "b77a0b154e782baa",
+                    "9c46a977962d6ed1",
+                    "b03da8752eeddebe",
+                    "8c173716d4c7e41b",
+                    "b4e6f90c66e90238",
+                    "987affc4f2faa24b",
+                    "b7d323b4f5f8b2b0",
+                    "a4f0a57410b61072",
+                    "a6120e2d88c86ea4",
+                    "a87019f03438311e",
+                    "b5487ad7228cfd6e",
+                    "bc44d59a63a4115c",
+                    "84b05df439e4a6ee",
+                    "be85dffe4a9a3120",
+                    "a3c381b1952dd7fb",
+                ],
+            ),
+        ]
+
     @patch("sentry.utils.metrics.incr")
     def test_does_not_report_metric_on_non_truncated_n_plus_one_query(self, incr_mock):
         n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]

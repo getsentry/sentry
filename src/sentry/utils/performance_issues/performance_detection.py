@@ -275,10 +275,17 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
-    return [
+    performance_problems = [
         prepare_problem_for_grouping(problem, data, detector_type)
         for problem, detector_type in truncated_problems
     ]
+
+    if len(performance_problems) > 0:
+        metrics.incr(
+            "performance.performance_issue.performance_problem_emitted", len(performance_problems)
+        )
+
+    return performance_problems
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
@@ -840,10 +847,18 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if self._continues_n_plus_1(span):
             self.n_spans.append(span)
         else:
+            previous_span = self.n_spans[-1] if self.n_spans else None
             self._maybe_store_problem()
             self._reset_detection()
+
             # Maybe this DB span starts a whole new N+1!
-            self._maybe_use_as_source(span)
+            if previous_span:
+                self._maybe_use_as_source(previous_span)
+            if self.source_span and self._continues_n_plus_1(span):
+                self.n_spans.append(span)
+            else:
+                self.source_span = None
+                self._maybe_use_as_source(span)
 
     def on_complete(self) -> None:
         self._maybe_store_problem()
