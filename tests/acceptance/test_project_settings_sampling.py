@@ -93,7 +93,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
             ).status_code
             == 200
         )
