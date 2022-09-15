@@ -3,5 +3,10 @@
   "compilerOptions": {
     "allowJs": true
   },
-  "exclude": ["tests/js", "fixtures/js-stubs", "../static/app/**/*.spec.*", "../static/app/**/*.benchmark.ts"]
+  "exclude": [
+    "tests/js",
+    "fixtures/js-stubs",
+    "../static/app/**/*.spec.*",
+    "../static/app/**/*.benchmark.ts"
+  ]
 }
