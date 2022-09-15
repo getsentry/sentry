@@ -645,9 +645,9 @@ def profiles_consumer(**options):
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
 def replays_recordings_consumer(**options):
-    from sentry.replays.consumers import get_replays_recordings_consumer
+    from sentry.replays.consumers import get_replay_recording_consumer
 
-    get_replays_recordings_consumer(**options).run()
+    get_replay_recording_consumer(**options).run()
 
 
 @run.command("indexer-last-seen-updater")

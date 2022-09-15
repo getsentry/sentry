@@ -10,6 +10,7 @@ import msgpack
 from confluent_kafka import Message
 from django.conf import settings
 
+from sentry.cache import default_cache
 from sentry.models import File
 from sentry.replays.consumers.recording.types import RecordingSegmentHeaders
 from sentry.replays.models import ReplayRecordingSegment
@@ -56,7 +57,7 @@ class ReplayRecordingBatchWorker(AbstractBatchWorker):
 
     def process_message(self, message: Message) -> None:
         """Unpack and process the received message."""
-        result = msgpack.unpackb(message.value(), use_list=False)
+        result = msgpack.unpackb(message, use_list=False)
 
         if result["type"] == "replay_recording_chunk":
             return process_chunk(result)
@@ -76,6 +77,9 @@ class ReplayRecordingBatchWorker(AbstractBatchWorker):
         recordings = filter(lambda r: isinstance(r, ReplayRecordingSegmentRaw), results)
         [flush_recording(recording) for recording in recordings]
 
+    def shutdown(self) -> None:
+        pass
+
 
 def process_chunk(result: dict) -> ReplayRecordingSegmentChunk:
     """Process a "replay_recording_chunk" message type."""
@@ -94,9 +98,9 @@ def process_recording(result: dict) -> ReplayRecordingSegmentRaw:
 
 def flush_chunks(chunks: Sequence[ReplayRecordingSegmentChunk]) -> None:
     """Flush chunks to Redis."""
-    # TODO
-    # cache.mset({chunk.cache_key: chunk.payload for chunk in chunks})
-    pass
+    default_cache.multi_set(
+        [(chunk.cache_key, chunk.payload) for chunk in chunks], timeout=None, version="1", raw=True
+    )
 
 
 def flush_recording(recording: ReplayRecordingSegmentRaw) -> None:
@@ -105,33 +109,33 @@ def flush_recording(recording: ReplayRecordingSegmentRaw) -> None:
     Chunks are fetched from Redis, merged, and uploaded to permanent blob storage.
     pass
     """
-    # TODO
     # Get the cache keys. Needed for fetch and delete.
-    # cache_keys = list(iter_cache_prefixes(recording))
+    cache_keys = list(iter_cache_prefixes(recording))
 
     # Multi-get all the keys in one request.
-    # results = cache.mget(cache_keys)
-    results = []
+    results = default_cache.multi_get(cache_keys, version="1", raw=True)
 
-    # Missing chunks force a skip of processing. The message is committed and the replay is
-    # non-functional.
-    if any(results, lambda result: result is None):
-        logger.warning(f"Missing segment chunks for replay: `{recording.replay_id}`.")
-        return None
+    unzipped_results = []
+    for result in results:
+        if result is None:
+            logger.warning(f"Missing segment chunks for replay: `{recording.replay_id}`.")
+            return None
+
+        unzipped_results.append(zlib.decompress(result))
 
     # Remove headers from the initial segment.
     try:
-        _, initial_segment = process_headers(results[0])
+        headers, initial_segment = process_headers(unzipped_results[0])
     except MissingRecordingSegmentHeaders:
         logger.warning(f"missing header on {recording.replay_id}")
         return None
 
     # Merge the recording segments into a single blob.
-    recording_segment = b"".join([initial_segment] + results[1:])
+    recording_segment = b"".join([initial_segment] + unzipped_results[1:])
 
     # Create a File object for tracking and upload to blob storage.
     file = File.objects.create(
-        name=f"rr:{recording.replay_id}:{recording.segment_id}",
+        name=f"rr:{recording.replay_id}:{headers['segment_id']}",
         type="replay.recording",
     )
     file.putfile(
@@ -143,13 +147,12 @@ def flush_recording(recording: ReplayRecordingSegmentRaw) -> None:
     ReplayRecordingSegment.objects.create(
         replay_id=recording.replay_id,
         project_id=recording.project_id,
-        segment_id=recording.segment_id,
+        segment_id=headers["segment_id"],
         file_id=file.id,
     )
 
     # Delete the recording-segment chunks from cache after we've stored it.
-    # TODO
-    # cache.delete(cache_keys)
+    default_cache.multi_delete(cache_keys)
 
 
 def process_headers(recording_segment_with_headers: bytes) -> tuple[RecordingSegmentHeaders, bytes]:
@@ -164,7 +167,7 @@ def process_headers(recording_segment_with_headers: bytes) -> tuple[RecordingSeg
 
 def iter_cache_prefixes(recording: ReplayRecordingSegmentRaw) -> Generator[None, None, str]:
     """Generate a sequence of cache prefixes."""
-    prefix = make_cache_prefix(recording)
+    prefix = make_cache_prefix(recording.project_id, recording.replay_id, recording.segment_id)
     for i in range(recording.count_chunks):
         yield f"{prefix}{i}"
 

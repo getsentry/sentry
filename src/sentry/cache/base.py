@@ -32,10 +32,19 @@ class BaseCache(local):
     def set(self, key, value, timeout, version=None, raw=False):
         raise NotImplementedError
 
+    def multi_set(self, key, value, timeout, version=None, raw=False):
+        raise NotImplementedError
+
     def delete(self, key, version=None):
         raise NotImplementedError
 
+    def multi_delete(self, key, version=None):
+        raise NotImplementedError
+
     def get(self, key, version=None, raw=False):
+        raise NotImplementedError
+
+    def multi_get(self, key, version=None, raw=False):
         raise NotImplementedError
 
     def _mark_transaction(self, op):
