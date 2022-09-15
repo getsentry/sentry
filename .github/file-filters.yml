@@ -3,7 +3,7 @@
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
 frontend_components_lintable: &frontend_components_lintable
-  - '**/*.[tj]{s,sx}'
+  - '!(tests)/**/*.[tj]{s,sx}'
 
 frontend_lintable: &frontend_lintable
   - *frontend_components_lintable
@@ -16,16 +16,19 @@ yarn_lockfile: &yarn_lockfile
 eslint_config: &eslint_config
   - '.eslint*'
 
-frontend: &frontend
+frontend_src: &frontend_src
   - *yarn_lockfile
   - *frontend_lintable
   - *eslint_config
   - '**/*.less'
   - 'docs-ui/**'
   - 'static/**'
-  - 'tests/js/**'
   - 'fixtures/search-syntax/**/*'
   - '.github/workflows/frontend.yml'
+
+frontend_all: &frontend_all
+  - *frontend_src
+  - 'tests/js/**'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -66,24 +69,24 @@ backend_all: &backend_all
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
-  - *backend_src
+  - *backend_all
   - *frontend
   # This is verbose because backend_build_changes includes it, however,
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
 
 plugins: &plugins
-  - *backend_src
+  - *backend_all
   - 'src/sentry_plugins/**/*.html'
 
 api_docs: &api_docs
-  - *backend_src
+  - *backend_all
   - 'api-docs/**'
   - 'tests/apidocs/**'
 
 # This is the ultimate controller for backend.yml
 backend_any_type: &backend_any_type
-  - *backend_src
+  - *backend_all
   - *api_docs
   - *plugins
 
