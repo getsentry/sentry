@@ -70,12 +70,39 @@ describe('Dashboards > Detail', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sdk-updates/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-geo/',
+        body: {data: [], meta: {}},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
     });
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
       if (wrapper) {
         wrapper.unmount();
+        wrapper = null;
       }
     });
 
@@ -153,6 +180,45 @@ describe('Dashboards > Detail', function () {
         dashboardInstance.props.dashboard.widgets.map(constructGridItemKey)
       );
       expect(assignedIds.size).toBe(dashboardInstance.props.dashboard.widgets.length);
+    });
+
+    it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+
+      render(
+        <CreateDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/2/'}}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await waitFor(() => {
+        expect(openWidgetViewerModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organization: initialData.organization,
+            widget: expect.objectContaining({
+              displayType: 'line',
+              interval: '5m',
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '!event.type:transaction',
+                  fields: ['count()'],
+                  name: 'Events',
+                  orderby: 'count()',
+                },
+              ],
+              title: 'Events',
+              widgetType: 'discover',
+            }),
+            onClose: expect.anything(),
+          })
+        );
+      });
     });
   });
 
@@ -297,6 +363,14 @@ describe('Dashboards > Detail', function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
         body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sdk-updates/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: {},
       });
     });
 
@@ -741,43 +815,6 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           pathname: '/organizations/org-slug/dashboard/1/',
           query: {},
-        })
-      );
-    });
-
-    it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', () => {
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-
-      render(
-        <CreateDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}
-          router={initialData.router}
-          location={{...initialData.router.location, pathname: '/widget/2/'}}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-
-      expect(openWidgetViewerModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organization: initialData.organization,
-          widget: expect.objectContaining({
-            displayType: 'line',
-            interval: '5m',
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: [],
-                conditions: '!event.type:transaction',
-                fields: ['count()'],
-                name: 'Events',
-                orderby: 'count()',
-              },
-            ],
-            title: 'Events',
-            widgetType: 'discover',
-          }),
-          onClose: expect.anything(),
         })
       );
     });

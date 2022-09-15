@@ -3,8 +3,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Dashboard from 'sentry/views/dashboardsV2/dashboard';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
+
+import {OrganizationContext} from '../organizationContext';
 
 describe('Dashboards > Dashboard', () => {
   const organization = TestStubs.Organization({
@@ -219,18 +222,22 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard, mockedOrg = initialData.organization) => {
       render(
-        <Dashboard
-          paramDashboardId="1"
-          dashboard={dashboard}
-          organization={mockedOrg}
-          isEditing={false}
-          onUpdate={() => undefined}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
-          router={initialData.router}
-          location={initialData.router.location}
-          widgetLimitReached={false}
-        />
+        <OrganizationContext.Provider value={initialData.organization}>
+          <MEPSettingProvider forceTransactions={false}>
+            <Dashboard
+              paramDashboardId="1"
+              dashboard={dashboard}
+              organization={mockedOrg}
+              isEditing={false}
+              onUpdate={() => undefined}
+              handleUpdateWidgetList={() => undefined}
+              handleAddCustomWidget={() => undefined}
+              router={initialData.router}
+              location={initialData.router.location}
+              widgetLimitReached={false}
+            />
+          </MEPSettingProvider>
+        </OrganizationContext.Provider>
       );
     };
 
@@ -267,20 +274,24 @@ describe('Dashboards > Dashboard', () => {
       mockedLocation = initialData.router.location
     ) => {
       const getDashboardComponent = () => (
-        <Dashboard
-          paramDashboardId="1"
-          dashboard={dashboard}
-          organization={mockedOrg}
-          isEditing
-          onUpdate={newWidgets => {
-            widgets.splice(0, widgets.length, ...newWidgets);
-          }}
-          handleUpdateWidgetList={() => undefined}
-          handleAddCustomWidget={() => undefined}
-          router={mockedRouter}
-          location={mockedLocation}
-          widgetLimitReached={false}
-        />
+        <OrganizationContext.Provider value={initialData.organization}>
+          <MEPSettingProvider forceTransactions={false}>
+            <Dashboard
+              paramDashboardId="1"
+              dashboard={dashboard}
+              organization={mockedOrg}
+              isEditing
+              onUpdate={newWidgets => {
+                widgets.splice(0, widgets.length, ...newWidgets);
+              }}
+              handleUpdateWidgetList={() => undefined}
+              handleAddCustomWidget={() => undefined}
+              router={mockedRouter}
+              location={mockedLocation}
+              widgetLimitReached={false}
+            />
+          </MEPSettingProvider>
+        </OrganizationContext.Provider>
       );
       const {rerender} = render(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};
