@@ -6,7 +6,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import click
 import requests
@@ -21,6 +21,10 @@ RAW_SOCKET_HACK_PATH = os.path.expanduser(
 if os.path.exists(RAW_SOCKET_HACK_PATH):
     os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
 
+# assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
+# https://github.com/python/mypy/issues/12286
+DARWIN = sys.platform == "darwin"
+
 
 def get_docker_client() -> docker.DockerClient:
     import docker
@@ -31,7 +35,7 @@ def get_docker_client() -> docker.DockerClient:
         return client
     except (requests.exceptions.ConnectionError, docker.errors.APIError):
         click.echo("Attempting to start docker...")
-        if sys.platform == "darwin":
+        if DARWIN:
             subprocess.check_call(
                 ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
             )
@@ -54,7 +58,23 @@ def get_docker_client() -> docker.DockerClient:
         raise click.ClickException("Failed to start docker.")
 
 
-def get_or_create(client, thing, name):
+@overload
+def get_or_create(
+    client: docker.DockerClient, thing: Literal["network"], name: str
+) -> docker.modlels.networks.Network:
+    ...
+
+
+@overload
+def get_or_create(
+    client: docker.DockerClient, thing: Literal["volume"], name: str
+) -> docker.models.volumes.Volume:
+    ...
+
+
+def get_or_create(
+    client: docker.DockerClient, thing: Literal["network", "volume"], name: str
+) -> docker.models.networks.Network | docker.models.volumes.Volume:
     from docker.errors import NotFound
 
     try:
@@ -64,7 +84,7 @@ def get_or_create(client, thing, name):
         return getattr(client, thing + "s").create(name)
 
 
-def retryable_pull(client, image, max_attempts=5):
+def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 5) -> None:
     from docker.errors import ImageNotFound
 
     current_attempt = 0
@@ -84,7 +104,7 @@ def retryable_pull(client, image, max_attempts=5):
         break
 
 
-def ensure_interface(ports):
+def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple[str, int]]:
     # If there is no interface specified, make sure the
     # default interface is 127.0.0.1
     rv = {}
@@ -97,7 +117,7 @@ def ensure_interface(ports):
 
 @click.group()
 @click.pass_context
-def devservices(ctx):
+def devservices(ctx: click.Context) -> None:
     """
     Manage dependent development services required for Sentry.
 
@@ -115,7 +135,7 @@ def devservices(ctx):
 @click.option("--fast", is_flag=True, default=False, help="Never pull and reuse containers.")
 @click.argument("service", nargs=1)
 @click.pass_context
-def attach(ctx, project, fast, service):
+def attach(ctx: click.Context, project: str, fast: bool, service: str) -> None:
     """
     Run a single devservice in the foreground.
 
@@ -143,7 +163,7 @@ def attach(ctx, project, fast, service):
         always_start=True,
     )
 
-    def exit_handler(*_):
+    def exit_handler(*_: Any) -> None:
         try:
             click.echo(f"Stopping {service}")
             container.stop()
@@ -168,7 +188,14 @@ def attach(ctx, project, fast, service):
     "--skip-only-if", is_flag=True, default=False, help="Skip 'only_if' checks for services"
 )
 @click.pass_context
-def up(ctx, services, project, exclude, fast, skip_only_if):
+def up(
+    ctx: click.Context,
+    services: list[str],
+    project: str,
+    exclude: list[str],
+    fast: bool,
+    skip_only_if: bool,
+) -> None:
     """
     Run/update all devservices in the background.
 
@@ -246,7 +273,9 @@ def up(ctx, services, project, exclude, fast, skip_only_if):
                 os.kill(me, signal.SIGTERM)
 
 
-def _prepare_containers(project, skip_only_if=False, silent=False):
+def _prepare_containers(
+    project: str, skip_only_if: bool = False, silent: bool = False
+) -> dict[str, Any]:
     from django.conf import settings
 
     from sentry import options as sentry_options
@@ -279,7 +308,38 @@ def _prepare_containers(project, skip_only_if=False, silent=False):
     return containers
 
 
-def _start_service(client, name, containers, project, fast=False, always_start=False):
+@overload
+def _start_service(
+    client: docker.DockerClient,
+    name: str,
+    containers: dict[str, Any],
+    project: str,
+    fast: bool = False,
+    always_start: Literal[True] = ...,
+) -> docker.models.containers.Container:
+    ...
+
+
+@overload
+def _start_service(
+    client: docker.DockerClient,
+    name: str,
+    containers: dict[str, Any],
+    project: str,
+    fast: bool = False,
+    always_start: bool = False,
+) -> docker.models.containers.Container | None:
+    ...
+
+
+def _start_service(
+    client: docker.DockerClient,
+    name: str,
+    containers: dict[str, Any],
+    project: str,
+    fast: bool = False,
+    always_start: bool = False,
+) -> docker.models.containers.Container | None:
     from django.conf import settings
 
     from docker.errors import NotFound
@@ -382,7 +442,7 @@ def _start_service(client, name, containers, project, fast=False, always_start=F
 @click.option("--project", default="sentry")
 @click.argument("service", nargs=-1)
 @click.pass_context
-def down(ctx, project, service):
+def down(ctx: click.Context, project: str, service: list[str]) -> None:
     """
     Shut down services without deleting their underlying containers and data.
     Useful if you want to temporarily relieve resources on your computer.
@@ -392,7 +452,7 @@ def down(ctx, project, service):
     """
     # TODO: make more like devservices rm
 
-    def _down(container):
+    def _down(container: docker.Container) -> None:
         click.secho(f"> Stopping '{container.name}' container", fg="red")
         container.stop()
         click.secho(f"> Stopped '{container.name}' container", fg="red")
@@ -430,7 +490,7 @@ def down(ctx, project, service):
 @click.option("--project", default="sentry")
 @click.argument("services", nargs=-1)
 @click.pass_context
-def rm(ctx, project, services):
+def rm(ctx: click.Context, project: str, services: list[str]) -> None:
     """
     Shut down and delete all services and associated data.
     Useful if you'd like to start with a fresh slate.

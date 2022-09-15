@@ -41,6 +41,7 @@ export type IssueEventParameters = {
   };
   'issues_stream.count_perf_issues': {
     num_perf_issues: number;
+    num_total_issues: number;
     page: number;
     query: string;
   };
