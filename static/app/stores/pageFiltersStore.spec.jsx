@@ -17,7 +17,6 @@ describe('PageFiltersStore', function () {
   });
   afterEach(function () {
     PageFiltersStore.reset();
-    PageFiltersStore.teardown();
   });
 
   it('getState()', function () {
@@ -53,6 +52,7 @@ describe('PageFiltersStore', function () {
       period: '2h',
       start: null,
       end: null,
+      utc: null,
     });
 
     updateDateTime({

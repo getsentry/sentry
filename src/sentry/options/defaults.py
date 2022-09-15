@@ -478,6 +478,10 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # switch all metrics usage over to using strings for tag values
 register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
+# Flag to determine whether performance metrics indexer should index tag
+# values or not
+register("sentry-metrics.performance.index-tag-values", default=True)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -521,6 +525,9 @@ register("store.use-ingest-performance-detection-only", default=0.0)
 # and the creation of performance problems, which will eventually get turned into issues.
 register("performance.issues.all.problem-detection", default=0.0)
 register("performance.issues.all.problem-creation", default=0.0)
+register(
+    "performance.issues.all.early-adopter-rollout", default=0.0
+)  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.duplicates.problem-detection", default=0.0)
