@@ -141,7 +141,7 @@ class SnubaProtocolEventStream(EventStream):
             extra_data=(
                 {
                     "group_id": event.group_id,
-                    "group_ids": event.group_ids,
+                    "group_ids": [group.id for group in event.groups],
                     "event_id": event.event_id,
                     "organization_id": project.organization_id,
                     "project_id": event.project_id,
@@ -166,7 +166,7 @@ class SnubaProtocolEventStream(EventStream):
             is_transaction_event=is_transaction_event,
         )
 
-    def start_delete_groups(self, project_id, group_ids):
+    def start_delete_groups(self, project_id: int, group_ids):
         if not group_ids:
             return
 

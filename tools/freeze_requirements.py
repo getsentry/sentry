@@ -66,6 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--no-header",
         "--quiet",
         "--strip-extras",
+        "--index-url=https://pypi.devinfra.sentry.io/simple",
     )
 
     executor = ThreadPoolExecutor(max_workers=3)

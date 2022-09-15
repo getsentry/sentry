@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 
 
 def mocked_discover_query():
@@ -174,6 +175,17 @@ def mocked_discover_query():
                 'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
+            # project: timber
+            {
+                "sdk.version": "6.4.1",
+                "sdk.name": "sentry.java.android.timber",
+                "project": "timber",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 5,
+                "count()": 23,
+            },
             # project: dummy
             {
                 "sdk.version": "7.1.4",
@@ -189,6 +201,7 @@ def mocked_discover_query():
     }
 
 
+@region_silo_test
 class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     @property
     def endpoint(self):
@@ -326,6 +339,14 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "isSupportedPlatform": True,
                 },
                 {
+                    "project": "timber",
+                    "latestSDKName": "sentry.java.android.timber",
+                    "latestSDKVersion": "6.4.1",
+                    "isSendingSampleRate": True,
+                    "isSendingSource": True,
+                    "isSupportedPlatform": True,
+                },
+                {
                     "project": "dummy",
                     "latestSDKName": "sentry.unknown",
                     "latestSDKVersion": "7.1.4",
@@ -396,3 +417,40 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
             )
             assert response.status_code == 200
             assert mock_query.mock_calls == calls
+
+    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
+    def test_sdk_versions_incompatible_with_semantic_versions(self, mock_query):
+        self.login_as(self.user)
+        mock_query.return_value = {
+            "data": [
+                {
+                    "sdk.version": "dev-develop@39fa647",
+                    "sdk.name": "sentry.php",
+                    "project": "sentry-php",
+                    'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                    'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                    'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                    'count_if(transaction.source, notEquals, "")': 0,
+                    "count()": 2,
+                },
+                {
+                    "sdk.version": "dev-dsc@606d781",
+                    "sdk.name": "sentry.php",
+                    "project": "sentry-php",
+                    'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                    'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                    'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                    'count_if(transaction.source, notEquals, "")': 0,
+                    "count()": 11,
+                },
+            ]
+        }
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.json()["detail"] == (
+                "Unable to parse sdk versions. Please check that sdk versions are valid semantic versions."
+            )

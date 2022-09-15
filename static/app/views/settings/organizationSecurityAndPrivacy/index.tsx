@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Fragment, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -9,71 +8,74 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import organizationSecurityAndPrivacyGroups from 'sentry/data/forms/organizationSecurityAndPrivacyGroups';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-import DataScrubbing from '../components/dataScrubbing';
+import {DataScrubbing} from '../components/dataScrubbing';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
-  organization: Organization;
-};
+export default function OrganizationSecurityAndPrivacyContent() {
+  const api = useApi();
+  const organization = useOrganization();
+  const [authProvider, setAuthProvider] = useState<string | null>(null);
 
-class OrganizationSecurityAndPrivacyContent extends AsyncView<Props> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
-    return [['authProvider', `/organizations/${orgId}/auth-provider/`]];
-  }
+  useEffect(() => {
+    async function fetchAuthProvider() {
+      try {
+        const response = await api.requestPromise(
+          `/organizations/${organization.slug}/auth-provider/`
+        );
+        setAuthProvider(response);
+      } catch {
+        addErrorMessage(t('Unable to fetch authentication provider'));
+      }
+    }
 
-  handleUpdateOrganization = (data: Organization) => {
+    fetchAuthProvider();
+  }, [organization.slug, api]);
+
+  const initialData = organization;
+  const endpoint = `/organizations/${organization.slug}/`;
+  const access = new Set(organization.access);
+  const features = new Set(organization.features);
+  const relayPiiConfig = organization.relayPiiConfig;
+  const title = t('Security & Privacy');
+
+  function handleUpdateOrganization(data: Organization) {
     // This will update OrganizationStore (as well as OrganizationsStore
     // which is slightly incorrect because it has summaries vs a detailed org)
     updateOrganization(data);
-  };
-
-  renderBody() {
-    const {organization} = this.props;
-    const {orgId} = this.props.params;
-    const initialData = organization;
-    const endpoint = `/organizations/${orgId}/`;
-    const access = new Set(organization.access);
-    const features = new Set(organization.features);
-    const relayPiiConfig = organization.relayPiiConfig;
-    const {authProvider} = this.state;
-    const title = t('Security & Privacy');
-
-    return (
-      <Fragment>
-        <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-        <SettingsPageHeader title={title} />
-        <Form
-          data-test-id="organization-settings-security-and-privacy"
-          apiMethod="PUT"
-          apiEndpoint={endpoint}
-          initialData={initialData}
-          additionalFieldProps={{hasSsoEnabled: !!authProvider}}
-          onSubmitSuccess={this.handleUpdateOrganization}
-          onSubmitError={() => addErrorMessage(t('Unable to save change'))}
-          saveOnBlur
-          allowUndo
-        >
-          <JsonForm
-            features={features}
-            forms={organizationSecurityAndPrivacyGroups}
-            disabled={!access.has('org:write')}
-          />
-        </Form>
-        <DataScrubbing
-          additionalContext={t('These rules can be configured for each project.')}
-          endpoint={endpoint}
-          relayPiiConfig={relayPiiConfig}
-          disabled={!access.has('org:write')}
-          organization={organization}
-          onSubmitSuccess={this.handleUpdateOrganization}
-        />
-      </Fragment>
-    );
   }
-}
 
-export default withOrganization(OrganizationSecurityAndPrivacyContent);
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
+      <SettingsPageHeader title={title} />
+      <Form
+        data-test-id="organization-settings-security-and-privacy"
+        apiMethod="PUT"
+        apiEndpoint={endpoint}
+        initialData={initialData}
+        additionalFieldProps={{hasSsoEnabled: !!authProvider}}
+        onSubmitSuccess={handleUpdateOrganization}
+        onSubmitError={() => addErrorMessage(t('Unable to save change'))}
+        saveOnBlur
+        allowUndo
+      >
+        <JsonForm
+          features={features}
+          forms={organizationSecurityAndPrivacyGroups}
+          disabled={!access.has('org:write')}
+        />
+      </Form>
+      <DataScrubbing
+        additionalContext={t('These rules can be configured for each project.')}
+        endpoint={endpoint}
+        relayPiiConfig={relayPiiConfig}
+        organization={organization}
+        disabled={!access.has('org:write')}
+        onSubmitSuccess={data => handleUpdateOrganization({...organization, ...data})}
+      />
+    </Fragment>
+  );
+}

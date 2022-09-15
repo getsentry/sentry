@@ -1,7 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {StacktraceType} from 'sentry/types/stacktrace';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
 const event = TestStubs.Event({entries: [eventEntryStacktrace]});
@@ -11,16 +14,29 @@ const data = eventEntryStacktrace.data as Required<StacktraceType>;
 function renderedComponent(
   props: Partial<React.ComponentProps<typeof StackTraceContent>>
 ) {
+  const {organization, router} = initializeOrg();
+
   return render(
-    <StackTraceContent
-      data={data}
-      className="no-exception"
-      platform="other"
-      event={event}
-      newestFirst
-      includeSystemFrames
-      {...props}
-    />
+    <OrganizationContext.Provider value={organization}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        <StackTraceContent
+          data={data}
+          className="no-exception"
+          platform="other"
+          event={event}
+          newestFirst
+          includeSystemFrames
+          {...props}
+        />
+      </RouteContext.Provider>
+    </OrganizationContext.Provider>
   );
 }
 

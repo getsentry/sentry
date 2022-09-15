@@ -82,7 +82,6 @@ export type GrowthEventParameters = {
   'growth.demo_click_request_demo': {};
   'growth.demo_modal_clicked_continue': {};
   'growth.demo_modal_clicked_signup': {};
-  'growth.issue_open_in_discover_btn_clicked': {};
   'growth.metric_alert_preset_sidebar_clicked': {
     preset: string;
   };
@@ -205,8 +204,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
     'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':
     'Growth: Sample Error Onboarding Link Clicked',
-  'growth.issue_open_in_discover_btn_clicked':
-    'Growth: Open in Discover Button in Issue Details clicked',
   'member_settings_page.loaded': 'Member Settings Page Loaded',
   'invite_modal.opened': 'Invite Modal: Opened',
   'invite_modal.closed': 'Invite Modal: Closed',

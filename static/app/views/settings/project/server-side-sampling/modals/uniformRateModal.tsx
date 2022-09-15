@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {fetchProjectStats30d} from 'sentry/actionCreators/serverSideSampling';
+import {fetchProjectStats} from 'sentry/actionCreators/serverSideSampling';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -100,12 +100,14 @@ export function UniformRateModal({
     isProjectOnOldSDK,
     loading: sdkUpgradesLoading,
   } = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId: project.id,
   });
 
   const loading =
     projectStats30d.loading || projectStats48h.loading || sdkUpgradesLoading;
+
+  const error = projectStats30d.error || projectStats48h.error;
 
   useEffect(() => {
     if (loading || !projectStats30d.data) {
@@ -262,23 +264,23 @@ export function UniformRateModal({
     });
   }
 
-  async function handleRefetchProjectStats30d() {
-    await fetchProjectStats30d({api, orgSlug: organization.slug, projId: project.id});
+  async function handleRefetchProjectStats() {
+    await fetchProjectStats({api, orgSlug: organization.slug, projId: project.id});
   }
 
-  if (activeStep === undefined || loading || projectStats30d.error) {
+  if (activeStep === undefined || loading || error) {
     return (
       <Fragment>
         <Header closeButton>
-          {projectStats30d.error ? (
+          {error ? (
             <h4>{t('Set a global sample rate')}</h4>
           ) : (
             <Placeholder height="22px" />
           )}
         </Header>
         <Body>
-          {projectStats30d.error ? (
-            <LoadingError onRetry={handleRefetchProjectStats30d} />
+          {error ? (
+            <LoadingError onRetry={handleRefetchProjectStats} />
           ) : (
             <LoadingIndicator />
           )}
@@ -294,7 +296,7 @@ export function UniformRateModal({
             </Button>
             <ButtonBar gap={1}>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
-              {projectStats30d.error ? (
+              {error ? (
                 <Button
                   priority="primary"
                   title={t('There was an error loading data')}
@@ -349,6 +351,7 @@ export function UniformRateModal({
         projectId={project.id}
         recommendedSampleRate={!isEdited}
         onSetRules={setRules}
+        specifiedClientRate={specifiedClientRate}
       />
     );
   }

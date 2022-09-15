@@ -1,7 +1,10 @@
+import React from 'react';
 import capitalize from 'lodash/capitalize';
 
+import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
+import {Organization, ResolutionStatusDetails} from 'sentry/types';
 
 import ExtraDescription from './extraDescription';
 
@@ -38,13 +41,50 @@ function getBulkConfirmMessage(action: string, queryCount: number) {
   );
 }
 
-export function getConfirm(
-  numIssues: number,
-  allInQuerySelected: boolean,
-  query: string,
-  queryCount: number
-) {
-  return function (action: ConfirmAction | string, canBeUndone: boolean, append = '') {
+function PerformanceIssueAlert({
+  allInQuerySelected,
+  organization,
+  children,
+}: {
+  allInQuerySelected: boolean;
+  children: string;
+  organization: Organization;
+}) {
+  if (!allInQuerySelected || !organization.features.includes('performance-issues')) {
+    return null;
+  }
+
+  return (
+    <Alert type="info" showIcon>
+      {children}
+    </Alert>
+  );
+}
+
+export function getConfirm({
+  numIssues,
+  allInQuerySelected,
+  query,
+  queryCount,
+  organization,
+}: {
+  allInQuerySelected: boolean;
+  numIssues: number;
+  organization: Organization;
+  query: string;
+  queryCount: number;
+}) {
+  return function ({
+    action,
+    canBeUndone,
+    append = '',
+    statusDetails,
+  }: {
+    action: ConfirmAction | string;
+    canBeUndone: boolean;
+    append?: string;
+    statusDetails?: ResolutionStatusDetails;
+  }) {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
       : tn(
@@ -53,23 +93,50 @@ export function getConfirm(
           numIssues
         );
 
-    let message;
+    let message: React.ReactNode;
     switch (action) {
       case ConfirmAction.DELETE:
-        message = tct(
-          'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
-          {
-            link: (
-              <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
-            ),
-          }
+        message = (
+          <React.Fragment>
+            <p>
+              {tct(
+                'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
+                {
+                  link: (
+                    <ExternalLink href="https://help.sentry.io/account/billing/when-should-i-delete-events/" />
+                  ),
+                }
+              )}
+            </p>
+            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+              {t('Deleting performance issues is not yet supported and will be skipped.')}
+            </PerformanceIssueAlert>
+          </React.Fragment>
         );
         break;
       case ConfirmAction.MERGE:
-        message = t('Note that unmerging is currently an experimental feature.');
+        message = (
+          <React.Fragment>
+            <p>{t('Note that unmerging is currently an experimental feature.')}</p>
+            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+              {t('Merging performance issues is not yet supported and will be skipped.')}
+            </PerformanceIssueAlert>
+          </React.Fragment>
+        );
+        break;
+      case ConfirmAction.IGNORE:
+        if (statusDetails && !performanceIssuesSupportsIgnoreAction(statusDetails)) {
+          message = (
+            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
+              {t(
+                'Ignoring performance issues by time window is not yet supported. Any encountered in this query will be skipped.'
+              )}
+            </PerformanceIssueAlert>
+          );
+        }
         break;
       default:
-        message = t('This action cannot be undone.');
+        message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
     }
 
     return (
@@ -82,7 +149,7 @@ export function getConfirm(
           query={query}
           queryCount={queryCount}
         />
-        {!canBeUndone && <p>{message}</p>}
+        {message}
       </div>
     );
   };
@@ -101,4 +168,10 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
 
     return text + append;
   };
+}
+
+export function performanceIssuesSupportsIgnoreAction(
+  statusDetails: ResolutionStatusDetails
+) {
+  return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
 }

@@ -50,15 +50,11 @@ jobs:
           sudo /Applications/Docker.app/Contents/MacOS/Docker --unattended --install-privileged-components
           open -a /Applications/Docker.app --args --unattended --accept-license
 
-      - name: Install missing brew packages
-        run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install -v libxmlsec1
-
       - uses: ./.github/actions/setup-volta
 
       # This handles Python's cache
       - name: Setup Python & cache
-        uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
+        uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
         with:
           python-version: 3.8.13
           cache: 'pip'
@@ -67,6 +63,9 @@ jobs:
       # This tests starting up the dev services, loading mocks and pre-commit installation
       # This can take over 15 minutes
       - name: make bootstrap
+        # GHA pythons are miscompiled and report macos 10.16
+        env:
+          SYSTEM_VERSION_COMPAT: 0
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -106,7 +105,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b  # v3
-      - uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
+      - uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
         with:
           python-version: 3.8.13
           cache: pip
