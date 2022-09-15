@@ -18,6 +18,59 @@ interface TabListProps<T> extends TabListStateProps<T>, AriaTabListProps<T> {
 }
 
 /**
+ * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
+ * containing of keys of overflowing tabs.
+ */
+function useOverflowTabs({
+  tabListRef,
+  tabRefs,
+}: {
+  tabListRef: React.RefObject<HTMLUListElement>;
+  tabRefs: React.RefObject<Record<React.Key, React.RefObject<HTMLLIElement>>>;
+}) {
+  const [overflowTabs, setOverflowTabs] = useState<React.Key[]>([]);
+
+  useEffect(() => {
+    const options = {
+      root: tabListRef.current,
+      // Nagative right margin to account for overflow menu's trigger button
+      rootMargin: `0px -42px 0px ${space(1)}`,
+      threshold: 1,
+    };
+
+    const callback: IntersectionObserverCallback = entries => {
+      entries.forEach(entry => {
+        const {target} = entry;
+        const {key} = (target as HTMLElement).dataset;
+        if (!key) {
+          return;
+        }
+
+        if (!entry.isIntersecting) {
+          setOverflowTabs(prev => prev.concat([key]));
+          return;
+        }
+
+        setOverflowTabs(prev => prev.filter(k => k !== key));
+      });
+    };
+
+    const observer = new IntersectionObserver(callback, options);
+    Object.values(tabRefs.current ?? []).forEach(
+      tabRef => tabRef.current && observer.observe(tabRef.current)
+    );
+
+    return () => observer.disconnect();
+    // Suppress an exhaustive-deps warning about adding `tabListRef` and
+    // `tabRefs` to the deps array, without knowing that both are ref objects
+    // and so don't need to be added.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return overflowTabs;
+}
+
+/**
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
@@ -61,38 +114,8 @@ export function TabList<T>({className, ...props}: TabListProps<T>) {
   }, [state.collection]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
-  const [overflowTabs, setOverflowTabs] = useState<React.Key[]>([]);
-  const tabRefs = useRef<Record<string, React.RefObject<HTMLLIElement>>>({});
-  useEffect(() => {
-    const options = {
-      root: tabListRef.current,
-      // Nagative right margin to account for overflow menu's trigger button
-      rootMargin: `0px -42px 0px ${space(1)}`,
-      threshold: 1,
-    };
-
-    const callback = entries => {
-      entries.forEach(entry => {
-        const {target} = entry;
-        const {key} = target.dataset;
-
-        if (!entry.isIntersecting) {
-          setOverflowTabs(prev => prev.concat([key]));
-          return;
-        }
-
-        setOverflowTabs(prev => prev.filter(k => k !== key));
-      });
-    };
-
-    const observer = new IntersectionObserver(callback, options);
-    Object.values(tabRefs.current).forEach(
-      tabRef => tabRef.current && observer.observe(tabRef.current)
-    );
-
-    return () => observer.disconnect();
-  }, []);
-
+  const tabRefs = useRef<Record<React.Key, React.RefObject<HTMLLIElement>>>({});
+  const overflowTabs = useOverflowTabs({tabListRef, tabRefs});
   const overflowMenuItems = useMemo(() => {
     // Sort overflow items in the order that they appear in TabList
     const sortedKeys = [...state.collection].map(item => item.key);
