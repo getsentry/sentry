@@ -201,7 +201,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         conditions = []
         having = []
-        group_categories = set()
+        group_categories: Set[int] = set()
         for search_filter in search_filters:
             if search_filter.key.name in ("issue.category", "issue.type"):
                 group_categories.update(
@@ -286,9 +286,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             turbo=get_sample,  # Turn off FINAL when in sampling mode
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
         )
-        group_categories = set()
 
-        rows = []
+        rows: List[Dict[str, int]] = []
         total = 0
         row_length = 0
         if not group_categories or GroupCategory.ERROR in group_categories:
