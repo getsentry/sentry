@@ -1308,8 +1308,6 @@ from sentry.testutils import TransactionTestCase
 
 
 class ReleaseProjectManagerTestCase(TransactionTestCase):
-    """ """
-
     def test_custom_manger(self):
         self.assertIsInstance(ReleaseProject.objects, ReleaseProjectModelManager)
 
