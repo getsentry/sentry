@@ -39,23 +39,17 @@ class CommonRedisCache(BaseCache):
             self._prepare_set(key, value, version, raw) for key, value in payload
         )
 
-        if timeout:
-            self._msetex(payload_iterator, int(timeout))
-        else:
-            self._mset(payload, version, raw)
-
-        self._mark_transaction("multi_set")
-
-    def _msetex(self, items, timeout: int) -> None:
-        """Set multiple keys in Redis with an expiry."""
         pipeline = self.client.pipeline()
-        for key, value in items:
-            pipeline.setex(key, timeout, value)
+        for key, value in payload_iterator:
+            if timeout:
+                pipeline.setex(key, int(timeout), value)
+            else:
+                # In clustered environments mset does not work.  So we pipeline it.  Do we need
+                # to support mset for self-hosted?
+                pipeline.set(key, value)
         pipeline.execute()
 
-    def _mset(self, items) -> None:
-        """Set multiple keys in Redis with no expiry."""
-        self.client.mset(dict(items))
+        self._mark_transaction("multi_set")
 
     def _prepare_set(
         self,
