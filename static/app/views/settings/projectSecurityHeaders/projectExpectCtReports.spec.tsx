@@ -1,10 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
 describe('ProjectExpectCtReports', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
+  const {router, org, project} = initializeOrg();
   const url = `/projects/${org.slug}/${project.slug}/expect-ct/`;
 
   beforeEach(function () {
@@ -17,16 +17,17 @@ describe('ProjectExpectCtReports', function () {
   });
 
   it('renders', function () {
-    const wrapper = mountWithTheme(
+    const {container} = render(
       <ProjectExpectCtReports
-        organization={org}
-        project={project}
-        {...TestStubs.routerProps({
-          params: {orgId: org.slug, projectId: project.slug},
-          location: TestStubs.location({pathname: url}),
-        })}
+        route={{}}
+        routeParams={{}}
+        router={router}
+        routes={router.routes}
+        params={{orgId: org.slug, projectId: project.slug}}
+        location={TestStubs.location({pathname: url})}
       />
     );
-    expect(wrapper).toSnapshot();
+
+    expect(container).toSnapshot();
   });
 });
