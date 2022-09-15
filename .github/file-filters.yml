@@ -46,10 +46,10 @@ backend_build_changes: &backend_build_changes
   - 'Makefile'
   - 'pyproject.toml'
 
-# `backend_no_tests` filters on files that are backend changes excluding
+# `backend_src` filters on files that are backend changes excluding
 # changes to the tests/ directory.
-# If you want to filter on *all* backend files, use the `backend` filter.
-backend_no_tests: &backend_no_tests
+# If you want to filter on *all* backend files, use the `backend_all` filter.
+backend_src: &backend_src
   - *backend_build_changes
   - *backend_dependencies
   - '!(tests)/**/*.py'
@@ -60,30 +60,30 @@ backend_no_tests: &backend_no_tests
   - 'config/**/*'
   - 'fixtures/search-syntax/**/*'
 
-backend: &backend
-  - *backend_no_tests
+backend_all: &backend_all
+  - *backend_src
   - '**/*.py'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
-  - *backend
+  - *backend_src
   - *frontend
   # This is verbose because backend_build_changes includes it, however,
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'
 
 plugins: &plugins
-  - *backend
+  - *backend_src
   - 'src/sentry_plugins/**/*.html'
 
 api_docs: &api_docs
-  - *backend
+  - *backend_src
   - 'api-docs/**'
   - 'tests/apidocs/**'
 
 # This is the ultimate controller for backend.yml
 backend_any_type: &backend_any_type
-  - *backend
+  - *backend_src
   - *api_docs
   - *plugins
 

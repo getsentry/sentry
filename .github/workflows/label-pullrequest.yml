@@ -31,7 +31,7 @@ jobs:
 
       - name: Add backend label
         uses: actions-ecosystem/action-add-labels@18f1af5e3544586314bbe15c0273249c770b2daf
-        if: steps.changes.outputs.backend_no_tests == 'true'
+        if: steps.changes.outputs.backend_src == 'true'
         with:
           labels: 'Scope: Backend'
 
@@ -47,7 +47,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
           steps.changes.outputs.frontend == 'true' &&
-          steps.changes.outputs.backend_no_tests == 'true' &&
+          steps.changes.outputs.backend_src == 'true' &&
           steps.fc.outputs.comment-id == 0
         with:
           issue-number: ${{ github.event.pull_request.number }}
