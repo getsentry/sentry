@@ -6,9 +6,11 @@ import * as modal from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/components/charts/simpleTableChart');
 jest.mock('sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries');
@@ -21,6 +23,14 @@ describe('Dashboards > WidgetCard', function () {
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
+
+  const renderWithProviders = (component, context?) =>
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+      </OrganizationContext.Provider>,
+      context
+    );
 
   const multipleQueryWidget: Widget = {
     title: 'Errors',
@@ -91,7 +101,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async function () {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -120,7 +130,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('renders with Open in Discover button and opens in Discover when clicked', async function () {
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -148,7 +158,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with World Map', async function () {
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -187,7 +197,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with prepended fields pulled from equations', async function () {
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -229,7 +239,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('Opens in Discover with Top N', async function () {
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -268,7 +278,7 @@ describe('Dashboards > WidgetCard', function () {
   });
 
   it('allows Open in Discover when the widget contains custom measurements', async function () {
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -309,7 +319,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onDuplicate when Duplicate Widget is clicked', async function () {
     const mock = jest.fn();
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -339,7 +349,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('does not add duplicate widgets if max widget is reached', async function () {
     const mock = jest.fn();
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -369,7 +379,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('calls onEdit when Edit Widget is clicked', async function () {
     const mock = jest.fn();
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -399,7 +409,7 @@ describe('Dashboards > WidgetCard', function () {
 
   it('renders delete widget option', async function () {
     const mock = jest.fn();
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -436,7 +446,7 @@ describe('Dashboards > WidgetCard', function () {
   it('calls eventsV2 with a limit of 20 items', async function () {
     const mock = jest.fn();
     await act(async () => {
-      render(
+      renderWithProviders(
         <WidgetCard
           api={api}
           organization={organization}
@@ -473,7 +483,7 @@ describe('Dashboards > WidgetCard', function () {
   it('calls eventsV2 with a default limit of 5 items', async function () {
     const mock = jest.fn();
     await act(async () => {
-      render(
+      renderWithProviders(
         <WidgetCard
           api={api}
           organization={organization}
@@ -524,7 +534,7 @@ describe('Dashboards > WidgetCard', function () {
       ],
     };
     await act(async () => {
-      render(
+      renderWithProviders(
         <WidgetCard
           api={api}
           organization={organization}
@@ -560,7 +570,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.RELEASE,
       queries: [],
     };
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -590,7 +600,7 @@ describe('Dashboards > WidgetCard', function () {
       widgetType: WidgetType.DISCOVER,
       queries: [],
     };
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={organization}
@@ -627,7 +637,7 @@ describe('Dashboards > WidgetCard', function () {
       },
     });
 
-    render(
+    renderWithProviders(
       <WidgetCard
         api={api}
         organization={{
@@ -676,7 +686,7 @@ describe('Dashboards > WidgetCard', function () {
     it('calls eventsV2 with a limit of 20 items', async function () {
       const mock = jest.fn();
       await act(async () => {
-        render(
+        renderWithProviders(
           <WidgetCard
             api={api}
             organization={organizationWithFlag}
@@ -713,7 +723,7 @@ describe('Dashboards > WidgetCard', function () {
     it('calls eventsV2 with a default limit of 5 items', async function () {
       const mock = jest.fn();
       await act(async () => {
-        render(
+        renderWithProviders(
           <WidgetCard
             api={api}
             organization={organizationWithFlag}
@@ -764,7 +774,7 @@ describe('Dashboards > WidgetCard', function () {
         ],
       };
       await act(async () => {
-        render(
+        renderWithProviders(
           <WidgetCard
             api={api}
             organization={organizationWithFlag}
@@ -799,7 +809,7 @@ describe('Dashboards > WidgetCard', function () {
         },
       });
 
-      render(
+      renderWithProviders(
         <WidgetCard
           api={api}
           organization={{
@@ -869,7 +879,7 @@ describe('Dashboards > WidgetCard', function () {
         },
       });
 
-      render(
+      renderWithProviders(
         <WidgetCard
           api={api}
           organization={organization}
@@ -915,7 +925,7 @@ describe('Dashboards > WidgetCard', function () {
     });
 
     it('displays indexed badge in preview mode', async function () {
-      render(
+      renderWithProviders(
         <WidgetCard
           api={api}
           organization={{
