@@ -18,7 +18,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
-  disableProcessedBaselineToggle: boolean;
   displayMode: string;
   displayOptions: SelectValue<string>[];
   eventView: EventView;
@@ -32,6 +31,7 @@ type Props = {
   total: number | null;
   yAxisOptions: SelectValue<string>[];
   yAxisValue: string[];
+  disableProcessedBaselineToggle?: boolean;
 };
 
 export default function ChartFooter({
@@ -76,7 +76,7 @@ export default function ChartFooter({
             <Switch
               data-test-id="processed-events-toggle"
               isActive={showBaseline}
-              isDisabled={disableProcessedBaselineToggle}
+              isDisabled={disableProcessedBaselineToggle ?? false}
               size="lg"
               toggle={() => setShowBaseline(!showBaseline)}
             />

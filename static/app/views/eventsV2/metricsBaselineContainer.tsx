@@ -47,6 +47,11 @@ export function MetricsBaselineContainer({
   const metricsCardinality = useMetricsCardinalityContext();
   const displayMode = eventView.getDisplayMode();
 
+  const isRollingOut =
+    organization.features.includes('server-side-sampling') &&
+    organization.features.includes('mep-rollout-flag') &&
+    organization.features.includes('discover-metrics-baseline');
+
   const disableProcessedBaselineToggle =
     metricsCardinality.outcome?.forceTransactionsOnly ||
     displayMode !== 'default' ||
@@ -73,7 +78,7 @@ export function MetricsBaselineContainer({
   useEffect(() => {
     let shouldCancelRequest = false;
 
-    if (disableProcessedBaselineToggle || !showBaseline) {
+    if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
       setProcessedLineSeries(undefined);
       return undefined;
     }
@@ -173,6 +178,7 @@ export function MetricsBaselineContainer({
     globalSelection.projects,
     eventView.interval,
     showBaseline,
+    isRollingOut,
   ]);
 
   return (

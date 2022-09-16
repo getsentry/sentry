@@ -11,7 +11,7 @@ import {DisplayModes} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import ChartFooter from 'sentry/views/eventsV2/chartFooter';
 
-function metricsCardinalityWrapped(
+export function metricsCardinalityWrapped(
   children: React.ReactNode,
   organization: Organization,
   project: Project
