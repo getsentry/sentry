@@ -412,7 +412,7 @@ function BaseGroupRow({
     <Wrapper
       data-test-id="group"
       data-test-reviewed={reviewed}
-      onClick={displayReprocessingLayout ? undefined : wrapperToggle}
+      onClick={displayReprocessingLayout || !canSelect ? undefined : wrapperToggle}
       reviewed={reviewed}
       useTintRow={useTintRow ?? true}
     >
