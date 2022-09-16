@@ -113,6 +113,11 @@ class ResultsChart extends Component<ResultsChartProps> {
       ...seriesLabels,
       ...seriesLabels.map(getPreviousSeriesName),
     ];
+    if (processedLineSeries?.length) {
+      processedLineSeries.forEach(series =>
+        disableableSeries.push((series.name as string) ?? '')
+      );
+    }
     return (
       <Fragment>
         {getDynamicText({
@@ -165,6 +170,8 @@ type ContainerProps = {
 
   organization: Organization;
   router: InjectedRouter;
+  setShowBaseline: (value: boolean) => void;
+  showBaseline: boolean;
   // chart footer props
   total: number | null;
   yAxis: string[];
@@ -172,14 +179,12 @@ type ContainerProps = {
 };
 
 type ContainerState = {
-  showBaseline: boolean;
   yAxisOptions: SelectValue<string>[];
 };
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
   state: ContainerState = {
     yAxisOptions: this.getYAxisOptions(this.props.eventView),
-    showBaseline: true,
   };
 
   componentWillReceiveProps(nextProps) {
@@ -191,11 +196,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     }
   }
 
-  shouldComponentUpdate(nextProps: ContainerProps, nextState: ContainerState) {
-    if (nextState.showBaseline !== this.state.showBaseline) {
-      return true;
-    }
-
+  shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
@@ -236,9 +237,11 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       yAxis,
       disableProcessedBaselineToggle,
       processedLineSeries,
+      showBaseline,
+      setShowBaseline,
     } = this.props;
 
-    const {yAxisOptions, showBaseline} = this.state;
+    const {yAxisOptions} = this.state;
 
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView
@@ -300,11 +303,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
           onTopEventsChange={onTopEventsChange}
           topEvents={eventView.topEvents ?? TOP_N.toString()}
           showBaseline={showBaseline}
-          setShowBaseline={value =>
-            this.setState({
-              showBaseline: value,
-            })
-          }
+          setShowBaseline={setShowBaseline}
         />
       </StyledPanel>
     );

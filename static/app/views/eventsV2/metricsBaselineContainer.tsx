@@ -7,7 +7,7 @@ import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {isMultiSeriesStats, lightenHexToRgb} from 'sentry/components/charts/utils';
-import {EventsStats, MultiSeriesEventsStats, Organization} from 'sentry/types';
+import {EventsStats, Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -64,9 +64,7 @@ export function MetricsBaselineContainer({
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : null;
 
-  const [metricsResponse, setMetricsResponse] = useState<
-    EventsStats | MultiSeriesEventsStats | null
-  >(null);
+  const [showBaseline, setShowBaseline] = useState<boolean>(true);
   const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
@@ -75,9 +73,7 @@ export function MetricsBaselineContainer({
   useEffect(() => {
     let shouldCancelRequest = false;
 
-    if (disableProcessedBaselineToggle) {
-      setMetricsResponse(null);
-      setMetricsCompatible(false);
+    if (disableProcessedBaselineToggle || !showBaseline) {
       setProcessedLineSeries(undefined);
       return undefined;
     }
@@ -99,13 +95,6 @@ export function MetricsBaselineContainer({
         if (shouldCancelRequest) {
           return;
         }
-        // let eventsStats: EventsStats;
-        // if (isMultiSeriesStats(response)) {
-        //   const key = Object.keys(response)[0];
-        //   eventsStats = response[key];
-        // } else {
-        //   eventsStats = response;
-        // }
 
         const additionalSeries: LineSeriesOption[] = [];
 
@@ -121,7 +110,7 @@ export function MetricsBaselineContainer({
             ];
           });
 
-          const color = theme.charts.getColorPalette(seriesWithOrdering.length);
+          const color = theme.charts.getColorPalette(seriesWithOrdering.length - 2);
           const additionalSeriesColor = lightenHexToRgb(color);
 
           seriesWithOrdering.forEach(([order, series]) =>
@@ -158,7 +147,6 @@ export function MetricsBaselineContainer({
           );
         }
 
-        setMetricsResponse(response);
         setMetricsCompatible(true);
         setProcessedLineSeries(additionalSeries);
       })
@@ -182,6 +170,7 @@ export function MetricsBaselineContainer({
     globalSelection.datetime.period,
     globalSelection.projects,
     eventView.interval,
+    showBaseline,
   ]);
 
   return (
@@ -190,10 +179,12 @@ export function MetricsBaselineContainer({
       eventView={eventView}
       location={location}
       yAxis={yAxis}
-      processedLineSeries={processedLineSeries}
+      processedLineSeries={showBaseline ? processedLineSeries : undefined}
       disableProcessedBaselineToggle={
         disableProcessedBaselineToggle || !metricsCompatible
       }
+      showBaseline={showBaseline}
+      setShowBaseline={setShowBaseline}
       {...props}
     />
   );
