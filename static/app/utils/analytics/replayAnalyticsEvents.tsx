@@ -5,9 +5,24 @@ export type ReplayEventParameters = {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
   };
+  'replay.details-play-pause': {
+    play: boolean;
+    user_email: string;
+  };
   'replay.details-resized-panel': {
     layout: LayoutKey;
     slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
+  };
+  'replay.details-tab-changed': {
+    tab: string;
+  };
+  'replay.details-time-spent': {
+    seconds: number;
+    user_email: string;
+  };
+  'replay.details-toggle-fullscreen': {
+    fullscreen: boolean;
+    user_email: string;
   };
   'replay.details-viewed': {
     referrer: undefined | string;
@@ -21,4 +36,8 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-resized-panel': 'Resized Replay Details Panel',
   'replay.details-viewed': 'Viewed Replay Details',
+  'replay.details-play-pause': 'Played/Paused Replay',
+  'replay.details-tab-changed': 'Changed Replay Details Tab',
+  'replay.details-time-spent': 'Time Spent Viewing Replay Details',
+  'replay.details-toggle-fullscreen': 'Toggled Replay Fullscreen',
 };
