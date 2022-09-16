@@ -8,6 +8,7 @@ from uuid import uuid4
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 
+from sentry.api.utils import generate_url_prefix
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.pipeline import PipelineView
@@ -241,8 +242,10 @@ class OAuth2LoginView(PipelineView):
 
         state = uuid4().hex
 
+        url_prefix = generate_url_prefix(request)
         params = self.get_authorize_params(
-            state=state, redirect_uri=absolute_uri(pipeline.redirect_url())
+            state=state,
+            redirect_uri=absolute_uri(pipeline.redirect_url(), url_prefix=url_prefix),
         )
         redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
 
@@ -275,8 +278,11 @@ class OAuth2CallbackView(PipelineView):
         }
 
     def exchange_token(self, request: Request, pipeline, code):
+        url_prefix = generate_url_prefix(request)
         # TODO: this needs the auth yet
-        data = self.get_token_params(code=code, redirect_uri=absolute_uri(pipeline.redirect_url()))
+        data = self.get_token_params(
+            code=code, redirect_uri=absolute_uri(pipeline.redirect_url(), url_prefix=url_prefix)
+        )
         verify_ssl = pipeline.config.get("verify_ssl", True)
         try:
             req = safe_urlopen(self.access_token_url, data=data, verify_ssl=verify_ssl)
