@@ -18,14 +18,14 @@ interface TabPanelsProps<T> extends AriaTabPanelProps, CollectionBase<T> {
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabPanels<T>(props: TabPanelsProps<T>) {
+export function TabPanels<T extends object>(props: TabPanelsProps<T>) {
   const {
     rootProps: {orientation, items},
     tabListState,
   } = useContext(TabsContext);
 
   // Parse child tab panels from props and identify the selected panel
-  const factory = nodes => new ListCollection<Node<object>>(nodes);
+  const factory = (nodes: Iterable<Node<T>>) => new ListCollection(nodes);
   const collection = useCollection({items, ...props}, factory);
   const selectedPanel = tabListState
     ? collection.getItem(tabListState.selectedKey)
@@ -42,7 +42,7 @@ export function TabPanels<T>(props: TabPanelsProps<T>) {
       orientation={orientation}
       key={tabListState?.selectedKey}
     >
-      {selectedPanel && selectedPanel.props.children}
+      {selectedPanel?.props.children}
     </TabPanel>
   );
 }
@@ -54,7 +54,13 @@ interface TabPanelProps<T> extends AriaTabPanelProps {
   className?: string;
 }
 
-function TabPanel<T>({state, orientation, className, ...props}: TabPanelProps<T>) {
+function TabPanel<T>({
+  state,
+  orientation,
+  className,
+  children,
+  ...props
+}: TabPanelProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const {tabPanelProps} = useTabPanel(props, state, ref);
 
@@ -65,7 +71,7 @@ function TabPanel<T>({state, orientation, className, ...props}: TabPanelProps<T>
       className={className}
       ref={ref}
     >
-      {props.children}
+      {children}
     </TabPanelWrap>
   );
 }
