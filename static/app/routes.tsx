@@ -203,9 +203,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          component={make(
-            () => import('sentry/views/onboarding/targetedOnboarding/onboarding')
-          )}
+          component={make(() => import('sentry/views/onboarding/onboarding'))}
         />
       </Route>
     </Fragment>
