@@ -5,10 +5,6 @@ export type ReplayEventParameters = {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
   };
-  'replay.details-play-pause': {
-    play: boolean;
-    user_email: string;
-  };
   'replay.details-resized-panel': {
     layout: LayoutKey;
     slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
@@ -20,12 +16,16 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
-  'replay.details-toggle-fullscreen': {
-    fullscreen: boolean;
-    user_email: string;
-  };
   'replay.details-viewed': {
     referrer: undefined | string;
+    user_email: string;
+  };
+  'replay.play-pause': {
+    play: boolean;
+    user_email: string;
+  };
+  'replay.toggle-fullscreen': {
+    fullscreen: boolean;
     user_email: string;
   };
 };
@@ -36,8 +36,8 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-resized-panel': 'Resized Replay Details Panel',
   'replay.details-viewed': 'Viewed Replay Details',
-  'replay.details-play-pause': 'Played/Paused Replay',
+  'replay.play-pause': 'Played/Paused Replay',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
-  'replay.details-toggle-fullscreen': 'Toggled Replay Fullscreen',
+  'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
 };

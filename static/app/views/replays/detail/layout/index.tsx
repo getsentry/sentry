@@ -3,13 +3,9 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayView from 'sentry/components/replays/replayView';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import FocusArea from 'sentry/views/replays/detail/focusArea';
@@ -31,20 +27,7 @@ type Props = {
 };
 
 function ReplayLayout({layout = LayoutKey.topbar}: Props) {
-  const config = useLegacyStore(ConfigStore);
-  const organization = useOrganization();
-  const {ref: fullscreenRef, toggle: toggleFullscreen, isFullscreen} = useFullscreen();
-
-  // useFullscreen is a hook used by other replay views, wrapping toggle here to
-  // track the metric specifically for the replay details page.
-  const handleFullscreenToggle = () => {
-    trackAdvancedAnalyticsEvent('replay.details-toggle-fullscreen', {
-      organization,
-      user_email: config.user.email,
-      fullscreen: isFullscreen,
-    });
-    toggleFullscreen();
-  };
+  const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
 
   const timeline = (
     <ErrorBoundary mini>
@@ -55,7 +38,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
   const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={handleFullscreenToggle} />
+        <ReplayView toggleFullscreen={toggleFullscreen} />
       </ErrorBoundary>
     </VideoSection>
   );

@@ -2,6 +2,10 @@ import React, {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
@@ -40,6 +44,9 @@ interface Props {
 }
 
 function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
+
   const {
     currentTime,
     isFinished,
@@ -49,6 +56,15 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
     setCurrentTime,
     togglePlayPause,
   } = useReplayContext();
+
+  const handlePlayToggle = () => {
+    trackAdvancedAnalyticsEvent('replay.play-pause', {
+      organization,
+      user_email: config.user.email,
+      play: !isPlaying,
+    });
+    togglePlayPause(!isPlaying);
+  };
 
   return (
     <ButtonBar merged>
@@ -74,7 +90,7 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
           size="sm"
           title={isPlaying ? t('Pause') : t('Play')}
           icon={isPlaying ? <IconPause size="sm" /> : <IconPlay size="sm" />}
-          onClick={() => togglePlayPause(!isPlaying)}
+          onClick={handlePlayToggle}
           aria-label={isPlaying ? t('Pause') : t('Play')}
         />
       )}
@@ -170,9 +186,20 @@ const ReplayControls = ({
   toggleFullscreen = () => {},
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
   const [compactLevel, setCompactLevel] = useState(0);
   const {isFullscreen} = useFullscreen();
+
+  const handleFullscreenToggle = () => {
+    trackAdvancedAnalyticsEvent('replay.toggle-fullscreen', {
+      organization,
+      user_email: config.user.email,
+      fullscreen: !isFullscreen,
+    });
+    toggleFullscreen();
+  };
 
   const updateCompactLevel = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {width: 500};
@@ -201,7 +228,7 @@ const ReplayControls = ({
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
-        onClick={toggleFullscreen}
+        onClick={handleFullscreenToggle}
       />
     </ButtonGrid>
   );
