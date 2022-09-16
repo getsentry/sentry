@@ -16,6 +16,7 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     SEMVER_ALIAS,
     SEMVER_BUILD_ALIAS,
+    SIZE_UNITS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
@@ -517,11 +518,11 @@ class SearchVisitor(NodeVisitor):
             key in self.config.duration_keys
             or is_duration_measurement(key)
             or is_span_op_breakdown(key)
-            or self.builder.get_field_type(key) == "duration"
+            or self.builder.get_field_type(key) in [*DURATION_UNITS, "duration"]
         )
 
     def is_size_key(self, key):
-        return self.builder.get_field_type(key) == "size"
+        return self.builder.get_field_type(key) in SIZE_UNITS
 
     def is_date_key(self, key):
         return key in self.config.date_keys
@@ -759,9 +760,7 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            result_type = self.builder.get_function_result_type(search_key.name)
-
-            if result_type == "duration" or result_type in DURATION_UNITS:
+            if self.is_duration_key(search_key.name):
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs
