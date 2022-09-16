@@ -154,8 +154,7 @@ def _get_string_indexer_log_records(caplog):
                     "s:sessions/error@none",
                     "session.status",
                 }
-            }
-            ,
+            },
             id="index tag values true",
         ),
         pytest.param(
