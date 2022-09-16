@@ -35,11 +35,6 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
 
         self.path = f"/organizations/{self.org.slug}/replays/"
 
-    def test_no_feature(self):
-        self.browser.get(self.path)
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("replay list no feature")
-
     def test_simple(self):
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)

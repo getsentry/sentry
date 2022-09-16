@@ -49,11 +49,6 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         slug = f"{self.project.slug}:{replay_id}"
         self.path = f"/organizations/{self.org.slug}/replays/{slug}/"
 
-    def test_no_feature(self):
-        self.browser.get(self.path)
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.snapshot("replay detail no feature")
-
     def test_not_found(self):
         with self.feature(FEATURE_NAME):
             slug = f"{self.project.slug}:abcdef"
@@ -61,7 +56,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
 
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.snapshot("replay detail no feature")
+            self.browser.snapshot("replay detail not found")
 
     def test_simple(self):
         with self.feature(FEATURE_NAME):
