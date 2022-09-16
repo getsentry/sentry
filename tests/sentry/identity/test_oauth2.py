@@ -135,6 +135,7 @@ class OAuth2LoginViewTest(TestCase):
         response = self.view.dispatch(self.request, pipeline)
 
         assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
         redirect_url = urlparse(response["Location"])
         query = parse_qs(redirect_url.query)
 
@@ -150,6 +151,7 @@ class OAuth2LoginViewTest(TestCase):
         response = self.view.dispatch(self.request, pipeline)
 
         assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
         redirect_url = urlparse(response["Location"])
         query = parse_qs(redirect_url.query)
 
