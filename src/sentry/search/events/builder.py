@@ -102,6 +102,7 @@ from sentry.utils.snuba import (
     bulk_snql_query,
     is_duration_measurement,
     is_measurement,
+    is_numeric_measurement,
     is_percentage_measurement,
     is_span_op_breakdown,
     raw_snql_query,
@@ -852,12 +853,17 @@ class QueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
-        result: List[MetricMeta] = get_custom_measurements(
-            project_ids=self.params["project_id"],
-            organization_id=self.organization_id,
-            start=datetime.today() - timedelta(days=90),
-            end=datetime.today(),
-        )
+        try:
+            result: List[MetricMeta] = get_custom_measurements(
+                project_ids=self.params["project_id"],
+                organization_id=self.organization_id,
+                start=datetime.today() - timedelta(days=90),
+                end=datetime.today(),
+            )
+        # Don't fully fail if we can't get the CM, but still capture the exception
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+            return []
         return result
 
     def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
@@ -877,9 +883,11 @@ class QueryBuilder:
             or is_span_op_breakdown(field)
         ):
             return "duration"
-
-        if is_percentage_measurement(field):
+        elif is_percentage_measurement(field):
             return "percentage"
+        elif is_numeric_measurement(field):
+            return "number"
+
         measurement = self.get_measument_by_name(field)
         # let the caller decide what to do
         if measurement is None:
