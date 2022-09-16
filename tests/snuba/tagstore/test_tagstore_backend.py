@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
+from exam import fixture
 
 from sentry.event_manager import _pull_out_data
 from sentry.models import (
@@ -29,7 +30,7 @@ from sentry.tagstore.exceptions import (
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import iso_format
 from sentry.types.issues import GroupType
 
 exception = {
@@ -137,6 +138,50 @@ class TagStorageTest(TestCase, SnubaTestCase):
         self.proj1env1 = Environment.objects.get(name=env1)
         self.proj1env2 = Environment.objects.get(name=env2)
 
+    @fixture
+    def perf_group_and_env(self):
+        env_name = "test"
+        transaction_event_data = {
+            "message": "hello",
+            "type": "transaction",
+            "culprit": "app/components/events/eventEntries in map",
+            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            "environment": env_name,
+        }
+        env = Environment.objects.get(name=env_name)
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [perf_group]
+            return jobs, projects
+
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "tags": {"foo": "bar", "biz": "baz"},
+                    "release": "releaseme",
+                },
+                project_id=self.project.id,
+            )
+            self.store_event(
+                data={
+                    **transaction_event_data,
+                    "event_id": "b" * 32,
+                    "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                    "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
+                    "tags": {"foo": "quux"},
+                    "release": "releaseme",
+                },
+                project_id=self.project.id,
+            )
+        return perf_group, env
+
     def test_get_group_tag_keys_and_top_values(self):
         result = list(
             self.ts.get_group_tag_keys_and_top_values(self.proj1group1, [self.proj1env1.id])
@@ -178,46 +223,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert all(v.times_seen == 1 for v in top_release_values)
 
     def test_get_group_tag_keys_and_top_values_perf_issue(self):
-        env_name = "test"
-        transaction_event_data = {
-            "message": "hello",
-            "type": "transaction",
-            "culprit": "app/components/events/eventEntries in map",
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            "environment": env_name,
-        }
-        env = Environment.objects.get(name=env_name)
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group]
-            return jobs, projects
-
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"foo": "bar", "biz": "baz"},
-                    "release": "releaseme",
-                },
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "b" * 32,
-                    "timestamp": iso_format(before_now(minutes=2)),
-                    "start_timestamp": iso_format(before_now(minutes=2)),
-                    "tags": {"foo": "quux"},
-                    "release": "releaseme",
-                },
-                project_id=self.project.id,
-            )
+        perf_group, env = self.perf_group_and_env
 
         result = list(self.ts.get_group_tag_keys_and_top_values(perf_group, [env.id]))
         tags = [r.key for r in result]
@@ -257,22 +263,33 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert all(v.times_seen == 2 for v in top_release_values)
 
     def test_get_top_group_tag_values(self):
-        resp = self.ts.get_top_group_tag_values(
-            self.proj1.id, self.proj1group1.id, self.proj1env1.id, "foo", 1
-        )
+        resp = self.ts.get_top_group_tag_values(self.proj1group1, self.proj1env1.id, "foo", 1)
         assert len(resp) == 1
         assert resp[0].times_seen == 2
         assert resp[0].key == "foo"
         assert resp[0].value == "bar"
         assert resp[0].group_id == self.proj1group1.id
 
+    def test_get_top_group_tag_values_perf(self):
+        perf_group, env = self.perf_group_and_env
+        resp = self.ts.get_top_group_tag_values(perf_group, env.id, "foo", 2)
+        assert len(resp) == 2
+        assert resp[0].times_seen == 1
+        assert resp[0].key == "foo"
+        assert resp[0].value == "bar"
+        assert resp[0].group_id == perf_group.id
+        assert resp[1].times_seen == 1
+        assert resp[1].key == "foo"
+        assert resp[1].value == "quux"
+        assert resp[1].group_id == perf_group.id
+
     def test_get_group_tag_value_count(self):
-        assert (
-            self.ts.get_group_tag_value_count(
-                self.proj1.id, self.proj1group1.id, self.proj1env1.id, "foo"
-            )
-            == 2
-        )
+        assert self.ts.get_group_tag_value_count(self.proj1group1, self.proj1env1.id, "foo") == 2
+
+    def test_get_group_tag_value_count_perf(self):
+        perf_group, env = self.perf_group_and_env
+
+        assert self.ts.get_group_tag_value_count(perf_group, env.id, "foo") == 2
 
     def test_get_tag_keys(self):
         expected_keys = {
@@ -327,16 +344,14 @@ class TagStorageTest(TestCase, SnubaTestCase):
     def test_get_group_tag_key(self):
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
-                project_id=self.proj1.id,
-                group_id=self.proj1group1.id,
+                group=self.proj1group1,
                 environment_id=self.proj1env1.id,
                 key="notreal",
             )
 
         assert (
             self.ts.get_group_tag_key(
-                project_id=self.proj1.id,
-                group_id=self.proj1group1.id,
+                group=self.proj1group1,
                 environment_id=self.proj1env1.id,
                 key="foo",
             ).key
@@ -345,6 +360,28 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         keys = {k.key: k for k in self.ts.get_group_tag_keys(self.proj1group1, [self.proj1env1.id])}
         assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
+
+    def test_get_group_tag_key_perf(self):
+        perf_group, env = self.perf_group_and_env
+
+        with pytest.raises(GroupTagKeyNotFound):
+            self.ts.get_group_tag_key(
+                group=perf_group,
+                environment_id=env.id,
+                key="notreal",
+            )
+
+        assert (
+            self.ts.get_group_tag_key(
+                group=perf_group,
+                environment_id=self.proj1env1.id,
+                key="foo",
+            ).key
+            == "foo"
+        )
+
+        keys = {k.key: k for k in self.ts.get_group_tag_keys(perf_group, [env.id])}
+        assert set(keys) == {"biz", "environment", "foo", "sentry:release", "transaction", "level"}
 
     def test_get_group_tag_value(self):
         with pytest.raises(GroupTagValueNotFound):
@@ -358,8 +395,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert (
             self.ts.get_group_tag_values(
-                project_id=self.proj1.id,
-                group_id=self.proj1group1.id,
+                group=self.proj1group1,
                 environment_id=self.proj1env1.id,
                 key="notreal",
             )
@@ -369,8 +405,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert (
             list(
                 self.ts.get_group_tag_values(
-                    project_id=self.proj1.id,
-                    group_id=self.proj1group1.id,
+                    group=self.proj1group1,
                     environment_id=self.proj1env1.id,
                     key="foo",
                 )
@@ -730,9 +765,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
         from sentry.tagstore.types import GroupTagValue
 
         assert list(
-            self.ts.get_group_tag_value_iter(
-                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
-            )
+            self.ts.get_group_tag_value_iter(self.proj1group1, [self.proj1env1.id], "sentry:user")
         ) == [
             GroupTagValue(
                 group_id=self.proj1group1.id,
@@ -752,12 +785,36 @@ class TagStorageTest(TestCase, SnubaTestCase):
             ),
         ]
 
+    def test_get_group_tag_value_iter_perf(self):
+        from sentry.tagstore.types import GroupTagValue
+
+        group, env = self.perf_group_and_env
+
+        assert list(self.ts.get_group_tag_value_iter(group, [env.id], "foo")) == [
+            GroupTagValue(
+                group_id=group.id,
+                key="foo",
+                value="bar",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=1),
+                last_seen=self.now - timedelta(seconds=1),
+            ),
+            GroupTagValue(
+                group_id=group.id,
+                key="foo",
+                value="quux",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2),
+            ),
+        ]
+
     def test_get_group_tag_value_paginator(self):
         from sentry.tagstore.types import GroupTagValue
 
         assert list(
             self.ts.get_group_tag_value_paginator(
-                self.proj1.id, self.proj1group1.id, [self.proj1env1.id], "sentry:user"
+                self.proj1group1, [self.proj1env1.id], "sentry:user"
             ).get_result(10)
         ) == [
             GroupTagValue(
@@ -772,6 +829,32 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 group_id=self.proj1group1.id,
                 key="sentry:user",
                 value="id:user2",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2),
+            ),
+        ]
+
+    def test_get_group_tag_value_paginator_perf(self):
+        from sentry.tagstore.types import GroupTagValue
+
+        group, env = self.perf_group_and_env
+
+        assert list(
+            self.ts.get_group_tag_value_paginator(group, [env.id], "foo").get_result(10)
+        ) == [
+            GroupTagValue(
+                group_id=group.id,
+                key="foo",
+                value="bar",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=1),
+                last_seen=self.now - timedelta(seconds=1),
+            ),
+            GroupTagValue(
+                group_id=group.id,
+                key="foo",
+                value="quux",
                 times_seen=1,
                 first_seen=self.now - timedelta(seconds=2),
                 last_seen=self.now - timedelta(seconds=2),
@@ -803,8 +886,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
 
         assert list(
             self.ts.get_group_tag_value_paginator(
-                self.proj1.id,
-                self.proj1group1.id,
+                self.proj1group1,
                 [self.proj1env1.id],
                 "sentry:user",
                 order_by="-times_seen",
@@ -825,6 +907,59 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 times_seen=1,
                 first_seen=self.now - timedelta(seconds=1),
                 last_seen=self.now - timedelta(seconds=1),
+            ),
+        ]
+
+    def test_get_group_tag_value_paginator_times_seen_perf(self):
+        from sentry.tagstore.types import GroupTagValue
+
+        group, env = self.perf_group_and_env
+
+        def hack_pull_out_data(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [group]
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
+            self.store_event(
+                data={
+                    "message": "hello",
+                    "type": "transaction",
+                    "culprit": "app/components/events/eventEntries in map",
+                    "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                    "environment": env.name,
+                    "event_id": "a" * 32,
+                    "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                    "tags": {"foo": "bar"},
+                },
+                project_id=self.project.id,
+            )
+
+        assert list(
+            self.ts.get_group_tag_value_paginator(
+                group,
+                [env.id],
+                "foo",
+                order_by="-times_seen",
+            ).get_result(10)
+        ) == [
+            GroupTagValue(
+                group_id=group.id,
+                key="foo",
+                value="bar",
+                times_seen=2,
+                first_seen=self.now - timedelta(seconds=1),
+                last_seen=self.now - timedelta(seconds=1),
+            ),
+            GroupTagValue(
+                group_id=group.id,
+                key="foo",
+                value="quux",
+                times_seen=1,
+                first_seen=self.now - timedelta(seconds=2),
+                last_seen=self.now - timedelta(seconds=2),
             ),
         ]
 

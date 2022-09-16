@@ -130,11 +130,8 @@ class EventPerformanceProblem:
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
-        rate = options.get(
-            "store.use-ingest-performance-detection-only"
-        )  # TODO: Remove this option once performance.issues option is working.
-        inner_rate = options.get("performance.issues.all.problem-detection")
-        if rate and rate > random.random() and inner_rate and inner_rate > random.random():
+        rate = options.get("performance.issues.all.problem-detection")
+        if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
             with metrics.timer(
@@ -282,7 +279,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     if len(performance_problems) > 0:
         metrics.incr(
-            "performance.performance_issue.performance_problem_emitted", len(performance_problems)
+            "performance.performance_issue.performance_problem_emitted",
+            len(performance_problems),
+            sample_rate=1.0,
         )
 
     return performance_problems
@@ -847,10 +846,18 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if self._continues_n_plus_1(span):
             self.n_spans.append(span)
         else:
+            previous_span = self.n_spans[-1] if self.n_spans else None
             self._maybe_store_problem()
             self._reset_detection()
+
             # Maybe this DB span starts a whole new N+1!
-            self._maybe_use_as_source(span)
+            if previous_span:
+                self._maybe_use_as_source(previous_span)
+            if self.source_span and self._continues_n_plus_1(span):
+                self.n_spans.append(span)
+            else:
+                self.source_span = None
+                self._maybe_use_as_source(span)
 
     def on_complete(self) -> None:
         self._maybe_store_problem()

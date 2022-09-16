@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
@@ -17,6 +18,7 @@ describe('OrganizationGeneralSettings', function () {
 
   beforeEach(function () {
     ({organization, routerContext} = initializeOrg());
+    OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',

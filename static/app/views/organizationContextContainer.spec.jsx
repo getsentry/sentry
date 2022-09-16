@@ -3,9 +3,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {openSudo} from 'sentry/actionCreators/modal';
 import * as OrganizationActionCreator from 'sentry/actionCreators/organization';
 import ProjectActions from 'sentry/actions/projectActions';
-import TeamActions from 'sentry/actions/teamActions';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {OrganizationLegacyContext} from 'sentry/views/organizationContextContainer';
 
 jest.mock('sentry/stores/configStore', () => ({
@@ -56,7 +56,7 @@ describe('OrganizationContextContainer', function () {
       body: teams,
     });
 
-    jest.spyOn(TeamActions, 'loadTeams');
+    jest.spyOn(TeamStore, 'loadInitialData');
     jest.spyOn(ProjectActions, 'loadProjects');
     jest.spyOn(OrganizationActionCreator, 'fetchOrganizationDetails');
   });
@@ -65,7 +65,7 @@ describe('OrganizationContextContainer', function () {
     wrapper.unmount();
     OrganizationStore.reset();
 
-    TeamActions.loadTeams.mockRestore();
+    TeamStore.loadInitialData.mockRestore();
     ProjectActions.loadProjects.mockRestore();
     ConfigStore.get.mockRestore();
     OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
@@ -85,7 +85,7 @@ describe('OrganizationContextContainer', function () {
     expect(wrapper.state('error')).toBe(null);
     expect(wrapper.state('organization')).toEqual(org);
 
-    expect(TeamActions.loadTeams).toHaveBeenCalledWith(teams);
+    expect(TeamStore.loadInitialData).toHaveBeenCalledWith(teams);
     expect(ProjectActions.loadProjects).toHaveBeenCalledWith(projects);
     expect(OrganizationActionCreator.fetchOrganizationDetails).toHaveBeenCalledWith(
       api,
