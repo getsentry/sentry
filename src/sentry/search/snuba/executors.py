@@ -287,7 +287,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
         )
 
-        rows: List[Dict[str, int]] = []
+        rows: Optional[List[Dict[str, int]]] = []
         total = 0
         row_length = 0
         if not group_categories or GroupCategory.ERROR in group_categories:
