@@ -9,10 +9,13 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import OwnedBy from 'sentry/components/group/ownedBy';
 import GroupParticipants from 'sentry/components/group/participants';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
+import SuspectReleases from 'sentry/components/group/suspectReleases';
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
@@ -29,8 +32,6 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
-
-import SuspectReleases from './suspectReleases';
 
 type Props = {
   api: Client;
@@ -191,6 +192,9 @@ class BaseGroupSidebar extends Component<Props, State> {
         <PageFiltersContainer>
           <EnvironmentPageFilter alignDropdown="right" />
         </PageFiltersContainer>
+        <OwnedBy group={group} project={project} organization={organization} />
+        <AssignedTo group={group} projectId={project.id} />
+
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
