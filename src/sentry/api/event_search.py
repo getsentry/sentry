@@ -514,11 +514,12 @@ class SearchVisitor(NodeVisitor):
         )
 
     def is_duration_key(self, key):
+        duration_types = [*DURATION_UNITS, "duration"]
         return (
             key in self.config.duration_keys
             or is_duration_measurement(key)
             or is_span_op_breakdown(key)
-            or self.builder.get_field_type(key) in [*DURATION_UNITS, "duration"]
+            or self.builder.get_field_type(key) in duration_types
         )
 
     def is_size_key(self, key):
@@ -760,7 +761,9 @@ class SearchVisitor(NodeVisitor):
         try:
             # Even if the search value matches duration format, only act as
             # duration for certain columns
-            if self.is_duration_key(search_key.name):
+            result_type = self.builder.get_function_result_type(search_key.name)
+
+            if result_type == "duration" or result_type in DURATION_UNITS:
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs

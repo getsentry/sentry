@@ -263,7 +263,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
     def test_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
-        mock_type.return_value = "seconds"
+        mock_type.return_value = "second"
 
         assert parse_search_query("measurements.foo:>5s measurements.bar:<3m", config=config) == [
             SearchFilter(
@@ -281,7 +281,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
     def test_aggregate_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
-        mock_type.return_value = "minutes"
+        mock_type.return_value = "minute"
 
         assert parse_search_query(
             "p50(measurements.foo):>5s p100(measurements.bar):<3m", config=config
