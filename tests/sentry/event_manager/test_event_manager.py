@@ -2168,7 +2168,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
 
-
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
             {
                 "organizations:performance-issues-ingest": True,
