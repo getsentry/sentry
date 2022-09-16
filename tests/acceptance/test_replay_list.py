@@ -26,7 +26,17 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
         for replay_id in [uuid4().hex, uuid4().hex, uuid4().hex]:
             self.store_replays(
                 [
-                    mock_replay(seq1_timestamp, self.project.id, replay_id, segment_id=0),
+                    mock_replay(
+                        seq1_timestamp,
+                        self.project.id,
+                        replay_id,
+                        segment_id=0,
+                        urls=[
+                            "http://localhost/",
+                            "http://localhost/home/",
+                            "http://localhost/profile/",
+                        ],
+                    ),
                     mock_replay(seq2_timestamp, self.project.id, replay_id, segment_id=1),
                 ]
             )

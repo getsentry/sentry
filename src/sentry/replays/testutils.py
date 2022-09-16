@@ -261,6 +261,33 @@ def mock_segment_console(timestamp: datetime.datetime) -> SegmentList:
     ]
 
 
+def mock_segment_breadcrumb(timestamp: datetime.datetime, payload) -> SegmentList:
+    return [
+        {
+            "type": 5,
+            "timestamp": int(timestamp.timestamp()),
+            "data": {
+                "tag": "breadcrumb",
+                "payload": payload,
+            },
+        }
+    ]
+
+
+def mock_segment_nagivation(
+    timestamp: datetime.datetime, hrefFrom: str = "/", hrefTo: str = "/profile/"
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": int(timestamp.timestamp()) / 1000,
+            "type": "default",
+            "category": "navigation",
+            "data": {"from": hrefFrom, "to": hrefTo},
+        },
+    )
+
+
 __rrweb_id = 0
 
 

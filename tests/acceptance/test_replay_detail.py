@@ -7,6 +7,7 @@ from sentry.replays.testutils import (
     mock_segment_console,
     mock_segment_fullsnapshot,
     mock_segment_init,
+    mock_segment_nagivation,
 )
 from sentry.testutils import ReplaysAcceptanceTestCase
 
@@ -32,7 +33,17 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         seq2_timestamp = datetime.now() - timedelta(seconds=35)
         self.store_replays(
             [
-                mock_replay(seq1_timestamp, self.project.id, replay_id, segment_id=0),
+                mock_replay(
+                    seq1_timestamp,
+                    self.project.id,
+                    replay_id,
+                    segment_id=0,
+                    urls=[
+                        "http://localhost/",
+                        "http://localhost/home/",
+                        "http://localhost/profile/",
+                    ],
+                ),
                 mock_replay(seq2_timestamp, self.project.id, replay_id, segment_id=1),
             ]
         )
@@ -40,6 +51,12 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
             mock_segment_init(seq2_timestamp),
             mock_segment_fullsnapshot(seq2_timestamp, [mock_rrweb_div_helloworld()]),
             mock_segment_console(seq2_timestamp),
+            mock_segment_nagivation(
+                seq2_timestamp + timedelta(seconds=1), hrefFrom="/", hrefTo="/home/"
+            ),
+            mock_segment_nagivation(
+                seq2_timestamp + timedelta(seconds=2), hrefFrom="/home/", hrefTo="/profile/"
+            ),
         ]
         for (segment_id, segment) in enumerate(segments):
             self.store_replay_segments(replay_id, self.project.id, segment_id, segment)
