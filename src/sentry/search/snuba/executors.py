@@ -201,7 +201,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         conditions = []
         having = []
-        group_categories: Set[int] = set()
+        group_categories: Set[GroupCategory] = set()
         for search_filter in search_filters:
             if search_filter.key.name in ("issue.category", "issue.type"):
                 group_categories.update(
