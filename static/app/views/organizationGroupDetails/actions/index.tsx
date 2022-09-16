@@ -482,12 +482,13 @@ class Actions extends Component<Props, State> {
 }
 
 const Wrapper = styled('div')`
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: flex-start;
   align-items: center;
   grid-auto-flow: column;
-  gap: ${space(0.5)};
   margin-top: ${space(2)};
+  gap: ${space(0.5)};
   white-space: nowrap;
 `;
 
