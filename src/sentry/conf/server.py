@@ -2453,6 +2453,7 @@ KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
+KAFKA_REGION_TO_CONTROL = "region-to-control"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2500,6 +2501,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
+    # User Ip Events -- bucketed by region name
+    KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
 }
 
 
