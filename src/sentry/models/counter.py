@@ -9,6 +9,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
+    get_model_if_available,
     region_silo_model,
     sane_repr,
 )
@@ -94,9 +95,7 @@ def create_counter_function(app_config, using, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    try:
-        app_config.get_model("Counter")
-    except LookupError:
+    if not get_model_if_available(app_config, "Counter"):
         return
 
     cursor = connections[using].cursor()

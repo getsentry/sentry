@@ -40,11 +40,7 @@ def decorate_models_by_relation(
     control_classes = model_classes.difference(region_classes)
 
     def filtered_names(classes):
-        return (
-            (c.__module__, c.__name__)
-            for c in classes
-            if not hasattr(c._meta, "_ModelSiloLimit__silo_limit")
-        )
+        return ((c.__module__, c.__name__) for c in classes if not hasattr(c._meta, "silo_limit"))
 
     apply_decorators(
         "control_silo_model",
