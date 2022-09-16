@@ -122,7 +122,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 35
+        expected_queries = 36
 
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
@@ -217,6 +217,15 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             # check that created is in the correct range
             created = parse_date(response_data[i]["created"])
             assert start_time < created < end_time
+
+    def test_has_auth_provider(self):
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["hasAuthProvider"] is False
+
+        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["hasAuthProvider"] is True
 
 
 @region_silo_test
