@@ -74,8 +74,12 @@ class InboundMessage(TypedDict):
 
 
 class IndexerBatch:
-    def __init__(self, use_case_id: UseCaseKey, outer_message: Message[
-        MessageBatch], should_index_tag_values: bool) -> None:
+    def __init__(
+        self,
+        use_case_id: UseCaseKey,
+        outer_message: Message[MessageBatch],
+        should_index_tag_values: bool,
+    ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
