@@ -9,6 +9,8 @@ from sentry.snuba import discover
 
 @region_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization, check_global_views=False)

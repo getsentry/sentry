@@ -1567,7 +1567,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-replay-index",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/replays_events_meta/$",
+                    r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
                     OrganizationReplayEventsMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-events-meta",
                 ),
