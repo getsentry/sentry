@@ -1,6 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
@@ -75,7 +75,7 @@ describe('MetricsBaselineContainer', function () {
     });
   });
 
-  it('makes an events stats request with metrics dataset', async function () {
+  it('enables processed baseline toggle if metrics cardinality conditions met', async function () {
     addMetricsDataMock();
     const organization = TestStubs.Organization({
       features: [
@@ -99,5 +99,39 @@ describe('MetricsBaselineContainer', function () {
         })
       );
     });
+
+    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
+  });
+
+  it('disables processed baseline toggle if metrics cardinality conditions not met', function () {
+    const organization = TestStubs.Organization({
+      features: [...features, 'discover-metrics-baseline'],
+    });
+
+    const yAxis = ['p50(transaction.duration)'];
+
+    renderMetricsBaselineContainer(organization, project, eventView, yAxis);
+
+    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
+  });
+
+  it('disables toggle if discover hits the events dataset', function () {
+    addMetricsDataMock();
+    const organization = TestStubs.Organization({
+      features: [
+        ...features,
+        'discover-metrics-baseline',
+        'server-side-sampling',
+        'mep-rollout-flag',
+      ],
+    });
+    const yAxis = ['count()'];
+
+    renderMetricsBaselineContainer(organization, project, eventView, yAxis);
+
+    expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
   });
 });

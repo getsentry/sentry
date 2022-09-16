@@ -76,7 +76,7 @@ export default function ChartFooter({
             <Switch
               data-test-id="processed-events-toggle"
               isActive={showBaseline}
-              isDisabled={disableProcessedBaselineToggle ?? false}
+              isDisabled={disableProcessedBaselineToggle ?? true}
               size="lg"
               toggle={() => setShowBaseline(!showBaseline)}
             />
