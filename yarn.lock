@@ -2341,14 +2341,15 @@
   resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.3.1.tgz#0ab8be23fd494d80dd0e4ec8ae5f3d13f805b13d"
   integrity sha512-/dGpCq+j3sJhqQ14RNEEL45Ot/rgq3jAlZDD/8ufeqq+W8p4gUhSrbGWCRL82NEIWY9SYwxYXGXjRcVPSHiA1Q==
 
-"@sentry/replay@0.5.15":
-  version "0.5.15"
-  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.15.tgz#ecb8adfe13210549404c1dd10e64b8cb3fb3d073"
-  integrity sha512-gtk5m8HnGuc3K1RYIhSovSkP1TGgWveAbRbIoJ2jLGk89BqHC72YjXN5kwX9kT7qhs7NZW2gGluc2OmV39vzrw==
+"@sentry/replay@0.5.17":
+  version "0.5.17"
+  resolved "https://registry.yarnpkg.com/@sentry/replay/-/replay-0.5.17.tgz#c7d395d08f2bba9b23f70aaf992e5f2f114ef563"
+  integrity sha512-0rj4qeAWlbapwVDh6w85n4pM5RFOVThB5RdI+wGGZ6Z3P5gi2C5psRyGsB3aSd7G9xx1igx2AkDiqyZMvAg+jA==
   dependencies:
     "@sentry/core" "^7.7.0"
     "@sentry/types" "^7.7.0"
     "@sentry/utils" "^7.7.0"
+    lodash.throttle "^4.1.1"
     pako "^2.0.4"
     rrweb "^1.1.3"
 
@@ -10257,6 +10258,11 @@ lodash.merge@^4.6.2:
   version "4.6.2"
   resolved "https://registry.yarnpkg.com/lodash.merge/-/lodash.merge-4.6.2.tgz#558aa53b43b661e1925a0afdfa36a9a1085fe57a"
   integrity sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==
+
+lodash.throttle@^4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/lodash.throttle/-/lodash.throttle-4.1.1.tgz#c23e91b710242ac70c37f1e1cda9274cc39bf2f4"
+  integrity sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==
 
 lodash.truncate@^4.4.2:
   version "4.4.2"
