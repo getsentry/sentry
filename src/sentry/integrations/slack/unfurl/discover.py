@@ -29,6 +29,7 @@ display_modes: Mapping[str, ChartType] = {
     "dailytop5": ChartType.SLACK_DISCOVER_TOP5_DAILY,
     "previous": ChartType.SLACK_DISCOVER_PREVIOUS_PERIOD,
     "worldmap": ChartType.SLACK_DISCOVER_WORLDMAP,
+    "bar": ChartType.SLACK_DISCOVER_TOTAL_DAILY,
 }
 
 # All `multiPlotType: line` fields in /static/app/utils/discover/fields.tsx
