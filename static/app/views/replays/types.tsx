@@ -61,7 +61,7 @@ export type ReplayRecord = {
    * The **earliest** timestamp received as determined by the SDK.
    */
   startedAt: Date;
-  tags: Record<string, string>;
+  tags: Record<string, string[]>;
   title: string;
   traceIds: string[];
   urls: string[];

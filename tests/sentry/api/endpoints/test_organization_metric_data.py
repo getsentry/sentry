@@ -456,6 +456,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             per_page=2,
+            useCase="performance",
         )
         assert response.status_code == 200
 
@@ -470,6 +471,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             cursor=Cursor(0, 1),
             statsPeriod="1h",
+            useCase="performance",
         )
         assert response.status_code == 200, response.data
 
@@ -787,6 +789,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 0

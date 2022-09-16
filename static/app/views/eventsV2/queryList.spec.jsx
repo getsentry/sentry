@@ -11,6 +11,7 @@ import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/type
 import QueryList from 'sentry/views/eventsV2/queryList';
 
 jest.mock('sentry/actionCreators/modal');
+jest.mock('sentry/components/charts/eventsRequest');
 
 describe('EventsV2 > QueryList', function () {
   let location, savedQueries, organization, deleteMock, duplicateMock, queryChangeMock;
@@ -88,6 +89,7 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
+
     const content = wrapper.find('QueryCard');
     // pre built + saved queries
     expect(content).toHaveLength(5);

@@ -28,6 +28,8 @@ describe('IdBadge', function () {
   });
 
   it('throws when no valid properties are passed', function () {
+    // Error is expected, do not fail when calling console.error
+    jest.spyOn(console, 'error').mockImplementation();
     expect(() => render(<IdBadge />)).toThrow();
   });
 });
