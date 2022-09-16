@@ -20,7 +20,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message
 from django.conf import settings
 
-from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import Metadata
