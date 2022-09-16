@@ -91,6 +91,7 @@ function Onboarding(props: Props) {
 
   useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
 
+  // Called onExitComplete
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
     if (!stepObj) {
@@ -98,10 +99,7 @@ function Onboarding(props: Props) {
     }
 
     setContainerHasFooter(stepObj.hasFooter ?? false);
-    cornerVariantControl.start(stepObj.cornerVariant);
   };
-
-  useEffect(updateAnimationState, [stepObj, cornerVariantControl]);
 
   const goToStep = (step: StepDescriptor) => {
     if (!stepObj) {
