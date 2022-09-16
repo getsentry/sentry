@@ -1,7 +1,6 @@
 import {createStore} from 'reflux';
 
 import ProjectActions from 'sentry/actions/projectActions';
-import TeamActions from 'sentry/actions/teamActions';
 import {Project, Team} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
@@ -71,10 +70,6 @@ const storeConfig: ProjectsStoreDefinition = {
     this.unsubscribeListeners.push(this.listenTo(ProjectActions.reset, this.reset));
     this.unsubscribeListeners.push(
       this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess)
-    );
-
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.removeTeamSuccess, this.onDeleteTeam)
     );
   },
 

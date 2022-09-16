@@ -1,8 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'sentry/actionCreators/projects';
-import TeamActions from 'sentry/actions/teamActions';
 import {Client} from 'sentry/api';
+import TeamStore from 'sentry/stores/teamStore';
 import {AccessRequest, Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -49,7 +49,7 @@ class OrganizationTeamsContainer extends AsyncView<Props, State> {
     }));
     if (isApproved && requestToRemove) {
       const team = requestToRemove.team;
-      TeamActions.updateSuccess(team.slug, {
+      TeamStore.onUpdateSuccess(team.slug, {
         ...team,
         memberCount: team.memberCount + 1,
       });

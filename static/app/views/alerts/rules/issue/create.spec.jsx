@@ -61,7 +61,6 @@ describe('ProjectAlertsCreate', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    TeamStore.teardown();
   });
 
   const createWrapper = (props = {}, location = {}) => {

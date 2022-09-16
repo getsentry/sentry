@@ -8,10 +8,6 @@ describe('TeamBadge', function () {
     TeamStore.init();
   });
 
-  afterEach(() => {
-    TeamStore.teardown();
-  });
-
   it('renders with Avatar and team name', function () {
     render(<TeamBadge team={TestStubs.Team()} />);
     expect(screen.getByTestId('badge-styled-avatar')).toBeInTheDocument();
