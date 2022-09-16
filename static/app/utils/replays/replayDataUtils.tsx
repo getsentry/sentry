@@ -51,6 +51,8 @@ export function breadcrumbFactory(
   rawCrumbs: ReplayCrumb[],
   spans: ReplaySpan[]
 ): Crumb[] {
+  const UNWANTED_CRUMB_CATEGORIES = ['ui.focus', 'ui.blur'];
+
   const initialUrl = replayRecord.tags.url?.join(', ');
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
@@ -119,13 +121,21 @@ export function breadcrumbFactory(
 
   const hasPageLoad = spans.find(span => span.op === 'navigation.navigate');
 
+  const rawCrumbsWithTimestamp: RawCrumb[] = rawCrumbs
+    .filter(crumb => {
+      return !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '');
+    })
+    .map(crumb => {
+      return {
+        ...crumb,
+        type: BreadcrumbType.DEFAULT,
+        timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+      };
+    });
+
   const result = transformCrumbs([
     ...(!hasPageLoad ? [initBreadcrumb] : []),
-    ...(rawCrumbs.map(({timestamp, ...crumb}) => ({
-      ...crumb,
-      type: BreadcrumbType.DEFAULT,
-      timestamp: new Date(timestamp * 1000).toISOString(),
-    })) as RawCrumb[]),
+    ...rawCrumbsWithTimestamp,
     ...errorCrumbs,
     ...spanCrumbs,
   ]);
