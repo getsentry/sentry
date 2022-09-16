@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.serializers import serialize
+from sentry.issues.query import apply_performance_conditions
 from sentry.search.events.filter import get_filter
 from sentry.snuba.dataset import Dataset
 from sentry.types.issues import GroupCategory
@@ -49,6 +50,6 @@ def get_filter_for_group(
         snuba_filter.group_ids = [group.id]
     elif group.issue_category == GroupCategory.PERFORMANCE:
         dataset = Dataset.Transactions
-        snuba_filter.conditions.append([["has", ["group_ids", group.id]], "=", 1])
+        apply_performance_conditions(snuba_filter.conditions, group)
 
     return snuba_filter, dataset

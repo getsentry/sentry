@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.release import Release
@@ -17,11 +18,18 @@ from sentry.models.releasecommit import ReleaseCommit
 class GroupOwnerType(Enum):
     SUSPECT_COMMIT = 0
     OWNERSHIP_RULE = 1
+    CODEOWNERS = 2
+
+
+class OwnerRuleType(Enum):
+    OWNERSHIP_RULE = "ownership_rule"
+    CODEOWNERS = "codeowners"
 
 
 GROUP_OWNER_TYPE = {
     GroupOwnerType.SUSPECT_COMMIT: "suspectCommit",
     GroupOwnerType.OWNERSHIP_RULE: "ownershipRule",
+    GroupOwnerType.CODEOWNERS: "codeowners",
 }
 
 
@@ -53,8 +61,10 @@ class GroupOwner(Model):
         choices=(
             (GroupOwnerType.SUSPECT_COMMIT, "Suspect Commit"),
             (GroupOwnerType.OWNERSHIP_RULE, "Ownership Rule"),
+            (GroupOwnerType.CODEOWNERS, "Codeowners"),
         )
     )
+    context = JSONField(null=True)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)

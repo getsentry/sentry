@@ -9,6 +9,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 import {DatasetConfig} from '../datasetConfig/base';
 import {
@@ -73,6 +74,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   dashboardFilters?: DashboardFilters;
   limit?: number;
   loading?: boolean;
+  mepSetting?: MEPState | null;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
@@ -230,6 +232,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       cursor,
       afterFetchTableData,
       onDataFetched,
+      mepSetting,
     } = this.props;
     const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
     const responses = await Promise.all(
@@ -254,7 +257,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           selection,
           requestLimit,
           cursor,
-          getReferrer(widget.displayType)
+          getReferrer(widget.displayType),
+          mepSetting
         );
       })
     );
@@ -303,6 +307,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       selection,
       afterFetchSeriesData,
       onDataFetched,
+      mepSetting,
     } = this.props;
     const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
 
@@ -314,7 +319,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           index,
           organization,
           selection,
-          getReferrer(widget.displayType)
+          getReferrer(widget.displayType),
+          mepSetting
         );
       })
     );

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent
+    from sentry.eventstore.models import Event
 
 
 class ForwarderNotRequired(NotImplementedError):
@@ -67,11 +67,11 @@ class EventStream(Service):
 
     def insert(
         self,
-        event: BaseEvent,
+        event: Event,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: str,
+        primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
     ) -> None:
@@ -86,7 +86,9 @@ class EventStream(Service):
             skip_consume,
         )
 
-    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
+    def start_delete_groups(
+        self, project_id: int, group_ids: Sequence[int]
+    ) -> Optional[Mapping[str, Any]]:
         pass
 
     def end_delete_groups(self, state: Mapping[str, Any]) -> None:
@@ -94,7 +96,7 @@ class EventStream(Service):
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Mapping[str, Any]:
+    ) -> Optional[Mapping[str, Any]]:
         pass
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
@@ -102,13 +104,13 @@ class EventStream(Service):
 
     def start_unmerge(
         self, project_id: int, hashes: Collection[str], previous_group_id: int, new_group_id: int
-    ) -> Mapping[str, Any]:
+    ) -> Optional[Mapping[str, Any]]:
         pass
 
     def end_unmerge(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
+    def start_delete_tag(self, project_id: int, tag: str) -> Optional[Mapping[str, Any]]:
         pass
 
     def end_delete_tag(self, state: Mapping[str, Any]) -> None:
