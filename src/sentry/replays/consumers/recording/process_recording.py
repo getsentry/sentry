@@ -9,6 +9,7 @@ from io import BytesIO
 from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
 
 import msgpack
+import sentry_sdk
 from arroyo import Partition
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
@@ -95,34 +96,41 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         message_dict: RecordingSegmentMessage,
         cached_replay_recording_segment: CachedAttachment,
     ) -> None:
-        try:
-            headers, recording_segment = self._process_headers(cached_replay_recording_segment.data)
-        except MissingRecordingSegmentHeaders:
-            logger.warning(f"missing header on {message_dict['replay_id']}")
-            return
+        with sentry_sdk.start_transaction(
+            op="replays.consumer.flush_batch", description="Replay recording segment stored."
+        ):
+            sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
 
-        # create a File for our recording segment.
-        recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
-        file = File.objects.create(
-            name=recording_segment_file_name,
-            type="replay.recording",
-        )
-        file.putfile(
-            BytesIO(recording_segment),
-            blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
-        )
-        # associate this file with an indexable replay_id via ReplayRecordingSegment
-        ReplayRecordingSegment.objects.create(
-            replay_id=message_dict["replay_id"],
-            project_id=message_dict["project_id"],
-            segment_id=headers["segment_id"],
-            file_id=file.id,
-        )
-        # delete the recording segment from cache after we've stored it
-        cached_replay_recording_segment.delete()
+            try:
+                headers, recording_segment = self._process_headers(
+                    cached_replay_recording_segment.data
+                )
+            except MissingRecordingSegmentHeaders:
+                logger.warning(f"missing header on {message_dict['replay_id']}")
+                return
 
-        # TODO: how to handle failures in the above calls. what should happen?
-        # also: handling same message twice?
+            # create a File for our recording segment.
+            recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
+            file = File.objects.create(
+                name=recording_segment_file_name,
+                type="replay.recording",
+            )
+            file.putfile(
+                BytesIO(recording_segment),
+                blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
+            )
+            # associate this file with an indexable replay_id via ReplayRecordingSegment
+            ReplayRecordingSegment.objects.create(
+                replay_id=message_dict["replay_id"],
+                project_id=message_dict["project_id"],
+                segment_id=headers["segment_id"],
+                file_id=file.id,
+            )
+            # delete the recording segment from cache after we've stored it
+            cached_replay_recording_segment.delete()
+
+            # TODO: how to handle failures in the above calls. what should happen?
+            # also: handling same message twice?
 
     def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
         cache_id = replay_recording_segment_cache_id(
@@ -161,15 +169,26 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
-        # TODO: validate schema against json schema?
         try:
-            message_dict = msgpack.unpackb(message.payload.value)
-            self._configure_sentry_scope(message_dict)
+            with sentry_sdk.start_transaction(
+                op="replays.consumer.process_recording",
+                description="Replay recording segment message received.",
+            ):
+                message_dict = msgpack.unpackb(message.payload.value)
+                self._configure_sentry_scope(message_dict)
 
-            if message_dict["type"] == "replay_recording_chunk":
-                self._process_chunk(cast(RecordingSegmentChunkMessage, message_dict), message)
-            if message_dict["type"] == "replay_recording":
-                self._process_recording(cast(RecordingSegmentMessage, message_dict), message)
+                if message_dict["type"] == "replay_recording_chunk":
+                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
+                    with sentry_sdk.start_span(op="replay_recording_chunk"):
+                        self._process_chunk(
+                            cast(RecordingSegmentChunkMessage, message_dict), message
+                        )
+                if message_dict["type"] == "replay_recording":
+                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
+                    with sentry_sdk.start_span(op="replay_recording"):
+                        self._process_recording(
+                            cast(RecordingSegmentMessage, message_dict), message
+                        )
         except Exception:
             # avoid crash looping on bad messsages for now
             logger.exception(
