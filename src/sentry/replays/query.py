@@ -65,6 +65,12 @@ def query_replays_collection(
         start=start,
         end=end,
         where=conditions,
+        having=[
+            # Must include the first sequence otherwise the replay is too old.
+            Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+            # Discard short replays (5 seconds by arbitrary decision).
+            Condition(Column("duration"), Op.GTE, 5),
+        ],
         sorting=sort_ordering,
         pagination=paginators,
         search_filters=search_filters,
@@ -86,6 +92,7 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
+        having=[],
         sorting=[],
         pagination=None,
         search_filters=[],
@@ -98,6 +105,7 @@ def query_replays_dataset(
     start: datetime,
     end: datetime,
     where: List[Condition],
+    having: List[Condition],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
@@ -122,11 +130,7 @@ def query_replays_dataset(
                 *where,
             ],
             having=[
-                # Must include the first sequence otherwise the replay is too old.
-                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
-                # Discard short replays (5 seconds by arbitrary decision).
-                Condition(Column("duration"), Op.GTE, 5),
-                # User conditions.
+                *having,
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
             ],
             orderby=sorting,
