@@ -166,6 +166,7 @@ type ContainerProps = {
   location: Location;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
@@ -231,6 +232,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       total,
       onAxisChange,
       onDisplayChange,
+      onIntervalChange,
       onTopEventsChange,
       organization,
       confirmedQuery,
@@ -301,6 +303,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
           displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
           onTopEventsChange={onTopEventsChange}
+          onIntervalChange={onIntervalChange}
           topEvents={eventView.topEvents ?? TOP_N.toString()}
           showBaseline={showBaseline}
           setShowBaseline={setShowBaseline}

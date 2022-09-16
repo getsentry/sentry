@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import IntervalSelector from 'sentry/components/charts/intervalSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -23,6 +24,7 @@ type Props = {
   eventView: EventView;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
   organization: Organization;
   setShowBaseline: (value: boolean) => void;
@@ -43,11 +45,13 @@ export default function ChartFooter({
   displayOptions,
   onDisplayChange,
   onTopEventsChange,
+  onIntervalChange,
   topEvents,
   setShowBaseline,
   showBaseline,
   organization,
   disableProcessedBaselineToggle,
+  eventView,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
@@ -102,6 +106,9 @@ export default function ChartFooter({
               )}
             />
           </Fragment>
+        </Feature>
+        <Feature organization={organization} features={['discover-interval-selector']}>
+          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
         </Feature>
         <OptionSelector
           title={t('Display')}

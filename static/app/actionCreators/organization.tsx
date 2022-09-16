@@ -8,9 +8,9 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import ProjectActions from 'sentry/actions/projectActions';
-import TeamActions from 'sentry/actions/teamActions';
 import {Client, ResponseMeta} from 'sentry/api';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import TeamStore from 'sentry/stores/teamStore';
 import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -119,7 +119,7 @@ export function fetchOrganizationDetails(
   if (!silent) {
     OrganizationActions.reset();
     ProjectActions.reset();
-    TeamActions.reset();
+    TeamStore.reset();
     PageFiltersStore.onReset();
   }
 
@@ -165,9 +165,9 @@ export function fetchOrganizationDetails(
       const paginationObject = parseLinkHeader(teamPageLinks);
       const hasMore = paginationObject?.next?.results ?? false;
       const cursor = paginationObject.next?.cursor;
-      TeamActions.loadTeams(teams, hasMore, cursor);
+      TeamStore.loadInitialData(teams, hasMore, cursor);
     } else {
-      TeamActions.loadTeams(teams);
+      TeamStore.loadInitialData(teams);
     }
   };
 

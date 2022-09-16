@@ -39,6 +39,7 @@ export function renderMetricsBaselineContainer(
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         eventView={eventView}
         api={api}
         confirmedQuery

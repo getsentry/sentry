@@ -3,39 +3,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types/organization';
-import {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import ChartFooter from 'sentry/views/eventsV2/chartFooter';
-
-export function metricsCardinalityWrapped(
-  children: React.ReactNode,
-  organization: Organization,
-  project: Project
-) {
-  const routerLocation: {query: {project?: number}} = {
-    query: {project: parseInt(project.id, 10)},
-  };
-
-  const router = {
-    location: routerLocation,
-  };
-
-  const initialData = initializeOrg({
-    organization,
-    projects: [project],
-    project,
-    router,
-  });
-  const location = initialData.router.location;
-  return (
-    <MetricsCardinalityProvider location={location} organization={organization}>
-      {children}
-    </MetricsCardinalityProvider>
-  );
-}
 
 describe('EventsV2 > ChartFooter', function () {
   const features = ['discover-basic'];
@@ -81,6 +51,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -88,10 +59,7 @@ describe('EventsV2 > ChartFooter', function () {
       />
     );
 
-    const wrapper = mountWithTheme(
-      metricsCardinalityWrapped(chartFooter, organization, project),
-      initialData.routerContext
-    );
+    const wrapper = mountWithTheme(chartFooter, initialData.routerContext);
 
     wrapper.update();
 
@@ -125,6 +93,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -132,10 +101,7 @@ describe('EventsV2 > ChartFooter', function () {
       />
     );
 
-    const wrapper = mountWithTheme(
-      metricsCardinalityWrapped(chartFooter, organization, project),
-      initialData.routerContext
-    );
+    const wrapper = mountWithTheme(chartFooter, initialData.routerContext);
 
     await tick();
     wrapper.update();
@@ -161,6 +127,7 @@ describe('EventsV2 > ChartFooter', function () {
         displayOptions={[{label: DisplayModes.DEFAULT, value: DisplayModes.DEFAULT}]}
         onDisplayChange={() => undefined}
         onTopEventsChange={() => undefined}
+        onIntervalChange={() => undefined}
         topEvents="5"
         showBaseline={false}
         setShowBaseline={() => undefined}
@@ -168,7 +135,7 @@ describe('EventsV2 > ChartFooter', function () {
       />
     );
 
-    render(metricsCardinalityWrapped(chartFooter, organization, project));
+    render(chartFooter);
 
     userEvent.click(screen.getByText('count()'));
     userEvent.click(screen.getByText('failure_count()'));

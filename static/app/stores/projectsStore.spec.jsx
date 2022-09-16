@@ -1,6 +1,6 @@
 import ProjectActions from 'sentry/actions/projectActions';
-import TeamActions from 'sentry/actions/teamActions';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TeamStore from 'sentry/stores/teamStore';
 
 describe('ProjectsStore', function () {
   const teamFoo = TestStubs.Team({
@@ -120,7 +120,7 @@ describe('ProjectsStore', function () {
         teams: [expect.objectContaining({slug: 'team-foo'})],
       });
 
-      TeamActions.removeTeamSuccess('team-foo');
+      TeamStore.onRemoveSuccess('team-foo');
       await tick();
 
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({

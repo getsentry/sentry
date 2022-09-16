@@ -50,6 +50,7 @@ describe('EventsV2 > ResultsChart', function () {
         eventView={eventView}
         location={location}
         onAxisChange={() => undefined}
+        onIntervalChange={() => undefined}
         onDisplayChange={() => undefined}
         total={1}
         confirmedQuery
@@ -85,6 +86,7 @@ describe('EventsV2 > ResultsChart', function () {
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
+        onIntervalChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={[]}
@@ -115,6 +117,7 @@ describe('EventsV2 > ResultsChart', function () {
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
+        onIntervalChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={['count()']}
