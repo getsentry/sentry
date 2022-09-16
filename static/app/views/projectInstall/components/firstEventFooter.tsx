@@ -6,9 +6,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
-
-import FirstEventIndicator from './firstEventIndicator';
 
 interface FirstEventFooterProps {
   organization: Organization;

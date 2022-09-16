@@ -15,11 +15,11 @@ import {IntegrationProvider, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
-import FirstEventFooter from 'sentry/views/onboarding/components/firstEventFooter';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';
 import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
+import FirstEventFooter from './components/firstEventFooter';
 import PlatformHeaderButtonBar from './components/platformHeaderButtonBar';
 
 type Props = {
@@ -38,7 +38,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      installed: false,
+      installed: true,
       integrations: {providers: []},
       project: null,
     };
