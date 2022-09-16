@@ -121,19 +121,17 @@ export function breadcrumbFactory(
 
   const hasPageLoad = spans.find(span => span.op === 'navigation.navigate');
 
-  const rawCrumbsWithTimestamp = rawCrumbs.reduce((acc, crumb) => {
-    if (UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '')) {
-      return acc;
-    }
-
-    acc.push({
-      ...crumb,
-      type: BreadcrumbType.DEFAULT,
-      timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+  const rawCrumbsWithTimestamp: RawCrumb[] = rawCrumbs
+    .filter(crumb => {
+      return !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '');
+    })
+    .map(crumb => {
+      return {
+        ...crumb,
+        type: BreadcrumbType.DEFAULT,
+        timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+      };
     });
-
-    return acc;
-  }, [] as RawCrumb[]);
 
   const result = transformCrumbs([
     ...(!hasPageLoad ? [initBreadcrumb] : []),
