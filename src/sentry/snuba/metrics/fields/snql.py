@@ -367,3 +367,33 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
         ],
         alias=alias,
     )
+
+
+def count_unparameterized_transactions_snql_factory(aggregate_filter, org_id, alias=None):
+    return Function(
+        "countIf",
+        [
+            Function(
+                "and",
+                [
+                    aggregate_filter,
+                    Function(
+                        "equals",
+                        [
+                            Column(
+                                resolve_tag_key(
+                                    UseCaseKey.PERFORMANCE,
+                                    org_id,
+                                    "transaction",  # TODO: not sure about the use case.
+                                )
+                            ),
+                            resolve_tag_value(
+                                UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
+                            ),
+                        ],
+                    ),
+                ],
+            )
+        ],
+        alias=alias,
+    )

@@ -44,6 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_users,
     apdex,
     complement,
+    count_unparameterized_transactions_snql_factory,
     count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
@@ -1344,6 +1345,11 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="count_web_vitals",
             can_orderby=True,
             snql_func=count_web_vitals_snql_factory,
+        ),
+        DerivedOp(
+            op="count_unparameterized_transactions",
+            can_orderby=True,  # TODO: not sure but it looks like it makes sense if you want to group by something.
+            snql_func=count_unparameterized_transactions_snql_factory,
         ),
     ]
 }

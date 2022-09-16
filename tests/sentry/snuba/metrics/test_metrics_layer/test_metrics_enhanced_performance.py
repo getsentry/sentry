@@ -154,88 +154,58 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_alias_on_same_metrics_expression_but_different_aliases(self):
-        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
-            for value in [123.4] * count:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
-                    type="distribution",
-                    name=TransactionMRI.MEASUREMENTS_LCP.value,
-                    tags={"transaction": v_transaction, "measurement_rating": "poor"},
-                    timestamp=int(time.time()),
-                    value=value,
-                    use_case_id=UseCaseKey.PERFORMANCE,
-                )
+    def test_count_unparameterized_transactions(self):
+        for value in [1, 4, 10]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": "<< unparameterized >>"},
+                timestamp=int(time.time()),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
                 MetricField(
-                    op="count",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
-                    alias="count_lcp",
-                ),
-                MetricField(
-                    op="count",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
-                    alias="count_lcp_2",
+                    op="count_unparameterized_transactions",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    alias="count_unparameterized_transactions_duration",
                 ),
             ],
             start=self.now - timedelta(hours=1),
             end=self.now,
-            granularity=Granularity(granularity=3600),
-            groupby=[
-                MetricGroupByField("transaction", alias="transaction_group"),
-            ],
-            orderby=[
-                OrderBy(
-                    MetricField(
-                        op="count",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
-                        alias="count_lcp",
-                    ),
-                    Direction.DESC,
-                ),
-                OrderBy(
-                    MetricField(
-                        op="count",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
-                        alias="count_lcp_2",
-                    ),
-                    Direction.DESC,
-                ),
-            ],
+            granularity=Granularity(granularity=3600),  # TODO: not sure about granularity.
+            groupby=[],
+            orderby=[],
             limit=Limit(limit=2),
             offset=Offset(offset=0),
             include_series=False,
         )
+
         data = get_series(
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
-        groups = data["groups"]
-        assert len(groups) == 2
 
-        expected = [
-            ("/bar", 3),
-            ("/baz", 2),
-        ]
-        for (expected_transaction, expected_count), group in zip(expected, groups):
-            # With orderBy, you only get totals:
-            assert group["by"] == {"transaction_group": expected_transaction}
-            assert group["totals"] == {
-                "count_lcp": expected_count,
-                "count_lcp_2": expected_count,
-            }
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 3
+
+        assert groups[0]["totals"] == {
+            "count_unparameterized_transactions_duration": expected_count,
+        }
+
         assert data["meta"] == sorted(
             [
-                {"name": "count_lcp", "type": "UInt64"},
-                {"name": "count_lcp_2", "type": "UInt64"},
-                {"name": "transaction_group", "type": "string"},
+                {"name": "count_unparameterized_transactions_duration", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )
