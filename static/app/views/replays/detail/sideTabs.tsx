@@ -1,8 +1,8 @@
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useUrlParams from 'sentry/utils/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
+import useUrlParams from 'sentry/utils/useUrlParams';
 
 const TABS = {
   crumbs: t('Breadcrumbs'),
