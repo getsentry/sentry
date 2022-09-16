@@ -184,6 +184,7 @@ def pytest_configure(config):
     settings.SENTRY_USE_BIG_INTS = True
 
     settings.SENTRY_SNOWFLAKE_EPOCH_START = datetime(1999, 12, 31, 0, 0).timestamp()
+    settings.SENTRY_USE_SNOWFLAKE = True
 
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"
