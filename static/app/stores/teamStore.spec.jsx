@@ -1,4 +1,3 @@
-import TeamActions from 'sentry/actions/teamActions';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('TeamStore', function () {
@@ -16,7 +15,7 @@ describe('TeamStore', function () {
   });
 
   describe('setting data', function () {
-    it('populate teams correctly', async function () {
+    it('populate teams correctly', function () {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
         loading: true,
@@ -25,8 +24,7 @@ describe('TeamStore', function () {
         loadedUserTeams: false,
       });
 
-      TeamActions.loadTeams([teamFoo, teamBar]);
-      await tick();
+      TeamStore.loadInitialData([teamFoo, teamBar]);
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamBar, teamFoo],
         loading: false,
@@ -36,21 +34,20 @@ describe('TeamStore', function () {
       });
     });
 
-    it('loads user teams', async function () {
+    it('loads user teams', function () {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
         loadedUserTeams: false,
       });
 
-      TeamActions.loadUserTeams([teamFoo]);
-      await tick();
+      TeamStore.loadUserTeams([teamFoo]);
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamFoo],
         loadedUserTeams: true,
       });
     });
 
-    it('stores cursor and hasMore correctly', async function () {
+    it('stores cursor and hasMore correctly', function () {
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
         hasMore: null,
@@ -58,8 +55,7 @@ describe('TeamStore', function () {
         loadedUserTeams: false,
       });
 
-      TeamActions.loadTeams([teamFoo], false, null);
-      await tick();
+      TeamStore.loadInitialData([teamFoo], false, null);
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamFoo],
         hasMore: false,
@@ -71,13 +67,13 @@ describe('TeamStore', function () {
 
   describe('updating teams', function () {
     it('adds new teams', async function () {
-      TeamActions.loadTeams([teamFoo]);
+      TeamStore.loadInitialData([teamFoo]);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamFoo],
       });
 
-      TeamActions.createTeamSuccess(teamBar);
+      TeamStore.onCreateSuccess(teamBar);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamBar, teamFoo],
@@ -85,13 +81,13 @@ describe('TeamStore', function () {
     });
 
     it('removes teams', async function () {
-      TeamActions.loadTeams([teamFoo]);
+      TeamStore.loadInitialData([teamFoo]);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamFoo],
       });
 
-      TeamActions.removeTeamSuccess(teamFoo.slug);
+      TeamStore.onRemoveSuccess(teamFoo.slug);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [],
@@ -99,13 +95,13 @@ describe('TeamStore', function () {
     });
 
     it('updates teams', async function () {
-      TeamActions.loadTeams([teamFoo]);
+      TeamStore.loadInitialData([teamFoo]);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamFoo],
       });
 
-      TeamActions.updateSuccess(teamFoo.slug, teamBar);
+      TeamStore.onUpdateSuccess(teamFoo.slug, teamBar);
       await tick();
       expect(TeamStore.getState()).toMatchObject({
         teams: [teamBar],

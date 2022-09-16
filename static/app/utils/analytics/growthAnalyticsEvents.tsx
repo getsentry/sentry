@@ -80,7 +80,9 @@ export type GrowthEventParameters = {
   'growth.demo_click_docs': {};
   'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': {};
+  'growth.demo_modal_clicked_close': {};
   'growth.demo_modal_clicked_continue': {};
+  'growth.demo_modal_clicked_demo': {};
   'growth.demo_modal_clicked_signup': {};
   'growth.metric_alert_preset_sidebar_clicked': {
     preset: string;
@@ -198,6 +200,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
+  'growth.demo_modal_clicked_close': 'Growth: Demo Modal Clicked Close',
+  'growth.demo_modal_clicked_demo': 'Growth: Demo Modal Clicked Demo',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
   'growth.sample_transaction_docs_link_clicked':

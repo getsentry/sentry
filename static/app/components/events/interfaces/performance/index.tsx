@@ -40,17 +40,17 @@ export function SpanEvidenceSection({event, organization}: Props) {
     {
       key: '1',
       subject: t('Parent Span'),
-      value: parentSpan.description ?? '',
+      value: getSpanEvidenceValue(parentSpan),
     },
     {
       key: '2',
       subject: t('Source Span'),
-      value: sourceSpan.description ?? '',
+      value: getSpanEvidenceValue(sourceSpan),
     },
     {
       key: '3',
       subject: t('Repeating Span'),
-      value: repeatingSpan.description ?? '',
+      value: getSpanEvidenceValue(repeatingSpan),
     },
   ];
 
@@ -78,6 +78,22 @@ export function SpanEvidenceSection({event, organization}: Props) {
       </TraceViewWrapper>
     </DataSection>
   );
+}
+
+function getSpanEvidenceValue(span: RawSpanType) {
+  if (!span.op && !span.description) {
+    return t('(no value)');
+  }
+
+  if (!span.op && span.description) {
+    return span.description;
+  }
+
+  if (span.op && !span.description) {
+    return span.op;
+  }
+
+  return `${span.op} - ${span.description}`;
 }
 
 const TraceViewWrapper = styled('div')`
