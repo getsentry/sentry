@@ -473,6 +473,10 @@ register("api.deprecation.brownout-duration", default="PT1M")
 # switch all metrics usage over to using strings for tag values
 register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
+# Flag to determine whether performance metrics indexer should index tag
+# values or not
+register("sentry-metrics.performance.index-tag-values", default=True)
+
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
 # Format is a list of dictionaries of format {
@@ -507,30 +511,19 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[]
 # effectively reset it, as the previous data can't/won't be converted.
 register("sentry-metrics.cardinality-limiter.limits.performance.per-org", default=[])
 register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[])
-
-# A rate to apply during ingest to turn on performance detection (just detection, no storage of events or issues)
-register("store.use-ingest-performance-detection-only", default=0.0)
+register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 
 # Performance issue options to change both detection (which we can monitor with metrics),
 # and the creation of performance problems, which will eventually get turned into issues.
 register("performance.issues.all.problem-detection", default=0.0)
 register("performance.issues.all.problem-creation", default=0.0)
+register(
+    "performance.issues.all.early-adopter-rollout", default=0.0
+)  # Only used for EA rollout, bound to the feature flag handler for performance-issue-ingest
 
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
-register("performance.issues.duplicates.problem-detection", default=0.0)
-register("performance.issues.duplicates.problem-creation", default=0.0)
-register("performance.issues.n_plus_one.problem-detection", default=0.0)
-register("performance.issues.n_plus_one.problem-creation", default=0.0)
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
-register("performance.issues.slow_span.problem-detection", default=0.0)
-register("performance.issues.slow_span.problem-creation", default=0.0)
-register("performance.issues.sequential.problem-detection", default=0.0)
-register("performance.issues.sequential.problem-creation", default=0.0)
-register("performance.issues.long_task.problem-detection", default=0.0)
-register("performance.issues.long_task.problem-creation", default=0.0)
-register("performance.issues.render_blocking_assets.problem-detection", default=0.0)
-register("performance.issues.render_blocking_assets.problem-creation", default=0.0)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)

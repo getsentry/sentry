@@ -381,12 +381,16 @@ class DetailedEventSerializerTest(TestCase):
         result = serialize(event, None, DetailedEventSerializer())
         assert result["sdkUpdates"] == []
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_performance_problem(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature({}):
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            {
+                "organizations:performance-issues-ingest": True,
+            }
+        ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)
@@ -415,14 +419,18 @@ class DetailedEventSerializerTest(TestCase):
             "type": 1006,
         }
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_performance_problem_no_stored_data(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), mock.patch(
             "sentry.event_manager.EventPerformanceProblem"
-        ), self.feature({}):
+        ), self.feature(
+            {
+                "organizations:performance-issues-ingest": True,
+            }
+        ):
             manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
             manager.normalize()
             event = manager.save(self.project.id)

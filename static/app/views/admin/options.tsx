@@ -79,6 +79,14 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.all.early-adopter-rollout',
+    label: t('Performance issues creation EA Rollout'),
+    help: t(
+      'Controls the rate at which performance issues are created for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.n_plus_one.problem-detection',
     label: t('N+1 detection rate'),
     help: t(
@@ -123,7 +131,7 @@ const performanceOptionDefinitions: Field[] = [
     step: 1,
   },
   {
-    key: 'performance.issues.n_plus_one_db.duration_threshold',
+    key: 'performance.issues.n_plus_one_db.duration_threshold', // TODO: For fixing typo later.
     label: t('N+1 (DB) duration threshold'),
     help: t(
       'Detector threshold. Controls the threshold for the cumulative duration of involved spans required to trigger performance issues. This affects all organizations system-wide.'
