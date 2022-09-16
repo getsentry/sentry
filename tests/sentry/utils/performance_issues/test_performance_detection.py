@@ -1,4 +1,3 @@
-import os
 import unittest
 from unittest.mock import Mock, call, patch
 
@@ -6,9 +5,15 @@ from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.perfomance_issues.event_generators import (
+    EVENTS,
+    PROJECT_ID,
+    create_event,
+    create_span,
+    modify_span_start,
+)
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
-from sentry.utils import json
 from sentry.utils.performance_issues.performance_detection import (
     DETECTOR_TYPE_TO_GROUP_TYPE,
     DetectorType,
@@ -19,49 +24,6 @@ from sentry.utils.performance_issues.performance_detection import (
     prepare_problem_for_grouping,
 )
 from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
-from tests.sentry.spans.grouping.test_strategy import SpanBuilder
-
-_fixture_path = os.path.join(os.path.dirname(__file__), "events")
-
-EVENTS = {}
-PROJECT_ID = 1
-
-for filename in os.listdir(_fixture_path):
-    if not filename.endswith(".json"):
-        continue
-
-    [event_name, _extension] = filename.split(".")
-
-    with open(os.path.join(_fixture_path, filename)) as f:
-        event = json.load(f)
-        event["project"] = PROJECT_ID
-        EVENTS[event_name] = event
-
-
-# Duration is in ms
-def modify_span_duration(obj, duration):
-    obj["start_timestamp"] = 0.0
-    obj["timestamp"] = duration / 1000.0
-    return obj
-
-
-# Start is in ms
-def modify_span_start(obj, start):
-    duration = obj["timestamp"] - obj["start_timestamp"]
-    obj["start_timestamp"] = start / 1000.0
-    obj["timestamp"] = obj["start_timestamp"] + duration
-    return obj
-
-
-def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %s", hash=""):
-    return modify_span_duration(
-        SpanBuilder().with_op(op).with_description(desc).with_hash(hash).build(),
-        duration,
-    )
-
-
-def create_event(spans, event_id="a" * 16):
-    return {"event_id": event_id, "project": PROJECT_ID, "spans": spans}
 
 
 def assert_n_plus_one_db_problem(perf_problems):

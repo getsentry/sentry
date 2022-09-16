@@ -19,6 +19,7 @@ import pytz
 import urllib3
 
 from sentry import quotas
+from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import EventStream
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
@@ -29,7 +30,7 @@ KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent
+    from sentry.eventstore.models import Event
 
 
 # Version 1 format: (1, TYPE, [...REST...])
@@ -93,7 +94,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def _get_headers_for_insert(
         self,
-        event: BaseEvent,
+        event: Event,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -104,12 +105,12 @@ class SnubaProtocolEventStream(EventStream):
         return {"Received-Timestamp": str(received_timestamp)}
 
     @staticmethod
-    def _is_transaction_event(event: BaseEvent) -> bool:
+    def _is_transaction_event(event: Event) -> bool:
         return event.get_event_type() == "transaction"  # type: ignore
 
     def insert(
         self,
-        event: BaseEvent,
+        event: Event,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -118,6 +119,12 @@ class SnubaProtocolEventStream(EventStream):
         skip_consume: bool = False,
         **kwargs: Any,
     ) -> None:
+        if isinstance(event, GroupEvent):
+            logger.error(
+                "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+                exc_info=True,
+            )
+            return
         project = event.project
         set_current_event_project(project.id)
         retention_days = quotas.get_event_retention(organization=project.organization)
@@ -406,7 +413,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        event: BaseEvent,
+        event: Event,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
