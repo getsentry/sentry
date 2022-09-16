@@ -11,6 +11,7 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
     merge: {enabled: true},
     ignore: {enabled: true},
     share: {enabled: true},
+    codeowners: {enabled: true},
   },
   [IssueCategory.PERFORMANCE]: {
     delete: {
@@ -35,6 +36,10 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
     share: {
       enabled: false,
       disabledReason: t('Sharing is not yet supported for performance issues'),
+    },
+    codeowners: {
+      enabled: false,
+      disabledReason: t('Codeowners do not apply to performance issues'),
     },
   },
 };

@@ -228,19 +228,15 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_iter(
-        self, project_id, group_id, environment_ids, key, callbacks=(), offset=0
-    ):
+    def get_group_tag_value_iter(self, group, environment_ids, key, callbacks=(), offset=0):
         """
-        >>> get_group_tag_value_iter(1, 2, 3, 'environment')
+        >>> get_group_tag_value_iter(group, 2, 3, 'environment')
         """
         raise NotImplementedError
 
-    def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_ids, key, order_by="-id"
-    ):
+    def get_group_tag_value_paginator(self, group, environment_ids, key, order_by="-id"):
         """
-        >>> get_group_tag_value_paginator(1, 2, 3, 'environment')
+        >>> get_group_tag_value_paginator(group, 3, 'environment')
         """
         raise NotImplementedError
 

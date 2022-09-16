@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {chart, doZoom, mockZoomRange} from 'sentry-test/charts';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -26,10 +28,8 @@ describe('EventsChart', function () {
   let render;
   let wrapper;
 
-  beforeEach(function () {
-    globalSelection.updateDateTime.mockClear();
-    mockZoomRange(1543449600000, 1543708800000);
-    wrapper = mountWithTheme(
+  function renderChart(props) {
+    return mountWithTheme(
       <EventsChart
         api={new MockApiClient()}
         location={{query: {}}}
@@ -41,9 +41,16 @@ describe('EventsChart', function () {
         end={null}
         utc={false}
         router={router}
+        {...props}
       />,
       routerContext
     );
+  }
+
+  beforeEach(function () {
+    globalSelection.updateDateTime.mockClear();
+    mockZoomRange(1543449600000, 1543708800000);
+    wrapper = renderChart();
 
     // XXX: Note we spy on this AFTER it has already rendered once!
     render = jest.spyOn(wrapper.find('ChartZoom').instance(), 'render');
@@ -156,8 +163,15 @@ describe('EventsChart', function () {
     expect(chartZoomInstance.history).toHaveLength(0);
   });
 
-  it('renders with World Map when given WorldMapChart chartComponent', function () {
-    wrapper.setProps({chartComponent: WorldMapChart, yAxis: ['count()']});
+  it('renders with World Map when given WorldMapChart chartComponent', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    await act(async () => {
+      wrapper = renderChart({chartComponent: WorldMapChart, yAxis: ['count()']});
+      await tick();
+    });
     expect(wrapper.find('WorldMapChart').length).toEqual(1);
   });
 });
