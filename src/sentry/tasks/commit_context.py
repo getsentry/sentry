@@ -138,6 +138,7 @@ def process_commit_context(
                 user_id=author_to_user.get(str(commit.author_id)).get("id"),
                 project=project,
                 organization_id=project.organization_id,
+                context={"commitId": commit.id},
                 defaults={
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event

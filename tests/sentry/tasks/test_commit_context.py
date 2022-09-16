@@ -93,6 +93,13 @@ class TestCommitContext(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
+        assert GroupOwner.objects.get(
+            group=self.event.group,
+            project=self.event.project,
+            organization=self.event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+        ).context == {"commitId": self.commit.id}
+
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
