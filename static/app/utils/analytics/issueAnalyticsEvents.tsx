@@ -64,6 +64,9 @@ export type IssueEventParameters = {
     num_issues: number;
     tab: string;
   };
+  'quick_trace.connected_services': {
+    projects: number;
+  };
   'quick_trace.dropdown.clicked': {
     node_key: string;
   };
@@ -113,6 +116,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
   'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
+  'quick_trace.node.clicked': 'Quick Trace: Node clicked',
+  'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
 
