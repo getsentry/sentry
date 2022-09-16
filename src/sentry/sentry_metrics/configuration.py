@@ -80,7 +80,7 @@ def get_ingest_config(
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                index_tag_values_option_name="sentry-metrics.performance.index-tag-values"
+                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
             )
         )
 
@@ -113,7 +113,7 @@ def get_ingest_config(
                 writes_limiter_namespace=PERFORMANCE_CS_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
-                index_tag_values_option_name="sentry-metrics.performance.index-tag-values"
+                index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
             )
         )
 
