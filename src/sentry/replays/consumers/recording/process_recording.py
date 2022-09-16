@@ -99,6 +99,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         with sentry_sdk.start_transaction(
             op="replays.consumer.flush_batch", description="Replay recording segment stored."
         ):
+            sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
+
             try:
                 headers, recording_segment = self._process_headers(
                     cached_replay_recording_segment.data
@@ -176,11 +178,13 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 self._configure_sentry_scope(message_dict)
 
                 if message_dict["type"] == "replay_recording_chunk":
+                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording_chunk"):
                         self._process_chunk(
                             cast(RecordingSegmentChunkMessage, message_dict), message
                         )
                 if message_dict["type"] == "replay_recording":
+                    sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
                     with sentry_sdk.start_span(op="replay_recording"):
                         self._process_recording(
                             cast(RecordingSegmentMessage, message_dict), message
