@@ -26,18 +26,20 @@ module.exports = {
       backend_dependencies: fileChanges.backend_dependencies !== 'true',
     };
 
-    DISPATCHES.forEach(({workflow, pathFilterName}) => {
-      github.actions.createWorkflowDispatch({
-        owner: 'getsentry',
-        repo: 'getsentry',
-        workflow_id: workflow,
-        ref: 'master',
-        inputs: {
-          pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
-          skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
-          'sentry-sha': context.payload.pull_request.head.sha,
-        },
-      });
-    });
+    await Promise.all(
+      DISPATCHES.map(({workflow, pathFilterName}) => {
+        return github.actions.createWorkflowDispatch({
+          owner: 'getsentry',
+          repo: 'getsentry',
+          workflow_id: workflow,
+          ref: 'master',
+          inputs: {
+            pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
+            skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
+            'sentry-sha': context.payload.pull_request.head.sha,
+          },
+        });
+      })
+    );
   },
 };

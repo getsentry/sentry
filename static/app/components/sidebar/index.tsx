@@ -91,6 +91,14 @@ function Sidebar({location, organization}: Props) {
     return () => bcl.remove('body-sidebar');
   }, [bcl]);
 
+  useEffect(() => {
+    Object.values(SidebarPanelKey).forEach(key => {
+      if (location?.hash === `#sidebar-${key}`) {
+        togglePanel(key);
+      }
+    });
+  }, [location?.hash]);
+
   // Add sidebar collapse classname to body
   useEffect(() => {
     if (collapsed) {

@@ -5,9 +5,11 @@ from django.urls import reverse
 from sentry.event_manager import _pull_out_data
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 
 
+@region_silo_test
 class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -119,6 +121,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["nextEventID"] is None
 
 
+@region_silo_test
 class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -272,6 +275,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase):
         assert response.data["groupID"] is None
 
 
+@region_silo_test
 class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

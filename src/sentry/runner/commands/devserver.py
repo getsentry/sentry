@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import threading
 import types
 from typing import NoReturn
@@ -122,8 +123,8 @@ def devserver(
     if ingest:
         # Ingest requires kakfa+zookeeper to be running.
         # They're too heavyweight to startup on-demand with devserver.
-        docker = get_docker_client()
-        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        with get_docker_client() as docker:
+            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
         if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
             raise SystemExit(
                 """
@@ -158,24 +159,17 @@ and run `sentry devservices up kafka zookeeper`.
     parsed_url = urlparse(url_prefix)
     # Make sure we're trying to use a port that we can actually bind to
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
-    has_https = False
+    has_https = shutil.which("https") is not None
 
-    if needs_https:
-        from subprocess import check_output
+    if needs_https and not has_https:
+        from sentry.runner.initializer import show_big_error
 
-        try:
-            check_output(["which", "https"])
-            has_https = True
-        except Exception:
-            has_https = False
-            from sentry.runner.initializer import show_big_error
-
-            show_big_error(
-                [
-                    "missing `https` on your `$PATH`, but https is needed",
-                    "`$ brew install mattrobenolt/stuff/https`",
-                ]
-            )
+        show_big_error(
+            [
+                "missing `https` on your `$PATH`, but https is needed",
+                "`$ brew install mattrobenolt/stuff/https`",
+            ]
+        )
 
     uwsgi_overrides: dict[str, int | bool | str | None] = {
         "http-keepalive": True,

@@ -3,7 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, PullRequest} from './integrations';
+import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
 import type {Project} from './project';
 import type {Release} from './release';
@@ -63,6 +63,10 @@ type CapabilityInfo = {
  */
 export type IssueCategoryCapabilities = {
   /**
+   * Are codeowner features enabled for this issue
+   */
+  codeowners: CapabilityInfo;
+  /**
    * Can the issue be deleted
    */
   delete: CapabilityInfo;
@@ -78,13 +82,17 @@ export type IssueCategoryCapabilities = {
    * Can the issue be merged
    */
   merge: CapabilityInfo;
+  /**
+   * Can the issue be shared
+   */
+  share: CapabilityInfo;
 };
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
   dateCreated: string;
   event_id: string;
-  headers: Object;
+  headers: object;
   id: string;
   mimetype: string;
   name: string;
@@ -169,7 +177,11 @@ export type InboxDetails = {
   reason?: number;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule' | 'releaseCommit';
+export type SuggestedOwnerReason =
+  | 'suspectCommit'
+  | 'ownershipRule'
+  | 'codeowners'
+  | 'releaseCommit';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
@@ -439,9 +451,15 @@ export type ResolutionStatusDetails = {
   ignoreUserCount?: number;
   ignoreUserWindow?: number;
   ignoreWindow?: number;
-  inCommit?: Commit;
+  inCommit?: {
+    commit?: string;
+    dateCreated?: string;
+    id?: string;
+    repository?: string | Repository;
+  };
   inNextRelease?: boolean;
   inRelease?: string;
+  repository?: string;
 };
 
 export type GroupStatusResolution = {

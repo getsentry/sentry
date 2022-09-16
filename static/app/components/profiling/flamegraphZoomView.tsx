@@ -2,12 +2,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import space from 'sentry/styles/space';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
@@ -17,7 +14,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
@@ -26,12 +23,21 @@ import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRen
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {BoundTooltip} from './boundTooltip';
+import {FlamegraphTooltip} from './FlamegraphTooltip/flamegraphTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
-function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
-  return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
+function isHighlightingAllOccurences(
+  node: FlamegraphFrame | null,
+  selectedNodes: FlamegraphFrame[] | null
+) {
+  return !!(
+    selectedNodes &&
+    node &&
+    selectedNodes.length > 1 &&
+    selectedNodes.includes(node)
+  );
 }
 
 interface FlamegraphZoomViewProps {
@@ -62,7 +68,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
-  const flamegraphProfile = useFlamegraphProfiles();
+  const [profileGroup] = useProfileGroup();
   const flamegraphSearch = useFlamegraphSearch();
   const isInternalFlamegraphDebugModeEnabled = useInternalFlamegraphDebugMode();
 
@@ -130,31 +136,6 @@ function FlamegraphZoomView({
     }
     return flamegraphRenderer.getHoveredNode(configSpaceCursor);
   }, [configSpaceCursor, flamegraphRenderer]);
-
-  const focusedRects: Rect[] = useMemo(() => {
-    if (!flamegraphProfile.focusFrame) {
-      return [];
-    }
-
-    const rects: Rect[] = [];
-
-    const frames: FlamegraphFrame[] = [...flamegraph.root.children];
-    while (frames.length > 0) {
-      const frame = frames.pop()!;
-      if (
-        frame.frame.name === flamegraphProfile.focusFrame.name &&
-        frame.frame.image === flamegraphProfile.focusFrame.package
-      ) {
-        rects.push(new Rect(frame.start, frame.depth, frame.end - frame.start, 1));
-      }
-
-      for (let i = 0; i < frame.children.length; i++) {
-        frames.push(frame.children[i]);
-      }
-    }
-
-    return rects;
-  }, [flamegraph, flamegraphProfile.focusFrame]);
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
@@ -325,67 +306,40 @@ function FlamegraphZoomView({
     flamegraphSearch,
   ]);
 
-  useEffect(() => {
-    if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
-      return undefined;
-    }
+  const selectedFramesRef = useRef<FlamegraphFrame[] | null>(null);
 
-    const drawFocusedFrameBorder = () => {
-      selectedFrameRenderer.draw(
-        focusedRects,
-        {
-          BORDER_COLOR: flamegraphTheme.COLORS.FOCUSED_FRAME_BORDER_COLOR,
-          BORDER_WIDTH: flamegraphTheme.SIZES.FOCUSED_FRAME_BORDER_WIDTH,
-        },
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+  useEffect(() => {
+    if (flamegraphState.profiles.highlightFrame) {
+      selectedFramesRef.current = flamegraph.findAllMatchingFrames(
+        flamegraphState.profiles.highlightFrame.name,
+        flamegraphState.profiles.highlightFrame.package
       );
-    };
-
-    scheduler.registerAfterFrameCallback(drawFocusedFrameBorder);
-    scheduler.draw();
-
-    return () => {
-      scheduler.unregisterAfterFrameCallback(drawFocusedFrameBorder);
-    };
-  }, [
-    flamegraphCanvas,
-    flamegraphView,
-    flamegraphTheme,
-    focusedRects,
-    scheduler,
-    selectedFrameRenderer,
-  ]);
+    } else {
+      selectedFramesRef.current = null;
+    }
+  }, [flamegraph, flamegraphState.profiles.highlightFrame]);
 
   useEffect(() => {
     if (!flamegraphCanvas || !flamegraphView || !selectedFrameRenderer) {
       return undefined;
     }
-
-    const state: {selectedNode: FlamegraphFrame | null} = {
-      selectedNode: null,
-    };
 
     const onNodeHighlight = (
-      node: FlamegraphFrame | null,
+      node: FlamegraphFrame[] | null,
       mode: 'hover' | 'selected'
     ) => {
       if (mode === 'selected') {
-        state.selectedNode = node;
+        selectedFramesRef.current = node;
       }
       scheduler.draw();
     };
 
     const drawSelectedFrameBorder = () => {
-      if (state.selectedNode) {
+      if (selectedFramesRef.current) {
         selectedFrameRenderer.draw(
-          [
-            new Rect(
-              state.selectedNode.start,
-              state.selectedNode.depth,
-              state.selectedNode.end - state.selectedNode.start,
-              1
-            ),
-          ],
+          selectedFramesRef.current.map(frame => {
+            return new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
+          }),
           {
             BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
@@ -397,6 +351,7 @@ function FlamegraphZoomView({
 
     scheduler.on('highlight frame', onNodeHighlight);
     scheduler.registerAfterFrameCallback(drawSelectedFrameBorder);
+    scheduler.draw();
 
     return () => {
       scheduler.off('highlight frame', onNodeHighlight);
@@ -406,6 +361,8 @@ function FlamegraphZoomView({
     flamegraphView,
     flamegraphCanvas,
     scheduler,
+    flamegraph,
+    flamegraphState.profiles.highlightFrame,
     selectedFrameRenderer,
     flamegraphTheme,
   ]);
@@ -516,7 +473,10 @@ function FlamegraphZoomView({
           canvasPoolManager.dispatch('zoom at frame', [hoveredNode, 'exact']);
         }
 
-        canvasPoolManager.dispatch('highlight frame', [hoveredNode, 'selected']);
+        canvasPoolManager.dispatch('highlight frame', [
+          hoveredNode ? [hoveredNode] : null,
+          'selected',
+        ]);
         dispatch({type: 'set selected root', payload: hoveredNode});
       }
 
@@ -717,7 +677,48 @@ function FlamegraphZoomView({
     };
   }, [flamegraphCanvasRef, zoom, scroll]);
 
+  const hoveredNodeOnContextMenuOpen = useRef<FlamegraphFrame | null>(null);
   const contextMenu = useContextMenu({container: flamegraphCanvasRef});
+  const [highlightingAllOccurences, setHighlightingAllOccurences] = useState(
+    isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+  );
+
+  const handleContextMenuOpen = useCallback(
+    (event: React.MouseEvent) => {
+      hoveredNodeOnContextMenuOpen.current = hoveredNode;
+      contextMenu.handleContextMenu(event);
+      // Make sure we set the highlight state relative to the newly hovered node
+      setHighlightingAllOccurences(
+        isHighlightingAllOccurences(hoveredNode, selectedFramesRef.current)
+      );
+    },
+    [contextMenu, hoveredNode]
+  );
+
+  const handleHighlightAllFramesClick = useCallback(() => {
+    if (!hoveredNodeOnContextMenuOpen.current) {
+      return;
+    }
+
+    // If all occurences are currently being highlighted, we want to unhighlight them now
+    if (
+      isHighlightingAllOccurences(
+        hoveredNodeOnContextMenuOpen.current,
+        selectedFramesRef.current
+      )
+    ) {
+      setHighlightingAllOccurences(false);
+      canvasPoolManager.dispatch('highlight frame', [null, 'selected']);
+      scheduler.draw();
+      return;
+    }
+
+    setHighlightingAllOccurences(true);
+    canvasPoolManager.dispatch('highlight frame', [
+      flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current),
+      'selected',
+    ]);
+  }, [canvasPoolManager, flamegraph, scheduler]);
 
   return (
     <CanvasContainer>
@@ -727,7 +728,7 @@ function FlamegraphZoomView({
         onMouseUp={onCanvasMouseUp}
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
-        onContextMenu={contextMenu.handleContextMenu}
+        onContextMenu={handleContextMenuOpen}
         style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
       />
       <Canvas
@@ -736,61 +737,34 @@ function FlamegraphZoomView({
           pointerEvents: 'none',
         }}
       />
-      <FlamegraphOptionsContextMenu contextMenu={contextMenu} />
+      <FlamegraphOptionsContextMenu
+        contextMenu={contextMenu}
+        hoveredNode={hoveredNodeOnContextMenuOpen.current}
+        isHighlightingAllOccurences={highlightingAllOccurences}
+        onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+      />
       {flamegraphCanvas &&
       flamegraphRenderer &&
       flamegraphView &&
       configSpaceCursor &&
-      hoveredNode?.frame?.name ? (
-        <BoundTooltip
-          bounds={canvasBounds}
-          cursor={configSpaceCursor}
+      hoveredNode ? (
+        <FlamegraphTooltip
+          frame={hoveredNode}
+          configSpaceCursor={configSpaceCursor}
           flamegraphCanvas={flamegraphCanvas}
+          flamegraphRenderer={flamegraphRenderer}
           flamegraphView={flamegraphView}
-        >
-          <HoveredFrameMainInfo>
-            <FrameColorIndicator
-              backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
-            />
-            {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
-            {formatWeightToProfileDuration(
-              hoveredNode.node,
-              flamegraphRenderer.flamegraph
-            )}{' '}
-            {hoveredNode.frame.name}
-          </HoveredFrameMainInfo>
-          <HoveredFrameTimelineInfo>
-            {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.start)}{' '}
-            {' \u2014 '}
-            {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.end)}
-          </HoveredFrameTimelineInfo>
-        </BoundTooltip>
+          canvasBounds={canvasBounds}
+          platform={
+            profileGroup.type === 'resolved'
+              ? profileGroup.data.metadata.platform
+              : undefined
+          }
+        />
       ) : null}
     </CanvasContainer>
   );
 }
-
-const HoveredFrameTimelineInfo = styled('div')`
-  color: ${p => p.theme.subText};
-`;
-
-const HoveredFrameMainInfo = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
-const FrameColorIndicator = styled('div')<{
-  backgroundColor: React.CSSProperties['backgroundColor'];
-}>`
-  width: 12px;
-  height: 12px;
-  min-width: 12px;
-  min-height: 12px;
-  border-radius: 2px;
-  display: inline-block;
-  background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
-`;
 
 const CanvasContainer = styled('div')`
   display: flex;

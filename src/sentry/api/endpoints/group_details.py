@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import tagstore, tsdb
 from sentry.api import client
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
@@ -33,6 +33,7 @@ from sentry.utils.safe import safe_execute
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
@@ -185,9 +186,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(
-                group.project_id, group.id, environment_ids, limit=100
-            )
+            tags = tagstore.get_group_tag_keys(group, environment_ids, limit=100)
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)

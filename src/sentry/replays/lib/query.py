@@ -68,7 +68,10 @@ class Field:
             return self.deserialize_values(value)
 
         try:
-            typed_value = self._python_type(value)
+            if self._python_type:
+                typed_value = self._python_type(value)
+            else:
+                typed_value = value
         except ValueError:
             return None, ["Invalid value specified."]
 
@@ -96,6 +99,52 @@ class String(Field):
 class Number(Field):
     _operators = [Op.EQ, Op.NEQ, Op.GT, Op.GTE, Op.LT, Op.LTE, Op.IN, Op.NOT_IN]
     _python_type = int
+
+
+class ListField(Field):
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = None
+
+    def as_condition(
+        self,
+        _: str,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        if operator in [Op.EQ, Op.NEQ]:
+            return self._has_condition(operator, value)
+        else:
+            return self._has_any_condition(operator, value)
+
+    def _has_condition(
+        self,
+        operator: Op,
+        value: Union[List[str], str],
+    ) -> Condition:
+        if isinstance(value, list):
+            return self._has_any_condition(Op.IN if operator == Op.EQ else Op.NOT_IN, value)
+
+        return Condition(
+            Function("has", parameters=[Column(self.query_alias or self.attribute_name), value]),
+            Op.EQ,
+            1 if operator == Op.EQ else 0,
+        )
+
+    def _has_any_condition(
+        self,
+        operator: Op,
+        values: Union[List[str], str],
+    ) -> Condition:
+        if not isinstance(values, list):
+            return self._has_condition(Op.EQ if operator == Op.IN else Op.NEQ, values)
+
+        return Condition(
+            Function(
+                "hasAny", parameters=[Column(self.query_alias or self.attribute_name), values]
+            ),
+            Op.EQ,
+            1 if operator == Op.IN else 0,
+        )
 
 
 class Tag(Field):

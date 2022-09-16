@@ -10,9 +10,11 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
+from typing import Mapping
 from urllib.parse import urlparse
 
 import sentry
+from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -964,6 +966,8 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
+    # Enable the Commit Context feature
+    "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -973,6 +977,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": True,
+    # Enable using All Events as the landing page for Discover
+    "organizations:discover-query-builder-as-landing-page": False,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
@@ -987,6 +993,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable the interval selector in discover
+    "organizations:discover-interval-selector": False,
     # Enable metrics baseline in discover
     "organizations:discover-metrics-baseline": False,
     # Allows an org to have a larger set of project ownership rules per project
@@ -1023,12 +1031,6 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Enable the new widget builder experience on Dashboards
-    "organizations:new-widget-builder-experience": False,
-    # Enable the new widget builder experience "design" on Dashboards
-    "organizations:new-widget-builder-experience-design": False,
-    # Enable access to the Add to Dashboard modal for metrics work
-    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1074,7 +1076,7 @@ SENTRY_FEATURES = {
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": False,
+    "organizations:dashboard-grid-layout": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1086,7 +1088,7 @@ SENTRY_FEATURES = {
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
-    "organizations:dashboards-top-level-filter": False,
+    "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
@@ -1174,6 +1176,8 @@ SENTRY_FEATURES = {
     "organizations:release-comparison-performance": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable snowflake ids
@@ -1507,6 +1511,7 @@ SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
 
 # Cardinality limits during metric bucket ingestion.
 # Which cluster to use. Example: {"cluster": "default"}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
 SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
 
 # Release Health
@@ -2755,6 +2760,7 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
@@ -2795,3 +2801,5 @@ SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", Fa
 DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+
+SENTRY_REGION_CONFIG: Mapping[str, Region] = {}

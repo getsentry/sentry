@@ -1,8 +1,10 @@
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectCreateSampleTransactionTest(APITestCase):
     def setUp(self):
         super().setUp()

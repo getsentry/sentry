@@ -1,6 +1,5 @@
 import django.apps
 import django.urls
-import pytest
 
 from sentry.api.base import Endpoint
 from sentry.testutils import TestCase
@@ -9,7 +8,6 @@ from sentry.testutils import TestCase
 class SiloLimitCoverageTest(TestCase):
     """Check that all subclasses have expected SiloLimit decorators."""
 
-    @pytest.mark.skip  # Remove this when 100% coverage is expected
     def test_all_models_have_silo_limit_decorator(self):
         undecorated_model_classes = []
 
@@ -24,7 +22,6 @@ class SiloLimitCoverageTest(TestCase):
             f"{', '.join(m.__name__ for m in undecorated_model_classes)}"
         )
 
-    @pytest.mark.skip  # Remove this when 100% coverage is expected
     def test_all_endpoints_have_silo_mode_decorator(self):
         undecorated_endpoint_classes = []
 

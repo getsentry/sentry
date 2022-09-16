@@ -12,6 +12,7 @@ from sentry.api.endpoints.project_details import DynamicSamplingSerializer
 from sentry.constants import DataCategory
 from sentry.models import AuditLogEntry, ProjectOption
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -61,6 +62,7 @@ specific_rule_with_all_current_trace_conditions = {
 
 
 @pytest.mark.snuba
+@region_silo_test
 @requires_snuba
 class ProjectSettingsSamplingTest(AcceptanceTestCase):
     def setUp(self):

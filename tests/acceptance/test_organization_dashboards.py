@@ -8,6 +8,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from fixtures.page_objects.dashboard_detail import (
     EDIT_WIDGET_BUTTON,
     WIDGET_DRAG_HANDLE,
+    WIDGET_EDITABLE_TEXT_LABEL,
     WIDGET_RESIZE_HANDLE,
     WIDGET_TITLE_FIELD,
     DashboardDetailPage,
@@ -21,11 +22,13 @@ from sentry.models import (
 )
 from sentry.testutils import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 FEATURE_NAMES = [
     "organizations:discover-basic",
     "organizations:discover-query",
     "organizations:dashboards-basic",
+    "organizations:global-views",
 ]
 
 EDIT_FEATURE = ["organizations:dashboards-edit"]
@@ -35,116 +38,8 @@ GRID_LAYOUT_FEATURE = ["organizations:dashboard-grid-layout"]
 WIDGET_LIBRARY_FEATURE = ["organizations:widget-library"]
 
 
+@region_silo_test
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
-    def setUp(self):
-        super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
-        )
-        self.existing_widget = DashboardWidget.objects.create(
-            dashboard=self.dashboard,
-            order=0,
-            title="Existing Widget",
-            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.DISCOVER,
-            interval="1d",
-        )
-        DashboardWidgetQuery.objects.create(
-            widget=self.existing_widget,
-            fields=["count()"],
-            columns=[],
-            aggregates=["count()"],
-            order=0,
-        )
-        self.page = DashboardDetailPage(
-            self.browser, self.client, organization=self.organization, dashboard=self.dashboard
-        )
-        self.login_as(self.user)
-
-    def test_view_dashboard(self):
-        with self.feature(FEATURE_NAMES):
-            self.page.visit_default_overview()
-            self.browser.snapshot("dashboards - default overview")
-
-    def test_view_dashboard_with_manager(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.browser.snapshot("dashboards - default overview manager")
-
-    def test_edit_dashboard(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.page.enter_edit_state()
-            self.browser.snapshot("dashboards - edit state")
-
-    def test_add_widget(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.page.enter_edit_state()
-
-            # Add a widget
-            self.page.click_dashboard_add_widget_button()
-            self.browser.snapshot("dashboards - add widget")
-
-    def test_edit_widget(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_default_overview()
-            self.page.enter_edit_state()
-
-            # Edit the first widget.
-            button = self.browser.element(EDIT_WIDGET_BUTTON)
-            button.click()
-            self.browser.snapshot("dashboards - edit widget")
-
-    def test_widget_library(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE):
-            self.page.visit_default_overview()
-
-            # Open widget library
-            self.page.click_dashboard_header_add_widget_button()
-            self.browser.element('[data-test-id="library-tab"]').click()
-
-            # Select/deselect widget library cards
-            self.browser.element('[data-test-id="widget-library-card-0"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-            self.browser.element('[data-test-id="widget-library-card-3"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-
-            self.browser.snapshot("dashboards - widget library")
-
-    def test_duplicate_widget_in_view_mode(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_dashboard_detail()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
-            self.page.wait_until_loaded()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="duplicate-widget"]').click()
-            self.page.wait_until_loaded()
-
-            self.browser.snapshot("dashboard widget - duplicate")
-
-    def test_delete_widget_in_view_mode(self):
-        with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            self.page.visit_dashboard_detail()
-
-            self.browser.element('[aria-label="Widget actions"]').click()
-            self.browser.element('[data-test-id="delete-widget"]').click()
-            self.browser.element('[data-test-id="confirm-button"]').click()
-
-            self.page.wait_until_loaded()
-
-            self.browser.snapshot("dashboard widget - delete")
-
-
-class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
@@ -243,26 +138,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - move existing widget on existing dashboard")
 
-    def test_add_by_widget_library_do_not_overlap(self):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + WIDGET_LIBRARY_FEATURE + GRID_LAYOUT_FEATURE
-        ):
-            self.page.visit_dashboard_detail()
-            self.page.click_dashboard_header_add_widget_button()
-
-            self.browser.element('[data-test-id="library-tab"]').click()
-
-            # Add library widgets
-            self.browser.element('[data-test-id="widget-library-card-0"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-            self.browser.element('[data-test-id="widget-library-card-3"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-            self.browser.element('[data-test-id="confirm-widgets"]').click()
-
-            self.capture_screenshots(
-                "dashboards - widgets from widget library do not overlap when added"
-            )
-
     def test_widget_edit_keeps_same_layout_after_modification(self):
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -287,10 +162,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Edit the existing widget
             button = self.browser.element(EDIT_WIDGET_BUTTON)
             button.click()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(Keys.END, "Existing WidgetUPDATED!!")
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             # Add and drag new widget to the right
@@ -305,10 +181,11 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Edit the new widget
             button = self.browser.element(f".react-grid-item:nth-of-type(2) {EDIT_WIDGET_BUTTON}")
             button.click()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.clear()
             title_input.send_keys(Keys.END, "New WidgetUPDATED!!")
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             self.page.save_dashboard()
@@ -321,12 +198,14 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
         def add_issue_widget(widget_title):
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
+            title_input.clear()
             title_input.send_keys(widget_title)
             self.browser.element(
                 '[aria-label="Select Issues (States, Assignment, Time, etc.)"]'
             ).click()
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
 
         with self.feature(FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE):
@@ -551,33 +430,6 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
 
             self.browser.snapshot("dashboard widget - delete with grid")
 
-    def test_cancel_without_changes_does_not_trigger_confirm_with_widget_library_through_header(
-        self,
-    ):
-        with self.feature(
-            FEATURE_NAMES + EDIT_FEATURE + GRID_LAYOUT_FEATURE + WIDGET_LIBRARY_FEATURE
-        ):
-            self.page.visit_dashboard_detail()
-
-            # Open widget library
-            self.page.click_dashboard_header_add_widget_button()
-            self.browser.element('[data-test-id="library-tab"]').click()
-
-            # Select/deselect widget library cards
-            self.browser.element('[data-test-id="widget-library-card-0"]').click()
-            self.browser.element('[data-test-id="widget-library-card-2"]').click()
-
-            # Save widget library selections
-            button = self.browser.element('[data-test-id="confirm-widgets"]')
-            button.click()
-            self.page.wait_until_loaded()
-
-            # Should not trigger alert
-            self.page.enter_edit_state()
-            self.page.click_cancel_button()
-            wait = WebDriverWait(self.browser.driver, 5)
-            wait.until_not(EC.alert_is_present())
-
     def test_cancel_without_changes_does_not_trigger_confirm_with_custom_widget_through_header(
         self,
     ):
@@ -587,9 +439,10 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             self.page.visit_dashboard_detail()
 
             self.page.click_dashboard_header_add_widget_button()
+            self.browser.element(WIDGET_EDITABLE_TEXT_LABEL).click()
             title_input = self.browser.element(WIDGET_TITLE_FIELD)
             title_input.send_keys("New custom widget")
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Add Widget"]')
             button.click()
             self.page.wait_until_loaded()
 
@@ -743,7 +596,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Change the chart type to the first visualization option - Area chart
             chart_type_input = self.browser.element("#react-select-2-input")
             chart_type_input.send_keys("Area", Keys.ENTER)
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             # No confirm dialog because of shifting lower element
@@ -794,7 +647,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Change the chart type to the first visualization option - Area chart
             chart_type_input = self.browser.element("#react-select-2-input")
             chart_type_input.send_keys("Area", Keys.ENTER)
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             self.page.wait_until_loaded()
@@ -845,7 +698,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             # Change the chart type to big number
             chart_type_input = self.browser.element("#react-select-2-input")
             chart_type_input.send_keys("Big Number", Keys.ENTER)
-            button = self.browser.element('[data-test-id="add-widget"]')
+            button = self.browser.element('[aria-label="Update Widget"]')
             button.click()
 
             self.page.wait_until_loaded()
@@ -865,6 +718,7 @@ class OrganizationDashboardLayoutAcceptanceTest(AcceptanceTestCase):
             )
 
 
+@region_silo_test
 class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

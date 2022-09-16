@@ -14,14 +14,14 @@ export class SampledProfile extends Profile {
     sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): Profile {
-    const profile = new SampledProfile(
-      sampledProfile.endValue - sampledProfile.startValue,
-      sampledProfile.startValue,
-      sampledProfile.endValue,
-      sampledProfile.name,
-      sampledProfile.unit,
-      sampledProfile.threadID
-    );
+    const profile = new SampledProfile({
+      duration: sampledProfile.endValue - sampledProfile.startValue,
+      startedAt: sampledProfile.startValue,
+      endedAt: sampledProfile.endValue,
+      name: sampledProfile.name,
+      unit: sampledProfile.unit,
+      threadId: sampledProfile.threadID,
+    });
 
     if (sampledProfile.samples.length !== sampledProfile.weights.length) {
       throw new Error(

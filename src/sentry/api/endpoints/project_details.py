@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
 from sentry import audit_log, features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -46,6 +47,11 @@ from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+#: Maximum total number of characters in sensitiveFields.
+#: Relay compiles this list into a regex which cannot exceed a certain size.
+#: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
+MAX_SENSITIVE_FIELD_CHARS = 4000
 
 
 def clean_newline_inputs(value, case_insensitive=True):
@@ -380,6 +386,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             return value
         raise serializers.ValidationError("Invalid platform")
 
+    def validate_sensitiveFields(self, value):
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -391,6 +402,7 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+@region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
     permission_classes = [RelaxedProjectPermission]
 

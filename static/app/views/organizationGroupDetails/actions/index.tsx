@@ -88,14 +88,14 @@ class Actions extends Component<Props, State> {
 
   getDiscoverUrl() {
     const {group, project, organization} = this.props;
-    const {title, id, type} = group;
+    const {title, type, shortId} = group;
 
     const discoverQuery = {
       id: undefined,
       name: title || type,
       fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
-      query: `issue.id:${id}`,
+      query: `issue:${shortId}`,
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
@@ -122,6 +122,7 @@ class Actions extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -239,14 +240,6 @@ class Actions extends Component<Props, State> {
   onToggleSubscribe = () => {
     this.onUpdate({isSubscribed: !this.props.group.isSubscribed});
     this.trackIssueAction('subscribed');
-  };
-
-  onRedirectDiscover = () => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-      organization,
-    });
-    browserHistory.push(this.getDiscoverUrl());
   };
 
   onDiscard = () => {
@@ -377,6 +370,7 @@ class Actions extends Component<Props, State> {
 
     const deleteCap = getIssueCapability(group.issueCategory, 'delete');
     const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
+    const shareCap = getIssueCapability(group.issueCategory, 'share');
 
     return (
       <Wrapper>
@@ -417,19 +411,15 @@ class Actions extends Component<Props, State> {
           <ActionButton
             disabled={disabled}
             to={disabled ? '' : this.getDiscoverUrl()}
-            onClick={() => {
-              this.trackIssueAction('open_in_discover');
-              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-                organization,
-              });
-            }}
+            onClick={() => this.trackIssueAction('open_in_discover')}
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
-            disabled={disabled}
+            disabled={disabled || !shareCap.enabled}
+            disabledReason={shareCap.disabledReason}
             loading={this.state.shareBusy}
             isShared={group.isPublic}
             shareUrl={this.getShareUrl(group.shareId)}

@@ -32,6 +32,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, faux
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -107,6 +108,7 @@ def first_symbol_source_id(sources_json):
     return sources[0]["id"]
 
 
+@region_silo_test
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -224,6 +226,7 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
+@region_silo_test
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -348,6 +351,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         assert response.status_code == 403, response.content
 
 
+@region_silo_test
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -704,6 +708,11 @@ class ProjectUpdateTest(APITestCase):
             "https://example.com",
         ]
         assert resp.data["sensitiveFields"] == ["foobar.com", "https://example.com"]
+
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.org_slug, self.proj_slug, sensitiveFields=value)
+        assert resp.status_code == 400
 
     def test_data_scrubber(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, dataScrubber=False)
@@ -1408,6 +1417,7 @@ class ProjectUpdateTest(APITestCase):
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
 
+@region_silo_test
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -1602,6 +1612,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.assert_other_project_settings_not_changed()
 
 
+@region_silo_test
 class ProjectDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "delete"

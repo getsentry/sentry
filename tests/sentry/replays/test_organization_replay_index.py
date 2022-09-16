@@ -5,11 +5,13 @@ from django.urls import reverse
 
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
+@region_silo_test
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-index"
 
@@ -363,6 +365,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             # Run all the queries individually to determine compliance.
             queries = [
                 "platform:javascript",
+                "releases:version@1.3",
+                "releases:[a,version@1.3]",
                 "duration:>15",
                 "user.id:123",
                 "user.name:username123",
@@ -416,6 +420,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "id:b OR duration:>1000",
                 "a:o",
                 "a:[o,p]",
+                "releases:a",
+                "releases:[a,b]",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?query={query}")

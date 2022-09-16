@@ -717,7 +717,8 @@ def get_facets(
             )
 
     # Need to cast tuple values to str since the value might be None
-    return sorted(results, key=lambda result: (str(result.key), str(result.value)))
+    # Reverse sort the count so the highest values show up first
+    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
 
 
 def spans_histogram_query(

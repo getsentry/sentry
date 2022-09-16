@@ -4,11 +4,14 @@ from sentry.event_manager import _pull_out_data
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.issues.query import apply_performance_conditions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -280,10 +283,9 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event is None
 
     def test_transaction_get_next_prev_event_id(self):
-
         _filter = Filter(
             project_ids=[self.project2.id],
-            conditions=[[["has", ["group_ids", self.group.id]], "=", 1]],
+            conditions=apply_performance_conditions([], self.group),
         )
         with self.feature("organizations:performance-issues"):
             event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)

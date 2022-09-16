@@ -30,11 +30,16 @@ import {t} from 'sentry/locale';
 import {DateString, OrganizationSummary} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
-import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {
+  axisLabelFormatter,
+  axisLabelFormatterUsingAggregateOutputType,
+  tooltipFormatter,
+} from 'sentry/utils/discover/charts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
+  AggregationOutputType,
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
@@ -89,6 +94,7 @@ type ChartProps = {
   showDaily?: boolean;
   showLegend?: boolean;
   timeframe?: {end: number; start: number};
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   topEvents?: number;
 };
 
@@ -195,6 +201,7 @@ class Chart extends React.Component<ChartProps, State> {
       topEvents,
       tableData,
       fromDiscover,
+      timeseriesResultsTypes,
       ...props
     } = this.props;
     const {seriesSelection} = this.state;
@@ -292,8 +299,15 @@ class Chart extends React.Component<ChartProps, State> {
       tooltip: {
         trigger: 'axis' as const,
         truncate: 80,
-        valueFormatter: (value: number) =>
-          tooltipFormatter(value, aggregateOutputType(yAxis)),
+        valueFormatter: (value: number, label?: string) => {
+          const aggregateName = label?.split(':').pop()?.trim();
+          if (aggregateName) {
+            return timeseriesResultsTypes
+              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+              : tooltipFormatter(value, aggregateOutputType(aggregateName));
+          }
+          return tooltipFormatter(value, 'number');
+        },
       },
       xAxis: timeframe
         ? {
@@ -304,8 +318,17 @@ class Chart extends React.Component<ChartProps, State> {
       yAxis: {
         axisLabel: {
           color: theme.chartLabel,
-          formatter: (value: number) =>
-            axisLabelFormatter(value, aggregateOutputType(yAxis)),
+          formatter: (value: number) => {
+            if (timeseriesResultsTypes) {
+              // Check to see if all series output types are the same. If not, then default to number.
+              const outputType =
+                new Set(Object.values(timeseriesResultsTypes)).size === 1
+                  ? timeseriesResultsTypes[yAxis]
+                  : 'number';
+              return axisLabelFormatterUsingAggregateOutputType(value, outputType);
+            }
+            return axisLabelFormatter(value, aggregateOutputType(yAxis));
+          },
         },
       },
       ...(chartOptionsProp ?? {}),
@@ -454,6 +477,7 @@ type ChartDataProps = {
   tableData?: TableDataWithTitle[];
   timeframe?: {end: number; start: number};
   timeseriesData?: Series[];
+  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   topEvents?: number;
 };
 
@@ -539,6 +563,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       previousTimeseriesData,
       timeframe,
       tableData,
+      timeseriesResultsTypes,
     }: ChartDataProps) => {
       if (errored) {
         return (
@@ -585,6 +610,7 @@ class EventsChart extends React.Component<EventsChartProps> {
             topEvents={topEvents}
             tableData={tableData ?? []}
             fromDiscover={fromDiscover}
+            timeseriesResultsTypes={timeseriesResultsTypes}
           />
         </TransitionChart>
       );

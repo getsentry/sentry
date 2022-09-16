@@ -1,8 +1,10 @@
 from sentry.models import Project, ProjectTeam, Rule, ScheduledDeletion, Team
 from sentry.tasks.deletion import run_deletion
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class DeleteTeamTest(TestCase):
     def test_simple(self):
         team = self.create_team(name="test")

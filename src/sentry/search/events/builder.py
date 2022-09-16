@@ -1109,13 +1109,13 @@ class QueryBuilder:
                     .replace("_", "\\_")
                     .replace("*", "%"),
                 )
-            elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+            elif search_filter.is_in_filter:
                 return Condition(
                     Function("hasAny", [self.column(name), value]),
                     Op.EQ if operator == "IN" else Op.NEQ,
                     1,
                 )
-            elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+            elif search_filter.value.raw_value == "":
                 return Condition(
                     Function("notEmpty", [self.column(name)]),
                     Op.EQ if operator == "!=" else Op.NEQ,
@@ -2411,7 +2411,6 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
-            self.organization_id,
             self.num_buckets,
             self.min_bin,
             self.max_bin,

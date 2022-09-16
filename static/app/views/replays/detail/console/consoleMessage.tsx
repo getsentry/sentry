@@ -22,7 +22,7 @@ interface MessageFormatterProps {
 /**
  * Attempt to stringify
  */
-function renderString(arg: string | number | boolean | Object) {
+function renderString(arg: string | number | boolean | object) {
   if (typeof arg !== 'object') {
     return arg;
   }

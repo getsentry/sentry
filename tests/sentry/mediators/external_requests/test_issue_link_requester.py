@@ -4,10 +4,12 @@ import responses
 from sentry.coreapi import APIError
 from sentry.mediators.external_requests import IssueLinkRequester
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
+@region_silo_test
 class TestIssueLinkRequester(TestCase):
     def setUp(self):
         super().setUp()

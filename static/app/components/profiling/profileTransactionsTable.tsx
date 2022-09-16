@@ -54,7 +54,7 @@ function ProfileTransactionsTable(props: ProfileTransactionsTableProps) {
         transaction: project ? (
           <Link
             to={generateProfileSummaryRouteWithQuery({
-              location,
+              query: location.query,
               orgSlug: organization.slug,
               projectSlug: project.slug,
               transaction: transaction.name,

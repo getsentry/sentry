@@ -1,10 +1,16 @@
 from django.db import models
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, FlexibleForeignKey
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    region_silo_model,
+)
 from sentry.db.models.fields.jsonfield import JSONField
 
 
+@region_silo_model
 class OrganizationIntegration(DefaultFieldsModel):
     __include_in_export__ = False
 
