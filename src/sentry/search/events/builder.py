@@ -1062,8 +1062,10 @@ class QueryBuilder:
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
+        value = aggregate_filter.value.value
         unit = self.get_function_result_type(aggregate_filter.key.name)
-        value = self.resolve_measurement_value(unit, aggregate_filter.value.value)
+        if unit:
+            value = self.resolve_measurement_value(unit, value)
 
         value = (
             int(to_timestamp(value))
