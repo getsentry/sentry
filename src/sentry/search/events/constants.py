@@ -135,6 +135,7 @@ ARRAY_FIELDS = {
     "spans_exclusive_time",
 }
 TIMESTAMP_FIELDS = {
+    "event.received",
     "timestamp",
     "timestamp.to_hour",
     "timestamp.to_day",

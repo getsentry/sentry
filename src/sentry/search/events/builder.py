@@ -150,6 +150,7 @@ class QueryBuilder:
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
         self.equation_alias_map: Dict[str, SelectType] = {}
+        self.equation_type_map: Dict[str, str] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -505,10 +506,12 @@ class QueryBuilder:
                         ],
                         f"equation[{index}]",
                     )
+                    self.equation_type_map[equations[index]] = "date"
                 else:
                     resolved_equation = self.resolve_equation(
                         parsed_equation.equation, f"equation[{index}]"
                     )
+                    self.equation_type_map[equations[index]] = "number"
                 self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
@@ -635,35 +638,6 @@ class QueryBuilder:
             return resolved_function
 
         return snql_function.snql_column(arguments, alias)
-
-    def get_function_result_type(
-        self,
-        function: str,
-    ) -> Optional[str]:
-        """Given a function, resolve it and then get the result_type
-
-        params to this function should match that of resolve_function
-        """
-        if function in TREND_FUNCTION_TYPE_MAP:
-            # HACK: Don't invalid query here if we don't recognize the function
-            # this is cause non-snql tests still need to run and will check here
-            # TODO: once non-snql is removed and trends has its own builder this
-            # can be removed
-            return TREND_FUNCTION_TYPE_MAP.get(function)
-
-        resolved_function = self.resolve_function(function, resolve_only=True)
-
-        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
-            return None
-
-        function_details = self.function_alias_map.get(resolved_function.alias)
-        if function_details is None:
-            return None
-
-        result_type: Optional[str] = function_details.instance.get_result_type(
-            function_details.field, function_details.arguments
-        )
-        return result_type
 
     def resolve_snql_function(
         self,
@@ -871,6 +845,42 @@ class QueryBuilder:
                 return measurement
         return None
 
+    def get_column_type(self, field: str) -> str:
+        match = is_function(field)
+        if match:
+            return self.get_function_result_type(field)
+        else:
+            return self.get_field_type(field)
+
+    def get_function_result_type(
+        self,
+        function: str,
+    ) -> Optional[str]:
+        """Given a function, resolve it and then get the result_type
+
+        params to this function should match that of resolve_function
+        """
+        if function in TREND_FUNCTION_TYPE_MAP:
+            # HACK: Don't invalid query here if we don't recognize the function
+            # this is cause non-snql tests still need to run and will check here
+            # TODO: once non-snql is removed and trends has its own builder this
+            # can be removed
+            return TREND_FUNCTION_TYPE_MAP.get(function)
+
+        resolved_function = self.resolve_function(function, resolve_only=True)
+
+        if not isinstance(resolved_function, Function) or resolved_function.alias is None:
+            return None
+
+        function_details = self.function_alias_map.get(resolved_function.alias)
+        if function_details is None:
+            return None
+
+        result_type: Optional[str] = function_details.instance.get_result_type(
+            function_details.field, function_details.arguments
+        )
+        return result_type
+
     def get_field_type(self, field: str) -> Optional[str]:
         if (
             field == "transaction.duration"
@@ -878,6 +888,8 @@ class QueryBuilder:
             or is_span_op_breakdown(field)
         ):
             return "duration"
+        if is_equation(field) and strip_equation(field) in self.equation_type_map:
+            return self.equation_type_map[strip_equation(field)]
 
         if is_percentage_measurement(field):
             return "percentage"
@@ -1238,7 +1250,11 @@ class QueryBuilder:
         else:
             column = self.resolve_column(operand)
             if date_math:
-                return Function("toUnixTimestamp", [column])
+                if operand in TIMESTAMP_FIELDS:
+                    return Function("toUnixTimestamp", [column])
+                # TODO: handle CM
+                elif self.get_column_type(operand) == "duration":
+                    return Function("divide", [column, 1000])
             return column
 
     def is_equation_column(self, column: SelectType) -> bool:

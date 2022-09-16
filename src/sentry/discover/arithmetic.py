@@ -172,6 +172,8 @@ class ArithmeticVisitor(NodeVisitor):
     # Implicitly an allowlist as well, once added the result will be a timestamp
     datefields = {
         "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
     }
     function_allowlist = {
         "count",
