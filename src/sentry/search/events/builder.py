@@ -138,12 +138,14 @@ class QueryBuilder:
         # used to allow metric alerts to be built and validated before creation in snuba.
         skip_time_conditions: bool = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
+        has_metrics: bool = False,
     ):
         self.dataset = dataset
 
         self.params = params
 
         self.organization_id = params.get("organization_id")
+        self.has_metrics = has_metrics
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -848,7 +850,7 @@ class QueryBuilder:
     @cached_property  # type: ignore
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
-        if "project_id" not in self.params or self.organization_id is None:
+        if "project_id" not in self.params or self.organization_id is None or not self.has_metrics:
             return []
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
