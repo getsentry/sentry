@@ -1767,13 +1767,14 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        # always true if this is being called
+        kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
             # PerformanceMetrics
             Dataset.Metrics if dataset is None else dataset,
             *args,
-            has_metrics=True,
             **kwargs,
         )
         if "organization_id" in self.params:
