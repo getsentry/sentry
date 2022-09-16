@@ -10,8 +10,10 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Switch from 'sentry/components/switchButton';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
@@ -87,6 +89,27 @@ export default function ChartFooter({
               }
               size="lg"
               toggle={() => setShowBaseline(!showBaseline)}
+            />
+            <QuestionTooltip
+              isHoverable
+              position="top"
+              size="sm"
+              title={tct(
+                'The baseline is only available for transaction events when displaying the Top Period.[break]The baseline shows the total [processedEventsLink: processed events] matching your query, compared to the [indexedEventsLink: indexed events].',
+                {
+                  indexedEventsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/#server-side-sampling" />
+                  ),
+                  processedEventsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/#client-side-sdk-sampling" />
+                  ),
+                  break: (
+                    <div>
+                      <br />
+                    </div>
+                  ),
+                }
+              )}
             />
           </Fragment>
         </Feature>

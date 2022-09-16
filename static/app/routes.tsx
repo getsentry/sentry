@@ -28,6 +28,8 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
+import Feature from './components/acl/feature';
+
 type CustomProps = {
   name?: string;
 };
@@ -145,6 +147,7 @@ function buildRoutes() {
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
 
@@ -1146,6 +1149,9 @@ function buildRoutes() {
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <IndexRedirect to="results/" />
+      </Feature>
       <IndexRedirect to="queries/" />
       <Route
         path="queries/"

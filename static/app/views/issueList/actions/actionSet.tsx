@@ -130,7 +130,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.MERGE),
           onConfirm: onMerge,
-          message: confirm(ConfirmAction.MERGE, false),
+          message: confirm({action: ConfirmAction.MERGE, canBeUndone: false}),
           confirmText: label('merge'),
         });
       },
@@ -150,7 +150,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.BOOKMARK),
           onConfirm: () => onUpdate({isBookmarked: true}),
-          message: confirm(ConfirmAction.BOOKMARK, false),
+          message: confirm({action: ConfirmAction.BOOKMARK, canBeUndone: false}),
           confirmText: label('bookmark'),
         });
       },
@@ -163,7 +163,11 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNBOOKMARK),
           onConfirm: () => onUpdate({isBookmarked: false}),
-          message: confirm('remove', false, ' from your bookmarks'),
+          message: confirm({
+            action: ConfirmAction.UNBOOKMARK,
+            canBeUndone: false,
+            append: ' from your bookmarks',
+          }),
           confirmText: label('remove', ' from your bookmarks'),
         });
       },
@@ -176,7 +180,7 @@ function ActionSet({
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
           onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
-          message: confirm(ConfirmAction.UNRESOLVE, true),
+          message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
       },
@@ -192,7 +196,7 @@ function ActionSet({
           bypass: !onShouldConfirm(ConfirmAction.DELETE),
           onConfirm: onDelete,
           priority: 'danger',
-          message: confirm(ConfirmAction.DELETE, false),
+          message: confirm({action: ConfirmAction.DELETE, canBeUndone: false}),
           confirmText: label('delete'),
         });
       },
@@ -236,8 +240,6 @@ function ActionSet({
           orgSlug={organization.slug}
           params={{
             hasReleases: false,
-            latestRelease: null,
-            projectId: null,
             confirm,
             label,
           }}
@@ -247,7 +249,9 @@ function ActionSet({
       <IgnoreActions
         onUpdate={onUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={confirm(ConfirmAction.IGNORE, true)}
+        confirmMessage={statusDetails =>
+          confirm({action: ConfirmAction.IGNORE, canBeUndone: true, statusDetails})
+        }
         confirmLabel={label('ignore')}
         issueCategory={issueCategory}
         disabled={ignoreDisabled}
@@ -262,7 +266,7 @@ function ActionSet({
           disabled={mergeDisabled}
           onAction={onMerge}
           shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-          message={confirm(ConfirmAction.MERGE, false)}
+          message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
           confirmLabel={label('merge')}
           title={makeMergeTooltip()}
         >

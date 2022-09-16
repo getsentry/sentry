@@ -4,32 +4,34 @@ from snuba_sdk import Column, Function
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
-from sentry.snuba.metrics import (
-    TransactionStatusTagValue,
-    TransactionTagsKey,
+from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
     addition,
     all_sessions,
     all_transactions,
     all_users,
+    complement,
+    count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
+    division_float,
     errored_all_users,
     errored_preaggr_sessions,
-    session_duration_filters,
-    subtraction,
-    uniq_aggregation_on_metric,
-)
-from sentry.snuba.metrics.fields.snql import (
-    complement,
-    division_float,
     failure_count_transaction,
     miserable_users,
+    rate_snql_factory,
     satisfaction_count_transaction,
+    session_duration_filters,
+    subtraction,
     tolerated_count_transaction,
+    uniq_aggregation_on_metric,
 )
-from sentry.snuba.metrics.naming_layer.public import TransactionSatisfactionTagValue
+from sentry.snuba.metrics.naming_layer.public import (
+    TransactionSatisfactionTagValue,
+    TransactionStatusTagValue,
+    TransactionTagsKey,
+)
 from sentry.testutils import TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -403,3 +405,78 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ),
             )
         ]
+
+    def test_rate_snql(self):
+        assert rate_snql_factory(
+            aggregate_filter=Function(
+                "equals",
+                [Column("metric_id"), 5],
+            ),
+            numerator=3600,
+            denominator=60,
+            alias="rate_alias",
+        ) == Function(
+            "divide",
+            [
+                Function(
+                    "countIf", [Column("value"), Function("equals", [Column("metric_id"), 5])]
+                ),
+                Function("divide", [3600, 60]),
+            ],
+            alias="rate_alias",
+        )
+
+        assert rate_snql_factory(
+            aggregate_filter=Function(
+                "equals",
+                [Column("metric_id"), 5],
+            ),
+            numerator=3600,
+            alias="rate_alias",
+        ) == Function(
+            "divide",
+            [
+                Function(
+                    "countIf", [Column("value"), Function("equals", [Column("metric_id"), 5])]
+                ),
+                Function("divide", [3600, 1]),
+            ],
+            alias="rate_alias",
+        )
+
+    def test_count_web_vitals_snql(self):
+        assert count_web_vitals_snql_factory(
+            aggregate_filter=Function(
+                "equals",
+                [Column("metric_id"), 5],
+            ),
+            org_id=self.org_id,
+            measurement_rating="good",
+            alias="count_web_vitals_alias",
+        ) == Function(
+            "countIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [Column("metric_id"), 5],
+                        ),
+                        Function(
+                            "equals",
+                            (
+                                Column(
+                                    resolve_tag_key(
+                                        UseCaseKey.PERFORMANCE, self.org_id, "measurement_rating"
+                                    )
+                                ),
+                                resolve_tag_value(UseCaseKey.PERFORMANCE, self.org_id, "good"),
+                            ),
+                        ),
+                    ],
+                ),
+            ],
+            alias="count_web_vitals_alias",
+        )

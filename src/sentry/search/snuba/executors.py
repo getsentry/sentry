@@ -39,6 +39,7 @@ from sentry.models import Environment, Group, Optional, Organization, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.search.utils import validate_cdc_search_filters
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -299,37 +300,42 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         mod_agg = aggregations.copy() if aggregations else []
         mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
-        transaction_conditions = self.update_conditions(
-            "event.type",
-            "=",
-            "transaction",
-            organization_id,
-            project_ids,
-            environments,
-            environment_ids,
-            conditions,
-        )
-        snuba_transaction_results = query_partial(
-            conditions=transaction_conditions,
-            aggregations=mod_agg,
-            condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
-            ),
-        )
-
         rows = snuba_error_results["data"]
-        txn_rows = snuba_transaction_results["data"]
         total = snuba_error_results["totals"]["total"]
         row_length = len(rows)
 
-        def keyfunc(row: Dict[str, int]) -> Optional[int]:
-            return row.get("group_id")
-
         organization = Organization.objects.get(id=organization_id)
         if features.has("organizations:performance-issues", organization):
-            total += snuba_transaction_results["totals"]["total"]
-            row_length += len(txn_rows)
-            rows = merge(rows, txn_rows, key=keyfunc)
+            transaction_conditions = self.update_conditions(
+                "event.type",
+                "=",
+                "transaction",
+                organization_id,
+                project_ids,
+                environments,
+                environment_ids,
+                conditions,
+            )
+            snuba_transaction_results = query_partial(
+                conditions=transaction_conditions,
+                aggregations=mod_agg,
+                condition_resolver=functools.partial(
+                    snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
+                ),
+            )
+
+            def keyfunc(row: Dict[str, int]) -> Optional[int]:
+                return row.get("group_id")
+
+            txn_rows = snuba_transaction_results["data"]
+            transaction_total = snuba_transaction_results["totals"]["total"]
+
+            if transaction_total:
+                total += transaction_total
+
+            if txn_rows:
+                row_length += len(txn_rows)
+                rows = merge(rows, txn_rows, key=keyfunc)
 
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", row_length)
@@ -477,6 +483,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 .filter(last_seen__gte=start, last_seen__lte=end)
                 .order_by("-last_seen")
             )
+            if not features.has("organizations:performance-issues", projects[0].organization):
+                # Make sure we only see error issues if the performance issue feature is disabled
+                group_queryset = group_queryset.filter(type=GroupCategory.ERROR.value)
+
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
             metrics.incr("snuba.search.postgres_only")
             # When it's a simple django-only search, we count_hits like normal

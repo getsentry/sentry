@@ -156,15 +156,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     @raises([GroupTagKeyNotFound])
-    def get_group_tag_key(self, project_id, group_id, environment_id, key):
+    def get_group_tag_key(self, group, environment_id, key):
         """
-        >>> get_group_tag_key(1, 2, 3, "key1")
+        >>> get_group_tag_key(group, 3, "key1")
         """
         raise NotImplementedError
 
     def get_group_tag_keys(self, group, environment_ids, limit=None, keys=None):
         """
-        >>> get_group_tag_key(1, 2, [3])
+        >>> get_group_tag_key(group, 2, [3])
         """
         raise NotImplementedError
 
@@ -175,9 +175,9 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, project_id, group_id, environment_id, key):
+    def get_group_tag_values(self, group, environment_id, key):
         """
-        >>> get_group_tag_values(1, 2, 3, "key1")
+        >>> get_group_tag_values(group, 3, "key1")
         """
         raise NotImplementedError
 
@@ -228,19 +228,15 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_value_iter(
-        self, project_id, group_id, environment_ids, key, callbacks=(), offset=0
-    ):
+    def get_group_tag_value_iter(self, group, environment_ids, key, callbacks=(), offset=0):
         """
-        >>> get_group_tag_value_iter(1, 2, 3, 'environment')
+        >>> get_group_tag_value_iter(group, 2, 3, 'environment')
         """
         raise NotImplementedError
 
-    def get_group_tag_value_paginator(
-        self, project_id, group_id, environment_ids, key, order_by="-id"
-    ):
+    def get_group_tag_value_paginator(self, group, environment_ids, key, order_by="-id"):
         """
-        >>> get_group_tag_value_paginator(1, 2, 3, 'environment')
+        >>> get_group_tag_value_paginator(group, 3, 'environment')
         """
         raise NotImplementedError
 
@@ -262,17 +258,15 @@ class TagStorage(Service):
     ):
         raise NotImplementedError
 
-    def get_group_tag_value_count(self, project_id, group_id, environment_id, key):
+    def get_group_tag_value_count(self, group, environment_id, key):
         """
-        >>> get_group_tag_value_count(1, 2, 3, 'key1')
+        >>> get_group_tag_value_count(group, 3, 'key1')
         """
         raise NotImplementedError
 
-    def get_top_group_tag_values(
-        self, project_id, group_id, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT
-    ):
+    def get_top_group_tag_values(self, group, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
         """
-        >>> get_top_group_tag_values(1, 2, 3, 'key1')
+        >>> get_top_group_tag_values(group, 3, 'key1')
         """
         raise NotImplementedError
 
@@ -325,12 +319,10 @@ class TagStorage(Service):
         environment_id = environment_ids[0] if environment_ids else None
         for tk in tag_keys:
             tk.top_values = self.get_top_group_tag_values(
-                group.project_id, group.id, environment_id, tk.key, limit=value_limit
+                group, environment_id, tk.key, limit=value_limit
             )
             if tk.count is None:
-                tk.count = self.get_group_tag_value_count(
-                    group.project_id, group.id, environment_id, tk.key
-                )
+                tk.count = self.get_group_tag_value_count(group, environment_id, tk.key)
 
         return tag_keys
 

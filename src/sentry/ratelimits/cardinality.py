@@ -1,8 +1,8 @@
 import time
 from collections import defaultdict
-from typing import Collection, Iterator, List, NamedTuple, Optional, Sequence, Tuple
+from typing import Collection, Iterator, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
-from sentry.utils import redis
+from sentry.utils import metrics, redis
 from sentry.utils.services import Service
 
 Hash = int
@@ -214,6 +214,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         cluster: str = "default",
         num_shards: int = 3,
         num_physical_shards: int = 3,
+        metric_tags: Optional[Mapping[str, str]] = None,
     ) -> None:
         """
         :param cluster: Name of the redis cluster to use, to be configured with
@@ -231,6 +232,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         assert 0 < num_physical_shards <= num_shards
         self.num_shards = num_shards
         self.num_physical_shards = num_physical_shards
+        self.metric_tags = metric_tags or {}
         super().__init__()
 
     @staticmethod
@@ -303,11 +305,17 @@ class RedisCardinalityLimiter(CardinalityLimiter):
         for request in requests:
             granted_hashes = []
 
+            set_count = sum(set_counts[k] for k in self._get_read_sets_keys(request, timestamp))
+
+            metrics.timing(
+                key="ratelimits.cardinality.set_size",
+                value=set_count,
+                tags=self.metric_tags,
+            )
+
             remaining_limit = max(
                 0,
-                request.quota.limit
-                - cardinality_sample_factor
-                * sum(set_counts[k] for k in self._get_read_sets_keys(request, timestamp)),
+                request.quota.limit - cardinality_sample_factor * set_count,
             )
 
             remaining_limit_running = remaining_limit

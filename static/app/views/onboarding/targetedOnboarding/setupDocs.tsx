@@ -21,9 +21,12 @@ import {Organization, Project} from 'sentry/types';
 import {logExperiment} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
+
+import IntegrationSetup from '../integrationSetup';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
@@ -230,6 +233,9 @@ function SetupDocs({
     (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
   );
 
+  const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
+  const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
+
   useEffect(() => {
     // should not redirect if we don't have an active client state or projects aren't loaded
     if (!clientState || loadingProjects) {
@@ -250,6 +256,12 @@ function SetupDocs({
     if (!project?.platform) {
       return;
     }
+    if (integrationSlug && !integrationUseManualSetup) {
+      setLoadedPlatform(project.platform);
+      setPlatformDocs(null);
+      setHasError(false);
+      return;
+    }
     try {
       const loadedDocs = await loadDocs(
         api,
@@ -264,7 +276,7 @@ function SetupDocs({
       setHasError(error);
       throw error;
     }
-  }, [project, api, organization]);
+  }, [project, api, organization, integrationSlug, integrationUseManualSetup]);
 
   useEffect(() => {
     fetchData();
@@ -275,6 +287,10 @@ function SetupDocs({
   }
 
   const setNewProject = (newProjectId: string) => {
+    setLoadedPlatform(null);
+    setPlatformDocs(null);
+    setHasError(false);
+    setIntegrationUseManualSetup(false);
     const searchParams = new URLSearchParams({
       sub_step: 'project',
       project_id: newProjectId,
@@ -314,14 +330,24 @@ function SetupDocs({
           />
         </SidebarWrapper>
         <MainContent>
-          <ProjecDocs
-            platform={loadedPlatform}
-            organization={organization}
-            project={project}
-            hasError={hasError}
-            platformDocs={platformDocs}
-            onRetry={fetchData}
-          />
+          {integrationSlug && !integrationUseManualSetup ? (
+            <IntegrationSetup
+              integrationSlug={integrationSlug}
+              project={project}
+              onClickManualSetup={() => {
+                setIntegrationUseManualSetup(true);
+              }}
+            />
+          ) : (
+            <ProjecDocs
+              platform={loadedPlatform}
+              organization={organization}
+              project={project}
+              hasError={hasError}
+              platformDocs={platformDocs}
+              onRetry={fetchData}
+            />
+          )}
         </MainContent>
       </Wrapper>
 

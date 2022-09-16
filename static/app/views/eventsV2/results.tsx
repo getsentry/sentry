@@ -653,6 +653,16 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+  componentDidUpdate(prevProps) {
+    const {location} = this.props;
+    if (
+      !defined(location.query?.id) &&
+      prevProps.location.query?.id !== location.query?.id
+    ) {
+      this.setState({savedQuery: undefined});
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     if (location.query.id) {

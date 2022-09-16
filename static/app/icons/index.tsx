@@ -1,5 +1,4 @@
 export {IconAdd} from './iconAdd';
-export {IconAnchor} from './iconAnchor';
 export {IconArrow} from './iconArrow';
 export {IconAsana} from './iconAsana';
 export {IconAttachment} from './iconAttachment';

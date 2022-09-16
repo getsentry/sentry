@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {},
+  "include": ["../static/app", "../tests/js", "../fixtures/js-stubs"]
+}
