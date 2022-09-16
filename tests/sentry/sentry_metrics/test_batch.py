@@ -137,10 +137,9 @@ def _get_string_indexer_log_records(caplog):
 
 
 @pytest.mark.parametrize(
-    "use_case_key, should_index_tag_values, expected",
+    "should_index_tag_values, expected",
     [
         pytest.param(
-            UseCaseKey.PERFORMANCE,
             True,
             {
                 1: {
@@ -158,7 +157,6 @@ def _get_string_indexer_log_records(caplog):
             id="index tag values true",
         ),
         pytest.param(
-            UseCaseKey.PERFORMANCE,
             False,
             {
                 1: {
@@ -173,7 +171,7 @@ def _get_string_indexer_log_records(caplog):
         ),
     ],
 )
-def test_extract_strings(use_case_key, should_index_tag_values, expected):
+def test_extract_strings(should_index_tag_values, expected):
     """
     Test that the indexer batch extracts the correct strings from the messages
     based on the use case key and the option setting.
@@ -185,7 +183,7 @@ def test_extract_strings(use_case_key, should_index_tag_values, expected):
             (set_payload, []),
         ]
     )
-    batch = IndexerBatch(use_case_key, outer_message, should_index_tag_values)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values)
 
     assert batch.extract_strings() == expected
 

@@ -189,7 +189,7 @@ class IndexerBatch:
             }
 
             if self.__should_index_tag_values:
-                parsed_strings.update([*tags.values()])
+                parsed_strings.update(tags.values())
 
             org_strings[org_id].update(parsed_strings)
 
