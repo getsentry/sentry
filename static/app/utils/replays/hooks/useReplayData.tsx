@@ -171,7 +171,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       }
 
       const response = await api.requestPromise(
-        `/organizations/${orgSlug}/replays_events_meta/`,
+        `/organizations/${orgSlug}/replays-events-meta/`,
         {
           query: {
             start: replayRecord.startedAt.toISOString(),
