@@ -1109,13 +1109,13 @@ class QueryBuilder:
                     .replace("_", "\\_")
                     .replace("*", "%"),
                 )
-            elif name in ARRAY_FIELDS and search_filter.is_in_filter:
+            elif search_filter.is_in_filter:
                 return Condition(
                     Function("hasAny", [self.column(name), value]),
                     Op.EQ if operator == "IN" else Op.NEQ,
                     1,
                 )
-            elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
+            elif search_filter.value.raw_value == "":
                 return Condition(
                     Function("notEmpty", [self.column(name)]),
                     Op.EQ if operator == "!=" else Op.NEQ,
@@ -2456,7 +2456,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             dry_run=dry_run,
         )
-        if self.granularity.granularity >= interval:
+        if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
                 if granularity < interval:
                     self.granularity = Granularity(granularity)
