@@ -9,8 +9,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import MemberListStore from 'sentry/stores/memberListStore';
+import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
-import type {Group, Project} from 'sentry/types';
+import type {Actor, Group, Project} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -23,32 +25,44 @@ function AssignedTo({group, projectId}: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
   useEffect(() => {
+    // TODO: We should check if this is already loaded
     fetchOrgMembers(api, organization.slug, [projectId]);
   }, [api, organization.slug, projectId]);
+
+  function getAssignedToDisplayName(assignedTo?: Actor) {
+    if (assignedTo?.type === 'team') {
+      const team = TeamStore.getById(group.assignedTo.id);
+      return `#${team?.slug ?? group.assignedTo.name}`;
+    }
+    if (assignedTo?.type === 'user') {
+      const user = MemberListStore.getById(assignedTo.id);
+      return user?.name ?? group.assignedTo.name;
+    }
+
+    return group.assignedTo?.name ?? t('No-one');
+  }
 
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Assigned To')}</SidebarSection.Title>
       <StyledSidebarSectionContent>
         <AssigneeSelectorDropdown id={group.id}>
-          {({loading, isOpen, getActorProps}) => (
+          {({loading, assignedTo, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
               <ActorWrapper>
                 {loading ? (
                   <StyledLoadingIndicator mini size={20} />
-                ) : group.assignedTo ? (
+                ) : assignedTo ? (
                   <ActorAvatar
                     data-test-id="assigned-avatar"
-                    actor={group.assignedTo}
+                    actor={assignedTo}
                     hasTooltip={false}
                     size={20}
                   />
                 ) : (
                   <IconUser size="md" />
                 )}
-                {group.assignedTo?.type === 'team'
-                  ? `#${group.assignedTo.name}`
-                  : group.assignedTo?.name ?? t('No-one')}
+                {getAssignedToDisplayName(assignedTo)}
               </ActorWrapper>
               <IconChevron direction={isOpen ? 'up' : 'down'} />
             </DropdownButton>
