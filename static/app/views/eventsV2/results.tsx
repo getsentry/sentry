@@ -391,6 +391,25 @@ class Results extends Component<Props, State> {
     }
   };
 
+  handleIntervalChange = (value: string) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      interval: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
   handleTopEventsChange = (value: string) => {
     const {router, location} = this.props;
 
@@ -560,6 +579,7 @@ class Results extends Component<Props, State> {
                       onAxisChange={this.handleYAxisChange}
                       onDisplayChange={this.handleDisplayChange}
                       onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
                       total={totalValues}
                       confirmedQuery={confirmedQuery}
                       yAxis={yAxisArray}
