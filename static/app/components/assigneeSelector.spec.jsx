@@ -114,7 +114,6 @@ describe('AssigneeSelector', () => {
   afterEach(() => {
     Client.clearMockResponses();
     ProjectsStore.teardown();
-    TeamStore.teardown();
   });
 
   describe('render with props', () => {

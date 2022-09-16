@@ -2,7 +2,6 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
-import TeamActions from 'sentry/actions/teamActions';
 import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -236,7 +235,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
 
       // Unique by `id` to avoid duplicates due to renames and state store data
       const fetchedTeams = uniqBy([...results, ...store.teams], ({id}) => id);
-      TeamActions.loadTeams(fetchedTeams);
+      TeamStore.loadInitialData(fetchedTeams);
 
       setState({
         ...state,
@@ -297,11 +296,11 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
       if (search) {
         // Only update the store if we have more items
         if (fetchedTeams.length > store.teams.length) {
-          TeamActions.loadTeams(fetchedTeams);
+          TeamStore.loadInitialData(fetchedTeams);
         }
       } else {
         // If we fetched a page of teams without a search query, add cursor data to the store
-        TeamActions.loadTeams(fetchedTeams, hasMore, nextCursor);
+        TeamStore.loadInitialData(fetchedTeams, hasMore, nextCursor);
       }
 
       setState({

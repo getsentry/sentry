@@ -1,10 +1,9 @@
 import {createStore} from 'reflux';
 
-import TeamActions from 'sentry/actions/teamActions';
 import {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
+import ProjectsStore from './projectsStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
@@ -22,6 +21,7 @@ interface TeamStoreDefinition extends CommonStoreDefinition<State> {
   init(): void;
   initialized: boolean;
   loadInitialData(items: Team[], hasMore?: boolean | null, cursor?: string | null): void;
+  loadUserTeams(userTeams: Team[]): void;
   onCreateSuccess(team: Team): void;
   onRemoveSuccess(slug: string): void;
   onUpdateSuccess(itemId: string, response: Team): void;
@@ -40,30 +40,8 @@ const teamStoreConfig: TeamStoreDefinition = {
     cursor: null,
   },
 
-  unsubscribeListeners: [],
-
   init() {
     this.reset();
-
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.createTeamSuccess, this.onCreateSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.fetchDetailsSuccess, this.onUpdateSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.loadTeams, this.loadInitialData)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.loadUserTeams, this.loadUserTeams)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.removeTeamSuccess, this.onRemoveSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess)
-    );
-    this.unsubscribeListeners.push(this.listenTo(TeamActions.reset, this.reset));
   },
 
   reset() {
@@ -145,6 +123,7 @@ const teamStoreConfig: TeamStoreDefinition = {
   onRemoveSuccess(slug: string) {
     const teams = this.state.teams.filter(team => team.slug !== slug);
     this.setTeams(teams);
+    ProjectsStore.onDeleteTeam(slug);
   },
 
   onCreateSuccess(team: Team) {
@@ -185,5 +164,5 @@ const teamStoreConfig: TeamStoreDefinition = {
   },
 };
 
-const TeamStore = createStore(makeSafeRefluxStore(teamStoreConfig));
+const TeamStore = createStore(teamStoreConfig);
 export default TeamStore;
