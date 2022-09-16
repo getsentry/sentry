@@ -90,6 +90,7 @@ def query(
             conditions=conditions,
             functions_acl=functions_acl,
             transform_alias_to_input_format=transform_alias_to_input_format,
+            has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
 
@@ -165,6 +166,7 @@ def timeseries_query(
             zerofill_results,
             comparison_delta,
             functions_acl,
+            has_metrics=has_metrics,
         )
     return SnubaTSResult()
 

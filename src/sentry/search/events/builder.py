@@ -1330,6 +1330,7 @@ class UnresolvedQuery(QueryBuilder):
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
+        has_metrics: bool = False,
     ):
         super().__init__(
             dataset=dataset,
@@ -1347,6 +1348,7 @@ class UnresolvedQuery(QueryBuilder):
             turbo=turbo,
             sample_rate=sample_rate,
             equation_config=equation_config,
+            has_metrics=has_metrics,
         )
 
     def resolve_query(
@@ -1374,6 +1376,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         equations: Optional[List[str]] = None,
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
+        has_metrics: bool = False,
     ):
         super().__init__(
             dataset,
@@ -1384,6 +1387,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             auto_fields=False,
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
+            has_metrics=has_metrics,
         )
 
         self.granularity = Granularity(interval)
@@ -1769,6 +1773,7 @@ class MetricsQueryBuilder(QueryBuilder):
             # PerformanceMetrics
             Dataset.Metrics if dataset is None else dataset,
             *args,
+            has_metrics=True,
             **kwargs,
         )
         if "organization_id" in self.params:
