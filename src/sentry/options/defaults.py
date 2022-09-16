@@ -480,7 +480,7 @@ register("sentry-metrics.performance.tags-values-are-strings", default=False)
 
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
-register("sentry-metrics.performance.index-tag-values", default=True)
+register("sentry-metrics.performance.index-tag-values", default=False)
 
 # Global and per-organization limits on the writes to the string indexer's DB.
 #
