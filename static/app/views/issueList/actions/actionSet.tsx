@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
@@ -198,7 +198,7 @@ function ActionSet({
   ];
 
   return (
-    <React.Fragment>
+    <Fragment>
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -278,7 +278,7 @@ function ActionSet({
         }}
         isDisabled={!anySelected}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
