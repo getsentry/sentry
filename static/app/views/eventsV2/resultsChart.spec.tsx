@@ -42,6 +42,7 @@ describe('EventsV2 > ResultsChart', function () {
           location={location}
           onAxisChange={() => undefined}
           onDisplayChange={() => undefined}
+          onIntervalChange={() => undefined}
           total={1}
           confirmedQuery
           yAxis={['count()', 'failure_count()']}
@@ -75,6 +76,7 @@ describe('EventsV2 > ResultsChart', function () {
           location={location}
           onAxisChange={() => undefined}
           onDisplayChange={() => undefined}
+          onIntervalChange={() => undefined}
           total={1}
           confirmedQuery
           yAxis={[]}
@@ -104,6 +106,7 @@ describe('EventsV2 > ResultsChart', function () {
           location={location}
           onAxisChange={() => undefined}
           onDisplayChange={() => undefined}
+          onIntervalChange={() => undefined}
           total={1}
           confirmedQuery
           yAxis={['count()']}

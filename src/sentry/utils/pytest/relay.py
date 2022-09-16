@@ -44,8 +44,6 @@ def _remove_container_if_exists(docker_client, container_name):
             container.remove()
         except Exception:
             pass  # could not remove the container nothing to do about it
-    finally:
-        docker_client.close()
 
 
 @pytest.fixture(scope="session")
