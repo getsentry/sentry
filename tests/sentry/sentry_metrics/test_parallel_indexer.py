@@ -56,6 +56,7 @@ def test_basic(request):
             writes_limiter_namespace="test",
             cardinality_limiter_cluster_options={},
             cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+            index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
         ),
     )
 

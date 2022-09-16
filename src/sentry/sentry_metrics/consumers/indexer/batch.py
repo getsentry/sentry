@@ -74,21 +74,13 @@ class InboundMessage(TypedDict):
 
 
 class IndexerBatch:
-    def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
+    def __init__(self, use_case_id: UseCaseKey, outer_message: Message[
+        MessageBatch], should_index_tag_values: bool) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
+        self.__should_index_tag_values = should_index_tag_values
 
         self._extract_messages()
-
-    def _should_index_tag_values(self) -> bool:
-        """
-        Helper function to determine if we should index tag values or not
-        """
-        if self.use_case_id == UseCaseKey.PERFORMANCE and not options.get(
-            "sentry-metrics.performance.index-tag-values"
-        ):
-            return False
-        return True
 
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
@@ -193,7 +185,7 @@ class IndexerBatch:
                 *tags.keys(),
             }
 
-            if self._should_index_tag_values():
+            if self.__should_index_tag_values:
                 parsed_strings.update([*tags.values()])
 
             org_strings[org_id].update(parsed_strings)
@@ -255,7 +247,7 @@ class IndexerBatch:
                         continue
 
                     value_to_write = v
-                    if self._should_index_tag_values():
+                    if self.__should_index_tag_values:
                         new_v = mapping[org_id][v]
                         if new_v is None:
                             metadata = bulk_record_meta[org_id].get(v)
@@ -307,6 +299,12 @@ class IndexerBatch:
             mapping_header_content = bytes(
                 "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
+
+            # When sending tag values as strings, set the version on the payload
+            # to 2. This is used by the consumer to determine how to decode the
+            # tag values.
+            if not self.__should_index_tag_values:
+                new_payload_value["version"] = 2
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:
