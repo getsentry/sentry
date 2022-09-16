@@ -59,6 +59,6 @@ const Overlay = styled('div')`
   display: grid;
   grid: auto/50%;
   place-content: center;
-  z-index: ${p => p.theme.zIndex.modal};
+  z-index: ${p => p.theme.zIndex.initial};
   text-align: center;
 `;
