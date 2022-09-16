@@ -1051,14 +1051,19 @@ class QueryBuilder:
         else:
             return [operator(conditions=combined_conditions)]
 
-    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
-        return aggregate_filter.value
+    def resolve_measurement_value(self, unit: str, value: float) -> float:
+        if unit in SIZE_UNITS:
+            return SIZE_UNITS[unit] * value
+        elif unit in DURATION_UNITS:
+            return DURATION_UNITS[unit] * value
+        return value
 
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
-        value = self.resolve_aggregate_value(aggregate_filter).value
+        unit = self.get_function_result_type(aggregate_filter.key.name)
+        value = self.resolve_measurement_value(unit, aggregate_filter.value.value)
 
         value = (
             int(to_timestamp(value))
@@ -1080,6 +1085,12 @@ class QueryBuilder:
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
         name = search_filter.key.name
+        if measurement_meta := self.get_measument_by_name(name):
+            unit = measurement_meta.get("unit")
+            value = self.resolve_measurement_value(unit, search_filter.value.value)
+            search_filter = SearchFilter(
+                search_filter.key, search_filter.operator, SearchValue(value)
+            )
 
         if name in NO_CONVERSION_FIELDS:
             return None
@@ -1922,15 +1933,6 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
-
-    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
-        unit = self.get_function_result_type(aggregate_filter.key.name)
-        value = aggregate_filter.value.value
-        if unit in SIZE_UNITS:
-            return SearchValue(SIZE_UNITS[unit] * value)
-        elif unit in DURATION_UNITS:
-            return SearchValue(DURATION_UNITS[unit] * value)
-        return aggregate_filter.value
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
