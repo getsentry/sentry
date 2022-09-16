@@ -130,11 +130,8 @@ class EventPerformanceProblem:
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
     try:
-        rate = options.get(
-            "store.use-ingest-performance-detection-only"
-        )  # TODO: Remove this option once performance.issues option is working.
-        inner_rate = options.get("performance.issues.all.problem-detection")
-        if rate and rate > random.random() and inner_rate and inner_rate > random.random():
+        rate = options.get("performance.issues.all.problem-detection")
+        if rate and rate > random.random():
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
             with metrics.timer(
