@@ -44,3 +44,15 @@ def test_wraps():
         args, kwargs = timing.call_args
         assert args[0] == "key"
         assert args[3] == {"foo": True, "result": "success"}
+
+
+def test_global():
+    assert metrics._get_current_global_tags() == {}
+
+    with metrics.global_tags(tag_a=123):
+        assert metrics._get_current_global_tags() == {"tag_a": 123}
+        metrics.add_global_tags(tag_b=123)
+
+        assert metrics._get_current_global_tags() == {"tag_a": 123, "tag_b": 123}
+
+    assert metrics._get_current_global_tags() == {}
