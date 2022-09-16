@@ -20,6 +20,6 @@ class TestChartRenderer(AcceptanceTestCase):
 
             # Ensure our chart images actually look like pngs
             assert resp.status_code == 200
-            assert next(resp.streaming_content)[:4] == b"\x89PNG"
+            assert b"".join(resp.streaming_content)[:4] == b"\x89PNG"
 
         self.browser.snapshot("chart renderer debug view via chartcuterie")
