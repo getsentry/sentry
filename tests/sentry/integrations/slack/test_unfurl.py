@@ -889,3 +889,54 @@ class UnfurlTest(TestCase):
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == 2
         assert sorted(x["geo.country_code"] for x in chart_data["stats"]["data"]) == ["AU", "CA"]
+
+    # patched return value determined by reading events stats output
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "default,second": {
+                "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
+                "order": 0,
+                "isMetricsData": False,
+                "start": 1652572800,
+                "end": 1652659201,
+            },
+            "default,first": {
+                "data": [(1652572800, [{"count": 15}]), (1652659200, [{"count": 11}])],
+                "order": 1,
+                "isMetricsData": False,
+                "start": 1652572800,
+                "end": 1652659201,
+            },
+        },
+    )
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_bar_chart_display_renders_bar_chart(self, mock_generate_chart, _):
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&[…]event.type%3Aerror&sort=-count&statsPeriod=24h&yAxis=count%28%29"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_DAILY
