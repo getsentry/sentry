@@ -42,3 +42,16 @@ class AuditLogEntrySerializerTest(TestCase):
         result = serialize(log, serializer)
 
         assert result["actor"]["name"] == "SCIM Internal Integration (" + uuid_prefix + ")"
+
+    def test_invalid_template(self):
+        log = AuditLogEntry.objects.create(
+            organization=self.organization,
+            event=audit_log.get_event_id("MEMBER_INVITE"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={},  # missing required keys
+        )
+
+        serializer = AuditLogEntrySerializer()
+        result = serialize(log, serializer)
+        assert result["note"] == ""

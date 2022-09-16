@@ -626,14 +626,14 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FieldKey.ISSUE_CATEGORY]: {
-    desc: t('The category of issue'),
+    desc: t('Category of issue (error or performance)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
     featureFlag: 'performance-issues',
   },
   [FieldKey.ISSUE_TYPE]: {
-    desc: t('The type of issue'),
+    desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     featureFlag: 'performance-issues',

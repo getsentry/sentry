@@ -98,12 +98,12 @@ describe('Frame Variables', function () {
       })
     ).toHaveAttribute(
       'href',
-      '/settings/org-slug/projects/project-slug/security-and-privacy/#advanced-data-scrubbing'
+      '/settings/org-slug/projects/project-slug/security-and-privacy/advanced-data-scrubbing/0/'
     );
 
     expect(screen.getByRole('link', {name: 'project-slug'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/projects/project-slug/security-and-privacy/#advanced-data-scrubbing'
+      '/settings/org-slug/projects/project-slug/'
     );
   });
 });

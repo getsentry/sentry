@@ -40,7 +40,6 @@ describe('DatePageFilter', function () {
   });
 
   afterEach(() => {
-    PageFiltersStore.teardown();
     OrganizationStore.teardown();
   });
 
@@ -67,7 +66,12 @@ describe('DatePageFilter', function () {
       desyncedFilters: new Set(),
       pinnedFilters: new Set(),
       selection: {
-        datetime: {period: '30d'},
+        datetime: {
+          period: '30d',
+          end: undefined,
+          start: undefined,
+          utc: null,
+        },
         environments: [],
         projects: [],
       },
