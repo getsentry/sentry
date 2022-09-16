@@ -233,12 +233,13 @@ function WidgetCardContextMenu({
     <WidgetViewerContext.Consumer>
       {({setData}) => (
         <MEPConsumer>
-          {({metricSettingState}) => (
+          {metricSettingContext => (
             <ContextWrapper>
               {(organization.features.includes('dashboards-mep') ||
                 organization.features.includes('mep-rollout-flag')) &&
                 isMetricsData === false &&
-                metricSettingState !== MEPState.transactionsOnly && (
+                metricSettingContext &&
+                metricSettingContext.metricSettingState !== MEPState.transactionsOnly && (
                   <SampledTag
                     tooltipText={t('This widget is only applicable to indexed events.')}
                   >
