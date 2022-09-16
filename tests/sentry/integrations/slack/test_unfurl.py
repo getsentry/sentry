@@ -912,7 +912,7 @@ class UnfurlTest(TestCase):
     )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_bar_chart_display_renders_bar_chart(self, mock_generate_chart, _):
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&[…]event.type%3Aerror&sort=-count&statsPeriod=24h&yAxis=count%28%29"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&event.type%3Aerror&sort=-count&statsPeriod=24h&yAxis=count%28%29"
 
         link_type, args = match_link(url)
 
