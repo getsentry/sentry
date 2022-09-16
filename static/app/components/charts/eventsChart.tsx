@@ -231,7 +231,7 @@ class Chart extends React.Component<ChartProps, State> {
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
       ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
-      ...(additionalSeries ? additionalSeries.map(series => series.name) : []),
+      ...(additionalSeries ? additionalSeries.map(series => series.name ?? '') : []),
     ];
 
     const releasesLegend = t('Releases');

@@ -6,7 +6,7 @@ import {Location} from 'history';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
-import {isMultiSeriesStats, lightenHexToRgb} from 'sentry/components/charts/utils';
+import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {EventsStats, Organization} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -110,8 +110,9 @@ export function MetricsBaselineContainer({
             ];
           });
 
-          const color = theme.charts.getColorPalette(seriesWithOrdering.length - 2);
-          const additionalSeriesColor = lightenHexToRgb(color);
+          const additionalSeriesColor = theme.charts.getColorPalette(
+            seriesWithOrdering.length - 2
+          );
 
           seriesWithOrdering.forEach(([order, series]) =>
             additionalSeries.push(
@@ -122,6 +123,7 @@ export function MetricsBaselineContainer({
                   color: additionalSeriesColor[order],
                   type: 'dashed',
                   width: 1,
+                  opacity: 0.5,
                 },
                 itemStyle: {color: additionalSeriesColor[order]},
                 animation: false,
@@ -138,8 +140,8 @@ export function MetricsBaselineContainer({
             LineSeries({
               name: transformed.seriesName,
               data: transformed.data.map(({name, value}) => [name, value]),
-              lineStyle: {color: theme.gray200, type: 'dashed', width: 1},
-              itemStyle: {color: theme.gray200},
+              lineStyle: {type: 'dashed', width: 1, opacity: 0.5},
+              // itemStyle: {color: theme.gray200},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,
