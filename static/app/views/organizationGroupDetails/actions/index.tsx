@@ -488,12 +488,8 @@ const Wrapper = styled('div')`
   align-items: center;
   grid-auto-flow: column;
   margin-top: ${space(2)};
-  margin-bottom: -${space(0.5)};
+  gap: ${space(0.5)};
   white-space: nowrap;
-
-  > * {
-    margin: 0 ${space(0.5)} ${space(0.5)} 0;
-  }
 `;
 
 export {Actions};
