@@ -62,15 +62,21 @@ class AuthOAuth2Test(AuthProviderTestCase):
     def sso_path(self):
         return reverse("sentry-auth-sso")
 
-    def initiate_oauth_flow(self):
-        resp = self.client.post(self.login_path, {"init": True})
+    def initiate_oauth_flow(self, http_host=None):
+        kwargs = {}
+        if http_host is not None:
+            kwargs["HTTP_HOST"] = http_host
+        else:
+            http_host = "testserver"
+
+        resp = self.client.post(self.login_path, {"init": True}, **kwargs)
 
         assert resp.status_code == 302
         redirect = urlparse(resp.get("Location", ""))
         query = parse_qs(redirect.query)
 
         assert redirect.path == "/authorize_url"
-        assert query["redirect_uri"][0] == "http://testserver/auth/sso/"
+        assert query["redirect_uri"][0] == f"http://{http_host}/auth/sso/"
         assert query["client_id"][0] == "my_client_id"
         assert "state" in query
 
@@ -87,8 +93,19 @@ class AuthOAuth2Test(AuthProviderTestCase):
         if expect_success:
             assert resp.status_code == 200
             assert urlopen.called
-            assert urlopen.call_args[1]["data"]["code"] == "1234"
-            assert urlopen.call_args[1]["data"]["client_secret"] == "my_client_secret"
+            data = urlopen.call_args[1]["data"]
+
+            http_host = "testserver"
+            if "HTTP_HOST" in kwargs:
+                http_host = kwargs["HTTP_HOST"]
+
+            assert data == {
+                "grant_type": "authorization_code",
+                "code": "1234",
+                "redirect_uri": f"http://{http_host}/auth/sso/",
+                "client_id": "my_client_id",
+                "client_secret": "my_client_secret",
+            }
 
         return resp
 
@@ -97,6 +114,15 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         state = self.initiate_oauth_flow()
         auth_resp = self.initiate_callback(state, auth_data)
+
+        assert auth_resp.context["existing_user"] == self.user
+
+    def test_oauth2_flow_customer_domain(self):
+        HTTP_HOST = "albertos-apples.testserver"
+        auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
+
+        state = self.initiate_oauth_flow(http_host=HTTP_HOST)
+        auth_resp = self.initiate_callback(state, auth_data, HTTP_HOST=HTTP_HOST)
 
         assert auth_resp.context["existing_user"] == self.user
 
