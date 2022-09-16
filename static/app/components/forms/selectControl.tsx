@@ -4,6 +4,7 @@ import ReactSelect, {
   GroupedOptionsType,
   mergeStyles,
   OptionsType,
+  OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig,
 } from 'react-select';
@@ -22,7 +23,7 @@ import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 
-function isGroupedOptions<OptionType>(
+function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
     | GroupedOptionsType<OptionType>
@@ -88,7 +89,7 @@ const SingleValueLabel = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-export type ControlProps<OptionType = GeneralSelectValue> = Omit<
+export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
   'onChange' | 'value'
 > & {
@@ -135,7 +136,7 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
 /**
  * Additional props provided by forwardRef
  */
-type WrappedControlProps<OptionType> = ControlProps<OptionType> & {
+type WrappedControlProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
   /**
    * Ref forwarded into ReactSelect component.
    * The any is inherited from react-select.
@@ -175,7 +176,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     () => ({
       control: (_, state: any) => ({
         display: 'flex',
-        ...theme.form[size ?? 'md'],
         // @ts-ignore Ignore merge errors as only defining the property once
         // makes code harder to understand.
         ...{
@@ -200,21 +200,23 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(!state.isSearchable && {
           cursor: 'pointer',
         }),
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(0.5)}`,
-          borderRadius: 0,
-          border: 'none',
-          boxShadow: 'none',
-          cursor: 'initial',
-          minHeight: 'none',
-          ...(isSearchable
-            ? {marginTop: 1}
-            : {
-                height: 0,
-                padding: 0,
-                overflow: 'hidden',
-              }),
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(0.5)}`,
+              borderRadius: 0,
+              border: 'none',
+              boxShadow: 'none',
+              cursor: 'initial',
+              minHeight: 'none',
+              ...(isSearchable
+                ? {marginTop: 1}
+                : {
+                    height: 0,
+                    padding: 0,
+                    overflow: 'hidden',
+                  }),
+            }
+          : theme.form[size ?? 'md']),
       }),
 
       menu: (provided: React.CSSProperties) => ({
@@ -278,20 +280,25 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       valueContainer: (provided: React.CSSProperties) => ({
         ...provided,
         alignItems: 'center',
-        ...(isCompact && {
-          padding: `${space(0.5)} ${space(1)}`,
-          border: `1px solid ${theme.innerBorder}`,
-          borderRadius: theme.borderRadius,
-          cursor: 'text',
-          background: theme.backgroundSecondary,
-        }),
+        ...(isCompact
+          ? {
+              padding: `${space(0.5)} ${space(1)}`,
+              border: `1px solid ${theme.innerBorder}`,
+              borderRadius: theme.borderRadius,
+              cursor: 'text',
+              background: theme.backgroundSecondary,
+            }
+          : {
+              paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+              paddingRight: space(0.5),
+            }),
       }),
       input: (provided: React.CSSProperties) => ({
         ...provided,
         color: theme.formText,
+        margin: 0,
         ...(isCompact && {
           padding: 0,
-          margin: 0,
         }),
       }),
       singleValue: (provided: React.CSSProperties) => ({
@@ -299,6 +306,11 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         color: theme.formText,
         display: 'flex',
         alignItems: 'center',
+        marginLeft: 0,
+        marginRight: 0,
+        width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
+          0.5
+        )})`,
       }),
       placeholder: (provided: React.CSSProperties) => ({
         ...provided,
@@ -474,7 +486,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-type PickerProps<OptionType> = ControlProps<OptionType> & {
+type PickerProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
   /**
    * Enable async option loading.
    */
@@ -489,7 +501,7 @@ type PickerProps<OptionType> = ControlProps<OptionType> & {
   creatable?: boolean;
 };
 
-function SelectPicker<OptionType>({
+function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
   forwardedRef,

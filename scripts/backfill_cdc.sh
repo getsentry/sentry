@@ -23,7 +23,7 @@ docker run \
 -v /tmp/cdc-snapshots:/tmp/cdc-snapshots \
 --rm \
 --network sentry \
-getsentry/cdc:nightly \
+ghcr.io/getsentry/cdc:latest \
 cdc -c /etc/cdc/configuration.yaml \
 snapshot --snapshot-config /etc/cdc/cdc-snapshot-config.yaml \
 2>&1 | tee /tmp/cdc-snapshots/snapshot.log

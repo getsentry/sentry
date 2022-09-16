@@ -779,6 +779,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       router,
       disableProjectSelector,
       eventView,
+      location,
     } = this.props;
     const {
       name,
@@ -804,6 +805,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       organization,
       projects: [project],
       triggers,
+      location,
       query: this.chartQuery,
       aggregate,
       dataset,
@@ -939,7 +941,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   onCancel={this.handleCancel}
                   onFieldChange={this.handleFieldChange}
                   extraButton={
-                    !!rule.id ? (
+                    rule.id ? (
                       <Confirm
                         disabled={disabled}
                         message={t('Are you sure you want to delete this alert rule?')}

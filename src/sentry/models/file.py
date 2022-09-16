@@ -16,14 +16,16 @@ from django.core.files.storage import get_storage_class
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
-from sentry.app import locks
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
+    control_silo_model,
+    region_silo_model,
 )
+from sentry.locks import locks
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
@@ -107,6 +109,7 @@ def get_storage(config=None):
     return storage(**options)
 
 
+@control_silo_model
 class FileBlob(Model):
     __include_in_export__ = False
 
@@ -315,6 +318,7 @@ class FileBlob(Model):
         return storage.open(self.path)
 
 
+@control_silo_model
 class File(Model):
     __include_in_export__ = False
 
@@ -476,6 +480,7 @@ class File(Model):
         )
 
 
+@control_silo_model
 class FileBlobIndex(Model):
     __include_in_export__ = False
 
@@ -650,6 +655,7 @@ class ChunkedFileBlobIndexWrapper:
         return bytes(result)
 
 
+@region_silo_model
 class FileBlobOwner(Model):
     __include_in_export__ = False
 

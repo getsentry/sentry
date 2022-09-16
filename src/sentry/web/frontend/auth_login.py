@@ -180,7 +180,7 @@ class AuthLoginView(BaseView):
             return self.redirect(self.get_post_register_url(request))
 
         elif request.method == "POST":
-            from sentry.app import ratelimiter
+            from sentry import ratelimits as ratelimiter
             from sentry.utils.hashlib import md5_text
 
             login_attempt = (

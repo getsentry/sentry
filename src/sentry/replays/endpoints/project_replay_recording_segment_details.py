@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
@@ -10,6 +11,7 @@ from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.serializers import ReplayRecordingSegmentSerializer
 
 
+@region_silo_endpoint
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     private = True
 
@@ -22,7 +24,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         try:
             segment = ReplayRecordingSegment.objects.filter(
                 project_id=project.id,
-                replay_id=replay_id.replace("-", ""),
+                replay_id=replay_id,
                 segment_id=segment_id,
             ).get()
         except ReplayRecordingSegment.DoesNotExist:

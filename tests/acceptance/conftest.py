@@ -28,7 +28,7 @@ def pytest_configure(config):
             last_built = int(time.time()) - data["built"]
 
             if last_built <= 3600:
-                print(
+                print(  # noqa: S002
                     f"""
 ###################
 #
@@ -45,7 +45,7 @@ def pytest_configure(config):
     except Exception:
         pass
 
-    print(
+    print(  # noqa: S002
         """
 ###################
 #

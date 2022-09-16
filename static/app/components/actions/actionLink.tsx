@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {t} from 'sentry/locale';
-
 import ActionButton from './button';
 import ConfirmableAction from './confirmableAction';
 
@@ -18,7 +16,6 @@ const StyledActionButton = styled(ActionButton)<{
 }>`
   display: flex;
   align-items: center;
-  pointer-events: ${p => (p.disabled ? 'none' : 'auto')};
 
   ${p => p.disabled && 'cursor: not-allowed;'}
   ${p => p.hasDropdown && `border-radius: ${p.theme.borderRadiusLeft}`};
@@ -31,13 +28,13 @@ type CommonProps = Omit<
   'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
 > & {
   children: React.ReactChild;
-  title: string;
   className?: string;
   confirmLabel?: string;
   confirmPriority?: ConfirmableActionProps['priority'];
   disabled?: boolean;
   onAction?: () => void;
   shouldConfirm?: boolean;
+  title?: string;
 };
 
 type Props = CommonProps &
@@ -48,7 +45,6 @@ type Props = CommonProps &
 export default function ActionLink({
   message,
   className,
-  title,
   onAction,
   type,
   confirmLabel,
@@ -60,7 +56,6 @@ export default function ActionLink({
   ...props
 }: Props) {
   const actionCommonProps = {
-    ['aria-label']: typeof title === 'string' ? title : t('Actions'),
     className: classNames(className, {disabled}),
     onClick: disabled ? undefined : onAction,
     disabled,

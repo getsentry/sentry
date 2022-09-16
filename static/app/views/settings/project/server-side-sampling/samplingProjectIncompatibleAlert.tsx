@@ -35,7 +35,7 @@ export function SamplingProjectIncompatibleAlert({
   return (
     <Alert
       data-test-id="incompatible-project-alert"
-      type="warning"
+      type="error"
       showIcon
       trailingItems={
         <Button

@@ -6,8 +6,8 @@ import pytz
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_release_details import OrganizationReleaseSerializer
-from sentry.app import locks
 from sentry.constants import MAX_VERSION_LENGTH
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     Environment,

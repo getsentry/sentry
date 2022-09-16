@@ -13,6 +13,7 @@ from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
@@ -75,6 +76,7 @@ class GetSendToMemberTest(TestCase):
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
 
+@region_silo_test
 class GetSendToTeamTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -197,7 +199,7 @@ class GetSentToReleaseMembersTest(TestCase):
     def test_default_committer(self, spy_get_release_committers):
         event = self.store_event("empty.lol")
         event.group = self.group
-        with self.feature("organizations:active-release-notification-opt-in"):
+        with self.feature("organizations:active-release-notifications-enable"):
             assert self.get_send_to_release_members(event) == {
                 ExternalProviders.EMAIL: {self.user},
                 ExternalProviders.SLACK: {self.user},

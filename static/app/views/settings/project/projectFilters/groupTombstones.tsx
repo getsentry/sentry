@@ -6,6 +6,7 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Avatar from 'sentry/components/avatar';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelItem} from 'sentry/components/panels';
@@ -13,7 +14,6 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {GroupTombstone} from 'sentry/types';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type RowProps = {
   data: GroupTombstone;

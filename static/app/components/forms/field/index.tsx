@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import ControlState, {
   ControlStateProps,
 } from 'sentry/components/forms/field/controlState';
@@ -107,106 +105,107 @@ interface ChildRenderProps extends Omit<FieldProps, 'className' | 'disabled'> {
  *
  * This is unconnected to any Form state
  */
-class Field extends Component<FieldProps> {
-  static defaultProps = {
-    alignRight: false,
-    inline: true,
-    disabled: false,
-    required: false,
-    visible: true,
-    showHelpInTooltip: false,
+function Field({
+  className,
+  alignRight = false,
+  inline = true,
+  disabled = false,
+  required = false,
+  visible = true,
+  showHelpInTooltip = false,
+  ...props
+}: FieldProps) {
+  const otherProps = {
+    alignRight,
+    inline,
+    disabled,
+    required,
+    visible,
+    showHelpInTooltip,
+    ...props,
   };
 
-  render() {
-    const {className, ...otherProps} = this.props;
-    const {
-      controlClassName,
-      alignRight,
-      inline,
-      highlighted,
-      required,
-      visible,
-      disabled,
-      disabledReason,
-      error,
-      flexibleControlStateSize,
-      help,
-      id,
-      isSaving,
-      isSaved,
-      label,
-      hideLabel,
-      stacked,
-      children,
-      style,
-      showHelpInTooltip,
-    } = otherProps;
+  const {
+    controlClassName,
+    highlighted,
+    disabledReason,
+    error,
+    flexibleControlStateSize,
+    help,
+    id,
+    isSaving,
+    isSaved,
+    label,
+    hideLabel,
+    stacked,
+    children,
+    style,
+  } = otherProps;
 
-    const isVisible = typeof visible === 'function' ? visible(this.props) : visible;
-    const isDisabled = typeof disabled === 'function' ? disabled(this.props) : disabled;
-    let Control: React.ReactNode;
+  const isVisible = typeof visible === 'function' ? visible(otherProps) : visible;
+  const isDisabled = typeof disabled === 'function' ? disabled(otherProps) : disabled;
+  let Control: React.ReactNode;
 
-    if (!isVisible) {
-      return null;
-    }
-
-    const helpElement = typeof help === 'function' ? help(this.props) : help;
-
-    const controlProps = {
-      className: controlClassName,
-      inline,
-      alignRight,
-      disabled: isDisabled,
-      disabledReason,
-      flexibleControlStateSize,
-      help: helpElement,
-      errorState: error ? <FieldErrorReason>{error}</FieldErrorReason> : null,
-      controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
-    };
-
-    // See comments in prop types
-    if (children instanceof Function) {
-      Control = children({...otherProps, ...controlProps});
-    } else {
-      Control = <FieldControl {...controlProps}>{children}</FieldControl>;
-    }
-
-    return (
-      <FieldWrapper
-        className={className}
-        inline={inline}
-        stacked={stacked}
-        highlighted={highlighted}
-        hasControlState={!flexibleControlStateSize}
-        style={style}
-      >
-        {((label && !hideLabel) || helpElement) && (
-          <FieldDescription inline={inline} htmlFor={id}>
-            {label && !hideLabel && (
-              <FieldLabel disabled={isDisabled}>
-                <span>
-                  {label}
-                  {required && <FieldRequiredBadge />}
-                </span>
-                {helpElement && showHelpInTooltip && (
-                  <FieldQuestion>
-                    <QuestionTooltip position="top" size="sm" title={helpElement} />
-                  </FieldQuestion>
-                )}
-              </FieldLabel>
-            )}
-            {helpElement && !showHelpInTooltip && (
-              <FieldHelp stacked={stacked} inline={inline}>
-                {helpElement}
-              </FieldHelp>
-            )}
-          </FieldDescription>
-        )}
-
-        {Control}
-      </FieldWrapper>
-    );
+  if (!isVisible) {
+    return null;
   }
+
+  const helpElement = typeof help === 'function' ? help(otherProps) : help;
+
+  const controlProps = {
+    className: controlClassName,
+    inline,
+    alignRight,
+    disabled: isDisabled,
+    disabledReason,
+    flexibleControlStateSize,
+    help: helpElement,
+    errorState: error ? <FieldErrorReason>{error}</FieldErrorReason> : null,
+    controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
+  };
+
+  // See comments in prop types
+  if (children instanceof Function) {
+    Control = children({...otherProps, ...controlProps});
+  } else {
+    Control = <FieldControl {...controlProps}>{children}</FieldControl>;
+  }
+
+  return (
+    <FieldWrapper
+      className={className}
+      inline={inline}
+      stacked={stacked}
+      highlighted={highlighted}
+      hasControlState={!flexibleControlStateSize}
+      style={style}
+    >
+      {((label && !hideLabel) || helpElement) && (
+        <FieldDescription inline={inline} htmlFor={id}>
+          {label && !hideLabel && (
+            <FieldLabel disabled={isDisabled}>
+              <span>
+                {label}
+                {required && <FieldRequiredBadge />}
+              </span>
+              {helpElement && showHelpInTooltip && (
+                <FieldQuestion>
+                  <QuestionTooltip position="top" size="sm" title={helpElement} />
+                </FieldQuestion>
+              )}
+            </FieldLabel>
+          )}
+          {helpElement && !showHelpInTooltip && (
+            <FieldHelp stacked={stacked} inline={inline}>
+              {helpElement}
+            </FieldHelp>
+          )}
+        </FieldDescription>
+      )}
+
+      {Control}
+    </FieldWrapper>
+  );
 }
 
 export default Field;

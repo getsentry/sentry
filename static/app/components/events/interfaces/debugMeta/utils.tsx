@@ -47,7 +47,7 @@ export function shouldSkipSection(
   filteredImages: Array<Image>,
   images: Array<Image | null>
 ) {
-  if (!!filteredImages.length) {
+  if (filteredImages.length) {
     return false;
   }
 

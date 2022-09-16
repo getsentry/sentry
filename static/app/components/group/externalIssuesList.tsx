@@ -8,6 +8,7 @@ import PluginActions from 'sentry/components/group/pluginActions';
 import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExternalIssueActions';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import Placeholder from 'sentry/components/placeholder';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
@@ -24,8 +25,6 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import SidebarSection from './sidebarSection';
 
 type Props = AsyncComponent['props'] & {
   event: Event;
@@ -132,7 +131,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       activeIntegrations.reduce((acc, curr) => {
         const items = acc.get(curr.provider.key);
 
-        if (!!items) {
+        if (items) {
           acc.set(curr.provider.key, [...items, curr]);
         } else {
           acc.set(curr.provider.key, [curr]);
@@ -211,9 +210,12 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
 
   renderLoading() {
     return (
-      <SidebarSection data-test-id="linked-issues" title={t('Linked Issues')}>
-        <Placeholder height="120px" />
-      </SidebarSection>
+      <SidebarSection.Wrap data-test-id="linked-issues">
+        <SidebarSection.Title>{t('Linked Issues')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          <Placeholder height="120px" />
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 
@@ -226,21 +228,24 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       !sentryAppIssues && !integrationIssues && !pluginIssues && !pluginActions;
 
     return (
-      <SidebarSection secondary data-test-id="linked-issues" title={t('Issue Tracking')}>
-        {showSetup && (
-          <AlertLink
-            priority="muted"
-            size="small"
-            to={`/settings/${this.props.organization.slug}/integrations/?category=issue%20tracking`}
-          >
-            {t('Track this issue in Jira, GitHub, etc.')}
-          </AlertLink>
-        )}
-        {sentryAppIssues && <Wrapper>{sentryAppIssues}</Wrapper>}
-        {integrationIssues && <Wrapper>{integrationIssues}</Wrapper>}
-        {pluginIssues && <Wrapper>{pluginIssues}</Wrapper>}
-        {pluginActions && <Wrapper>{pluginActions}</Wrapper>}
-      </SidebarSection>
+      <SidebarSection.Wrap data-test-id="linked-issues">
+        <SidebarSection.Title>{t('Issue Tracking')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          {showSetup && (
+            <AlertLink
+              priority="muted"
+              size="small"
+              to={`/settings/${this.props.organization.slug}/integrations/?category=issue%20tracking`}
+            >
+              {t('Track this issue in Jira, GitHub, etc.')}
+            </AlertLink>
+          )}
+          {sentryAppIssues && <Wrapper>{sentryAppIssues}</Wrapper>}
+          {integrationIssues && <Wrapper>{integrationIssues}</Wrapper>}
+          {pluginIssues && <Wrapper>{pluginIssues}</Wrapper>}
+          {pluginActions && <Wrapper>{pluginActions}</Wrapper>}
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 }

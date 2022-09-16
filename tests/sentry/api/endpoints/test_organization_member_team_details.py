@@ -10,6 +10,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationMemberTeamTestBase(APITestCase):
@@ -73,6 +74,7 @@ class OrganizationMemberTeamTestBase(APITestCase):
         return member
 
 
+@region_silo_test
 class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "post"
 
@@ -303,6 +305,7 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert oar.requester == self.member.user
 
 
+@region_silo_test
 class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     method = "delete"
 
@@ -471,6 +474,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         assert not ax_after_leaving.has_project_membership(project)
 
 
+@region_silo_test
 class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "get"
@@ -499,6 +503,7 @@ class ReadOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         )
 
 
+@region_silo_test
 class UpdateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
     endpoint = "sentry-api-0-organization-member-team-details"
     method = "put"

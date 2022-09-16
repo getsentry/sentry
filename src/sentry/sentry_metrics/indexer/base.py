@@ -5,6 +5,7 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSequence,
+    NamedTuple,
     Optional,
     Sequence,
     Set,
@@ -25,16 +26,14 @@ class FetchType(Enum):
     RATE_LIMITED = "r"
 
 
-@dataclass(frozen=True)
-class FetchTypeExt:
+class FetchTypeExt(NamedTuple):
     is_global: bool
 
 
 KR = TypeVar("KR", bound="KeyResult")
 
 
-@dataclass(frozen=True)
-class Metadata:
+class Metadata(NamedTuple):
     id: Optional[int]
     fetch_type: FetchType
     fetch_type_ext: Optional[FetchTypeExt] = None
@@ -257,7 +256,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Callers should not rely on the default use_case_id -- it exists only

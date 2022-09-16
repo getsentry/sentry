@@ -20,6 +20,6 @@ def test_resolve():
 
 
 def test_reverse_resolve():
-    assert INDEXER.reverse_resolve(UseCaseKey.RELEASE_HEALTH, 666) is None
+    assert INDEXER.reverse_resolve(UseCaseKey.RELEASE_HEALTH, 1, 666) is None
     id = SHARED_STRINGS[SessionMRI.USER.value]
-    assert INDEXER.reverse_resolve(UseCaseKey.RELEASE_HEALTH, id) == SessionMRI.USER.value
+    assert INDEXER.reverse_resolve(UseCaseKey.RELEASE_HEALTH, 1, id) == SessionMRI.USER.value

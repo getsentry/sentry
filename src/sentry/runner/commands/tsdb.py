@@ -63,7 +63,7 @@ def organizations(metrics, since, until):
     """
     from django.utils import timezone
 
-    from sentry.app import tsdb
+    from sentry import tsdb
     from sentry.models import Organization
 
     stdout = click.get_text_stream("stdout")

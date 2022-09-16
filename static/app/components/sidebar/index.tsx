@@ -91,6 +91,14 @@ function Sidebar({location, organization}: Props) {
     return () => bcl.remove('body-sidebar');
   }, [bcl]);
 
+  useEffect(() => {
+    Object.values(SidebarPanelKey).forEach(key => {
+      if (location?.hash === `#sidebar-${key}`) {
+        togglePanel(key);
+      }
+    });
+  }, [location?.hash]);
+
   // Add sidebar collapse classname to body
   useEffect(() => {
     if (collapsed) {
@@ -221,7 +229,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <Feature features={['session-replay']} organization={organization}>
+    <Feature features={['session-replay-ui']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}
@@ -265,7 +273,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
-        isAlpha
+        isBeta
       />
     </Feature>
   );
@@ -320,12 +328,12 @@ function Sidebar({location, organization}: Props) {
                 {projects}
                 {issues}
                 {performance}
+                {profiling}
                 {releases}
                 {userFeedback}
                 {alerts}
                 {discover2}
                 {dashboards}
-                {profiling}
               </SidebarSection>
 
               <SidebarSection>

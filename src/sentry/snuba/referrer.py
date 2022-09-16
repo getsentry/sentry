@@ -189,6 +189,7 @@ class Referrer(Enum):
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
+    API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
@@ -225,8 +226,11 @@ class Referrer(Enum):
     OUTCOMES_TOTALS = "outcomes.totals"
     SEARCH = "search"
     SEARCH_SAMPLE = "search_sample"
-    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_seen_stats_query"
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
+        "serializers.groupserializersnuba._execute_error_seen_stats_query"
+    )
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_PERF_SEEN_STATS_QUERY = (
+        "serializers.groupserializersnuba._execute_perf_seen_stats_query"
     )
     SESSIONS_CRASH_FREE_BREAKDOWN = "sessions.crash-free-breakdown"
     SESSIONS_GET_PROJECT_SESSIONS_COUNT = "sessions.get_project_sessions_count"

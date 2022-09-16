@@ -4,11 +4,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.app import locks
+from sentry.locks import locks
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
@@ -25,6 +26,7 @@ class InviteRequestPermissions(OrganizationPermission):
     }
 
 
+@region_silo_endpoint
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     permission_classes = (InviteRequestPermissions,)
 

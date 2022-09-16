@@ -1,3 +1,6 @@
+// Mirrors src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+
 import {t} from 'sentry/locale';
 
 export const popularPlatformCategories = [
@@ -42,6 +45,7 @@ export const frontend = [
   'javascript-vue',
   'javascript-nextjs',
   'javascript-remix',
+  'javascript-svelte',
   'unity',
 ] as const;
 
@@ -214,6 +218,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-vue',
   'javascript-nextjs',
   'javascript-remix',
+  'javascript-svelte',
   // mobile
   'android',
   'apple-ios',

@@ -16,7 +16,6 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry.app import locks
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -26,9 +25,11 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.locks import locks
 from sentry.models import (
     Activity,
     BaseManager,
@@ -66,6 +67,7 @@ class ReleaseCommitError(Exception):
     pass
 
 
+@region_silo_model
 class ReleaseProject(Model):
     __include_in_export__ = False
 
@@ -416,6 +418,7 @@ class ReleaseModelManager(BaseManager):
         return release_version or None
 
 
+@region_silo_model
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a

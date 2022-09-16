@@ -54,4 +54,6 @@ package-lock.json
 .webpack.meta
 pip-wheel-metadata/
 Brewfile.lock.json
+import-graph.txt
+import-graph.dot
 bin/rrweb-output

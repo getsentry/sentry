@@ -71,6 +71,7 @@ type Props = {
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
 
   dragProps?: DragManagerChildrenProps;
+  isEmbedded?: boolean;
 };
 
 type State = {
@@ -160,7 +161,7 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spansInView: SpansInViewMap = new SpansInViewMap();
+  spansInView: SpansInViewMap = new SpansInViewMap(!this.props.isEmbedded);
   spanBars: SpanBar[] = [];
 
   getReferenceSpanBar() {

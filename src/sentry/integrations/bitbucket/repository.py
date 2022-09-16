@@ -1,4 +1,4 @@
-from sentry.app import locks
+from sentry.locks import locks
 from sentry.models import OrganizationOption
 from sentry.models.apitoken import generate_token
 from sentry.plugins.providers import IntegrationRepositoryProvider

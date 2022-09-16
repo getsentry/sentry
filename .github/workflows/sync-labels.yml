@@ -8,6 +8,11 @@ on:
       - master
     paths:
       - .github/labels.yml
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   sync:
     name: syncs repository labels

@@ -12,7 +12,8 @@ from sentry.models import (
 )
 from sentry.models.project import Project
 from sentry.testutils import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -80,6 +81,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         assert data["createdBy"]["id"] == str(dashboard.created_by.id)
 
 
+@region_silo_test
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
     def test_get(self):
         response = self.do_request("get", self.url(self.dashboard.id))
@@ -186,9 +188,9 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert not response.data["utc"]
 
     def test_response_truncates_with_retention(self):
-        start = iso_format(datetime.now() - timedelta(days=3))
-        end = iso_format(datetime.now() - timedelta(days=2))
-        expected_adjusted_retention_start = iso_format(datetime.now() - timedelta(days=1))
+        start = before_now(days=3)
+        end = before_now(days=2)
+        expected_adjusted_retention_start = before_now(days=1)
         filters = {"start": start, "end": end}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
@@ -201,9 +203,12 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("get", self.url(dashboard.id))
 
         assert response.data["expired"]
-        assert iso_format(response.data["start"]) == expected_adjusted_retention_start
+        assert iso_format(response.data["start"].replace(second=0)) == iso_format(
+            expected_adjusted_retention_start.replace(second=0)
+        )
 
 
+@region_silo_test
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
         response = self.do_request("delete", self.url(self.dashboard.id))
@@ -256,6 +261,7 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
             assert response.status_code == 404
 
 
+@region_silo_test
 class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def setUp(self):
         super().setUp()
@@ -1364,7 +1370,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
-        assert response.data["projects"] == [project1.id, project2.id]
+        assert sorted(response.data["projects"]) == [project1.id, project2.id]
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
@@ -1406,6 +1412,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["projects"] == []
 
 
+@region_silo_test
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id):
         return reverse(

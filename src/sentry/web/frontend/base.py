@@ -14,6 +14,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
@@ -52,17 +53,16 @@ class OrganizationMixin:
         # TODO(dcramer): this is a huge hack, and we should refactor this
         # it is currently needed to handle the is_auth_required check on
         # OrganizationBase
-        organizations = None
-        cached_active_org = None
-        active_organization = getattr(self, "_active_org", None)
-        if active_organization and active_organization[0]:
+        _active_org = getattr(self, "_active_org", None)
+        if _active_org:
+            (active_organization, requesting_user) = _active_org
             cached_active_org = (
                 active_organization
-                and active_organization[0].slug == organization_slug
-                and active_organization[1] == request.user
+                and active_organization.slug == organization_slug
+                and requesting_user == request.user
             )
-        if cached_active_org:
-            return active_organization[0]
+            if cached_active_org:
+                return active_organization
 
         active_organization = None
 
@@ -70,6 +70,9 @@ class OrganizationMixin:
 
         if is_implicit:
             organization_slug = request.session.get("activeorg")
+            if request.subdomain is not None and request.subdomain != organization_slug:
+                # Customer domain is being used, set the subdomain as the requesting org slug.
+                organization_slug = request.subdomain
 
         if organization_slug is not None:
             if is_active_superuser(request):
@@ -82,6 +85,7 @@ class OrganizationMixin:
                 except Organization.DoesNotExist:
                     logger.info("Active organization [%s] not found", organization_slug)
 
+        organizations = None
         if active_organization is None:
             organizations = Organization.objects.get_for_user(user=request.user)
 
@@ -91,7 +95,9 @@ class OrganizationMixin:
             except StopIteration:
                 logger.info("Active organization [%s] not found in scope", organization_slug)
                 if is_implicit:
-                    del request.session["activeorg"]
+                    session = request.session
+                    if session and "activeorg" in session:
+                        del session["activeorg"]
                 active_organization = None
 
         if active_organization is None and organizations:
@@ -161,6 +167,9 @@ class OrganizationMixin:
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = "/organizations/new/"
+            if request.subdomain:
+                base = options.get("system.url-prefix")
+                url = f"{base}{url}"
         return HttpResponseRedirect(url)
 
 

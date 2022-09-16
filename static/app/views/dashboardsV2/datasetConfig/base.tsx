@@ -8,7 +8,12 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {isEquation, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  AggregationOutputType,
+  isEquation,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
+import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
@@ -134,7 +139,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     queryIndex: number,
     organization: Organization,
     pageFilters: PageFilters,
-    referrer?: string
+    referrer?: string,
+    mepSetting?: MEPState | null
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc
@@ -142,7 +148,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getSeriesResultType?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery
-  ) => string | undefined;
+  ) => Record<string, AggregationOutputType>;
   /**
    * Generate the request promises for fetching
    * tabular data.
@@ -154,7 +160,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
-    referrer?: string
+    referrer?: string,
+    mepSetting?: MEPState | null
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table

@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.app import ratelimiter
+from sentry import ratelimits as ratelimiter
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models import Authenticator

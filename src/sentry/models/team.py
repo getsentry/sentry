@@ -7,15 +7,17 @@ from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import env, locks
+from sentry.app import env
 from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
@@ -110,7 +112,7 @@ class TeamManager(BaseManager):
                 update_code_owners_schema.apply_async(
                     kwargs={
                         "organization": instance.organization,
-                        "projects": instance.get_projects(),
+                        "projects": list(instance.get_projects()),
                     }
                 )
             except (Organization.DoesNotExist, Project.DoesNotExist):
@@ -126,6 +128,7 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
+@region_silo_model
 class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.

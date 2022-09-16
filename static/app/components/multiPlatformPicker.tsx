@@ -4,9 +4,11 @@ import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
+import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
   filterAliases,
@@ -14,13 +16,11 @@ import categoryList, {
   popularPlatformCategories,
 } from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {IconClose, IconProject, IconSearch} from 'sentry/icons';
+import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {inputStyles} from 'sentry/styles/input';
 import space from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
@@ -196,17 +196,12 @@ function PlatformPicker(props: PlatformPickerProps) {
             </ListLink>
           ))}
         </CategoryNav>
-        <SearchBar>
-          <IconSearch size="xs" />
-          <input
-            type="text"
-            value={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={e => {
-              setFilter(e.target.value);
-            }}
-          />
-        </SearchBar>
+        <StyledSearchBar
+          size="sm"
+          query={filter}
+          placeholder={t('Filter Platforms')}
+          onChange={setFilter}
+        />
       </NavContainer>
       <PlatformList className={listClassName} {...listProps}>
         {platformList.map(platform => (
@@ -265,30 +260,10 @@ const NavContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const SearchBar = styled('div')`
-  ${p => inputStyles(p)};
-  padding: 0 8px;
-  color: ${p => p.theme.subText};
-  display: flex;
-  align-items: center;
-  font-size: 15px;
-  margin-top: -${space(0.75)};
-
-  input {
-    border: none;
-    background: none;
-    padding: 2px 4px;
-    width: 100%;
-    /* Ensure a consistent line height to keep the input the desired height */
-    line-height: 24px;
-
-    &:focus {
-      outline: none;
-    }
-  }
-
+const StyledSearchBar = styled(SearchBar)`
   max-width: 300px;
   min-width: 150px;
+  margin-top: -${space(0.25)};
   margin-left: auto;
   flex-shrink: 0;
   flex-basis: 0;

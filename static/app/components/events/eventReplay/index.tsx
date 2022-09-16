@@ -21,15 +21,15 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
           priority="primary"
           to={`/organizations/${orgSlug}/replays/${projectSlug}:${replayId}`}
         >
-          View Details
+          {t('View Details')}
         </Button>
       }
     >
       <ErrorBoundary mini>
         <LazyLoad
           component={() => import('./replayContent')}
-          eventSlug={`${projectSlug}:${replayId}`}
-          orgId={orgSlug}
+          replaySlug={`${projectSlug}:${replayId}`}
+          orgSlug={orgSlug}
         />
       </ErrorBoundary>
     </EventDataSection>

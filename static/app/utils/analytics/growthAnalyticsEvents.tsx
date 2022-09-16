@@ -58,6 +58,16 @@ type VitalsAlert = {
 
 // define the event key to payload mappings
 export type GrowthEventParameters = {
+  'assistant.guide_cued': {
+    guide: string;
+  };
+  'assistant.guide_dismissed': {
+    guide: string;
+    step: number;
+  };
+  'assistant.guide_finished': {
+    guide: string;
+  };
   'growth.clicked_enter_sandbox': {
     scenario: string;
     source?: string;
@@ -70,9 +80,10 @@ export type GrowthEventParameters = {
   'growth.demo_click_docs': {};
   'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': {};
+  'growth.demo_modal_clicked_close': {};
   'growth.demo_modal_clicked_continue': {};
+  'growth.demo_modal_clicked_demo': {};
   'growth.demo_modal_clicked_signup': {};
-  'growth.issue_open_in_discover_btn_clicked': {};
   'growth.metric_alert_preset_sidebar_clicked': {
     preset: string;
   };
@@ -153,6 +164,8 @@ export type GrowthEventParameters = {
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 
 export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
+  'assistant.guide_finished': 'Assistant Guide Finished',
+  'assistant.guide_dismissed': 'Assistant Guide Dismissed',
   'growth.clicked_mobile_prompt_setup_project':
     'Growth: Clicked Mobile Prompt Setup Project',
   'growth.clicked_mobile_prompt_ask_teammate':
@@ -187,14 +200,14 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
   'growth.demo_modal_clicked_continue': 'Growth: Demo Modal Clicked Continue',
+  'growth.demo_modal_clicked_close': 'Growth: Demo Modal Clicked Close',
+  'growth.demo_modal_clicked_demo': 'Growth: Demo Modal Clicked Demo',
   'growth.clicked_enter_sandbox': 'Growth: Clicked Enter Sandbox',
   'growth.onboarding_clicked_project_in_sidebar': 'Growth: Clicked Project Sidebar',
   'growth.sample_transaction_docs_link_clicked':
     'Growth: Sample Transaction Docs Link Clicked',
   'growth.sample_error_onboarding_link_clicked':
     'Growth: Sample Error Onboarding Link Clicked',
-  'growth.issue_open_in_discover_btn_clicked':
-    'Growth: Open in Discover Button in Issue Details clicked',
   'member_settings_page.loaded': 'Member Settings Page Loaded',
   'invite_modal.opened': 'Invite Modal: Opened',
   'invite_modal.closed': 'Invite Modal: Closed',
@@ -216,4 +229,5 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_wizard_clicked_more_details':
     'Onboarding Wizard: Clicked More Details',
   'growth.onboarding_wizard_interacted': 'Onboarding Wizard: Interacted',
+  'assistant.guide_cued': 'Assistant Guide Cued',
 };

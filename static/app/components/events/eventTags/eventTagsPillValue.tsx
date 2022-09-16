@@ -1,5 +1,5 @@
 import {DeviceName} from 'sentry/components/deviceName';
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
 import {Meta} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';

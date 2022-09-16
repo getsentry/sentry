@@ -1,8 +1,10 @@
 import {MouseEvent} from 'react';
+import queryString from 'query-string';
 
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {useLocation} from 'sentry/utils/useLocation';
 
 const ReplayTabs: Record<TabKey, string> = {
   console: t('Console'),
@@ -13,17 +15,19 @@ const ReplayTabs: Record<TabKey, string> = {
   memory: t('Memory'),
 };
 
-type Props = {};
+type Props = {className?: string};
 
-function FocusTabs({}: Props) {
+function FocusTabs({className}: Props) {
+  const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab();
   const activeTab = getActiveTab();
+
   return (
-    <NavTabs underlined>
+    <NavTabs underlined className={className}>
       {Object.entries(ReplayTabs).map(([tab, label]) => (
         <li key={tab} className={activeTab === tab ? 'active' : ''}>
           <a
-            href={`#${tab}`}
+            href={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
             onClick={(e: MouseEvent) => {
               setActiveTab(tab);
               e.preventDefault();

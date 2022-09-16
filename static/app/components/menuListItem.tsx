@@ -72,18 +72,17 @@ export type MenuListItemProps = {
   trailingItemsSpanFullHeight?: boolean;
 };
 
-type OtherProps = {
+interface OtherProps {
   as?: React.ElementType;
   detailsProps?: object;
   innerWrapProps?: object;
   isFocused?: boolean;
   labelProps?: object;
-};
+}
 
-type Props = MenuListItemProps &
-  OtherProps & {
-    forwardRef: React.ForwardedRef<HTMLLIElement>;
-  };
+interface Props extends MenuListItemProps, OtherProps {
+  forwardRef: React.ForwardedRef<HTMLLIElement>;
+}
 
 function BaseMenuListItem({
   label,
@@ -234,7 +233,7 @@ export const InnerWrap = styled('div', {
   &:hover {
     color: ${getTextColor};
   }
-  ${p => p.disabled && `cursor: initial;`}
+  ${p => p.disabled && `cursor: default;`}
 
   ${p =>
     p.isFocused &&

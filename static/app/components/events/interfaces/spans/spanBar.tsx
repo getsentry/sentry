@@ -44,7 +44,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   QuickTraceContext,
@@ -838,19 +838,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             expanded={showEmbeddedChildren}
             onClick={() => {
               if (toggleEmbeddedChildren) {
-                if (showEmbeddedChildren) {
-                  trackAnalyticsEvent({
-                    eventKey: 'span_view.embedded_child.hide',
-                    eventName: 'Span View: Hide Embedded Transaction',
-                    organization_id: parseInt(organization.id, 10),
-                  });
-                } else {
-                  trackAnalyticsEvent({
-                    eventKey: 'span_view.embedded_child.show',
-                    eventName: 'Span View: Show Embedded Transaction',
-                    organization_id: parseInt(organization.id, 10),
-                  });
-                }
+                const eventKey = showEmbeddedChildren
+                  ? 'span_view.embedded_child.hide'
+                  : 'span_view.embedded_child.show';
+                trackAdvancedAnalyticsEvent(eventKey, {organization});
 
                 toggleEmbeddedChildren({
                   orgSlug: organization.slug,

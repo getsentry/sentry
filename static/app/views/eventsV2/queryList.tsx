@@ -17,7 +17,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -191,10 +191,8 @@ class QueryList extends Component<Props> {
             />
           )}
           onEventClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: parseInt(this.props.organization.id, 10),
+            trackAdvancedAnalyticsEvent('discover_v2.prebuilt_query_click', {
+              organization,
               query_name: eventView.name,
             });
           }}
@@ -273,11 +271,7 @@ class QueryList extends Component<Props> {
           createdBy={eventView.createdBy}
           dateStatus={dateStatus}
           onEventClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.saved_query_click',
-              eventName: 'Discoverv2: Click a saved query',
-              organization_id: parseInt(this.props.organization.id, 10),
-            });
+            trackAdvancedAnalyticsEvent('discover_v2.saved_query_click', {organization});
           }}
           renderGraph={() => (
             <MiniGraph

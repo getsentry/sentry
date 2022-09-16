@@ -1,7 +1,6 @@
-import CommitterActions from 'sentry/actions/committerActions';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
-import {Committer} from 'sentry/types';
+import type {Committer, ReleaseCommitter} from 'sentry/types';
 
 type ParamsGet = {
   eventId: string;
@@ -22,18 +21,24 @@ export function getCommitters(api: Client, params: ParamsGet) {
     ...CommitterStore.state[storeKey],
     committersLoading: true,
   };
-  CommitterActions.load(orgSlug, projectSlug, eventId);
+  CommitterStore.load(orgSlug, projectSlug, eventId);
 
   return api
     .requestPromise(path, {
       method: 'GET',
     })
-    .then((res: {committers: Committer[]}) => {
-      CommitterActions.loadSuccess(orgSlug, projectSlug, eventId, res.committers);
+    .then((res: {committers: Committer[]; releaseCommitters: ReleaseCommitter[]}) => {
+      CommitterStore.loadSuccess(
+        orgSlug,
+        projectSlug,
+        eventId,
+        res.committers,
+        res.releaseCommitters
+      );
     })
     .catch(err => {
       // NOTE: Do not captureException here as EventFileCommittersEndpoint returns
       // 404 Not Found if the project did not setup Releases or Commits
-      CommitterActions.loadError(orgSlug, projectSlug, eventId, err);
+      CommitterStore.loadError(orgSlug, projectSlug, eventId, err);
     });
 }

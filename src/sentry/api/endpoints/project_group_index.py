@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, eventstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.group_index import (
     ValidationError,
@@ -15,7 +15,7 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
@@ -25,6 +25,7 @@ from sentry.utils.validators import normalize_event_id
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
+@region_silo_endpoint
 class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectEventPermission,)
     enforce_rate_limit = True
@@ -119,16 +120,21 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
                 except Environment.DoesNotExist:
                     pass
 
-                response = Response(
-                    serialize(
-                        [matching_group],
-                        request.user,
-                        serializer(
-                            matching_event_id=getattr(matching_event, "event_id", None),
-                            matching_event_environment=matching_event_environment,
-                        ),
-                    )
+                serialized_groups = serialize(
+                    [matching_group],
+                    request.user,
+                    serializer(),
                 )
+                matching_event_id = getattr(matching_event, "event_id", None)
+                if matching_event_id:
+                    serialized_groups[0]["matchingEventId"] = getattr(
+                        matching_event, "event_id", None
+                    )
+                if matching_event_environment:
+                    serialized_groups[0]["matchingEventEnvironment"] = matching_event_environment
+
+                response = Response(serialized_groups)
+
                 response["X-Sentry-Direct-Hit"] = "1"
                 return response
 

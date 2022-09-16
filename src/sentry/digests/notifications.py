@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict, namedtuple
 from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupStatus, Project, Rule

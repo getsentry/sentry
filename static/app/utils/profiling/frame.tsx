@@ -38,16 +38,32 @@ export class Frame extends WeightedNode {
     this.image = frameInfo.image;
     this.threadId = frameInfo.threadId;
 
+    // We are remapping some of the keys as they differ between platforms.
+    // This is a temporary solution until we adopt a unified format.
+    if (frameInfo.columnNumber && this.column === undefined) {
+      this.column = frameInfo.columnNumber;
+    }
+    if (frameInfo.lineNumber && this.column === undefined) {
+      this.line = frameInfo.lineNumber;
+    }
+    if (frameInfo.scriptName && this.column === undefined) {
+      this.resource = frameInfo.scriptName;
+    }
+
+    // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
+    // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
     if (type === 'web') {
-      // If the frame is a web frame and there is no name associated to it, then it was likely invoked as an iife or anonymous callback as
-      // most modern browser engines properly show anonymous functions when they are assigned to references (e.g. `let foo = function() {};`)
-      if (!frameInfo.name) {
+      if (frameInfo.name === undefined || frameInfo.name === '') {
         this.name = t('anonymous');
       }
       // If the frame had no line or column, it was part of the native code, (e.g. calling String.fromCharCode)
       if (frameInfo.line === undefined && frameInfo.column === undefined) {
         this.name += ` ${t('[native code]')}`;
       }
+    }
+
+    if (this.name === undefined || this.name === '') {
+      this.name = t('unknown');
     }
   }
 

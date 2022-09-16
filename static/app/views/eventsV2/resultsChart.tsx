@@ -13,7 +13,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, SelectValue} from 'sentry/types';
 import {valueIsEqual} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -149,6 +149,7 @@ type ContainerProps = {
   location: Location;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string) => void;
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
@@ -158,9 +159,15 @@ type ContainerProps = {
   yAxis: string[];
 };
 
-class ResultsChartContainer extends Component<ContainerProps> {
-  state = {
+type ContainerState = {
+  showBaseline: boolean;
+  yAxisOptions: SelectValue<string>[];
+};
+
+class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
+  state: ContainerState = {
     yAxisOptions: this.getYAxisOptions(this.props.eventView),
+    showBaseline: true,
   };
 
   componentWillReceiveProps(nextProps) {
@@ -172,7 +179,11 @@ class ResultsChartContainer extends Component<ContainerProps> {
     }
   }
 
-  shouldComponentUpdate(nextProps: ContainerProps) {
+  shouldComponentUpdate(nextProps: ContainerProps, nextState: ContainerState) {
+    if (nextState.showBaseline !== this.state.showBaseline) {
+      return true;
+    }
+
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
@@ -207,13 +218,14 @@ class ResultsChartContainer extends Component<ContainerProps> {
       total,
       onAxisChange,
       onDisplayChange,
+      onIntervalChange,
       onTopEventsChange,
       organization,
       confirmedQuery,
       yAxis,
     } = this.props;
 
-    const {yAxisOptions} = this.state;
+    const {yAxisOptions, showBaseline} = this.state;
 
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView
@@ -265,12 +277,20 @@ class ResultsChartContainer extends Component<ContainerProps> {
           total={total}
           yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
+          eventView={eventView}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
           onTopEventsChange={onTopEventsChange}
+          onIntervalChange={onIntervalChange}
           topEvents={eventView.topEvents ?? TOP_N.toString()}
+          showBaseline={showBaseline}
+          setShowBaseline={value =>
+            this.setState({
+              showBaseline: value,
+            })
+          }
         />
       </StyledPanel>
     );

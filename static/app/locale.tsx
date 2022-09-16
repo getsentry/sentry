@@ -72,7 +72,6 @@ function getClient(): Jed | null {
     // If this happens, it could mean that an import was added/changed where
     // locale initialization does not happen soon enough.
     const warning = new Error('Locale not set, defaulting to English');
-    console.error(warning); // eslint-disable-line no-console
     Sentry.captureException(warning);
     return setLocale(DEFAULT_LOCALE_DATA);
   }

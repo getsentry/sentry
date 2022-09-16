@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {SentryAppInstallation} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface SentryAppInstallationStoreDefinition extends StoreDefinition {
   getInitialState(): SentryAppInstallation[];
@@ -32,5 +31,5 @@ const storeConfig: SentryAppInstallationStoreDefinition = {
   },
 };
 
-const SentryAppInstallationStore = createStore(makeSafeRefluxStore(storeConfig));
+const SentryAppInstallationStore = createStore(storeConfig);
 export default SentryAppInstallationStore;

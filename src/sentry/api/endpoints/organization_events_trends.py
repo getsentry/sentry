@@ -11,6 +11,7 @@ from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
@@ -489,7 +490,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                 trend_query.get_snql_query(),
                 referrer="api.trends.get-percentage-change",
             )
-            result = discover.transform_results(result, trend_query.function_alias_map, {}, None)
+            result = discover.transform_results(result, trend_query, {}, None)
             return result
 
         with self.handle_query_errors():
@@ -510,6 +511,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
             )
 
 
+@region_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
         self,
@@ -561,6 +563,7 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         return on_results
 
 
+@region_silo_endpoint
 class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
     def build_result_handler(
         self,

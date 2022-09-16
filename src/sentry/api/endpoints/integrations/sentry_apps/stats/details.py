@@ -1,12 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import StatsMixin
+from sentry import tsdb
+from sentry.api.base import StatsMixin, pending_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.app import tsdb
 from sentry.models import SentryAppInstallation
 
 
+@pending_silo_endpoint
 class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
     permission_classes = (SentryAppStatsPermission,)
 

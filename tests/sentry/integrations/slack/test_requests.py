@@ -10,6 +10,7 @@ from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -90,6 +91,7 @@ class SlackRequestTest(TestCase):
             assert e.status == 403
 
 
+@region_silo_test
 class SlackEventRequestTest(TestCase):
     def setUp(self):
         super().setUp()

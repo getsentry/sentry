@@ -1,8 +1,6 @@
-import isUndefined from 'lodash/isUndefined';
 import {createStore, StoreDefinition} from 'reflux';
 
 import {HookName, Hooks} from 'sentry/types/hooks';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface Internals {
   // XXX(epurkhiser): We could type this as {[H in HookName]?:
@@ -25,7 +23,7 @@ const storeConfig: HookStoreDefinition = {
   },
 
   add(hookName, callback) {
-    if (isUndefined(this.hooks[hookName])) {
+    if (this.hooks[hookName] === undefined) {
       this.hooks[hookName] = [];
     }
 
@@ -34,7 +32,7 @@ const storeConfig: HookStoreDefinition = {
   },
 
   remove(hookName, callback) {
-    if (isUndefined(this.hooks[hookName])) {
+    if (this.hooks[hookName] === undefined) {
       return;
     }
     this.hooks[hookName] = this.hooks[hookName]!.filter(cb => cb !== callback);
@@ -53,5 +51,5 @@ const storeConfig: HookStoreDefinition = {
  * This functionality is primarily used by the SASS sentry.io product.
  */
 
-const HookStore = createStore(makeSafeRefluxStore(storeConfig));
+const HookStore = createStore(storeConfig);
 export default HookStore;

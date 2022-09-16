@@ -21,16 +21,29 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.performance.autogrouped_siblings_toggle': {};
+  'issue_details.performance.hidden_spans_expanded': {};
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
     group?: string;
     platform?: string;
   };
+  'issue_search.empty': {
+    query: string;
+    search_source: string;
+    search_type: string;
+  };
   'issue_search.failed': {
     error: string;
     search_source: string;
     search_type: string;
+  };
+  'issues_stream.count_perf_issues': {
+    num_perf_issues: number;
+    num_total_issues: number;
+    page: number;
+    query: string;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
@@ -38,6 +51,9 @@ export type IssueEventParameters = {
     assigned_suggestion_reason?: string;
   };
   'issues_stream.issue_clicked': IssueStream;
+  'issues_stream.paginate': {
+    direction: string;
+  };
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
@@ -64,6 +80,8 @@ export type IssueEventParameters = {
     node_key: string;
   };
   resolve_issue: {release: string};
+  'span_view.embedded_child.hide': {};
+  'span_view.embedded_child.show': {};
   'tag.clicked': {
     is_clickable: boolean;
   };
@@ -79,12 +97,14 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issues_tab.viewed': 'Viewed Issues Tab', // high volume but send to our secondary event store anyways
   'issue_search.failed': 'Issue Search: Failed',
+  'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
   'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
+  'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
@@ -93,4 +113,14 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
   'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
+  'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
+  'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
+
+  // Performance Issue specific events here
+  'issue_details.performance.autogrouped_siblings_toggle':
+    'Performance Issue Details: Autogrouped Siblings Toggled',
+  'issue_details.performance.hidden_spans_expanded':
+    'Performance Issue Details: Hidden Spans Expanded',
+  'issues_stream.count_perf_issues':
+    'Issues Stream: Number of Performance Issues on Current Page',
 };

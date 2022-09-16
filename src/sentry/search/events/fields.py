@@ -41,6 +41,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import NormalizedArg, ParamsType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.numbers import format_grouped_length
+from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import (
     SESSIONS_SNUBA_MAP,
     get_json_type,
@@ -125,6 +126,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         "project_threshold.count.grouped",
         format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
     )
+    set_measurement("project_threshold.count", num_project_thresholds)
 
     num_transaction_thresholds = transaction_threshold_configs.count()
     sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
@@ -132,6 +134,7 @@ def project_threshold_config_expression(organization_id, project_ids):
         "txn_threshold.count.grouped",
         format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
     )
+    set_measurement("txn_threshold.count", num_transaction_thresholds)
 
     if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
@@ -271,6 +274,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     sentry_sdk.set_tag(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
+    set_measurement("team_key_txns.count", count)
 
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
@@ -663,7 +667,12 @@ def get_function_alias_with_columns(function_name, columns) -> str:
     return f"{function_name}_{columns}".rstrip("_")
 
 
-def get_json_meta_type(field_alias, snuba_type, function=None):
+def get_json_meta_type(field_alias, snuba_type, builder=None):
+    if builder:
+        function = builder.function_alias_map.get(field_alias)
+    else:
+        function = None
+
     alias_definition = FIELD_ALIASES.get(field_alias)
     if alias_definition and alias_definition.result_type is not None:
         return alias_definition.result_type
@@ -683,16 +692,12 @@ def get_json_meta_type(field_alias, snuba_type, function=None):
                 if result_type is not None:
                     return result_type
 
-    if (
-        "duration" in field_alias
-        or is_duration_measurement(field_alias)
-        or is_span_op_breakdown(field_alias)
-    ):
-        return "duration"
-    if is_measurement(field_alias):
-        return "number"
     if field_alias == "transaction.status":
         return "string"
+    # The builder will have Custom Measurement info etc.
+    field_type = builder.get_field_type(field_alias)
+    if field_type is not None:
+        return field_type
     return snuba_json
 
 
@@ -2091,6 +2096,10 @@ class MetricArg(FunctionArg):
                 raise IncompatibleMetricsQuery(f"{value} is not an allowed column")
 
         return value
+
+    def get_type(self, value: str) -> str:
+        # Just a default
+        return "number"
 
 
 class MetricsFunction(SnQLFunction):

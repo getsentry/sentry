@@ -12,26 +12,31 @@ import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
-  eventSlug: string;
-  orgId: string;
+  orgSlug: string;
+  replaySlug: string;
 };
 
-function ReplayContent({eventSlug, orgId}: Props) {
+function ReplayContent({orgSlug, replaySlug}: Props) {
   const {fetching, replay, fetchError} = useReplayData({
-    eventSlug,
-    orgId,
+    orgSlug,
+    replaySlug,
   });
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
-
-  const replayRecord = replay?.getReplay();
-  const replayEvent = replay?.getEvent();
 
   if (fetchError) {
     throw new Error('Failed to load Replay');
   }
 
-  if (fetching || !replayRecord || !replayEvent) {
-    return <StyledPlaceholder height="400px" width="100%" />;
+  const replayRecord = replay?.getReplay();
+
+  if (fetching || !replayRecord) {
+    return (
+      <StyledPlaceholder
+        testId="replay-loading-placeholder"
+        height="400px"
+        width="100%"
+      />
+    );
   }
 
   return (
@@ -41,7 +46,7 @@ function ReplayContent({eventSlug, orgId}: Props) {
           <td className="key">{t('Replay')}</td>
           <td className="value">
             <ReplayContextProvider replay={replay} initialTimeOffset={0}>
-              <PlayerContainer ref={fullscreenRef}>
+              <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
                 <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
               </PlayerContainer>
             </ReplayContextProvider>
@@ -50,19 +55,23 @@ function ReplayContent({eventSlug, orgId}: Props) {
         <tr key="id">
           <td className="key">{t('Id')}</td>
           <td className="value">
-            <pre className="val-string">{replayRecord.replayId}</pre>
+            <pre className="val-string" data-test-id="replay-id">
+              {replayRecord.id}
+            </pre>
           </td>
         </tr>
         <tr key="url">
           <td className="key">{t('URL')}</td>
           <td className="value">
-            <pre className="val-string">{replayEvent.culprit}</pre>
+            <pre className="val-string" data-test-id="replay-url">
+              {replayRecord.urls[0]}
+            </pre>
           </td>
         </tr>
         <tr key="timestamp">
           <td className="key">{t('Timestamp')}</td>
           <td className="value">
-            <pre className="val-string">
+            <pre className="val-string" data-test-id="replay-timestamp">
               <DateTime year seconds utc date={replayRecord.startedAt} />
             </pre>
           </td>
@@ -70,8 +79,8 @@ function ReplayContent({eventSlug, orgId}: Props) {
         <tr key="duration">
           <td className="key">{t('Duration')}</td>
           <td className="value">
-            <pre className="val-string">
-              <Duration seconds={replayRecord.duration / 1000} fixedDigits={0} />
+            <pre className="val-string" data-test-id="replay-duration">
+              <Duration seconds={replayRecord.duration} fixedDigits={0} />
             </pre>
           </td>
         </tr>
@@ -83,6 +92,7 @@ function ReplayContent({eventSlug, orgId}: Props) {
 const PlayerContainer = styled(FluidHeight)`
   margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
+  gap: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`

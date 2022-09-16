@@ -57,6 +57,7 @@ function SearchBarAction({
         />
       )}
       <StyledSearchBar
+        size="sm"
         onChange={onChange}
         query={query}
         placeholder={placeholder}
@@ -87,35 +88,20 @@ const Wrapper = styled('div')`
   }
 `;
 
-// TODO(matej): remove this once we refactor SearchBar to not use css classes
-// - it could accept size as a prop
 const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
   width: 100%;
-  position: relative;
-
-  .search-input {
-    height: 34px;
-  }
-  .search-clear-form,
-  .search-input-icon {
-    height: 32px;
-    display: flex;
-    align-items: center;
-  }
 
   ${p =>
     p.blendWithFilter &&
     `
-      .search-input,
-      .search-input:focus {
+      input {
         border-radius: ${p.theme.borderRadiusRight};
         border-left-width: 0;
       }
     `}
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    .search-input,
-    .search-input:focus {
+    input {
       border-radius: ${p => p.theme.borderRadius};
       border-left-width: 1px;
     }

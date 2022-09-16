@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
@@ -16,9 +17,9 @@ import {
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
 import useApi from 'sentry/utils/useApi';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayRecord} from 'sentry/views/replays/types';
 
 type State = {
   /**
@@ -60,12 +61,10 @@ const INITIAL_STATE = Object.freeze({
 export default function Trace({replayRecord, organization}: Props) {
   const [state, setState] = useState<State>(INITIAL_STATE);
   const api = useApi();
+  const location = useLocation<ReplayListLocationQuery>();
 
-  const {
-    location,
-    params: {eventSlug, orgId},
-  } = useRouteContext();
-  const [, eventId] = eventSlug.split(':');
+  const replayId = replayRecord.id;
+  const orgSlug = organization.slug;
 
   const start = getUtcDateString(replayRecord.startedAt.getTime());
   const end = getUtcDateString(replayRecord.finishedAt.getTime());
@@ -74,10 +73,10 @@ export default function Trace({replayRecord, organization}: Props) {
     async function loadTraces() {
       const eventView = EventView.fromSavedQuery({
         id: undefined,
-        name: `Traces in replay ${eventId}`,
+        name: `Traces in replay ${replayId}`,
         fields: ['trace', 'count(trace)', 'min(timestamp)'],
         orderby: 'min_timestamp',
-        query: `replayId:${eventId} !title:"sentry-replay-event*"`,
+        query: `replayId:${replayId} !title:"sentry-replay-event*"`,
         projects: [ALL_ACCESS_PROJECTS],
         version: 2,
 
@@ -88,18 +87,18 @@ export default function Trace({replayRecord, organization}: Props) {
       try {
         const [data, , resp] = await doDiscoverQuery<TableData>(
           api,
-          `/organizations/${orgId}/events/`,
+          `/organizations/${orgSlug}/events/`,
           eventView.getEventsAPIPayload(location)
         );
 
         const traceIds = data.data.map(({trace}) => trace).filter(trace => trace);
 
         // TODO(replays): Potential performance concerns here if number of traceIds is large
-        const traceDetails = await Promise.all(
+        const traceDetails = await Promise.allSettled(
           traceIds.map(traceId =>
             doDiscoverQuery(
               api,
-              `/organizations/${orgId}/events-trace/${traceId}/`,
+              `/organizations/${orgSlug}/events-trace/${traceId}/`,
               getTraceRequestPayload({
                 eventView: makeEventView({start, end}),
                 location,
@@ -108,12 +107,25 @@ export default function Trace({replayRecord, organization}: Props) {
           )
         );
 
+        const successfulTraceDetails = traceDetails
+          .map(settled => (settled.status === 'fulfilled' ? settled.value[0] : undefined))
+          .filter(Boolean);
+
+        if (successfulTraceDetails.length !== traceDetails.length) {
+          traceDetails.forEach(trace => {
+            if (trace.status === 'rejected') {
+              Sentry.captureMessage(trace.reason);
+            }
+          });
+        }
+
         setState(prevState => ({
           isLoading: false,
           error: null,
           traceEventView: eventView,
           pageLinks: resp?.getResponseHeader('Link') ?? prevState.pageLinks,
-          traces: traceDetails.flatMap(([trace]) => trace as TraceFullDetailed[]) || [],
+          traces:
+            successfulTraceDetails.flatMap(trace => trace as TraceFullDetailed[]) || [],
         }));
       } catch (err) {
         setState({
@@ -129,7 +141,7 @@ export default function Trace({replayRecord, organization}: Props) {
     loadTraces();
 
     return () => {};
-  }, [api, eventId, orgId, location, start, end]);
+  }, [api, replayId, orgSlug, location, start, end]);
 
   if (state.isLoading) {
     return <LoadingIndicator />;

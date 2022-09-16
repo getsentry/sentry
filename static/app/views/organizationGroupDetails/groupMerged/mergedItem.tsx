@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import GroupingActions from 'sentry/actions/groupingActions';
 import Checkbox from 'sentry/components/checkbox';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import Tooltip from 'sentry/components/tooltip';
@@ -55,7 +54,7 @@ class MergedItem extends Component<Props, State> {
 
   handleToggleEvents = () => {
     const {fingerprint} = this.props;
-    GroupingActions.toggleCollapseFingerprint(fingerprint.id);
+    GroupingStore.onToggleCollapseFingerprint(fingerprint.id);
   };
 
   // Disable default behavior of toggling checkbox
@@ -72,7 +71,7 @@ class MergedItem extends Component<Props, State> {
     }
 
     // clicking anywhere in the row will toggle the checkbox
-    GroupingActions.toggleUnmerge([fingerprint.id, latestEvent.id]);
+    GroupingStore.onToggleUnmerge([fingerprint.id, latestEvent.id]);
   };
 
   handleCheckClick() {

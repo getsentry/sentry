@@ -3,9 +3,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import PluginActions from 'sentry/actions/pluginActions';
 import {Client, RequestOptions} from 'sentry/api';
 import {t} from 'sentry/locale';
+import PluginsStore from 'sentry/stores/pluginsStore';
 import {Plugin} from 'sentry/types';
 
 const activeFetch = {};
@@ -34,7 +34,7 @@ type DoUpdateParams = Slugs & {
 } & Partial<RequestOptions>;
 
 function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParams) {
-  PluginActions.update(pluginId, update);
+  PluginsStore.onUpdate(pluginId, update);
   const request = api.requestPromise(
     `/projects/${orgId}/${projectId}/plugins/${pluginId}/`,
     {
@@ -45,14 +45,14 @@ function doUpdate({orgId, projectId, pluginId, update, ...params}: DoUpdateParam
   // This is intentionally not chained because we want the unhandled promise to be returned
   request
     .then(() => {
-      PluginActions.updateSuccess(pluginId, update);
+      PluginsStore.onUpdateSuccess(pluginId, update);
     })
     .catch(resp => {
       const err =
         resp && resp.responseJSON && typeof resp.responseJSON.detail === 'string'
           ? new Error(resp.responseJSON.detail)
           : new Error('Unable to update plugin');
-      PluginActions.updateError(pluginId, update, err);
+      PluginsStore.onUpdateError(pluginId, update, err);
     });
 
   return request;
@@ -79,7 +79,7 @@ export function fetchPlugins(
     return activeFetch[path];
   }
 
-  PluginActions.fetchAll(options);
+  PluginsStore.onFetchAll(options);
   const request = api.requestPromise(path, {
     method: 'GET',
     includeAllArgs: true,
@@ -90,12 +90,14 @@ export function fetchPlugins(
   // This is intentionally not chained because we want the unhandled promise to be returned
   request
     .then(([data, _, resp]) => {
-      PluginActions.fetchAllSuccess(data, {pageLinks: resp?.getResponseHeader('Link')});
+      PluginsStore.onFetchAllSuccess(data, {
+        pageLinks: resp?.getResponseHeader('Link') ?? undefined,
+      });
 
       return data;
     })
     .catch(err => {
-      PluginActions.fetchAllError(err);
+      PluginsStore.onFetchAllError(err);
       throw new Error('Unable to fetch plugins');
     })
     .then(() => (activeFetch[path] = null));

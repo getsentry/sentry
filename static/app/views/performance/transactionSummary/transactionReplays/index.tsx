@@ -1,78 +1,98 @@
+import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {PageContent} from 'sentry/styles/organization';
+import type {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import PageLayout, {ChildProps} from '../pageLayout';
 import Tab from '../tabs';
 
 import ReplaysContent from './content';
+import useReplaysFromTransaction from './useReplaysFromTransaction';
 
 type Props = {
-  location: Location;
+  location: Location<ReplayListLocationQuery>;
   organization: Organization;
   projects: Project[];
 };
+
+function renderNoAccess() {
+  return (
+    <PageContent>
+      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+    </PageContent>
+  );
+}
 
 function TransactionReplays(props: Props) {
   const {location, organization, projects} = props;
 
   return (
-    <PageLayout
-      location={location}
+    <Feature
+      features={['session-replay-ui']}
       organization={organization}
-      projects={projects}
-      tab={Tab.Replays}
-      getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
-      childComponent={ReplaysContentWrapper}
-    />
+      renderDisabled={renderNoAccess}
+    >
+      <PageLayout
+        location={location}
+        organization={organization}
+        projects={projects}
+        tab={Tab.Replays}
+        getDocumentTitle={getDocumentTitle}
+        generateEventView={generateEventView}
+        childComponent={ReplaysContentWrapper}
+      />
+    </Feature>
   );
 }
 
-function ReplaysContentWrapper(props: ChildProps) {
-  const {location, organization, eventView, transactionName, setError} = props;
+function ReplaysContentWrapper({
+  eventView: eventsWithReplaysView,
+  location,
+  organization,
+  setError,
+}: ChildProps) {
+  const {eventView, replays, pageLinks, isFetching, fetchError} =
+    useReplaysFromTransaction({
+      eventsWithReplaysView,
+      location,
+      organization,
+    });
 
-  return (
-    <DiscoverQuery
+  useEffect(() => {
+    setError(fetchError?.message);
+  }, [setError, fetchError]);
+
+  if (isFetching || !eventView) {
+    return (
+      <Layout.Main fullWidth>
+        <LoadingIndicator />
+      </Layout.Main>
+    );
+  }
+
+  return replays ? (
+    <ReplaysContent
       eventView={eventView}
-      orgSlug={organization.slug}
+      isFetching={isFetching}
       location={location}
-      setError={error => setError(error?.message)}
-      referrer="api.performance.transaction-summary"
-      cursor="0:0:0"
-      useEvents
-    >
-      {({isLoading, tableData, pageLinks}) => {
-        if (isLoading) {
-          return (
-            <Layout.Main fullWidth>
-              <LoadingIndicator />
-            </Layout.Main>
-          );
-        }
-        return tableData ? (
-          <ReplaysContent
-            eventView={eventView}
-            location={location}
-            organization={organization}
-            setError={setError}
-            transactionName={transactionName}
-            tableData={tableData}
-            pageLinks={pageLinks}
-          />
-        ) : null;
-      }}
-    </DiscoverQuery>
+      organization={organization}
+      pageLinks={pageLinks}
+      replays={replays}
+    />
+  ) : (
+    <Fragment>{null}</Fragment>
   );
 }
 
@@ -93,43 +113,20 @@ function generateEventView({
 }: {
   location: Location;
   transactionName: string;
-}): EventView {
+}) {
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
-
-  conditions.setFilterValues('event.type', ['transaction']);
-  conditions.setFilterValues('transaction', [transactionName]);
-
-  Object.keys(conditions.filters).forEach(field => {
-    if (isAggregateField(field)) {
-      conditions.removeFilter(field);
-    }
-  });
-
-  // Default fields for relative span view
-  const fields = [
-    'replayId',
-    'eventID',
-    'project',
-    'timestamp',
-    'url',
-    'user.display',
-    'user.email',
-    'user.id',
-    'user.ip_address',
-    'user.name',
-    'user.username',
-  ];
+  conditions.addFilterValues('transaction', [transactionName]);
+  conditions.addFilterValues('!replayId', ['']);
 
   return EventView.fromNewQueryWithLocation(
     {
-      id: undefined,
+      id: '',
+      name: `Replay events within a transaction`,
       version: 2,
-      name: transactionName,
-      fields,
-      query: `${conditions.formatString()} has:replayId`,
+      fields: ['replayId', 'count()'],
+      query: conditions.formatString(),
       projects: [],
-      orderby: decodeScalar(location.query.sort, '-timestamp'),
     },
     location
   );

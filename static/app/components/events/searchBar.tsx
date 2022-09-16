@@ -7,8 +7,9 @@ import omit from 'lodash/omit';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
+import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
   Field,
   FIELD_TAGS,
@@ -23,6 +24,7 @@ import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
+import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -33,7 +35,10 @@ const getFunctionTags = (fields: Readonly<Field[]>) =>
   Object.fromEntries(
     fields
       .filter(
-        item => !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+        item =>
+          !Object.keys(FIELD_TAGS).includes(item.field) &&
+          !isEquation(item.field) &&
+          !isCustomMeasurement(item.field)
       )
       .map(item => [
         item.field,
@@ -87,6 +92,7 @@ const getSemverTags = () =>
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
   tags: TagCollection;
+  customMeasurements?: CustomMeasurementCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;
   /**
@@ -108,6 +114,7 @@ function SearchBar(props: SearchBarProps) {
     projectIds,
     includeSessionTagsValues,
     maxMenuHeight,
+    customMeasurements,
   } = props;
 
   const api = useApi();
@@ -167,7 +174,7 @@ function SearchBar(props: SearchBarProps) {
 
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
-    const combinedTags: Record<string, Tag> = orgHasPerformanceView
+    const combinedTags: TagCollection = orgHasPerformanceView
       ? Object.assign({}, measurementsWithKind, spanTags, fieldTags, functionTags)
       : omit(fieldTags, TRACING_FIELDS);
 
@@ -206,7 +213,7 @@ function SearchBar(props: SearchBarProps) {
           hasRecentSearches
           savedSearchType={SavedSearchType.EVENT}
           onGetTagValues={getEventFieldValues}
-          supportedTags={getTagList(measurements)}
+          supportedTags={getTagList({...measurements, ...(customMeasurements ?? {})})}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');

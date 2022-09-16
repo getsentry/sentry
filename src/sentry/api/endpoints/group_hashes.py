@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
@@ -12,6 +13,7 @@ from sentry.tasks.unmerge import unmerge
 from sentry.utils.snuba import raw_query
 
 
+@region_silo_endpoint
 class GroupHashesEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
         """
@@ -50,7 +52,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         if id_list is None:
             return Response()
 
-        hash_list = (
+        hash_list = list(
             GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .values_list("hash", flat=True)

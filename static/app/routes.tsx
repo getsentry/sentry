@@ -28,6 +28,8 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
+import Feature from './components/acl/feature';
+
 type CustomProps = {
   name?: string;
 };
@@ -145,6 +147,7 @@ function buildRoutes() {
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
 
@@ -413,11 +416,19 @@ function buildRoutes() {
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
       />
-      <Route
-        path="security-and-privacy/"
-        name={t('Security & Privacy')}
-        component={make(() => import('sentry/views/settings/projectSecurityAndPrivacy'))}
-      />
+      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          )}
+        />
+        <Route
+          path="advanced-data-scrubbing/:scrubbingId/"
+          component={make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          )}
+        />
+      </Route>
       <Route
         path="debug-symbols/"
         name={t('Debug Information Files')}
@@ -658,13 +669,20 @@ function buildRoutes() {
           () => import('sentry/views/settings/organizationGeneralSettings')
         )}
       />
-      <Route
-        path="security-and-privacy/"
-        name={t('Security & Privacy')}
-        component={make(
-          () => import('sentry/views/settings/organizationSecurityAndPrivacy')
-        )}
-      />
+      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          )}
+        />
+        <Route
+          path="advanced-data-scrubbing/:scrubbingId/"
+          component={make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          )}
+        />
+      </Route>
+
       <Route name={t('Teams')} path="teams/">
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}
@@ -762,6 +780,8 @@ function buildRoutes() {
           )}
         />
       </Route>
+
+      <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
           component={make(
@@ -1051,7 +1071,7 @@ function buildRoutes() {
     >
       <IndexRoute component={make(() => import('sentry/views/replays/replays'))} />
       <Route
-        path=":eventSlug/"
+        path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
       />
     </Route>
@@ -1066,10 +1086,6 @@ function buildRoutes() {
       >
         <IndexRoute
           component={make(() => import('sentry/views/releases/detail/overview'))}
-        />
-        <Route
-          path="activity/"
-          component={make(() => import('sentry/views/releases/detail/activity'))}
         />
         <Route
           path="commits/"
@@ -1133,6 +1149,9 @@ function buildRoutes() {
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <IndexRedirect to="results/" />
+      </Feature>
       <IndexRedirect to="queries/" />
       <Route
         path="queries/"
@@ -1702,10 +1721,6 @@ function buildRoutes() {
       component={make(() => import('sentry/views/profiling'))}
     >
       <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
-      <Route
-        path="onboarding/"
-        component={make(() => import('sentry/views/profiling/legacyOnboarding'))}
-      />
       <Route
         path="summary/:projectId/"
         component={make(() => import('sentry/views/profiling/profileSummary'))}

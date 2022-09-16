@@ -6,13 +6,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features, ratelimits, roles
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import organization_member as organization_member_serializers
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
-from sentry.app import locks
+from sentry.locks import locks
 from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
 from sentry.models.authenticator import available_authenticators
 from sentry.search.utils import tokenize_query
@@ -82,6 +83,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
         return role
 
 
+@region_silo_endpoint
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 

@@ -235,11 +235,13 @@ function Information({
   return (
     <Wrapper>
       <div>
-        <strong data-test-id="source_name">
+        <strong data-test-id="source-name">
           {source_name ? capitalize(source_name) : t('Unknown')}
         </strong>
         {filenameOrLocation && (
-          <FilenameOrLocation>{filenameOrLocation}</FilenameOrLocation>
+          <FilenameOrLocation data-test-id="filename-or-location">
+            {filenameOrLocation}
+          </FilenameOrLocation>
         )}
       </div>
       <Details>

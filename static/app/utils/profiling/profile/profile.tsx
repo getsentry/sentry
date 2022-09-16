@@ -3,7 +3,12 @@ import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
+interface ProfileStats {
+  discardedSamplesCount: number;
+  negativeSamplesCount: number;
+}
+
+// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality + some added functionality.
 // head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
 
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
@@ -32,14 +37,26 @@ export class Profile {
   samples: CallTreeNode[] = [];
   weights: number[] = [];
 
-  constructor(
-    duration: number,
-    startedAt: number,
-    endedAt: number,
-    name: string,
-    unit: string,
-    threadId: number
-  ) {
+  stats: ProfileStats = {
+    discardedSamplesCount: 0,
+    negativeSamplesCount: 0,
+  };
+
+  constructor({
+    duration,
+    startedAt,
+    endedAt,
+    name,
+    unit,
+    threadId,
+  }: {
+    duration: number;
+    endedAt: number;
+    name: string;
+    startedAt: number;
+    threadId: number;
+    unit: string;
+  }) {
     this.threadId = threadId;
     this.duration = duration;
     this.startedAt = startedAt;
@@ -48,8 +65,27 @@ export class Profile {
     this.unit = unit;
   }
 
-  static Empty() {
-    return new Profile(1000, 0, 1000, '', 'milliseconds', 0).build();
+  static Empty = new Profile({
+    duration: 1000,
+    startedAt: 0,
+    endedAt: 1000,
+    name: 'Empty Profile',
+    unit: 'milliseconds',
+    threadId: 0,
+  }).build();
+
+  isEmpty(): boolean {
+    return this === Profile.Empty;
+  }
+
+  trackSampleStats(duration: number) {
+    // Keep track of discarded samples and ones that may have negative weights
+    if (duration === 0) {
+      this.stats.discardedSamplesCount++;
+    }
+    if (duration < 0) {
+      this.stats.negativeSamplesCount++;
+    }
   }
 
   forEach(

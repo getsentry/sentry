@@ -8,11 +8,6 @@ import GenericDiscoverQuery, {
 import useApi from 'sentry/utils/useApi';
 
 export interface MetricsCompatibilityData {
-  sum: {
-    metrics?: number;
-    metrics_null?: number;
-    metrics_unparam?: number;
-  };
   compatible_projects?: number[];
   dynamic_sampling_projects?: number[];
 }
@@ -38,7 +33,7 @@ export default function MetricsCompatibilityQuery({children, ...props}: QueryPro
   const api = useApi();
   return (
     <GenericDiscoverQuery<MetricsCompatibilityData, {}>
-      route="events-metrics-compatibility"
+      route="metrics-compatibility-sums"
       getRequestPayload={getRequestPayload}
       {...props}
       api={api}

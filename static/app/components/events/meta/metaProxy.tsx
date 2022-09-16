@@ -1,5 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 import isNull from 'lodash/isNull';
+import memoize from 'lodash/memoize';
 
 import {Meta} from 'sentry/types';
 
@@ -64,7 +65,7 @@ export class MetaProxy {
   }
 }
 
-export function withMeta<T>(event: T): T {
+export const withMeta = memoize(function withMeta<T>(event: T): T {
   if (!event) {
     return event;
   }
@@ -80,7 +81,7 @@ export function withMeta<T>(event: T): T {
   //
   // https://github.com/microsoft/TypeScript/issues/20846
   return new Proxy(event, new MetaProxy((event as any)._meta)) as T;
-}
+});
 
 export function getMeta<T extends {}>(
   obj: T | undefined,

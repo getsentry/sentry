@@ -94,11 +94,24 @@ MetricUnit = Literal[
     "tebibyte",
     "pebibyte",
     "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
+MetricEntity = Literal[
+    "metrics_counters",
+    "metrics_sets",
+    "metrics_distributions",
+    "generic_metrics_counters",
+    "generic_metrics_sets",
+    "generic_metrics_distributions",
+]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -145,6 +158,9 @@ AVAILABLE_GENERIC_OPERATIONS = {
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
+GENERIC_OPERATIONS_TO_ENTITY = {
+    op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
+}
 
 # ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
@@ -187,17 +203,23 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-
-# ToDo Dynamically generate this from OP_TO_SNUBA_FUNCTION
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "min",
-    "sum",
+DERIVED_OPERATIONS = (
     "histogram",
-) + OPERATIONS_PERCENTILES
+    "rate",
+    "count_web_vitals",
+)
+OPERATIONS = (
+    (
+        "avg",
+        "count_unique",
+        "count",
+        "max",
+        "min",
+        "sum",
+    )
+    + OPERATIONS_PERCENTILES
+    + DERIVED_OPERATIONS
+)
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
@@ -213,6 +235,8 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "sum": 0,
     "percentage": None,
     "histogram": [],
+    "rate": 0,
+    "count_web_vitals": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}

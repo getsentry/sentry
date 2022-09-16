@@ -2,7 +2,6 @@ import {Query} from 'history';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
-import isUndefined from 'lodash/isUndefined';
 
 import {Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
@@ -121,7 +120,7 @@ export function explodeSlug(slug: string): string {
 }
 
 export function defined<T>(item: T): item is Exclude<T, null | undefined> {
-  return !isUndefined(item) && item !== null;
+  return item !== undefined && item !== null;
 }
 
 export function nl2br(str: string): string {
@@ -232,7 +231,7 @@ export function parseRepo<T>(repo: T): T {
  * Converts a multi-line textarea input value into an array,
  * eliminating empty lines
  */
-export function extractMultilineFields(value: string): Array<string> {
+export function extractMultilineFields(value: string): string[] {
   return value
     .split('\n')
     .map(f => trim(f))
@@ -242,7 +241,7 @@ export function extractMultilineFields(value: string): Array<string> {
 /**
  * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
  */
-export function convertMultilineFieldValue<T extends string | Array<string>>(
+export function convertMultilineFieldValue<T extends string | string[]>(
   value: T
 ): string {
   if (Array.isArray(value)) {

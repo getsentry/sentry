@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {SentryAppComponent} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
   get: (uuid: string) => SentryAppComponent | undefined;
@@ -12,7 +11,6 @@ export interface SentryAppComponentsStoreDefinition extends StoreDefinition {
 }
 
 const storeConfig: SentryAppComponentsStoreDefinition = {
-  unsubscribeListeners: [],
   items: [],
 
   init() {
@@ -46,5 +44,5 @@ const storeConfig: SentryAppComponentsStoreDefinition = {
   },
 };
 
-const SentryAppComponentsStore = createStore(makeSafeRefluxStore(storeConfig));
+const SentryAppComponentsStore = createStore(storeConfig);
 export default SentryAppComponentsStore;

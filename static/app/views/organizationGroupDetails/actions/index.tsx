@@ -14,7 +14,6 @@ import {
   openModal,
   openReprocessEventModal,
 } from 'sentry/actionCreators/modal';
-import GroupActions from 'sentry/actions/groupActions';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -25,17 +24,17 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import Tooltip from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   Group,
+  GroupStatusResolution,
   Organization,
   Project,
   ResolutionStatus,
   SavedQueryVersions,
-  UpdateResolutionStatus,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {analytics} from 'sentry/utils/analytics';
@@ -43,6 +42,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {uniqueId} from 'sentry/utils/guid';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -88,14 +88,14 @@ class Actions extends Component<Props, State> {
 
   getDiscoverUrl() {
     const {group, project, organization} = this.props;
-    const {title, id, type} = group;
+    const {title, type, shortId} = group;
 
     const discoverQuery = {
       id: undefined,
       name: title || type,
       fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
       orderby: '-timestamp',
-      query: `issue.id:${id}`,
+      query: `issue:${shortId}`,
       projects: [Number(project.id)],
       version: 2 as SavedQueryVersions,
       range: '90d',
@@ -122,6 +122,7 @@ class Actions extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -160,7 +161,7 @@ class Actions extends Component<Props, State> {
       | {isBookmarked: boolean}
       | {isSubscribed: boolean}
       | {inbox: boolean}
-      | UpdateResolutionStatus
+      | GroupStatusResolution
   ) => {
     const {group, project, organization, api} = this.props;
 
@@ -179,8 +180,8 @@ class Actions extends Component<Props, State> {
       }
     );
 
-    if ((data as UpdateResolutionStatus).status) {
-      this.trackIssueAction((data as UpdateResolutionStatus).status);
+    if ((data as GroupStatusResolution).status) {
+      this.trackIssueAction((data as GroupStatusResolution).status);
     }
     if ((data as {inbox: boolean}).inbox !== undefined) {
       this.trackIssueAction('mark_reviewed');
@@ -241,30 +242,22 @@ class Actions extends Component<Props, State> {
     this.trackIssueAction('subscribed');
   };
 
-  onRedirectDiscover = () => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-      organization,
-    });
-    browserHistory.push(this.getDiscoverUrl());
-  };
-
   onDiscard = () => {
     const {group, project, organization, api} = this.props;
     const id = uniqueId();
     addLoadingMessage(t('Discarding event\u2026'));
 
-    GroupActions.discard(id, group.id);
+    GroupStore.onDiscard(id, group.id);
 
     api.request(`/issues/${group.id}/`, {
       method: 'PUT',
       data: {discard: true},
       success: response => {
-        GroupActions.discardSuccess(id, group.id, response);
+        GroupStore.onDiscardSuccess(id, group.id, response);
         browserHistory.push(`/${organization.slug}/${project.slug}/`);
       },
       error: error => {
-        GroupActions.discardError(id, group.id, error);
+        GroupStore.onDiscardError(id, group.id, error);
       },
       complete: clearIndicators,
     });
@@ -322,6 +315,25 @@ class Actions extends Component<Props, State> {
     );
   };
 
+  openDeleteModal = () =>
+    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
+      <Fragment>
+        <Body>
+          {t('Deleting this issue is permanent. Are you sure you wish to continue?')}
+        </Body>
+        <Footer>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            style={{marginLeft: space(1)}}
+            priority="primary"
+            onClick={this.onDelete}
+          >
+            {t('Delete')}
+          </Button>
+        </Footer>
+      </Fragment>
+    ));
+
   openDiscardModal = () => {
     const {organization} = this.props;
 
@@ -356,6 +368,10 @@ class Actions extends Component<Props, State> {
     const isResolved = status === 'resolved';
     const isIgnored = status === 'ignored';
 
+    const deleteCap = getIssueCapability(group.issueCategory, 'delete');
+    const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
+    const shareCap = getIssueCapability(group.issueCategory, 'share');
+
     return (
       <Wrapper>
         <GuideAnchor target="resolve" position="bottom" offset={20}>
@@ -375,18 +391,18 @@ class Actions extends Component<Props, State> {
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
+            issueCategory={group.issueCategory}
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}
             disabled={disabled}
           />
         </GuideAnchor>
-        <Tooltip
-          disabled={!!group.inbox || disabled}
-          title={t('Issue has been reviewed')}
-          delay={300}
-        >
-          <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
-        </Tooltip>
+        <ReviewAction
+          onUpdate={this.onUpdate}
+          disabled={!group.inbox || disabled}
+          tooltip={t('Issue has been reviewed')}
+          tooltipProps={{disabled: !!group.inbox || disabled, delay: 300}}
+        />
         <Feature
           hookName="feature-disabled:open-in-discover"
           features={['discover-basic']}
@@ -395,19 +411,15 @@ class Actions extends Component<Props, State> {
           <ActionButton
             disabled={disabled}
             to={disabled ? '' : this.getDiscoverUrl()}
-            onClick={() => {
-              this.trackIssueAction('open_in_discover');
-              trackAdvancedAnalyticsEvent('growth.issue_open_in_discover_btn_clicked', {
-                organization,
-              });
-            }}
+            onClick={() => this.trackIssueAction('open_in_discover')}
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
         </Feature>
         {orgFeatures.has('shared-issues') && (
           <ShareIssue
-            disabled={disabled}
+            disabled={disabled || !shareCap.enabled}
+            disabledReason={shareCap.disabledReason}
             loading={this.state.shareBusy}
             isShared={group.isPublic}
             shareUrl={this.getShareUrl(group.shareId)}
@@ -447,33 +459,18 @@ class Actions extends Component<Props, State> {
                   priority: 'danger',
                   label: t('Delete'),
                   hidden: !hasAccess,
-                  onAction: () =>
-                    openModal(({Body, Footer, closeModal}: ModalRenderProps) => (
-                      <Fragment>
-                        <Body>
-                          {t(
-                            'Deleting this issue is permanent. Are you sure you wish to continue?'
-                          )}
-                        </Body>
-                        <Footer>
-                          <Button onClick={closeModal}>{t('Cancel')}</Button>
-                          <Button
-                            style={{marginLeft: space(1)}}
-                            priority="primary"
-                            onClick={this.onDelete}
-                          >
-                            {t('Delete')}
-                          </Button>
-                        </Footer>
-                      </Fragment>
-                    )),
+                  disabled: !deleteCap.enabled,
+                  details: deleteCap.disabledReason,
+                  onAction: this.openDeleteModal,
                 },
                 {
                   key: 'delete-and-discard',
                   priority: 'danger',
                   label: t('Delete and discard future events'),
                   hidden: !hasAccess,
-                  onAction: () => this.openDiscardModal(),
+                  disabled: !deleteDiscardCap.enabled,
+                  details: deleteDiscardCap.disabledReason,
+                  onAction: this.openDiscardModal,
                 },
               ]}
             />

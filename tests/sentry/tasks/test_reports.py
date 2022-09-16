@@ -9,7 +9,7 @@ import pytz
 from django.core import mail
 from django.utils import timezone
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.cache import default_cache
 from sentry.constants import DataCategory
 from sentry.models import GroupStatus, Project, UserOption
@@ -429,7 +429,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
 
 
 class ReportAcceptanceTest(OutcomesSnubaTest, SnubaTestCase):
-    @mock.patch("sentry.tasks.reports.backend", DummyReportBackend())
+    @mock.patch("sentry.tasks.reports.redis_report_backend", DummyReportBackend())
     def test_deliver_organization_user_report(self):
         now = timezone.now()
         seven_days = timedelta(days=7)

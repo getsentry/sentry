@@ -426,7 +426,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
             session_status = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")
             for row in data:
                 tag_value = reverse_resolve_tag_value(
-                    UseCaseKey.RELEASE_HEALTH, row[session_status]
+                    UseCaseKey.RELEASE_HEALTH, org_id, row[session_status]
                 )
                 if tag_value is None:
                     raise MetricIndexNotFound()

@@ -1,5 +1,3 @@
-import {Project} from 'sentry/types';
-
 export enum RuleType {
   PATTERN = 'pattern',
   CREDITCARD = 'creditcard',
@@ -125,5 +123,3 @@ export type PiiConfig =
 export type Applications = Record<string, Array<string>>;
 
 export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;
-
-export type ProjectId = Project['id'] | undefined;

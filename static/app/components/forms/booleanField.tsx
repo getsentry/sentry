@@ -45,13 +45,15 @@ export default class BooleanField extends Component<BooleanFieldProps> {
           disabled: boolean;
           onBlur: onEvent;
           onChange: onEvent;
+          type: string;
           value: any;
         }) => {
           // Create a function with required args bound
           const handleChange = this.handleChange.bind(this, value, onChange, onBlur);
 
+          const {type: _, ...propsWithoutType} = props;
           const switchProps = {
-            ...props,
+            ...propsWithoutType,
             size: 'lg' as React.ComponentProps<typeof Switch>['size'],
             isActive: !!value,
             isDisabled: disabled,

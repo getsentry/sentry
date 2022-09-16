@@ -39,11 +39,14 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  AggregationOutputType,
   isAggregateField,
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -55,7 +58,6 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
-  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -71,6 +73,8 @@ import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWi
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 import {
@@ -86,7 +90,7 @@ export interface WidgetViewerModalOptions {
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
-  seriesResultsType?: string;
+  seriesResultsType?: Record<string, AggregationOutputType>;
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 }
@@ -380,7 +384,7 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const parsedQuery = !!!name && !!conditions ? parseSearch(conditions) : null;
+    const parsedQuery = !name && !!conditions ? parseSearch(conditions) : null;
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
@@ -445,11 +449,12 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable = ({
+  function DiscoverTable({
     tableResults,
     loading,
     pageLinks,
-  }: GenericWidgetQueriesChildrenProps) => {
+  }: GenericWidgetQueriesChildrenProps) {
+    const {isMetricsData} = useDashboardsMEPContext();
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
@@ -472,6 +477,7 @@ function WidgetViewerModal(props: Props) {
                   setChartUnmodified(false);
                 }
               },
+              isMetricsData,
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               ...props,
@@ -508,7 +514,7 @@ function WidgetViewerModal(props: Props) {
         )}
       </Fragment>
     );
-  };
+  }
 
   const renderIssuesTable = ({
     tableResults,
@@ -748,11 +754,13 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.DISCOVER:
       default:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
-          return renderDiscoverTable({
-            tableResults: tableData,
-            loading: false,
-            pageLinks: defaultPageLinks,
-          });
+          return (
+            <DiscoverTable
+              tableResults={tableData}
+              loading={false}
+              pageLinks={defaultPageLinks}
+            />
+          );
         }
         return (
           <WidgetQueries
@@ -767,7 +775,13 @@ function WidgetViewerModal(props: Props) {
             }
             cursor={cursor}
           >
-            {renderDiscoverTable}
+            {({tableResults, loading, pageLinks}) => (
+              <DiscoverTable
+                tableResults={tableResults}
+                loading={loading}
+                pageLinks={pageLinks}
+              />
+            )}
           </WidgetQueries>
         );
     }
@@ -796,7 +810,7 @@ function WidgetViewerModal(props: Props) {
             {(!!seriesData || !!tableData) && chartUnmodified ? (
               <MemoizedWidgetCardChart
                 timeseriesResults={seriesData}
-                timeseriesResultsType={seriesResultsType}
+                timeseriesResultsTypes={seriesResultsType}
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}
@@ -936,43 +950,64 @@ function WidgetViewerModal(props: Props) {
 
   return (
     <Fragment>
-      <DashboardsMEPProvider>
-        <Header closeButton>
-          <h3>{widget.title}</h3>
-        </Header>
-        <Body>{renderWidgetViewer()}</Body>
-        <Footer>
-          <ResultsContainer>
-            {renderTotalResults(totalResults, widget.widgetType)}
-            <ButtonBar gap={1}>
-              {onEdit && widget.id && (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    closeModal();
-                    onEdit();
-                    trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.edit', {
-                      organization,
-                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                      display_type: widget.displayType,
-                    });
-                  }}
+      <OrganizationContext.Provider value={organization}>
+        <DashboardsMEPProvider>
+          <MetricsCardinalityProvider organization={organization} location={location}>
+            <MetricsDataSwitcher
+              organization={organization}
+              eventView={eventView}
+              location={location}
+              hideLoadingIndicator
+            >
+              {metricsDataSide => (
+                <MEPSettingProvider
+                  location={location}
+                  forceTransactions={metricsDataSide.forceTransactionsOnly}
                 >
-                  {t('Edit Widget')}
-                </Button>
+                  <Header closeButton>
+                    <h3>{widget.title}</h3>
+                  </Header>
+                  <Body>{renderWidgetViewer()}</Body>
+                  <Footer>
+                    <ResultsContainer>
+                      {renderTotalResults(totalResults, widget.widgetType)}
+                      <ButtonBar gap={1}>
+                        {onEdit && widget.id && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              closeModal();
+                              onEdit();
+                              trackAdvancedAnalyticsEvent(
+                                'dashboards_views.widget_viewer.edit',
+                                {
+                                  organization,
+                                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                                  display_type: widget.displayType,
+                                }
+                              );
+                            }}
+                          >
+                            {t('Edit Widget')}
+                          </Button>
+                        )}
+                        {widget.widgetType && (
+                          <OpenButton
+                            widget={primaryWidget}
+                            organization={organization}
+                            selection={modalTableSelection}
+                            selectedQueryIndex={selectedQueryIndex}
+                          />
+                        )}
+                      </ButtonBar>
+                    </ResultsContainer>
+                  </Footer>
+                </MEPSettingProvider>
               )}
-              {widget.widgetType && (
-                <OpenButton
-                  widget={primaryWidget}
-                  organization={organization}
-                  selection={modalTableSelection}
-                  selectedQueryIndex={selectedQueryIndex}
-                />
-              )}
-            </ButtonBar>
-          </ResultsContainer>
-        </Footer>
-      </DashboardsMEPProvider>
+            </MetricsDataSwitcher>
+          </MetricsCardinalityProvider>
+        </DashboardsMEPProvider>
+      </OrganizationContext.Provider>
     </Fragment>
   );
 }
@@ -1021,12 +1056,6 @@ function OpenButton({
       to={path}
       priority="primary"
       type="button"
-      disabled={isCustomMeasurementWidget(widget)}
-      title={
-        isCustomMeasurementWidget(widget)
-          ? t('Widgets using custom performance metrics cannot be opened in Discover.')
-          : undefined
-      }
       onClick={() => {
         trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.open_source', {
           organization,

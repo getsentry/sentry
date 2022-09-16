@@ -14,21 +14,30 @@ from django.utils.functional import cached_property
 
 from bitfield import BitField
 from sentry import features, roles
-from sentry.app import locks
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
     RESERVED_PROJECT_SLUGS,
 )
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    Model,
+    region_silo_model,
+    sane_repr,
+)
 from sentry.db.models.utils import slugify_instance
+from sentry.locks import locks
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
+
+SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
 
 class OrganizationStatus(IntEnum):
@@ -110,7 +119,8 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+@region_silo_model
+class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -196,7 +206,14 @@ class Organization(Model):
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_target = slugify_target.replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
-        super().save(*args, **kwargs)
+
+        if SENTRY_USE_SNOWFLAKE:
+            snowflake_redis_key = "organization_snowflake_key"
+            self.save_with_snowflake_id(
+                snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+            )
+        else:
+            super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
@@ -246,6 +263,16 @@ class Organization(Model):
         if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner
+
+    @property
+    def default_owner_id(self):
+        """
+        Similar to get_default_owner but won't raise a key error
+        if there is no owner. Used for analytics primarily.
+        """
+        if not hasattr(self, "_default_owner_id"):
+            self._default_owner_id = self.get_owners().values_list("id", flat=True).first()
+        return self._default_owner_id
 
     def has_single_owner(self):
         from sentry.models import OrganizationMember

@@ -18,7 +18,7 @@ TASK_OPTIONS = {
 )
 def send_sentry_function_webhook(sentry_function_id, event, issue_id, data=None):
     try:
-        data[event.split(".")[0]] = serialize(Group.objects.get(id=issue_id))
+        data["issue"] = serialize(Group.objects.get(id=issue_id))
     except Group.DoesNotExist:
         pass
     publish_message(sentry_function_id, json.dumps({"data": data, "type": event}).encode())

@@ -32,7 +32,7 @@ export default class AddIntegration extends Component<Props> {
 
   componentWillUnmount() {
     window.removeEventListener('message', this.didReceiveMessage);
-    this.dialog && this.dialog.close();
+    this.dialog?.close();
   }
 
   dialog: Window | null = null;

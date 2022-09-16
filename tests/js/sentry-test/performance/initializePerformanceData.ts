@@ -14,6 +14,7 @@ export interface initializeDataSettings {
   project?: any; // TODO(k-fish): Fix this project type.
   projects?: Project[];
   query?: {};
+  selectedProject?: number | string;
 }
 
 export function initializeData(settings?: initializeDataSettings) {
@@ -25,7 +26,7 @@ export function initializeData(settings?: initializeDataSettings) {
     project: _defaultProject,
     ...settings,
   };
-  const {query, features, projects, project} = _settings;
+  const {query, features, projects, selectedProject: project} = _settings;
 
   const organization = TestStubs.Organization({
     features,
@@ -36,8 +37,8 @@ export function initializeData(settings?: initializeDataSettings) {
       ...query,
     },
   };
-  if (settings?.project) {
-    routerLocation.query.project = project;
+  if (settings?.selectedProject || settings?.project) {
+    routerLocation.query.project = (project || settings?.project) as any;
   }
   const router = {
     location: routerLocation,

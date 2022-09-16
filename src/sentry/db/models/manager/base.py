@@ -25,7 +25,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
-from sentry.servermode import ModeLimited, ServerComponentMode
+from sentry.silo import SiloLimit, SiloMode
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -452,10 +452,10 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
 
-    def create_mode_limited_copy(
-        self, limit: ModeLimited, read_modes: Iterable[ServerComponentMode]
+    def create_silo_limited_copy(
+        self, limit: SiloLimit, read_modes: Iterable[SiloMode]
     ) -> BaseManager[M]:
-        """Create a copy of this manager that enforces server mode limitations."""
+        """Create a copy of this manager that enforces silo limitations."""
 
         # Dynamically create a subclass of this manager's class, adding overrides.
         cls = type(self)

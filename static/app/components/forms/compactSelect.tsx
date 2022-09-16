@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
-import {components as selectComponents} from 'react-select';
+import {components as selectComponents, OptionTypeBase} from 'react-select';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {FocusScope} from '@react-aria/focus';
@@ -35,7 +35,7 @@ interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> 
   minMenuWidth?: number;
 }
 
-interface Props<OptionType>
+interface Props<OptionType extends OptionTypeBase>
   extends Omit<ControlProps<OptionType>, 'choices'>,
     Partial<OverlayProps>,
     Partial<AriaPositionProps> {
@@ -404,7 +404,7 @@ const MenuHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
+  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
   z-index: 1;
 `;

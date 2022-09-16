@@ -151,8 +151,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         from django.db import router as db_router
 
-        from sentry import models
-        from sentry.app import nodestore
+        from sentry import models, nodestore
         from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery

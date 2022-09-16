@@ -25,50 +25,46 @@ type HeaderProps = {
   eventId?: string;
 };
 
-class CompactIssueHeader extends Component<HeaderProps> {
-  render() {
-    const {data, organization, projectId, eventId} = this.props;
+function CompactIssueHeader({data, organization, projectId, eventId}: HeaderProps) {
+  const basePath = `/organizations/${organization.slug}/issues/`;
 
-    const basePath = `/organizations/${organization.slug}/issues/`;
+  const issueLink = eventId
+    ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
+    : `${basePath}${data.id}/`;
 
-    const issueLink = eventId
-      ? `/organizations/${organization.slug}/projects/${projectId}/events/${eventId}/`
-      : `${basePath}${data.id}/`;
+  const commentColor: keyof Aliases =
+    data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned'
+      ? 'success'
+      : 'textColor';
 
-    const commentColor: keyof Aliases =
-      data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned'
-        ? 'success'
-        : 'textColor';
-
-    return (
-      <Fragment>
-        <IssueHeaderMetaWrapper>
-          <StyledErrorLevel size="12px" level={data.level} title={data.level} />
-          <h3 className="truncate">
-            <IconLink to={issueLink || ''}>
-              {data.status === 'ignored' && <IconMute size="xs" />}
-              {data.isBookmarked && <IconStar isSolid size="xs" />}
-              <EventOrGroupTitle data={data} />
+  return (
+    <Fragment>
+      <IssueHeaderMetaWrapper>
+        <StyledErrorLevel size="12px" level={data.level} title={data.level} />
+        <h3 className="truncate">
+          <IconLink to={issueLink || ''}>
+            {data.status === 'ignored' && <IconMute size="xs" />}
+            {data.isBookmarked && <IconStar isSolid size="xs" />}
+            <EventOrGroupTitle data={data} />
+          </IconLink>
+        </h3>
+      </IssueHeaderMetaWrapper>
+      <div className="event-extra">
+        <span className="project-name">
+          <strong>{data.project.slug}</strong>
+        </span>
+        {data.numComments !== 0 && (
+          <span>
+            <IconLink to={`${basePath}${data.id}/activity/`} className="comments">
+              <IconChat size="xs" color={commentColor} />
+              <span className="tag-count">{data.numComments}</span>
             </IconLink>
-          </h3>
-        </IssueHeaderMetaWrapper>
-        <div className="event-extra">
-          <span className="project-name">
-            <strong>{data.project.slug}</strong>
           </span>
-          {data.numComments !== 0 && (
-            <span>
-              <IconLink to={`${basePath}${data.id}/activity/`} className="comments">
-                <IconChat size="xs" color={commentColor} />
-                <span className="tag-count">{data.numComments}</span>
-              </IconLink>
-            </span>
-          )}
-          <span className="culprit">{getMessage(data)}</span>
-        </div>
-      </Fragment>
-    );
-  }
+        )}
+        <span className="culprit">{getMessage(data)}</span>
+      </div>
+    </Fragment>
+  );
 }
 
 type GroupTypes = ReturnType<typeof GroupStore.get>;
@@ -185,7 +181,6 @@ class CompactIssue extends Component<Props, State> {
   }
 }
 
-export {CompactIssue};
 export default withApi(withOrganization(CompactIssue));
 
 const IssueHeaderMetaWrapper = styled('div')`
