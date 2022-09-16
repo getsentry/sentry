@@ -51,7 +51,6 @@ type Props = {
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
-  size?: number;
 };
 
 type State = {
@@ -62,10 +61,6 @@ type State = {
 };
 
 export class AssigneeSelectorDropdown extends Component<Props, State> {
-  static defaultProps = {
-    size: 20,
-  };
-
   state = this.getInitialState();
 
   getInitialState() {
@@ -217,7 +212,6 @@ export class AssigneeSelectorDropdown extends Component<Props, State> {
   };
 
   renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
-    const {size} = this.props;
     const sessionUser = ConfigStore.get('user');
 
     const handleSelect = () => this.assignToUser(member);
@@ -232,7 +226,7 @@ export class AssigneeSelectorDropdown extends Component<Props, State> {
           onSelect={handleSelect}
         >
           <IconContainer>
-            <UserAvatar user={member} size={size} />
+            <UserAvatar user={member} size={20} />
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>
@@ -256,7 +250,6 @@ export class AssigneeSelectorDropdown extends Component<Props, State> {
     assignableTeam: AssignableTeam,
     suggestedReason?: string
   ): ItemsBeforeFilter[0] {
-    const {size} = this.props;
     const {id, display, team} = assignableTeam;
 
     const handleSelect = () => this.assignToTeam(team);
@@ -267,7 +260,7 @@ export class AssigneeSelectorDropdown extends Component<Props, State> {
       label: ({inputValue}) => (
         <MenuItemWrapper data-test-id="assignee-option" key={id} onSelect={handleSelect}>
           <IconContainer>
-            <TeamAvatar team={team} size={size} />
+            <TeamAvatar team={team} size={20} />
           </IconContainer>
           <Label>
             <Highlight text={inputValue}>{display}</Highlight>

@@ -38,9 +38,9 @@ function AssignedTo({group, projectId}: AssignedToProps) {
                   <StyledLoadingIndicator mini size={20} />
                 ) : group.assignedTo ? (
                   <ActorAvatar
-                    hasTooltip={false}
+                    data-test-id="assigned-avatar"
                     actor={group.assignedTo}
-                    data-test-id="owner-avatar"
+                    hasTooltip={false}
                     size={20}
                   />
                 ) : (

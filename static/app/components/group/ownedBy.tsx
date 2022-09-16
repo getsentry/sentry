@@ -6,7 +6,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import type {Actor, Group, Organization, Project} from 'sentry/types';
@@ -23,7 +22,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
   const owner = group.owners?.[0];
   let currentOwner: Actor | undefined;
 
-  const teams = ProjectsStore.getBySlug(group.project.slug)?.teams ?? [];
+  const teams = project?.teams ?? [];
   const assignableTeams = teams
     .sort((a, b) => a.slug.localeCompare(b.slug))
     .map(team => ({
@@ -64,11 +63,11 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
       <SidebarSection.Title>{t('Owned By')}</SidebarSection.Title>
       <StyledSidebarContent>
         <ActorWrapper>
-          {owner ? (
+          {currentOwner ? (
             <ActorAvatar
-              hasTooltip={false}
-              actor={currentOwner as Actor}
               data-test-id="owner-avatar"
+              actor={currentOwner}
+              hasTooltip={false}
               size={20}
             />
           ) : (

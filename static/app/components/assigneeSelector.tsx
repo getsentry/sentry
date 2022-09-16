@@ -26,7 +26,6 @@ type Props = {
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
-  size?: number;
 };
 
 function AssigneeSelector(props: Props) {
