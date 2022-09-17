@@ -63,6 +63,10 @@ type CapabilityInfo = {
  */
 export type IssueCategoryCapabilities = {
   /**
+   * Are codeowner features enabled for this issue
+   */
+  codeowners: CapabilityInfo;
+  /**
    * Can the issue be deleted
    */
   delete: CapabilityInfo;
@@ -173,7 +177,11 @@ export type InboxDetails = {
   reason?: number;
 };
 
-export type SuggestedOwnerReason = 'suspectCommit' | 'ownershipRule' | 'releaseCommit';
+export type SuggestedOwnerReason =
+  | 'suspectCommit'
+  | 'ownershipRule'
+  | 'codeowners'
+  | 'releaseCommit';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
@@ -600,6 +608,7 @@ export type KeyValueListData = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
+  isContextData?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;

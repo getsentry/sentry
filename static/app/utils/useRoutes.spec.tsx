@@ -35,10 +35,12 @@ describe('useRoutes', () => {
   });
 
   it('throws error when called outside of routes provider', function () {
-    try {
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/');
+    // Error is expected, do not fail when calling console.error
+    jest.spyOn(console, 'error').mockImplementation();
+    const memoryHistory = createMemoryHistory();
+    memoryHistory.push('/');
 
+    expect(() =>
       render(
         <Router history={memoryHistory}>
           <Route
@@ -49,9 +51,7 @@ describe('useRoutes', () => {
             }}
           />
         </Router>
-      );
-    } catch (error) {
-      expect(error.message).toBe('useRouteContext called outside of routes provider');
-    }
+      )
+    ).toThrow(/useRouteContext called outside of routes provider/);
   });
 });
