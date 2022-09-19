@@ -42,6 +42,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     items,
     status: selectedStatus,
     type: selectedType,
+    searchTerm,
     setStatus,
     setType,
     setSearchTerm,
@@ -203,11 +204,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
           options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
-            value: networkSpanStatusType,
-            label: networkSpanStatusType,
+            value: String(networkSpanStatusType),
+            label: String(networkSpanStatusType),
           }))}
           size="sm"
           onChange={setStatus}
+          value={selectedStatus}
         />
         <CompactSelect
           triggerProps={{prefix: t('Type')}}
@@ -219,11 +221,13 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           }))}
           size="sm"
           onChange={setType}
+          value={selectedType}
         />
         <SearchBar
           size="sm"
           onChange={setSearchTerm}
           placeholder={t('Search Network...')}
+          query={searchTerm}
         />
       </NetworkFilters>
       <StyledPanelTable

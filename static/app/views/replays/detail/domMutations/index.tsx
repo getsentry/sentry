@@ -40,7 +40,13 @@ function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   let listRef: ReactVirtualizedList | null = null;
 
-  const {items, type: filteredTypes, setType, setSearchTerm} = useDomFilters({actions});
+  const {
+    items,
+    type: filteredTypes,
+    searchTerm,
+    setType,
+    setSearchTerm,
+  } = useDomFilters({actions});
 
   const startTimestampMs = replay.getReplay().startedAt.getTime();
 
@@ -116,9 +122,15 @@ function DomMutations({replay}: Props) {
           }))}
           size="sm"
           onChange={setType}
+          value={filteredTypes}
         />
 
-        <SearchBar size="sm" onChange={setSearchTerm} placeholder={t('Search DOM')} />
+        <SearchBar
+          size="sm"
+          onChange={setSearchTerm}
+          placeholder={t('Search DOM')}
+          query={searchTerm}
+        />
       </MutationFilters>
       {isLoading ? (
         <Placeholder height="200px" />

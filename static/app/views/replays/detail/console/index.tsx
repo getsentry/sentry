@@ -30,7 +30,7 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   useCurrentItemScroller(containerRef);
 
-  const {items, logLevel, setLogLevel, setSearchTerm} = useConsoleFilters({
+  const {items, logLevel, searchTerm, setLogLevel, setSearchTerm} = useConsoleFilters({
     breadcrumbs,
   });
 
@@ -83,11 +83,13 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
             setLogLevel(selections.map(selection => selection.value))
           }
           size="sm"
+          value={logLevel}
         />
         <SearchBar
           onChange={setSearchTerm}
           placeholder={t('Search console logs...')}
           size="sm"
+          query={searchTerm}
         />
       </ConsoleFilters>
       <ConsoleMessageContainer ref={containerRef}>

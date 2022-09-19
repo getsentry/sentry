@@ -30,7 +30,7 @@ const FILTERS = {
     types.length === 0 || types.includes(item.op.replace('resource.', '')),
 
   searchTerm: (item: NetworkSpan, searchTerm: string) =>
-    JSON.stringify(item.data).toLowerCase().includes(searchTerm),
+    JSON.stringify(item.description).toLowerCase().includes(searchTerm),
 };
 
 function useNetworkFilters({networkSpans}: Options): Return {
