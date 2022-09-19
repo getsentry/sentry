@@ -178,7 +178,7 @@ export const _timeRangeAutoCompleteFilter = function (
 
   // If there is a number followed by units, show the matching number/unit option
   if (userSuppliedAmountIsValid && userSuppliedUnits) {
-    const matchingUnit = SUPPORTED_RELATIVE_UNITS_LIST.find(unit => {
+    const matchingUnit = supportedUnits.find(unit => {
       if (userSuppliedUnits.length === 1) {
         return unit === userSuppliedUnits;
       }
