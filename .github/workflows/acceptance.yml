@@ -31,7 +31,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend: ${{ steps.changes.outputs.backend }}
+      backend: ${{ steps.changes.outputs.backend_all }}
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
@@ -186,7 +186,7 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -249,7 +249,7 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   visual-diff:
     if: always()
