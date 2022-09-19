@@ -49,6 +49,11 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
+import {
+  N_PLUS_ONE_RESOURCE_LINKS,
+  N_PLUS_ONE_RESOURCES_DESCRIPTION,
+} from './interfaces/performance/constants';
+import {Resources} from './interfaces/performance/resources';
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
@@ -387,6 +392,12 @@ const EventEntries = ({
         route={route}
         router={router}
       />
+      {group?.issueCategory === IssueCategory.PERFORMANCE && (
+        <Resources
+          description={N_PLUS_ONE_RESOURCES_DESCRIPTION}
+          links={N_PLUS_ONE_RESOURCE_LINKS}
+        />
+      )}
       {hasContext && <EventContexts group={group} event={event} />}
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
       {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
