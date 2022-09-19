@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {components} from 'react-select';
 
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
 import SelectControl from 'sentry/components/forms/selectControl';
@@ -41,54 +40,24 @@ class RenderField extends Component<RenderProps> {
   render() {
     const {projects, avatarSize, onChange, onBlur, ...rest} = this.props;
 
-    const projectOptions = projects.map(({slug, id}) => ({value: id, label: slug}));
-
-    const customOptionProject = projectProps => {
-      const project = projects.find(proj => proj.id === projectProps.value);
-      // shouldn't happen but need to account for it
-      if (!project) {
-        return <components.Option {...projectProps} />;
-      }
-      return (
-        <components.Option {...projectProps}>
-          <IdBadge
-            project={project}
-            avatarSize={avatarSize}
-            displayName={project.slug}
-            avatarProps={{consistentWidth: true}}
-          />
-        </components.Option>
-      );
-    };
-
-    const customValueContainer = containerProps => {
-      const selectedValue = containerProps.getValue()[0];
-      const project = projects.find(proj => proj.id === selectedValue?.value);
-      // shouldn't happen but need to account for it
-      if (!project) {
-        return <components.ValueContainer {...containerProps} />;
-      }
-      return (
-        <components.ValueContainer {...containerProps}>
-          <IdBadge
-            project={project}
-            avatarSize={avatarSize}
-            displayName={project.slug}
-            avatarProps={{consistentWidth: true}}
-          />
-        </components.ValueContainer>
-      );
-    };
+    const projectOptions = projects.map(project => ({
+      value: project.id,
+      label: project.slug,
+      leadingItems: (
+        <IdBadge
+          project={project}
+          avatarSize={avatarSize}
+          avatarProps={{consistentWidth: true}}
+          hideName
+        />
+      ),
+    }));
 
     return (
       <SelectControl
         options={projectOptions}
-        components={{
-          Option: customOptionProject,
-          SingleValue: customValueContainer,
-        }}
-        {...rest}
         onChange={this.handleChange.bind(this, onBlur, onChange)}
+        {...rest}
       />
     );
   }
