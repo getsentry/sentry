@@ -7,7 +7,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -21,7 +21,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -118,12 +117,6 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
     });
   }, []);
 
-  const onGiveFeedbackClick = useCallback(() => {
-    openModal(props => {
-      return <FeedbackModal featureName="profiling" {...props} />;
-    });
-  }, []);
-
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
     if (transactions.type !== 'resolved') {
       return false;
@@ -144,10 +137,8 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
               <StyledLayoutHeaderContent>
                 <StyledHeading>{t('Profiling')}</StyledHeading>
                 <HeadingActions>
-                  <Button onClick={onSetupProfilingClick}>Set Up Profiling</Button>
-                  <Button onClick={onGiveFeedbackClick} icon={<IconMegaphone />}>
-                    Give Feedback
-                  </Button>
+                  <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
+                  <FeatureFeedback featureName="profiling" />
                 </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>
