@@ -71,13 +71,9 @@ const TabsWrap = styled('div')<{orientation: Orientation}>`
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
 
   ${p =>
-    p.orientation === 'horizontal'
-      ? `
-        flex-direction: column;
-      `
-      : `
-        height: 100%;
-        flex-direction: row;
-        align-items: stretch;
-      `};
+    p.orientation === 'vertical' &&
+    `
+      height: 100%;
+      align-items: stretch;
+    `};
 `;
