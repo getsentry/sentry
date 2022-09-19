@@ -205,9 +205,6 @@ def _symbolicate(profile: Profile, project: Project) -> None:
             sentry_sdk.capture_exception(e)
             break
 
-    # remove debug information we don't need anymore
-    profile.pop("debug_meta")
-
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
 
@@ -390,3 +387,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     finally:
         profile["received"] = original_timestamp
         profile["profile"] = ""
+
+        # remove debug information we don't need anymore
+        profile.pop("debug_meta")
