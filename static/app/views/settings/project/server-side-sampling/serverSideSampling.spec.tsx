@@ -187,8 +187,7 @@ describe('Server-Side Sampling', function () {
 
     userEvent.click(screen.getAllByLabelText('Actions')[0]);
     userEvent.click(screen.getAllByLabelText('Actions')[1]);
-    deleteButton = screen.getByRole('menuitemradio', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
