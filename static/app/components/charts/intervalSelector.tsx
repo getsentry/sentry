@@ -190,7 +190,7 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
           amount,
           unit,
           SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label,
-          results.count + 1
+          results.length + 1
         )
       );
     }
