@@ -389,4 +389,4 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         profile["profile"] = ""
 
         # remove debug information we don't need anymore
-        profile.pop("debug_meta")
+        profile.pop("debug_meta", None)
