@@ -6,26 +6,18 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 
 type Props = {
   eventCount: number;
-  organization: Organization;
   sampleEvent: Event;
 };
 
-function NewIssue({sampleEvent, eventCount, organization}: Props) {
+function NewIssue({sampleEvent, eventCount}: Props) {
   return (
     <Fragment>
       <EventDetails>
-        <EventOrGroupHeader
-          data={sampleEvent}
-          organization={organization}
-          grouping
-          hideIcons
-          hideLevel
-        />
+        <EventOrGroupHeader data={sampleEvent} grouping hideIcons hideLevel />
         <ExtraInfo>
           <TimeWrapper>
             <StyledIconClock size="11px" />

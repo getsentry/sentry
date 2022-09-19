@@ -292,7 +292,6 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                           title: title || latestEvent.title,
                         }}
                         eventCount={eventCount}
-                        organization={organization}
                       />
                     );
                   }

@@ -104,12 +104,7 @@ function IssueList(props: Props) {
     return (
       <Fragment key={matchedIssue.id}>
         <IssueDetailsWrapper>
-          <EventOrGroupHeader
-            includeLink
-            data={matchedIssue}
-            organization={organization}
-            size="normal"
-          />
+          <EventOrGroupHeader includeLink data={matchedIssue} size="normal" />
           <EventOrGroupExtraDetails
             data={{
               ...matchedIssue,

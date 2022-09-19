@@ -8,11 +8,9 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 
 type Props = {
   fingerprint: Fingerprint;
-  organization: Organization;
   totalFingerprint: number;
 };
 
@@ -94,7 +92,7 @@ class MergedItem extends Component<Props, State> {
   }
 
   render() {
-    const {fingerprint, organization, totalFingerprint} = this.props;
+    const {fingerprint, totalFingerprint} = this.props;
     const {latestEvent, id, label} = fingerprint;
     const {collapsed, busy, checked} = this.state;
     const checkboxDisabled = busy || totalFingerprint === 1;
@@ -137,12 +135,7 @@ class MergedItem extends Component<Props, State> {
           <MergedEventList className="event-list">
             {latestEvent && (
               <EventDetails className="event-details">
-                <EventOrGroupHeader
-                  data={latestEvent}
-                  organization={organization}
-                  hideIcons
-                  hideLevel
-                />
+                <EventOrGroupHeader data={latestEvent} hideIcons hideLevel />
               </EventDetails>
             )}
           </MergedEventList>

@@ -12,10 +12,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
+import {Group, GroupTombstone, Level} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
@@ -24,7 +24,6 @@ type Size = 'small' | 'normal';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group | GroupTombstone;
-  organization: Organization;
   className?: string;
   /* is issue breakdown? */
   grouping?: boolean;
@@ -44,7 +43,6 @@ type Props = WithRouterProps<{orgId: string}> & {
 function EventOrGroupHeader({
   data,
   index,
-  organization,
   params,
   query,
   onClick,
@@ -56,6 +54,8 @@ function EventOrGroupHeader({
   grouping = false,
   ...props
 }: Props) {
+  const organization = useOrganization();
+
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
 
   function getTitleChildren() {
@@ -243,7 +243,7 @@ const GroupLevel = styled('div')<{level: Level}>`
   background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
 `;
 
-export default withRouter(withOrganization(EventOrGroupHeader));
+export default withRouter(EventOrGroupHeader);
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;

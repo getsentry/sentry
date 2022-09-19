@@ -430,7 +430,6 @@ function BaseGroupRow({
       <GroupSummary canSelect={canSelect}>
         <EventOrGroupHeader
           index={index}
-          organization={organization}
           includeLink
           data={group}
           query={query}
