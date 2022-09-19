@@ -31,7 +31,6 @@ import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -253,13 +252,8 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   onEdit = () => {
-    const {dashboard} = this.props;
-
-    trackAnalyticsEvent({
-      eventKey: 'dashboards2.edit.start',
-      eventName: 'Dashboards2: Edit start',
-      organization_id: parseInt(this.props.organization.id, 10),
-    });
+    const {dashboard, organization} = this.props;
+    trackAdvancedAnalyticsEvent('dashboards2.edit.start', {organization});
 
     this.setState({
       dashboardState: DashboardState.EDIT,
@@ -314,11 +308,7 @@ class DashboardDetail extends Component<Props, State> {
       deleteDashboard(api, organization.slug, dashboard.id)
         .then(() => {
           addSuccessMessage(t('Dashboard deleted'));
-          trackAnalyticsEvent({
-            eventKey: 'dashboards2.delete',
-            eventName: 'Dashboards2: Delete',
-            organization_id: parseInt(this.props.organization.id, 10),
-          });
+          trackAdvancedAnalyticsEvent('dashboards2.delete', {organization});
           browserHistory.replace({
             pathname: `/organizations/${organization.slug}/dashboards/`,
             query: location.query,
@@ -360,22 +350,14 @@ class DashboardDetail extends Component<Props, State> {
       }
     }
     if (params.dashboardId) {
-      trackAnalyticsEvent({
-        eventKey: 'dashboards2.edit.cancel',
-        eventName: 'Dashboards2: Edit cancel',
-        organization_id: parseInt(this.props.organization.id, 10),
-      });
+      trackAdvancedAnalyticsEvent('dashboards2.edit.cancel', {organization});
       this.setState({
         dashboardState: DashboardState.VIEW,
         modifiedDashboard: null,
       });
       return;
     }
-    trackAnalyticsEvent({
-      eventKey: 'dashboards2.create.cancel',
-      eventName: 'Dashboards2: Create cancel',
-      organization_id: parseInt(this.props.organization.id, 10),
-    });
+    trackAdvancedAnalyticsEvent('dashboards2.create.cancel', {organization});
     browserHistory.replace({
       pathname: `/organizations/${organization.slug}/dashboards/`,
       query: location.query,
@@ -516,11 +498,7 @@ class DashboardDetail extends Component<Props, State> {
           ).then(
             (newDashboard: DashboardDetails) => {
               addSuccessMessage(t('Dashboard created'));
-              trackAnalyticsEvent({
-                eventKey: 'dashboards2.create.complete',
-                eventName: 'Dashboards2: Create complete',
-                organization_id: parseInt(organization.id, 10),
-              });
+              trackAdvancedAnalyticsEvent('dashboards2.create.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
               });
@@ -554,11 +532,7 @@ class DashboardDetail extends Component<Props, State> {
                 onDashboardUpdate(newDashboard);
               }
               addSuccessMessage(t('Dashboard updated'));
-              trackAnalyticsEvent({
-                eventKey: 'dashboards2.edit.complete',
-                eventName: 'Dashboards2: Edit complete',
-                organization_id: parseInt(organization.id, 10),
-              });
+              trackAdvancedAnalyticsEvent('dashboards2.edit.complete', {organization});
               this.setState({
                 dashboardState: DashboardState.VIEW,
                 modifiedDashboard: null,

@@ -62,6 +62,12 @@ const dashboardsEventMapWidgetBuilder: Record<
 };
 
 export type DashboardsEventParameters = {
+  'dashboards2.create.cancel': {};
+  'dashboards2.create.complete': {};
+  'dashboards2.delete': {};
+  'dashboards2.edit.cancel': {};
+  'dashboards2.edit.complete': {};
+  'dashboards2.edit.start': {};
   'dashboards_manage.change_sort': {
     sort: string;
   };
@@ -137,6 +143,12 @@ export type DashboardsEventParameters = {
 export type DashboardsEventKey = keyof DashboardsEventParameters;
 
 export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
+  'dashboards2.create.cancel': 'Dashboards2: Create cancel',
+  'dashboards2.create.complete': 'Dashboards2: Create complete',
+  'dashboards2.delete': 'Dashboards2: Delete',
+  'dashboards2.edit.cancel': 'Dashboards2: Edit cancel',
+  'dashboards2.edit.complete': 'Dashboards2: Edit complete',
+  'dashboards2.edit.start': 'Dashboards2: Edit start',
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':
