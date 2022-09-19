@@ -410,10 +410,11 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, tag_value, ali
     return Function(
         "countIf",
         [
+            Column("value"),
             Function(
                 "and",
                 [aggregate_filter, snql_function],
-            )
+            ),
         ],
         alias=alias,
     )
