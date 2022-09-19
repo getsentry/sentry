@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SourceField from 'sentry/views/settings/components/dataScrubbing/modals/form/sourceField';
 import {
@@ -7,178 +7,214 @@ import {
   valueSuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-function renderComponent({
-  value = '$string',
-  onChange = jest.fn(),
-  ...props
-}: Partial<SourceField['props']>) {
-  return mountWithTheme(
-    <SourceField
-      isRegExMatchesSelected={false}
-      suggestions={valueSuggestions}
-      onChange={onChange}
-      value={value}
-      {...props}
-    />
-  );
-}
+describe('Source', function () {
+  it('default render', function () {
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="$string"
+      />
+    );
 
-describe('Source', () => {
-  it('default render', () => {
-    const wrapper = renderComponent({});
-    expect(wrapper.find('input').prop('value')).toBe('$string');
+    expect(screen.getByRole('textbox', {name: 'Source'})).toHaveValue('$string');
   });
 
-  it('display defaultSuggestions if input is empty and focused', () => {
-    const wrapper = renderComponent({value: ''});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+  it('display defaultSuggestions if input is empty and focused', function () {
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value=""
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
     expect(suggestions).toHaveLength(18);
   });
 
-  it('display defaultSuggestions if input is empty, focused and has length 3', () => {
-    const wrapper = renderComponent({value: '   '});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+  it('display defaultSuggestions if input is empty, focused and has length 3', function () {
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="   "
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
     expect(suggestions).toHaveLength(18);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue has type string', () => {
-    const wrapper = renderComponent({value: 'foo '});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+  it('display binaryOperatorSuggestions if penultimateFieldValue has type string', function () {
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="foo "
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions.at(0).text()).toEqual(binarySuggestions[0].value);
+    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0].value);
     // ||
-    expect(suggestions.at(1).text()).toEqual(binarySuggestions[1].value);
+    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
   });
 
-  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', () => {
-    const wrapper = renderComponent({value: 'foo && '});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', function () {
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="foo && "
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
     expect(suggestions).toHaveLength(18);
     // !
-    expect(suggestions.at(17).text()).toEqual(unarySuggestions[0].value);
+    expect(suggestions[17]).toHaveTextContent(unarySuggestions[0].value);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue has type value', () => {
-    const wrapper = renderComponent({value: 'foo && $string '});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+  it('display binaryOperatorSuggestions if penultimateFieldValue has type value', function () {
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="foo && $string "
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions.at(0).text()).toEqual(binarySuggestions[0].value);
+    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0].value);
     // ||
-    expect(suggestions.at(1).text()).toEqual(binarySuggestions[1].value);
+    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue is of typeof Array', () => {
-    const wrapper = renderComponent({value: 'foo && !$string '});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="foo && !$string "
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions.at(0).text()).toEqual(binarySuggestions[0].value);
+    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0].value);
     // ||
-    expect(suggestions.at(1).text()).toEqual(binarySuggestions[1].value);
+    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
   });
 
   it('display defaultSuggestions if penultimateFieldValue has type unary', () => {
-    const wrapper = renderComponent({value: 'foo && !'});
-    wrapper.find('input').simulate('focus');
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={jest.fn()}
+        value="foo && !"
+      />
+    );
+
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+
+    const suggestions = screen.getAllByRole('listitem');
 
     // defaultSuggestions.length === 17
     expect(suggestions).toHaveLength(17);
 
     // everywhere
-    expect(suggestions.at(0).text()).toEqual(
+    expect(suggestions[0]).toHaveTextContent(
       `${valueSuggestions[0].value}(${valueSuggestions[0].description})`
     );
   });
 
-  it('click on a suggestion should be possible', () => {
+  it('click on a suggestion should be possible', function () {
     const handleOnChange = jest.fn();
-    const wrapper = renderComponent({value: 'foo && ', onChange: handleOnChange});
 
-    // makes showSuggestions === true
-    wrapper.find('input').simulate('focus');
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={handleOnChange}
+        value="foo && "
+      />
+    );
 
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
-    suggestions.at(1).simulate('click');
-    expect(wrapper.state().fieldValues[2].value).toBe(valueSuggestions[1].value);
+    const suggestions = screen.getAllByRole('listitem');
+
+    userEvent.click(suggestions[1]);
+
+    expect(handleOnChange).toHaveBeenCalledWith('foo && password');
   });
 
-  it('suggestions keyDown and keyUp should work', () => {
+  it('suggestions keyDown and keyUp should work', function () {
     const handleOnChange = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
-    const wrapper = renderComponent({value: 'foo ', onChange: handleOnChange});
-    const input = wrapper.find('input');
+
+    render(
+      <SourceField
+        isRegExMatchesSelected={false}
+        suggestions={valueSuggestions}
+        onChange={handleOnChange}
+        value="foo "
+      />
+    );
 
     // makes showSuggestions === true
-    input.simulate('focus');
+    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
-    const suggestions = wrapper
-      .find('[data-test-id="source-suggestions"]')
-      .hostNodes()
-      .children();
-
+    const suggestions = screen.getAllByRole('listitem');
     expect(suggestions).toHaveLength(2);
 
-    expect(suggestions.at(0).prop('active')).toBe(true);
+    userEvent.keyboard('{arrowdown}{enter}');
+    expect(handleOnChange).toHaveBeenNthCalledWith(1, 'foo ||');
 
-    input.simulate('keyDown', {keyCode: 40});
-    expect(wrapper.state().activeSuggestion).toBe(1);
-    input.simulate('keyDown', {keyCode: 13});
-    expect(wrapper.state().activeSuggestion).toBe(0);
-    expect(wrapper.state().fieldValues[1].value).toBe('||');
+    userEvent.type(screen.getByRole('textbox', {name: 'Source'}), ' ');
 
-    expect(handleOnChange).toHaveBeenCalledWith('foo ||');
+    expect(handleOnChange).toHaveBeenNthCalledWith(2, 'foo  ');
 
-    input.simulate('change', {target: {value: 'foo || '}});
-    input
-      .simulate('keyDown', {keyCode: 40})
-      .simulate('keyDown', {keyCode: 40})
-      .simulate('keyDown', {keyCode: 38});
-    expect(wrapper.state().activeSuggestion).toBe(1);
+    userEvent.keyboard('{arrowdown}{arrowup}{enter}');
+
+    expect(handleOnChange).toHaveBeenNthCalledWith(3, 'foo &&');
   });
 });
