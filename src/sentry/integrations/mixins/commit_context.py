@@ -12,13 +12,13 @@ class CommitContextMixin:
     # dynamically given a search query
     repo_search = False
 
-    def get_blame_for_file(self, repo: Repository, filepath: str, branch: str) -> str | None:
+    def get_blame_for_file(self, repo: Repository, filepath: str, ref: str) -> str | None:
         """
         Calls the client's `get_blame_for_file` method to see if the file has a blame list.
 
         repo: Repository (object)
-        filepath: file from the stacktrace (string)
-        branch: commitsha or default_branch (string)
+        filepath: filepath of the source code. (string)
+        ref: commitsha or default_branch (string)
         """
         filepath = filepath.lstrip("/")
         try:
@@ -26,15 +26,13 @@ class CommitContextMixin:
         except Identity.DoesNotExist:
             return None
         try:
-            response = client.get_blame_for_file(repo, filepath, branch)
+            response = client.get_blame_for_file(repo, filepath, ref)
             if response is None:
                 return None
         except IdentityNotValid:
             return None
         except ApiError as e:
-            if e.code != 404:
-                raise
-            return None
+            raise e
 
         return response
 

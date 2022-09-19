@@ -4,10 +4,10 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
 from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -82,28 +82,9 @@ def process_commit_context(
                 )
                 return
 
-            commit_context = None
-            selected_code_mapping = None
-            for code_mapping in code_mappings:
-                if not code_mapping.organization_integration:
-                    continue
-
-                stacktrace_path = (
-                    frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
-                )
-
-                src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
-                integration = code_mapping.organization_integration.integration
-                install = integration.get_installation(
-                    code_mapping.organization_integration.organization_id
-                )
-                commit_context = install.get_commit_context(
-                    code_mapping.repository, src_path, code_mapping.default_branch, frame
-                )
-
-                if commit_context:
-                    selected_code_mapping = code_mapping
-                    break
+            commit_context, selected_code_mapping = find_commit_context_for_event(
+                code_mappings=code_mappings, frame=frame
+            )
 
             if not commit_context and not selected_code_mapping:
                 metrics.incr(

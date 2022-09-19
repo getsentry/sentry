@@ -188,13 +188,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         except IndexError:
             return None
 
-        return {
-            "commitId": commit.get("commit", {}).get("oid"),
-            "committedDate": commit.get("commit", {}).get("committedDate"),
-            "commitMessage": commit.get("commit", {}).get("message"),
-            "commitAuthorName": commit.get("commit", {}).get("author", {}).get("name"),
-            "commitAuthorEmail": commit.get("commit", {}).get("author", {}).get("email"),
-        }
+        commitInfo = commit.get("commit")
+        if not commitInfo:
+            return None
+        else:
+            return {
+                "commitId": commitInfo.get("oid"),
+                "committedDate": commitInfo.get("committedDate"),
+                "commitMessage": commitInfo.get("message"),
+                "commitAuthorName": commitInfo.get("author", {}).get("name"),
+                "commitAuthorEmail": commitInfo.get("author", {}).get("email"),
+            }
 
 
 class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
