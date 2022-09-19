@@ -109,7 +109,7 @@ export function MetricsDataSwitcherAlert(
             data-test-id="landing-mep-alert-multi-project-all-incompatible"
           >
             {tct(
-              `A few projects are incompatible with server side sampling. To enable this feature [updateSDK].`,
+              `A few projects are incompatible with dynamic sampling. To enable this feature [updateSDK].`,
               {
                 updateSDK,
               }
@@ -124,7 +124,7 @@ export function MetricsDataSwitcherAlert(
           data-test-id="landing-mep-alert-multi-project-incompatible"
         >
           {tct(
-            `A few projects are incompatible with server side sampling. You can either [updateSDK] or [onlyViewCompatible]`,
+            `A few projects are incompatible with dynamic sampling. You can either [updateSDK] or [onlyViewCompatible]`,
             {
               updateSDK,
               onlyViewCompatible: (
@@ -145,7 +145,7 @@ export function MetricsDataSwitcherAlert(
         data-test-id="landing-mep-alert-single-project-incompatible"
       >
         {tct(
-          `Your project has an outdated SDK which is incompatible with server side sampling. To enable this feature [updateSDK].`,
+          `Your project has an outdated SDK which is incompatible with dynamic sampling. To enable this feature [updateSDK].`,
           {
             updateSDK,
           }
@@ -160,7 +160,7 @@ export function MetricsDataSwitcherAlert(
       return (
         <Alert type="warning" showIcon data-test-id="landing-mep-alert-unnamed-discover">
           {tct(
-            `You have some unparameterized transactions which are incompatible with server side sampling. You can [discover]`,
+            `You have some unparameterized transactions which are incompatible with dynamic sampling. You can [discover]`,
             {
               discover,
             }
@@ -176,7 +176,7 @@ export function MetricsDataSwitcherAlert(
         data-test-id="landing-mep-alert-unnamed-discover-or-set"
       >
         {tct(
-          `You have some unparameterized transactions which are incompatible with server side sampling. You can either [setNames] or [discover]`,
+          `You have some unparameterized transactions which are incompatible with dynamic sampling. You can either [setNames] or [discover]`,
           {
             setNames: (
               <ExternalLink href={docsLink}>{t('set names manually')}</ExternalLink>
