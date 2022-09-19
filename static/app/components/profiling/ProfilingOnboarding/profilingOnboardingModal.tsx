@@ -279,7 +279,7 @@ function IOSInstallSteps() {
         <CodeContainer>{`SentrySDK.start { options in
     options.dsn = "..."
     options.tracesSampleRate = 1.0 // Make sure transactions are enabled
-    options.enableProfiling = true
+    options.profilesSampleRate = 1.0
 }`}</CodeContainer>
       </li>
     </Fragment>
