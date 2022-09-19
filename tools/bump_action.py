@@ -8,6 +8,8 @@ import subprocess
 import sys
 from typing import Sequence
 
+# Example edit .py
+
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()

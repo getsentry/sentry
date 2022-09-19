@@ -1,6 +1,8 @@
 import {Hub} from '@sentry/hub';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
+// Example edit .ts
+
 export function instrumentUserEvent(getCurrentHub: () => Hub): void {
   const pkg = loadModule('@testing-library/user-event') as any;
   ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action, getCurrentHub));

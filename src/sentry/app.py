@@ -1,6 +1,7 @@
 from threading import local
 
 
+# Example edit .py
 class State(local):
     request = None
     data = {}

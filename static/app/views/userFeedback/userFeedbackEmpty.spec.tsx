@@ -4,6 +4,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
+// Example edit to .spec.tsx file
+
 describe('UserFeedbackEmpty', function () {
   const project = TestStubs.Project({id: '1'});
   const projectWithReports = TestStubs.Project({id: '2', hasUserReports: true});

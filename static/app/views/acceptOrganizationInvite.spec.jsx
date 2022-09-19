@@ -5,6 +5,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {logout} from 'sentry/actionCreators/account';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
+// Example exit to .spec.jsx
+
 jest.mock('sentry/actionCreators/account');
 
 const addMock = body =>

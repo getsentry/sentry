@@ -1,5 +1,7 @@
 import {t} from 'sentry/locale';
 
+// Example edit of ts file
+
 export enum FieldKind {
   TAG = 'tag',
   MEASUREMENT = 'measurement',

@@ -3,6 +3,8 @@ import {ReactWrapper} from 'enzyme'; // eslint-disable-line no-restricted-import
 
 import {triggerPress} from 'sentry-test/utils';
 
+// Example edit .tsx
+
 type SelectDropdownItemProps = {
   /**
    * They key(s) of menu item(s) to select. If the item is nested inside a
