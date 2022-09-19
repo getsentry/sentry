@@ -85,20 +85,17 @@ export function TabList<T>({className, ...props}: TabListProps<T>) {
     disabledKeys: _disabledKeys,
     ...otherRootProps
   } = rootProps;
-  const ariaProps = useMemo(
-    () => ({
-      selectedKey: value,
-      defaultSelectedKey: defaultValue,
-      onSelectionChange: onChange,
-      isDisabled: disabled,
-      disabledKeys,
-      ...otherRootProps,
-      ...props,
-    }),
-    [value, defaultValue, onChange, disabled, disabledKeys, otherRootProps, props]
-  );
 
   // Load up list state
+  const ariaProps = {
+    selectedKey: value,
+    defaultSelectedKey: defaultValue,
+    onSelectionChange: onChange,
+    isDisabled: disabled,
+    disabledKeys,
+    ...otherRootProps,
+    ...props,
+  };
   const state = useTabListState(ariaProps);
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
