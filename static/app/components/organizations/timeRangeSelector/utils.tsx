@@ -122,18 +122,16 @@ export function getRelativeSummary(
   }
 }
 
-function makeItem(
+export function makeItem(
   amount: number,
   unit: keyof typeof SUPPORTED_RELATIVE_PERIOD_UNITS,
-  supportedPeriods: RelativeUnitsMapping,
+  label: (num: number) => string,
   index: number
 ) {
   return {
     value: `${amount}${unit}`,
     ['data-test-id']: `${amount}${unit}`,
-    label: (
-      <TimeRangeItemLabel>{supportedPeriods[unit].label(amount)}</TimeRangeItemLabel>
-    ),
+    label: <TimeRangeItemLabel>{label(amount)}</TimeRangeItemLabel>,
     searchKey: `${amount}${unit}`,
     index,
   };
@@ -172,7 +170,7 @@ export const _timeRangeAutoCompleteFilter = function (
   // If there is a number w/o units, show all unit options
   if (userSuppliedAmountIsValid && !userSuppliedUnits) {
     return supportedUnits.map((unit, index) =>
-      makeItem(userSuppliedAmount, unit, supportedPeriods, index)
+      makeItem(userSuppliedAmount, unit, supportedPeriods[unit].label, index)
     );
   }
 
@@ -187,7 +185,14 @@ export const _timeRangeAutoCompleteFilter = function (
     });
 
     if (matchingUnit) {
-      return [makeItem(userSuppliedAmount, matchingUnit, supportedPeriods, 0)];
+      return [
+        makeItem(
+          userSuppliedAmount,
+          matchingUnit,
+          supportedPeriods[matchingUnit].label,
+          0
+        ),
+      ];
     }
   }
 

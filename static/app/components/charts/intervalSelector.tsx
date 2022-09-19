@@ -2,7 +2,10 @@ import {getInterval} from 'sentry/components/charts/utils';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {_timeRangeAutoCompleteFilter} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {
+  _timeRangeAutoCompleteFilter,
+  makeItem,
+} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
@@ -101,6 +104,16 @@ const INTERVAL_OPTIONS: IntervalOption[] = [
   },
 ];
 
+function formatHoursToInterval(hours: number): [number, IntervalUnits] {
+  if (hours >= 24) {
+    return [hours / 24, 'd'];
+  }
+  if (hours >= 1) {
+    return [hours, 'h'];
+  }
+  return [hours * 60, 'm'];
+}
+
 function getIntervalOption(rangeHours: number): IntervalOption {
   for (const index in INTERVAL_OPTIONS) {
     const currentOption = INTERVAL_OPTIONS[index];
@@ -154,15 +167,35 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
   }
 
   const intervalAutoComplete: typeof autoCompleteFilter = function (items, filterValue) {
-    return _timeRangeAutoCompleteFilter(
+    let newItem: number | undefined = undefined;
+    const results = _timeRangeAutoCompleteFilter(
       items,
       filterValue,
       SUPPORTED_RELATIVE_PERIOD_UNITS,
       SUPPORTED_RELATIVE_UNITS_LIST
     ).filter(item => {
       const itemHours = parsePeriodToHours(item.value);
-      return itemHours >= intervalOption.min && itemHours <= rangeHours / 2;
+      if (itemHours < intervalOption.min) {
+        newItem = intervalOption.min;
+      } else if (itemHours > rangeHours / 2) {
+        newItem = rangeHours / 2;
+      } else {
+        return true;
+      }
+      return false;
     });
+    if (newItem) {
+      const [amount, unit] = formatHoursToInterval(newItem);
+      results.push(
+        makeItem(
+          amount,
+          unit,
+          SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label,
+          results.count + 1
+        )
+      );
+    }
+    return results;
   };
 
   return (
