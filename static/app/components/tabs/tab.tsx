@@ -10,6 +10,11 @@ import space from 'sentry/styles/space';
 interface TabProps<T> {
   item: Node<T>;
   orientation: Orientation;
+  /**
+   * Whether this tab is overflowing the TabList container. If so, the tab
+   * needs to be visually hidden. Users can instead select it via an overflow
+   * menu.
+   */
   overflowing: boolean;
   state: TabListState<T>;
 }
