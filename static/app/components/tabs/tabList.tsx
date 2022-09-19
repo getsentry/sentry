@@ -59,9 +59,9 @@ function useOverflowTabs({
     Object.values(tabs ?? {}).forEach(element => element && observer.observe(element));
 
     return () => observer.disconnect();
-    // Suppress an exhaustive-deps warning about adding `tabListRef` and
-    // `tabRefs` to the deps array, without knowing that both are ref values
-    // and so don't need to be added.
+    // Suppress an exhaustive-deps warning about adding `tabList` and `tabs` to the
+    // deps array, without knowing that both are ref values and as such don't need to
+    // be added.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
