@@ -1,4 +1,5 @@
 import {MouseEvent} from 'react';
+import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import NavTabs from 'sentry/components/navTabs';
@@ -23,7 +24,7 @@ function FocusTabs({className}: Props) {
   const activeTab = getActiveTab();
 
   return (
-    <NavTabs underlined className={className}>
+    <ScrollableNavTabs underlined className={className}>
       {Object.entries(ReplayTabs).map(([tab, label]) => (
         <li key={tab} className={activeTab === tab ? 'active' : ''}>
           <a
@@ -37,8 +38,16 @@ function FocusTabs({className}: Props) {
           </a>
         </li>
       ))}
-    </NavTabs>
+    </ScrollableNavTabs>
   );
 }
+
+const ScrollableNavTabs = styled(NavTabs)`
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-y: hidden;
+  overflow-x: auto;
+  white-space: nowrap;
+`;
 
 export default FocusTabs;
