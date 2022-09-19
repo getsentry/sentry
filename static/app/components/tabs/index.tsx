@@ -15,7 +15,21 @@ export {_Item as Item, TabList, TabPanels};
 
 export interface TabsProps<T> extends TabListProps<T>, AriaTabListProps<T> {
   className?: string;
+  /**
+   * [Uncontrolled] Default selected tab. Must match the `key` prop on the
+   * selected tab item.
+   */
+  defaultValue?: TabListProps<T>['defaultSelectedKey'];
   disabled?: boolean;
+  /**
+   * Callback when the selected tab changes.
+   */
+  onChange?: TabListProps<T>['onSelectionChange'];
+  /**
+   * [Controlled] Selected tab . Must match the `key` prop on the selected tab
+   * item.
+   */
+  value?: TabListProps<T>['selectedKey'];
 }
 
 interface TabContext<T> {

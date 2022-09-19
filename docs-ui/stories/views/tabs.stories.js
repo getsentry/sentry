@@ -7,39 +7,74 @@ export default {
   component: Tabs,
 };
 
+const TABS = [
+  {key: 'details', label: 'Details', content: 'So by colonel hearted ferrars.'},
+  {
+    key: 'activity',
+    label: 'Activity',
+    content: 'Draw from upon here gone add one.',
+  },
+  {
+    key: 'user-feedback',
+    label: 'User Feedback',
+    content: 'He in sportsman household otherwise it perceived instantly.',
+  },
+  {
+    key: 'attachments',
+    label: 'Attachments',
+    content: 'Do play they miss give so up.',
+  },
+  {
+    key: 'tags',
+    label: 'Tags',
+    content: 'Words to up style of since world.',
+  },
+  {
+    key: 'disabled',
+    label: 'Disabled',
+    content: 'Unreachable content.',
+    disabled: true,
+  },
+];
+
 export const Default = args => {
   return (
     <Tabs {...args}>
       <TabList>
-        <Item key="details">Details</Item>
-        <Item key="activity">Activity</Item>
-        <Item key="user-feedback">User Feedback</Item>
-        <Item key="attachments">Attachments</Item>
-        <Item key="tags">Tags</Item>
-        <Item key="disabled" disabled>
-          Disabled Tab
-        </Item>
+        {TABS.map(tab => (
+          <Item key={tab.key} disabled={tab.disabled}>
+            {tab.label}
+          </Item>
+        ))}
       </TabList>
       <StyledTabPanels>
-        <Item key="details">So by colonel hearted ferrars.</Item>
-        <Item key="activity">Draw from upon here gone add one.</Item>
-        <Item key="user-feedback">
-          He in sportsman household otherwise it perceived instantly.
-        </Item>
-        <Item key="attachments">Do play they miss give so up.</Item>
-        <Item key="tags">Words to up style of since world.</Item>
-        <Item key="disabled">Unreachable content</Item>
+        {TABS.map(tab => (
+          <Item key={tab.key}>{tab.content}</Item>
+        ))}
       </StyledTabPanels>
     </Tabs>
   );
 };
 
 Default.storyName = 'Default';
-Default.args = {orientation: 'horizontal', disabled: false};
+Default.args = {
+  orientation: 'horizontal',
+  disabled: false,
+  value: undefined,
+  defaultValue: undefined,
+};
 Default.argTypes = {
   orientation: {
     options: ['horizontal', 'vertical'],
     control: {type: 'radio'},
+  },
+  value: {
+    options: TABS.map(tab => tab.key),
+    control: {type: 'select'},
+  },
+  defaultValue: {
+    options: TABS.map(tab => tab.key),
+    control: {type: 'select'},
   },
   className: {control: {type: 'disabed'}},
 };
