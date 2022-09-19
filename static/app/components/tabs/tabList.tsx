@@ -104,9 +104,7 @@ export function TabList<T>({className, ...props}: TabListProps<T>) {
   // Dynamically update `disabledKeys` when the tabs list is loaded/updated
   useEffect(() => {
     const newDisabledKeys = [...state.collection]
-      .filter(item => {
-        return item.props.disabled;
-      })
+      .filter(item => item.props.disabled)
       .map(item => item.key);
 
     setDisabledKeys(newDisabledKeys);
