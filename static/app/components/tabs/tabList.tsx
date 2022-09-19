@@ -13,7 +13,7 @@ import space from 'sentry/styles/space';
 import {TabsContext} from './index';
 import {Tab} from './tab';
 
-interface TabListProps<T> extends TabListStateProps<T>, AriaTabListProps<T> {
+interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
   className?: string;
 }
 
@@ -70,7 +70,7 @@ function useOverflowTabs({
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabList<T>({className, ...props}: TabListProps<T>) {
+export function TabList({className, ...props}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const [disabledKeys, setDisabledKeys] = useState<React.Key[]>([]);
   const {rootProps, setTabListState} = useContext(TabsContext);

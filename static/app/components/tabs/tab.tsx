@@ -7,8 +7,8 @@ import {Node, Orientation} from '@react-types/shared';
 
 import space from 'sentry/styles/space';
 
-interface TabProps<T> {
-  item: Node<T>;
+interface TabProps {
+  item: Node<any>;
   orientation: Orientation;
   /**
    * Whether this tab is overflowing the TabList container. If so, the tab
@@ -16,7 +16,7 @@ interface TabProps<T> {
    * menu.
    */
   overflowing: boolean;
-  state: TabListState<T>;
+  state: TabListState<any>;
 }
 
 /**
@@ -24,8 +24,8 @@ interface TabProps<T> {
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseTab<T>(
-  {item, state, orientation, overflowing}: TabProps<T>,
+function BaseTab(
+  {item, state, orientation, overflowing}: TabProps,
   forwardedRef: React.ForwardedRef<HTMLLIElement>
 ) {
   const ref = useObjectRef(forwardedRef);

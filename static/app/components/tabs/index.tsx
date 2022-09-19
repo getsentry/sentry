@@ -10,35 +10,35 @@ import {ItemProps, Orientation} from '@react-types/shared';
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
 
-const _Item = Item as <T>(props: ItemProps<T> & {disabled?: boolean}) => JSX.Element;
+const _Item = Item as (props: ItemProps<any> & {disabled?: boolean}) => JSX.Element;
 export {_Item as Item, TabList, TabPanels};
 
-export interface TabsProps<T> extends TabListProps<T>, AriaTabListProps<T> {
+export interface TabsProps extends TabListProps<any>, AriaTabListProps<any> {
   className?: string;
   /**
    * [Uncontrolled] Default selected tab. Must match the `key` prop on the
    * selected tab item.
    */
-  defaultValue?: TabListProps<T>['defaultSelectedKey'];
+  defaultValue?: TabListProps<any>['defaultSelectedKey'];
   disabled?: boolean;
   /**
    * Callback when the selected tab changes.
    */
-  onChange?: TabListProps<T>['onSelectionChange'];
+  onChange?: TabListProps<any>['onSelectionChange'];
   /**
    * [Controlled] Selected tab . Must match the `key` prop on the selected tab
    * item.
    */
-  value?: TabListProps<T>['selectedKey'];
+  value?: TabListProps<any>['selectedKey'];
 }
 
-interface TabContext<T> {
-  rootProps: TabsProps<T> & {orientation: Orientation};
-  setTabListState: (state: TabListState<T>) => void;
-  tabListState?: TabListState<T>;
+interface TabContext {
+  rootProps: TabsProps & {orientation: Orientation};
+  setTabListState: (state: TabListState<any>) => void;
+  tabListState?: TabListState<any>;
 }
 
-export const TabsContext = createContext<TabContext<any>>({
+export const TabsContext = createContext<TabContext>({
   rootProps: {orientation: 'horizontal', children: []},
   setTabListState: () => {},
 });
@@ -48,12 +48,8 @@ export const TabsContext = createContext<TabContext<any>>({
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function Tabs<T extends object>({
-  orientation = 'horizontal',
-  className,
-  ...props
-}: TabsProps<T>) {
-  const [tabListState, setTabListState] = useState<TabListState<T>>();
+export function Tabs({orientation = 'horizontal', className, ...props}: TabsProps) {
+  const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
     <TabsContext.Provider
