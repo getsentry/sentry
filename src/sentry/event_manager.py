@@ -605,29 +605,38 @@ def _auto_update_grouping(project):
     if old_grouping == new_grouping or old_grouping == BETA_GROUPING_CONFIG:
         return
 
-    from sentry import audit_log
-    from sentry.utils.audit import create_system_audit_entry
-
-    expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
-    project.update_option("sentry:secondary_grouping_config", old_grouping)
-    project.update_option("sentry:secondary_grouping_expiry", expiry)
-    project.update_option("sentry:grouping_config", new_grouping)
-
-    # Write an audit log entry if we haven't yet.  Because the way the auto grouping upgrade
-    # happening is racy, we want to try to write the audit log entry only once.  For this a
-    # cache key is used.  That's not perfect, but should reduce the risk significantly.
+    # Because the way the auto grouping upgrading happening is racy, we want to
+    # try to write the audit log entry only and project option change just once.
+    # For this a cache key is used.  That's not perfect, but should reduce the
+    # risk significantly.
     cache_key = f"grouping-config-update:{project.id}:{old_grouping}"
     lock = f"grouping-update-lock:{project.id}"
-    if cache.get(cache_key) is None:
-        with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
-            if cache.get(cache_key) is None:
-                cache.set(cache_key, "1", 60 * 5)
-                create_system_audit_entry(
-                    organization=project.organization,
-                    target_object=project.id,
-                    event=audit_log.get_event_id("PROJECT_EDIT"),
-                    data={"sentry:grouping_config": new_grouping, **project.get_audit_log_data()},
-                )
+    if cache.get(cache_key) is not None:
+        return
+
+    with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
+        if cache.get(cache_key) is None:
+            cache.set(cache_key, "1", 60 * 5)
+        else:
+            return
+
+        from sentry import audit_log
+        from sentry.utils.audit import create_system_audit_entry
+
+        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        changes = {
+            "sentry:secondary_grouping_config": old_grouping,
+            "sentry:secondary_grouping_expiry": expiry,
+            "sentry:grouping_config": new_grouping,
+        }
+        for (key, value) in changes.items():
+            project.update_option(key, value)
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            data={**changes, **project.get_audit_log_data()},
+        )
 
 
 @metrics.wraps("event_manager.background_grouping")
