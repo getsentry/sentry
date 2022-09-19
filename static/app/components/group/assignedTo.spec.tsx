@@ -1,18 +1,18 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 
-describe('AssigneeSelector', () => {
+describe('Group > AssignedTo', () => {
   let USER_1, USER_2;
   let TEAM_1;
   let PROJECT_1;
   let GROUP_1;
   let organization;
+  const project = TestStubs.Project();
 
   beforeEach(() => {
     organization = TestStubs.Organization();
@@ -44,7 +44,7 @@ describe('AssigneeSelector', () => {
         slug: PROJECT_1.slug,
       },
     });
-    TeamStore.setTeams([TEAM_1]);
+    TeamStore.loadInitialData([TEAM_1]);
     ProjectsStore.loadInitialData([PROJECT_1]);
     GroupStore.loadInitialData([GROUP_1]);
 
@@ -57,7 +57,7 @@ describe('AssigneeSelector', () => {
   });
 
   afterEach(() => {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
     ProjectsStore.teardown();
     GroupStore.reset();
     TeamStore.reset();
@@ -73,12 +73,12 @@ describe('AssigneeSelector', () => {
   };
 
   it('renders unassigned', () => {
-    render(<AssignedTo group={GROUP_1} />, {organization});
+    render(<AssignedTo projectId={project.id} group={GROUP_1} />, {organization});
     expect(screen.getByText('No-one')).toBeInTheDocument();
   });
 
   it('can assign team', async () => {
-    const assignMock = Client.addMockResponse({
+    const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_1.id}/`,
       body: {
@@ -86,7 +86,7 @@ describe('AssigneeSelector', () => {
         assignedTo: {...TEAM_1, type: 'team'},
       },
     });
-    render(<AssignedTo group={GROUP_1} />, {organization});
+    render(<AssignedTo projectId={project.id} group={GROUP_1} />, {organization});
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -109,7 +109,7 @@ describe('AssigneeSelector', () => {
   });
 
   it('successfully clears assignment', async () => {
-    const assignMock = Client.addMockResponse({
+    const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_1.id}/`,
       body: {
@@ -118,7 +118,7 @@ describe('AssigneeSelector', () => {
       },
     });
 
-    render(<AssignedTo group={GROUP_1} />, {organization});
+    render(<AssignedTo projectId={project.id} group={GROUP_1} />, {organization});
     act(() => MemberListStore.loadInitialData([USER_1, USER_2]));
     await openMenu();
 

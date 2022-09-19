@@ -22,16 +22,6 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
   const owner = group.owners?.[0];
   let currentOwner: Actor | undefined;
 
-  const teams = project?.teams ?? [];
-  const assignableTeams = teams
-    .sort((a, b) => a.slug.localeCompare(b.slug))
-    .map(team => ({
-      id: buildTeamId(team.id),
-      display: `#${team.slug}`,
-      email: team.id,
-      team,
-    }));
-
   // converts a backend suggested owner to a suggested assignee
   if (owner) {
     const [ownerType, id] = owner.owner.split(':');
@@ -45,14 +35,13 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
         };
       }
     } else if (ownerType === 'team') {
-      const matchingTeam = assignableTeams.find(
-        assignableTeam => assignableTeam.id === owner.owner
-      );
-      if (matchingTeam) {
+      const teams = project?.teams ?? [];
+      const team = teams.find(({id: teamId}) => buildTeamId(teamId) === owner.owner);
+      if (team) {
         currentOwner = {
           type: 'team',
           id,
-          name: matchingTeam.team.name,
+          name: team.slug,
         };
       }
     }
@@ -83,7 +72,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
         <StyledLink
           to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
         >
-          <IconSettings />
+          <IconSettings aria-label={t('Issue Owners Settings')} />
         </StyledLink>
       </StyledSidebarContent>
     </SidebarSection.Wrap>
