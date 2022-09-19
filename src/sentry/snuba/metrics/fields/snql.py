@@ -408,7 +408,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, tag_value, ali
         raise Exception
 
     return Function(
-        "countIf",
+        "sumIf",
         [
             Column("value"),
             Function(
