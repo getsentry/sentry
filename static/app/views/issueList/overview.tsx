@@ -1237,11 +1237,8 @@ class IssueListOverview extends Component<Props, State> {
                     memberList={this.state.memberList}
                     groupStatsPeriod={this.getGroupStatsPeriod()}
                     groupIds={groupIds}
-                    displayReprocessingLayout={this.displayReprocessingLayout(
-                      this.displayReprocessingTab(),
-                      this.getQuery()
-                    )}
-                    query={this.getQuery()}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
                     sort={this.getSort()}
                     selectedProjectIds={selection.projects}
                     loading={issuesLoading}
