@@ -167,11 +167,12 @@ def _get_string_indexer_log_records(caplog):
                     "s:sessions/error@none",
                     "session.status",
                 },
-                70: {'c:sessions/session@none',
-                     'environment',
-                     'init',
-                     'production',
-                     'session.status'
+                70: {
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
                 },
             },
             id="rollout option is None",
@@ -192,12 +193,12 @@ def _get_string_indexer_log_records(caplog):
                     "session.status",
                 },
                 70: {
-                    'c:sessions/session@none',
-                    'environment',
-                    'init',
-                    'production',
-                    'session.status'
-                }
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
             },
             id="no rollout",
         ),
@@ -213,12 +214,12 @@ def _get_string_indexer_log_records(caplog):
                     "session.status",
                 },
                 70: {
-                    'c:sessions/session@none',
-                    'environment',
-                    'init',
-                    'production',
-                    'session.status'
-                }
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
             },
             id="partial rollout",
         ),
@@ -233,18 +234,13 @@ def _get_string_indexer_log_records(caplog):
                     "s:sessions/error@none",
                     "session.status",
                 },
-                70: {
-                    'c:sessions/session@none',
-                    'environment',
-                    'session.status'
-                }
+                70: {"c:sessions/session@none", "environment", "session.status"},
             },
             id="full rollout",
         ),
     ],
 )
-def test_extract_strings_with_rollout(rollout_option, option_value, expected,
-                          set_sentry_option):
+def test_extract_strings_with_rollout(rollout_option, option_value, expected, set_sentry_option):
     """
     Test that the indexer batch extracts the correct strings from the messages
     based on the rollout option name and the option value.
@@ -416,7 +412,9 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_opti
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, "sentry-metrics.performance.index-tag-values")
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE, outer_message, "sentry-metrics.performance.index-tag-values"
+    )
     assert batch.extract_strings() == (
         {
             1: {
