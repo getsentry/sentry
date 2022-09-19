@@ -19,8 +19,9 @@ export const N_PLUS_ONE_RESOURCE_LINKS: ResourceLink[] = [
     text: t('Django select_related and prefetch_related'),
     link: 'https://betterprogramming.pub/django-select-related-and-prefetch-related-f23043fd635d',
   },
-  {
-    text: t('[Leave empty for future Sentry post]'),
-    link: 'https://sentry.io/',
-  },
+  // TODO: Update this when the blogpost has been written
+  // {
+  //   text: t('[Leave empty for future Sentry post]'),
+  //   link: 'https://sentry.io/',
+  // },
 ];
