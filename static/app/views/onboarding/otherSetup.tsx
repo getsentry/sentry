@@ -66,6 +66,10 @@ class OtherSetup extends AsyncComponent<Props, State> {
         </p>
 
         <p>{tct('Here is the DSN: [DSN]', {DSN: <b> {keyList?.[0].dsn.public}</b>})}</p>
+        <p>{tct('For more about DSNs, please check out [DSNDocs]', 
+                {DSNDocs: 
+                   <ExternalLink href="https://docs.sentry.io/product/sentry-basics/dsn-explainer/" />
+                })}</p>
       </Fragment>
     );
 
