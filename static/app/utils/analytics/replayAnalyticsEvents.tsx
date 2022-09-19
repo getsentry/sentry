@@ -35,9 +35,9 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-resized-panel': 'Resized Replay Details Panel',
-  'replay.details-viewed': 'Viewed Replay Details',
-  'replay.play-pause': 'Played/Paused Replay',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
+  'replay.details-viewed': 'Viewed Replay Details',
+  'replay.play-pause': 'Played/Paused Replay',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
 };

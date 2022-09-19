@@ -1,6 +1,11 @@
 import {MutableRefObject, useCallback, useEffect, useRef, useState} from 'react';
 import screenfull from 'screenfull';
 
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
+
 // See: https://developer.mozilla.org/en-US/docs/web/api/element/requestfullscreen#options_2
 interface FullscreenOptions {
   navigationUI: 'hide' | 'show' | 'auto';
@@ -46,6 +51,8 @@ interface FullscreenHook {
 
 // TODO(replay): move into app/utils/*
 export default function useFullscreen(): FullscreenHook {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
   const ref = useRef<null | HTMLDivElement>(null);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -67,14 +74,20 @@ export default function useFullscreen(): FullscreenHook {
     [enter, exit, isFullscreen]
   );
 
-  const onChange = () => {
-    setIsFullscreen(screenfull.isFullscreen);
-  };
-
   useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(screenfull.isFullscreen);
+
+      trackAdvancedAnalyticsEvent('replay.toggle-fullscreen', {
+        organization,
+        user_email: config.user.email,
+        fullscreen: screenfull.isFullscreen,
+      });
+    };
+
     screenfull.on('change', onChange);
     return () => screenfull.off('change', onChange);
-  }, []);
+  }, [config.user.email, organization]);
 
   return {
     enter,
