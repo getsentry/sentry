@@ -340,7 +340,14 @@ def test_mechanism_matching_no_frames():
     """
     )
     (rule,) = enhancement.rules
-    assert _get_matching_frame_actions(rule, [], "python", {"mechanism": {"type": "NSError"}})
+    exception_data = {"mechanism": {"type": "NSError"}}
+
+    # Does not crash:
+    assert [] == _get_matching_frame_actions(rule, [], "python", exception_data)
+
+    # Matcher matches:
+    (matcher,) = rule._exception_matchers
+    assert matcher.matches_frame([], None, "python", exception_data, {})
 
 
 def test_range_matching():
