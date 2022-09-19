@@ -1,9 +1,48 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {t} from 'sentry/locale';
+import {_timeRangeAutoCompleteFilter} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+
+type IntervalUnits = 's' | 'm' | 'h' | 'd';
+
+type RelativeUnitsMapping = {
+  [unit in IntervalUnits]: {
+    label: (num: number) => string;
+    momentUnit: moment.unitOfTime.DurationConstructor;
+    searchKey: string;
+  };
+};
+
+const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
+  s: {
+    label: (num: number) => tn('Second', '%s seconds', num),
+    searchKey: t('seconds'),
+    momentUnit: 'seconds',
+  },
+  m: {
+    label: (num: number) => tn('Minute', '%s minutes', num),
+    searchKey: t('minutes'),
+    momentUnit: 'minutes',
+  },
+  h: {
+    label: (num: number) => tn('Hour', '%s hours', num),
+    searchKey: t('hours'),
+    momentUnit: 'hours',
+  },
+  d: {
+    label: (num: number) => tn('Day', '%s days', num),
+    searchKey: t('days'),
+    momentUnit: 'days',
+  },
+};
+
+const SUPPORTED_RELATIVE_UNITS_LIST = Object.keys(
+  SUPPORTED_RELATIVE_PERIOD_UNITS
+) as IntervalUnits[];
 
 type Props = {
   eventView: EventView;
@@ -114,6 +153,18 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
     onIntervalChange(boundInterval);
   }
 
+  const intervalAutoComplete: typeof autoCompleteFilter = function (items, filterValue) {
+    return _timeRangeAutoCompleteFilter(
+      items,
+      filterValue,
+      SUPPORTED_RELATIVE_PERIOD_UNITS,
+      SUPPORTED_RELATIVE_UNITS_LIST
+    ).filter(item => {
+      const itemHours = parsePeriodToHours(item.value);
+      return itemHours >= intervalOption.min && itemHours <= rangeHours / 2;
+    });
+  };
+
   return (
     <DropdownAutoComplete
       onSelect={item => onIntervalChange(item.value)}
@@ -122,6 +173,10 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
         searchKey: option,
         label: option,
       }))}
+      searchPlaceholder={t('Provide a time interval')}
+      autoCompleteFilter={(items, filterValue) =>
+        intervalAutoComplete(items, filterValue)
+      }
       alignMenu="right"
     >
       {({isOpen}) => (
