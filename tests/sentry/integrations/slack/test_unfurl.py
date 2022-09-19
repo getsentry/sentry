@@ -18,6 +18,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.dates import get_interval_from_range, parse_stats_period, parse_timestamp
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -940,3 +941,81 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
 
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_DAILY
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get", return_value={"data": []})
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_bar_chart_interval_with_absolute_date(self, mock_generate_chart, api_mock):
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&end=2022-09-16T23%3A59%3A59&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&start=2022-09-09T00%3A00%3A00&utc=true&yAxis=count%28%29"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        start, end = parse_timestamp(links[0].args.get("query").get("start")), parse_timestamp(
+            links[0].args.get("query").get("end")
+        )
+        expected_interval = get_interval_from_range(end - start, False)
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert len(api_mock.mock_calls) == 1
+
+        assert "interval" in api_mock.call_args[1]["params"]
+        assert api_mock.call_args[1]["params"]["interval"] == expected_interval
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get", return_value={"data": []})
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_bar_chart_interval_with_periodic_date(self, mock_generate_chart, api_mock):
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=90d&utc=true&yAxis=count%28%29"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        stats_period = links[0].args.get("query").get("statsPeriod")
+        expected_interval = get_interval_from_range(parse_stats_period(stats_period), False)
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert len(api_mock.mock_calls) == 1
+
+        assert "interval" in api_mock.call_args[1]["params"]
+        assert api_mock.call_args[1]["params"]["interval"] == expected_interval
