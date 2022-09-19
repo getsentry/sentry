@@ -17,7 +17,7 @@ import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import {getDuration} from 'sentry/utils/formatters';
 import localStorage from 'sentry/utils/localStorage';
@@ -242,10 +242,8 @@ export default function QuickTrace({
 }
 
 function handleNode(key: string, organization: OrganizationSummary) {
-  trackAnalyticsEvent({
-    eventKey: 'quick_trace.node.clicked',
-    eventName: 'Quick Trace: Node clicked',
-    organization_id: parseInt(organization.id, 10),
+  trackAdvancedAnalyticsEvent('quick_trace.node.clicked', {
+    organization: organization.id,
     node_key: key,
   });
 }
@@ -255,10 +253,11 @@ function handleDropdownItem(
   organization: OrganizationSummary,
   extra: boolean
 ) {
-  trackAnalyticsEvent({
-    eventKey: 'quick_trace.dropdown.clicked' + (extra ? '_extra' : ''),
-    eventName: 'Quick Trace: Dropdown clicked',
-    organization_id: parseInt(organization.id, 10),
+  const eventKey = extra
+    ? 'quick_trace.dropdown.clicked_extra'
+    : 'quick_trace.dropdown.clicked';
+  trackAdvancedAnalyticsEvent(eventKey, {
+    organization: organization.id,
     node_key: key,
   });
 }
@@ -537,20 +536,16 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
       (now + HIDE_MISSING_EXPIRES).toString()
     );
     this.setState({hideMissing: true});
-    trackAnalyticsEvent({
-      eventKey: 'quick_trace.missing_service.dismiss',
-      eventName: 'Quick Trace: Missing Service Dismissed',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('quick_trace.missing_service.dismiss', {
+      organization: organization.id,
       platform,
     });
   };
 
   trackExternalLink = () => {
     const {organization, platform} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'quick_trace.missing_service.docs',
-      eventName: 'Quick Trace: Missing Service Clicked',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('quick_trace.missing_service.docs', {
+      organization: organization.id,
       platform,
     });
   };
