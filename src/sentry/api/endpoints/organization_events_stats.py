@@ -197,6 +197,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                 "zerofill_results": zerofill_results,
                 "comparison_delta": comparison_delta,
                 "allow_metric_aggregates": allow_metric_aggregates,
+                "has_metrics": use_metrics,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)

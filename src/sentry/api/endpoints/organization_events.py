@@ -246,6 +246,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "use_aggregate_conditions": True,
                 "allow_metric_aggregates": allow_metric_aggregates,
                 "transform_alias_to_input_format": True,
+                # Whether the flag is enabled or not, regardless of the referrer
+                "has_metrics": use_metrics,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
