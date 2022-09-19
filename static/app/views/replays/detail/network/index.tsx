@@ -189,13 +189,13 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     const networkEndTimestamp = network.endTimestamp * 1000;
 
     const columnProps = {
-      statusError: network.data.statusCode >= 400,
+      isStatusError: network.data.statusCode >= 400,
     };
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
 
     return (
       <Fragment key={index}>
-        <Item {...columnHandlers} {...columnProps} statusCode>
+        <Item {...columnHandlers} {...columnProps} isStatusCode>
           {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
         </Item>
         <Item {...columnHandlers} {...columnProps}>
@@ -331,18 +331,18 @@ const NetworkFilters = styled('div')`
 const Item = styled('div')<{
   center?: boolean;
   color?: ColorOrAlias;
-  statusError?: boolean;
+  isStatusCode?: boolean;
+  isStatusError?: boolean;
   numeric?: boolean;
-  statusCode?: boolean;
 }>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
   color: ${p =>
-    p.statusCode && p.statusError ? p.theme.red400 : p.theme[p.color || 'subText']};
+    p.isStatusCode && p.isStatusError ? p.theme.red400 : p.theme[p.color || 'subText']};
   padding: ${space(0.75)} ${space(1.5)};
-  background-color: ${p => (p.statusError ? p.theme.red100 : p.theme.background)};
+  background-color: ${p => (p.isStatusError ? p.theme.red100 : p.theme.background)};
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
