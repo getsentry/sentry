@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
@@ -28,10 +28,9 @@ describe('ProjectInstallPlatform', function () {
         body: {},
       });
 
-      mountWithTheme(
-        <ProjectInstallPlatform {...props} />,
-        TestStubs.routerContext([{organization: {id: '1337'}}])
-      );
+      render(<ProjectInstallPlatform {...props} />, {
+        context: TestStubs.routerContext([{organization: {id: '1337'}}]),
+      });
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
     });
@@ -51,15 +50,11 @@ describe('ProjectInstallPlatform', function () {
         statusCode: 404,
       });
 
-      const wrapper = mountWithTheme(
-        <ProjectInstallPlatform {...props} />,
-        TestStubs.routerContext([{organization: {id: '1337'}}])
-      );
+      render(<ProjectInstallPlatform {...props} />, {
+        context: TestStubs.routerContext([{organization: {id: '1337'}}]),
+      });
 
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('NotFound')).toHaveLength(1);
+      expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
     });
 
     it('should render documentation', async function () {
@@ -77,19 +72,11 @@ describe('ProjectInstallPlatform', function () {
         body: {html: '<h1>Documentation here</h1>'},
       });
 
-      const wrapper = mountWithTheme(
-        <ProjectInstallPlatform {...props} />,
-        TestStubs.routerContext([{organization: {id: '1337'}}])
-      );
+      render(<ProjectInstallPlatform {...props} />, {
+        context: TestStubs.routerContext([{organization: {id: '1337'}}]),
+      });
 
-      // Initially has loading indicator
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('DocumentationWrapper')).toHaveLength(1);
-      expect(wrapper.find('DocumentationWrapper').text()).toBe('Documentation here');
+      expect(await screen.findByText('Documentation here')).toBeInTheDocument();
     });
   });
 });

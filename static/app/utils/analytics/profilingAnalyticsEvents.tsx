@@ -1,5 +1,6 @@
 export type ProfilingEventParameters = {
   'profiling_views.go_to_flamegraph': {source: string};
+  'profiling_views.go_to_transaction': {source: string};
   'profiling_views.landing': {};
   'profiling_views.onboarding': {};
   'profiling_views.onboarding_action': {
@@ -19,5 +20,6 @@ export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.profile_summary': 'Profiling Views: Profile Summary',
   'profiling_views.profile_details': 'Profiling Views: Profile Details',
   'profiling_views.go_to_flamegraph': 'Profiling Views: Go to Flamegraph',
+  'profiling_views.go_to_transaction': 'Profiling Views: Go to Transaction',
   'profiling_views.onboarding_action': 'Profiling Actions: Onboarding Action',
 };

@@ -48,6 +48,11 @@ from sentry.notifications.utils.legacy_mappings import get_option_value_from_boo
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
+#: Maximum total number of characters in sensitiveFields.
+#: Relay compiles this list into a regex which cannot exceed a certain size.
+#: Limit determined experimentally here: https://github.com/getsentry/relay/blob/3105d8544daca3a102c74cefcd77db980306de71/relay-general/src/pii/convert.rs#L289
+MAX_SENSITIVE_FIELD_CHARS = 4000
+
 
 def clean_newline_inputs(value, case_insensitive=True):
     result = []
@@ -380,6 +385,11 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
+
+    def validate_sensitiveFields(self, value):
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
+        return value
 
 
 class RelaxedProjectPermission(ProjectPermission):

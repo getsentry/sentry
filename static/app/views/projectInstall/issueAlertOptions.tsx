@@ -171,7 +171,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             value={this.state.metric}
             options={this.getAvailableMetricOptions()}
             onChange={metric => this.setStateAndUpdateParents({metric: metric.value})}
-            data-test-id="metric-select-control"
           />
           {t('a unique error in')}
           <InlineSelectControl
@@ -183,7 +182,6 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
             onChange={interval =>
               this.setStateAndUpdateParents({interval: interval.value})
             }
-            data-test-id="interval-select-control"
           />
         </CustomizeAlertsGrid>,
       ]);
@@ -244,11 +242,9 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
         ) => Pick<State, K> | State | null)
       | Pick<State, K>
       | State
-      | null,
-    callback?: () => void
+      | null
   ): void {
     this.setState(state, () => {
-      callback?.();
       this.props.onChange(this.getUpdatedData());
     });
   }

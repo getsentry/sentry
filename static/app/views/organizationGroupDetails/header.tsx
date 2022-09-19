@@ -16,6 +16,7 @@ import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import EventMessage from 'sentry/components/events/eventMessage';
+import FeatureBadge from 'sentry/components/featureBadge';
 import InboxReason from 'sentry/components/group/inboxBadges/inboxReason';
 import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -83,6 +84,7 @@ class GroupHeader extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
       action_type: 'assign',
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -132,6 +134,17 @@ class GroupHeader extends Component<Props, State> {
     return [];
   }
 
+  tabClickAnalyticsEvent(tab: Tab) {
+    const {organization, group, project} = this.props;
+    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
+      organization,
+      group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
+      project_id: parseInt(project.id, 10),
+      tab,
+    });
+  }
+
   getErrorIssueTabs() {
     const {baseUrl, currentTab, project, organization, group, location, replaysCount} =
       this.props;
@@ -156,6 +169,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}${location.search}`}
           isActive={() => currentTab === Tab.DETAILS}
           disabled={disabledTabs.includes(Tab.DETAILS)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.DETAILS)}
         >
           {t('Details')}
         </ListLink>
@@ -163,6 +177,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}activity/${location.search}`}
           isActive={() => currentTab === Tab.ACTIVITY}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.ACTIVITY)}
         >
           {t('Activity')}
           <Badge>
@@ -174,6 +189,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}feedback/${location.search}`}
           isActive={() => currentTab === Tab.USER_FEEDBACK}
           disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.USER_FEEDBACK)}
         >
           {t('User Feedback')} <Badge text={group.userReportCount} />
         </StyledListLink>
@@ -182,6 +198,7 @@ class GroupHeader extends Component<Props, State> {
             to={`${baseUrl}attachments/${location.search}`}
             isActive={() => currentTab === Tab.ATTACHMENTS}
             disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
+            onClick={() => this.tabClickAnalyticsEvent(Tab.ATTACHMENTS)}
           >
             {t('Attachments')}
           </ListLink>
@@ -190,6 +207,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}tags/${location.search}`}
           isActive={() => currentTab === Tab.TAGS}
           disabled={disabledTabs.includes(Tab.TAGS)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.TAGS)}
         >
           {t('Tags')}
         </ListLink>
@@ -197,6 +215,7 @@ class GroupHeader extends Component<Props, State> {
           to={eventRouteToObject}
           isActive={() => currentTab === Tab.EVENTS}
           disabled={disabledTabs.includes(Tab.EVENTS)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.EVENTS)}
         >
           {t('Events')}
         </ListLink>
@@ -204,6 +223,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}merged/${location.search}`}
           isActive={() => currentTab === Tab.MERGED}
           disabled={disabledTabs.includes(Tab.MERGED)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.MERGED)}
         >
           {t('Merged Issues')}
         </ListLink>
@@ -212,6 +232,7 @@ class GroupHeader extends Component<Props, State> {
             to={`${baseUrl}grouping/${location.search}`}
             isActive={() => currentTab === Tab.GROUPING}
             disabled={disabledTabs.includes(Tab.GROUPING)}
+            onClick={() => this.tabClickAnalyticsEvent(Tab.GROUPING)}
           >
             {t('Grouping')}
           </ListLink>
@@ -221,6 +242,7 @@ class GroupHeader extends Component<Props, State> {
             to={`${baseUrl}similar/${location.search}`}
             isActive={() => currentTab === Tab.SIMILAR_ISSUES}
             disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
+            onClick={() => this.tabClickAnalyticsEvent(Tab.SIMILAR_ISSUES)}
           >
             {t('Similar Issues')}
           </ListLink>
@@ -229,6 +251,7 @@ class GroupHeader extends Component<Props, State> {
           <ListLink
             to={`${baseUrl}replays/${location.search}`}
             isActive={() => currentTab === Tab.REPLAYS}
+            onClick={() => this.tabClickAnalyticsEvent(Tab.REPLAYS)}
           >
             {t('Replays')}{' '}
             {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
@@ -256,6 +279,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}${location.search}`}
           isActive={() => currentTab === Tab.DETAILS}
           disabled={disabledTabs.includes(Tab.DETAILS)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.DETAILS)}
         >
           {t('Details')}
         </ListLink>
@@ -263,6 +287,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}activity/${location.search}`}
           isActive={() => currentTab === Tab.ACTIVITY}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.ACTIVITY)}
         >
           {t('Activity')}
           <Badge>
@@ -274,6 +299,7 @@ class GroupHeader extends Component<Props, State> {
           to={`${baseUrl}tags/${location.search}`}
           isActive={() => currentTab === Tab.TAGS}
           disabled={disabledTabs.includes(Tab.TAGS)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.TAGS)}
         >
           {t('Tags')}
         </ListLink>
@@ -281,6 +307,7 @@ class GroupHeader extends Component<Props, State> {
           to={eventRouteToObject}
           isActive={() => currentTab === Tab.EVENTS}
           disabled={disabledTabs.includes(Tab.EVENTS)}
+          onClick={() => this.tabClickAnalyticsEvent(Tab.EVENTS)}
         >
           {t('Events')}
         </ListLink>
@@ -333,6 +360,12 @@ class GroupHeader extends Component<Props, State> {
           >
             <StyledShortId shortId={group.shortId} />
           </StyledTooltip>
+          {group.issueCategory === IssueCategory.PERFORMANCE && (
+            <FeatureBadge
+              type="beta"
+              title="Performance issues are available for early adopters and may change"
+            />
+          )}
         </IssueBreadcrumbWrapper>
       </GuideAnchor>
     );

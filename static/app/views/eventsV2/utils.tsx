@@ -22,6 +22,7 @@ import {
   explodeFieldString,
   Field,
   getAggregateAlias,
+  getAggregateArg,
   getColumnsAndAggregates,
   getEquation,
   isAggregateEquation,
@@ -378,6 +379,34 @@ function generateAdditionalConditions(
     }
   });
   return conditions;
+}
+
+/**
+ * Discover queries can query either Errors, Transactions or a combination
+ * of the two datasets. This is a util to determine if the query will excusively
+ * hit the Transactions dataset.
+ */
+export function usesTransactionsDataset(eventView: EventView, yAxisValue: string[]) {
+  let usesTransactions: boolean = false;
+  const parsedQuery = new MutableSearch(eventView.query);
+  for (let index = 0; index < yAxisValue.length; index++) {
+    const yAxis = yAxisValue[index];
+    const aggregateArg = getAggregateArg(yAxis) ?? '';
+    if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
+      usesTransactions = true;
+      break;
+    }
+    const eventTypeFilter = parsedQuery.getFilterValues('event.type');
+    if (
+      eventTypeFilter.length > 0 &&
+      eventTypeFilter.every(filter => filter === 'transaction')
+    ) {
+      usesTransactions = true;
+      break;
+    }
+  }
+
+  return usesTransactions;
 }
 
 function generateExpandedConditions(
