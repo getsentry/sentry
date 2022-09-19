@@ -221,6 +221,7 @@ function SearchBar(props: SearchBarProps) {
           maxSearchItems={maxSearchItems}
           excludeEnvironment
           maxMenuHeight={maxMenuHeight ?? 300}
+          customPerformanceMetrics={customMeasurements}
           {...props}
         />
       )}

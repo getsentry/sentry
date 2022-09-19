@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {Organization, PageFilters, SavedSearchType} from 'sentry/types';
+import {generateAggregateFields} from 'sentry/utils/discover/fields';
+import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
+import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,
@@ -22,7 +25,12 @@ export function EventsSearchBar({
   onClose,
   widgetQuery,
 }: Props) {
+  const {customMeasurements} = useCustomMeasurements();
   const projectIds = pageFilters.projects;
+  const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
+  const fields = eventView.hasAggregateField()
+    ? generateAggregateFields(organization, eventView.fields)
+    : eventView.fields;
 
   return (
     <Search
@@ -30,13 +38,14 @@ export function EventsSearchBar({
       organization={organization}
       projectIds={projectIds}
       query={widgetQuery.conditions}
-      fields={[]}
+      fields={fields}
       onClose={onClose}
       useFormWrapper={false}
       maxQueryLength={MAX_QUERY_LENGTH}
       maxSearchItems={MAX_SEARCH_ITEMS}
       maxMenuHeight={MAX_MENU_HEIGHT}
       savedSearchType={SavedSearchType.EVENT}
+      customMeasurements={customMeasurements}
     />
   );
 }

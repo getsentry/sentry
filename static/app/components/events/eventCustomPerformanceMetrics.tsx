@@ -77,7 +77,7 @@ type EventCustomPerformanceMetricProps = Props & {
   name: string;
 };
 
-function getFieldTypeFromUnit(unit) {
+export function getFieldTypeFromUnit(unit) {
   if (unit) {
     if (DURATION_UNITS[unit]) {
       return 'duration';

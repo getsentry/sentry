@@ -1447,4 +1447,58 @@ describe('SmartSearchBar', function () {
       expect(screen.getByLabelText('Use UTC')).not.toBeChecked();
     });
   });
+
+  describe('custom performance metric filters', () => {
+    it('raises Invalid file size when parsed filter unit is not a valid size unit', () => {
+      const props = {
+        organization,
+        location,
+        supportedTags,
+        customPerformanceMetrics: {
+          'measurements.custom.kibibyte': {
+            fieldType: 'size',
+          },
+        },
+      };
+
+      render(<SmartSearchBar {...props} />);
+
+      const textbox = screen.getByRole('textbox');
+      userEvent.click(textbox);
+      userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
+      userEvent.keyboard('{arrowleft}');
+
+      expect(
+        screen.getByText(
+          'Invalid file size. Expected number followed by file size unit suffix'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('raises Invalid duration when parsed filter unit is not a valid duration unit', () => {
+      const props = {
+        organization,
+        location,
+        supportedTags,
+        customPerformanceMetrics: {
+          'measurements.custom.minute': {
+            fieldType: 'duration',
+          },
+        },
+      };
+
+      render(<SmartSearchBar {...props} />);
+
+      const textbox = screen.getByRole('textbox');
+      userEvent.click(textbox);
+      userEvent.type(textbox, 'measurements.custom.minute:10kb ');
+      userEvent.keyboard('{arrowleft}');
+
+      expect(
+        screen.getByText(
+          'Invalid duration. Expected number followed by duration unit suffix'
+        )
+      ).toBeInTheDocument();
+    });
+  });
 });
