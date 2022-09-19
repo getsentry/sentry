@@ -10,7 +10,7 @@ import RepositoryRow from 'sentry/components/repositoryRow';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   const repository = TestStubs.Repository();
@@ -120,7 +120,7 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request on delete', function () {
-      const deleteRepo = Client.addMockResponse({
+      const deleteRepo = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
         method: 'DELETE',
         statusCode: 204,
@@ -153,7 +153,7 @@ describe('RepositoryRow', function () {
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('sends api request to cancel', function () {
-      const cancel = Client.addMockResponse({
+      const cancel = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${pendingRepo.id}/`,
         method: 'PUT',
         statusCode: 204,
