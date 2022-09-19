@@ -21,14 +21,12 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -38,7 +36,6 @@ import {
   BaseGroup,
   Group,
   IssueCategory,
-  Member,
   Organization,
   PageFilters,
   SavedSearch,
@@ -62,8 +59,8 @@ import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
+import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
-import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
 import {
   getTabs,
@@ -947,80 +944,11 @@ class IssueListOverview extends Component<Props, State> {
     return showReprocessingTab && query === Query.REPROCESSING;
   }
 
-  renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
-    const topIssue = ids[0];
-    const {memberList} = this.state;
-    const query = this.getQuery();
-    const showInboxTime = this.getSort() === IssueSortOptions.INBOX;
-
-    return ids.map((id, index) => {
-      const hasGuideAnchor = id === topIssue;
-      const group = GroupStore.get(id) as Group | undefined;
-      let members: Member['user'][] | undefined;
-      if (group?.project) {
-        members = memberList[group.project.slug];
-      }
-
-      const showReprocessingTab = this.displayReprocessingTab();
-      const displayReprocessingLayout = this.displayReprocessingLayout(
-        showReprocessingTab,
-        query
-      );
-
-      return (
-        <StreamGroup
-          index={index}
-          key={id}
-          id={id}
-          statsPeriod={groupStatsPeriod}
-          query={query}
-          hasGuideAnchor={hasGuideAnchor}
-          memberList={members}
-          displayReprocessingLayout={displayReprocessingLayout}
-          useFilteredStats
-          showInboxTime={showInboxTime}
-        />
-      );
-    });
-  };
-
   renderLoading(): React.ReactNode {
     return (
       <PageContent>
         <LoadingIndicator />
       </PageContent>
-    );
-  }
-
-  renderStreamBody(): React.ReactNode {
-    const {issuesLoading, error, groupIds} = this.state;
-
-    if (issuesLoading) {
-      return <LoadingIndicator hideMessage />;
-    }
-
-    if (error) {
-      return <LoadingError message={error} onRetry={this.fetchData} />;
-    }
-
-    if (groupIds.length > 0) {
-      return (
-        <PanelBody>
-          {this.renderGroupNodes(groupIds, this.getGroupStatsPeriod())}
-        </PanelBody>
-      );
-    }
-
-    const {api, organization, selection} = this.props;
-
-    return (
-      <NoGroupsHandler
-        api={api}
-        organization={organization}
-        query={this.getQuery()}
-        selectedProjectIds={selection.projects}
-        groupIds={groupIds}
-      />
     );
   }
 
@@ -1199,6 +1127,8 @@ class IssueListOverview extends Component<Props, State> {
       groupIds,
       queryMaxCount,
       itemsRemoved,
+      issuesLoading,
+      error,
     } = this.state;
     const {organization, savedSearch, savedSearches, tags, selection, location, router} =
       this.props;
@@ -1303,7 +1233,18 @@ class IssueListOverview extends Component<Props, State> {
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
                 >
-                  {this.renderStreamBody()}
+                  <GroupListBody
+                    memberList={this.state.memberList}
+                    groupStatsPeriod={this.getGroupStatsPeriod()}
+                    groupIds={groupIds}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    sort={this.getSort()}
+                    selectedProjectIds={selection.projects}
+                    loading={issuesLoading}
+                    error={error}
+                    refetchGroups={this.fetchData}
+                  />
                 </VisuallyCompleteWithData>
               </PanelBody>
             </Panel>
