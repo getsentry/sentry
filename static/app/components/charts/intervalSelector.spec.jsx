@@ -12,7 +12,7 @@ describe('IntervalSelector', function () {
     fields: ['transaction', 'count()'],
     projects: [project.id],
   });
-  it('increases small interval', function () {
+  it('resets small interval', function () {
     let interval = '1s';
     eventView.interval = interval;
     eventView.statsPeriod = '90d';
@@ -23,46 +23,19 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
-    expect(interval).toEqual('4h');
+    expect(interval).toEqual(undefined);
   });
-  it('reducing uses clean day shorthands', function () {
-    let interval = '2d';
-    eventView.interval = interval;
-    eventView.statsPeriod = interval;
+  it('resets large interval', function () {
+    eventView.interval = '1h';
+    eventView.statsPeriod = '1h';
     const intervalSelector = (
       <IntervalSelector
         eventView={eventView}
-        onIntervalChange={newInterval => (interval = newInterval)}
+        onIntervalChange={newInterval => (eventView.interval = newInterval)}
       />
     );
     render(intervalSelector);
-    expect(interval).toEqual('1d');
-  });
-  it('reducing uses clean hour shorthands', function () {
-    let interval = '2h';
-    eventView.interval = interval;
-    eventView.statsPeriod = interval;
-    const intervalSelector = (
-      <IntervalSelector
-        eventView={eventView}
-        onIntervalChange={newInterval => (interval = newInterval)}
-      />
-    );
-    render(intervalSelector);
-    expect(interval).toEqual('1h');
-  });
-  it('reducing uses clean minute shorthands', function () {
-    let interval = '1h';
-    eventView.interval = interval;
-    eventView.statsPeriod = interval;
-    const intervalSelector = (
-      <IntervalSelector
-        eventView={eventView}
-        onIntervalChange={newInterval => (interval = newInterval)}
-      />
-    );
-    render(intervalSelector);
-    expect(interval).toEqual('30m');
+    expect(eventView.interval).toEqual(undefined);
   });
   it('leaves default interval alone', function () {
     eventView.interval = undefined;

@@ -391,7 +391,7 @@ class Results extends Component<Props, State> {
     }
   };
 
-  handleIntervalChange = (value: string) => {
+  handleIntervalChange = (value: string | undefined) => {
     const {router, location} = this.props;
 
     const newQuery = {
