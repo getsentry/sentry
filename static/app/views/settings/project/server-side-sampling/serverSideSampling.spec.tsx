@@ -180,9 +180,18 @@ describe('Server-Side Sampling', function () {
     // Assert that project breakdown is there (avoids 'act' warnings)
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
 
-    const deleteButtons = screen.getAllByLabelText('Delete');
-    expect(deleteButtons[0]).not.toHaveAttribute('disabled'); // eslint-disable-line jest-dom/prefer-enabled-disabled
-    expect(deleteButtons[1]).toHaveAttribute('disabled'); // eslint-disable-line jest-dom/prefer-enabled-disabled
+    userEvent.click(screen.getAllByLabelText('Actions')[0]);
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
+
+    userEvent.click(screen.getAllByLabelText('Actions')[0]);
+    userEvent.click(screen.getAllByLabelText('Actions')[1]);
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
