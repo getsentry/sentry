@@ -1,11 +1,14 @@
-import React from 'react';
+import {ComponentProps, Fragment, useCallback} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
+import Tag, {Background} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock, IconFire} from 'sentry/icons';
+import {IconCalendar, IconClock} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -17,10 +20,23 @@ type Props = {
 
 function ReplayMetaData({replayRecord}: Props) {
   const {
+    location: {pathname, query},
     params: {replaySlug},
   } = useRouteContext();
   const {projects} = useProjects();
   const [slug] = replaySlug.split(':');
+
+  const showErrorsTab = useCallback(() => {
+    browserHistory.push({
+      pathname,
+      query: {
+        ...query,
+        t_main: 'console',
+        consoleLogLevel: 'error',
+        consoleSearch: undefined,
+      },
+    });
+  }, [pathname, query]);
 
   return (
     <KeyMetrics>
@@ -39,30 +55,48 @@ function ReplayMetaData({replayRecord}: Props) {
 
       <KeyMetricData>
         {replayRecord ? (
-          <React.Fragment>
+          <Fragment>
             <IconCalendar color="gray300" />
             <TimeSince date={replayRecord.startedAt} shorten />
-          </React.Fragment>
+          </Fragment>
         ) : (
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
       <KeyMetricData>
         {replayRecord ? (
-          <React.Fragment>
+          <Fragment>
             <IconClock color="gray300" />
             <Duration seconds={replayRecord?.duration} abbreviation exact />
-          </React.Fragment>
+          </Fragment>
         ) : (
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
       <KeyMetricData>
         {replayRecord ? (
-          <React.Fragment>
-            <IconFire color="red300" />
-            {replayRecord?.countErrors}
-          </React.Fragment>
+          <Fragment>
+            <ErrorTag
+              to="/"
+              onClick={e => {
+                e.preventDefault();
+                showErrorsTab();
+              }}
+              icon={null}
+              type="error"
+            >
+              {replayRecord?.countErrors}
+            </ErrorTag>
+            <a
+              href="/"
+              onClick={e => {
+                e.preventDefault();
+                showErrorsTab();
+              }}
+            >
+              {t('Errors')}
+            </a>
+          </Fragment>
         ) : (
           <HeaderPlaceholder />
         )}
@@ -72,7 +106,7 @@ function ReplayMetaData({replayRecord}: Props) {
 }
 
 export const HeaderPlaceholder = styled(function HeaderPlaceholder(
-  props: React.ComponentProps<typeof Placeholder>
+  props: ComponentProps<typeof Placeholder>
 ) {
   return <Placeholder width="80px" height="19px" {...props} />;
 })`
@@ -96,6 +130,17 @@ const KeyMetricData = styled('div')`
   align-items: center;
   gap: ${space(1)};
   line-height: ${p => p.theme.text.lineHeightBody};
+`;
+
+const ErrorTag = styled(Tag)`
+  ${Background} {
+    background: ${p => p.theme.tag.error.iconColor};
+    padding: 0 ${space(0.75)};
+
+    span {
+      color: white !important;
+    }
+  }
 `;
 
 export default ReplayMetaData;
