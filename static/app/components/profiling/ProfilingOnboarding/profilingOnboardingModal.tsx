@@ -19,6 +19,8 @@ import {semverCompare} from 'sentry/utils/profiling/units/versions';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
+import {CodeSnippet} from './codeSnippet';
+
 // This is just a doubly linked list of steps
 interface OnboardingStep {
   current: React.ComponentType<OnboardingStepProps>;
@@ -324,13 +326,13 @@ function AndroidInstallSteps({
       </li>
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
-        <CodeContainer>
+        <CodeSnippet language="xml" filename="AndroidManifest.xml">
           {`<application>
   <meta-data android:name="io.sentry.dsn" android:value="..." />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
 </application>`}
-        </CodeContainer>
+        </CodeSnippet>
       </li>
     </Fragment>
   );
@@ -367,11 +369,11 @@ function IOSInstallSteps({
         <StepTitle>
           {t('Enable profiling in your app by configuring the SDKs like below:')}
         </StepTitle>
-        <CodeContainer>{`SentrySDK.start { options in
+        <CodeSnippet language="swift">{`SentrySDK.start { options in
     options.dsn = "..."
     options.tracesSampleRate = 1.0 // Make sure transactions are enabled
     options.profilesSampleRate = 1.0
-}`}</CodeContainer>
+}`}</CodeSnippet>
       </li>
     </Fragment>
   );
@@ -610,18 +612,3 @@ const StepIndicator = styled('span')`
   color: ${p => p.theme.subText};
   margin-right: ${space(2)};
 `;
-
-const PreContainer = styled('pre')`
-  overflow-x: scroll;
-
-  code {
-    white-space: pre;
-  }
-`;
-function CodeContainer({children}: {children: React.ReactNode}) {
-  return (
-    <PreContainer>
-      <code>{children}</code>
-    </PreContainer>
-  );
-}
