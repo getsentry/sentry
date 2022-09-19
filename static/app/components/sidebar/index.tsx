@@ -407,7 +407,13 @@ function Sidebar({location, organization}: Props) {
                 id="collapse"
                 data-test-id="sidebar-collapse"
                 {...sidebarItemProps}
-                icon={<StyledIconChevron collapsed={collapsed} />}
+                icon={
+                  <IconChevron
+                    isCircled
+                    direction={collapsed ? 'right' : 'left'}
+                    size="md"
+                  />
+                }
                 label={collapsed ? t('Expand') : t('Collapse')}
                 onClick={toggleCollapse}
               />
@@ -527,23 +533,6 @@ const SidebarSection = styled(SidebarSectionGroup)<{
     display: none;
   }
 `;
-
-const ExpandedIcon = css`
-  transition: 0.3s transform ease;
-  transform: rotate(270deg);
-`;
-const CollapsedIcon = css`
-  transform: rotate(90deg);
-`;
-const StyledIconChevron = styled(({collapsed, ...props}) => (
-  <IconChevron
-    direction="left"
-    size="md"
-    isCircled
-    css={[ExpandedIcon, collapsed && CollapsedIcon]}
-    {...props}
-  />
-))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
