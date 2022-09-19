@@ -187,16 +187,17 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const renderTableRow = (network: NetworkSpan, index: number) => {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
+    const statusCode = network.data.statusCode;
 
     const columnProps = {
-      isStatusError: network.data.statusCode >= 400,
+      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
     };
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
 
     return (
       <Fragment key={index}>
         <Item {...columnHandlers} {...columnProps} isStatusCode>
-          {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
+          {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
         <Item {...columnHandlers} {...columnProps}>
           {network.description ? (
