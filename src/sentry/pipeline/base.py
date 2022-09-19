@@ -16,7 +16,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.web.helpers import render_to_response
 
 from . import PipelineProvider
-from .constants import INTEGRATION_EXPIRATION_TTL
+from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
 
@@ -69,7 +69,7 @@ class Pipeline(abc.ABC):
 
     @classmethod
     def unpack_state(cls, request: Request) -> PipelineRequestState | None:
-        state = cls.session_store_cls(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
+        state = cls.session_store_cls(request, cls.pipeline_name, ttl=PIPELINE_STATE_TTL)
         if not state.is_valid():
             return None
 
@@ -99,9 +99,7 @@ class Pipeline(abc.ABC):
     ) -> None:
         self.request = request
         self.organization = organization
-        self.state = self.session_store_cls(
-            request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL
-        )
+        self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
         self.provider = self.get_provider(provider_key)
 
