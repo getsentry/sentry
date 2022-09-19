@@ -137,8 +137,23 @@ const SidebarItem = ({
       organization: organization || null,
     });
   };
+
+  const badges = (
+    <Fragment>
+      {showIsNew && <FeatureBadge type="new" noTooltip />}
+      {isBeta && <FeatureBadge type="beta" noTooltip />}
+      {isAlpha && <FeatureBadge type="alpha" noTooltip />}
+    </Fragment>
+  );
+
+  const tooltipLabel = (
+    <Fragment>
+      {label} {badges}
+    </Fragment>
+  );
+
   return (
-    <Tooltip disabled={!collapsed} title={label} position={placement}>
+    <Tooltip disabled={!collapsed} title={tooltipLabel} position={placement}>
       <StyledSidebarItem
         data-test-id={props['data-test-id']}
         id={`sidebar-item-${id}`}
@@ -158,9 +173,7 @@ const SidebarItem = ({
             <SidebarItemLabel>
               <LabelHook id={id}>
                 <TextOverflow>{label}</TextOverflow>
-                {showIsNew && <FeatureBadge type="new" noTooltip />}
-                {isBeta && <FeatureBadge type="beta" noTooltip />}
-                {isAlpha && <FeatureBadge type="alpha" noTooltip />}
+                {badges}
               </LabelHook>
             </SidebarItemLabel>
           )}
