@@ -22,7 +22,7 @@ eslint_config: &eslint_config
 frontend_src: &frontend_src
   - *yarn_lockfile
   - *eslint_config
-  - '!(test)/**/*.[tj]{s,sx}'
+  - '!(tests)/**/*.[tj]{s,sx}'
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
   - '**/*.less'
