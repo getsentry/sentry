@@ -45,7 +45,9 @@ type Props = {
   issueCategory: IssueCategory;
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
-  confirmMessage?: React.ReactNode;
+  confirmMessage?: (
+    statusDetails: ResolutionStatusDetails | undefined
+  ) => React.ReactNode;
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
@@ -68,7 +70,7 @@ const IgnoreActions = ({
           status: ResolutionStatus.IGNORED,
           statusDetails,
         }),
-      message: confirmMessage,
+      message: confirmMessage?.(statusDetails) ?? null,
       confirmText: confirmLabel,
     });
   };

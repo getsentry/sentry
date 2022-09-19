@@ -34,6 +34,7 @@ import {
   ExceptionValue,
   Group,
   IssueAttachment,
+  IssueCategory,
   Organization,
   Project,
   SharedViewOrganization,
@@ -406,13 +407,15 @@ const EventEntries = ({
       {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
         <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
       )}
-      {!isShare && event.groupID && (
-        <EventGroupingInfo
-          projectId={projectSlug}
-          event={event}
-          showGroupingConfig={orgFeatures.includes('set-grouping-config')}
-        />
-      )}
+      {!isShare &&
+        event.groupID &&
+        group?.issueCategory !== IssueCategory.PERFORMANCE && (
+          <EventGroupingInfo
+            projectId={projectSlug}
+            event={event}
+            showGroupingConfig={orgFeatures.includes('set-grouping-config')}
+          />
+        )}
       {!isShare && (
         <MiniReplayView
           event={event}

@@ -54,7 +54,7 @@ type Props = WithRouterProps & {
   queryFilterDescription?: string;
   queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: ({detail: string}, retry: () => void) => React.ReactNode;
+  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
 } & Partial<typeof defaultProps>;
 
 type State = {

@@ -74,7 +74,7 @@ class GroupEventToolbar extends Component<Props> {
     const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
 
     return (
-      <DescriptionList className="flat">
+      <DescriptionList>
         <dt>Occurred</dt>
         <dd>
           {dateCreated.format('ll')}
@@ -234,10 +234,11 @@ const LinkContainer = styled('span')`
 `;
 
 const DescriptionList = styled('dl')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${space(0.75)} ${space(1)};
   text-align: left;
   margin: 0;
-  min-width: 200px;
-  max-width: 250px;
 `;
 
 export default GroupEventToolbar;

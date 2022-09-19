@@ -203,17 +203,23 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-
-# ToDo Dynamically generate this from OP_TO_SNUBA_FUNCTION
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "min",
-    "sum",
+DERIVED_OPERATIONS = (
     "histogram",
-) + OPERATIONS_PERCENTILES
+    "rate",
+    "count_web_vitals",
+)
+OPERATIONS = (
+    (
+        "avg",
+        "count_unique",
+        "count",
+        "max",
+        "min",
+        "sum",
+    )
+    + OPERATIONS_PERCENTILES
+    + DERIVED_OPERATIONS
+)
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
@@ -229,6 +235,8 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "sum": 0,
     "percentage": None,
     "histogram": [],
+    "rate": 0,
+    "count_web_vitals": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}

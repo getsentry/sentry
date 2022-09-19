@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 from django.core.exceptions import DisallowedHost
+from django.http import HttpResponseRedirect
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,7 +35,8 @@ class SubdomainMiddleware:
         try:
             host = request.get_host().lower()
         except DisallowedHost:
-            return self.get_response(request)
+            url_prefix = options.get("system.url-prefix")
+            return HttpResponseRedirect(url_prefix)
 
         if not host.endswith(f".{self.base_hostname}"):
             return self.get_response(request)

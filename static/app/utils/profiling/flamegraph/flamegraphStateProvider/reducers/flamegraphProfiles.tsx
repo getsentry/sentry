@@ -1,13 +1,5 @@
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-type SetFocusFrame = {
-  payload: {
-    name: string;
-    package: string;
-  };
-  type: 'set highlight frame name';
-};
-
 type SetProfilesThreadId = {
   payload: number;
   type: 'set thread id';
@@ -18,10 +10,18 @@ type SetRootNode = {
   type: 'set selected root';
 };
 
-type FlamegraphProfilesAction = SetFocusFrame | SetProfilesThreadId | SetRootNode;
+type SetHighlightFrame = {
+  payload: {
+    name: string;
+    package: string;
+  } | null;
+  type: 'set highlight frame';
+};
+
+type FlamegraphProfilesAction = SetHighlightFrame | SetProfilesThreadId | SetRootNode;
 
 export type FlamegraphProfiles = {
-  focusFrame: SetFocusFrame['payload'] | null;
+  highlightFrame: {name: string; package: string} | null;
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
 };
@@ -31,10 +31,10 @@ export function flamegraphProfilesReducer(
   action: FlamegraphProfilesAction
 ): FlamegraphProfiles {
   switch (action.type) {
-    case 'set highlight frame name': {
+    case 'set highlight frame': {
       return {
         ...state,
-        focusFrame: action.payload,
+        highlightFrame: action.payload,
       };
     }
     case 'set selected root': {

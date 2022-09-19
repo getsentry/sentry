@@ -45,8 +45,7 @@ _THREAD_LOCAL_TAGS = local()
 _GLOBAL_TAGS: List[Tags] = []
 
 
-@contextmanager
-def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
+def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]:
     if _all_threads:
         stack = _GLOBAL_TAGS
     else:
@@ -56,10 +55,41 @@ def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None,
             stack = _THREAD_LOCAL_TAGS.stack
 
     stack.append(tags)
+    return stack
+
+
+def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
+    """
+    Set multiple metric tags onto the global or thread-local stack which then
+    apply to all metrics.
+
+    When used in combination with the `global_tags` context manager,
+    `add_global_tags` is reverted in any wrapping invocaation of `global_tags`.
+    For example::
+
+        with global_tags(tag_a=123):
+            add_global_tags(tag_b=123)
+
+        # tag_b is no longer visible
+    """
+    _add_global_tags(_all_threads=_all_threads, **tags)
+
+
+@contextmanager
+def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
+    """
+    The context manager version of `add_global_tags` that reverts all tag
+    changes upon exit.
+
+    See docstring of `add_global_tags` for how those two methods interact.
+    """
+    stack = _add_global_tags(_all_threads=_all_threads, **tags)
+    old_len = len(stack) - 1
+
     try:
         yield
     finally:
-        stack.pop()
+        del stack[old_len:]
 
 
 def _get_current_global_tags() -> MutableTags:

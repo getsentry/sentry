@@ -425,6 +425,48 @@ describe('IssueListActions', function () {
           })
         );
       });
+
+      it('silently filters out performance issues when bulk ignoring by time window', function () {
+        const bulkMergeMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(
+          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
+          </OrganizationContext.Provider>
+        );
+
+        userEvent.click(screen.getByRole('checkbox'));
+
+        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+
+        userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
+        fireEvent.click(screen.getByTestId('until-affect'));
+        fireEvent.click(screen.getByTestId('until-affect-10-users'));
+        userEvent.click(screen.getByTestId('until-affect-10-users-from-per hour'));
+
+        const modal = screen.getByRole('dialog');
+
+        expect(
+          within(modal).getByText(
+            /ignoring performance issues by time window is not yet supported/i
+          )
+        ).toBeInTheDocument();
+
+        userEvent.click(within(modal).getByRole('button', {name: 'Bulk ignore issues'}));
+
+        expect(bulkMergeMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'is:unresolved !issue.category:performance',
+            }),
+          })
+        );
+      });
     });
   });
 });

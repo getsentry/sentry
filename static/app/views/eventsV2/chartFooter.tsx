@@ -1,3 +1,8 @@
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
+
+import Feature from 'sentry/components/acl/feature';
+import IntervalSelector from 'sentry/components/charts/intervalSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -5,21 +10,30 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import Switch from 'sentry/components/switchButton';
+import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
 type Props = {
   displayMode: string;
   displayOptions: SelectValue<string>[];
+  eventView: EventView;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
   organization: Organization;
+  setShowBaseline: (value: boolean) => void;
+  showBaseline: boolean;
   topEvents: string;
   total: number | null;
   yAxisOptions: SelectValue<string>[];
   yAxisValue: string[];
+  disableProcessedBaselineToggle?: boolean;
 };
 
 export default function ChartFooter({
@@ -31,7 +45,13 @@ export default function ChartFooter({
   displayOptions,
   onDisplayChange,
   onTopEventsChange,
+  onIntervalChange,
   topEvents,
+  setShowBaseline,
+  showBaseline,
+  organization,
+  disableProcessedBaselineToggle,
+  eventView,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
@@ -54,6 +74,42 @@ export default function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
+        <Feature organization={organization} features={['discover-metrics-baseline']}>
+          <Fragment>
+            <SwitchLabel>{t('Processed events')}</SwitchLabel>
+            <Switch
+              data-test-id="processed-events-toggle"
+              isActive={showBaseline}
+              isDisabled={disableProcessedBaselineToggle ?? true}
+              size="lg"
+              toggle={() => setShowBaseline(!showBaseline)}
+            />
+            <QuestionTooltip
+              isHoverable
+              position="top"
+              size="sm"
+              title={tct(
+                'The baseline is only available for transaction events when displaying the Top Period.[break]The baseline shows the total [processedEventsLink: processed events] matching your query, compared to the [indexedEventsLink: indexed events].',
+                {
+                  indexedEventsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/#server-side-sampling" />
+                  ),
+                  processedEventsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/#client-side-sdk-sampling" />
+                  ),
+                  break: (
+                    <div>
+                      <br />
+                    </div>
+                  ),
+                }
+              )}
+            />
+          </Fragment>
+        </Feature>
+        <Feature organization={organization} features={['discover-interval-selector']}>
+          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
+        </Feature>
         <OptionSelector
           title={t('Display')}
           selected={displayMode}
@@ -92,3 +148,8 @@ export default function ChartFooter({
     </ChartControls>
   );
 }
+
+const SwitchLabel = styled('div')`
+  padding-right: 4px;
+  font-weight: bold;
+`;

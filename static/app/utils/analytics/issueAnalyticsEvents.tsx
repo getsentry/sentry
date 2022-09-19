@@ -21,6 +21,8 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.performance.autogrouped_siblings_toggle': {};
+  'issue_details.performance.hidden_spans_expanded': {};
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -36,6 +38,12 @@ export type IssueEventParameters = {
     error: string;
     search_source: string;
     search_type: string;
+  };
+  'issues_stream.count_perf_issues': {
+    num_perf_issues: number;
+    num_total_issues: number;
+    page: number;
+    query: string;
   };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
@@ -55,6 +63,24 @@ export type IssueEventParameters = {
   'issues_tab.viewed': {
     num_issues: number;
     tab: string;
+  };
+  'quick_trace.connected_services': {
+    projects: number;
+  };
+  'quick_trace.dropdown.clicked': {
+    node_key: string;
+  };
+  'quick_trace.dropdown.clicked_extra': {
+    node_key: string;
+  };
+  'quick_trace.missing_service.dismiss': {
+    platform: string;
+  };
+  'quick_trace.missing_service.docs': {
+    platform: string;
+  };
+  'quick_trace.node.clicked': {
+    node_key: string;
   };
   resolve_issue: {release: string};
   'span_view.embedded_child.hide': {};
@@ -86,6 +112,20 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
   'issue.quick_trace_status': 'Issue Quick Trace Status',
+  'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
+  'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
+  'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
+  'quick_trace.dropdown.clicked_extra': 'Quick Trace: Dropdown clicked',
+  'quick_trace.node.clicked': 'Quick Trace: Node clicked',
+  'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
+
+  // Performance Issue specific events here
+  'issue_details.performance.autogrouped_siblings_toggle':
+    'Performance Issue Details: Autogrouped Siblings Toggled',
+  'issue_details.performance.hidden_spans_expanded':
+    'Performance Issue Details: Hidden Spans Expanded',
+  'issues_stream.count_perf_issues':
+    'Issues Stream: Number of Performance Issues on Current Page',
 };

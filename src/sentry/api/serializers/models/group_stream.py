@@ -109,8 +109,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         stats_period=None,
         stats_period_start=None,
         stats_period_end=None,
-        matching_event_id=None,
-        matching_event_environment=None,
     ):
         super().__init__(environment_func)
 
@@ -120,8 +118,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         self.stats_period = stats_period
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
-        self.matching_event_id = matching_event_id
-        self.matching_event_environment = matching_event_environment
 
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
@@ -149,12 +145,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         if self.stats_period:
             result["stats"] = {self.stats_period: attrs["stats"]}
 
-        if self.matching_event_id:
-            result["matchingEventId"] = self.matching_event_id
-
-        if self.matching_event_environment:
-            result["matchingEventEnvironment"] = self.matching_event_environment
-
         return result
 
     def query_tsdb(self, groups: Sequence[Group], query_params, **kwargs):
@@ -173,20 +163,6 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         return stats
 
 
-class TagBasedStreamGroupSerializer(StreamGroupSerializer):
-    def __init__(self, tags, **kwargs):
-        super().__init__(**kwargs)
-        self.tags = tags
-
-    def serialize(
-        self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
-    ) -> BaseGroupSerializerResponse:
-        result = super().serialize(obj, attrs, user)
-        result["tagLastSeen"] = self.tags[obj.id].last_seen
-        result["tagFirstSeen"] = self.tags[obj.id].first_seen
-        return result
-
-
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
@@ -194,7 +170,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         stats_period=None,
         stats_period_start=None,
         stats_period_end=None,
-        matching_event_id=None,
         start=None,
         end=None,
         search_filters=None,
@@ -220,7 +195,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         self.stats_period = stats_period
         self.stats_period_start = stats_period_start
         self.stats_period_end = stats_period_end
-        self.matching_event_id = matching_event_id
 
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
@@ -322,9 +296,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             }
             if "times_seen" in attrs:
                 result.update(self._convert_seen_stats(attrs))
-
-        if self.matching_event_id:
-            result["matchingEventId"] = self.matching_event_id
 
         if not self._collapse("stats"):
             if self.stats_period:
