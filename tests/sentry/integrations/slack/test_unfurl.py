@@ -942,7 +942,7 @@ class UnfurlTest(TestCase):
 
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_DAILY
 
-    @patch("sentry.integrations.slack.unfurl.discover.client.get", return_value={"data": []})
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_bar_chart_interval_with_absolute_date(self, mock_generate_chart, api_mock):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&end=2022-09-16T23%3A59%3A59&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&start=2022-09-09T00%3A00%3A00&utc=true&yAxis=count%28%29"
@@ -982,7 +982,7 @@ class UnfurlTest(TestCase):
         assert "interval" in api_mock.call_args[1]["params"]
         assert api_mock.call_args[1]["params"]["interval"] == expected_interval
 
-    @patch("sentry.integrations.slack.unfurl.discover.client.get", return_value={"data": []})
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_bar_chart_interval_with_periodic_date(self, mock_generate_chart, api_mock):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=bar&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=90d&utc=true&yAxis=count%28%29"

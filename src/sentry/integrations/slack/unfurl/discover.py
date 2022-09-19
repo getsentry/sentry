@@ -215,7 +215,7 @@ def unfurl_discover(
             )
             continue
 
-        chart_data = {"seriesName": params.get("yAxis"), "stats": resp.get("data")}
+        chart_data = {"seriesName": params.get("yAxis"), "stats": resp.data}
 
         style = display_modes.get(display_mode, display_modes["default"])
 
