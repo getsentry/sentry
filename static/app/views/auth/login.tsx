@@ -134,7 +134,7 @@ class Login extends Component<Props, State> {
                 }
               >
                 {tct(
-                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] youll need to copy you'll production session cookie.",
+                  "Experimental SPA mode does not currently support SSO style login. To develop against the [org] you'll need to copy your production session cookie.",
                   {org: this.props.params.orgId}
                 )}
               </Alert>
