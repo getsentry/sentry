@@ -89,7 +89,7 @@ export type FieldValueColumns =
   | {
       kind: FieldValueKind.NUMERIC_METRICS;
       meta: {
-        dataType: 'numeric';
+        dataType: 'number';
         name: string;
       };
     };
