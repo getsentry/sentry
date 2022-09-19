@@ -16,7 +16,9 @@ from sentry.replays.testutils import mock_replay
 
 
 def store_replay(replay):
-    response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+    response = requests.post(
+        settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+    )
     assert response.status_code == 200
 
 
