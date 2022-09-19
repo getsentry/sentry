@@ -215,6 +215,7 @@ def query(
     functions_acl=None,
     transform_alias_to_input_format=False,
     sample=None,
+    has_metrics=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -265,6 +266,7 @@ def query(
         offset=offset,
         equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
+        has_metrics=has_metrics,
     )
     if conditions is not None:
         builder.add_conditions(conditions)
@@ -305,6 +307,7 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
+    has_metrics=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -339,6 +342,7 @@ def timeseries_query(
             selected_columns=columns,
             equations=equations,
             functions_acl=functions_acl,
+            has_metrics=has_metrics,
         )
         query_list = [base_builder]
         if comparison_delta:
@@ -717,7 +721,8 @@ def get_facets(
             )
 
     # Need to cast tuple values to str since the value might be None
-    return sorted(results, key=lambda result: (str(result.key), str(result.value)))
+    # Reverse sort the count so the highest values show up first
+    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
 
 
 def spans_histogram_query(

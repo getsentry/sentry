@@ -25,7 +25,7 @@ export default function ServerSideSamplingContainer({project}: Props) {
             'organization:server-side-sampling',
             'organization:server-side-sampling-ui',
           ]}
-          featureName={t('Server-Side Sampling')}
+          featureName={t('Dynamic Sampling')}
         />
       )}
     >

@@ -334,7 +334,8 @@ class DetailedEventSerializer(EventSerializer):
             ]
         )
         for event_problem in problems:
-            results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
+            if event_problem:
+                results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
         return results
 
     def _get_sdk_updates(self, obj):

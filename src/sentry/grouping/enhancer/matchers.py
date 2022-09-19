@@ -64,7 +64,7 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app"),
+        in_app=frame_data.get("in_app") or False,
         module=get_path(frame_data, "module"),
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
@@ -268,6 +268,13 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
+        match_frame = None
+        rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
+        if self.negated:
+            rv = not rv
+        return rv
+
     def _positive_frame_match(self, frame_data, platform, exception_data, cache):
         field = get_path(exception_data, *self.field_path) or "<unknown>"
         return cached(cache, glob_match, field, self._encoded_pattern)

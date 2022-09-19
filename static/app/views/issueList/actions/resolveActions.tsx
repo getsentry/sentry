@@ -1,14 +1,23 @@
 import ResolveActions from 'sentry/components/actions/resolve';
-import {Organization} from 'sentry/types';
+import {Organization, Release} from 'sentry/types';
 
-import {ConfirmAction} from './utils';
+import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
   anySelected: boolean;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
   orgSlug: Organization['slug'];
-  params: any;
+  params: {
+    confirm: ReturnType<typeof getConfirm>;
+    hasReleases: boolean;
+    label: ReturnType<typeof getLabel>;
+    disabled?: boolean;
+    latestRelease?: Release;
+    loadingProjects?: boolean;
+    projectFetchError?: boolean;
+    projectId?: string;
+  };
 };
 
 function ResolveActionsContainer({
@@ -43,7 +52,7 @@ function ResolveActionsContainer({
       projectSlug={projectId}
       onUpdate={onUpdate}
       shouldConfirm={onShouldConfirm(ConfirmAction.RESOLVE)}
-      confirmMessage={confirm('resolve', true)}
+      confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
       confirmLabel={label('resolve')}
       disabled={resolveDisabled}
       disableDropdown={resolveDropdownDisabled}

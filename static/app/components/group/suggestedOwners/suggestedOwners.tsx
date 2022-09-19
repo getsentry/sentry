@@ -13,6 +13,7 @@ import type {
   ReleaseCommitter,
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useCommitters from 'sentry/utils/useCommitters';
@@ -214,6 +215,8 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     const {organization, project, group} = this.props;
     const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
+    const codeownersCapability = getIssueCapability(group.issueCategory, 'codeowners');
+
     return (
       <Fragment>
         {owners.length > 0 && (
@@ -224,14 +227,16 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
             onAssign={this.handleAssign}
           />
         )}
-        <OwnershipRules
-          issueId={group.id}
-          project={project}
-          organization={organization}
-          codeowners={codeowners}
-          isDismissed={isDismissed}
-          handleCTAClose={this.handleCTAClose}
-        />
+        {codeownersCapability.enabled && (
+          <OwnershipRules
+            issueId={group.id}
+            project={project}
+            organization={organization}
+            codeowners={codeowners}
+            isDismissed={isDismissed}
+            handleCTAClose={this.handleCTAClose}
+          />
+        )}
       </Fragment>
     );
   }

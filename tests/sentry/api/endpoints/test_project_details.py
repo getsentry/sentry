@@ -709,6 +709,11 @@ class ProjectUpdateTest(APITestCase):
         ]
         assert resp.data["sensitiveFields"] == ["foobar.com", "https://example.com"]
 
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.org_slug, self.proj_slug, sensitiveFields=value)
+        assert resp.status_code == 400
+
     def test_data_scrubber(self):
         resp = self.get_success_response(self.org_slug, self.proj_slug, dataScrubber=False)
         assert self.project.get_option("sentry:scrub_data") is False

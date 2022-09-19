@@ -436,7 +436,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "details": "Way too many projects in the distributed trace's project breakdown"
+                "detail": "Way too many projects in the distributed trace's project breakdown"
             }
 
     @freeze_time()
