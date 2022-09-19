@@ -5,13 +5,15 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 
 import ReplayContent from './replayContent';
 
-const testOrgSlug = 'sentry-emerging-tech';
-const testReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
+const mockOrgSlug = 'sentry-emerging-tech';
+const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 
 const mockStartedAt = 'Sep 12, 2022 11:29:13 PM UTC';
 const mockFinishedAt = 'Sep 15, 2022 17:22:07 PM UTC';
 
 const mockReplayDuration = 670; // seconds (11 minutes, 10 seconds)
+
+const mockGetInitialTimeOffset = jest.fn();
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -120,7 +122,13 @@ describe('ReplayContent', () => {
       };
     });
 
-    render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />);
+    render(
+      <ReplayContent
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        getInitialTimeOffset={mockGetInitialTimeOffset}
+      />
+    );
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -136,12 +144,24 @@ describe('ReplayContent', () => {
     });
 
     expect(() =>
-      render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />)
+      render(
+        <ReplayContent
+          orgSlug={mockOrgSlug}
+          replaySlug={mockReplaySlug}
+          getInitialTimeOffset={mockGetInitialTimeOffset}
+        />
+      )
     ).toThrow();
   });
 
   it('Should render all its elements correctly', () => {
-    render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />);
+    render(
+      <ReplayContent
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        getInitialTimeOffset={mockGetInitialTimeOffset}
+      />
+    );
 
     // Expect replay view to be rendered
     expect(screen.getByText('Replay')).toBeInTheDocument();

@@ -489,10 +489,16 @@ function MiniReplayView({
 }: MiniReplayViewProps) {
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
   const hasSessionReplayFeature = orgFeatures.includes('session-replay-ui');
+  const errorEventTimestamp = event.dateCreated;
 
   if (replayId && hasSessionReplayFeature) {
     return (
-      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
+      <EventReplay
+        replayId={replayId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        eventTimestamp={errorEventTimestamp}
+      />
     );
   }
   if (hasEventAttachmentsFeature) {

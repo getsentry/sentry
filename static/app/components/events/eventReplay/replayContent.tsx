@@ -12,11 +12,12 @@ import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
+  getInitialTimeOffset: (startTimestampMs: number) => number;
   orgSlug: string;
   replaySlug: string;
 };
 
-function ReplayContent({orgSlug, replaySlug}: Props) {
+function ReplayContent({orgSlug, replaySlug, getInitialTimeOffset}: Props) {
   const {fetching, replay, fetchError} = useReplayData({
     orgSlug,
     replaySlug,
@@ -39,13 +40,18 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
     );
   }
 
+  const startTimestampMs = replayRecord?.startedAt.getTime() ?? 0;
+
   return (
     <table className="table key-value">
       <tbody>
         <tr key="replay">
           <td className="key">{t('Replay')}</td>
           <td className="value">
-            <ReplayContextProvider replay={replay} initialTimeOffset={0}>
+            <ReplayContextProvider
+              replay={replay}
+              initialTimeOffset={getInitialTimeOffset(startTimestampMs)}
+            >
               <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
                 <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
               </PlayerContainer>
