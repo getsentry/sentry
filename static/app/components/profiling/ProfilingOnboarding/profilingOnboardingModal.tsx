@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
@@ -212,6 +212,24 @@ function SelectProjectStep({
   );
 }
 
+function SetupPerformanceMonitoringStep({href}: {href: string}) {
+  return (
+    <Fragment>
+      <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
+      {tct(
+        `For Sentry to ingest profiles, we first require you to setup performance monitoring. [setupDocs]`,
+        {
+          setupDocs: (
+            <ExternalLink openInNewTab href={href}>
+              {t('Learn more about performance monitoring.')}
+            </ExternalLink>
+          ),
+        }
+      )}
+    </Fragment>
+  );
+}
+
 function AndroidInstallSteps() {
   return (
     <Fragment>
@@ -224,16 +242,7 @@ function AndroidInstallSteps() {
         </p>
       </li>
       <li>
-        <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
-        {t(
-          `For Sentry to ingest profiles, we first require you to setup performance monitoring. To set up performance monitoring,`
-        )}{' '}
-        <ExternalLink
-          openInNewTab
-          href="https://docs.sentry.io/platforms/android/performance/"
-        >
-          {t('follow our step by step instructions here.')}
-        </ExternalLink>
+        <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/android/performance/" />
       </li>
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
@@ -261,16 +270,7 @@ function IOSInstallSteps() {
         </p>
       </li>
       <li>
-        <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
-        {t(
-          `For Sentry to ingest profiles, we first require you to setup performance monitoring. To set up performance monitoring,`
-        )}{' '}
-        <ExternalLink
-          openInNewTab
-          href="https://docs.sentry.io/platforms/apple/guides/ios/performance/"
-        >
-          {t('follow our step by step instructions here.')}
-        </ExternalLink>
+        <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/apple/guides/ios/performance/" />
       </li>
       <li>
         <StepTitle>
@@ -279,7 +279,7 @@ function IOSInstallSteps() {
         <CodeContainer>{`SentrySDK.start { options in
     options.dsn = "..."
     options.tracesSampleRate = 1.0 // Make sure transactions are enabled
-    options.enableProfiling = true
+    options.profilesSampleRate = 1.0
 }`}</CodeContainer>
       </li>
     </Fragment>
@@ -521,7 +521,7 @@ const StepIndicator = styled('span')`
 `;
 
 const PreContainer = styled('pre')`
-  overflow: scroll;
+  overflow-x: scroll;
 
   code {
     white-space: pre;

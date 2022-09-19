@@ -3,6 +3,7 @@ import {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
+import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
@@ -16,7 +17,7 @@ import {
 } from './customMeasurementsContext';
 
 type MeasurementsMetaResponse = {
-  [x: string]: {functions: string[]};
+  [x: string]: {functions: string[]; unit: string};
 };
 
 function fetchCustomMeasurements(
@@ -74,6 +75,8 @@ export function CustomMeasurementsProvider({
               key: customMeasurement,
               name: customMeasurement,
               functions: response[customMeasurement].functions,
+              unit: response[customMeasurement].unit,
+              fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
             };
             return acc;
           }, {});
