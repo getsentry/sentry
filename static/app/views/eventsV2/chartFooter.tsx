@@ -24,7 +24,7 @@ type Props = {
   eventView: EventView;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
-  onIntervalChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
   organization: Organization;
   setShowBaseline: (value: boolean) => void;

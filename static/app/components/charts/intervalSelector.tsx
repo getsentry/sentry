@@ -7,7 +7,7 @@ import EventView from 'sentry/utils/discover/eventView';
 
 type Props = {
   eventView: EventView;
-  onIntervalChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
 };
 
 type IntervalOption = {
