@@ -183,8 +183,7 @@ describe('Server-Side Sampling', function () {
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
 
     userEvent.click(screen.getAllByLabelText('Actions')[0]);
-    let deleteButton = screen.getByRole('menuitemradio', {name: 'Delete'});
-    expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute('aria-disabled', 'false');
 
     userEvent.click(screen.getAllByLabelText('Actions')[0]);
     userEvent.click(screen.getAllByLabelText('Actions')[1]);
