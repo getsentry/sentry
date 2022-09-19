@@ -10,6 +10,8 @@ import space from 'sentry/styles/space';
 
 import {TabsContext} from './index';
 
+const collectionFactory = <T,>(nodes: Iterable<Node<T>>) => new ListCollection(nodes);
+
 interface TabPanelsProps<T> extends AriaTabPanelProps, CollectionBase<T> {
   className?: string;
 }
@@ -25,8 +27,7 @@ export function TabPanels<T extends object>(props: TabPanelsProps<T>) {
   } = useContext(TabsContext);
 
   // Parse child tab panels from props and identify the selected panel
-  const factory = (nodes: Iterable<Node<T>>) => new ListCollection(nodes);
-  const collection = useCollection({items, ...props}, factory);
+  const collection = useCollection<T>({items, ...props}, collectionFactory);
   const selectedPanel = tabListState
     ? collection.getItem(tabListState.selectedKey)
     : null;
