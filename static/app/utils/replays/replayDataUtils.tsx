@@ -154,22 +154,27 @@ export function spansFactory(spans: ReplaySpan[]) {
  * @deprecated Once the backend returns the corrected timestamps, this is not needed.
  */
 export function replayTimestamps(
+  replayRecord: ReplayRecord,
   rrwebEvents: RecordingEvent[],
   rawCrumbs: ReplayCrumb[],
   rawSpanData: ReplaySpan[]
 ) {
-  const rrwebTimestamps = rrwebEvents.map(event => event.timestamp);
+  const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
   const breadcrumbTimestamps = (
     rawCrumbs.map(rawCrumb => rawCrumb.timestamp).filter(Boolean) as number[]
-  ).map(timestamp => +new Date(timestamp * 1000));
+  )
+    .map(timestamp => +new Date(timestamp * 1000))
+    .filter(Boolean);
   const spanStartTimestamps = rawSpanData.map(span => span.startTimestamp * 1000);
   const spanEndTimestamps = rawSpanData.map(span => span.endTimestamp * 1000);
 
   return {
     startTimestampMs: Math.min(
+      replayRecord.startedAt.getTime(),
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
     ),
     endTimestampMs: Math.max(
+      replayRecord.finishedAt.getTime(),
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
     ),
   };

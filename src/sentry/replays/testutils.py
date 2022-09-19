@@ -1,7 +1,24 @@
 import datetime
 import typing
+from enum import Enum
 
 from sentry.utils import json
+
+
+# This __must__ match the EventType enum in RRWeb, for the version of rrweb that we are using.
+# https://github.com/rrweb-io/rrweb/blob/master/packages/rrweb/src/types.ts#L18-L26
+class EventType(Enum):
+    DomContentLoaded = 0
+    Load = 1
+    FullSnapshot = 2
+    IncrementalSnapshot = 3
+    Meta = 4
+    Custom = 5
+    Plugin = 6
+
+
+SegmentList = typing.Iterable[typing.Dict[str, typing.Any]]
+RRWebNode = typing.Dict[str, typing.Any]
 
 
 def assert_expected_response(
@@ -168,3 +185,145 @@ def mock_replay(
             )
         ),
     }
+
+
+def mock_segment_init(
+    timestamp: datetime.datetime,
+    href: str = "http://localhost/",
+    width: int = 800,
+    height: int = 600,
+) -> SegmentList:
+    return [
+        {
+            "type": EventType.DomContentLoaded,
+            "timestamp": int(timestamp.timestamp()),
+        },
+        {
+            "type": EventType.Load,
+            "timestamp": int(timestamp.timestamp()),
+        },
+        {
+            "type": EventType.Meta,
+            "data": {"href": href, "width": width, "height": height},
+            "timestamp": int(timestamp.timestamp()),
+        },
+    ]
+
+
+def mock_segment_fullsnapshot(timestamp: datetime.datetime, bodyChildNodes) -> SegmentList:
+    bodyNode = mock_rrweb_node(
+        tagName="body",
+        attributes={
+            "style": 'margin:0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu;',
+        },
+        childNodes=bodyChildNodes,
+    )
+    htmlNode = mock_rrweb_node(
+        tagName="html",
+        childNodes=[bodyNode],
+    )
+    return [
+        {
+            "type": EventType.FullSnapshot,
+            "data": {
+                "timestamp": int(timestamp.timestamp()),
+                "node": {
+                    "type": EventType.DomContentLoaded,
+                    "childNodes": [htmlNode],
+                },
+            },
+        }
+    ]
+
+
+def mock_segment_console(timestamp: datetime.datetime) -> SegmentList:
+    return [
+        {
+            "type": EventType.Custom,
+            "timestamp": int(timestamp.timestamp()),
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": int(timestamp.timestamp()) / 1000,
+                    "type": "default",
+                    "category": "console",
+                    "data": {
+                        "arguments": [
+                            "./src/pages/template/Header.js\n  Line 14:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value."
+                        ],
+                        "logger": "console",
+                    },
+                    "level": "warning",
+                    "message": "./src/pages/template/Header.js\n  Line 14:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value.",
+                },
+            },
+        }
+    ]
+
+
+def mock_segment_breadcrumb(timestamp: datetime.datetime, payload) -> SegmentList:
+    return [
+        {
+            "type": 5,
+            "timestamp": int(timestamp.timestamp()),
+            "data": {
+                "tag": "breadcrumb",
+                "payload": payload,
+            },
+        }
+    ]
+
+
+def mock_segment_nagivation(
+    timestamp: datetime.datetime, hrefFrom: str = "/", hrefTo: str = "/profile/"
+) -> SegmentList:
+    return mock_segment_breadcrumb(
+        timestamp,
+        {
+            "timestamp": int(timestamp.timestamp()) / 1000,
+            "type": "default",
+            "category": "navigation",
+            "data": {"from": hrefFrom, "to": hrefTo},
+        },
+    )
+
+
+__rrweb_id = 0
+
+
+def next_rrweb_id():
+    global __rrweb_id
+    __rrweb_id += 1
+    return __rrweb_id
+
+
+def mock_rrweb_node(**kwargs: typing.Dict[str, typing.Any]) -> RRWebNode:
+    id = kwargs.pop("id", next_rrweb_id())
+    tagName = kwargs.pop("tagName", None)
+    if tagName:
+        return {
+            "type": EventType.FullSnapshot,
+            "id": id,
+            "tagName": tagName,
+            "attributes": kwargs.pop("attributes", {}),
+            "childNodes": kwargs.pop("childNodes", []),
+        }
+    else:
+        return {
+            "type": EventType.IncrementalSnapshot,
+            "id": id,
+            "textContent": kwargs.pop("textContent", ""),
+        }
+
+
+def mock_rrweb_div_helloworld() -> RRWebNode:
+    return mock_rrweb_node(
+        tagName="div",
+        childNodes=[
+            mock_rrweb_node(
+                tagName="h1",
+                attributes={"style": "text-align: center;"},
+                childNodes=[mock_rrweb_node(textContent="Hello World")],
+            ),
+        ],
+    )
