@@ -61,13 +61,13 @@ export function MetricsBaselineContainer({
   const apiPayload = eventView.getEventsAPIPayload(location);
   apiPayload.query = '';
 
-  const globalSelection = eventView.getPageFilters();
-  const start = globalSelection.datetime.start
-    ? getUtcToLocalDateObject(globalSelection.datetime.start)
+  const pageFilters = eventView.getPageFilters();
+  const start = pageFilters.datetime.start
+    ? getUtcToLocalDateObject(pageFilters.datetime.start)
     : null;
 
-  const end = globalSelection.datetime.end
-    ? getUtcToLocalDateObject(globalSelection.datetime.end)
+  const end = pageFilters.datetime.end
+    ? getUtcToLocalDateObject(pageFilters.datetime.end)
     : null;
 
   const [showBaseline, setShowBaseline] = useState<boolean>(true);
@@ -90,10 +90,10 @@ export function MetricsBaselineContainer({
       start,
       end,
       yAxis,
-      environment: globalSelection.environments,
-      period: globalSelection.datetime.period,
+      environment: pageFilters.environments,
+      period: pageFilters.datetime.period,
       interval: eventView.interval,
-      project: globalSelection.projects,
+      project: pageFilters.projects,
       query: '',
       queryExtras: {dataset: DiscoverDatasets.METRICS},
     })
@@ -147,7 +147,6 @@ export function MetricsBaselineContainer({
               name: transformed.seriesName,
               data: transformed.data.map(({name, value}) => [name, value]),
               lineStyle: {type: 'dashed', width: 1, opacity: 0.5},
-              // itemStyle: {color: theme.gray200},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,
@@ -174,9 +173,9 @@ export function MetricsBaselineContainer({
     start,
     end,
     yAxis,
-    globalSelection.environments,
-    globalSelection.datetime.period,
-    globalSelection.projects,
+    pageFilters.environments,
+    pageFilters.datetime.period,
+    pageFilters.projects,
     eventView.interval,
     showBaseline,
     isRollingOut,
