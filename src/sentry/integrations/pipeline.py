@@ -1,6 +1,7 @@
-__all__ = ["IntegrationPipeline"]
+from __future__ import annotations
 
-from typing import Optional
+__all__ = ["IntegrationPipeline"]
+from typing import Any
 
 from django.db import IntegrityError
 from django.utils import timezone
@@ -9,7 +10,7 @@ from django.utils.translation import ugettext as _
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration
-from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
+from sentry.pipeline import NestedPipelineView, Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.web.helpers import render_to_response
 
@@ -35,7 +36,7 @@ class IntegrationPipeline(Pipeline):
     pipeline_name = "integration_pipeline"
     provider_manager = default_manager
 
-    def get_analytics_entry(self) -> Optional[PipelineAnalyticsEntry]:
+    def get_analytics_entry(self) -> PipelineAnalyticsEntry | None:
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
         return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
 
@@ -177,3 +178,19 @@ class IntegrationPipeline(Pipeline):
     def _dialog_response(self, data, success):
         context = {"payload": {"success": success, "data": data}}
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
+
+    def fetch_state(self, key: str | None = None) -> Any | None:
+        step_index = self.state.step_index
+        if step_index >= len(self.pipeline_views):
+            return super().fetch_state(key)
+        view = self.pipeline_views[step_index]
+        if isinstance(view, NestedPipelineView):
+            # Attempt to surface state from a nested pipeline
+            nested_pipeline = view.pipeline_cls(
+                organization=self.organization,
+                request=self.request,
+                provider_key=view.provider_key,
+                config=view.config,
+            )
+            return nested_pipeline.fetch_state(key)
+        return super().fetch_state(key)
