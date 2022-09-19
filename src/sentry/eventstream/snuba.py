@@ -392,13 +392,13 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
-        dataset = "events"
+        entity = "events"
         if is_transaction_event:
-            dataset = "transactions"
+            entity = "transactions"
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
-                f"/tests/{dataset}/eventstream",
+                f"/tests/{entity}/eventstream",
                 body=json.dumps(data),
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
