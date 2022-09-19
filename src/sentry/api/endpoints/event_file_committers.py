@@ -1,3 +1,4 @@
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,7 +32,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         """
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
-            return Response({"detail": "Event not found"}, status=404)
+            raise NotFound(detail="Event not found")
 
         if features.has("organizations:commit-context", project.organization, actor=request.user):
             group_owners = GroupOwner.objects.filter(
@@ -63,11 +64,11 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                     project, event, frame_limit=int(request.GET.get("frameLimit", 25))
                 )
             except Group.DoesNotExist:
-                return Response({"detail": "Issue not found"}, status=404)
+                raise NotFound(detail="Issue not found")
             except Release.DoesNotExist:
-                return Response({"detail": "Release not found"}, status=404)
+                raise NotFound(detail="Release not found")
             except Commit.DoesNotExist:
-                return Response({"detail": "No Commits found for Release"}, status=404)
+                raise NotFound(detail="No Commits found for Release")
 
             data = {
                 "committers": committers,
