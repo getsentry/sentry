@@ -53,8 +53,9 @@ from sentry.release_health.base import (
     SessionsQueryValue,
 )
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.snuba.metrics import get_public_name_from_mri
 from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
+from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery, OrderBy
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
@@ -180,9 +181,9 @@ class Field(ABC):
                 # in the original implementation, don't add it to output data
                 continue
             field_name = (
-                f"{metric_field.op}({metric_field.metric_name})"
+                f"{metric_field.op}({get_public_name_from_mri(metric_field.metric_mri)})"
                 if metric_field.op
-                else metric_field.metric_name
+                else get_public_name_from_mri(metric_field.metric_mri)
             )
             for input_group_key, group in input_groups.items():
                 if session_status and not self._status_filter:
@@ -280,11 +281,11 @@ class CountField(Field):
 
 class SumSessionField(CountField):
     status_to_metric_field = {
-        SessionStatus.HEALTHY: MetricField(None, SessionMetricKey.HEALTHY.value),
-        SessionStatus.ABNORMAL: MetricField(None, SessionMetricKey.ABNORMAL.value),
-        SessionStatus.CRASHED: MetricField(None, SessionMetricKey.CRASHED.value),
-        SessionStatus.ERRORED: MetricField(None, SessionMetricKey.ERRORED.value),
-        None: MetricField(None, SessionMetricKey.ALL.value),
+        SessionStatus.HEALTHY: MetricField(None, SessionMRI.HEALTHY.value),
+        SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL.value),
+        SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED.value),
+        SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED.value),
+        None: MetricField(None, SessionMRI.ALL.value),
     }
 
     def accumulate(self, old_value: Scalar, new_value: Scalar) -> Scalar:
@@ -313,11 +314,11 @@ class CountUniqueUser(CountField):
         super().__init__(name, raw_groupby, status_filter)
 
     status_to_metric_field = {
-        SessionStatus.HEALTHY: MetricField(None, SessionMetricKey.HEALTHY_USER.value),
-        SessionStatus.ABNORMAL: MetricField(None, SessionMetricKey.ABNORMAL_USER.value),
-        SessionStatus.CRASHED: MetricField(None, SessionMetricKey.CRASHED_USER.value),
-        SessionStatus.ERRORED: MetricField(None, SessionMetricKey.ERRORED_USER.value),
-        None: MetricField(None, SessionMetricKey.ALL_USER.value),
+        SessionStatus.HEALTHY: MetricField(None, SessionMRI.HEALTHY_USER.value),
+        SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL_USER.value),
+        SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED_USER.value),
+        SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED_USER.value),
+        None: MetricField(None, SessionMRI.ALL_USER.value),
     }
 
 
@@ -327,7 +328,7 @@ class DurationField(Field):
         super().__init__(name, raw_groupby, status_filter)
 
     def _get_session_status(self, metric_field: MetricField) -> Optional[SessionStatus]:
-        assert metric_field == MetricField(self.op, SessionMetricKey.DURATION.value)
+        assert metric_field == MetricField(self.op, SessionMRI.DURATION.value)
         if "session.status" in self._raw_groupby:
             return SessionStatus.HEALTHY
         return None
@@ -336,7 +337,7 @@ class DurationField(Field):
         self, raw_groupby: Sequence[str], status_filter: StatusFilter
     ) -> Sequence[MetricField]:
         if status_filter is None or SessionStatus.HEALTHY in status_filter:
-            return [MetricField(self.op, SessionMetricKey.DURATION.value)]
+            return [MetricField(self.op, SessionMRI.DURATION.value)]
 
         return []  # TODO: test if we can handle zero fields
 
@@ -354,10 +355,10 @@ class SimpleForwardingField(Field):
     """
 
     field_name_to_metric_name = {
-        "crash_rate(session)": SessionMetricKey.CRASH_RATE,
-        "crash_rate(user)": SessionMetricKey.CRASH_USER_RATE,
-        "crash_free_rate(session)": SessionMetricKey.CRASH_FREE_RATE,
-        "crash_free_rate(user)": SessionMetricKey.CRASH_FREE_USER_RATE,
+        "crash_rate(session)": SessionMRI.CRASH_RATE,
+        "crash_rate(user)": SessionMRI.CRASH_USER_RATE,
+        "crash_free_rate(session)": SessionMRI.CRASH_FREE_RATE,
+        "crash_free_rate(user)": SessionMRI.CRASH_FREE_USER_RATE,
     }
 
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
