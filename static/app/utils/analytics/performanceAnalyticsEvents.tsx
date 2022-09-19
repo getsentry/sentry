@@ -77,6 +77,14 @@ export type PerformanceEventParameters = {
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.summary.tag_explorer.cell_action': {};
+  'performance_views.summary.tag_explorer.change_page': {};
+  'performance_views.summary.tag_explorer.sort': {
+    direction?: string;
+    field?: string;
+  };
+  'performance_views.summary.tag_explorer.tag_value': {};
+  'performance_views.summary.tag_explorer.visit_tag_key': {};
   'performance_views.tags.change_aggregate_column': {
     value: string;
   };
@@ -157,6 +165,15 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.span_summary.view': 'Performance Views: Span Summary page viewed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
+  'performance_views.summary.tag_explorer.tag_value':
+    'Performance Views: Tag Explorer Value Clicked',
+  'performance_views.summary.tag_explorer.cell_action':
+    'Performance Views: Tag Explorer Cell Action Clicked',
+  'performance_views.summary.tag_explorer.visit_tag_key':
+    'Performance Views: Tag Explorer - Visit Tag Key',
+  'performance_views.summary.tag_explorer.change_page':
+    'Performance Views: Tag Explorer Change Page',
+  'performance_views.summary.tag_explorer.sort': 'Performance Views: Tag Explorer Sorted',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
