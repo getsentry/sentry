@@ -117,7 +117,7 @@ describe('useConsoleFilters', () => {
     mockBrowserHistoryPush.mockReset();
   });
 
-  it('should update the url on user input', () => {
+  it('should update the url when setters are called', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {},
