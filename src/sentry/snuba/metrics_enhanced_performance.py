@@ -29,6 +29,7 @@ def query(
     functions_acl=None,
     dry_run=False,
     transform_alias_to_input_format=False,
+    has_metrics: bool = True,
 ):
     metrics_compatible = not equations or dry_run
 
@@ -89,6 +90,7 @@ def query(
             conditions=conditions,
             functions_acl=functions_acl,
             transform_alias_to_input_format=transform_alias_to_input_format,
+            has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
 
@@ -108,6 +110,7 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[List[str]] = None,
     dry_run: bool = False,
+    has_metrics: bool = True,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -163,6 +166,7 @@ def timeseries_query(
             zerofill_results,
             comparison_delta,
             functions_acl,
+            has_metrics=has_metrics,
         )
     return SnubaTSResult()
 

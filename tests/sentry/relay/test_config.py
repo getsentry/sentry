@@ -3,6 +3,7 @@ import pytest
 from sentry.models import ProjectKey
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import get_project_config
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.safe import get_path
@@ -120,6 +121,50 @@ def test_project_config_filters_out_non_active_rules_in_dynamic_sampling(
         assert dynamic_sampling == dyn_sampling_data(active)
     else:
         assert dynamic_sampling == {"rules": []}
+
+
+@pytest.mark.django_db
+def test_project_config_with_latest_release_in_dynamic_sampling_rules(default_project):
+    """
+    Tests that dynamic sampling information return correct release instead of alias "latest"
+    """
+    dynamic_sampling_data = {
+        "rules": [
+            {
+                "sampleRate": 0.7,
+                "type": "trace",
+                "active": True,
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {"op": "glob", "name": "trace.release", "value": ["latest"]},
+                    ],
+                },
+            },
+            {
+                "sampleRate": 0.1,
+                "type": "trace",
+                "condition": {"op": "and", "inner": []},
+                "active": True,
+                "id": 1,
+            },
+        ]
+    }
+
+    default_project.update_option("sentry:dynamic_sampling", dynamic_sampling_data)
+    release = Factories.create_release(
+        project=default_project,
+        version="backend@22.9.0.dev0+8291ce47cf95d8c14d70af8fde7449b61319c1a4",
+    )
+    with Feature({"organizations:server-side-sampling": True}):
+        cfg = get_project_config(default_project)
+
+    cfg = cfg.to_dict()
+    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
+    assert dynamic_sampling["rules"][0]["condition"]["inner"] == [
+        {"op": "glob", "name": "trace.release", "value": [release.version]}
+    ]
+    assert dynamic_sampling["rules"][1]["condition"]["inner"] == []
 
 
 @pytest.mark.django_db
