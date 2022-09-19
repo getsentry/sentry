@@ -38,7 +38,7 @@ class PlatformIntegrationSetup extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      installed: true,
+      installed: false,
       integrations: {providers: []},
       project: null,
     };
