@@ -1235,6 +1235,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsTestCase, TestCase):
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
+        "measurements.inp": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
         "spans.http": "metrics_distributions",

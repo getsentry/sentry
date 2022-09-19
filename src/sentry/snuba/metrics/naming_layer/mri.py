@@ -77,6 +77,7 @@ class TransactionMRI(Enum):
     MEASUREMENTS_APP_START_WARM = "d:transactions/measurements.app_start_warm@millisecond"
     MEASUREMENTS_CLS = "d:transactions/measurements.cls@none"
     MEASUREMENTS_FID = "d:transactions/measurements.fid@millisecond"
+    MEASUREMENTS_INP = "d:transactions/measurements.inp@millisecond"
     MEASUREMENTS_FP = "d:transactions/measurements.fp@millisecond"
     MEASUREMENTS_FRAMES_FROZEN = "d:transactions/measurements.frames_frozen@none"
     MEASUREMENTS_FRAMES_FROZEN_RATE = "d:transactions/measurements.frames_frozen_rate@ratio"

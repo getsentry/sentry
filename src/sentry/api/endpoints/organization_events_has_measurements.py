@@ -18,6 +18,7 @@ MEASUREMENT_TYPES = {
         "measurements.fcp",
         "measurements.lcp",
         "measurements.fid",
+        "measurements.inp",
         "measurements.cls",
     ],
     "mobile": [

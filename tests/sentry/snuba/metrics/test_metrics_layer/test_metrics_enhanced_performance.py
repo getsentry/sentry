@@ -802,6 +802,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 125,
             ),
             (
+                {"measurement_rating": "meh", "transaction": "foo_transaction"},
+                TransactionMetricKey.MEASUREMENTS_INP.value,
+                TransactionMRI.MEASUREMENTS_INP.value,
+                300,
+            ),
+            (
                 {"measurement_rating": "good", "transaction": "foo_transaction"},
                 TransactionMetricKey.MEASUREMENTS_CLS.value,
                 TransactionMRI.MEASUREMENTS_CLS.value,
@@ -856,6 +862,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 ),
                 MetricField(
                     op="count_web_vitals",
+                    metric_mri=TransactionMRI.MEASUREMENTS_INP.value,
+                    params={"measurement_rating": "meh"},
+                    alias="count_web_vitals_measurements_inp_meh",
+                ),
+                MetricField(
+                    op="count_web_vitals",
                     metric_mri=TransactionMRI.MEASUREMENTS_CLS.value,
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_cls_good",
@@ -888,12 +900,14 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         assert group_totals["count_web_vitals_measurements_fcp_meh"] == 1
         assert group_totals["count_web_vitals_measurements_cls_good"] == 1
         assert group_totals["count_web_vitals_measurements_fid_meh"] == 1
+        assert group_totals["count_web_vitals_measurements_inp_meh"] == 1
 
         assert data["meta"] == sorted(
             [
                 {"name": "count_web_vitals_measurements_cls_good", "type": "UInt64"},
                 {"name": "count_web_vitals_measurements_fcp_meh", "type": "UInt64"},
                 {"name": "count_web_vitals_measurements_fid_meh", "type": "UInt64"},
+                {"name": "count_web_vitals_measurements_inp_meh", "type": "UInt64"},
                 {"name": "count_web_vitals_measurements_fp_good", "type": "UInt64"},
                 {"name": "count_web_vitals_measurements_lcp_good", "type": "UInt64"},
                 {"name": "transaction", "type": "string"},

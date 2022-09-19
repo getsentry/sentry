@@ -898,6 +898,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "p90(measurements.fcp)",
                 "p95(measurements.cls)",
                 "p99(measurements.fid)",
+                "p99(measurements.inp)",
             ],
         )
         self.assertCountEqual(
@@ -912,6 +913,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                         "measurements.fcp",
                         "measurements.cls",
                         "measurements.fid",
+                        "measurements.inp",
                     ],
                 ),
             ],
@@ -924,6 +926,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 _metric_percentile_definition(self.organization.id, "90", "measurements.fcp"),
                 _metric_percentile_definition(self.organization.id, "95", "measurements.cls"),
                 _metric_percentile_definition(self.organization.id, "99", "measurements.fid"),
+                _metric_percentile_definition(self.organization.id, "99", "measurements.inp"),
             ],
         )
 

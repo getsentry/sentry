@@ -63,6 +63,10 @@ VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
         "poor": 300,
         "meh": 100,
     },
+    "inp": {
+        "poor": 500,
+        "meh": 200,
+    },
     "cls": {
         "poor": 0.25,
         "meh": 0.1,
@@ -209,6 +213,7 @@ METRICS_MAP = {
     "measurements.cls": "d:transactions/measurements.cls@none",
     "measurements.fcp": "d:transactions/measurements.fcp@millisecond",
     "measurements.fid": "d:transactions/measurements.fid@millisecond",
+    "measurements.inp": "d:transactions/measurements.inp@millisecond",
     "measurements.fp": "d:transactions/measurements.fp@millisecond",
     "measurements.frames_frozen": "d:transactions/measurements.frames_frozen@none",
     "measurements.frames_slow": "d:transactions/measurements.frames_slow@none",

@@ -157,6 +157,7 @@ class ArithmeticVisitor(NodeVisitor):
         "measurements.fcp",
         "measurements.lcp",
         "measurements.fid",
+        "measurements.inp",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
     }

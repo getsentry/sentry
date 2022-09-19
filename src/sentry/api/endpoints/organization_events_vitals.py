@@ -15,6 +15,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
     VITALS = {
         "measurements.lcp": {"thresholds": [0, 2500, 4000]},
         "measurements.fid": {"thresholds": [0, 100, 300]},
+        "measurements.inp": {"thresholds": [0, 200, 500]},
         "measurements.cls": {"thresholds": [0, 0.1, 0.25]},
         "measurements.fcp": {"thresholds": [0, 1000, 3000]},
         "measurements.fp": {"thresholds": [0, 1000, 3000]},

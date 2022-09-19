@@ -65,6 +65,7 @@ class TransactionMetricKey(Enum):
     MEASUREMENTS_APP_START_WARM = "transaction.measurements.app_start_warm"
     MEASUREMENTS_CLS = "transaction.measurements.cls"
     MEASUREMENTS_FID = "transaction.measurements.fid"
+    MEASUREMENTS_INP = "transaction.measurements.inp"
     MEASUREMENTS_FP = "transaction.measurements.fp"
     MEASUREMENTS_FRAMES_FROZEN = "transaction.measurements.frames_frozen"
     MEASUREMENTS_FRAMES_FROZEN_RATE = "transaction.measurements.frames_frozen_rate"

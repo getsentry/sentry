@@ -2972,6 +2972,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "measurements.fcp",
                 "measurements.lcp",
                 "measurements.fid",
+                "measurements.inp",
                 "measurements.cls",
                 "measurements.does_not_exist",
             ],
@@ -2985,6 +2986,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["measurements.fcp"] == event_data["measurements"]["fcp"]["value"]
         assert data[0]["measurements.lcp"] == event_data["measurements"]["lcp"]["value"]
         assert data[0]["measurements.fid"] == event_data["measurements"]["fid"]["value"]
+        assert data[0]["measurements.inp"] == event_data["measurements"]["inp"]["value"]
         assert data[0]["measurements.cls"] == event_data["measurements"]["cls"]["value"]
         assert data[0]["measurements.does_not_exist"] is None
 
