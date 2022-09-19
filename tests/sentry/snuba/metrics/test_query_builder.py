@@ -289,9 +289,9 @@ def test_build_snuba_query(mock_now, mock_now2):
         org_id=1,
         project_ids=[1],
         select=[
-            MetricField("sum", "sentry.sessions.session"),
-            MetricField("count_unique", "sentry.sessions.user"),
-            MetricField("p95", "sentry.sessions.session.duration"),
+            MetricField("sum", SessionMRI.SESSION.value),
+            MetricField("count_unique", SessionMRI.USER.value),
+            MetricField("p95", SessionMRI.RAW_DURATION.value),
         ],
         start=MOCK_NOW - timedelta(days=90),
         end=MOCK_NOW,
