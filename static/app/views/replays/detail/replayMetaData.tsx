@@ -1,6 +1,7 @@
 import {ComponentProps, Fragment, useCallback} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {stringify} from 'query-string';
 
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -26,6 +27,14 @@ function ReplayMetaData({replayRecord}: Props) {
   const {projects} = useProjects();
   const [slug] = replaySlug.split(':');
 
+  const showErrorsTabHref =
+    '?' +
+    stringify({
+      ...query,
+      t_main: 'console',
+      consoleLogLevel: 'error',
+      consoleSearch: undefined,
+    });
   const showErrorsTab = useCallback(() => {
     browserHistory.push({
       pathname,
@@ -77,7 +86,7 @@ function ReplayMetaData({replayRecord}: Props) {
         {replayRecord ? (
           <Fragment>
             <ErrorTag
-              to="/"
+              to={showErrorsTabHref}
               onClick={e => {
                 e.preventDefault();
                 showErrorsTab();
@@ -88,7 +97,7 @@ function ReplayMetaData({replayRecord}: Props) {
               {replayRecord?.countErrors}
             </ErrorTag>
             <a
-              href="/"
+              href={showErrorsTabHref}
               onClick={e => {
                 e.preventDefault();
                 showErrorsTab();
