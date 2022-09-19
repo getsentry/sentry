@@ -1376,13 +1376,18 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
         self.addCleanup(patcher.stop)
 
     def drop_replays(self):
-        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+        assert (
+            requests.post(settings.SENTRY_SNUBA + "/tests/entities/replays/insert").status_code
+            == 200
+        )
 
     def store_replays(self, replays):
         assert (
             len(replays) >= 2
         ), "You need to store at least 2 replay events for the replay to be considered valid"
-        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=replays)
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
+        )
         assert response.status_code == 200
 
     def store_replay_segments(
