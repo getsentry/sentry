@@ -8,8 +8,11 @@ import {Client} from 'sentry/api';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {EventsStats, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import theme from 'sentry/utils/theme';
@@ -75,6 +78,8 @@ export function MetricsBaselineContainer({
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
   >(undefined);
+  const [processedTotal, setProcessedTotal] = useState<number | undefined>(undefined);
+  const [loadingTotals, setLoadingTotals] = useState<boolean>(true);
 
   useEffect(() => {
     let shouldCancelRequest = false;
@@ -181,6 +186,56 @@ export function MetricsBaselineContainer({
     isRollingOut,
   ]);
 
+  useEffect(() => {
+    let shouldCancelRequest = false;
+
+    if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
+      setProcessedTotal(undefined);
+      setLoadingTotals(false);
+      return undefined;
+    }
+
+    doDiscoverQuery<EventsTableData>(api, `/organizations/${organization.slug}/events/`, {
+      ...eventView.generateQueryStringObject(),
+      field: ['count()'],
+      query: '',
+      sort: [],
+      referrer: 'api.discover.processed-baseline-total',
+      ...{dataset: DiscoverDatasets.METRICS},
+    })
+      .then(response => {
+        if (shouldCancelRequest) {
+          return;
+        }
+
+        const [data] = response;
+        const total = data.data[0]['count()'] as string;
+
+        if (defined(total)) {
+          setProcessedTotal(parseInt(total, 10));
+          setLoadingTotals(false);
+        }
+      })
+      .catch(() => {
+        if (shouldCancelRequest) {
+          return;
+        }
+        setMetricsCompatible(false);
+        setLoadingTotals(false);
+        setProcessedTotal(undefined);
+      });
+    return () => {
+      shouldCancelRequest = true;
+    };
+  }, [
+    disableProcessedBaselineToggle,
+    api,
+    organization,
+    eventView,
+    showBaseline,
+    isRollingOut,
+  ]);
+
   return (
     <ResultsChart
       organization={organization}
@@ -191,8 +246,10 @@ export function MetricsBaselineContainer({
       disableProcessedBaselineToggle={
         disableProcessedBaselineToggle || !metricsCompatible
       }
+      processedTotal={processedTotal}
       showBaseline={showBaseline}
       setShowBaseline={setShowBaseline}
+      loadingProcessedTotals={loadingTotals}
       {...props}
     />
   );
