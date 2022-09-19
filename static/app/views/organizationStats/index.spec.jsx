@@ -383,9 +383,7 @@ describe('OrganizationStats', function () {
       routerContext
     );
 
-    expect(wrapper.text()).toContain(
-      'Manage your transaction usage in Server-Side Sampling'
-    );
+    expect(wrapper.text()).toContain('Manage your transaction usage in Dynamic Sampling');
   });
 });
 

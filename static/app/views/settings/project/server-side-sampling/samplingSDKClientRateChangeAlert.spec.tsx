@@ -54,7 +54,7 @@ describe('Server-Side Sampling - Client Rate Change Alert', function () {
 
     expect(
       screen.queryByText(
-        'To allow more metrics to be processed, we suggest changing your client(SDK) sample rate.'
+        'To allow more transactions to be processed, we suggest changing your client(SDK) sample rate.'
       )
     ).not.toBeInTheDocument();
   });
@@ -73,7 +73,7 @@ describe('Server-Side Sampling - Client Rate Change Alert', function () {
 
     expect(
       screen.getByText(
-        'To allow more metrics to be processed, we suggest changing your client(SDK) sample rate.'
+        'To allow more transactions to be processed, we suggest changing your client(SDK) sample rate.'
       )
     ).toBeInTheDocument();
   });

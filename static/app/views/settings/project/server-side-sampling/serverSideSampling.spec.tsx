@@ -64,11 +64,9 @@ describe('Server-Side Sampling', function () {
       <TestComponent router={router} organization={organization} project={project} />
     );
 
-    expect(
-      screen.getByRole('heading', {name: /Server-Side Sampling/})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
 
-    expect(screen.getByText(/enhance the performance monitoring/i)).toBeInTheDocument();
+    expect(screen.getByText(/Improve the accuracy of your/)).toBeInTheDocument();
 
     // Assert that project breakdown is there
     expect(await screen.findByText(samplingBreakdownTitle)).toBeInTheDocument();
@@ -213,7 +211,7 @@ describe('Server-Side Sampling', function () {
 
     expect(
       within(recommendedSdkUpgradesAlert).getByText(
-        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 
