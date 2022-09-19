@@ -22,6 +22,12 @@ import {
 } from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
+import {
+  N_PLUS_ONE_RESOURCE_LINKS,
+  N_PLUS_ONE_RESOURCES_DESCRIPTION,
+} from './interfaces/performance/constants';
+import {Resources} from './interfaces/performance/resources';
+
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   event: Event;
@@ -167,6 +173,13 @@ function EventEntry({
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
+        />
+      );
+    case EntryType.RESOURCES:
+      return (
+        <Resources
+          description={N_PLUS_ONE_RESOURCES_DESCRIPTION}
+          links={N_PLUS_ONE_RESOURCE_LINKS}
         />
       );
     default:
