@@ -43,7 +43,6 @@ describe('SuggestedOwners', function () {
 
   afterEach(function () {
     Client.clearMockResponses();
-    TeamStore.teardown();
   });
 
   it('Renders suggested owners', async function () {
