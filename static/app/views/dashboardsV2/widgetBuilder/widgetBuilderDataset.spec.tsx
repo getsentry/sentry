@@ -240,6 +240,28 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility/',
+      method: 'GET',
+      body: {
+        incompatible_projects: [],
+        compatible_projects: [1],
+        dynamic_sampling_projects: [1],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
+      method: 'GET',
+      body: {
+        sum: {
+          metrics: 988803,
+          metrics_null: 0,
+          metrics_unparam: 132,
+        },
+      },
+    });
+
     TagStore.reset();
   });
 
@@ -873,6 +895,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 
@@ -924,6 +948,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 
