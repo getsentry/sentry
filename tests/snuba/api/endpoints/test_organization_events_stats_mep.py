@@ -7,10 +7,12 @@ from django.urls import reverse
 from sentry import options
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
     MetricsEnhancedPerformanceTestCase
 ):
@@ -576,7 +578,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         assert response.status_code == 200
         meta = response.data["meta"]
-        print(meta)
         assert meta["fields"] == {"time": "date", "p99_measurements_custom": "size"}
         assert meta["units"] == {"time": None, "p99_measurements_custom": "kibibyte"}
 

@@ -54,12 +54,14 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupType
 from sentry.utils import json
 
 
 @apply_feature_flag_on_cls("organizations:release-committer-assignees")
+@region_silo_test
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -455,6 +457,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
+    def test_perf_issue(self):
+        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
+        self.login_as(user=self.user)
+        with self.feature(
+            [
+                "organizations:issue-search-allow-postgres-only-search",
+                "organizations:performance-issues",
+            ]
+        ):
+            response = self.get_success_response(query="issue.category:performance")
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(perf_group.id)
+
     def test_lookup_by_event_id(self):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
@@ -587,7 +602,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": iso_format(before_now(seconds=2))},
             project_id=project.id,
         )
         event2 = self.store_event(
@@ -1627,20 +1642,29 @@ class GroupListTest(APITestCase, SnubaTestCase):
             type=GroupOwnerType.OWNERSHIP_RULE.value,
             team=self.team,
         )
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.CODEOWNERS.value,
+            team=self.team,
+        )
         response = self.get_response(sort_by="date", limit=10, query=query, expand="owners")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["owners"] is not None
-        assert len(response.data[0]["owners"]) == 2
+        assert len(response.data[0]["owners"]) == 3
         assert response.data[0]["owners"][0]["owner"] == f"user:{self.user.id}"
         assert response.data[0]["owners"][1]["owner"] == f"team:{self.team.id}"
+        assert response.data[0]["owners"][2]["owner"] == f"team:{self.team.id}"
         assert (
             response.data[0]["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
         )
         assert (
             response.data[0]["owners"][1]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.OWNERSHIP_RULE]
         )
+        assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
@@ -1668,7 +1692,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", expand="inbox", collapse="stats"
@@ -1689,7 +1712,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="lifetime"
@@ -1709,7 +1731,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse="filtered"
@@ -1729,7 +1750,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["filtered", "lifetime"]
@@ -1749,7 +1769,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", collapse=["base"]
@@ -1918,6 +1937,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert owners[1]["type"] == "releaseCommit"
 
 
+@region_silo_test
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "put"
@@ -3222,6 +3242,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
 
+@region_silo_test
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"
@@ -3399,7 +3420,8 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
+        with self.feature("organizations:performance-issues"):
+            response = self.get_response(qs_params={"query": ""})
         assert response.status_code == 400
 
         for group in groups:

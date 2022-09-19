@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.assistant import manager
 from sentry.models import AssistantActivity
 
@@ -46,6 +46,7 @@ class AssistantSerializer(serializers.Serializer):
         return attrs
 
 
+@pending_silo_endpoint
 class AssistantEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 

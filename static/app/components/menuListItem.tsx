@@ -233,7 +233,7 @@ export const InnerWrap = styled('div', {
   &:hover {
     color: ${getTextColor};
   }
-  ${p => p.disabled && `cursor: initial;`}
+  ${p => p.disabled && `cursor: default;`}
 
   ${p =>
     p.isFocused &&

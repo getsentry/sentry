@@ -1,6 +1,7 @@
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -11,6 +12,7 @@ class UserNotificationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@control_silo_test
 class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
     def test_lookup_self(self):
         self.get_success_response("me")
@@ -73,6 +75,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
         assert response.data.get("subscribeByDefault") is False
 
 
+@control_silo_test
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 

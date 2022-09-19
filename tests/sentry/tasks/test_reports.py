@@ -429,7 +429,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
 
 
 class ReportAcceptanceTest(OutcomesSnubaTest, SnubaTestCase):
-    @mock.patch("sentry.tasks.reports.backend", DummyReportBackend())
+    @mock.patch("sentry.tasks.reports.redis_report_backend", DummyReportBackend())
     def test_deliver_organization_user_report(self):
         now = timezone.now()
         seven_days = timedelta(days=7)

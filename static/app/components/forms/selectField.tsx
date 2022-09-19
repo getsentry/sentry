@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {OptionsType, ValueType} from 'react-select';
+import {OptionsType, OptionTypeBase, ValueType} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
@@ -7,7 +7,7 @@ import SelectControl, {ControlProps} from 'sentry/components/forms/selectControl
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
 
-export interface SelectFieldProps<OptionType>
+export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,
     Omit<ControlProps<OptionType>, 'onChange'> {
   /**
@@ -35,7 +35,7 @@ export interface SelectFieldProps<OptionType>
   inFieldLabel?: string;
 }
 
-function getChoices<T>(props: SelectFieldProps<T>): Choices {
+function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
     return choices(props);
@@ -50,7 +50,9 @@ function getChoices<T>(props: SelectFieldProps<T>): Choices {
 /**
  * Required to type guard for OptionsType<T> which is a readonly Array
  */
-function isArray<T>(maybe: T | OptionsType<T>): maybe is OptionsType<T> {
+function isArray<T extends OptionTypeBase>(
+  maybe: T | OptionsType<T>
+): maybe is OptionsType<T> {
   return Array.isArray(maybe);
 }
 

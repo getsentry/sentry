@@ -24,6 +24,17 @@ export function getMatchFieldPlaceholder(category: SamplingInnerName) {
   }
 }
 
+export function getMatchFieldAriaLabel(category: SamplingInnerName) {
+  switch (category) {
+    case SamplingInnerName.TRACE_RELEASE:
+      return t('Search or add a release');
+    case SamplingInnerName.TRACE_ENVIRONMENT:
+      return t('Search or add an environment');
+    default:
+      return undefined;
+  }
+}
+
 export function getNewCondition(condition: Condition): SamplingConditionLogicalInner {
   const newValue = (condition.match ?? '')
     .split('\n')

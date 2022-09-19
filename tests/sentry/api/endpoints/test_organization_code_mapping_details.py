@@ -3,8 +3,10 @@ from django.urls import reverse
 from sentry.api.serializers import serialize
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationCodeMappingDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-code-mapping-details"
 

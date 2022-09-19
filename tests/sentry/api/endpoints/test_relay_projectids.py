@@ -8,6 +8,7 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, safe
 
 
@@ -31,6 +32,7 @@ def _get_all_keys(config):
                 yield key
 
 
+@region_silo_test
 class RelayProjectIdsEndpointTest(APITestCase):
     _date_regex = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z$")
 

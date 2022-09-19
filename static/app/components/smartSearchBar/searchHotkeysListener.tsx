@@ -14,10 +14,8 @@ const SearchHotkeysListener = ({
       .filter(shortcut => typeof shortcut.hotkeys !== 'undefined')
       .map(shortcut => ({
         match: shortcut.hotkeys?.actual ?? [],
-        callback: e => {
-          e.preventDefault();
-          runShortcut(shortcut);
-        },
+        includeInputs: true,
+        callback: () => runShortcut(shortcut),
       })),
     [visibleShortcuts]
   );

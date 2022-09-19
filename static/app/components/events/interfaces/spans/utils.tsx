@@ -21,6 +21,7 @@ import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 import {Theme} from 'sentry/utils/theme';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
+import SpanTreeModel from './spanTreeModel';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -887,7 +888,7 @@ export function getCumulativeAlertLevelFromErrors(
   return ERROR_LEVEL_TO_ALERT_TYPE[highestErrorLevel];
 }
 
-// Maps the six known error levels to one of three Alert component types
+// Maps the known error levels to an Alert component types
 const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert']> = {
   fatal: 'error',
   error: 'error',
@@ -895,6 +896,7 @@ const ERROR_LEVEL_TO_ALERT_TYPE: Record<TraceError['level'], keyof Theme['alert'
   warning: 'warning',
   sample: 'info',
   info: 'info',
+  unknown: 'muted',
 };
 
 // Allows sorting errors according to their level of severity
@@ -905,6 +907,7 @@ const ERROR_LEVEL_WEIGHTS: Record<TraceError['level'], number> = {
   warning: 3,
   sample: 2,
   info: 1,
+  unknown: 0,
 };
 
 /**
@@ -954,4 +957,16 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     start: newTimestamps.start.join('.'),
     end: newTimestamps.end.join('.'),
   };
+}
+
+export function groupShouldBeHidden(
+  group: SpanTreeModel[],
+  focusedSpanIDs: Set<string> | undefined
+) {
+  if (!focusedSpanIDs) {
+    return false;
+  }
+
+  // If none of the spans in this group are focused, the group should be hidden
+  return !group.some(spanModel => focusedSpanIDs.has(spanModel.span.span_id));
 }

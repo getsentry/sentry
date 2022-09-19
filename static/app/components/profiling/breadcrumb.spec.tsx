@@ -1,27 +1,19 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 
 describe('Breadcrumb', function () {
-  let location, organization;
-
-  beforeEach(function () {
-    location = TestStubs.location();
-    const context = initializeOrg();
-    organization = context.organization;
-  });
-
   it('renders the profiling link', function () {
+    const organization = TestStubs.Organization();
     render(
       <Breadcrumb
-        location={location}
         organization={organization}
         trails={[
-          {type: 'landing'},
+          {type: 'landing', payload: {query: {}}},
           {
             type: 'flamechart',
             payload: {
+              query: {},
               transaction: 'foo',
               profileId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               projectSlug: 'bar',

@@ -18,7 +18,7 @@ class SiloMode(Enum):
 
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
-    CUSTOMER = "CUSTOMER"
+    REGION = "REGION"
 
     @classmethod
     def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
@@ -41,8 +41,6 @@ class SiloLimit(abc.ABC):
 
     def __init__(self, *modes: SiloMode) -> None:
         self.modes = frozenset(modes)
-        if not self.modes:
-            raise ValueError
 
     @abc.abstractmethod
     def __call__(self, decorated_object: Any) -> Any:
@@ -67,6 +65,14 @@ class SiloLimit(abc.ABC):
         """
         raise NotImplementedError
 
+    def is_available(self, extra_modes: Iterable[SiloMode] = ()) -> bool:
+        current_mode = SiloMode.get_current_mode()
+        return (
+            current_mode == SiloMode.MONOLITH
+            or current_mode in self.modes
+            or current_mode in extra_modes
+        )
+
     def create_override(
         self,
         original_method: Callable[..., Any],
@@ -82,21 +88,20 @@ class SiloLimit(abc.ABC):
         :return: the conditional method object
         """
 
-        available_modes = frozenset(itertools.chain([SiloMode.MONOLITH], self.modes, extra_modes))
-
         def override(*args: Any, **kwargs: Any) -> Any:
             # It's important to do this check inside the override, so that tests
             # using `override_settings` or a similar context can change the value of
             # settings.SILO_MODE effectively. Otherwise, availability would be
             # immutably determined when the decorator is first evaluated.
-            current_mode = SiloMode.get_current_mode()
-            is_available = current_mode in available_modes
+            is_available = self.is_available(extra_modes)
 
             if is_available:
                 return original_method(*args, **kwargs)
             else:
                 handler = self.handle_when_unavailable(
-                    original_method, current_mode, available_modes
+                    original_method,
+                    SiloMode.get_current_mode(),
+                    itertools.chain([SiloMode.MONOLITH], self.modes, extra_modes),
                 )
                 return handler(*args, **kwargs)
 

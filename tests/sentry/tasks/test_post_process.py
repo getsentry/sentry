@@ -21,6 +21,7 @@ from sentry.models import (
     ProjectOwnership,
     ProjectTeam,
 )
+from sentry.models.activity import ActivityIntegration
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.rules import init_registry
 from sentry.tasks.merge import merge_groups
@@ -29,6 +30,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 
@@ -49,6 +51,7 @@ class EventMatcher:
         return matching_id
 
 
+@region_silo_test
 class PostProcessGroupTest(TestCase):
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.tasks.servicehooks.process_service_hook")
@@ -647,6 +650,7 @@ class PostProcessGroupTest(TestCase):
             )
 
 
+@region_silo_test
 class PostProcessGroupAssignmentTest(TestCase):
     def make_ownership(self, extra_rules=None):
         self.user_2 = self.create_user()
@@ -693,6 +697,14 @@ class PostProcessGroupAssignmentTest(TestCase):
         assert len(owners) == 2
         assert {(self.user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
+        }
+        activity = Activity.objects.filter(group=event.group).first()
+        assert activity.data == {
+            "assignee": str(self.user.id),
+            "assigneeEmail": self.user.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
+            "rule": str(Rule(Matcher("path", "src/app/*"), [Owner("team", self.team.name)])),
         }
 
     def test_owner_assignment_extra_groups(self):

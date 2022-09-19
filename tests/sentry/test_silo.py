@@ -1,6 +1,5 @@
 import django.apps
 import django.urls
-import pytest
 
 from sentry.api.base import Endpoint
 from sentry.testutils import TestCase
@@ -9,13 +8,12 @@ from sentry.testutils import TestCase
 class SiloLimitCoverageTest(TestCase):
     """Check that all subclasses have expected SiloLimit decorators."""
 
-    @pytest.mark.skip  # Remove this when 100% coverage is expected
     def test_all_models_have_silo_limit_decorator(self):
         undecorated_model_classes = []
 
         for model_class in django.apps.apps.get_models():
             if model_class._meta.app_label == "sentry" and not hasattr(
-                model_class._meta, "_ModelSiloLimit__silo_limit"
+                model_class._meta, "silo_limit"
             ):
                 undecorated_model_classes.append(model_class)
 
@@ -24,7 +22,6 @@ class SiloLimitCoverageTest(TestCase):
             f"{', '.join(m.__name__ for m in undecorated_model_classes)}"
         )
 
-    @pytest.mark.skip  # Remove this when 100% coverage is expected
     def test_all_endpoints_have_silo_mode_decorator(self):
         undecorated_endpoint_classes = []
 
@@ -34,7 +31,7 @@ class SiloLimitCoverageTest(TestCase):
             if (
                 view_class
                 and issubclass(view_class, Endpoint)
-                and not hasattr(view_class, "__silo_limit")
+                and not hasattr(view_class, "silo_limit")
             ):
                 undecorated_endpoint_classes.append(view_class)
 

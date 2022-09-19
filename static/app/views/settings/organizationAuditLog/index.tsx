@@ -5,16 +5,15 @@ import {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {CursorHandler} from 'sentry/components/pagination';
-import {AuditLog, Organization} from 'sentry/types';
+import {AuditLog} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import AuditLogList from './auditLogList';
 
 type Props = {
   location: Location;
-  organization: Organization;
 };
 
 type State = {
@@ -26,7 +25,7 @@ type State = {
   currentCursor?: string;
 };
 
-function OrganizationAuditLog({location, organization}: Props) {
+function OrganizationAuditLog({location}: Props) {
   const [state, setState] = useState<State>({
     entryList: [],
     entryListPageLinks: null,
@@ -34,6 +33,7 @@ function OrganizationAuditLog({location, organization}: Props) {
     eventTypes: [],
     isLoading: true,
   });
+  const organization = useOrganization();
   const api = useApi();
 
   const handleCursor: CursorHandler = resultsCursor => {
@@ -118,4 +118,4 @@ function OrganizationAuditLog({location, organization}: Props) {
   );
 }
 
-export default withOrganization(OrganizationAuditLog);
+export default OrganizationAuditLog;

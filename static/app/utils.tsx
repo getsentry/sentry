@@ -231,7 +231,7 @@ export function parseRepo<T>(repo: T): T {
  * Converts a multi-line textarea input value into an array,
  * eliminating empty lines
  */
-export function extractMultilineFields(value: string): Array<string> {
+export function extractMultilineFields(value: string): string[] {
   return value
     .split('\n')
     .map(f => trim(f))
@@ -241,7 +241,7 @@ export function extractMultilineFields(value: string): Array<string> {
 /**
  * If the value is of type Array, converts it to type string, keeping the line breaks, if there is any
  */
-export function convertMultilineFieldValue<T extends string | Array<string>>(
+export function convertMultilineFieldValue<T extends string | string[]>(
   value: T
 ): string {
   if (Array.isArray(value)) {

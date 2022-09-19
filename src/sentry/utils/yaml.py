@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 from functools import partial
 
-from yaml import load as _load
+import yaml
 
-try:
-    # Try to load bindings with libyaml if available
-    from yaml import CSafeLoader as SafeLoader
-except ImportError:
-    from yaml import SafeLoader
+# Try to load bindings with libyaml if available
+SafeLoader: type[yaml.CSafeLoader] | type[yaml.SafeLoader]
+SafeLoader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
-safe_load = partial(_load, Loader=SafeLoader)
+safe_load = partial(yaml.load, Loader=SafeLoader)

@@ -2,9 +2,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
-import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, TagCollection} from 'sentry/types';
+import {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -14,6 +13,7 @@ import {
   isLegalYAxisType,
   SPAN_OP_BREAKDOWN_FIELDS,
   stripDerivedMetricsPrefix,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {
@@ -28,6 +28,8 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
+
+import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -86,15 +88,47 @@ export function mapErrors(
   return update;
 }
 
+export const generateOrderOptions = ({
+  aggregates,
+  columns,
+  widgetType,
+}: {
+  aggregates: string[];
+  columns: string[];
+  widgetType: WidgetType;
+}): SelectValue<string>[] => {
+  const isRelease = widgetType === WidgetType.RELEASE;
+  const options: SelectValue<string>[] = [];
+  let equations = 0;
+  (isRelease
+    ? [...aggregates.map(stripDerivedMetricsPrefix), ...columns]
+    : [...aggregates, ...columns]
+  )
+    .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => (isRelease ? !TAG_SORT_DENY_LIST.includes(field) : true))
+    .forEach(field => {
+      let alias;
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+      }
+
+      options.push({label, value: alias ?? field});
+    });
+
+  return options;
+};
+
 export function normalizeQueries({
   displayType,
   queries,
   widgetType,
-  widgetBuilderNewDesign = false,
 }: {
   displayType: DisplayType;
   queries: Widget['queries'];
-  widgetBuilderNewDesign?: boolean;
   widgetType?: Widget['widgetType'];
 }): Widget['queries'] {
   const isTimeseriesChart = getIsTimeseriesChart(displayType);
@@ -113,69 +147,65 @@ export function normalizeQueries({
     queries = queries.slice(0, 3);
   }
 
-  if (widgetBuilderNewDesign) {
-    queries = queries.map(query => {
-      const {fields = [], columns} = query;
+  queries = queries.map(query => {
+    const {fields = [], columns} = query;
 
-      if (isTabularChart) {
-        // If the groupBy field has values, port everything over to the columnEditCollect field.
-        query.fields = [...new Set([...fields, ...columns])];
-      } else {
-        // If columnEditCollect has field values , port everything over to the groupBy field.
-        query.fields = fields.filter(field => !columns.includes(field));
-      }
+    if (isTabularChart) {
+      // If the groupBy field has values, port everything over to the columnEditCollect field.
+      query.fields = [...new Set([...fields, ...columns])];
+    } else {
+      // If columnEditCollect has field values , port everything over to the groupBy field.
+      query.fields = fields.filter(field => !columns.includes(field));
+    }
 
-      if (
-        getIsTimeseriesChart(displayType) &&
-        !query.columns.filter(column => !!column).length
-      ) {
-        // The orderby is only applicable for timeseries charts when there's a
-        // grouping selected, if all fields are empty then we also reset the orderby
-        query.orderby = '';
-        return query;
-      }
-
-      const queryOrderBy =
-        widgetType === WidgetType.RELEASE
-          ? stripDerivedMetricsPrefix(queries[0].orderby)
-          : queries[0].orderby;
-      const rawOrderBy = trimStart(queryOrderBy, '-');
-
-      const resetOrderBy =
-        // Raw Equation from Top N only applies to timeseries
-        (isTabularChart && isEquation(rawOrderBy)) ||
-        // Not contained as tag, field, or function
-        (!isEquation(rawOrderBy) &&
-          !isEquationAlias(rawOrderBy) &&
-          ![...query.columns, ...query.aggregates].includes(rawOrderBy)) ||
-        // Equation alias and not contained
-        (isEquationAlias(rawOrderBy) &&
-          getEquationAliasIndex(rawOrderBy) >
-            getNumEquations([...query.columns, ...query.aggregates]) - 1);
-      const orderBy =
-        (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
-        (widgetType === WidgetType.ISSUE
-          ? queryOrderBy ?? IssueSortOptions.DATE
-          : generateOrderOptions({
-              widgetType: widgetType ?? WidgetType.DISCOVER,
-              widgetBuilderNewDesign,
-              columns: queries[0].columns,
-              aggregates: queries[0].aggregates,
-            })[0].value);
-
-      // A widget should be descending if:
-      // - There is no orderby, so we're defaulting to desc
-      // - Not an issues widget since issues doesn't support descending and
-      //   the original ordering was descending
-      const isDescending =
-        !query.orderby ||
-        (widgetType !== WidgetType.ISSUE && queryOrderBy.startsWith('-'));
-
-      query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
-
+    if (
+      getIsTimeseriesChart(displayType) &&
+      !query.columns.filter(column => !!column).length
+    ) {
+      // The orderby is only applicable for timeseries charts when there's a
+      // grouping selected, if all fields are empty then we also reset the orderby
+      query.orderby = '';
       return query;
-    });
-  }
+    }
+
+    const queryOrderBy =
+      widgetType === WidgetType.RELEASE
+        ? stripDerivedMetricsPrefix(queries[0].orderby)
+        : queries[0].orderby;
+    const rawOrderBy = trimStart(queryOrderBy, '-');
+
+    const resetOrderBy =
+      // Raw Equation from Top N only applies to timeseries
+      (isTabularChart && isEquation(rawOrderBy)) ||
+      // Not contained as tag, field, or function
+      (!isEquation(rawOrderBy) &&
+        !isEquationAlias(rawOrderBy) &&
+        ![...query.columns, ...query.aggregates].includes(rawOrderBy)) ||
+      // Equation alias and not contained
+      (isEquationAlias(rawOrderBy) &&
+        getEquationAliasIndex(rawOrderBy) >
+          getNumEquations([...query.columns, ...query.aggregates]) - 1);
+    const orderBy =
+      (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
+      (widgetType === WidgetType.ISSUE
+        ? queryOrderBy ?? IssueSortOptions.DATE
+        : generateOrderOptions({
+            widgetType: widgetType ?? WidgetType.DISCOVER,
+            columns: queries[0].columns,
+            aggregates: queries[0].aggregates,
+          })[0].value);
+
+    // A widget should be descending if:
+    // - There is no orderby, so we're defaulting to desc
+    // - Not an issues widget since issues doesn't support descending and
+    //   the original ordering was descending
+    const isDescending =
+      !query.orderby || (widgetType !== WidgetType.ISSUE && queryOrderBy.startsWith('-'));
+
+    query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
+
+    return query;
+  });
 
   if (isTabularChart) {
     return queries;
@@ -200,7 +230,7 @@ export function normalizeQueries({
     return {
       ...query,
       fields: aggregates.length ? aggregates : ['count()'],
-      columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
+      columns: query.columns ? query.columns : [],
       aggregates: aggregates.length ? aggregates : ['count()'],
     };
   });
@@ -233,7 +263,7 @@ export function normalizeQueries({
     queries = queries.map(query => {
       return {
         ...query,
-        columns: widgetBuilderNewDesign && query.columns ? query.columns : [],
+        columns: query.columns ? query.columns : [],
         aggregates: referenceAggregates,
         fields: referenceAggregates,
       };

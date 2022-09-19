@@ -15,6 +15,7 @@ import {
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -45,6 +46,7 @@ import {
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
@@ -115,7 +117,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
-    referrer?: string
+    referrer?: string,
+    mepSetting?: MEPState | null
   ) => {
     const shouldUseEvents = organization.features.includes(
       'discover-frontend-use-events-endpoint'
@@ -131,7 +134,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer
+      referrer,
+      mepSetting
     );
   },
   getSeriesRequest: getEventsSeriesRequest,
@@ -157,7 +161,6 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
-  filterTableOptions,
   filterAggregateParams,
   getSeriesResultType,
 };
@@ -343,14 +346,10 @@ function filterYAxisOptions(displayType: DisplayType) {
 
 function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
-  widgetQuery: WidgetQuery,
-  organization: Organization
+  widgetQuery: WidgetQuery
 ): Series[] {
   let output: Series[] = [];
   const queryAlias = widgetQuery.name;
-
-  const widgetBuilderNewDesign =
-    organization.features.includes('new-widget-builder-experience-design') || false;
 
   if (isMultiSeriesStats(data)) {
     let seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -361,7 +360,7 @@ function transformEventsResponseToSeries(
     // are created when multiple yAxis are used. Convert the timeseries
     // data into a multi-series data set.  As the server will have
     // replied with a map like: {[titleString: string]: EventsStats}
-    if (widgetBuilderNewDesign && isMultiSeriesDataWithGrouping) {
+    if (isMultiSeriesDataWithGrouping) {
       seriesWithOrdering = flattenMultiSeriesDataWithGrouping(data, queryAlias);
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
@@ -499,11 +498,14 @@ function getEventsRequest(
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
-  referrer?: string
+  referrer?: string,
+  mepSetting?: MEPState | null
 ) {
   const isMEPEnabled =
-    organization.features.includes('dashboards-mep') ||
-    organization.features.includes('mep-rollout-flag');
+    (organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')) &&
+    defined(mepSetting) &&
+    mepSetting !== MEPState.transactionsOnly;
 
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -531,14 +533,19 @@ function getEventsSeriesRequest(
   queryIndex: number,
   organization: Organization,
   pageFilters: PageFilters,
-  referrer?: string
+  referrer?: string,
+  mepSetting?: MEPState | null
 ) {
   const widgetQuery = widget.queries[queryIndex];
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
   const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
-  const isMEPEnabled = organization.features.includes('dashboards-mep');
+  const isMEPEnabled =
+    (organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')) &&
+    defined(mepSetting) &&
+    mepSetting !== MEPState.transactionsOnly;
   let requestData;
   if (displayType === DisplayType.TOP_N) {
     requestData = {
@@ -618,11 +625,6 @@ function getEventsSeriesRequest(
   }
 
   return doEventsRequest<true>(api, requestData);
-}
-
-// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
-function filterTableOptions(option: FieldValueOption) {
-  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements

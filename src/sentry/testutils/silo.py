@@ -23,7 +23,7 @@ class SiloModeTest:
     If the SILO_MODE_SPLICE_TESTS environment flag is set, any decorated test
     class will be modified by having new test methods inserted. These new
     methods run in the given modes and have generated names (such as
-    "test_response__in_customer_silo"). This can be used in a dev environment to
+    "test_response__in_region_silo"). This can be used in a dev environment to
     test in multiple modes conveniently during a single test run. Individually
     decorated methods and stand-alone functions are treated as normal.
     """
@@ -78,7 +78,7 @@ class SiloModeTest:
 
 
 control_silo_test = SiloModeTest(SiloMode.CONTROL)
-customer_silo_test = SiloModeTest(SiloMode.CUSTOMER)
+region_silo_test = SiloModeTest(SiloMode.REGION)
 
 
 @contextmanager
@@ -95,7 +95,7 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
     kludge when that's too inconvenient. For example:
 
     ```
-    @SiloModeTest(SiloMode.CUSTOMER)
+    @SiloModeTest(SiloMode.REGION)
     class MyTest(TestCase):
         def test_something(self):
             with exempt_from_mode_limits():
