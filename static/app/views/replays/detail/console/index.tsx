@@ -15,15 +15,13 @@ import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
+import {getLogLevels} from 'sentry/views/replays/detail/console/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
   startTimestampMs: number;
 }
-
-const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
-  Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
@@ -75,13 +73,8 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           triggerProps={{prefix: t('Log Level')}}
           triggerLabel={logLevel.length === 0 ? t('Any') : null}
           multiple
-          options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
-            value: breadcrumbLogLevel,
-            label: breadcrumbLogLevel,
-          }))}
-          onChange={selections =>
-            setLogLevel(selections.map(selection => selection.value))
-          }
+          options={getLogLevels(breadcrumbs).map(value => ({value, label: value}))}
+          onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}
         />
