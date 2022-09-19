@@ -162,16 +162,21 @@ def unfurl_discover(
             params.setlist("interval", ["1d"])
 
         if "bar" in display_mode:
+            interval_is_valid = False
             if "statsPeriod" in params:
-                interval = get_interval_from_range(
-                    parse_stats_period(params.get("statsPeriod")), False
-                )
+                delta = parse_stats_period(params.get("statsPeriod"))
+                if delta is not None:
+                    interval = get_interval_from_range(delta, False)
+                    interval_is_valid = True
             else:
                 start, end = parse_timestamp(params.get("start")), parse_timestamp(
                     params.get("end")
                 )
-                interval = get_interval_from_range(end - start, False)
-            params.setlist("interval", [interval])
+                if start is not None and end is not None:
+                    interval = get_interval_from_range(end - start, False)
+                    interval_is_valid = True
+            if interval_is_valid is True:
+                params.setlist("interval", [interval])
 
         if "top5" in display_mode:
             params.setlist(
