@@ -155,34 +155,57 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_count_unparameterized_transactions(self):
-        for value in [1, 4, 10]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="distribution",
-                name=TransactionMRI.DURATION.value,
-                tags={"transaction": "<< unparameterized >>"},
-                timestamp=int(time.time()),
-                value=value,
-                use_case_id=UseCaseKey.PERFORMANCE,
-            )
+        for transaction, values in (
+            ("<< unparameterized >>", [1]),
+            ("", [2, 3]),
+            ("/foo", [4, 5, 6]),
+        ):
+            if transaction == "":
+                tags = {}
+            else:
+                tags = {"transaction": transaction}
+
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags=tags,
+                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
 
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
                 MetricField(
-                    op="count_unparameterized_transactions",
+                    op="count_transaction_name",
                     metric_name=TransactionMetricKey.DURATION.value,
-                    alias="count_unparameterized_transactions_duration",
+                    params={"tag_value": "unparameterized"},
+                    alias="count_unparameterized_transaction_name",
                 ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"tag_value": "null"},
+                    alias="count_null_transaction_name",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"tag_value": "has"},
+                    alias="count_has_transaction_name",
+                ),
+                MetricField(op="count", metric_name=TransactionMetricKey.DURATION.value),
             ],
             start=self.now - timedelta(hours=1),
             end=self.now,
-            granularity=Granularity(granularity=3600),  # TODO: not sure about granularity.
             groupby=[],
-            orderby=[],
-            limit=Limit(limit=2),
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,
         )
@@ -197,15 +220,17 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         groups = data["groups"]
         assert len(groups) == 1
 
-        expected_count = 3
-
         assert groups[0]["totals"] == {
-            "count_unparameterized_transactions_duration": expected_count,
+            "count_unparameterized_transaction_name": 1,
+            "count_null_transaction_name": 2,
+            "count_has_transaction_name": 3,
         }
 
         assert data["meta"] == sorted(
             [
-                {"name": "count_unparameterized_transactions_duration", "type": "UInt64"},
+                {"name": "count_unparameterized_transaction_name", "type": "UInt64"},
+                {"name": "count_null_transaction_name", "type": "UInt64"},
+                {"name": "count_has_transaction_name", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )

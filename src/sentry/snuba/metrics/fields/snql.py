@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from snuba_sdk import Column, Function
 
+from sentry import options
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
@@ -369,30 +370,49 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
     )
 
 
-def count_unparameterized_transactions_snql_factory(aggregate_filter, org_id, alias=None):
+def count_transaction_name_snql_factory(aggregate_filter, org_id, tag_value, alias=None):
+    def _generate_snql(operator, tag_value_temp):
+        if tag_value_temp == "unparameterized":
+            inner_tag_value = resolve_tag_value(
+                UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
+            )
+        elif tag_value_temp == "null":
+            inner_tag_value = (
+                "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
+            )
+        else:
+            raise Exception
+
+        return Function(
+            operator,
+            [
+                Column(
+                    resolve_tag_key(
+                        UseCaseKey.PERFORMANCE,
+                        org_id,
+                        "transaction",
+                    )
+                ),
+                inner_tag_value,
+            ],
+        )
+
+    if tag_value in ["unparameterized", "null"]:
+        snql_function = _generate_snql("equals", tag_value)
+    elif tag_value == "has":
+        snql_function = Function(
+            "and",
+            [_generate_snql("notEquals", "null"), _generate_snql("notEquals", "unparameterized")],
+        )
+    else:
+        raise Exception
+
     return Function(
         "countIf",
         [
             Function(
                 "and",
-                [
-                    aggregate_filter,
-                    Function(
-                        "equals",
-                        [
-                            Column(
-                                resolve_tag_key(
-                                    UseCaseKey.PERFORMANCE,
-                                    org_id,
-                                    "transaction",  # TODO: not sure about the use case.
-                                )
-                            ),
-                            resolve_tag_value(
-                                UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
-                            ),
-                        ],
-                    ),
-                ],
+                [aggregate_filter, snql_function],
             )
         ],
         alias=alias,

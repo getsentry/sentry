@@ -203,7 +203,7 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_unparameterized_transactions")
+DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
 OPERATIONS = (
     (
         "avg",
@@ -233,7 +233,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "histogram": [],
     "rate": 0,
     "count_web_vitals": 0,
-    "count_unparameterized_transactions": 0,
+    "count_transaction_name": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}
