@@ -1,7 +1,9 @@
+from unittest.mock import MagicMock
+
 from django.test import override_settings
 from pytest import raises
 
-from sentry.db.models.base import Model, ModelSiloLimit
+from sentry.db.models.base import Model, ModelSiloLimit, get_model_if_available
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 
@@ -71,3 +73,28 @@ class AvailableOnTest(TestCase):
             self.ReadOnlyModel.objects.create()
         with raises(ModelSiloLimit.AvailabilityError):
             self.ReadOnlyModel.objects.filter(id=1).delete()
+
+    def test_get_model_if_available(self):
+        test_models = {
+            m.__name__: m
+            for m in (
+                self.ControlModel,
+                self.RegionModel,
+                self.ReadOnlyModel,
+                self.ModelOnMonolith,
+            )
+        }
+        app_config = MagicMock()
+        app_config.get_model.side_effect = test_models.get
+
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            assert get_model_if_available(app_config, "ControlModel") is None
+            assert get_model_if_available(app_config, "RegionModel") is self.RegionModel
+            assert get_model_if_available(app_config, "ReadOnlyModel") is None
+            assert get_model_if_available(app_config, "ModelOnMonolith") is self.ModelOnMonolith
+
+    def test_get_model_with_nonexistent_name(self):
+        app_config = MagicMock()
+        app_config.get_model.side_effect = LookupError
+        assert get_model_if_available(app_config, "BogusModel") is None
+        app_config.get_model.assert_called_with("BogusModel")

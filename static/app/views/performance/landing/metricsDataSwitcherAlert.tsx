@@ -17,6 +17,7 @@ import {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metri
 import {
   areMultipleProjectsSelected,
   createUnnamedTransactionsDiscoverTarget,
+  DiscoverQueryPageSource,
   getSelectedProjectPlatformsArray,
 } from '../utils';
 
@@ -26,6 +27,7 @@ interface MetricEnhancedDataAlertProps extends MetricDataSwitcherOutcome {
   organization: Organization;
   projects: Project[];
   router: WithRouterProps['router'];
+  source?: DiscoverQueryPageSource;
 }
 
 /**
