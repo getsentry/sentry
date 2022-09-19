@@ -2,7 +2,10 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
+import {
+  AssigneeSelectorDropdown,
+  AssigneeSelectorDropdownProps,
+} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface AssignedToProps {
   group: Group;
   projectId: Project['id'];
+  onAssign?: AssigneeSelectorDropdownProps['onAssign'];
 }
 
 function AssignedTo({group, projectId}: AssignedToProps) {

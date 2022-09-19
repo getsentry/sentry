@@ -71,10 +71,12 @@ class GroupHeader extends Component<Props, State> {
     const {group, api, organization} = this.props;
     const {project} = group;
 
-    fetchOrgMembers(api, organization.slug, [project.id]).then(memberList => {
-      const users = memberList.map(member => member.user);
-      this.setState({memberList: users});
-    });
+    if (!this.hasIssueDetailsOwners()) {
+      fetchOrgMembers(api, organization.slug, [project.id]).then(memberList => {
+        const users = memberList.map(member => member.user);
+        this.setState({memberList: users});
+      });
+    }
   }
 
   trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] = () => {
@@ -93,6 +95,10 @@ class GroupHeader extends Component<Props, State> {
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     });
   };
+
+  hasIssueDetailsOwners() {
+    return this.props.organization.features.includes('issue-details-owners');
+  }
 
   getDisabledTabs() {
     const {organization} = this.props;
@@ -446,15 +452,17 @@ class GroupHeader extends Component<Props, State> {
                   <span>0</span>
                 )}
               </div>
-              <div className="assigned-to m-l-1">
-                <h6 className="nav-header">{t('Assignee')}</h6>
-                <AssigneeSelector
-                  id={group.id}
-                  memberList={memberList}
-                  disabled={disableActions}
-                  onAssign={this.trackAssign}
-                />
-              </div>
+              {!this.hasIssueDetailsOwners() && (
+                <div className="assigned-to m-l-1">
+                  <h6 className="nav-header">{t('Assignee')}</h6>
+                  <AssigneeSelector
+                    id={group.id}
+                    memberList={memberList}
+                    disabled={disableActions}
+                    onAssign={this.trackAssign}
+                  />
+                </div>
+              )}
             </StatsWrapper>
           </div>
           <SeenByList

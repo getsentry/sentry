@@ -41,7 +41,7 @@ type RenderProps = {
   assignedTo?: Actor;
 };
 
-type Props = {
+export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   disabled?: boolean;
@@ -51,7 +51,7 @@ type Props = {
     assignee: User | Actor,
     suggestedAssignee?: SuggestedAssignee
   ) => void;
-};
+}
 
 type State = {
   loading: boolean;
@@ -60,7 +60,10 @@ type State = {
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
-export class AssigneeSelectorDropdown extends Component<Props, State> {
+export class AssigneeSelectorDropdown extends Component<
+  AssigneeSelectorDropdownProps,
+  State
+> {
   state = this.getInitialState();
 
   getInitialState() {
@@ -77,7 +80,7 @@ export class AssigneeSelectorDropdown extends Component<Props, State> {
     };
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
     const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);
@@ -89,7 +92,7 @@ export class AssigneeSelectorDropdown extends Component<Props, State> {
     }
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
+  shouldComponentUpdate(nextProps: AssigneeSelectorDropdownProps, nextState: State) {
     if (nextState.loading !== this.state.loading) {
       return true;
     }

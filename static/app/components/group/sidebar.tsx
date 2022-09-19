@@ -1,4 +1,6 @@
 import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -31,9 +33,11 @@ import {
   TagWithTopValues,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   environments: Environment[];
   group: Group;
@@ -69,6 +73,22 @@ class BaseGroupSidebar extends Component<Props, State> {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
     }
   }
+
+  trackAssign: React.ComponentProps<typeof AssignedTo>['onAssign'] = () => {
+    const {group, project, organization, location} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
+      action_type: 'assign',
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
+  };
 
   async fetchAllEnvironmentsGroupData() {
     const {group, api} = this.props;
@@ -192,8 +212,11 @@ class BaseGroupSidebar extends Component<Props, State> {
         <PageFiltersContainer>
           <EnvironmentPageFilter alignDropdown="right" />
         </PageFiltersContainer>
-        <OwnedBy group={group} project={project} organization={organization} />
-        <AssignedTo group={group} projectId={project.id} />
+
+        <Feature organization={organization} features={['issue-details-owners']}>
+          <OwnedBy group={group} project={project} organization={organization} />
+          <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
+        </Feature>
 
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
@@ -286,6 +309,6 @@ const ExternalIssues = styled('div')`
   gap: ${space(2)};
 `;
 
-const GroupSidebar = withApi(BaseGroupSidebar);
+const GroupSidebar = withApi(withRouter(BaseGroupSidebar));
 
 export default GroupSidebar;

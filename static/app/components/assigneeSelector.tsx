@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {
   AssigneeSelectorDropdown,
+  AssigneeSelectorDropdownProps,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -14,21 +15,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {Actor, SuggestedOwnerReason, User} from 'sentry/types';
+import type {Actor, SuggestedOwnerReason} from 'sentry/types';
 
-type Props = {
-  id: string;
-  disabled?: boolean;
-  memberList?: User[];
+interface AssigneeSelectorProps extends Omit<AssigneeSelectorDropdownProps, 'children'> {
   noDropdown?: boolean;
-  onAssign?: (
-    type: Actor['type'],
-    assignee: User | Actor,
-    suggestedAssignee?: SuggestedAssignee
-  ) => void;
-};
+}
 
-function AssigneeSelector(props: Props) {
+function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
   function getActorElement(
     assignedTo?: Actor,
     suggestedActors: SuggestedAssignee[] = []
@@ -128,13 +121,13 @@ function AssigneeSelector(props: Props) {
                   style={{height: '24px', margin: 0, marginRight: 11}}
                 />
               )}
-              {!loading && !props.noDropdown && (
+              {!loading && !noDropdown && (
                 <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>
                   {avatarElement}
                   <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
                 </DropdownButton>
               )}
-              {!loading && props.noDropdown && avatarElement}
+              {!loading && noDropdown && avatarElement}
             </Fragment>
           );
         }}
