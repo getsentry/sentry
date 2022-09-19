@@ -249,7 +249,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             action.perform()
 
             # Click on delete button
-            delete_buttons = self.browser.elements('[aria-label="Delete"]')
+            delete_buttons = self.browser.elements('[data-test-id="delete"]')
             action.click(delete_buttons[0])
             action.perform()
 
