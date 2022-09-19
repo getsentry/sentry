@@ -24,7 +24,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       eslint_config: ${{ steps.changes.outputs.eslint_config }}
-      frontend: ${{ steps.changes.outputs.frontend }}
+      frontend: ${{ steps.changes.outputs.frontend_all }}
       frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
       frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
