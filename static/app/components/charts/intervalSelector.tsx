@@ -49,7 +49,7 @@ const SUPPORTED_RELATIVE_UNITS_LIST = Object.keys(
 
 type Props = {
   eventView: EventView;
-  onIntervalChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
 };
 
 type IntervalOption = {
@@ -135,16 +135,8 @@ function bindInterval(
   const optionMax = rangeHours / 2;
   let interval = currentInterval;
 
-  if (intervalHours < intervalOption.min) {
+  if (intervalHours < intervalOption.min || intervalHours > optionMax) {
     interval = intervalOption.default;
-  } else if (intervalHours > optionMax) {
-    if (optionMax >= 24) {
-      interval = `${optionMax / 24}d`;
-    } else if (optionMax >= 1) {
-      interval = `${optionMax}h`;
-    } else {
-      interval = `${optionMax * 60}m`;
-    }
   }
   return interval;
 }
@@ -152,6 +144,8 @@ function bindInterval(
 export default function IntervalSelector({eventView, onIntervalChange}: Props) {
   // Get the interval from the eventView if one was set, otherwise determine what the default is
   // TODO: use the INTERVAL_OPTIONS default instead
+  const usingDefaultInterval = eventView.interval === undefined;
+  // Can't just do usingDefaultInterval ? ... : ...; here cause the type of interval will include undefined
   const interval =
     eventView.interval ?? getInterval(eventView.getPageFilters().datetime, 'high');
 
@@ -161,9 +155,14 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
   // Determine the applicable interval option
   const intervalOption = getIntervalOption(rangeHours);
 
-  const boundInterval = bindInterval(interval, rangeHours, intervalHours, intervalOption);
-  if (boundInterval !== interval) {
-    onIntervalChange(boundInterval);
+  // Only bind the interval if we're not using the default
+  let boundInterval = interval;
+  if (!usingDefaultInterval) {
+    boundInterval = bindInterval(interval, rangeHours, intervalHours, intervalOption);
+    // If the interval mismatches, reset to undefined which means the default interval
+    if (boundInterval !== interval) {
+      onIntervalChange(undefined);
+    }
   }
 
   const intervalAutoComplete: typeof autoCompleteFilter = function (items, filterValue) {
