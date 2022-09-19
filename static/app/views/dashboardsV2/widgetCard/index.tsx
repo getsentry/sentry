@@ -317,7 +317,7 @@ class WidgetCard extends Component<Props, State> {
             {(organization.features.includes('dashboards-mep') ||
               organization.features.includes('mep-rollout-flag')) && (
               <MEPConsumer>
-                {({metricSettingState}) => {
+                {metricSettingContext => {
                   return (
                     <DashboardsMEPConsumer>
                       {({isMetricsData}) => {
@@ -325,7 +325,9 @@ class WidgetCard extends Component<Props, State> {
                           showStoredAlert &&
                           isMetricsData === false &&
                           widget.widgetType === WidgetType.DISCOVER &&
-                          metricSettingState !== MEPState.transactionsOnly
+                          metricSettingContext &&
+                          metricSettingContext.metricSettingState !==
+                            MEPState.transactionsOnly
                         ) {
                           if (!widgetContainsErrorFields) {
                             return (
