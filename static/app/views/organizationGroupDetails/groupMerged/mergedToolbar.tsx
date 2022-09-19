@@ -1,6 +1,4 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
-import pick from 'lodash/pick';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -8,6 +6,7 @@ import Confirm from 'sentry/components/confirm';
 import {PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 
@@ -19,49 +18,25 @@ type Props = {
   project: Project;
 };
 
-type State = {
-  enableFingerprintCompare: boolean;
-  unmergeDisabled: boolean;
-  unmergeLastCollapsed: boolean;
-  unmergeList: Map<any, any>;
-};
+export function MergedToolbar({
+  groupId,
+  project,
+  orgId,
+  onUnmerge,
+  onToggleCollapse,
+}: Props) {
+  const {
+    unmergeList,
+    mergedItems,
+    unmergeLastCollapsed,
+    unmergeDisabled,
+    enableFingerprintCompare,
+  } = useLegacyStore(GroupingStore);
 
-class MergedToolbar extends Component<Props, State> {
-  state: State = this.getInitialState();
+  const unmergeCount = unmergeList?.size ?? 0;
 
-  getInitialState() {
-    // @ts-ignore GroupingStore types are not correct, store.init dinamically sets these
-    const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
-      GroupingStore;
-
-    return {
-      enableFingerprintCompare,
-      unmergeList,
-      unmergeLastCollapsed,
-      unmergeDisabled,
-    };
-  }
-
-  componentWillUnmount() {
-    this.listener?.();
-  }
-
-  listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
-
-  onGroupChange = updateObj => {
-    const allowedKeys = [
-      'unmergeLastCollapsed',
-      'unmergeDisabled',
-      'unmergeList',
-      'enableFingerprintCompare',
-    ];
-
-    this.setState(pick(updateObj, allowedKeys));
-  };
-
-  handleShowDiff = (event: React.MouseEvent) => {
-    const {groupId, project, orgId} = this.props;
-    const {unmergeList} = this.state;
+  function handleShowDiff(event: React.MouseEvent) {
+    event.stopPropagation();
 
     const entries = unmergeList.entries();
 
@@ -83,52 +58,55 @@ class MergedToolbar extends Component<Props, State> {
       baseEventId,
       targetEventId,
     });
-
-    event.stopPropagation();
-  };
-
-  render() {
-    const {onUnmerge, onToggleCollapse} = this.props;
-
-    const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
-      this.state;
-    const unmergeCount = (unmergeList && unmergeList.size) || 0;
-
-    return (
-      <PanelHeader hasButtons>
-        <div>
-          <Confirm
-            disabled={unmergeDisabled}
-            onConfirm={onUnmerge}
-            message={t(
-              'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
-            )}
-          >
-            <Button
-              size="sm"
-              title={tct('Unmerging [unmergeCount] events', {unmergeCount})}
-            >
-              {t('Unmerge')} ({unmergeCount || 0})
-            </Button>
-          </Confirm>
-
-          <CompareButton
-            size="sm"
-            disabled={!enableFingerprintCompare}
-            onClick={this.handleShowDiff}
-          >
-            {t('Compare')}
-          </CompareButton>
-        </div>
-        <Button size="sm" onClick={onToggleCollapse}>
-          {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
-        </Button>
-      </PanelHeader>
-    );
   }
-}
 
-export default MergedToolbar;
+  const unmergeDisabledReason =
+    mergedItems.length <= 1
+      ? t('To unmerge, the list must contain 2 or more items')
+      : unmergeList.size === 0
+      ? t('To unmerge, 1 or more items must be selected')
+      : GroupingStore.isAllUnmergedSelected()
+      ? t('We are unable to unmerge all items at once')
+      : undefined;
+
+  return (
+    <PanelHeader hasButtons>
+      <div>
+        <Confirm
+          disabled={unmergeDisabled}
+          onConfirm={onUnmerge}
+          message={t(
+            'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
+          )}
+        >
+          <Button size="sm" title={unmergeDisabledReason}>
+            {mergedItems.length <= 1
+              ? t('Unmerge')
+              : tct('Unmerge ([itemsSelectedQuantity])', {
+                  itemsSelectedQuantity: unmergeCount,
+                })}
+          </Button>
+        </Confirm>
+
+        <CompareButton
+          size="sm"
+          disabled={!enableFingerprintCompare}
+          onClick={handleShowDiff}
+          title={
+            !enableFingerprintCompare
+              ? t('To compare, exactly 2 items must be selected')
+              : undefined
+          }
+        >
+          {t('Compare')}
+        </CompareButton>
+      </div>
+      <Button size="sm" onClick={onToggleCollapse}>
+        {unmergeLastCollapsed ? t('Expand All') : t('Collapse All')}
+      </Button>
+    </PanelHeader>
+  );
+}
 
 const CompareButton = styled(Button)`
   margin-left: ${space(1)};
