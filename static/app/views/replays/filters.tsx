@@ -37,9 +37,9 @@ function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
 const FilterContainer = styled('div')`
   display: inline-grid;
   grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
-  gap: ${space(1)};
+  gap: ${space(2)};
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
