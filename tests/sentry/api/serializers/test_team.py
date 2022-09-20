@@ -2,8 +2,10 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.models import InviteStatus
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class TeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -173,6 +175,7 @@ class TeamSerializerTest(TestCase):
         assert result["teamRole"] == "admin"
 
 
+@region_silo_test
 class TeamWithProjectsSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -200,6 +203,7 @@ class TeamWithProjectsSerializerTest(TestCase):
         }
 
 
+@region_silo_test
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self):
         user = self.create_user(username="foo")

@@ -12,13 +12,21 @@ import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();
   if (!replay) {
-    return <UrlCopyInput disabled>{''}</UrlCopyInput>;
+    return (
+      <UrlCopyInput size="sm" disabled>
+        {''}
+      </UrlCopyInput>
+    );
   }
 
   const replayRecord = replay.getReplay();
   const crumbs = replay.getRawCrumbs();
 
-  return <UrlCopyInput>{getCurrentUrl(replayRecord, crumbs, currentTime)}</UrlCopyInput>;
+  return (
+    <UrlCopyInput size="sm">
+      {getCurrentUrl(replayRecord, crumbs, currentTime)}
+    </UrlCopyInput>
+  );
 }
 
 const UrlCopyInput = styled(TextCopyInput)`
@@ -28,12 +36,13 @@ const UrlCopyInput = styled(TextCopyInput)`
   ${StyledInput} {
     border-right-width: 1px;
     border-radius: 0.25em;
-    background-color: ${p => p.theme.white};
+    background-color: ${p => p.theme.background};
+    border-right-color: ${p => p.theme.border};
 
     &:hover,
     &:focus {
       border-right-width: 1px;
-      background-color: ${p => p.theme.white};
+      background-color: ${p => p.theme.background};
     }
   }
   ${StyledCopyButton} {

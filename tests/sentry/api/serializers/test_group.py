@@ -1,9 +1,11 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.event_manager import _pull_out_data
 from sentry.models import (
     Group,
     GroupLink,
@@ -16,9 +18,13 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
 
 
+@region_silo_test
 class GroupSerializerTest(TestCase):
     def test_project(self):
         user = self.create_user()
@@ -350,3 +356,31 @@ class GroupSerializerTest(TestCase):
                 "dateCreated": result["statusDetails"]["info"]["dateCreated"],
             },
         }
+
+    def test_perf_issue(self):
+        def inject_group_ids(jobs, projects):
+            _pull_out_data(jobs, projects)
+            for job in jobs:
+                job["event"].groups = [self.group]
+            return jobs, projects
+
+        with mock.patch("sentry.event_manager._pull_out_data", inject_group_ids):
+            cur_time = before_now(minutes=1)
+            event_data = {
+                "type": "transaction",
+                "level": "info",
+                "message": "transaction message",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+                "timestamp": cur_time.timestamp(),
+                "start_timestamp": cur_time.timestamp(),
+                "received": cur_time.timestamp(),
+            }
+            self.store_event(
+                data=event_data,
+                project_id=self.project.id,
+            )
+            self.group.update(type=GroupType.PERFORMANCE_N_PLUS_ONE.value)
+            serialized = serialize(self.group)
+            assert serialized["count"] == "1"
+            assert serialized["issueCategory"] == "performance"
+            assert serialized["issueType"] == "performance_n_plus_one"

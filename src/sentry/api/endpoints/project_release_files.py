@@ -8,6 +8,7 @@ from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
@@ -207,6 +208,7 @@ def pseudo_releasefile(url, info, dist):
     )
 
 
+@region_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(

@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {Repository} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 interface RepositoryStoreDefinition extends StoreDefinition {
   get(): {
@@ -79,5 +78,5 @@ const storeConfig: RepositoryStoreDefinition = {
   },
 };
 
-const RepositoryStore = createStore(makeSafeRefluxStore(storeConfig));
+const RepositoryStore = createStore(storeConfig);
 export default RepositoryStore;

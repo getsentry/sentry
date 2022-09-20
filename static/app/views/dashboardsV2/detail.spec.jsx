@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
-  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -16,10 +15,13 @@ import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import CreateDashboard from 'sentry/views/dashboardsV2/create';
 import {constructGridItemKey} from 'sentry/views/dashboardsV2/layoutUtils';
-import {DashboardWidgetSource} from 'sentry/views/dashboardsV2/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+jest.mock('sentry/components/charts/worldMapChart', () => ({
+  WorldMapChart: () => null,
+}));
 
 describe('Dashboards > Detail', function () {
   enforceActOnUseLegacyStoreHook();
@@ -72,12 +74,39 @@ describe('Dashboards > Detail', function () {
         method: 'GET',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sdk-updates/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-geo/',
+        body: {data: [], meta: {}},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/eventsv2/',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/issues/',
+        body: [],
+      });
     });
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
       if (wrapper) {
         wrapper.unmount();
+        wrapper = null;
       }
     });
 
@@ -136,19 +165,22 @@ describe('Dashboards > Detail', function () {
         }),
       });
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        await tick();
+        wrapper.update();
+      });
 
       const dashboardInstance = wrapper.find('Dashboard').instance();
       const assignedIds = new Set(
@@ -156,12 +188,50 @@ describe('Dashboards > Detail', function () {
       );
       expect(assignedIds.size).toBe(dashboardInstance.props.dashboard.widgets.length);
     });
+
+    it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', async () => {
+      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
+
+      render(
+        <CreateDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}
+          router={initialData.router}
+          location={{...initialData.router.location, pathname: '/widget/2/'}}
+        />,
+        {context: initialData.routerContext, organization: initialData.organization}
+      );
+
+      await waitFor(() => {
+        expect(openWidgetViewerModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            organization: initialData.organization,
+            widget: expect.objectContaining({
+              displayType: 'line',
+              interval: '5m',
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '!event.type:transaction',
+                  fields: ['count()'],
+                  name: 'Events',
+                  orderby: 'count()',
+                },
+              ],
+              title: 'Events',
+              widgetType: 'discover',
+            }),
+            onClose: expect.anything(),
+          })
+        );
+      });
+    });
   });
 
   describe('custom dashboards', function () {
     let wrapper, initialData, widgets, mockVisit, mockPut;
 
-    const openEditModal = jest.spyOn(modals, 'openAddDashboardWidgetModal');
     beforeEach(function () {
       window.confirm = jest.fn();
       initialData = initializeOrg({
@@ -301,6 +371,14 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/releases/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sdk-updates/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/prompts-activity/',
+        body: {},
+      });
     });
 
     afterEach(function () {
@@ -318,19 +396,21 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
         body: TestStubs.Dashboard([widgets[0]], {id: '1', title: 'Custom Errors'}),
       });
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       expect(mockVisit).toHaveBeenCalledTimes(1);
 
@@ -383,19 +463,21 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       expect(mock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/events-stats/',
@@ -407,100 +489,27 @@ describe('Dashboards > Detail', function () {
       );
     });
 
-    it('can enter edit mode for widgets', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
-      wrapper.update();
-
-      const card = wrapper.find('WidgetCard').first();
-      card.find('WidgetCardPanel').simulate('mouseOver');
-
-      // Edit the first widget
-      wrapper
-        .find('WidgetCard')
-        .first()
-        .find('Button[data-test-id="widget-edit"]')
-        .simulate('click');
-
-      expect(openEditModal).toHaveBeenCalledTimes(1);
-      expect(openEditModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget: {
-            id: '1',
-            interval: '1d',
-            layout: {h: 2, minH: 2, w: 2, x: 0, y: 0},
-            queries: [
-              {
-                conditions: 'event.type:error',
-                fields: ['count()'],
-                aggregates: ['count()'],
-                columns: [],
-                name: '',
-              },
-            ],
-            title: 'Errors',
-            type: 'line',
-            widgetType: 'discover',
-          },
-        })
-      );
-    });
-
     it('shows add widget option', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
       wrapper.update();
       expect(wrapper.find('AddWidget').exists()).toBe(true);
-    });
-
-    it('opens custom modal when add widget option is clicked', async function () {
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
-      wrapper.update();
-      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      expect(openEditModal).toHaveBeenCalledTimes(1);
     });
 
     it('shows top level release filter', async function () {
@@ -541,61 +550,24 @@ describe('Dashboards > Detail', function () {
       expect(mockReleases).toHaveBeenCalledTimes(1);
     });
 
-    it('opens widget library when add widget option is clicked', async function () {
-      initialData = initializeOrg({
-        organization: TestStubs.Organization({
-          features: [
-            'global-views',
-            'dashboards-basic',
-            'dashboards-edit',
-            'discover-query',
-          ],
-          projects: [TestStubs.Project()],
-        }),
-      });
-
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // Enter edit mode.
-      wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
-      wrapper.update();
-      wrapper.find('AddButton[data-test-id="widget-add"]').simulate('click');
-      expect(openEditModal).toHaveBeenCalledTimes(1);
-      expect(openEditModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          source: types.DashboardWidgetSource.LIBRARY,
-        })
-      );
-    });
-
     it('hides add widget option', async function () {
       types.MAX_WIDGETS = 1;
 
-      wrapper = mountWithTheme(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
+      await act(async () => {
+        wrapper = mountWithTheme(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          initialData.routerContext
+        );
+        await tick();
+        wrapper.update();
+      });
 
       // Enter edit mode.
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
@@ -646,16 +618,18 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      render(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-      await tick();
+      await act(async () => {
+        render(
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />,
+          {context: initialData.routerContext, organization: initialData.organization}
+        );
+        await tick();
+      });
 
       await screen.findByText('First Widget');
       await screen.findByText('Second Widget');
@@ -687,20 +661,22 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      render(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-      await tick();
+      await act(async () => {
+        render(
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />,
+          {context: initialData.routerContext, organization: initialData.organization}
+        );
+        await tick();
 
-      userEvent.click(screen.getByText('Edit Dashboard'));
-      userEvent.click(screen.getByText('Save and Finish'));
-      await tick();
+        userEvent.click(screen.getByText('Edit Dashboard'));
+        userEvent.click(screen.getByText('Save and Finish'));
+        await tick();
+      });
 
       expect(screen.getByText('Edit Dashboard')).toBeInTheDocument();
       expect(mockPut).not.toHaveBeenCalled();
@@ -732,16 +708,19 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      render(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-      await tick();
+
+      await act(async () => {
+        render(
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />,
+          {context: initialData.routerContext, organization: initialData.organization}
+        );
+        await tick();
+      });
 
       userEvent.click(await screen.findByText('Edit Dashboard'));
       const widget = screen.getByText('First Widget').closest('.react-grid-item');
@@ -776,24 +755,28 @@ describe('Dashboards > Detail', function () {
           {id: '1', title: 'Custom Errors'}
         ),
       });
-      render(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-      await tick();
+      await act(async () => {
+        render(
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />,
+          {context: initialData.routerContext, organization: initialData.organization}
+        );
+        await tick();
+      });
 
-      userEvent.click(await screen.findByText('Edit Dashboard'));
-      userEvent.click(await screen.findByText('Cancel'));
+      await act(async () => {
+        userEvent.click(await screen.findByText('Edit Dashboard'));
+        userEvent.click(await screen.findByText('Cancel'));
+      });
 
       expect(window.confirm).not.toHaveBeenCalled();
     });
 
-    it('opens the widget viewer modal using the widget id specified in the url', () => {
+    it('opens the widget viewer modal using the widget id specified in the url', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
       const widget = TestStubs.Widget(
         [
@@ -818,15 +801,18 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
       });
 
-      render(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
-          router={initialData.router}
-          location={{...initialData.router.location, pathname: '/widget/123/'}}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
+      await act(async () => {
+        render(
+          <ViewEditDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+            router={initialData.router}
+            location={{...initialData.router.location, pathname: '/widget/123/'}}
+          />,
+          {context: initialData.routerContext, organization: initialData.organization}
+        );
+        await tick();
+      });
 
       expect(openWidgetViewerModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -858,89 +844,6 @@ describe('Dashboards > Detail', function () {
         expect.objectContaining({
           pathname: '/organizations/org-slug/dashboard/1/',
           query: {},
-        })
-      );
-    });
-
-    it('opens the edit widget modal when clicking the edit button', async () => {
-      const widget = TestStubs.Widget(
-        [
-          {
-            name: '',
-            conditions: 'event.type:error',
-            fields: ['count()'],
-            aggregates: ['count()'],
-            columns: [],
-            orderby: '',
-          },
-        ],
-        {
-          title: 'First Widget',
-          interval: '1d',
-          id: '1',
-          layout: null,
-        }
-      );
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/dashboards/1/',
-        body: TestStubs.Dashboard([widget], {id: '1', title: 'Custom Errors'}),
-      });
-
-      render(
-        <ViewEditDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
-          router={initialData.router}
-          location={{...initialData.router.location, pathname: '/widget/123/'}}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-
-      renderGlobalModal({context: initialData.routerContext});
-
-      userEvent.click(await screen.findByRole('button', {name: 'Edit Widget'}));
-      expect(openEditModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          widget,
-          organization: initialData.organization,
-          source: DashboardWidgetSource.DASHBOARDS,
-        })
-      );
-    });
-
-    it('opens the widget viewer modal in a prebuilt dashboard using the widget id specified in the url', () => {
-      const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-
-      render(
-        <CreateDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', templateId: 'default-template', widgetId: '2'}}
-          router={initialData.router}
-          location={{...initialData.router.location, pathname: '/widget/2/'}}
-        />,
-        {context: initialData.routerContext, organization: initialData.organization}
-      );
-
-      expect(openWidgetViewerModal).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organization: initialData.organization,
-          widget: expect.objectContaining({
-            displayType: 'line',
-            interval: '5m',
-            queries: [
-              {
-                aggregates: ['count()'],
-                columns: [],
-                conditions: '!event.type:transaction',
-                fields: ['count()'],
-                name: 'Events',
-                orderby: 'count()',
-              },
-            ],
-            title: 'Events',
-            widgetType: 'discover',
-          }),
-          onClose: expect.anything(),
         })
       );
     });

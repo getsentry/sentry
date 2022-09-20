@@ -14,8 +14,8 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, Organization, Project} from 'sentry/types';
-import {EntrySpanTree, EntryType, Event} from 'sentry/types/event';
+import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -57,9 +57,9 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
-  loadingReplaysCount: boolean;
+  loadingReplayIds: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
-  replaysCount: number | null;
+  replayIds: null | string[];
   event?: Event;
 };
 
@@ -80,7 +80,9 @@ class GroupDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData(true);
-    this.fetchReplaysCount();
+    if (this.props.organization.features.includes('session-replay-ui')) {
+      this.fetchReplayIds();
+    }
     this.updateReprocessingProgress();
   }
 
@@ -118,14 +120,14 @@ class GroupDetails extends Component<Props, State> {
     return {
       group: null,
       loading: true,
+      loadingReplayIds: true,
       loadingEvent: true,
       loadingGroup: true,
-      loadingReplaysCount: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
-      replaysCount: null,
+      replayIds: null,
     };
   }
 
@@ -136,6 +138,7 @@ class GroupDetails extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
+      issue_category: this.state.group?.issueCategory ?? IssueCategory.ERROR,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -161,40 +164,18 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
-  addPerformanceSpecificEntries(event: Event) {
-    const performanceData = event.contexts.performance_issue;
-
-    const spanTreeEntry: EntrySpanTree = {
-      data: {
-        affectedSpanIds: performanceData.spans,
-      },
-      type: EntryType.SPANTREE,
-    };
-
-    const performanceEntry = {
-      data: {},
-      type: EntryType.PERFORMANCE,
-    };
-
-    const updatedEvent = {
-      ...event,
-      entries: [performanceEntry, spanTreeEntry, ...event.entries],
-    };
-    return updatedEvent;
-  }
-
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api, organization} = this.props;
+    const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
     const projectId = group?.project?.slug;
     try {
-      let event = await fetchGroupEvent(
+      const event = await fetchGroupEvent(
         api,
         orgSlug,
         groupId,
@@ -202,15 +183,6 @@ class GroupDetails extends Component<Props, State> {
         environments,
         projectId
       );
-
-      // add extra perf issue specific entries like span tree and duration and span count charts
-      if (
-        organization.features.includes('performance-issues') &&
-        event.contexts.performance_issue
-      ) {
-        const updatedEvent = this.addPerformanceSpecificEntries(event);
-        event = updatedEvent as Event;
-      }
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
@@ -393,20 +365,23 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
-  async fetchReplaysCount() {
+  async fetchReplayIds() {
     const {api, location, organization, params} = this.props;
     const {groupId} = params;
 
-    this.setState({loadingReplaysCount: true});
+    this.setState({loadingReplayIds: true});
 
-    const eventView = EventView.fromSavedQuery({
-      id: '',
-      name: `Replays in issue ${groupId}`,
-      version: 2,
-      fields: ['count()'],
-      query: `issue.id:${groupId}`,
-      projects: [],
-    });
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: '',
+        name: `Errors within replay`,
+        version: 2,
+        fields: ['replayId', 'count()'],
+        query: `issue.id:${groupId} !replayId:""`,
+        projects: [],
+      },
+      location
+    );
 
     try {
       const [data] = await doDiscoverQuery<TableData>(
@@ -415,14 +390,13 @@ class GroupDetails extends Component<Props, State> {
         eventView.getEventsAPIPayload(location)
       );
 
-      const replaysCount = data.data[0]['count()'].toString();
-
+      const replayIds = data.data.map(record => String(record.replayId));
       this.setState({
-        replaysCount: parseInt(replaysCount, 10),
-        loadingReplaysCount: false,
+        replayIds,
+        loadingReplayIds: false,
       });
     } catch (err) {
-      this.setState({loadingReplaysCount: false});
+      this.setState({loadingReplayIds: false});
     }
   }
 
@@ -570,7 +544,7 @@ class GroupDetails extends Component<Props, State> {
 
   renderContent(project: AvatarProject, group: Group) {
     const {children, environments, organization} = this.props;
-    const {loadingEvent, eventError, event, replaysCount} = this.state;
+    const {loadingEvent, eventError, event, replayIds} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -600,16 +574,18 @@ class GroupDetails extends Component<Props, State> {
 
     if (currentTab === Tab.TAGS) {
       childProps = {...childProps, event, baseUrl};
+    } else if (currentTab === Tab.REPLAYS) {
+      childProps = {...childProps, replayIds};
     }
 
     return (
       <Fragment>
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
-          replaysCount={replaysCount}
+          replaysCount={replayIds?.length}
           currentTab={currentTab}
           baseUrl={baseUrl}
         />

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -9,9 +9,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
-import {SamplingProjectIncompatibleAlert} from '../samplingProjectIncompatibleAlert';
 import {isValidSampleRate, SERVER_SIDE_SAMPLING_DOC_LINK} from '../utils';
-import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 
 import {FooterActions, Stepper, StyledNumberField} from './uniformRateModal';
 
@@ -36,10 +34,16 @@ export function SpecifyClientRateModal({
   value,
   onChange,
 }: SpecifyClientRateModalProps) {
-  const {isProjectIncompatible} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
-    projectId,
-  });
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.open', {
+      organization,
+      project_id: projectId,
+    });
+  }, [organization, projectId]);
+
+  useEffect(() => {
+    onChange(0.1);
+  }, [onChange]);
 
   function handleReadDocs() {
     trackAdvancedAnalyticsEvent('sampling.settings.modal.specify.client.rate_read_docs', {
@@ -68,12 +72,12 @@ export function SpecifyClientRateModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Specify current client(SDK) sample rate')}</h4>
+        <h4>{t('Current SDK Sample Rate')}</h4>
       </Header>
       <Body>
         <StyledNumberField
           label={tct(
-            'Find the [textHighlight:tracesSampleRate] option in your SDK config, and copy it’s value into the field below.',
+            'We are not able to estimate your client sample rate. For a more accurate estimation find the [textHighlight:tracesSampleRate] option in your SDK config, and copy it’s value into the field below.',
             {
               textHighlight: <TextHighlight />,
             }
@@ -90,11 +94,6 @@ export function SpecifyClientRateModal({
           flexibleControlStateSize
           inline={false}
         />
-        <SamplingProjectIncompatibleAlert
-          organization={organization}
-          projectId={projectId}
-          isProjectIncompatible={isProjectIncompatible}
-        />
       </Body>
       <Footer>
         <FooterActions>
@@ -107,8 +106,14 @@ export function SpecifyClientRateModal({
             <Button
               priority="primary"
               onClick={handleGoNext}
-              disabled={!isValid || isProjectIncompatible}
-              title={!isValid ? t('Sample rate is not valid') : undefined}
+              disabled={!isValid}
+              title={
+                !value
+                  ? t('Sample rate must not be empty')
+                  : !isValid
+                  ? t('Sample rate is not valid')
+                  : undefined
+              }
             >
               {t('Next')}
             </Button>

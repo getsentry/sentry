@@ -54,13 +54,20 @@ class SystemOptionsTest(APITestCase):
             assert response.data["mail.host"]["field"]["disabled"] is True
             assert response.data["mail.host"]["field"]["disabledReason"] == "smtpDisabled"
 
+    def test_put_no_options_permision(self):
+        self.login_as(user=self.user, superuser=True)
+        response = self.client.put(self.url, {"auth.allow-registration": 1})
+        assert response.status_code == 403
+
     def test_put_int_for_boolean(self):
         self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
         response = self.client.put(self.url, {"auth.allow-registration": 1})
         assert response.status_code == 200
 
     def test_put_unknown_option(self):
         self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
         response = self.client.put(self.url, {"xxx": "lol"})
         assert response.status_code == 400
         assert response.data["error"] == "unknown_option"
@@ -68,12 +75,14 @@ class SystemOptionsTest(APITestCase):
     def test_put_hardwired_option(self):
         with self.settings(SENTRY_OPTIONS={"system.url-prefix": "cheese"}):
             self.login_as(user=self.user, superuser=True)
+            self.add_user_permission(self.user, "options.admin")
             response = self.client.put(self.url, {"system.url-prefix": "bread"})
             assert response.status_code == 400
             assert response.data["error"] == "immutable_option"
 
     def test_put_simple(self):
         self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
         assert options.get("mail.host") != "lolcalhost"
         response = self.client.put(self.url, {"mail.host": "lolcalhost"})
         assert response.status_code == 200

@@ -176,7 +176,6 @@ describe('IssueList', function () {
       wrapper.unmount();
     }
     wrapper = null;
-    TagStore.teardown();
   });
 
   describe('withStores and feature flags', function () {

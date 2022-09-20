@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import type {Member, Team} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
+import {CHANGE_ALERT_CONDITION_IDS} from 'sentry/views/alerts/utils/constants';
 
 /**
  * Translate Issue Alert Conditions to text
@@ -13,9 +14,7 @@ export function TextCondition({
 }: {
   condition: IssueAlertRule['conditions'][number];
 }) {
-  if (
-    condition.id === 'sentry.rules.conditions.event_frequency.EventFrequencyCondition'
-  ) {
+  if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
       return (
         <Fragment>

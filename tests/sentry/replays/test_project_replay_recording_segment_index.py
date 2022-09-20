@@ -7,8 +7,10 @@ from django.urls import reverse
 from sentry.models import File
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import APITestCase, TransactionTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectReplayRecordingSegmentTestCase(APITestCase):
     endpoint = "sentry-api-0-project-replay-recording-segment-index"
 
@@ -56,6 +58,18 @@ class ProjectReplayRecordingSegmentTestCase(APITestCase):
         assert response.data["data"][0]["segmentId"] == 0
         assert response.data["data"][1]["segmentId"] == 1
         assert response.data["data"][2]["segmentId"] == 2
+
+    def test_index_404(self):
+        self.login_as(user=self.user)
+
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, 4242424242),
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(url)
+            assert response.status_code == 404
 
 
 class DownloadSegmentsTestCase(TransactionTestCase):

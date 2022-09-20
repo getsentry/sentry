@@ -2,8 +2,10 @@ from django.urls import reverse
 
 from sentry.models import Organization, OrganizationStatus
 from sentry.testutils import PermissionTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class RestoreOrganizationPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -22,6 +24,7 @@ class RestoreOrganizationPermissionTest(PermissionTestCase):
         self.assert_owner_can_access(self.path)
 
 
+@region_silo_test
 class RemoveOrganizationTest(TestCase):
     def setUp(self):
         super().setUp()

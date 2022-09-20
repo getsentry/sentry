@@ -42,6 +42,27 @@ function mockRequests(orgSlug: Organization['slug']) {
     body: {'measurements.custom.measurement': {functions: ['p99']}},
   });
 
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/metrics-compatibility/',
+    method: 'GET',
+    body: {
+      incompatible_projects: [],
+      compatible_projects: [1],
+      dynamic_sampling_projects: [1],
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/metrics-compatibility-sums/',
+    method: 'GET',
+    body: {
+      sum: {
+        metrics: 988803,
+        metrics_null: 0,
+        metrics_unparam: 132,
+      },
+    },
+  });
   return {eventsv2Mock};
 }
 
@@ -49,12 +70,7 @@ describe('VisualizationStep', function () {
   const {organization, router, routerContext} = initializeOrg({
     ...initializeOrg(),
     organization: {
-      features: [
-        'dashboards-edit',
-        'global-views',
-        'new-widget-builder-experience-design',
-        'dashboards-mep',
-      ],
+      features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },
     router: {
       location: {
@@ -109,6 +125,7 @@ describe('VisualizationStep', function () {
   });
 
   it('displays stored data alert', async function () {
+    mockRequests(organization.slug);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/eventsv2/`,
       method: 'GET',
@@ -143,7 +160,14 @@ describe('VisualizationStep', function () {
       />,
       {
         context: routerContext,
-        organization,
+        organization: {
+          ...organization,
+          features: [
+            ...organization.features,
+            'server-side-sampling',
+            'mep-rollout-flag',
+          ],
+        },
       }
     );
 

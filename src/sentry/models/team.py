@@ -13,6 +13,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
@@ -111,7 +112,7 @@ class TeamManager(BaseManager):
                 update_code_owners_schema.apply_async(
                     kwargs={
                         "organization": instance.organization,
-                        "projects": instance.get_projects(),
+                        "projects": list(instance.get_projects()),
                     }
                 )
             except (Organization.DoesNotExist, Project.DoesNotExist):
@@ -127,6 +128,7 @@ class TeamStatus:
     DELETION_IN_PROGRESS = 2
 
 
+@region_silo_model
 class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.

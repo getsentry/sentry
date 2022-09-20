@@ -336,6 +336,12 @@ def cron(**options):
     help="Time (in milliseconds) to wait before closing current batch and committing offsets.",
 )
 @click.option(
+    "--concurrency",
+    default=5,
+    type=int,
+    help="Thread pool size for post process worker.",
+)
+@click.option(
     "--initial-offset-reset",
     default="latest",
     type=click.Choice(["earliest", "latest"]),
@@ -362,6 +368,7 @@ def post_process_forwarder(**options):
             synchronize_commit_group=options["synchronize_commit_group"],
             commit_batch_size=options["commit_batch_size"],
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
+            concurrency=options["concurrency"],
             initial_offset_reset=options["initial_offset_reset"],
         )
     except ForwarderNotRequired:
@@ -564,13 +571,14 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 def metrics_streaming_consumer(**options):
     import sentry_sdk
 
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.indexer.multiprocess import get_streaming_metrics_consumer
     from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
+    db_backend = IndexerStorage(options["indexer_db"])
     sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, options["indexer_db"])
+    ingest_config = get_ingest_config(use_case, db_backend)
 
     streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -602,15 +610,17 @@ def metrics_streaming_consumer(**options):
 @click.option("max_parallel_batch_size", "--max-parallel-batch-size", type=int, default=50)
 @click.option("max_parallel_batch_time", "--max-parallel-batch-time-ms", type=int, default=10000)
 def metrics_parallel_consumer(**options):
-    import sentry_sdk
-
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import (
+        IndexerStorage,
+        UseCaseKey,
+        get_ingest_config,
+        initialize_global_consumer_state,
+    )
     from sentry.sentry_metrics.consumers.indexer.parallel import get_parallel_metrics_consumer
-    from sentry.utils.metrics import global_tags
 
     use_case = UseCaseKey(options["ingest_profile"])
-    sentry_sdk.set_tag("sentry_metrics.use_case_key", use_case.value)
-    ingest_config = get_ingest_config(use_case, options["db_backend"])
+    db_backend = IndexerStorage(options["indexer_db"])
+    ingest_config = get_ingest_config(use_case, db_backend)
 
     streamer = get_parallel_metrics_consumer(indexer_profile=ingest_config, **options)
 
@@ -620,8 +630,8 @@ def metrics_parallel_consumer(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
-        streamer.run()
+    initialize_global_consumer_state(ingest_config)
+    streamer.run()
 
 
 @run.command("ingest-profiles")
@@ -658,11 +668,13 @@ def replays_recordings_consumer(**options):
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
+    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
     from sentry.utils.metrics import global_tags
 
-    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]), options["indexer_db"])
+    ingest_config = get_ingest_config(
+        UseCaseKey(options["ingest_profile"]), IndexerStorage(options["indexer_db"])
+    )
 
     consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
 

@@ -16,14 +16,15 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 
 const defaultOrgFeatures = [
   'performance-view',
-  'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
 ];
 
 // Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
+jest.mock('sentry/components/charts/worldMapChart', () => ({
+  WorldMapChart: () => null,
+}));
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
@@ -239,6 +240,28 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility/',
+      method: 'GET',
+      body: {
+        incompatible_projects: [],
+        compatible_projects: [1],
+        dynamic_sampling_projects: [1],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
+      method: 'GET',
+      body: {
+        sum: {
+          metrics: 988803,
+          metrics_null: 0,
+          metrics_unparam: 132,
+        },
+      },
+    });
+
     TagStore.reset();
   });
 
@@ -249,15 +272,11 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    const releaseHealthFeatureFlags = [
-      ...defaultOrgFeatures,
-      'new-widget-builder-experience-design',
-      'dashboards-releases',
-    ];
+    const releaseHealthFeatureFlags = [...defaultOrgFeatures, 'dashboards-releases'];
 
     it('does not show the Release Health dataset if there is no dashboards-releases flag', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
@@ -751,7 +770,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');
@@ -840,7 +859,7 @@ describe('WidgetBuilder', function () {
         });
       });
 
-      it('raises an alert banner and disables saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
+      it('raises an alert banner but allows saving widget if widget result is not metrics data and widget is using custom measurements', async function () {
         eventsMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           method: 'GET',
@@ -876,6 +895,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 
@@ -887,8 +908,8 @@ describe('WidgetBuilder', function () {
           expect(eventsMock).toHaveBeenCalled();
         });
 
-        screen.getByText('You have inputs that are incompatible with');
-        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled();
+        screen.getByText('Your selection is only applicable to');
+        expect(screen.getByText('Add Widget').closest('button')).toBeEnabled();
       });
 
       it('raises an alert banner if widget result is not metrics data', async function () {
@@ -927,6 +948,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 
@@ -1169,7 +1192,7 @@ describe('WidgetBuilder', function () {
         await screen.findByText('12 MB');
       });
 
-      it('displays custom performance metric in column select', async function () {
+      it('displays saved custom performance metric in column select', async function () {
         renderTestComponent({
           query: {source: DashboardWidgetSource.DISCOVERV2},
           dashboard: {
@@ -1200,6 +1223,46 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
         });
         await screen.findByText('measurements.custom.measurement');
+      });
+
+      it('displays custom performance metric in column select dropdown', async function () {
+        measurementsMetaMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/measurements-meta/',
+          method: 'GET',
+          body: {'measurements.custom.measurement': {functions: ['p99']}},
+        });
+        renderTestComponent({
+          query: {source: DashboardWidgetSource.DISCOVERV2},
+          dashboard: {
+            ...testDashboard,
+            widgets: [
+              {
+                title: 'Custom Measurement Widget',
+                interval: '1d',
+                id: '1',
+                widgetType: WidgetType.DISCOVER,
+                displayType: DisplayType.TABLE,
+                queries: [
+                  {
+                    conditions: '',
+                    name: '',
+                    fields: ['transaction', 'count()'],
+                    columns: ['transaction'],
+                    aggregates: ['count()'],
+                    orderby: '-count()',
+                  },
+                ],
+              },
+            ],
+          },
+          params: {
+            widgetIndex: '0',
+          },
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
+        });
+        await screen.findByText('transaction');
+        userEvent.click(screen.getAllByText('count()')[1]);
+        expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
       });
 
       it('does not default to sorting by transaction when columns change', async function () {

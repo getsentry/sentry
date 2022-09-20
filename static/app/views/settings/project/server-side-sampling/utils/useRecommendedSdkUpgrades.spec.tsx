@@ -12,12 +12,13 @@ describe('useRecommendedSdkUpgrades', function () {
       TestStubs.Project({id: '1', slug: 'sentry'}),
       TestStubs.Project({id: '2', slug: 'java'}),
       TestStubs.Project({id: '3', slug: 'angular'}),
+      TestStubs.Project({id: '4', slug: 'javascript'}),
     ]);
 
-    ServerSideSamplingStore.fetchSdkVersionsSuccess(mockedSamplingSdkVersions);
+    ServerSideSamplingStore.sdkVersionsRequestSuccess(mockedSamplingSdkVersions);
 
     const {result} = reactHooks.renderHook(() =>
-      useRecommendedSdkUpgrades({orgSlug: 'org-slug', projectId: '3'})
+      useRecommendedSdkUpgrades({organization: TestStubs.Organization(), projectId: '3'})
     );
 
     expect(result.current.recommendedSdkUpgrades.length).toBe(2);
@@ -47,6 +48,6 @@ describe('useRecommendedSdkUpgrades', function () {
       }),
     ]);
     expect(result.current.isProjectIncompatible).toBe(true);
-    expect(result.current.affectedProjects.length).toBe(3);
+    expect(result.current.affectedProjects.length).toBe(4);
   });
 });

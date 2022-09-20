@@ -1,9 +1,10 @@
 from django.db import models
 
-from sentry.db.models import Model
+from sentry.db.models import Model, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 
 
+@control_silo_model
 class DocIntegration(Model):
     """
     Document based integrations can be found in Sentry, but are installed via code change.

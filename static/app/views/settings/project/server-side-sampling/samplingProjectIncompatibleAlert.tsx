@@ -35,7 +35,7 @@ export function SamplingProjectIncompatibleAlert({
   return (
     <Alert
       data-test-id="incompatible-project-alert"
-      type="warning"
+      type="error"
       showIcon
       trailingItems={
         <Button
@@ -48,7 +48,7 @@ export function SamplingProjectIncompatibleAlert({
         </Button>
       }
     >
-      {t('Your project is currently incompatible with Server-Side Sampling.')}
+      {t('Your project is currently incompatible with Dynamic Sampling.')}
     </Alert>
   );
 }

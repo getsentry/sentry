@@ -114,7 +114,8 @@ class Quota:
 
     def iter_window(self, request_timestamp: int) -> Iterator[int]:
         """
-        Iterate over the quota's window, yielding timestamps representing each granule.
+        Iterate over the quota's window, yielding values representing each
+        (absolute) granule.
 
         This function is used to calculate keys for storing the number of
         requests made in each granule.
@@ -123,11 +124,12 @@ class Quota:
         starting with the key to which a currently-processed request should be
         added. That request's timestamp is `request_timestamp`.
 
-        * `request_timestamp / self.granularity_seconds`
         * `request_timestamp / self.granularity_seconds - 1`
         * `request_timestamp / self.granularity_seconds - 2`
+        * `request_timestamp / self.granularity_seconds - 3`
         * ...
         """
+
         value = request_timestamp // self.granularity_seconds
 
         for granule_i in range(self.window_seconds // self.granularity_seconds):
@@ -326,7 +328,16 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
                         self._build_redis_key(request=request, quota=quota, granule=granule)
                     )
 
-        redis_results = dict(zip(keys_to_fetch, self.client.mget(keys_to_fetch)))
+        # Stabilize the iteration order of `keys_to_fetch` by converting it
+        # into a list, because the next line will iterate over keys_to_fetch
+        # twice.
+        #
+        # While CPython 3.8 does not change the iteration order of a set as
+        # long as it is not being modified
+        # (https://stackoverflow.com/a/3812600/1544347), there are no formal
+        # guarantees about it.
+        ordered_keys_to_fetch = list(keys_to_fetch)
+        redis_results = dict(zip(ordered_keys_to_fetch, self.client.mget(ordered_keys_to_fetch)))
 
         results = []
 

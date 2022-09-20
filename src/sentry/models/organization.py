@@ -20,7 +20,13 @@ from sentry.constants import (
     RESERVED_ORGANIZATION_SLUGS,
     RESERVED_PROJECT_SLUGS,
 )
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    Model,
+    region_silo_model,
+    sane_repr,
+)
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.roles.manager import Role
@@ -113,6 +119,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
+@region_silo_model
 class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
@@ -200,7 +207,7 @@ class Organization(Model, SnowflakeIdMixin):
                 slugify_target = slugify_target.replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        if SENTRY_USE_SNOWFLAKE or features.has("organizations:enable-snowflake-id", self):
+        if SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "organization_snowflake_key"
             self.save_with_snowflake_id(
                 snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
@@ -256,6 +263,16 @@ class Organization(Model, SnowflakeIdMixin):
         if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner
+
+    @property
+    def default_owner_id(self):
+        """
+        Similar to get_default_owner but won't raise a key error
+        if there is no owner. Used for analytics primarily.
+        """
+        if not hasattr(self, "_default_owner_id"):
+            self._default_owner_id = self.get_owners().values_list("id", flat=True).first()
+        return self._default_owner_id
 
     def has_single_owner(self):
         from sentry.models import OrganizationMember

@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 import type {Release} from 'sentry/types';
 
 interface CustomResolutionModalProps extends ModalRenderProps {
-  onSelected: ({inRelease: string}) => void;
+  onSelected: (change: {inRelease: string}) => void;
   orgSlug: string;
   projectSlug?: string;
 }

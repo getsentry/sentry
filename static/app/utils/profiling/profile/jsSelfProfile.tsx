@@ -39,14 +39,14 @@ export class JSSelfProfile extends Profile {
     const startedAt = profile.samples[0].timestamp;
     const endedAt = lastOfArray(profile.samples).timestamp;
 
-    const jsSelfProfile = new JSSelfProfile(
-      endedAt - startedAt,
+    const jsSelfProfile = new JSSelfProfile({
+      duration: endedAt - startedAt,
       startedAt,
       endedAt,
-      'JSSelfProfiling',
-      'milliseconds',
-      0
-    );
+      name: 'JSSelfProfiling',
+      unit: 'milliseconds',
+      threadId: 0,
+    });
 
     // Because JS self profiling takes an initial sample when we call new Profiler(),
     // it means that the first sample weight will always be zero. We want to append the sample with 0 weight,

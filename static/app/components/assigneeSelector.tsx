@@ -135,7 +135,7 @@ class AssigneeSelector extends Component<Props, State> {
   };
 
   memberList(): User[] | undefined {
-    return this.props.memberList ? this.props.memberList : this.state.memberList;
+    return this.props.memberList ?? this.state.memberList;
   }
 
   onGroupChange(itemIds: Set<string>) {
@@ -287,6 +287,7 @@ class AssigneeSelector extends Component<Props, State> {
       suspectCommit: t('Suspect Commit'),
       releaseCommit: t('Suspect Release'),
       ownershipRule: t('Ownership Rule'),
+      codeowners: t('Codeowners'),
     };
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
@@ -450,6 +451,7 @@ class AssigneeSelector extends Component<Props, State> {
       }),
       releaseCommit: '',
       ownershipRule: t('Matching Issue Owners Rule'),
+      codeowners: t('Matching Codeowners Rule'),
     };
     const assignedToSuggestion = suggestedActors.find(
       actor => actor.id === assignedTo?.id
@@ -476,7 +478,7 @@ class AssigneeSelector extends Component<Props, State> {
       />
     ) : suggestedActors && suggestedActors.length > 0 ? (
       <SuggestedAvatarStack
-        size={24}
+        size={28}
         owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={

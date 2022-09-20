@@ -3,7 +3,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 import {ANOMALY_FLAG} from 'sentry/views/performance/transactionSummary/transactionAnomalies/utils';
 
 type AnomaliesProps = {};
@@ -93,4 +92,4 @@ function AnomaliesSeriesQuery(props: Props) {
   );
 }
 
-export default withApi(AnomaliesSeriesQuery);
+export default AnomaliesSeriesQuery;

@@ -36,6 +36,7 @@ export enum FieldKey {
   ERROR_TYPE = 'error.type',
   ERROR_UNHANDLED = 'error.unhandled',
   ERROR_VALUE = 'error.value',
+  ERROR_RECEIVED = 'error.received',
   EVENT_TIMESTAMP = 'event.timestamp',
   EVENT_TYPE = 'event.type',
   FIRST_RELEASE = 'firstRelease',
@@ -51,6 +52,8 @@ export enum FieldKey {
   ID = 'id',
   IS = 'is',
   ISSUE = 'issue',
+  ISSUE_CATEGORY = 'issue.category',
+  ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
   LOCATION = 'location',
@@ -179,6 +182,10 @@ export interface FieldDefinition {
    * Description of the field
    */
   desc?: string;
+  /**
+   * Feature flag that indicates gating of the field from use
+   */
+  featureFlag?: string;
   /**
    * Additional keywords used when filtering via autocomplete
    */
@@ -432,7 +439,7 @@ type AllFieldKeys =
   | keyof typeof SPAN_OP_FIELDS
   | FieldKey;
 
-export const FIELDS: Record<AllFieldKeys, FieldDefinition> = {
+const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
@@ -558,6 +565,11 @@ export const FIELDS: Record<AllFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.ERROR_RECEIVED]: {
+    desc: t('The datetime that the error was received'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.DATE,
+  },
   [FieldKey.EVENT_TIMESTAMP]: {
     desc: t('Date and time of the event'),
     kind: FieldKind.FIELD,
@@ -618,6 +630,19 @@ export const FIELDS: Record<AllFieldKeys, FieldDefinition> = {
     desc: t('The issue identification code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.ISSUE_CATEGORY]: {
+    desc: t('Category of issue (error or performance)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['error', 'performance'],
+    featureFlag: 'performance-issues',
+  },
+  [FieldKey.ISSUE_TYPE]: {
+    desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    featureFlag: 'performance-issues',
   },
   [FieldKey.LAST_SEEN]: {
     desc: t('Issues last seen at a given time'),
@@ -893,6 +918,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE_CATEGORY,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
@@ -979,6 +1005,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_HANDLED,
   FieldKey.ERROR_UNHANDLED,
+  FieldKey.ERROR_RECEIVED,
   FieldKey.LEVEL,
   FieldKey.STACK_ABS_PATH,
   FieldKey.STACK_FILENAME,
@@ -1014,5 +1041,5 @@ export const DISCOVER_FIELDS = [
 ];
 
 export const getFieldDefinition = (key: string): FieldDefinition | null => {
-  return FIELDS[key] ?? null;
+  return FIELD_DEFINITIONS[key] ?? null;
 };

@@ -4,9 +4,11 @@ export function getPrevBreadcrumb({
   crumbs,
   targetTimestampMs,
   allowExact = false,
+  allowEqual = false,
 }: {
   crumbs: Crumb[];
   targetTimestampMs: number;
+  allowEqual?: boolean;
   allowExact?: boolean;
 }) {
   return crumbs.reduce<Crumb | undefined>((prev, crumb) => {
@@ -18,7 +20,12 @@ export function getPrevBreadcrumb({
     ) {
       return prev;
     }
-    if (!prev || crumbTimestampMS > +new Date(prev.timestamp || '')) {
+    if (
+      !prev ||
+      (allowEqual
+        ? crumbTimestampMS >= +new Date(prev.timestamp || '')
+        : crumbTimestampMS > +new Date(prev.timestamp || ''))
+    ) {
       return crumb;
     }
     return prev;

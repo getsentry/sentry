@@ -27,7 +27,7 @@ class SlackClient(ApiClient):  # type: ignore
         try:
             span.set_http_status(int(code))
         except ValueError:
-            span.set_status(code)
+            span.set_status(str(code))
 
         span.set_tag("integration", "slack")
 

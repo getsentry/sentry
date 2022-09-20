@@ -12,6 +12,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     QuerySet,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.cache import memoize
@@ -30,6 +31,7 @@ class CommitManager(BaseManager):
         )
 
 
+@region_silo_model
 class Commit(Model):
     __include_in_export__ = False
 

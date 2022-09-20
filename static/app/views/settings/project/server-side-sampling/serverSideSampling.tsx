@@ -10,8 +10,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {
-  fetchProjectStats30d,
-  fetchProjectStats48h,
+  fetchProjectStats,
   fetchSamplingDistribution,
   fetchSamplingSdkVersions,
 } from 'sentry/actionCreators/serverSideSampling';
@@ -98,6 +97,12 @@ export function ServerSideSampling({project}: Props) {
     }
 
     async function fetchData() {
+      fetchProjectStats({
+        orgSlug: organization.slug,
+        api,
+        projId: project.id,
+      });
+
       await fetchSamplingDistribution({
         orgSlug: organization.slug,
         projSlug: project.slug,
@@ -109,18 +114,6 @@ export function ServerSideSampling({project}: Props) {
         api,
         projectID: project.id,
       });
-
-      await fetchProjectStats48h({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
-      });
-
-      await fetchProjectStats30d({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
-      });
     }
 
     fetchData();
@@ -128,16 +121,18 @@ export function ServerSideSampling({project}: Props) {
 
   const {projectStats48h} = useProjectStats();
 
-  const {recommendedSdkUpgrades, isProjectIncompatible} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+  const {
+    recommendedSdkUpgrades,
+    isProjectIncompatible,
+    loading: loadingRecommendedSdkUpgrades,
+  } = useRecommendedSdkUpgrades({
+    organization,
     projectId: project.id,
   });
 
   async function handleActivateToggle(rule: SamplingRule) {
     if (isProjectIncompatible) {
-      addErrorMessage(
-        t('Your project is currently incompatible with Server-Side Sampling.')
-      );
+      addErrorMessage(t('Your project is currently incompatible with Dynamic Sampling.'));
       return;
     }
 
@@ -341,9 +336,7 @@ export function ServerSideSampling({project}: Props) {
     rule,
   }: Parameters<UniformModalsSubmit>[0]) {
     if (isProjectIncompatible) {
-      addErrorMessage(
-        t('Your project is currently incompatible with Server-Side Sampling.')
-      );
+      addErrorMessage(t('Your project is currently incompatible with Dynamic Sampling.'));
       return;
     }
 
@@ -424,19 +417,24 @@ export function ServerSideSampling({project}: Props) {
   const uniformRule = rules.find(isUniformRule);
 
   return (
-    <SentryDocumentTitle title={t('Server-Side Sampling')}>
+    <SentryDocumentTitle title={t('Dynamic Sampling')}>
       <Fragment>
         <SettingsPageHeader
           title={
             <Fragment>
-              {t('Server-Side Sampling')} <FeatureBadge type="beta" />
+              {t('Dynamic Sampling')} <FeatureBadge type="beta" />
             </Fragment>
           }
         />
         <TextBlock>
           {tct(
-            'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
+            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, with no need to re-deploy your app. To learn more about our beta program, [faqLink: visit our FAQ].',
             {
+              performanceMetrics: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/" />
+              ),
+              targetTransactions: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
+
               faqLink: (
                 <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
               ),
@@ -481,7 +479,6 @@ export function ServerSideSampling({project}: Props) {
             onGetStarted={handleGetStarted}
             onReadDocs={handleReadDocs}
             hasAccess={hasAccess}
-            isProjectIncompatible={isProjectIncompatible}
           />
         ) : (
           <RulesPanel>
@@ -559,6 +556,7 @@ export function ServerSideSampling({project}: Props) {
                       grabAttributes={attributes}
                       dragging={dragging}
                       sorting={sorting}
+                      loadingRecommendedSdkUpgrades={loadingRecommendedSdkUpgrades}
                     />
                   </RulesPanelLayout>
                 );

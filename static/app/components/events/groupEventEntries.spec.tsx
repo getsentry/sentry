@@ -5,21 +5,31 @@ import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
 import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
-const {organization, project} = initializeOrg();
+const {organization, project, router} = initializeOrg();
 
 const api = new MockApiClient();
 
 async function renderComponent(event: Event, errors?: Array<Error>) {
   render(
     <OrganizationContext.Provider value={organization}>
-      <EventEntries
-        organization={organization}
-        event={{...event, errors: errors ?? event.errors}}
-        project={project}
-        location={location}
-        api={api}
-      />
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        <EventEntries
+          organization={organization}
+          event={{...event, errors: errors ?? event.errors}}
+          project={project}
+          location={location}
+          api={api}
+        />
+      </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
 

@@ -30,7 +30,6 @@ describe('GroupActivity', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.teardown();
-    GroupStore.teardown();
   });
 
   function createWrapper({activity, organization: additionalOrg} = {}) {
@@ -93,6 +92,52 @@ describe('GroupActivity', function () {
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       /Mark assigned this issue to themselves/
     );
+  });
+
+  it('renders an assigned via codeowners activity', function () {
+    createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'codeowners',
+            rule: 'path:something/*.py #workflow',
+          },
+          dateCreated: '2021-10-01T15:31:38.950115Z',
+          id: '117',
+          type: 'assigned',
+          user: null,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      /Sentry auto-assigned this issue to anotheruser@sentry.io/
+    );
+  });
+
+  it('renders an assigned via slack activity', function () {
+    const user = TestStubs.User({id: '301', name: 'Mark'});
+    createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'slack',
+          },
+          dateCreated: '2021-10-01T15:31:38.950115Z',
+          id: '117',
+          type: 'assigned',
+          user,
+        },
+      ],
+    });
+    const item = screen.getAllByTestId('activity-item').at(-1);
+    expect(item).toHaveTextContent(/Mark assigned this issue to anotheruser@sentry.io/);
+    expect(item).toHaveTextContent(/Assigned via Slack/);
   });
 
   it('resolved in commit with no releases', function () {
@@ -213,7 +258,7 @@ describe('GroupActivity', function () {
     });
 
     await waitFor(() => expect(teamRequest).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(team.slug)).toBeInTheDocument();
+    expect(await screen.findByText(`#${team.slug}`)).toBeInTheDocument();
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       /Sentry assigned this issue to #team-slug/
     );

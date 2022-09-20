@@ -2,12 +2,13 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
 from sentry.models import Repository
 
 
+@pending_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()

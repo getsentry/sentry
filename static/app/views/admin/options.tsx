@@ -3,6 +3,7 @@ import keyBy from 'lodash/keyBy';
 import {
   BooleanField,
   EmailField,
+  NumberField,
   RadioBooleanField,
   TextField,
 } from 'sentry/components/forms';
@@ -19,13 +20,16 @@ type Field = {
   label: React.ReactNode;
   allowEmpty?: boolean;
   component?: React.ComponentType<any>;
-  defaultValue?: () => string | false;
+  defaultValue?: () => string | number | false;
   disabled?: boolean;
   disabledReason?: string;
   help?: React.ReactNode;
+  max?: number;
+  min?: number;
   noLabel?: string;
   placeholder?: string;
   required?: boolean;
+  step?: number;
   yesFirst?: boolean;
   yesLabel?: string;
 };
@@ -46,6 +50,97 @@ const sections: Section[] = [
   {
     key: 'beacon',
     heading: t('Beacon'),
+  },
+];
+
+const HIGH_THROUGHPUT_RATE_OPTION = {
+  defaultValue: () => '0',
+  component: NumberField,
+  min: 0.0,
+  max: 1.0,
+  step: 0.0001,
+};
+
+const performanceOptionDefinitions: Field[] = [
+  {
+    key: 'performance.issues.all.problem-detection',
+    label: t('Performance problem detection rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected across the entire system. A value of 0 will disable performance issue detection, and a value of 1.0 turns on detection for every ingested transaction.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.all.problem-creation',
+    label: t('Performance problem creation rate'),
+    help: t(
+      'Controls the rate at which performance issues are created across the entire system. A value of 0 will disable performance issue detection, and a value of 1.0 turns on creation for every detected performance problem.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.all.early-adopter-rollout',
+    label: t('Performance issues creation EA Rollout'),
+    help: t(
+      'Controls the rate at which performance issues are created for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one.problem-detection',
+    label: t('N+1 detection rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected specifically for N+1 detection. Value of 0 will disable detection, a value of 1.0 fully enables it.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one.problem-creation',
+    label: t('N+1 creation rate'),
+    help: t(
+      'Controls the rate at which performance issues are created specifically for N+1 detection. Value of 0 will disable creation, a value of 1.0 fully enables it.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_db.problem-detection',
+    label: t('N+1 (DB) detection rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected specifically for N+1 detection. Value of 0 will disable detection, a value of 1.0 fully enables it.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_db.problem-creation',
+    label: t('N+1 (DB) creation rate'),
+    help: t(
+      'Controls the rate at which performance issues are created specifically for N+1 detection. Value of 0 will disable creation, a value of 1.0 fully enables it.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.n_plus_one_db.count_threshold',
+    label: t('N+1 (DB) count threshold'),
+    help: t(
+      'Detector threshold. Controls the number of spans required to trigger performance issues. This affects all organizations system-wide.'
+    ),
+    defaultValue: () => '5',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.n_plus_one_db.duration_threshold', // TODO: For fixing typo later.
+    label: t('N+1 (DB) duration threshold'),
+    help: t(
+      'Detector threshold. Controls the threshold for the cumulative duration of involved spans required to trigger performance issues. This affects all organizations system-wide.'
+    ),
+    defaultValue: () => '100',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
   },
 ];
 
@@ -184,6 +279,7 @@ const definitions: Field[] = [
     component: BooleanField,
     defaultValue: () => false,
   },
+  ...performanceOptionDefinitions,
 ];
 
 const definitionsMap = keyBy(definitions, def => def.key);
@@ -198,7 +294,7 @@ export function getOption(option: string): Field {
   return definitionsMap[option];
 }
 
-export function getOptionDefault(option: string): string | false | undefined {
+export function getOptionDefault(option: string): string | number | false | undefined {
   const meta = getOption(option);
   return meta.defaultValue ? meta.defaultValue() : undefined;
 }

@@ -105,14 +105,12 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
             >
               <MenuItemActionLink
                 shouldConfirm={false}
-                title={t('Download')}
                 href={`${downloadUrl}?download=1`}
               >
                 {t('Download')}
               </MenuItemActionLink>
               <MenuItemActionLink
                 shouldConfirm
-                title={t('Delete')}
                 onAction={() => onDelete(screenshotAttachment.id)}
                 header={t(
                   'This image was captured around the time that the event occurred.'
