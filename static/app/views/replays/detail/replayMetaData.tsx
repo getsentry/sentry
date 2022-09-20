@@ -1,7 +1,6 @@
 import {ComponentProps, Fragment, useCallback} from 'react';
-import {browserHistory} from 'react-router';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import {stringify} from 'query-string';
 
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -27,16 +26,8 @@ function ReplayMetaData({replayRecord}: Props) {
   const {projects} = useProjects();
   const [slug] = replaySlug.split(':');
 
-  const showErrorsTabHref =
-    '?' +
-    stringify({
-      ...query,
-      t_main: 'console',
-      consoleLogLevel: 'error',
-      consoleSearch: undefined,
-    });
-  const showErrorsTab = useCallback(() => {
-    browserHistory.push({
+  const getErrorsTabHref = useCallback(
+    () => ({
       pathname,
       query: {
         ...query,
@@ -44,8 +35,9 @@ function ReplayMetaData({replayRecord}: Props) {
         consoleLogLevel: 'error',
         consoleSearch: undefined,
       },
-    });
-  }, [pathname, query]);
+    }),
+    [pathname, query]
+  );
 
   return (
     <KeyMetrics>
@@ -85,26 +77,10 @@ function ReplayMetaData({replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord ? (
           <Fragment>
-            <ErrorTag
-              to={showErrorsTabHref}
-              onClick={e => {
-                e.preventDefault();
-                showErrorsTab();
-              }}
-              icon={null}
-              type="error"
-            >
+            <ErrorTag to={getErrorsTabHref} icon={null} type="error">
               {replayRecord?.countErrors}
             </ErrorTag>
-            <a
-              href={showErrorsTabHref}
-              onClick={e => {
-                e.preventDefault();
-                showErrorsTab();
-              }}
-            >
-              {t('Errors')}
-            </a>
+            <Link to={getErrorsTabHref}>{t('Errors')}</Link>
           </Fragment>
         ) : (
           <HeaderPlaceholder />
