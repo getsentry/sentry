@@ -581,8 +581,8 @@ class GroupDetails extends Component<Props, State> {
     return (
       <Fragment>
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
           replaysCount={replayIds?.length}
