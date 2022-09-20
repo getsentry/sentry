@@ -27,6 +27,19 @@ counter_payload = {
     "project_id": 3,
 }
 
+counter_payload_org_70 = {
+    "name": SessionMRI.SESSION.value,
+    "tags": {
+        "environment": "production",
+        "session.status": "init",
+    },
+    "timestamp": ts,
+    "type": "c",
+    "value": 1.0,
+    "org_id": 70,
+    "project_id": 3,
+}
+
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
     "tags": {
@@ -52,6 +65,20 @@ set_payload = {
     "value": [3],
     "org_id": 1,
     "project_id": 3,
+}
+
+extracted_string_output = {
+    1: {
+        "c:sessions/session@none",
+        "d:sessions/duration@second",
+        "environment",
+        "errored",
+        "healthy",
+        "init",
+        "production",
+        "s:sessions/error@none",
+        "session.status",
+    }
 }
 
 
@@ -122,6 +149,117 @@ def _get_string_indexer_log_records(caplog):
     ]
 
 
+@pytest.mark.parametrize(
+    "rollout_option, option_value, expected",
+    [
+        pytest.param(
+            None,
+            None,
+            {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                },
+                70: {
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
+            },
+            id="rollout option is None",
+        ),
+        pytest.param(
+            "sentry-metrics.performance.index-tag-values",
+            0.0,
+            {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "errored",
+                    "healthy",
+                    "init",
+                    "production",
+                    "s:sessions/error@none",
+                    "session.status",
+                },
+                70: {
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
+            },
+            id="no rollout",
+        ),
+        pytest.param(
+            "sentry-metrics.performance.index-tag-values",
+            0.1,
+            {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "s:sessions/error@none",
+                    "session.status",
+                },
+                70: {
+                    "c:sessions/session@none",
+                    "environment",
+                    "init",
+                    "production",
+                    "session.status",
+                },
+            },
+            id="partial rollout",
+        ),
+        pytest.param(
+            "sentry-metrics.performance.index-tag-values",
+            1.0,
+            {
+                1: {
+                    "c:sessions/session@none",
+                    "d:sessions/duration@second",
+                    "environment",
+                    "s:sessions/error@none",
+                    "session.status",
+                },
+                70: {"c:sessions/session@none", "environment", "session.status"},
+            },
+            id="full rollout",
+        ),
+    ],
+)
+def test_extract_strings_with_rollout(rollout_option, option_value, expected, set_sentry_option):
+    """
+    Test that the indexer batch extracts the correct strings from the messages
+    based on the rollout option name and the option value.
+    """
+    if rollout_option:
+        set_sentry_option(rollout_option, option_value)
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (counter_payload_org_70, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, rollout_option)
+
+    assert batch.extract_strings() == expected
+
+
 def test_all_resolved(caplog, settings):
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
     outer_message = _construct_outer_message(
@@ -132,7 +270,7 @@ def test_all_resolved(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, None)
     assert batch.extract_strings() == (
         {
             1: {
@@ -250,6 +388,135 @@ def test_all_resolved(caplog, settings):
                 "value": [3],
             },
             [("mapping_sources", b"cd"), ("metric_type", "s")],
+        ),
+    ]
+
+
+def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_option):
+    """
+    Tests that the indexer batch skips resolving tag values for indexing and
+    sends the raw tag value to Snuba.
+
+    The difference between this test and test_all_resolved is that the tag values are
+    strings instead of integers. Because of that indexed tag keys are
+    different and mapping_meta is smaller. The payload also contains the
+    version field to specify that the tag values are not indexed.
+    """
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    set_sentry_option("sentry-metrics.performance.index-tag-values", 1.0)
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(
+        UseCaseKey.PERFORMANCE, outer_message, "sentry-metrics.performance.index-tag-values"
+    )
+    assert batch.extract_strings() == (
+        {
+            1: {
+                "c:sessions/session@none",
+                "d:sessions/duration@second",
+                "environment",
+                "s:sessions/error@none",
+                "session.status",
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "s:sessions/error@none": 4,
+                "session.status": 5,
+            }
+        },
+        {
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
+            }
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+    assert _deconstruct_messages(snuba_payloads) == [
+        (
+            {
+                "version": 2,
+                "mapping_meta": {
+                    "c": {
+                        "1": "c:sessions/session@none",
+                        "3": "environment",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "5": "init"},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "performance",
+                "value": 1.0,
+            },
+            [("mapping_sources", b"c"), ("metric_type", "c")],
+        ),
+        (
+            {
+                "version": 2,
+                "mapping_meta": {
+                    "c": {
+                        "2": "d:sessions/duration@second",
+                        "3": "environment",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "5": "healthy"},
+                "timestamp": ts,
+                "type": "d",
+                "unit": "seconds",
+                "use_case_id": "performance",
+                "value": [4, 5, 6],
+            },
+            [("mapping_sources", b"c"), ("metric_type", "d")],
+        ),
+        (
+            {
+                "version": 2,
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "4": "s:sessions/error@none",
+                        "5": "session.status",
+                    },
+                },
+                "metric_id": 4,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": "production", "5": "errored"},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "performance",
+                "value": [3],
+            },
+            [("mapping_sources", b"c"), ("metric_type", "s")],
         ),
     ]
 
