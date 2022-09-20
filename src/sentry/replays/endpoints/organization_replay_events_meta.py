@@ -9,6 +9,16 @@ from sentry.snuba import discover
 
 @region_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
+    """The generic Events endpoints require that the `organizations:global-views` feature
+    be enabled before they return across multiple projects.
+
+    This endpoint is purpose built for the Session Replay product which intentionally
+    requests data across multiple transactions, and therefore potentially multiple projects.
+    This is similar to performance, and modeled after `OrganizationEventsMetaEndpoint`.
+
+    This endpoint offers a narrow interface specific to the requirements of `useReplayData.tsx`
+    """
+
     private = True
 
     def get(self, request: Request, organization) -> Response:
