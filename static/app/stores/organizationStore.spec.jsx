@@ -1,4 +1,3 @@
-import OrganizationActions from 'sentry/actions/organizationActions';
 import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('OrganizationStore', function () {
@@ -16,10 +15,9 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('updates correctly', async function () {
+  it('updates correctly', function () {
     const organization = TestStubs.Organization();
-    OrganizationActions.update(organization);
-    await tick();
+    OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
       error: null,
@@ -30,8 +28,7 @@ describe('OrganizationStore', function () {
 
     // updates
     organization.slug = 'a new slug';
-    OrganizationActions.update(organization);
-    await tick();
+    OrganizationStore.onUpdate(organization);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
       error: null,
@@ -41,10 +38,9 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('updates correctly from setting changes', async function () {
+  it('updates correctly from setting changes', function () {
     const organization = TestStubs.Organization();
     OrganizationStore.onUpdate(organization);
-    await tick();
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
       error: null,
@@ -54,11 +50,10 @@ describe('OrganizationStore', function () {
     });
   });
 
-  it('errors correctly', async function () {
+  it('errors correctly', function () {
     const error = new Error('uh-oh');
     error.status = 404;
-    OrganizationActions.fetchOrgError(error);
-    await tick();
+    OrganizationStore.onFetchOrgError(error);
     expect(OrganizationStore.get()).toMatchObject({
       loading: false,
       error,

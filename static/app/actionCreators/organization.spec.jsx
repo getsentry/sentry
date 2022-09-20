@@ -1,6 +1,5 @@
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as OrganizationsActionCreator from 'sentry/actionCreators/organizations';
-import OrganizationActions from 'sentry/actions/organizationActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -23,9 +22,9 @@ describe('OrganizationActionCreator', function () {
     jest.spyOn(PageFiltersStore, 'onReset');
     jest.spyOn(ProjectActions, 'loadProjects');
     jest.spyOn(ProjectActions, 'reset');
-    jest.spyOn(OrganizationActions, 'reset');
-    jest.spyOn(OrganizationActions, 'update');
-    jest.spyOn(OrganizationActions, 'fetchOrgError');
+    jest.spyOn(OrganizationStore, 'reset');
+    jest.spyOn(OrganizationStore, 'onUpdate');
+    jest.spyOn(OrganizationStore, 'onFetchOrgError');
     jest.spyOn(OrganizationsActionCreator, 'setActiveOrganization');
   });
 
@@ -50,8 +49,8 @@ describe('OrganizationActionCreator', function () {
 
     fetchOrganizationDetails(api, org.slug, false);
     await tick();
-    await tick();
-    expect(OrganizationActions.reset).toHaveBeenCalled();
+
+    expect(OrganizationStore.reset).toHaveBeenCalled();
     expect(PageFiltersStore.onReset).toHaveBeenCalled();
     expect(ProjectActions.reset).toHaveBeenCalled();
     expect(TeamStore.reset).toHaveBeenCalled();
@@ -68,7 +67,7 @@ describe('OrganizationActionCreator', function () {
       `/organizations/${org.slug}/teams/`,
       expect.anything()
     );
-    expect(OrganizationActions.update).toHaveBeenCalledWith(org, {replace: true});
+    expect(OrganizationStore.onUpdate).toHaveBeenCalledWith(org, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(teams);
@@ -93,7 +92,8 @@ describe('OrganizationActionCreator', function () {
 
     fetchOrganizationDetails(api, org.slug, true, true);
     await tick();
-    expect(OrganizationActions.reset).not.toHaveBeenCalled();
+
+    expect(OrganizationStore.reset).not.toHaveBeenCalled();
     expect(PageFiltersStore.onReset).not.toHaveBeenCalled();
     expect(ProjectActions.reset).not.toHaveBeenCalled();
     expect(TeamStore.reset).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe('OrganizationActionCreator', function () {
       expect.anything()
     );
 
-    expect(OrganizationActions.update).toHaveBeenCalledWith(org, {replace: true});
+    expect(OrganizationStore.onUpdate).toHaveBeenCalledWith(org, {replace: true});
     expect(OrganizationsActionCreator.setActiveOrganization).toHaveBeenCalled();
 
     expect(TeamStore.loadInitialData).toHaveBeenCalledWith(teams);
@@ -126,7 +126,8 @@ describe('OrganizationActionCreator', function () {
 
     fetchOrganizationDetails(api, org.slug, false);
     await tick();
-    expect(OrganizationActions.reset).toHaveBeenCalled();
+
+    expect(OrganizationStore.reset).toHaveBeenCalled();
     expect(PageFiltersStore.onReset).toHaveBeenCalled();
     expect(ProjectActions.reset).toHaveBeenCalled();
     expect(TeamStore.reset).toHaveBeenCalled();
@@ -134,6 +135,6 @@ describe('OrganizationActionCreator', function () {
       `/organizations/${org.slug}/`,
       expect.anything()
     );
-    expect(OrganizationActions.fetchOrgError).toHaveBeenCalled();
+    expect(OrganizationStore.onFetchOrgError).toHaveBeenCalled();
   });
 });

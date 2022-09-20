@@ -93,7 +93,7 @@ export type OnboardingTaskDescriptor =
 export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
-  completionSeen?: string;
+  completionSeen?: string | boolean;
   data?: {[key: string]: string};
   dateCompleted?: string;
   user?: AvatarUser | null;

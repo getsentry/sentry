@@ -1,6 +1,5 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationActions from 'sentry/actions/organizationActions';
 import {Deploy, Organization, Release} from 'sentry/types';
 
 type StoreRelease = Map<string, Release>;
@@ -62,12 +61,7 @@ const storeConfig: ReleaseStoreDefinition = {
     deploysError: new Map() as StoreError,
   },
 
-  unsubscribeListeners: [],
-
   init() {
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.update, this.updateOrganization)
-    );
     this.reset();
   },
 

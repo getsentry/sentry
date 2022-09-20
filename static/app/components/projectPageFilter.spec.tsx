@@ -43,7 +43,6 @@ describe('ProjectPageFilter', function () {
   });
 
   afterEach(() => {
-    OrganizationStore.teardown();
     PageFiltersStore.reset();
   });
 
