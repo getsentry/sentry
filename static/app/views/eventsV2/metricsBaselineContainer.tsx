@@ -104,10 +104,10 @@ export function MetricsBaselineContainer({
         }
 
         const [data] = response;
-        const total = data.data[0]['count()'] as string;
+        const total = data.data[0]?.['count()'];
 
         if (defined(total)) {
-          setProcessedTotal(parseInt(total, 10));
+          setProcessedTotal(parseInt(total as string, 10));
           setLoadingTotals(false);
         } else {
           setProcessedTotal(undefined);
