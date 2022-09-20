@@ -4,6 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SelectField} from 'sentry/components/forms';
 import {SelectFieldProps} from 'sentry/components/forms/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -18,8 +19,6 @@ import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import {semverCompare} from 'sentry/utils/profiling/units/versions';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
-
-import {CodeSnippet} from './codeSnippet';
 
 // This is just a doubly linked list of steps
 interface OnboardingStep {

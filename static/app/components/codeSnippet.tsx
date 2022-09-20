@@ -8,10 +8,19 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-const PreContainer = styled('pre')`
+const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
   overflow-x: scroll;
+  ${p =>
+    p.unsetBorderRadiusTop
+      ? `
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
+  `
+      : null}
+
+  word-break: break-all;
+  white-space: pre-wrap;
+
   code {
     white-space: pre;
   }
@@ -34,13 +43,19 @@ const CodeContainerActionBar = styled('div')`
   border-radius: ${p => p.theme.borderRadiusTop};
 `;
 
-interface CodeContainerProps {
+interface CodeSnippetProps {
   children: string;
   language: string;
   filename?: string;
+  hideActionBar?: boolean;
 }
 
-export function CodeSnippet({children, language, filename}: CodeContainerProps) {
+export function CodeSnippet({
+  children,
+  language,
+  filename,
+  hideActionBar,
+}: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
   useEffect(() => Prism.highlightElement(ref.current, false), [children]);
@@ -64,19 +79,22 @@ export function CodeSnippet({children, language, filename}: CodeContainerProps) 
 
   return (
     <Fragment>
-      <CodeContainerActionBar>
-        {filename && <span>{filename}</span>}
-        <Tooltip delay={0} isHoverable={false} title={tooltipTitle} position="bottom">
-          <UnstyledButton
-            type="button"
-            onClick={handleCopy}
-            onMouseLeave={() => setTooltipState('copy')}
-          >
-            <IconCopy />
-          </UnstyledButton>
-        </Tooltip>
-      </CodeContainerActionBar>
-      <PreContainer>
+      {!hideActionBar && (
+        <CodeContainerActionBar>
+          {filename && <span>{filename}</span>}
+          <Tooltip delay={0} isHoverable={false} title={tooltipTitle} position="bottom">
+            <UnstyledButton
+              type="button"
+              onClick={handleCopy}
+              onMouseLeave={() => setTooltipState('copy')}
+            >
+              <IconCopy />
+            </UnstyledButton>
+          </Tooltip>
+        </CodeContainerActionBar>
+      )}
+
+      <PreContainer unsetBorderRadiusTop={!hideActionBar}>
         <code className={`language-${language}`} ref={ref}>
           {children}
         </code>
