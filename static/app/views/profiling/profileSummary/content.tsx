@@ -102,15 +102,15 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
           options={[
             {
               label: t('All'),
-              value: 'all',
+              value: 'all' as const,
             },
             {
               label: t('Application'),
-              value: 'application',
+              value: 'application' as const,
             },
             {
               label: t('System'),
-              value: 'system',
+              value: 'system' as const,
             },
           ]}
           onChange={({value}) => setFunctionType(value)}

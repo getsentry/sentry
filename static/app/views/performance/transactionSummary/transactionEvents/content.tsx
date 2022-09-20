@@ -157,7 +157,7 @@ function Search(props: Props) {
         value={eventsDisplayFilterName}
         onChange={opt => onChangeEventsDisplayFilter(opt.value)}
         options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
-          value: name,
+          value: name as EventsDisplayFilterName,
           label: filter.label,
         }))}
       />

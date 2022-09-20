@@ -13,18 +13,16 @@ type BaseProps = React.ComponentProps<typeof CompactSelect> & {
   featureType?: 'alpha' | 'beta' | 'new';
 };
 
-type SingleProps = BaseProps & {
+interface SingleProps extends Omit<BaseProps, 'onChange'> {
   onChange: (value: string) => void;
   selected: string;
-  multiple?: false;
-};
-type MultipleProps = BaseProps & {
-  multiple: true;
+}
+interface MultipleProps extends Omit<BaseProps, 'onChange'> {
   onChange: (value: string[]) => void;
   selected: string[];
-};
+}
 
-function OptionSelector({
+function OptionSelector<MultipleType extends boolean>({
   options,
   onChange,
   selected,
@@ -32,17 +30,13 @@ function OptionSelector({
   featureType,
   multiple,
   ...rest
-}: SingleProps | MultipleProps) {
+}: MultipleType extends true ? MultipleProps : SingleProps) {
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);
-
-  function onValueChange(option) {
-    onChange(multiple ? option.map(o => o.value) : option.value);
-  }
 
   function isOptionDisabled(option) {
     return (
@@ -60,7 +54,9 @@ function OptionSelector({
       size="sm"
       options={mappedOptions}
       value={selected}
-      onChange={onValueChange}
+      onChange={option => {
+        onChange(multiple ? option.map(o => o.value) : option.value);
+      }}
       isOptionDisabled={isOptionDisabled}
       multiple={multiple}
       triggerProps={{
