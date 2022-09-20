@@ -86,7 +86,10 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self):
-        from sentry import tsdb
+        # from sentry import tsdb
+        from sentry.tsdb.snuba import SnubaTSDB
+
+        tsdb = SnubaTSDB()
 
         metrics.incr("groupsnooze.test_frequency_rates")
 
@@ -106,7 +109,10 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates(self):
-        from sentry import tsdb
+        # from sentry import tsdb
+        from sentry.tsdb.snuba import SnubaTSDB
+
+        tsdb = SnubaTSDB()
 
         metrics.incr("groupsnooze.test_user_rates")
 

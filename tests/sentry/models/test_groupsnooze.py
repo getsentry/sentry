@@ -11,6 +11,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
+from sentry.utils.samples import load_data
 
 
 @region_silo_test
@@ -95,7 +96,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
 
     @freeze_time()
     def test_user_rate_not_reached(self):
-        """Test when an issue is ignored until affected by 100 users in an hour is not yet hit."""
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
         assert snooze.is_valid(test_rates=True)
 
