@@ -558,6 +558,7 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
+    "sentry.replays.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -675,6 +676,7 @@ CELERY_QUEUES = [
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
+    Queue("replays", routing_key="replays"),
 ]
 
 for queue in CELERY_QUEUES:

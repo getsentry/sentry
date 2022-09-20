@@ -7,8 +7,10 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
+from sentry.replays.tasks import delete_recording_segment
 
 
 @region_silo_endpoint
@@ -44,3 +46,17 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             return Response(status=404)
         else:
             return Response({"data": response[0]}, status=200)
+
+    def delete(self, request: Request, project: Project, replay_id: str) -> Response:
+        if not features.has(
+            "organizations:session-replay", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        recording_segments = ReplayRecordingSegment.objects.filter(
+            project_id=project.id, replay_id=replay_id
+        ).all()
+        for recording_segment in recording_segments:
+            delete_recording_segment.delay(recording_segment.id)
+
+        return Response(status=204)
