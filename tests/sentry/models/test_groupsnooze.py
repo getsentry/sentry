@@ -5,10 +5,12 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.event_manager import _pull_out_data
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
 
 
 @region_silo_test
@@ -17,7 +19,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.now = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+        self.now = timezone.now()
         self.project = self.create_project()
         self.group.times_seen_pending = 0
 
@@ -93,6 +95,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
 
     @freeze_time()
     def test_user_rate_not_reached(self):
+        """Test when an issue is ignored until affected by 100 users in an hour is not yet hit."""
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
         assert snooze.is_valid(test_rates=True)
 
