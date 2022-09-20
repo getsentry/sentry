@@ -169,6 +169,7 @@ const Wrapper = styled('div', {
     prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
 })<State & {clipHeight: number}>`
   position: relative;
+  padding: ${space(1.5)} 0;
 
   /* For "Show More" animation */
   ${p =>
