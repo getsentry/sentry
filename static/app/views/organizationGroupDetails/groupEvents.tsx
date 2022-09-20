@@ -8,7 +8,6 @@ import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
-// import PerfEventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

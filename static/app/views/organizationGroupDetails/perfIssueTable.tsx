@@ -3,8 +3,6 @@ import {Location} from 'history';
 
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-// import GridEditable from 'sentry/components/gridEditable';
-// import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import PerfEventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
