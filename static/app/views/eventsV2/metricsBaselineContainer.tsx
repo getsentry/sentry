@@ -85,6 +85,59 @@ export function MetricsBaselineContainer({
     let shouldCancelRequest = false;
 
     if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
+      setProcessedTotal(undefined);
+      setLoadingTotals(false);
+      return undefined;
+    }
+
+    doDiscoverQuery<EventsTableData>(api, `/organizations/${organization.slug}/events/`, {
+      ...eventView.generateQueryStringObject(),
+      field: ['count()'],
+      query: '',
+      sort: [],
+      referrer: 'api.discover.processed-baseline-total',
+      ...{dataset: DiscoverDatasets.METRICS},
+    })
+      .then(response => {
+        if (shouldCancelRequest) {
+          return;
+        }
+
+        const [data] = response;
+        const total = data.data[0]['count()'] as string;
+
+        if (defined(total)) {
+          setProcessedTotal(parseInt(total, 10));
+          setLoadingTotals(false);
+        } else {
+          setProcessedTotal(undefined);
+          setLoadingTotals(false);
+        }
+      })
+      .catch(() => {
+        if (shouldCancelRequest) {
+          return;
+        }
+        setMetricsCompatible(false);
+        setLoadingTotals(false);
+        setProcessedTotal(undefined);
+      });
+    return () => {
+      shouldCancelRequest = true;
+    };
+  }, [
+    disableProcessedBaselineToggle,
+    api,
+    organization,
+    eventView,
+    showBaseline,
+    isRollingOut,
+  ]);
+
+  useEffect(() => {
+    let shouldCancelRequest = false;
+
+    if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
       setProcessedLineSeries(undefined);
       return undefined;
     }
@@ -182,56 +235,6 @@ export function MetricsBaselineContainer({
     pageFilters.datetime.period,
     pageFilters.projects,
     eventView.interval,
-    showBaseline,
-    isRollingOut,
-  ]);
-
-  useEffect(() => {
-    let shouldCancelRequest = false;
-
-    if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
-      setProcessedTotal(undefined);
-      setLoadingTotals(false);
-      return undefined;
-    }
-
-    doDiscoverQuery<EventsTableData>(api, `/organizations/${organization.slug}/events/`, {
-      ...eventView.generateQueryStringObject(),
-      field: ['count()'],
-      query: '',
-      sort: [],
-      referrer: 'api.discover.processed-baseline-total',
-      ...{dataset: DiscoverDatasets.METRICS},
-    })
-      .then(response => {
-        if (shouldCancelRequest) {
-          return;
-        }
-
-        const [data] = response;
-        const total = data.data[0]['count()'] as string;
-
-        if (defined(total)) {
-          setProcessedTotal(parseInt(total, 10));
-          setLoadingTotals(false);
-        }
-      })
-      .catch(() => {
-        if (shouldCancelRequest) {
-          return;
-        }
-        setMetricsCompatible(false);
-        setLoadingTotals(false);
-        setProcessedTotal(undefined);
-      });
-    return () => {
-      shouldCancelRequest = true;
-    };
-  }, [
-    disableProcessedBaselineToggle,
-    api,
-    organization,
-    eventView,
     showBaseline,
     isRollingOut,
   ]);

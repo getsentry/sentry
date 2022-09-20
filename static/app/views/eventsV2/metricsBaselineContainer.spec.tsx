@@ -71,6 +71,7 @@ describe('MetricsBaselineContainer', function () {
   });
 
   let eventsStatsMock: jest.Mock | undefined;
+  let eventsMock: jest.Mock | undefined;
 
   beforeEach(function () {
     (ReactEchartsCore as jest.Mock).mockClear();
@@ -85,14 +86,35 @@ describe('MetricsBaselineContainer', function () {
       },
     });
 
+    eventsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{}],
+        meta: {},
+      },
+    });
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('enables processed baseline toggle if metrics cardinality conditions met', async function () {
     addMetricsDataMock();
+    eventsMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/events/`,
+      body: {
+        data: [{'count()': 19266771}],
+        meta: {},
+      },
+    });
     const organization = TestStubs.Organization({
       features: [
         ...features,
@@ -116,7 +138,17 @@ describe('MetricsBaselineContainer', function () {
       );
     });
 
+    expect(eventsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'metrics',
+        }),
+      })
+    );
+
     expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
+    expect(screen.getByText(/19m/i)).toBeInTheDocument();
     expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
   });
 
