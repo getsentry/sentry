@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -111,13 +111,13 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
   };
 });
 
-function withOrganizationContext(children: React.ReactNode) {
-  return (
+const render: typeof baseRender = children => {
+  return baseRender(
     <OrganizationContext.Provider value={TestStubs.Organization()}>
       {children}
     </OrganizationContext.Provider>
   );
-}
+};
 
 describe('ReplayContent', () => {
   it('Should render a placeholder when is fetching the replay data', () => {
@@ -129,11 +129,7 @@ describe('ReplayContent', () => {
       };
     });
 
-    render(
-      withOrganizationContext(
-        <ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />
-      )
-    );
+    render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />);
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -149,20 +145,12 @@ describe('ReplayContent', () => {
     });
 
     expect(() =>
-      render(
-        withOrganizationContext(
-          <ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />
-        )
-      )
+      render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />)
     ).toThrow();
   });
 
   it('Should render all its elements correctly', () => {
-    render(
-      withOrganizationContext(
-        <ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />
-      )
-    );
+    render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />);
 
     // Expect replay view to be rendered
     expect(screen.getByText('Replay')).toBeInTheDocument();
