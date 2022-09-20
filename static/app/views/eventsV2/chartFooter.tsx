@@ -10,6 +10,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Switch from 'sentry/components/switchButton';
@@ -105,6 +106,7 @@ export default function ChartFooter({
                 }
               )}
             />
+            <FeatureBadge type="alpha" />
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
