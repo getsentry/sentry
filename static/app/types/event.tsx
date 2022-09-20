@@ -32,6 +32,12 @@ export type EventGroupingConfig = {
   risk: number;
   strategies: string[];
 };
+export type VariantEvidence = {
+  cause_span_hashes?: string[];
+  offender_span_hashes?: string[];
+  op?: string;
+  parent_span_hashes?: string[];
+};
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
@@ -39,6 +45,7 @@ export enum EventGroupVariantType {
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
+  SPAN_EVIDENCE = 'span-evidence',
 }
 
 export type EventGroupVariant = {
@@ -50,6 +57,7 @@ export type EventGroupVariant = {
   client_values?: Array<string>;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
+  evidence?: VariantEvidence;
   matched_rule?: string;
   values?: Array<string>;
 };
