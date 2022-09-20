@@ -42,25 +42,59 @@ export type VariantEvidence = {
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
+  SALTED_COMPONENT = 'salted-component',
+  CHECKSUM = 'checksum',
+  FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
-  SALTED_COMPONENT = 'salted-component',
   SPAN_EVIDENCE = 'span-evidence',
 }
 
-export type EventGroupVariant = {
+type BaseVariant = {
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
-  key: EventGroupVariantKey;
-  type: EventGroupVariantType;
+  key: string;
+  type: string;
+};
+
+type FallbackVariant = BaseVariant & {
+  type: EventGroupVariantType.FALLBACK;
+};
+
+type ChecksumVariant = BaseVariant & {
+  type: EventGroupVariantType.CHECKSUM;
+};
+
+type ComponentVariant = BaseVariant & {
+  type: EventGroupVariantType.COMPONENT;
   client_values?: Array<string>;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
-  evidence?: VariantEvidence;
   matched_rule?: string;
   values?: Array<string>;
 };
+
+type CustomFingerprintVariant = Omit<ComponentVariant, 'type'> & {
+  type: EventGroupVariantType.CUSTOM_FINGERPRINT;
+};
+
+type SaltedComponentVariant = Omit<ComponentVariant, 'type'> & {
+  type: EventGroupVariantType.SALTED_COMPONENT;
+};
+
+type SpanEvidenceVariant = BaseVariant & {
+  evidence: VariantEvidence;
+  type: EventGroupVariantType.SPAN_EVIDENCE;
+};
+
+export type EventGroupVariant =
+  | FallbackVariant
+  | ChecksumVariant
+  | ComponentVariant
+  | SaltedComponentVariant
+  | CustomFingerprintVariant
+  | SpanEvidenceVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 

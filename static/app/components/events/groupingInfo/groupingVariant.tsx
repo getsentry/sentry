@@ -31,7 +31,7 @@ type State = {
 type VariantData = [string, React.ReactNode][];
 
 function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
-  if (variant.matched_rule) {
+  if ('matched_rule' in variant) {
     data.push([
       t('Fingerprint rule'),
       <TextWithQuestionTooltip key="type">
@@ -44,10 +44,10 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
       </TextWithQuestionTooltip>,
     ]);
   }
-  if (variant.values) {
+  if ('values' in variant) {
     data.push([t('Fingerprint values'), variant.values]);
   }
-  if (variant.client_values) {
+  if ('client_values' in variant) {
     data.push([
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
@@ -205,7 +205,7 @@ class GroupVariant extends Component<Props, State> {
     if (isContributing) {
       title = t('Contributing variant');
     } else {
-      const hint = variant.component?.hint;
+      const hint = 'component' in variant ? variant.component?.hint : undefined;
       if (hint) {
         title = t('Non-contributing variant: %s', hint);
       } else {
