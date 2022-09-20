@@ -67,13 +67,13 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - uses: ./.github/actions/setup-volta
+      - uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: bun install --yarn
 
       - name: Build CSS
-        run: NODE_ENV=production yarn build-css
+        run: NODE_ENV=production bun run build-css
 
       - name: jest
         env:
@@ -85,7 +85,7 @@ jobs:
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
         run: |
-          JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+          JEST_TESTS=$(bun run -s jest --listTests --json) bun run test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2  # v2
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
         name: Checkout sentry
 
-      - uses: ./.github/actions/setup-volta
+      - uses: ./.github/actions/setup-bun
 
       - name: Step configurations
         id: config
@@ -149,8 +149,7 @@ jobs:
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        run: bun install --yarn
 
       - name: webpack
         env:
@@ -158,8 +157,7 @@ jobs:
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-        run: |
-          yarn build-acceptance
+        run: bun build-acceptance
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -220,15 +218,10 @@ jobs:
         with:
           chartcuterie: true
 
-      - name: yarn cache
-        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
-        with:
-          path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+      - uses: ./.github/actions/setup-bun
 
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        run: bun install --yarn
 
       - name: Build chartcuterie configuration module
         run: |

@@ -56,11 +56,11 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: ./.github/actions/setup-volta
+      - uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         id: dependencies
-        run: yarn install --frozen-lockfile
+        run: bun install --yarn
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -84,20 +84,20 @@ jobs:
           # Run relax config on main branch (and stricter config for changed files)
           SENTRY_ESLINT_RELAXED: 1
         run: |
-          yarn lint
-          yarn lint:css
+          bun run lint
+          bun run lint:css
 
       # Otherwise... only lint modified files
       # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
         if: steps.eslint.outputs.all-files != 'true'
         run: |
-          yarn eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
+          bun run eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
 
       - name: stylelint (changed files only)
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
         run: |
-          yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
+          bun run stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
@@ -119,7 +119,7 @@ jobs:
         if: steps.dependencies.outcome == 'success'
         run: |
           set -o pipefail
-          yarn tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
+          bun run tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
 
       - name: monitor-tsc
         continue-on-error: true
@@ -127,14 +127,14 @@ jobs:
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-        run: yarn run ts-node .github/workflows/scripts/monitor-typescript.ts
+        run: bun run ts-node .github/workflows/scripts/monitor-typescript.ts
 
       - name: storybook
         if: github.ref != 'refs/heads/master'
         env:
           STORYBOOK_BUILD: 1
         run: |
-          yarn storybook-build
+          bun run storybook-build
 
   webpack:
     if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
@@ -143,10 +143,10 @@ jobs:
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
-      - uses: ./.github/actions/setup-volta
+      - uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: bun install --yarn
 
       - uses: getsentry/size-limit-action@3f9e584f47175f7f2ac742569ac16b7a8c05ad82  # v4
         env:
