@@ -10,13 +10,16 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Switch from 'sentry/components/switchButton';
 import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
   displayMode: string;
@@ -34,6 +37,8 @@ type Props = {
   yAxisOptions: SelectValue<string>[];
   yAxisValue: string[];
   disableProcessedBaselineToggle?: boolean;
+  loadingProcessedTotals?: boolean;
+  processedTotal?: number;
 };
 
 export default function ChartFooter({
@@ -52,14 +57,23 @@ export default function ChartFooter({
   organization,
   disableProcessedBaselineToggle,
   eventView,
+  processedTotal,
+  loadingProcessedTotals,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
   elements.push(
-    total === null ? (
+    total === null || loadingProcessedTotals === true ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">
         &mdash;
+      </SectionValue>
+    ) : defined(processedTotal) ? (
+      <SectionValue key="total-value">
+        {tct('[indexedTotal] of [processedTotal]', {
+          indexedTotal: formatAbbreviatedNumber(total),
+          processedTotal: formatAbbreviatedNumber(processedTotal),
+        })}
       </SectionValue>
     ) : (
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
@@ -105,6 +119,7 @@ export default function ChartFooter({
                 }
               )}
             />
+            <FeatureBadge type="alpha" />
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
