@@ -256,13 +256,21 @@ function SetupPerformanceMonitoringStep({href}: {href: string}) {
 }
 
 interface ProjectSdkUpdateProps {
+  minSdkVersion: string;
   organization: Organization;
   project: Project;
   sdkUpdates: ProjectSdkUpdates;
 }
 
-function ProjectSdkUpdate({sdkUpdates, organization, project}: ProjectSdkUpdateProps) {
-  const newSdk = sdkUpdates?.suggestions[0] as UpdateSdkSuggestion;
+function ProjectSdkUpdate({
+  sdkUpdates,
+  organization,
+  project,
+  minSdkVersion,
+}: ProjectSdkUpdateProps) {
+  const updateSdkSuggestion = sdkUpdates.suggestions.find(v => v.type === 'updateSdk') as
+    | UpdateSdkSuggestion
+    | undefined;
 
   return (
     <Fragment>
@@ -278,9 +286,17 @@ function ProjectSdkUpdate({sdkUpdates, organization, project}: ProjectSdkUpdateP
       <SdkUpdatesText>
         {t('This project is on %s@%s', sdkUpdates.sdkName, sdkUpdates.sdkVersion)}
         <br />
-        <Link to={newSdk?.sdkUrl ?? ''}>
-          {t('Update to %s@%s', newSdk.sdkName, newSdk.newSdkVersion)}
-        </Link>
+        {updateSdkSuggestion ? (
+          <Link to={updateSdkSuggestion.sdkUrl ?? ''}>
+            {t(
+              'Update to %s@%s',
+              updateSdkSuggestion.sdkName,
+              updateSdkSuggestion.newSdkVersion
+            )}
+          </Link>
+        ) : (
+          t('Update to %s or higher', minSdkVersion)
+        )}
       </SdkUpdatesText>
     </Fragment>
   );
@@ -321,6 +337,7 @@ function AndroidInstallSteps({project, sdkUpdates, organization}: InstallStepsPr
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
+            minSdkVersion="6.0.0 (sentry-android)"
             project={project}
             sdkUpdates={sdkUpdates.data!}
             organization={organization}
@@ -356,6 +373,7 @@ function IOSInstallSteps({project, sdkUpdates, organization}: InstallStepsProps)
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
+            minSdkVersion="7.23.0 (sentry-cocoa)"
             project={project}
             sdkUpdates={sdkUpdates.data!}
             organization={organization}
