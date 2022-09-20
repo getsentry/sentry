@@ -10,7 +10,7 @@ from snuba_sdk import Granularity, Limit, Offset
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import MetricField, MetricsQuery
 from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.naming_layer import SessionMetricKey, SessionMRI
+from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
 from sentry.testutils import BaseMetricsTestCase, TestCase
 
@@ -121,7 +121,7 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op=None,
-                    metric_name=str(SessionMetricKey.ERRORED.value),
+                    metric_mri=str(SessionMRI.ERRORED.value),
                     alias="errored_sessions_alias",
                 ),
             ],
@@ -179,7 +179,7 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="histogram",
-                    metric_name="sentry.sessions.session.duration",
+                    metric_mri=SessionMRI.RAW_DURATION.value,
                     params={
                         "histogram_from": 2,
                         "histogram_buckets": 2,
@@ -215,7 +215,7 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="histogram",
-                    metric_name=SessionMetricKey.DURATION.value,
+                    metric_mri=SessionMRI.DURATION.value,
                     params={
                         "histogram_from": 2,
                         "histogram_buckets": 2,

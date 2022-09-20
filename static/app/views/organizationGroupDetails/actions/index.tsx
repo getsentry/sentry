@@ -122,6 +122,7 @@ class Actions extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
       action_type: action,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -481,12 +482,12 @@ class Actions extends Component<Props, State> {
 }
 
 const Wrapper = styled('div')`
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: flex-start;
   align-items: center;
   grid-auto-flow: column;
   gap: ${space(0.5)};
-  margin-top: ${space(2)};
   white-space: nowrap;
 `;
 

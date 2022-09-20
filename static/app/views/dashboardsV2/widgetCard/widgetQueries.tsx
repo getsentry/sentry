@@ -13,6 +13,7 @@ import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
 import {DashboardFilters, Widget} from '../types';
@@ -127,6 +128,7 @@ function WidgetQueries({
 }: Props) {
   const config = ErrorsAndTransactionsConfig;
   const context = useContext(DashboardsMEPContext);
+  const mepSettingContext = useMEPSettingContext();
 
   let setIsMetricsData: undefined | ((value?: boolean) => void);
 
@@ -175,6 +177,7 @@ function WidgetQueries({
       onDataFetched={onDataFetched}
       afterFetchSeriesData={afterFetchSeriesData}
       afterFetchTableData={afterFetchTableData}
+      mepSetting={mepSettingContext.metricSettingState}
     >
       {children}
     </GenericWidgetQueries>

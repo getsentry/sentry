@@ -31,6 +31,6 @@ describe('SelectedFrameRenderer', () => {
     expect(context.beginPath).toHaveBeenCalled();
     expect(context.strokeStyle).toBe('red');
     expect(context.lineWidth).toBe(1);
-    expect(context.strokeRect).toHaveBeenLastCalledWith(0.5, 0.5, 199, 199);
+    expect(context.strokeRect).toHaveBeenLastCalledWith(0.5, 0.5, 198, 198);
   });
 });

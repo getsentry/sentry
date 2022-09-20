@@ -1,59 +1,13 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "allowJs": false,
-    "checkJs": false,
-    "alwaysStrict": false,
-    "declaration": false,
-    "declarationMap": false,
-    "downlevelIteration": true,
-    "inlineSources": false,
-    "importHelpers": true,
-    "lib": ["esnext", "dom"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noEmit": true,
-    "noEmitHelpers": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitAny": false,
-    "noImplicitReturns": true,
-    "noImplicitUseStrict": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "pretty": false,
-    "resolveJsonModule": true,
-    "sourceMap": true,
-    "strict": true,
-    "target": "es6",
-    "strictBindCallApply": false,
-    "experimentalDecorators": true,
-    "useUnknownInCatchVariables": false,
-    // Skip type checking of all declaration files
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "jsx": "preserve",
-    "baseUrl": "../",
-    "outDir": "../src/sentry/static/sentry/dist",
-    "paths": {
-      "sentry/*": ["static/app/*"],
-      "sentry-test/*": ["tests/js/sentry-test/*"],
-      "sentry-images/*": ["static/images/*"],
-      "sentry-locale/*": ["src/sentry/locale/*"],
-      "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
-      "sentry-fonts/*": ["static/fonts/*"],
-      "docs-ui/*": ["docs-ui/*"],
-      // Use the stub file for typechecking. Webpack resolver will use the real files
-      // based on configuration.
-      "integration-docs-platforms": [
-        "fixtures/integration-docs/_platforms.json",
-        "src/sentry/integration-docs/_platforms.json"
-      ]
-    },
-    "plugins": [{"name": "typescript-styled-plugin"}]
+    "allowJs": true
   },
-  "include": ["../static", "../tests/js", "../fixtures/js-stubs"],
-  "exclude": ["../node_modules", "../**/*.benchmark.ts"],
-  "ts-node": {
-    "transpileOnly": true
-  }
+  "exclude": [
+    "../tests/js",
+    "../fixtures/js-stubs",
+    "../static/app/**/*.spec.*",
+    "../static/app/**/*.benchmark.ts",
+    "../static/app/views/settings/project/server-side-sampling/testUtils.tsx"
+  ]
 }
