@@ -243,7 +243,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
     def test_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
-        mock_type.return_value = "gigabyte"
+        mock_type.return_value = "gibibyte"
 
         assert parse_search_query(
             "measurements.foo:>5gib measurements.bar:<3pib", config=config
@@ -283,7 +283,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
     @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
     def test_aggregate_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
-        mock_type.return_value = "gigabyte"
+        mock_type.return_value = "gibibyte"
 
         assert parse_search_query(
             "p50(measurements.foo):>5gib p100(measurements.bar):<3pib", config=config
