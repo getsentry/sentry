@@ -4,24 +4,19 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
-import generateClassName from './generateClassName';
 import Item from './item';
-
-type Props = {
-  data: Data;
-  meta: NonNullable<Event['_meta']>[keyof Event['_meta']];
-  unknownTitle: string;
-  omitUnknownVersion?: boolean;
-};
+import {ContextItemProps} from './types';
+import {generateIconName} from './utils';
 
 type Data = {
   name: string;
   version?: string;
 };
+
+type Props = ContextItemProps<Data, any>;
 
 export function ContextSummaryGeneric({
   data,
@@ -30,14 +25,11 @@ export function ContextSummaryGeneric({
   meta,
 }: Props) {
   if (Object.keys(data).length === 0) {
-    return <ContextSummaryNoSummary title={unknownTitle} />;
+    return <ContextSummaryNoSummary title={unknownTitle ?? t('Unknown')} />;
   }
 
   return (
-    <Item
-      className={generateClassName(data.name, data.version)}
-      icon={<span className="context-item-icon" />}
-    >
+    <Item icon={generateIconName(data.name, data.version)}>
       <h3>
         <AnnotatedText value={data.name} meta={meta.name?.['']} />
       </h3>

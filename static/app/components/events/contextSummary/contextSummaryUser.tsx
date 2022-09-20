@@ -6,17 +6,13 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarUser, Event, Meta} from 'sentry/types';
+import {AvatarUser, Meta} from 'sentry/types';
 import {EventUser} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
-
-type Props = {
-  data: EventUser;
-  meta: NonNullable<Event['_meta']>['user'];
-};
+import {ContextItemProps} from './types';
 
 type UserTitle = {
   value: string;
@@ -28,6 +24,8 @@ type UserDetails = {
   meta?: Meta;
   value?: string;
 };
+
+type Props = ContextItemProps<EventUser, 'user'>;
 
 export function ContextSummaryUser({data, meta}: Props) {
   const user = removeFilterMaskedEntries(data);
@@ -96,18 +94,13 @@ export function ContextSummaryUser({data, meta}: Props) {
   }
 
   const icon = userTitle ? (
-    <UserAvatar
-      user={user as AvatarUser}
-      size={32}
-      className="context-item-icon"
-      gravatar={false}
-    />
+    <UserAvatar user={user as AvatarUser} size={32} gravatar={false} />
   ) : (
-    <span className="context-item-icon" />
+    'unknown'
   );
 
   return (
-    <Item className="user" icon={icon}>
+    <Item icon={icon}>
       {userTitle && (
         <h3 data-test-id="user-title">
           <AnnotatedText value={userTitle.value} meta={userTitle.meta} />

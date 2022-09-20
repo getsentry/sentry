@@ -5,17 +5,13 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Meta} from 'sentry/types';
+import {Meta} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
-import generateClassName from './generateClassName';
 import Item from './item';
-
-type Props = {
-  data: Data;
-  meta: NonNullable<Event['_meta']>['device'];
-};
+import {ContextItemProps} from './types';
+import {generateIconName} from './utils';
 
 type Data = {
   arch?: string;
@@ -28,6 +24,8 @@ type SubTitle = {
   value: string;
   meta?: Meta;
 };
+
+type Props = ContextItemProps<Data, 'device'>;
 
 export function ContextSummaryDevice({data, meta}: Props) {
   if (Object.keys(data).length === 0) {
@@ -73,12 +71,10 @@ export function ContextSummaryDevice({data, meta}: Props) {
     return null;
   };
 
-  // TODO(dcramer): we need a better way to parse it
-  const className = generateClassName(data.model);
   const subTitle = getSubTitle();
 
   return (
-    <Item className={className} icon={<span className="context-item-icon" />}>
+    <Item icon={generateIconName(data.model)}>
       <h3>{renderName()}</h3>
       {subTitle && (
         <TextOverflow isParagraph data-test-id="context-sub-title">
