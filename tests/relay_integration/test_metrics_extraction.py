@@ -35,6 +35,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                     "fp": {"value": 2258.060000000114},
                     "fcp": {"value": 2258.060000000114},
                     "lcp": {"value": 2807.335},
+                    "inp": {"value": 51.318},
                     "fid": {"value": 3.4900000027846545},
                     "cls": {"value": 0.0382},
                     "frames_total": {"value": 100},
