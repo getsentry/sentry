@@ -15,7 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import withProjects from 'sentry/utils/withProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import ProgressHeader from './progressHeader';
 import Task from './task';
