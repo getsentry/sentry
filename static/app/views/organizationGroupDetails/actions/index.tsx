@@ -487,7 +487,6 @@ const Wrapper = styled('div')`
   justify-content: flex-start;
   align-items: center;
   grid-auto-flow: column;
-  margin-top: ${space(2)};
   gap: ${space(0.5)};
   white-space: nowrap;
 `;
