@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Link from 'sentry/components/links/link';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -49,7 +50,17 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
 
   return (
     <SidebarSection.Wrap>
-      <SidebarSection.Title>{t('Owned By')}</SidebarSection.Title>
+      <StyledSidebarTitle>
+        {t('Owned By')}
+        <QuestionTooltip
+          position="top"
+          title={t(
+            'Set rules on which user or team owns an issue based on path, module, tag or URL'
+          )}
+          size="sm"
+          color="gray200"
+        />
+      </StyledSidebarTitle>
       <StyledSidebarContent>
         <ActorWrapper>
           {currentOwner ? (
@@ -97,4 +108,10 @@ const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
   color: ${p => p.theme.textColor};
+`;
+
+const StyledSidebarTitle = styled(SidebarSection.Title)`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;

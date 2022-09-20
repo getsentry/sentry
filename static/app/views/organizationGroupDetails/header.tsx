@@ -416,7 +416,7 @@ class GroupHeader extends Component<Props, State> {
                 />
               </StyledTagAndMessageWrapper>
             </TitleWrapper>
-            <StatsWrapper>
+            <StatsWrapper numItems={this.hasIssueDetailsOwners() ? '2' : '3'}>
               <div className="count">
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link disabled={disableActions} to={eventRouteToObject}>
@@ -519,9 +519,9 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')`
+const StatsWrapper = styled('div')<{numItems: '2' | '3'}>`
   display: grid;
-  grid-template-columns: repeat(3, min-content);
+  grid-template-columns: repeat(${p => p.numItems}, min-content);
   gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
