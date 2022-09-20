@@ -5,6 +5,8 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 import Prism from 'prismjs';
 
+import space from 'sentry/styles/space';
+
 type Props = {
   code: string;
 };
@@ -18,22 +20,25 @@ function HTMLCode({code}: Props) {
   }, [code]);
 
   return (
-    <CodeWrapper>
-      <pre>
-        <code ref={codeRef} className="language-html">
-          {formattedCode}
-        </code>
-      </pre>
-    </CodeWrapper>
+    <StyledPre>
+      <code ref={codeRef} className="language-html">
+        {formattedCode}
+      </code>
+    </StyledPre>
   );
 }
 
-const CodeWrapper = styled('div')`
-  line-height: 1.5;
+const StyledPre = styled('pre')`
+  overflow: auto !important;
+  padding: ${space(1)} ${space(1.5)} !important;
+  word-break: break-all;
+  white-space: pre-wrap;
+  margin-bottom: 0;
 
-  pre {
-    word-break: break-all;
-    white-space: pre-wrap;
+  /* Need font-size twice here, so ReactVirtualizedList can measure height correctly */
+  font-size: ${p => p.theme.fontSizeSmall} !important;
+  code {
+    font-size: ${p => p.theme.fontSizeSmall} !important;
   }
 `;
 
