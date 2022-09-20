@@ -1,12 +1,14 @@
 import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import pick from 'lodash/pick';
 
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
+// import PerfEventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,11 +17,13 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {Group, IssueCategory, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import PerfIssueTable from './perfIssueTable';
 
 type Props = {
   api: Client;
@@ -125,6 +129,20 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
+  renderPerfIssueEvents() {
+    const client = new QueryClient();
+
+    return (
+      <QueryClientProvider client={client}>
+        <PerfIssueTable
+          issueId={this.props.group.id}
+          location={this.props.location}
+          organization={this.props.organization}
+        />
+      </QueryClientProvider>
+    );
+  }
+
   renderResults() {
     const {group, params} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
@@ -141,7 +159,13 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderBody() {
+    const {issueCategory} = this.props.group;
+
     let body: React.ReactNode;
+
+    if (issueCategory === IssueCategory.PERFORMANCE) {
+      return this.renderPerfIssueEvents();
+    }
 
     if (this.state.loading) {
       body = <LoadingIndicator />;
