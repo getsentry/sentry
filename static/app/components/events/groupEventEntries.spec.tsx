@@ -340,6 +340,7 @@ describe('GroupEventEntries', function () {
 
       const newEvent = {
         ...event,
+        perfProblem: true,
         entries: [
           {type: EntryType.SPANS, data: []},
           {type: EntryType.BREADCRUMBS, data: {values: [sampleBreadcrumb]}},
@@ -361,6 +362,9 @@ describe('GroupEventEntries', function () {
       );
 
       const eventEntriesContainer = screen.getByTestId('event-entries-loading-false');
+      const spanEvidenceHeading = within(eventEntriesContainer).getByRole('heading', {
+        name: /span evidence/i,
+      });
       const breadcrumbsHeading = within(eventEntriesContainer).getByRole('heading', {
         name: /breadcrumbs/i,
       });
@@ -368,6 +372,7 @@ describe('GroupEventEntries', function () {
         name: /resources and whatever/i,
       });
 
+      expect(spanEvidenceHeading).toBeInTheDocument();
       expect(breadcrumbsHeading).toBeInTheDocument();
       expect(resourcesHeadingText).toBeInTheDocument();
 
