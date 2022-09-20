@@ -371,7 +371,7 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
     )
 
 
-def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, alias=None):
+def count_transaction_with_condition_snql_factory(aggregate_filter, org_id, condition, alias=None):
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
     has_value = "has_value"
@@ -386,10 +386,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, ali
                 "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
             )
         else:
-            raise InvalidParams(
-                f"the condition must be either {is_unparameterized} {is_null} {has_value} but {inner_condition} was "
-                f"received"
-            )
+            raise InvalidParams("invalid condition for tag value filter")
 
         return Function(
             operation,
