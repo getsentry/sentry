@@ -82,12 +82,13 @@ yarn.lock           @getsentry/owners-js-deps
 
 # Owners by product feature
 
-### Issue/Metric Alerts ###
+### Workflow ###
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
-/tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
-
 /static/app/views/alerts/                                       @getsentry/workflow
-/tests/js/spec/views/alerts/                                    @getsentry/workflow
+/static/app/views/projects/                                     @getsentry/workflow
+/static/app/views/projectDetail/                                @getsentry/workflow
+/static/app/views/releases/                                     @getsentry/workflow
+/static/app/views/organizationStats/teamInsights/               @getsentry/workflow
 
 /src/sentry/templates/sentry/emails/incidents/                  @getsentry/workflow
 /src/sentry/incidents/                                          @getsentry/workflow
@@ -96,6 +97,8 @@ yarn.lock           @getsentry/owners-js-deps
 
 /src/sentry/api/endpoints/group_events.py                       @getsentry/workflow
 /src/sentry/api/endpoints/organization_group_index.py           @getsentry/workflow
+/src/sentry/api/endpoints/organization_activity.py              @getsentry/workflow
+/src/sentry/api/endpoints/organization_searches.py              @getsentry/workflow
 /src/sentry/api/helpers/group_index.py                          @getsentry/workflow
 /src/sentry/api/helpers/events.py                               @getsentry/workflow
 
@@ -109,7 +112,10 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/snuba/snuba/test_query_subscription_consumer.py          @getsentry/workflow
 /src/sentry/api/issue_search.py                                 @getsentry/workflow
 /tests/sentry/api/test_issue_search.py                          @getsentry/workflow
-### Endof Issue/Metric Alerts ###
+
+/src/sentry/tasks/auto_remove_inbox.py                          @getsentry/workflow
+/src/sentry/tasks/auto_resolve_issues.py                        @getsentry/workflow
+### Endof Workflow ###
 
 
 ### Visibility ###
@@ -301,21 +307,6 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/sentry/api/test_scim*.py                      @getsentry/enterprise
 
 ## End of Enterprise ###
-
-
-### Workflow ###
-
-/src/sentry/api/endpoints/organization_activity.py    @getsentry/workflow
-/src/sentry/api/endpoints/organization_searches.py    @getsentry/workflow
-/src/sentry/tasks/releasemonitor.py                   @getsentry/workflow
-
-/static/app/views/organizationStats/teamInsights      @getsentry/workflow
-/tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
-
-/static/app/views/releases/                           @getsentry/workflow
-/tests/js/spec/views/releases/                        @getsentry/workflow
-
-## End of Workflow ##
 
 
 ### Native ###
