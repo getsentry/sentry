@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import Confirm from 'sentry/components/confirm';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {
   Panel,
   PanelAlert,
@@ -13,7 +14,6 @@ import {
 import {IconCopy, IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   codes: string[];

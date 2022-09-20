@@ -95,7 +95,7 @@ type BaseField = {
 
   /** Does editing this field require the Form to load new configs? */
   updatesForm?: boolean;
-  validate?: ({id: String, form: object}) => string[][];
+  validate?: (data: {form: Record<string, any>; id: string}) => string[][];
   visible?: boolean | ((props: any) => boolean);
 };
 
@@ -124,6 +124,12 @@ type SelectControlType = {type: 'choice' | 'select'} & {
 type TextareaType = {type: 'textarea'} & {
   autosize?: boolean;
   rows?: number;
+};
+
+type NumberType = {type: 'number'} & {
+  max?: number;
+  min?: number;
+  step?: number;
 };
 
 type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
@@ -193,6 +199,7 @@ export type Field = (
   | SelectControlType
   | InputType
   | TextareaType
+  | NumberType
   | RangeType
   | TableType
   | ProjectMapperType

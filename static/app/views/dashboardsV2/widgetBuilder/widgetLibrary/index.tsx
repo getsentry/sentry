@@ -22,21 +22,19 @@ interface Props {
   onWidgetSelect: (widget: WidgetTemplate) => void;
   organization: Organization;
   selectedWidgetId: string | null;
-  widgetBuilderNewDesign: boolean;
 }
 
 export function WidgetLibrary({
   bypassOverwriteModal,
   onWidgetSelect,
-  widgetBuilderNewDesign,
   organization,
   selectedWidgetId,
 }: Props) {
   const theme = useTheme();
   let defaultWidgets = getTopNConvertedDefaultWidgets();
-  if (!!!organization.features.includes('dashboards-releases')) {
+  if (!organization.features.includes('dashboards-releases')) {
     defaultWidgets = defaultWidgets.filter(
-      widget => !!!(widget.widgetType === WidgetType.RELEASE)
+      widget => !(widget.widgetType === WidgetType.RELEASE)
     );
   }
 
@@ -68,14 +66,13 @@ export function WidgetLibrary({
           ];
 
           const displayType =
-            widgetBuilderNewDesign && widget.displayType === DisplayType.TOP_N
+            widget.displayType === DisplayType.TOP_N
               ? DisplayType.TABLE
               : widget.displayType;
 
           const normalizedQueries = normalizeQueries({
             displayType,
             queries: widget.queries,
-            widgetBuilderNewDesign,
             widgetType: widget.widgetType,
           });
 

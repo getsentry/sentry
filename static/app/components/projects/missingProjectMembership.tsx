@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {Panel} from 'sentry/components/panels';
 import {IconFlag} from 'sentry/icons';
@@ -13,7 +14,6 @@ import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   api: Client;

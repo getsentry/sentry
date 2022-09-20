@@ -93,7 +93,7 @@ function MiniBarChart({
   let chartSeries: BarChartSeries[] = [];
 
   // Ensure bars overlap and that empty values display as we're disabling the axis lines.
-  if (!!series?.length) {
+  if (series?.length) {
     chartSeries = series.map((original, i: number) => {
       const updated: BarChartSeries = {
         ...original,

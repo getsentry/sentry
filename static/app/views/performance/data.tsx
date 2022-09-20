@@ -477,7 +477,7 @@ function generateGenericPerformanceEventView(
     // projects and projectIds are not necessary here since trendParameter will always
     // be present in location and will not be determined based on the project type
     const trendParameter = getCurrentTrendParameter(location, [], []);
-    if (Boolean(WEB_VITAL_DETAILS[trendParameter.column])) {
+    if (WEB_VITAL_DETAILS[trendParameter.column]) {
       eventView.additionalConditions.addFilterValues('has', [trendParameter.column]);
     }
   }

@@ -18,7 +18,7 @@ import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/u
 import {PanelTable} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
@@ -77,7 +77,7 @@ const cache = new CellMeasurerCache({
   defaultHeight: 81,
 });
 
-class DebugMeta extends PureComponent<Props, State> {
+class DebugMetaWithRouter extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: {images: []},
   };
@@ -244,11 +244,11 @@ class DebugMeta extends PureComponent<Props, State> {
       'sentry/components/events/interfaces/debugMeta/debugImageDetails'
     );
 
-    const {default: Modal, modalCss} = mod;
+    const {DebugImageDetails, modalCss} = mod;
 
     openModal(
       deps => (
-        <Modal
+        <DebugImageDetails
           {...deps}
           image={image}
           organization={organization}
@@ -374,7 +374,7 @@ class DebugMeta extends PureComponent<Props, State> {
   };
 
   handleChangeSearchTerm = (searchTerm = '') => {
-    DebugMetaActions.updateFilter(searchTerm);
+    DebugMetaStore.updateFilter(searchTerm);
   };
 
   handleResetFilter = () => {
@@ -480,7 +480,7 @@ class DebugMeta extends PureComponent<Props, State> {
   getEmptyMessage() {
     const {searchTerm, filteredImagesByFilter: images, filterSelections} = this.state;
 
-    if (!!images.length) {
+    if (images.length) {
       return {};
     }
 
@@ -576,7 +576,7 @@ class DebugMeta extends PureComponent<Props, State> {
   }
 }
 
-export default withRouter(DebugMeta);
+export const DebugMeta = withRouter(DebugMetaWithRouter);
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;

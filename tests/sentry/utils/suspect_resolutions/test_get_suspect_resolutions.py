@@ -185,7 +185,7 @@ class GetSuspectResolutionsTest(TestCase):
                 algo_version=ALGO_VERSION,
                 resolved_group_id=resolved_issue.id,
                 candidate_group_id=0,
-                resolved_group_resolution_type=resolution_type.type,
+                resolved_group_resolution_type=ActivityType(resolution_type.type).name,
                 pearson_r_coefficient=0.5,
                 pearson_r_start_time=datetime(2022, 1, 2),
                 pearson_r_end_time=datetime(2022, 1, 1),

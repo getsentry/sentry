@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.base import pending_silo_endpoint
 from sentry.integrations.utils import get_integration_from_jwt
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -13,6 +14,7 @@ from .base import JiraEndpointBase
 logger = logging.getLogger("sentry.integrations.jira.webhooks")
 
 
+@pending_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraEndpointBase):
     def handle_exception(self, request: Request, exc: Exception) -> Response:
         if isinstance(exc, ApiError):

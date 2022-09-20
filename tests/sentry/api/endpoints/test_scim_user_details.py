@@ -147,6 +147,13 @@ class SCIMMemberDetailsTests(SCIMTestCase):
             "detail": "Invalid Patch Operation.",
         }
 
+        response = self.client.patch(url, {"Operations": [{"op": "replace", "value": False}]})
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid Patch Operation.",
+        }
+
     def test_member_detail_patch_too_many_ops(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
         url = reverse(

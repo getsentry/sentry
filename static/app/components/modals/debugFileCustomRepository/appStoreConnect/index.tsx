@@ -97,7 +97,7 @@ function AppStoreConnect({
         setStepTwoData({app: storeApps[0]});
       }
 
-      if (!!initialData) {
+      if (initialData) {
         updateCredentials();
         return;
       }
@@ -313,7 +313,7 @@ function AppStoreConnect({
           <StepsOverview>
             {tct('[currentStep] of [totalSteps]', {
               currentStep: activeStep + 1,
-              totalSteps: !!initialData ? 1 : steps.length,
+              totalSteps: initialData ? 1 : steps.length,
             })}
           </StepsOverview>
         </HeaderContent>
@@ -332,7 +332,7 @@ function AppStoreConnect({
                 <LoadingIndicator mini />
               </LoadingIndicatorWrapper>
             )}
-            {!!initialData
+            {initialData
               ? t('Update')
               : activeStep + 1 === steps.length
               ? t('Save')

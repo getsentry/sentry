@@ -44,8 +44,6 @@ def _remove_container_if_exists(docker_client, container_name):
             container.remove()
         except Exception:
             pass  # could not remove the container nothing to do about it
-    finally:
-        docker_client.close()
 
 
 @pytest.fixture(scope="session")
@@ -106,10 +104,9 @@ def relay_server_setup(live_server, tmpdir_factory):
 
     # we have a config path for relay that is set up with the current live serve as upstream
     # check if we have the test relay docker container
-    docker_client = get_docker_client()
-    container_name = _relay_server_container_name()
-    _remove_container_if_exists(docker_client, container_name)
-    docker_client.close()
+    with get_docker_client() as docker_client:
+        container_name = _relay_server_container_name()
+        _remove_container_if_exists(docker_client, container_name)
 
     options = {
         "image": RELAY_TEST_IMAGE,
@@ -129,18 +126,18 @@ def relay_server_setup(live_server, tmpdir_factory):
     # cleanup
     shutil.rmtree(config_path)
     if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
-        docker_client = get_docker_client()
-        _remove_container_if_exists(docker_client, container_name)
+        with get_docker_client() as docker_client:
+            _remove_container_if_exists(docker_client, container_name)
 
 
 @pytest.fixture(scope="function")
 def relay_server(relay_server_setup, settings):
     adjust_settings_for_relay_tests(settings)
     options = relay_server_setup["options"]
-    docker_client = get_docker_client()
-    container_name = _relay_server_container_name()
-    _remove_container_if_exists(docker_client, container_name)
-    container = docker_client.containers.run(**options)
+    with get_docker_client() as docker_client:
+        container_name = _relay_server_container_name()
+        _remove_container_if_exists(docker_client, container_name)
+        container = docker_client.containers.run(**options)
 
     _log.info("Waiting for Relay container to start")
 

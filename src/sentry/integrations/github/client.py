@@ -87,13 +87,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         own URL.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
         """
-        try:
-            with sentry_sdk.configure_scope() as scope:
+        with sentry_sdk.configure_scope() as scope:
+            if scope.span is not None:
                 parent_span_id = scope.span.span_id
                 trace_id = scope.span.trace_id
-        except AttributeError:
-            parent_span_id = None
-            trace_id = None
+            else:
+                parent_span_id = None
+                trace_id = None
 
         with sentry_sdk.start_transaction(
             op=f"{self.integration_type}.http.pagination",
@@ -212,6 +212,49 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
         encoded_content = contents["content"]
         return b64decode(encoded_content).decode("utf-8")
+
+    def get_blame_for_file(
+        self, repo: Repository, path: str, ref: str
+    ) -> Sequence[Mapping[str, Any]]:
+        [owner, name] = repo.name.split("/")
+        query = f"""query {{
+            repository(name: {name}, owner: {owner}) {{
+                ref(qualifiedName: {ref}) {{
+                    target {{
+                        ... on Commit {{
+                            blame(path: {path}) {{
+                                ranges {{
+                                        commit {{
+                                            oid
+                                            author {{
+                                                name
+                                                email
+                                            }}
+                                            message
+                                        }}
+                                    startingLine
+                                    endingLine
+                                    age
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        }}"""
+
+        contents = self.post(
+            path="/graphql",
+            data={"query": query},
+        )
+        results: Sequence[Mapping[str, Any]] = (
+            contents.get("data", {})
+            .get("repository", {})
+            .get("ref", {})
+            .get("target", {})
+            .get("blame", [])
+        )
+        return results
 
 
 class GitHubAppsClient(GitHubClientMixin):

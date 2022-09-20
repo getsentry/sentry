@@ -50,7 +50,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     activity => activity.value === `${IncidentStatus.WARNING}`
   );
 
-  const triggeredActivity = !!criticalActivity.length
+  const triggeredActivity = criticalActivity.length
     ? criticalActivity[0]
     : warningActivity[0];
   const currentTrigger = getTriggerName(triggeredActivity.value);

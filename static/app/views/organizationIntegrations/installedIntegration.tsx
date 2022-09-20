@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 
-import AddIntegrationButton from './addIntegrationButton';
+import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 type Props = {

@@ -5,6 +5,7 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSequence,
+    NamedTuple,
     Optional,
     Sequence,
     Set,
@@ -25,16 +26,14 @@ class FetchType(Enum):
     RATE_LIMITED = "r"
 
 
-@dataclass(frozen=True)
-class FetchTypeExt:
+class FetchTypeExt(NamedTuple):
     is_global: bool
 
 
 KR = TypeVar("KR", bound="KeyResult")
 
 
-@dataclass(frozen=True)
-class Metadata:
+class Metadata(NamedTuple):
     id: Optional[int]
     fetch_type: FetchType
     fetch_type_ext: Optional[FetchTypeExt] = None

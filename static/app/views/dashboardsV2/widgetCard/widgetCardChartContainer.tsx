@@ -11,6 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartEventHandler, Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
 
 import {DashboardFilters, Widget, WidgetType} from '../types';
 
@@ -35,7 +36,7 @@ type Props = WithRouterProps & {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
-    timeseriesResultsType?: string;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
     totalIssuesCount?: string;
   }) => void;
   onLegendSelectChanged?: EChartEventHandler<{
@@ -162,7 +163,7 @@ export function WidgetCardChartContainer({
         timeseriesResults,
         errorMessage,
         loading,
-        timeseriesResultsType,
+        timeseriesResultsTypes,
       }) => {
         return (
           <Fragment>
@@ -188,7 +189,7 @@ export function WidgetCardChartContainer({
               showSlider={showSlider}
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}
-              timeseriesResultsType={timeseriesResultsType}
+              timeseriesResultsTypes={timeseriesResultsTypes}
             />
           </Fragment>
         );

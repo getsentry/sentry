@@ -8,7 +8,7 @@ import {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQue
 
 import {Point, Rectangle} from './types';
 
-export function generateVitalsRoute({orgSlug}: {orgSlug: String}): string {
+export function generateVitalsRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/summary/vitals/`;
 }
 

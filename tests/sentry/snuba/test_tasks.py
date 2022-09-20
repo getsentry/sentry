@@ -591,7 +591,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "release")),
                 Op.EQ,
-                resolve(UseCaseKey.PERFORMANCE, self.organization.id, version),
+                resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
             ),
             Condition(Column("project_id"), Op.IN, (self.project.id,)),
             Condition(Column("org_id"), Op.EQ, self.organization.id),
@@ -662,7 +662,7 @@ class BuildSnqlQueryTest(TestCase):
             Condition(
                 Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, tag_key)),
                 Op.EQ,
-                resolve(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
+                resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
             ),
             Condition(Column("project_id"), Op.IN, (self.project.id,)),
             Condition(Column("org_id"), Op.EQ, self.organization.id),

@@ -14,9 +14,7 @@ ENV PIP_NO_CACHE_DIR=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
   # Needed for fetching stuff
   wget \
-  && rm -rf /var/lib/apt/lists/* \
-  # Needed to extract final dependencies from the whl
-  && pip install pkginfo==1.5.0.1
+  && rm -rf /var/lib/apt/lists/*
 
 # Get and set up Node for front-end asset building
 ENV VOLTA_VERSION=0.8.1 \

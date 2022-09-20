@@ -1,12 +1,17 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models import Commit, Group, Release
-from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.committers import (
+    get_serialized_event_file_committers,
+    get_serialized_release_committers_for_group,
+)
 
 
+@region_silo_endpoint
 class EventFileCommittersEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
         """
@@ -36,17 +41,13 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         except Commit.DoesNotExist:
             return Response({"detail": "No Commits found for Release"}, status=404)
 
-        # XXX(dcramer): this data is unused, so lets not bother returning it for now
-        # serialize the commit objects
-        # serialized_annotated_frames = [
-        #     {
-        #         'frame': frame['frame'],
-        #         'commits': serialize(frame['commits'])
-        #     } for frame in annotated_frames
-        # ]
-
         data = {
             "committers": committers,
-            # 'annotatedFrames': serialized_annotated_frames
         }
+
+        if features.has(
+            "organizations:release-committer-assignees", project.organization, actor=request.user
+        ):
+            data["releaseCommitters"] = get_serialized_release_committers_for_group(event.group)
+
         return Response(data)

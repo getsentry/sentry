@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
@@ -15,10 +16,12 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import type {Sort} from 'sentry/utils/discover/fields';
+import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -26,85 +29,124 @@ type Props = {
   replays: undefined | ReplayListRecord[];
   showProjectColumn: boolean;
   sort: Sort;
+  fetchError?: Error;
 };
 
 type RowProps = {
   minWidthIsSmall: boolean;
   organization: Organization;
+  referrer: string;
   replay: ReplayListRecord;
   showProjectColumn: boolean;
 };
 
-function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
+function SortableHeader({
+  fieldName,
+  label,
+  sort,
+}: {
+  fieldName: string;
+  label: string;
+  sort: Sort;
+}) {
   const location = useLocation<ReplayListLocationQuery>();
+
+  const arrowDirection = sort.kind === 'asc' ? 'up' : 'down';
+  const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
+
+  return (
+    <SortLink
+      role="columnheader"
+      aria-sort={
+        sort.field.endsWith(fieldName)
+          ? sort.kind === 'asc'
+            ? 'ascending'
+            : 'descending'
+          : 'none'
+      }
+      to={{
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          sort: sort.kind === 'desc' ? fieldName : '-' + fieldName,
+        },
+      }}
+    >
+      {label} {sort.field === fieldName && sortArrow}
+    </SortLink>
+  );
+}
+
+function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}: Props) {
+  const routes = useRoutes();
+  const referrer = encodeURIComponent(getRouteStringFromRoutes(routes));
+
   const organization = useOrganization();
   const theme = useTheme();
   const minWidthIsSmall = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
-  const {pathname} = location;
+  const tableHeaders = [
+    t('Session'),
+    showProjectColumn && minWidthIsSmall ? (
+      <SortableHeader
+        key="projectId"
+        sort={sort}
+        fieldName="projectId"
+        label={t('Project')}
+      />
+    ) : null,
+    <SortableHeader
+      key="startedAt"
+      sort={sort}
+      fieldName="startedAt"
+      label={t('Start Time')}
+    />,
+    <SortableHeader
+      key="duration"
+      sort={sort}
+      fieldName="duration"
+      label={t('Duration')}
+    />,
+    <SortableHeader
+      key="countErrors"
+      sort={sort}
+      fieldName="countErrors"
+      label={t('Errors')}
+    />,
+    t('Activity'),
+  ].filter(Boolean);
 
-  const arrowDirection = sort.kind === 'asc' ? 'up' : 'down';
-  const sortArrow = <IconArrow color="gray300" size="xs" direction={arrowDirection} />;
+  if (fetchError && !isFetching) {
+    return (
+      <StyledPanelTable
+        headers={tableHeaders}
+        showProjectColumn={showProjectColumn}
+        isLoading={false}
+      >
+        <StyledAlert type="error" showIcon>
+          {t(
+            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+          )}
+        </StyledAlert>
+      </StyledPanelTable>
+    );
+  }
 
   return (
     <StyledPanelTable
       isLoading={isFetching}
       isEmpty={replays?.length === 0}
       showProjectColumn={showProjectColumn}
-      headers={[
-        t('Session'),
-        showProjectColumn && minWidthIsSmall ? t('Project') : null,
-        <SortLink
-          key="startedAt"
-          role="columnheader"
-          aria-sort={
-            sort.field === 'startedAt'
-              ? sort.kind === 'asc'
-                ? 'ascending'
-                : 'descending'
-              : 'none'
-          }
-          to={{
-            pathname,
-            query: {
-              ...location.query,
-              sort: sort.kind === 'desc' ? 'startedAt' : '-startedAt',
-            },
-          }}
-        >
-          {t('Start Time')} {sort.field.endsWith('startedAt') && sortArrow}
-        </SortLink>,
-        <SortLink
-          key="duration"
-          role="columnheader"
-          aria-sort={
-            sort.field.endsWith('duration')
-              ? sort.kind === 'asc'
-                ? 'ascending'
-                : 'descending'
-              : 'none'
-          }
-          to={{
-            pathname,
-            query: {
-              ...location.query,
-              sort: sort.kind === 'desc' ? 'duration' : '-duration',
-            },
-          }}
-        >
-          {t('Duration')} {sort.field === 'duration' && sortArrow}
-        </SortLink>,
-        t('Errors'),
-        t('Interest'),
-      ].filter(Boolean)}
+      headers={tableHeaders}
     >
       {replays?.map(replay => (
         <ReplayTableRow
           key={replay.id}
-          replay={replay}
-          organization={organization}
-          showProjectColumn={showProjectColumn}
           minWidthIsSmall={minWidthIsSmall}
+          organization={organization}
+          referrer={referrer}
+          replay={replay}
+          showProjectColumn={showProjectColumn}
         />
       ))}
     </StyledPanelTable>
@@ -114,6 +156,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort}: Props) {
 function ReplayTableRow({
   minWidthIsSmall,
   organization,
+  referrer,
   replay,
   showProjectColumn,
 }: RowProps) {
@@ -125,17 +168,18 @@ function ReplayTableRow({
         avatarSize={32}
         displayName={
           <Link
-            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/`}
+            to={`/organizations/${organization.slug}/replays/${project?.slug}:${replay.id}/?referrer=${referrer}`}
           >
-            {replay.user.username ||
-              replay.user.name ||
-              replay.user.email ||
-              replay.user.ip_address ||
-              replay.user.id ||
-              ''}
+            {replay.user.displayName || ''}
           </Link>
         }
-        user={replay.user}
+        user={{
+          username: replay.user.displayName || '',
+          email: replay.user.email || '',
+          id: replay.user.id || '',
+          ip_address: replay.user.ip_address || '',
+          name: replay.user.name || '',
+        }}
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
         displayEmail={<StringWalker urls={replay.urls} />}
       />
@@ -197,6 +241,13 @@ const TimeSinceWrapper = styled('div')`
 const StyledIconCalendarWrapper = styled(IconCalendar)`
   position: relative;
   top: -1px;
+`;
+
+const StyledAlert = styled(Alert)`
+  position: relative;
+  bottom: 0.5px;
+  grid-column-start: span 99;
+  margin-bottom: 0;
 `;
 
 export default ReplayTable;

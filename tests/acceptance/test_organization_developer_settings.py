@@ -1,8 +1,10 @@
 from selenium.webdriver.common.by import By
 
 from sentry.testutils import AcceptanceTestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can create an integration, install it, and uninstall it
@@ -50,6 +52,7 @@ class OrganizationDeveloperSettingsNewAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until(xpath="//button//span[contains(text(), 'New Token')]", timeout=3)
 
 
+@region_silo_test
 class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
     """
     As a developer, I can edit an existing integration

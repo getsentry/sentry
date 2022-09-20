@@ -78,12 +78,10 @@ export type DashboardListItem = {
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
-  RELEASE_ID = 'releaseId',
 }
 
 export type DashboardFilters = {
   [DashboardFilterKeys.RELEASE]?: string[];
-  [DashboardFilterKeys.RELEASE_ID]?: string[];
 };
 
 /**

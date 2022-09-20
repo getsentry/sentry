@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import tourAlert from 'sentry-images/spot/discover-tour-alert.svg';
 import tourExplore from 'sentry-images/spot/discover-tour-explore.svg';
 import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
@@ -12,8 +14,7 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import theme from 'sentry/utils/theme';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useMedia from 'sentry/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
@@ -81,24 +82,17 @@ type Props = {
 
 function DiscoverBanner({organization, resultsUrl}: Props) {
   function onAdvance(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.tour.advance',
-      eventName: 'Discoverv2: Tour Advance',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('discover_v2.tour.advance', {
+      organization,
       step,
       duration,
     });
   }
   function onCloseModal(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.tour.close',
-      eventName: 'Discoverv2: Tour Close',
-      organization_id: parseInt(organization.id, 10),
-      step,
-      duration,
-    });
+    trackAdvancedAnalyticsEvent('discover_v2.tour.close', {organization, step, duration});
   }
 
+  const theme = useTheme();
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   return (
@@ -115,11 +109,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
         translucentBorder
         to={resultsUrl}
         onClick={() => {
-          trackAnalyticsEvent({
-            eventKey: 'discover_v2.build_new_query',
-            eventName: 'Discoverv2: Build a new Discover Query',
-            organization_id: parseInt(organization.id, 10),
-          });
+          trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {organization});
         }}
       >
         {t('Build a new query')}
@@ -136,11 +126,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
             size={isSmallBanner ? 'xs' : undefined}
             translucentBorder
             onClick={() => {
-              trackAnalyticsEvent({
-                eventKey: 'discover_v2.tour.start',
-                eventName: 'Discoverv2: Tour Start',
-                organization_id: parseInt(organization.id, 10),
-              });
+              trackAdvancedAnalyticsEvent('discover_v2.tour.start', {organization});
               showModal();
             }}
           >

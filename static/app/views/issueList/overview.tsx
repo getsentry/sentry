@@ -21,14 +21,12 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -37,7 +35,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {
   BaseGroup,
   Group,
-  Member,
+  IssueCategory,
   Organization,
   PageFilters,
   SavedSearch,
@@ -52,7 +50,7 @@ import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReact
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import StreamManager from 'sentry/utils/streamManager';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -61,8 +59,8 @@ import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
+import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
-import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
 import {
   getTabs,
@@ -80,6 +78,7 @@ const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
+const MAX_ISSUES_COUNT = 100;
 
 type Params = {
   orgId: string;
@@ -182,9 +181,8 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const links = parseLinkHeader(this.state.pageLinks);
     this._poller = new CursorPoller({
-      endpoint: links.previous?.href || '',
+      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
     });
 
@@ -278,7 +276,6 @@ class IssueListOverview extends Component<Props, State> {
   private _lastRequest: any;
   private _lastStatsRequest: any;
   private _lastFetchCountsRequest: any;
-  private _streamManager = new StreamManager(GroupStore);
 
   getQuery(): string {
     const {savedSearch, location} = this.props;
@@ -289,7 +286,7 @@ class IssueListOverview extends Component<Props, State> {
     const {query} = location.query;
 
     if (query !== undefined) {
-      return query as string;
+      return decodeScalar(query, '');
     }
 
     return DEFAULT_QUERY;
@@ -359,14 +356,12 @@ class IssueListOverview extends Component<Props, State> {
     return pickBy(params, v => defined(v)) as EndpointParams;
   };
 
-  getGlobalSearchProjectIds = () => {
-    return this.props.selection.projects;
+  getSelectedProjectIds = (): string[] => {
+    return this.props.selection.projects.map(projectId => String(projectId));
   };
 
   fetchMemberList() {
-    const projectIds = this.getGlobalSearchProjectIds()?.map(projectId =>
-      String(projectId)
-    );
+    const projectIds = this.getSelectedProjectIds();
 
     fetchOrgMembers(this.props.api, this.props.organization.slug, projectIds).then(
       members => {
@@ -376,9 +371,9 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   fetchTags() {
-    const {organization, selection} = this.props;
+    const {api, organization, selection} = this.props;
     this.setState({tagsLoading: true});
-    loadOrganizationTags(this.props.api, organization.slug, selection).then(() =>
+    loadOrganizationTags(api, organization.slug, selection).then(() =>
       this.setState({tagsLoading: false})
     );
   }
@@ -516,7 +511,6 @@ class IssueListOverview extends Component<Props, State> {
     if (hasIssueListRemovalAction && !this.state.realtimeActive) {
       if (!this.state.actionTaken && !this.state.undo) {
         GroupStore.loadInitialData([]);
-        this._streamManager.reset();
 
         this.setState({
           issuesLoading: true,
@@ -528,7 +522,6 @@ class IssueListOverview extends Component<Props, State> {
     } else {
       if (!this.state.reviewedIds.length || !isForReviewQuery(query)) {
         GroupStore.loadInitialData([]);
-        this._streamManager.reset();
 
         this.setState({
           issuesLoading: true,
@@ -610,7 +603,7 @@ class IssueListOverview extends Component<Props, State> {
         if (this.state.undo) {
           GroupStore.loadInitialData(data);
         }
-        this._streamManager.push(data);
+        GroupStore.add(data);
 
         // TODO(Kelly): update once issue-list-removal-action feature is stable
         if (!hasIssueListRemovalAction) {
@@ -618,6 +611,20 @@ class IssueListOverview extends Component<Props, State> {
             GroupStore.remove(this.state.reviewedIds);
           }
         }
+
+        const numPerfIssues = data.filter(
+          (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
+        ).length;
+
+        const page = parseInt(this.props.location.query.page, 10);
+
+        trackAdvancedAnalyticsEvent('issues_stream.count_perf_issues', {
+          organization,
+          page,
+          query,
+          num_perf_issues: numPerfIssues,
+          num_total_issues: data.length,
+        });
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
@@ -691,10 +698,7 @@ class IssueListOverview extends Component<Props, State> {
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      // Remove collapse stats from endpoint before supplying to poller
-      const issueEndpoint = new URL(links.previous.href, window.location.origin);
-      issueEndpoint.searchParams.delete('collapse');
-      this._poller.setEndpoint(decodeURIComponent(issueEndpoint.href));
+      this._poller.setEndpoint(links?.previous?.href);
       this._poller.enable();
     }
   };
@@ -733,7 +737,7 @@ class IssueListOverview extends Component<Props, State> {
   onRealtimePoll = (data: any, _links: any) => {
     // Note: We do not update state with cursors from polling,
     // `CursorPoller` updates itself with new cursors
-    this._streamManager.unshift(data);
+    GroupStore.addToFront(data);
   };
 
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
@@ -752,7 +756,7 @@ class IssueListOverview extends Component<Props, State> {
       !this.state.realtimeActive &&
       actionTakenGroupData.length > 0
     ) {
-      const filteredItems = this._streamManager.getAllItems().filter(item => {
+      const filteredItems = GroupStore.getAllItems().filter(item => {
         return actionTakenGroupData.findIndex(data => data.id === item.id) !== -1;
       });
 
@@ -795,7 +799,9 @@ class IssueListOverview extends Component<Props, State> {
       }
     }
 
-    const groupIds = this._streamManager.getAllItems().map(item => item.id) ?? [];
+    const groupIds = GroupStore.getAllItems()
+      .map(item => item.id)
+      .slice(0, MAX_ISSUES_COUNT);
     if (!isEqual(groupIds, this.state.groupIds)) {
       this.setState({groupIds});
     }
@@ -938,80 +944,11 @@ class IssueListOverview extends Component<Props, State> {
     return showReprocessingTab && query === Query.REPROCESSING;
   }
 
-  renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
-    const topIssue = ids[0];
-    const {memberList} = this.state;
-    const query = this.getQuery();
-    const showInboxTime = this.getSort() === IssueSortOptions.INBOX;
-
-    return ids.map((id, index) => {
-      const hasGuideAnchor = id === topIssue;
-      const group = GroupStore.get(id) as Group | undefined;
-      let members: Member['user'][] | undefined;
-      if (group?.project) {
-        members = memberList[group.project.slug];
-      }
-
-      const showReprocessingTab = this.displayReprocessingTab();
-      const displayReprocessingLayout = this.displayReprocessingLayout(
-        showReprocessingTab,
-        query
-      );
-
-      return (
-        <StreamGroup
-          index={index}
-          key={id}
-          id={id}
-          statsPeriod={groupStatsPeriod}
-          query={query}
-          hasGuideAnchor={hasGuideAnchor}
-          memberList={members}
-          displayReprocessingLayout={displayReprocessingLayout}
-          useFilteredStats
-          showInboxTime={showInboxTime}
-        />
-      );
-    });
-  };
-
   renderLoading(): React.ReactNode {
     return (
       <PageContent>
         <LoadingIndicator />
       </PageContent>
-    );
-  }
-
-  renderStreamBody(): React.ReactNode {
-    const {issuesLoading, error, groupIds} = this.state;
-
-    if (issuesLoading) {
-      return <LoadingIndicator hideMessage />;
-    }
-
-    if (error) {
-      return <LoadingError message={error} onRetry={this.fetchData} />;
-    }
-
-    if (groupIds.length > 0) {
-      return (
-        <PanelBody>
-          {this.renderGroupNodes(groupIds, this.getGroupStatsPeriod())}
-        </PanelBody>
-      );
-    }
-
-    const {api, organization, selection} = this.props;
-
-    return (
-      <NoGroupsHandler
-        api={api}
-        organization={organization}
-        query={this.getQuery()}
-        selectedProjectIds={selection.projects}
-        groupIds={groupIds}
-      />
     );
   }
 
@@ -1162,7 +1099,7 @@ class IssueListOverview extends Component<Props, State> {
 
   tagValueLoader = (key: string, search: string) => {
     const {orgId} = this.props.params;
-    const projectIds = this.getGlobalSearchProjectIds().map(id => id.toString());
+    const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
     return fetchTagValues(
@@ -1190,6 +1127,8 @@ class IssueListOverview extends Component<Props, State> {
       groupIds,
       queryMaxCount,
       itemsRemoved,
+      issuesLoading,
+      error,
     } = this.state;
     const {organization, savedSearch, savedSearches, tags, selection, location, router} =
       this.props;
@@ -1269,7 +1208,6 @@ class IssueListOverview extends Component<Props, State> {
 
             <Panel>
               <IssueListActions
-                organization={organization}
                 selection={selection}
                 query={query}
                 queryCount={modifiedQueryCount}
@@ -1295,7 +1233,18 @@ class IssueListOverview extends Component<Props, State> {
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
                 >
-                  {this.renderStreamBody()}
+                  <GroupListBody
+                    memberList={this.state.memberList}
+                    groupStatsPeriod={this.getGroupStatsPeriod()}
+                    groupIds={groupIds}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    sort={this.getSort()}
+                    selectedProjectIds={selection.projects}
+                    loading={issuesLoading}
+                    error={error}
+                    refetchGroups={this.fetchData}
+                  />
                 </VisuallyCompleteWithData>
               </PanelBody>
             </Panel>

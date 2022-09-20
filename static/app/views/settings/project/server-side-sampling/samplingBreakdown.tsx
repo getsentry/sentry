@@ -10,8 +10,6 @@ import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
@@ -19,6 +17,7 @@ import {formatPercentage} from 'sentry/utils/formatters';
 import useProjects from 'sentry/utils/useProjects';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
+import {useDistribution} from './utils/useDistribution';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
@@ -27,8 +26,9 @@ type Props = {
 
 export function SamplingBreakdown({orgSlug}: Props) {
   const theme = useTheme();
-  const {samplingDistribution, fetching} = useLegacyStore(ServerSideSamplingStore);
-  const projectBreakdown = samplingDistribution.project_breakdown;
+  const {distribution, loading} = useDistribution();
+  const projectBreakdown = distribution?.project_breakdown;
+
   const {projects} = useProjects({
     slugs: projectBreakdown?.map(project => project.project) ?? [],
     orgId: orgSlug,
@@ -77,7 +77,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
           />
         </TitleWrapper>
 
-        {fetching ? (
+        {loading ? (
           <Fragment>
             <Placeholder height="16px" bottomGutter={1.5} />
             <Placeholder height="21px" width="250px" />
@@ -109,7 +109,11 @@ export function SamplingBreakdown({orgSlug}: Props) {
                 )}
               </Projects>
             ) : (
-              <EmptyMessage>{t('No transactions in the last 24 hours')}</EmptyMessage>
+              <EmptyMessage>
+                {t(
+                  'There were no traces initiated from this project in the last 30 days.'
+                )}
+              </EmptyMessage>
             )}
           </Fragment>
         )}

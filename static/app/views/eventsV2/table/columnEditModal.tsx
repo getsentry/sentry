@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {Column} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
@@ -24,6 +25,7 @@ type Props = {
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
   organization: Organization;
+  customMeasurements?: CustomMeasurementCollection;
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
@@ -37,6 +39,7 @@ function ColumnEditModal(props: Props) {
     organization,
     onApply,
     closeModal,
+    customMeasurements,
   } = props;
 
   // Only run once for each organization.id.
@@ -63,6 +66,14 @@ function ColumnEditModal(props: Props) {
     tagKeys,
     measurementKeys,
     spanOperationBreakdownKeys,
+    customMeasurements:
+      organization.features.includes('dashboards-mep') ||
+      organization.features.includes('mep-rollout-flag')
+        ? Object.values(customMeasurements ?? {}).map(({key, functions}) => ({
+            key,
+            functions,
+          }))
+        : undefined,
   });
   return (
     <Fragment>

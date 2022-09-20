@@ -7,10 +7,12 @@ from rest_framework.exceptions import ParseError
 
 from sentry.testutils import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test
 class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -182,6 +184,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             assert len(mock_quantize.mock_calls) == 2
 
 
+@region_silo_test
 class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -360,6 +363,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group_id
 
 
+@region_silo_test
 class OrganizationEventsMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
     def setUp(self):
         super().setUp()

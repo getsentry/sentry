@@ -37,22 +37,27 @@ const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can 
 export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
+export enum DiscoverQueryPageSource {
+  PERFORMANCE = 'performance',
+  DISCOVER = 'discover',
+}
+
 export function createUnnamedTransactionsDiscoverTarget(props: {
   location: Location;
   organization: Organization;
+  source?: DiscoverQueryPageSource;
 }) {
-  const fields = [
-    'transaction',
-    'project',
-    'transaction.source',
-    'epm()',
-    'p50()',
-    'p95()',
-  ];
+  const fields =
+    props.source === DiscoverQueryPageSource.DISCOVER
+      ? ['transaction', 'project', 'transaction.source', 'epm()']
+      : ['transaction', 'project', 'transaction.source', 'epm()', 'p50()', 'p95()'];
 
   const query: NewQuery = {
     id: undefined,
-    name: t('Performance - Unparameterized Transactions '),
+    name:
+      props.source === DiscoverQueryPageSource.DISCOVER
+        ? t('Unparameterized Transactions')
+        : t('Performance - Unparameterized Transactions'),
     query: 'event.type:transaction transaction.source:"url"',
     projects: [],
     fields,

@@ -101,6 +101,7 @@ export type SamplingRule = {
 };
 
 export type SamplingDistribution = {
+  endTimestamp: string | null;
   null_sample_rate_percentage: null | number;
   project_breakdown:
     | null
@@ -119,6 +120,7 @@ export type SamplingDistribution = {
     p99: null | number;
   };
   sample_size: number;
+  startTimestamp: string | null;
 };
 
 export type SamplingSdkVersion = {

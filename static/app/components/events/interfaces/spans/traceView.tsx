@@ -18,6 +18,7 @@ import WaterfallModel from './waterfallModel';
 type Props = {
   organization: Organization;
   waterfallModel: WaterfallModel;
+  isEmbedded?: boolean;
 };
 
 class TraceView extends PureComponent<Props> {
@@ -55,7 +56,7 @@ class TraceView extends PureComponent<Props> {
   );
 
   render() {
-    const {organization, waterfallModel} = this.props;
+    const {organization, waterfallModel, isEmbedded} = this.props;
 
     if (!getTraceContext(waterfallModel.event)) {
       return (
@@ -85,6 +86,7 @@ class TraceView extends PureComponent<Props> {
                             dividerPosition={dividerHandlerChildrenProps.dividerPosition}
                             interactiveLayerRef={this.virtualScrollBarContainerRef}
                             dragProps={dragProps}
+                            isEmbedded={isEmbedded}
                           >
                             {this.renderHeader(dragProps)}
                             <Observer>
@@ -101,6 +103,7 @@ class TraceView extends PureComponent<Props> {
                                         viewStart: dragProps.viewWindowStart,
                                         viewEnd: dragProps.viewWindowEnd,
                                       })}
+                                      focusedSpanIds={waterfallModel.focusedSpanIds}
                                     />
                                   </CustomerProfiler>
                                 );

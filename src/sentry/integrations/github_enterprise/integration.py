@@ -75,9 +75,10 @@ setup_alert = {
     "type": "warning",
     "icon": "icon-warning-sm",
     "text": "Your GitHub enterprise instance must be able to communicate with"
-    " Sentry. Sentry makes outbound requests from a [static set of IP"
-    " addresses](https://docs.sentry.io/ip-ranges/) that you may wish"
-    " to allow in your firewall to support this integration.",
+    " Sentry. Before you proceed, make sure that connections from [the static set"
+    " of IP addresses that Sentry makes outbound requests from]"
+    "(https://docs.sentry.io/product/security/ip-ranges/#outbound-requests)"
+    " are allowed in your firewall.",
 }
 
 metadata = IntegrationMetadata(

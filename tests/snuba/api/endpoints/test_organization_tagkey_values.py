@@ -6,6 +6,7 @@ from exam import fixture
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 
 
@@ -38,6 +39,7 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         return self.create_group(project=self.project)
 
 
+@region_silo_test
 class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_simple(self):
         self.store_event(

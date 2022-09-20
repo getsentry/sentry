@@ -8,6 +8,7 @@ from sentry.models import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
 class GetRateLimitKeyTest(TestCase):
@@ -90,6 +91,7 @@ class DummyEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
 
+@region_silo_test
 class TestDefaultToGroup(TestCase):
     def setUp(self) -> None:
         self.view = DummyEndpoint.as_view()

@@ -43,7 +43,7 @@ class ReleaseSummaryTestCase(ActivityTestCase):
         self.commit2 = self.another_commit(1, "b", self.user2, repository)
 
     def test_simple(self):
-        with self.feature("organizations:active-release-notification-opt-in"):
+        with self.feature("organizations:active-release-notifications-enable"):
             release_summary = ReleaseSummaryActivityNotification(
                 Activity(
                     project=self.project,

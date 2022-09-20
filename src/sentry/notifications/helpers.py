@@ -15,7 +15,13 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.integrations import (
+    EXTERNAL_PROVIDERS,
+    ExternalProviders,
+    get_provider_enum,
+    get_provider_enum_from_string,
+    get_provider_name,
+)
 
 if TYPE_CHECKING:
     from sentry.models import (
@@ -583,3 +589,29 @@ def get_values_by_provider(
         get_value_for_actor(notification_settings_by_scope, recipient),
         get_value_for_parent(notification_settings_by_scope, parent_id, type),
     )
+
+
+def get_providers_for_recipient(recipient: User | Team) -> Iterable[ExternalProviders]:
+    from sentry.models import ExternalActor, Identity, Team
+
+    possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
+    if isinstance(recipient, Team):
+        return list(
+            map(
+                get_provider_enum,
+                ExternalActor.objects.filter(
+                    actor_id=recipient.actor_id, provider__in=possible_providers
+                ).values_list("provider", flat=True),
+            )
+        )
+
+    return list(
+        map(
+            get_provider_enum_from_string,
+            Identity.objects.filter(
+                user=recipient, idp__type__in=list(map(get_provider_name, possible_providers))
+            ).values_list("idp__type", flat=True),
+        )
+    ) + [
+        ExternalProviders.EMAIL
+    ]  # always add in email as an option

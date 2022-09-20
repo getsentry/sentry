@@ -23,7 +23,7 @@ function getException(
     exceptionDataValue => exceptionDataValue.stacktrace
   );
 
-  if (!!exceptionHasAtLeastOneStacktrace) {
+  if (exceptionHasAtLeastOneStacktrace) {
     return exceptionData as Required<ExceptionType>;
   }
 

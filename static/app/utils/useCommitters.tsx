@@ -4,7 +4,7 @@ import {getCommitters} from 'sentry/actionCreators/committers';
 import {Client} from 'sentry/api';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Committer, Group, Organization} from 'sentry/types';
+import type {Committer, Group, Organization, ReleaseCommitter} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 import useOrganization from './useOrganization';
@@ -18,6 +18,8 @@ interface Props {
 interface Result {
   committers: Committer[];
   fetching: boolean;
+  // TODO(scttcper): Not optional on GA of release-committer-assignees flag
+  releaseCommitters?: ReleaseCommitter[];
 }
 
 async function fetchCommitters(
@@ -58,6 +60,7 @@ function useCommitters({group, eventId, projectSlug}: Props): Result {
   const key = getCommitterStoreKey(organization?.slug ?? '', projectSlug, eventId);
   return {
     committers: store[key]?.committers ?? [],
+    releaseCommitters: store[key]?.releaseCommitters ?? [],
     fetching: store[key]?.committersLoading ?? false,
   };
 }

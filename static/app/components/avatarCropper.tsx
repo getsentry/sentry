@@ -7,6 +7,22 @@ import {AVATAR_URL_MAP} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {AvatarUser} from 'sentry/types';
 
+export function getDiffNW(yDiff: number, xDiff: number) {
+  return (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
+}
+
+export function getDiffNE(yDiff: number, xDiff: number) {
+  return (yDiff - yDiff * 2 + xDiff) / 2;
+}
+
+export function getDiffSW(yDiff: number, xDiff: number) {
+  return (yDiff + (xDiff - xDiff * 2)) / 2;
+}
+
+export function getDiffSE(yDiff: number, xDiff: number) {
+  return (yDiff + xDiff) / 2;
+}
+
 const resizerPositions = {
   nw: ['top', 'left'],
   ne: ['top', 'right'],
@@ -40,7 +56,7 @@ type State = {
   resizeDirection: Position | null;
 };
 
-class AvatarCropper extends Component<Props, State> {
+export class AvatarCropper extends Component<Props, State> {
   state: State = {
     file: null,
     objectURL: null,
@@ -197,14 +213,13 @@ class AvatarCropper extends Component<Props, State> {
 
   // Normalize diff across dimensions so that negative diffs are always making
   // the cropper smaller and positive ones are making the cropper larger
-  getDiffNW = (yDiff: number, xDiff: number) =>
-    (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
+  getDiffNW = getDiffNW;
 
-  getDiffNE = (yDiff: number, xDiff: number) => (yDiff - yDiff * 2 + xDiff) / 2;
+  getDiffNE = getDiffNE;
 
-  getDiffSW = (yDiff: number, xDiff: number) => (yDiff + (xDiff - xDiff * 2)) / 2;
+  getDiffSW = getDiffSW;
 
-  getDiffSE = (yDiff: number, xDiff: number) => (yDiff + xDiff) / 2;
+  getDiffSE = getDiffSE;
 
   getNewDimensions = (container: HTMLDivElement, yDiff: number, xDiff: number) => {
     const {resizeDimensions: oldDimensions, resizeDirection} = this.state;
@@ -413,8 +428,6 @@ class AvatarCropper extends Component<Props, State> {
     );
   }
 }
-
-export default AvatarCropper;
 
 const UploadInput = styled('input')`
   position: absolute;

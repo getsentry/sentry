@@ -1,5 +1,6 @@
 import {useContext} from 'react';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,7 +10,6 @@ import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import StackTraceContent from '../stackTrace/content';
 import StacktraceContentV2 from '../stackTrace/contentV2';

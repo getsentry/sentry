@@ -24,6 +24,7 @@ from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import eventstore, features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
@@ -255,7 +256,7 @@ def query_trace_data(
         referrer="api.trace-view.get-events",
     )
     transformed_results = [
-        discover.transform_results(result, query.function_alias_map, {}, None)["data"]
+        discover.transform_results(result, query, {}, None)["data"]
         for result, query in zip(results, [transaction_query, error_query])
     ]
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
@@ -373,6 +374,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
         )
 
 
+@region_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def get_current_transaction(
@@ -514,6 +516,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         return [result.to_dict() for result in trace_results]
 
 
+@region_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     @staticmethod
     def update_children(event: TraceEvent) -> None:
@@ -689,6 +692,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         ]
 
 
+@region_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):

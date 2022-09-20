@@ -6,13 +6,13 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ApiApplication} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import Row from 'sentry/views/settings/account/apiApplications/row';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
@@ -41,7 +41,7 @@ class ApiApplications extends AsyncView<Props, State> {
 
       addSuccessMessage(t('Created a new API Application'));
       this.props.router.push(`${ROUTE_PREFIX}applications/${app.id}/`);
-    } catch (_err) {
+    } catch {
       addErrorMessage(t('Unable to remove application. Please try again.'));
     }
   };
@@ -53,22 +53,23 @@ class ApiApplications extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const action = (
-      <Button
-        priority="primary"
-        size="sm"
-        onClick={this.handleCreateApplication}
-        icon={<IconAdd size="xs" isCircled />}
-      >
-        {t('Create New Application')}
-      </Button>
-    );
-
     const isEmpty = this.state.appList.length === 0;
 
     return (
       <div>
-        <SettingsPageHeader title="API Applications" action={action} />
+        <SettingsPageHeader
+          title="API Applications"
+          action={
+            <Button
+              priority="primary"
+              size="sm"
+              onClick={this.handleCreateApplication}
+              icon={<IconAdd size="xs" isCircled />}
+            >
+              {t('Create New Application')}
+            </Button>
+          }
+        />
 
         <Panel>
           <PanelHeader>{t('Application Name')}</PanelHeader>

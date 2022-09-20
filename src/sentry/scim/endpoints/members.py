@@ -16,6 +16,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ConflictError
@@ -103,6 +104,7 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
+@region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
@@ -126,11 +128,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             )
 
     def _should_delete_member(self, operation):
-        if operation["op"].lower() == MemberPatchOps.REPLACE:
-            if isinstance(operation["value"], dict) and operation["value"]["active"] is False:
+        if operation.get("op").lower() == MemberPatchOps.REPLACE:
+            if (
+                isinstance(operation.get("value"), dict)
+                and operation.get("value").get("active") is False
+            ):
                 # how okta sets active to false
                 return True
-            elif operation["path"] == "active" and operation["value"] is False:
+            elif operation.get("path") == "active" and operation.get("value") is False:
                 # how other idps set active to false
                 return True
         return False
@@ -243,6 +248,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
 
+@region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "POST"}

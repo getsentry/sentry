@@ -21,6 +21,10 @@ async function initSentryReplays() {
  */
 export function SentryReplayInit({organization}: {organization: Organization | null}) {
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' || process.env.IS_ACCEPTANCE_TEST) {
+      return;
+    }
+
     if (!organization) {
       return;
     }

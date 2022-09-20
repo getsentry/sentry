@@ -5,7 +5,7 @@ import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 
-import AnnotatedText from '../meta/annotatedText';
+import {AnnotatedText} from '../meta/annotatedText';
 
 import EventTagsPill from './eventTagsPill';
 

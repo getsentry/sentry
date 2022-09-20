@@ -116,24 +116,24 @@ export function resolveDerivedStatusFields(
   const unsupportedOrderby =
     DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
 
-  if (rawOrderby && !!!unsupportedOrderby && !!!fields.includes(rawOrderby)) {
-    if (!!!injectedFields.includes(rawOrderby)) {
+  if (rawOrderby && !unsupportedOrderby && !fields.includes(rawOrderby)) {
+    if (!injectedFields.includes(rawOrderby)) {
       injectedFields.push(rawOrderby);
     }
   }
 
-  if (!!!useSessionAPI) {
+  if (!useSessionAPI) {
     return {aggregates, derivedStatusFields, injectedFields};
   }
 
   derivedStatusFields.forEach(field => {
     const result = field.match(DERIVED_STATUS_METRICS_PATTERN);
     if (result) {
-      if (result[2] === 'user' && !!!aggregates.includes('count_unique(user)')) {
+      if (result[2] === 'user' && !aggregates.includes('count_unique(user)')) {
         injectedFields.push('count_unique(user)');
         aggregates.push('count_unique(user)');
       }
-      if (result[2] === 'session' && !!!aggregates.includes('sum(session)')) {
+      if (result[2] === 'session' && !aggregates.includes('sum(session)')) {
         injectedFields.push('sum(session)');
         aggregates.push('sum(session)');
       }
@@ -144,7 +144,7 @@ export function resolveDerivedStatusFields(
 }
 
 export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
-  const useMetricsAPI = !!!query.columns.includes('session.status');
+  const useMetricsAPI = !query.columns.includes('session.status');
   const rawOrderby = trimStart(query.orderby, '-');
   return useMetricsAPI && rawOrderby === 'release';
 }
@@ -297,7 +297,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         releaseCondition += releaseQueryString;
         releasesArray.push(...releasesUsed);
 
-        if (!!!isDescending) {
+        if (!isDescending) {
           releasesArray.reverse();
         }
       }
@@ -328,7 +328,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         const {releasesUsed} = getReleasesQuery(releases);
         releasesArray.push(...releasesUsed);
 
-        if (!!!isDescending) {
+        if (!isDescending) {
           releasesArray.reverse();
         }
       }

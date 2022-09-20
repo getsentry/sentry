@@ -9,8 +9,9 @@ from rest_framework.response import Response
 
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project, Rule
+from sentry.models.activity import ActivityIntegration
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
@@ -127,6 +128,7 @@ def verify_signature(request):
     return True
 
 
+@pending_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -297,7 +299,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             assignee = data["assignInput"]
             if assignee == "ME":
                 assignee = f"user:{user_id}"
-            action_data = {"assignedTo": assignee}
+            action_data = {"assignedTo": assignee, "integration": ActivityIntegration.MSTEAMS.value}
         elif action_type == ACTION_TYPE.UNASSIGN:
             action_data = {"assignedTo": ""}
         return action_data

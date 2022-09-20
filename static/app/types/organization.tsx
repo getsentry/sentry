@@ -1,3 +1,5 @@
+import {AggregationOutputType} from 'sentry/utils/discover/fields';
+
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
@@ -232,7 +234,7 @@ export type EventsStats = {
   end?: number;
   isMetricsData?: boolean;
   meta?: {
-    fields: Record<string, string>;
+    fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
     units: Record<string, string>;

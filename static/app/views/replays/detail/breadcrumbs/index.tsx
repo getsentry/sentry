@@ -25,9 +25,11 @@ function CrumbPlaceholder({number}: {number: number}) {
   );
 }
 
-type Props = {};
+type Props = {
+  showTitle: boolean;
+};
 
-function Breadcrumbs({}: Props) {
+function Breadcrumbs({showTitle = true}: Props) {
   const {currentHoverTime, currentTime, replay} = useReplayContext();
 
   const replayRecord = replay?.getReplay();
@@ -72,6 +74,8 @@ function Breadcrumbs({}: Props) {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onClick={handleClick}
+          // We are controlling the hover state ourselves with `isHovered` prop
+          allowHover={false}
         />
       ))}
     </BreadcrumbContainer>
@@ -83,7 +87,7 @@ function Breadcrumbs({}: Props) {
     <Panel>
       <FluidPanel
         bodyRef={crumbListContainerRef}
-        title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+        title={showTitle ? <PanelHeader>{t('Breadcrumbs')}</PanelHeader> : undefined}
       >
         {content}
       </FluidPanel>
