@@ -80,22 +80,33 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
 
-    def assert_setup_flow(self):
-        resp = self.client.get(self.init_path)
+    def assert_setup_flow(self, customer_domain=None):
+        kwargs = {}
+        if customer_domain:
+            kwargs["HTTP_HOST"] = customer_domain
+
+        resp = self.client.get(self.init_path, **kwargs)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
         assert redirect.scheme == "https"
         assert redirect.netloc == "github.com"
         assert redirect.path == "/apps/sentry-test-app"
+        assert redirect.query == ""
 
         # App installation ID is provided
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
 
+        if customer_domain:
+            assert resp.status_code == 302
+            assert resp["Location"].startswith(f"http://{customer_domain}/extensions/github/setup/")
+            resp = self.client.get(resp["Location"], **kwargs)
+
         auth_header = responses.calls[0].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
+        assert resp.status_code == 200
         self.assertDialogSuccess(resp)
         return resp
 
@@ -133,6 +144,29 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_basic_flow(self):
         with self.tasks():
             self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+
+        assert integration.external_id == self.installation_id
+        assert integration.name == "Test Organization"
+        assert integration.metadata == {
+            "access_token": None,
+            # The metadata doesn't get saved with the timezone "Z" character
+            # for some reason, so just compare everything but that.
+            "expires_at": None,
+            "icon": "http://example.com/avatar.png",
+            "domain_name": "github.com/Test-Organization",
+            "account_type": "Organization",
+        }
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization=self.organization
+        )
+        assert oi.config == {}
+
+    @responses.activate
+    def test_basic_flow_customer_domains(self):
+        with self.tasks():
+            self.assert_setup_flow(customer_domain=f"{self.organization.slug}.testserver")
 
         integration = Integration.objects.get(provider=self.provider.key)
 

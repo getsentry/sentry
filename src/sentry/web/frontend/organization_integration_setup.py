@@ -41,5 +41,8 @@ class OrganizationIntegrationSetupView(OrganizationView):
 
             pipeline.initialize()
 
+            if request.subdomain is not None:
+                pipeline.bind_state("subdomain", request.subdomain)
+
             response = pipeline.current_step()
         return response
