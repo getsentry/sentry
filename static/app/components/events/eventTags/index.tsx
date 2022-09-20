@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -32,7 +33,7 @@ export function EventTags({event, organization, projectId, location}: Props) {
   const streamPath = `/organizations/${orgSlug}/issues/`;
 
   return (
-    <ClippedBox clipHeight={150}>
+    <StyledClippedBox clipHeight={150}>
       <Pills>
         {event.tags.map((tag, index) => (
           <EventTagsPill
@@ -46,6 +47,10 @@ export function EventTags({event, organization, projectId, location}: Props) {
           />
         ))}
       </Pills>
-    </ClippedBox>
+    </StyledClippedBox>
   );
 }
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+`;
