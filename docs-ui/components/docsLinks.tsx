@@ -94,7 +94,7 @@ const ImgWrap = styled('div')`
   overflow: hidden;
   transition: 0.2s ease-out;
 
-  ${/* sc-selector */ LinkWrap}:hover & {
+  ${LinkWrap}:hover & {
     border: solid 1px ${p => p.theme.border};
   }
 `;
@@ -126,7 +126,7 @@ const IconWrap = styled('div')`
   align-items: center;
   transition: 0.2s ease-out;
 
-  ${/* sc-selector */ LinkWrap}:hover & {
+  ${LinkWrap}:hover & {
     transform: translateX(${space(0.5)});
   }
 `;

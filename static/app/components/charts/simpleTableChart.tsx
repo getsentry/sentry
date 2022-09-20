@@ -129,7 +129,7 @@ const StyledPanelTable = styled(PanelTable)`
   border-bottom: 0;
 
   margin: 0;
-  ${/* sc-selector */ PanelTableHeader} {
+  ${PanelTableHeader} {
     height: min-content;
   }
 `;

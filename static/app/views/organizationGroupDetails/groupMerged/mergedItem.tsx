@@ -190,7 +190,7 @@ const Controls = styled('div')<{expanded: boolean}>`
 const FingerprintLabel = styled('label')`
   font-family: ${p => p.theme.text.familyMono};
 
-  ${/* sc-selector */ Controls} & {
+  ${Controls} & {
     font-weight: 400;
     margin: 0;
   }

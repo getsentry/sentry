@@ -42,7 +42,7 @@ function LoadingError({
 export default LoadingError;
 
 const StyledAlert = styled(Alert)`
-  ${/* sc-selector */ Panel} & {
+  ${Panel} & {
     border-radius: 0;
     border-width: 1px 0;
   }
