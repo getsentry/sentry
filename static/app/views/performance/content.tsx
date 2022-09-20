@@ -66,7 +66,7 @@ function PerformanceContent({selection, location, demoMode, router}: Props) {
     }
 
     // Current selection is 'my projects' or 'all projects'
-    if (eventView.project.length === 0 || eventView.project === [ALL_ACCESS_PROJECTS]) {
+    if (eventView.project.length === 0 || eventView.project[0] === ALL_ACCESS_PROJECTS) {
       const filtered = projects.filter(p => p.firstTransactionEvent === false);
       if (filtered.length === projects.length) {
         return filtered[0];
