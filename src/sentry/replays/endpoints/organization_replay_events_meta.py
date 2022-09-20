@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
@@ -22,6 +23,9 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
     private = True
 
     def get(self, request: Request, organization) -> Response:
+        if not features.has("organizations:session-replay", organization, actor=request.user):
+            return Response(status=404)
+
         try:
             params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
