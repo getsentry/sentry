@@ -1615,11 +1615,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.snuba.metrics.query.parse_mri")
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
-    @patch("sentry.snuba.metrics.query.get_mri")
+    @patch("sentry.snuba.metrics.query.get_public_name_from_mri")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
-        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri, mocked_parse_mri
+        self,
+        mocked_get_public_name_from_mri,
+        mocked_get_mri_query,
+        mocked_reverse_mri,
+        mocked_parse_mri,
     ):
-        mocked_get_mri.return_value = "crash_free_fake"
+        mocked_get_public_name_from_mri.return_value = "crash_free_fake"
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
         mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")

@@ -1267,6 +1267,11 @@ describe('SmartSearchBar', function () {
   });
 
   describe('date fields', () => {
+    // Transpile the lazy-loaded datepicker up front so tests don't flake
+    beforeAll(async function () {
+      await import('sentry/components/calendar/datePicker');
+    });
+
     const props = {
       query: '',
       organization,
@@ -1330,11 +1335,6 @@ describe('SmartSearchBar', function () {
       expect(screen.getByRole('textbox')).toHaveValue('lastSeen:>');
       expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
 
-      // For whatever reason, need this line to get the lazily-loaded datepicker
-      // to show up in this test. Without it, the datepicker never shows up
-      // no matter how long the timeout is set to.
-      await tick();
-
       // Select a day on the calendar
       const dateInput = await screen.findByTestId('date-picker');
       fireEvent.change(dateInput, {target: {value: '2022-01-02'}});
@@ -1377,7 +1377,6 @@ describe('SmartSearchBar', function () {
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
-      await tick();
       const dateInput = await screen.findByTestId('date-picker');
 
       expect(dateInput).toHaveValue('2022-01-02');
@@ -1403,7 +1402,6 @@ describe('SmartSearchBar', function () {
 
       userEvent.click(screen.getByRole('textbox'));
 
-      await tick();
       const dateInput = await screen.findByTestId('date-picker');
 
       expect(dateInput).toHaveValue('2022-01-01');
@@ -1422,7 +1420,6 @@ describe('SmartSearchBar', function () {
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
-      await tick();
       const dateInput = await screen.findByTestId('date-picker');
 
       expect(dateInput).toHaveValue('2022-01-01');
@@ -1439,12 +1436,65 @@ describe('SmartSearchBar', function () {
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
-      await tick();
       const dateInput = await screen.findByTestId('date-picker');
 
       expect(dateInput).toHaveValue('2022-01-01');
       expect(screen.getByLabelText('Time')).toHaveValue('09:45:12');
       expect(screen.getByLabelText('Use UTC')).not.toBeChecked();
+    });
+  });
+
+  describe('custom performance metric filters', () => {
+    it('raises Invalid file size when parsed filter unit is not a valid size unit', () => {
+      const props = {
+        organization,
+        location,
+        supportedTags,
+        customPerformanceMetrics: {
+          'measurements.custom.kibibyte': {
+            fieldType: 'size',
+          },
+        },
+      };
+
+      render(<SmartSearchBar {...props} />);
+
+      const textbox = screen.getByRole('textbox');
+      userEvent.click(textbox);
+      userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
+      userEvent.keyboard('{arrowleft}');
+
+      expect(
+        screen.getByText(
+          'Invalid file size. Expected number followed by file size unit suffix'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('raises Invalid duration when parsed filter unit is not a valid duration unit', () => {
+      const props = {
+        organization,
+        location,
+        supportedTags,
+        customPerformanceMetrics: {
+          'measurements.custom.minute': {
+            fieldType: 'duration',
+          },
+        },
+      };
+
+      render(<SmartSearchBar {...props} />);
+
+      const textbox = screen.getByRole('textbox');
+      userEvent.click(textbox);
+      userEvent.type(textbox, 'measurements.custom.minute:10kb ');
+      userEvent.keyboard('{arrowleft}');
+
+      expect(
+        screen.getByText(
+          'Invalid duration. Expected number followed by duration unit suffix'
+        )
+      ).toBeInTheDocument();
     });
   });
 });

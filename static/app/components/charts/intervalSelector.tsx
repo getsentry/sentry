@@ -1,13 +1,55 @@
 import {getInterval} from 'sentry/components/charts/utils';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {t} from 'sentry/locale';
+import {
+  _timeRangeAutoCompleteFilter,
+  makeItem,
+} from 'sentry/components/organizations/timeRangeSelector/utils';
+import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 
+type IntervalUnits = 's' | 'm' | 'h' | 'd';
+
+type RelativeUnitsMapping = {
+  [unit in IntervalUnits]: {
+    label: (num: number) => string;
+    momentUnit: moment.unitOfTime.DurationConstructor;
+    searchKey: string;
+  };
+};
+
+const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
+  s: {
+    label: (num: number) => tn('Second', '%s seconds', num),
+    searchKey: t('seconds'),
+    momentUnit: 'seconds',
+  },
+  m: {
+    label: (num: number) => tn('Minute', '%s minutes', num),
+    searchKey: t('minutes'),
+    momentUnit: 'minutes',
+  },
+  h: {
+    label: (num: number) => tn('Hour', '%s hours', num),
+    searchKey: t('hours'),
+    momentUnit: 'hours',
+  },
+  d: {
+    label: (num: number) => tn('Day', '%s days', num),
+    searchKey: t('days'),
+    momentUnit: 'days',
+  },
+};
+
+const SUPPORTED_RELATIVE_UNITS_LIST = Object.keys(
+  SUPPORTED_RELATIVE_PERIOD_UNITS
+) as IntervalUnits[];
+
 type Props = {
   eventView: EventView;
-  onIntervalChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
 };
 
 type IntervalOption = {
@@ -62,6 +104,16 @@ const INTERVAL_OPTIONS: IntervalOption[] = [
   },
 ];
 
+function formatHoursToInterval(hours: number): [number, IntervalUnits] {
+  if (hours >= 24) {
+    return [hours / 24, 'd'];
+  }
+  if (hours >= 1) {
+    return [hours, 'h'];
+  }
+  return [hours * 60, 'm'];
+}
+
 function getIntervalOption(rangeHours: number): IntervalOption {
   for (const index in INTERVAL_OPTIONS) {
     const currentOption = INTERVAL_OPTIONS[index];
@@ -83,16 +135,8 @@ function bindInterval(
   const optionMax = rangeHours / 2;
   let interval = currentInterval;
 
-  if (intervalHours < intervalOption.min) {
+  if (intervalHours < intervalOption.min || intervalHours > optionMax) {
     interval = intervalOption.default;
-  } else if (intervalHours > optionMax) {
-    if (optionMax >= 24) {
-      interval = `${optionMax / 24}d`;
-    } else if (optionMax >= 1) {
-      interval = `${optionMax}h`;
-    } else {
-      interval = `${optionMax * 60}m`;
-    }
   }
   return interval;
 }
@@ -100,6 +144,8 @@ function bindInterval(
 export default function IntervalSelector({eventView, onIntervalChange}: Props) {
   // Get the interval from the eventView if one was set, otherwise determine what the default is
   // TODO: use the INTERVAL_OPTIONS default instead
+  const usingDefaultInterval = eventView.interval === undefined;
+  // Can't just do usingDefaultInterval ? ... : ...; here cause the type of interval will include undefined
   const interval =
     eventView.interval ?? getInterval(eventView.getPageFilters().datetime, 'high');
 
@@ -109,10 +155,47 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
   // Determine the applicable interval option
   const intervalOption = getIntervalOption(rangeHours);
 
-  const boundInterval = bindInterval(interval, rangeHours, intervalHours, intervalOption);
-  if (boundInterval !== interval) {
-    onIntervalChange(boundInterval);
+  // Only bind the interval if we're not using the default
+  let boundInterval = interval;
+  if (!usingDefaultInterval) {
+    boundInterval = bindInterval(interval, rangeHours, intervalHours, intervalOption);
+    // If the interval mismatches, reset to undefined which means the default interval
+    if (boundInterval !== interval) {
+      onIntervalChange(undefined);
+    }
   }
+
+  const intervalAutoComplete: typeof autoCompleteFilter = function (items, filterValue) {
+    let newItem: number | undefined = undefined;
+    const results = _timeRangeAutoCompleteFilter(
+      items,
+      filterValue,
+      SUPPORTED_RELATIVE_PERIOD_UNITS,
+      SUPPORTED_RELATIVE_UNITS_LIST
+    ).filter(item => {
+      const itemHours = parsePeriodToHours(item.value);
+      if (itemHours < intervalOption.min) {
+        newItem = intervalOption.min;
+      } else if (itemHours > rangeHours / 2) {
+        newItem = rangeHours / 2;
+      } else {
+        return true;
+      }
+      return false;
+    });
+    if (newItem) {
+      const [amount, unit] = formatHoursToInterval(newItem);
+      results.push(
+        makeItem(
+          amount,
+          unit,
+          SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label,
+          results.length + 1
+        )
+      );
+    }
+    return results;
+  };
 
   return (
     <DropdownAutoComplete
@@ -122,6 +205,10 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
         searchKey: option,
         label: option,
       }))}
+      searchPlaceholder={t('Provide a time interval')}
+      autoCompleteFilter={(items, filterValue) =>
+        intervalAutoComplete(items, filterValue)
+      }
       alignMenu="right"
     >
       {({isOpen}) => (
