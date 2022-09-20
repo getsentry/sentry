@@ -189,7 +189,7 @@ export const AGGREGATIONS = {
       },
     ],
     isSortable: true,
-    multiPlotType: 'line',
+    multiPlotType: 'area',
   },
   [AggregationKey.CountMiserable]: {
     ...getDocsAndOutputType(AggregationKey.CountMiserable),
