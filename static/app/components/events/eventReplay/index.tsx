@@ -36,18 +36,22 @@ export default function EventReplay({
     return 0;
   };
 
+  const getReplayHref = () => ({
+    pathname: `/organizations/${orgSlug}/replays/${projectSlug}:${replayId}/`,
+    query: {
+      t_main: 'console',
+      f_c_logLevel: 'error',
+      f_c_search: undefined,
+      ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
+    },
+  });
+
   return (
     <EventDataSection
       type="replay"
       title={t('Replay')}
       actions={
-        <Button
-          size="sm"
-          priority="primary"
-          to={`/organizations/${orgSlug}/replays/${projectSlug}:${replayId}${
-            initialTimeOffset ? `?t=${initialTimeOffset}` : ''
-          }`}
-        >
+        <Button size="sm" priority="primary" to={getReplayHref}>
           {t('View Details')}
         </Button>
       }
