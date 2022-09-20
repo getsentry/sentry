@@ -476,7 +476,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Renders Apdex widget
       await screen.findByRole('heading', {name: 'Apdex'});
-      expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+      expect(await screen.findByTestId('apdex-summary-value')).toHaveTextContent('0.6');
 
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
@@ -637,7 +637,7 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Transaction Summary');
 
-      expect(screen.getByLabelText('Previous')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
 
       // Click the 'next' button
       userEvent.click(screen.getByLabelText('Next'));
@@ -874,7 +874,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Renders Apdex widget
       await screen.findByRole('heading', {name: 'Apdex'});
-      expect(screen.getByTestId('apdex-summary-value')).toHaveTextContent('0.6');
+      expect(await screen.findByTestId('apdex-summary-value')).toHaveTextContent('0.6');
 
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
@@ -1047,7 +1047,7 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Transaction Summary');
 
-      expect(screen.getByLabelText('Previous')).toBeInTheDocument();
+      expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
 
       // Click the 'next' button
       userEvent.click(screen.getByLabelText('Next'));
