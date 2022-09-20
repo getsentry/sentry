@@ -6,7 +6,8 @@ import {t, tn} from 'sentry/locale';
 
 import TimeRangeItemLabel from './timeRangeItemLabel';
 
-type RelativePeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
+type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
+type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
 type RelativeUnitsMapping = {
   [unit in RelativePeriodUnit]: {
@@ -21,11 +22,6 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 const STATS_PERIOD_REGEX = /^(\d+)([smhdw]{1})$/;
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
-  s: {
-    label: (num: number) => tn('Last second', 'Last %s seconds', num),
-    searchKey: t('seconds'),
-    momentUnit: 'seconds',
-  },
   m: {
     label: (num: number) => tn('Last minute', 'Last %s minutes', num),
     searchKey: t('minutes'),
@@ -124,7 +120,7 @@ export function getRelativeSummary(
 
 export function makeItem(
   amount: number,
-  unit: keyof typeof SUPPORTED_RELATIVE_PERIOD_UNITS,
+  unit: PeriodUnit,
   label: (num: number) => string,
   index: number
 ) {
