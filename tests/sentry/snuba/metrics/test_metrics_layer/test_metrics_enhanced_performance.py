@@ -89,12 +89,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     alias="count_lcp",
                 ),
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
                     alias="count_fcp",
                 ),
             ],
@@ -106,7 +106,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 OrderBy(
                     MetricField(
                         op="count",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="count_lcp",
                     ),
                     Direction.DESC,
@@ -114,7 +114,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 OrderBy(
                     MetricField(
                         op="count",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                        metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
                         alias="count_fcp",
                     ),
                     Direction.DESC,
@@ -174,12 +174,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     alias="count_lcp",
                 ),
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     alias="count_lcp_2",
                 ),
             ],
@@ -193,7 +193,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 OrderBy(
                     MetricField(
                         op="count",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="count_lcp",
                     ),
                     Direction.DESC,
@@ -201,7 +201,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 OrderBy(
                     MetricField(
                         op="count",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="count_lcp_2",
                     ),
                     Direction.DESC,
@@ -402,7 +402,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op=None,
-                    metric_name=TransactionMetricKey.FAILURE_RATE.value,
+                    metric_mri=TransactionMRI.FAILURE_RATE.value,
                     alias="failure_rate_alias",
                 ),
             ],
@@ -470,12 +470,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="p50",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     alias="p50_lcp",
                 ),
                 MetricField(
                     op="p50",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
                     alias="p50_fcp",
                 ),
             ],
@@ -490,7 +490,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 OrderBy(
                     MetricField(
                         op="p50",
-                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                         alias="p50_lcp",
                     ),
                     direction=Direction.ASC,
@@ -567,7 +567,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 MetricField(
                     op="histogram",
                     # ToDo(ahmed): Replace this with MRI once we make MetricsQuery accept MRI
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     params={
                         "histogram_from": 2,
                         "histogram_to": None,
@@ -577,7 +577,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 ),
                 MetricField(
                     op="histogram",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     params={
                         "histogram_from": None,
                         "histogram_to": 9,
@@ -637,12 +637,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"numerator": 3600, "denominator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
             start=start,
@@ -699,7 +699,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"numerator": 86400, "denominator": 60},
                 ),
             ],
@@ -766,12 +766,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"numerator": 3600, "denominator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
             start=day_ago + timedelta(minutes=30),
@@ -824,12 +824,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"numerator": 60},
                 ),
                 MetricField(
                     op="count",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
             start=start,
@@ -887,7 +887,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="rate",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
             start=start,
@@ -969,31 +969,31 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="count_web_vitals",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_lcp_good",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_FP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_FP.value,
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_fp_good",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_FCP.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_FCP.value,
                     params={"measurement_rating": "meh"},
                     alias="count_web_vitals_measurements_fcp_meh",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_FID.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_FID.value,
                     params={"measurement_rating": "meh"},
                     alias="count_web_vitals_measurements_fid_meh",
                 ),
                 MetricField(
                     op="count_web_vitals",
-                    metric_name=TransactionMetricKey.MEASUREMENTS_CLS.value,
+                    metric_mri=TransactionMRI.MEASUREMENTS_CLS.value,
                     params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_cls_good",
                 ),

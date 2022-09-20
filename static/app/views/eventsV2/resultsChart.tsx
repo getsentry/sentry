@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {LineSeriesOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
@@ -38,6 +39,7 @@ type ResultsChartProps = {
   organization: Organization;
   router: InjectedRouter;
   yAxisValue: string[];
+  processedLineSeries?: LineSeriesOption[];
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -53,8 +55,16 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router, confirmedQuery, yAxisValue} =
-      this.props;
+    const {
+      api,
+      eventView,
+      location,
+      organization,
+      router,
+      confirmedQuery,
+      yAxisValue,
+      processedLineSeries,
+    } = this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
@@ -103,6 +113,11 @@ class ResultsChart extends Component<ResultsChartProps> {
       ...seriesLabels,
       ...seriesLabels.map(getPreviousSeriesName),
     ];
+    if (processedLineSeries?.length) {
+      processedLineSeries.forEach(series =>
+        disableableSeries.push((series.name as string) ?? '')
+      );
+    }
     return (
       <Fragment>
         {getDynamicText({
@@ -133,6 +148,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               referrer={referrer}
               fromDiscover
               disableableSeries={disableableSeries}
+              additionalSeries={processedLineSeries}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -145,28 +161,31 @@ class ResultsChart extends Component<ResultsChartProps> {
 type ContainerProps = {
   api: Client;
   confirmedQuery: boolean;
+  disableProcessedBaselineToggle: boolean;
   eventView: EventView;
   location: Location;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
   router: InjectedRouter;
+  setShowBaseline: (value: boolean) => void;
+  showBaseline: boolean;
   // chart footer props
   total: number | null;
   yAxis: string[];
+  processedLineSeries?: LineSeriesOption[];
 };
 
 type ContainerState = {
-  showBaseline: boolean;
   yAxisOptions: SelectValue<string>[];
 };
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
   state: ContainerState = {
     yAxisOptions: this.getYAxisOptions(this.props.eventView),
-    showBaseline: true,
   };
 
   componentWillReceiveProps(nextProps) {
@@ -178,11 +197,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     }
   }
 
-  shouldComponentUpdate(nextProps: ContainerProps, nextState: ContainerState) {
-    if (nextState.showBaseline !== this.state.showBaseline) {
-      return true;
-    }
-
+  shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
 
@@ -217,13 +232,18 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       total,
       onAxisChange,
       onDisplayChange,
+      onIntervalChange,
       onTopEventsChange,
       organization,
       confirmedQuery,
       yAxis,
+      disableProcessedBaselineToggle,
+      processedLineSeries,
+      showBaseline,
+      setShowBaseline,
     } = this.props;
 
-    const {yAxisOptions, showBaseline} = this.state;
+    const {yAxisOptions} = this.state;
 
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView
@@ -268,11 +288,13 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
             router={router}
             confirmedQuery={confirmedQuery}
             yAxisValue={yAxis}
+            processedLineSeries={processedLineSeries}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}
           total={total}
+          disableProcessedBaselineToggle={disableProcessedBaselineToggle}
           yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
           eventView={eventView}
@@ -281,13 +303,10 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
           displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
           onTopEventsChange={onTopEventsChange}
+          onIntervalChange={onIntervalChange}
           topEvents={eventView.topEvents ?? TOP_N.toString()}
           showBaseline={showBaseline}
-          setShowBaseline={value =>
-            this.setState({
-              showBaseline: value,
-            })
-          }
+          setShowBaseline={setShowBaseline}
         />
       </StyledPanel>
     );

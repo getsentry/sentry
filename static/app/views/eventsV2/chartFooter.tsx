@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import IntervalSelector from 'sentry/components/charts/intervalSelector';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
@@ -16,9 +17,6 @@ import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
-
-import {usesTransactionsDataset} from './utils';
 
 type Props = {
   displayMode: string;
@@ -26,6 +24,7 @@ type Props = {
   eventView: EventView;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
   organization: Organization;
   setShowBaseline: (value: boolean) => void;
@@ -34,6 +33,7 @@ type Props = {
   total: number | null;
   yAxisOptions: SelectValue<string>[];
   yAxisValue: string[];
+  disableProcessedBaselineToggle?: boolean;
 };
 
 export default function ChartFooter({
@@ -45,13 +45,14 @@ export default function ChartFooter({
   displayOptions,
   onDisplayChange,
   onTopEventsChange,
+  onIntervalChange,
   topEvents,
   setShowBaseline,
   showBaseline,
   organization,
+  disableProcessedBaselineToggle,
   eventView,
 }: Props) {
-  const metricsCardinality = useMetricsCardinalityContext();
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
@@ -79,11 +80,7 @@ export default function ChartFooter({
             <Switch
               data-test-id="processed-events-toggle"
               isActive={showBaseline}
-              isDisabled={
-                metricsCardinality.outcome?.forceTransactionsOnly ||
-                displayMode !== 'default' ||
-                !usesTransactionsDataset(eventView, yAxisValue)
-              }
+              isDisabled={disableProcessedBaselineToggle ?? true}
               size="lg"
               toggle={() => setShowBaseline(!showBaseline)}
             />
@@ -109,6 +106,9 @@ export default function ChartFooter({
               )}
             />
           </Fragment>
+        </Feature>
+        <Feature organization={organization} features={['discover-interval-selector']}>
+          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
         </Feature>
         <OptionSelector
           title={t('Display')}

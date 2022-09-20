@@ -50,7 +50,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import ResultsChart from './resultsChart';
+import {MetricsBaselineContainer} from './metricsBaselineContainer';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -391,6 +391,25 @@ class Results extends Component<Props, State> {
     }
   };
 
+  handleIntervalChange = (value: string | undefined) => {
+    const {router, location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      interval: value,
+    };
+
+    router.push({
+      pathname: location.pathname,
+      query: newQuery,
+    });
+
+    // Treat display changing like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
+
   handleTopEventsChange = (value: string) => {
     const {router, location} = this.props;
 
@@ -492,7 +511,7 @@ class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection} = this.props;
+    const {organization, location, router, selection, api} = this.props;
     const {
       eventView,
       error,
@@ -552,7 +571,8 @@ class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <ResultsChart
+                    <MetricsBaselineContainer
+                      api={api}
                       router={router}
                       organization={organization}
                       eventView={eventView}
@@ -560,6 +580,7 @@ class Results extends Component<Props, State> {
                       onAxisChange={this.handleYAxisChange}
                       onDisplayChange={this.handleDisplayChange}
                       onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
                       total={totalValues}
                       confirmedQuery={confirmedQuery}
                       yAxis={yAxisArray}
