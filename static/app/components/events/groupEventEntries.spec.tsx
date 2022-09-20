@@ -3,11 +3,13 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
+import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
 const {organization, project, router} = initializeOrg();
+organization.features.push('performance-issues');
 
 const api = new MockApiClient();
 
@@ -291,6 +293,62 @@ describe('GroupEventEntries', function () {
           expect(screen.getByText('Sentry Gradle Plugin')).toBeInTheDocument();
         });
       });
+    });
+  });
+  describe('Rendering', function () {
+    it('renders the Resources section for Performance Issues', function () {
+      const group: Group = TestStubs.Group();
+      group.issueCategory = IssueCategory.PERFORMANCE;
+
+      const span = {
+        timestamp: 1663622615.702273,
+        start_timestamp: 1663622613.598782,
+        exclusive_time: 0.055,
+        description: 'getsentry.middleware.HealthCheck.__call__',
+        op: 'django.middleware',
+        span_id: '9faa08cee4958058',
+        parent_span_id: '995b4e0436421667',
+        trace_id: '963a64d67f33418d842102e90fbf2658',
+        tags: {
+          'django.function_name': 'django.utils.deprecation.MiddlewareMixin.__call__',
+          'django.middleware_name': 'getsentry.middleware.HealthCheck',
+        },
+        hash: '410f212e9e071c82',
+        same_process_as_parent: true,
+      };
+
+      const newEvent = {
+        ...event,
+        entries: [{type: EntryType.SPANS, data: [span]}],
+      };
+
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <EventEntries
+              organization={organization}
+              event={newEvent}
+              project={project}
+              location={location}
+              api={api}
+              group={group}
+            />
+          </RouteContext.Provider>
+        </OrganizationContext.Provider>
+      );
+
+      const resourcesHeadingText = screen.getByRole('heading', {
+        name: /resources and whatever/i,
+      });
+
+      expect(resourcesHeadingText).toBeInTheDocument();
     });
   });
 });
