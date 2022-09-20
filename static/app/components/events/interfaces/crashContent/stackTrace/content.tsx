@@ -12,12 +12,10 @@ import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
 import StacktracePlatformIcon from './platformIcon';
 
-const defaultProps = {
-  includeSystemFrames: true,
-  expandFirstFrame: true,
+type DefaultProps = {
+  expandFirstFrame: boolean;
+  includeSystemFrames: boolean;
 };
-
-type DefaultProps = typeof defaultProps;
 
 type Props = {
   data: StacktraceType;
