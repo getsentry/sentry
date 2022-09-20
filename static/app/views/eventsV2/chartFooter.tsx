@@ -10,6 +10,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Switch from 'sentry/components/switchButton';
@@ -89,13 +90,13 @@ export default function ChartFooter({
               position="top"
               size="sm"
               title={tct(
-                'The baseline is only available for transaction events when displaying the Top Period.[break]The baseline shows the total [processedEventsLink: processed events] matching your query, compared to the [indexedEventsLink: indexed events].',
+                'Show a baseline of client-side [processedEventsLink: processed events].[break]Available on the Total Period display for y-axes scoped to [transactionEventsLink: transaction events].',
                 {
-                  indexedEventsLink: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/#server-side-sampling" />
+                  transactionEventsLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/event-detail/" />
                   ),
                   processedEventsLink: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/#client-side-sdk-sampling" />
+                    <ExternalLink href="https://docs.sentry.io/product/data-management-settings/server-side-sampling/" />
                   ),
                   break: (
                     <div>
@@ -105,6 +106,7 @@ export default function ChartFooter({
                 }
               )}
             />
+            <FeatureBadge type="alpha" />
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
