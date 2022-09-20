@@ -371,9 +371,11 @@ describe('GroupEventEntries', function () {
       expect(breadcrumbsHeading).toBeInTheDocument();
       expect(resourcesHeadingText).toBeInTheDocument();
 
-      expect(eventEntriesContainer.firstChild?.childNodes[0]).toEqual(
-        breadcrumbsHeading.parentElement
-      );
+      expect(
+        within(eventEntriesContainer.children[0] as HTMLElement).getByRole('heading', {
+          name: /breadcrumbs/i,
+        })
+      ).toBeInTheDocument();
     });
   });
 });
