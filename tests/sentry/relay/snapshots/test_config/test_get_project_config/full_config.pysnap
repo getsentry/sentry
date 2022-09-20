@@ -1,5 +1,5 @@
 ---
-created: '2022-09-19T14:29:04.796867Z'
+created: '2022-09-20T09:53:16.890350Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -95,6 +95,7 @@ config:
     - frames_slow_rate
     - frames_slow
     - frames_total
+    - inp
     - lcp
     - stall_count
     - stall_longest_time
