@@ -10,7 +10,6 @@ import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
-import withApi from 'sentry/utils/withApi';
 
 export type TraceMetaQueryChildrenProps = BaseTraceChildrenProps & {
   meta: TraceMeta | null;
@@ -59,4 +58,4 @@ function TraceMetaQuery({
   );
 }
 
-export default withApi(TraceMetaQuery);
+export default TraceMetaQuery;
