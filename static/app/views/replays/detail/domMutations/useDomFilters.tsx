@@ -5,7 +5,7 @@ import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml'
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
-type FilterFields = {
+export type FilterFields = {
   f_d_search: string;
   f_d_type: string[];
 };

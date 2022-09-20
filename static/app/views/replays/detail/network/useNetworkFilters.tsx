@@ -5,7 +5,7 @@ import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLo
 import {NetworkSpan, UNKNOWN_STATUS} from 'sentry/views/replays/detail/network/utils';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
-type FilterFields = {
+export type FilterFields = {
   f_n_search: string;
   f_n_status: string[];
   f_n_type: string[];

@@ -113,6 +113,9 @@ describe('useConsoleFilters', () => {
   });
 
   it('should update the url when setters are called', () => {
+    const LOG_FILTER = ['error'];
+    const SEARCH_FILTER = 'component';
+
     mockUseLocation
       .mockReturnValueOnce({
         pathname: '/',
@@ -120,29 +123,29 @@ describe('useConsoleFilters', () => {
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
-        query: {f_c_logLevel: ['error']},
+        query: {f_c_logLevel: LOG_FILTER},
       } as Location<FilterFields>);
 
     const {result, rerender} = reactHooks.renderHook(() =>
       useConsoleFilters({breadcrumbs})
     );
 
-    result.current.setLogLevel(['error']);
+    result.current.setLogLevel(LOG_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_c_logLevel: ['error'],
+        f_c_logLevel: LOG_FILTER,
       },
     });
 
     rerender();
 
-    result.current.setSearchTerm('component');
+    result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        f_c_logLevel: ['error'],
-        f_c_search: 'component',
+        f_c_logLevel: LOG_FILTER,
+        f_c_search: SEARCH_FILTER,
       },
     });
   });
