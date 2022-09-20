@@ -88,6 +88,13 @@ export default function ChartFooter({
     <ChartControls>
       <InlineContainer>{elements}</InlineContainer>
       <InlineContainer>
+        <Feature organization={organization} features={['discover-interval-selector']}>
+          <IntervalSelector
+            displayMode={displayMode}
+            eventView={eventView}
+            onIntervalChange={onIntervalChange}
+          />
+        </Feature>
         <Feature organization={organization} features={['discover-metrics-baseline']}>
           <Fragment>
             <SwitchLabel>{t('Processed events')}</SwitchLabel>
@@ -121,9 +128,6 @@ export default function ChartFooter({
             />
             <FeatureBadge type="alpha" />
           </Fragment>
-        </Feature>
-        <Feature organization={organization} features={['discover-interval-selector']}>
-          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
         </Feature>
         <OptionSelector
           title={t('Display')}

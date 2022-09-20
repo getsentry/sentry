@@ -9,6 +9,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {INTERVAL_MODES} from 'sentry/utils/discover/types';
 
 type IntervalUnits = 's' | 'm' | 'h' | 'd';
 
@@ -48,6 +49,7 @@ const SUPPORTED_RELATIVE_UNITS_LIST = Object.keys(
 ) as IntervalUnits[];
 
 type Props = {
+  displayMode: string;
   eventView: EventView;
   onIntervalChange: (value: string | undefined) => void;
 };
@@ -141,7 +143,15 @@ function bindInterval(
   return interval;
 }
 
-export default function IntervalSelector({eventView, onIntervalChange}: Props) {
+export default function IntervalSelector({
+  displayMode,
+  eventView,
+  onIntervalChange,
+}: Props) {
+  if (!INTERVAL_MODES.includes(displayMode)) {
+    return null;
+  }
+
   // Get the interval from the eventView if one was set, otherwise determine what the default is
   // TODO: use the INTERVAL_OPTIONS default instead
   const usingDefaultInterval = eventView.interval === undefined;
