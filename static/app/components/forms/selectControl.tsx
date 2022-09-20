@@ -217,6 +217,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
                   }),
             }
           : theme.form[size ?? 'md']),
+        height: 'auto',
       }),
 
       menu: (provided: React.CSSProperties) => ({
