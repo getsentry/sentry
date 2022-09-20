@@ -459,7 +459,6 @@ describe('TimeRangeSelector', function () {
     userEvent.type(input, '3');
 
     // With just the number "3", all unit options should be present
-    expect(screen.getByText('Last 3 seconds')).toBeInTheDocument();
     expect(screen.getByText('Last 3 minutes')).toBeInTheDocument();
     expect(screen.getByText('Last 3 hours')).toBeInTheDocument();
     expect(screen.getByText('Last 3 days')).toBeInTheDocument();
@@ -468,7 +467,6 @@ describe('TimeRangeSelector', function () {
     userEvent.type(input, '1');
 
     // With "31", days and weeks should not be suggested
-    expect(screen.getByText('Last 31 seconds')).toBeInTheDocument();
     expect(screen.getByText('Last 31 minutes')).toBeInTheDocument();
     expect(screen.getByText('Last 31 hours')).toBeInTheDocument();
     expect(screen.queryByText('Last 31 days')).not.toBeInTheDocument();
