@@ -9,8 +9,8 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 
 type RelativePeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 
-type RelativeUnitsMapping = {
-  [unit in RelativePeriodUnit]: {
+export type RelativeUnitsMapping = {
+  [Unit: string]: {
     convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
@@ -129,38 +129,37 @@ export function getRelativeSummary(
   }
 }
 
-function makeItem(
+export function makeItem(
   amount: number,
-  unit: keyof typeof SUPPORTED_RELATIVE_PERIOD_UNITS,
+  unit: string,
+  label: (num: number) => string,
   index: number
 ) {
   return {
     value: `${amount}${unit}`,
     ['data-test-id']: `${amount}${unit}`,
-    label: (
-      <TimeRangeItemLabel>
-        {SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(amount)}
-      </TimeRangeItemLabel>
-    ),
+    label: <TimeRangeItemLabel>{label(amount)}</TimeRangeItemLabel>,
     searchKey: `${amount}${unit}`,
     index,
   };
 }
 
-function timePeriodIsWithinLimit({
+function timePeriodIsWithinLimit<T extends RelativeUnitsMapping>({
   amount,
   unit,
   maxDays,
+  supportedPeriods,
 }: {
   amount: number;
-  unit: RelativePeriodUnit;
+  supportedPeriods: T;
+  unit: keyof T & string;
   maxDays?: number;
 }) {
   if (!maxDays) {
     return true;
   }
 
-  const daysMultiplier = SUPPORTED_RELATIVE_PERIOD_UNITS[unit].convertToDaysMultiplier;
+  const daysMultiplier = supportedPeriods[unit].convertToDaysMultiplier;
 
   return daysMultiplier * amount <= maxDays;
 }
@@ -178,13 +177,19 @@ function timePeriodIsWithinLimit({
  *
  * If the input does not begin with a number, we do a simple filter of the preset options.
  */
-export function timeRangeAutoCompleteFilter(
+export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMapping>(
   items: ItemsBeforeFilter | null,
   filterValue: string,
-  options: {
+  {
+    supportedPeriods,
+    supportedUnits,
+    maxDays,
+  }: {
+    supportedPeriods: T;
+    supportedUnits: Array<keyof T & string>;
     maxDays?: number;
   }
-) {
+): ReturnType<typeof autoCompleteFilter> {
   if (!items) {
     return [];
   }
@@ -198,25 +203,28 @@ export function timeRangeAutoCompleteFilter(
 
   // If there is a number w/o units, show all unit options within limit
   if (userSuppliedAmountIsValid && !userSuppliedUnits) {
-    return SUPPORTED_RELATIVE_UNITS_LIST.filter(unit =>
-      timePeriodIsWithinLimit({
-        amount: userSuppliedAmount,
-        unit,
-        maxDays: options.maxDays,
-      })
-    ).map((unit, index) => makeItem(userSuppliedAmount, unit, index));
+    return supportedUnits
+      .filter(unit =>
+        timePeriodIsWithinLimit({
+          amount: userSuppliedAmount,
+          unit,
+          maxDays,
+          supportedPeriods,
+        })
+      )
+      .map((unit, index) =>
+        makeItem(userSuppliedAmount, unit, supportedPeriods[unit].label, index)
+      );
   }
 
   // If there is a number followed by units, show the matching number/unit option
   if (userSuppliedAmountIsValid && userSuppliedUnits) {
-    const matchingUnit = SUPPORTED_RELATIVE_UNITS_LIST.find(unit => {
+    const matchingUnit = supportedUnits.find(unit => {
       if (userSuppliedUnits.length === 1) {
         return unit === userSuppliedUnits;
       }
 
-      return SUPPORTED_RELATIVE_PERIOD_UNITS[unit].searchKey.startsWith(
-        userSuppliedUnits
-      );
+      return supportedPeriods[unit].searchKey.startsWith(userSuppliedUnits);
     });
 
     if (
@@ -224,13 +232,37 @@ export function timeRangeAutoCompleteFilter(
       timePeriodIsWithinLimit({
         amount: userSuppliedAmount,
         unit: matchingUnit,
-        maxDays: options.maxDays,
+        maxDays,
+        supportedPeriods,
       })
     ) {
-      return [makeItem(userSuppliedAmount, matchingUnit, 0)];
+      return [
+        makeItem(
+          userSuppliedAmount,
+          matchingUnit,
+          supportedPeriods[matchingUnit].label,
+          0
+        ),
+      ];
     }
   }
 
   // Otherwise, do a normal filter search
   return autoCompleteFilter(items, filterValue);
-}
+};
+
+export const timeRangeAutoCompleteFilter = function (
+  items: ItemsBeforeFilter | null,
+  filterValue: string,
+  options: {
+    maxDays?: number;
+    supportedPeriods?: RelativeUnitsMapping;
+    supportedUnits?: RelativePeriodUnit[];
+  }
+): ReturnType<typeof autoCompleteFilter> {
+  return _timeRangeAutoCompleteFilter(items, filterValue, {
+    supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,
+    supportedUnits: SUPPORTED_RELATIVE_UNITS_LIST,
+    ...options,
+  });
+};

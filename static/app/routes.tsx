@@ -28,6 +28,8 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
+import Feature from './components/acl/feature';
+
 type CustomProps = {
   name?: string;
 };
@@ -201,9 +203,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          component={make(
-            () => import('sentry/views/onboarding/targetedOnboarding/onboarding')
-          )}
+          component={make(() => import('sentry/views/onboarding/onboarding'))}
         />
       </Route>
     </Fragment>
@@ -472,12 +472,13 @@ function buildRoutes() {
         <Route path=":filterType/" />
       </Route>
       <Route
-        path="server-side-sampling/"
-        name={t('Server-Side Sampling')}
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
       />
+      <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -1147,6 +1148,9 @@ function buildRoutes() {
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <IndexRedirect to="results/" />
+      </Feature>
       <IndexRedirect to="queries/" />
       <Route
         path="queries/"

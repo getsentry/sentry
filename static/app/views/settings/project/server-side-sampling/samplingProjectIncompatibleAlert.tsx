@@ -48,7 +48,7 @@ export function SamplingProjectIncompatibleAlert({
         </Button>
       }
     >
-      {t('Your project is currently incompatible with Server-Side Sampling.')}
+      {t('Your project is currently incompatible with Dynamic Sampling.')}
     </Alert>
   );
 }
