@@ -1347,7 +1347,7 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=count_web_vitals_snql_factory,
         ),
         DerivedOp(
-            op="count_transaction_name",
+            op="count_transaction_with_condition",
             can_orderby=True,
             snql_func=count_transaction_name_snql_factory,
         ),

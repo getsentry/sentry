@@ -154,7 +154,93 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_count_unparameterized_transactions(self):
+    def test_alias_on_same_metrics_expression_but_different_aliases(self):
+        for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
+            for value in [123.4] * count:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.MEASUREMENTS_LCP.value,
+                    tags={"transaction": v_transaction, "measurement_rating": "poor"},
+                    timestamp=int(time.time()),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    alias="count_lcp",
+                ),
+                MetricField(
+                    op="count",
+                    metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                    alias="count_lcp_2",
+                ),
+            ],
+            start=self.now - timedelta(hours=1),
+            end=self.now,
+            granularity=Granularity(granularity=3600),
+            groupby=[
+                MetricGroupByField("transaction", alias="transaction_group"),
+            ],
+            orderby=[
+                OrderBy(
+                    MetricField(
+                        op="count",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        alias="count_lcp",
+                    ),
+                    Direction.DESC,
+                ),
+                OrderBy(
+                    MetricField(
+                        op="count",
+                        metric_name=TransactionMetricKey.MEASUREMENTS_LCP.value,
+                        alias="count_lcp_2",
+                    ),
+                    Direction.DESC,
+                ),
+            ],
+            limit=Limit(limit=2),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        groups = data["groups"]
+        assert len(groups) == 2
+
+        expected = [
+            ("/bar", 3),
+            ("/baz", 2),
+        ]
+        for (expected_transaction, expected_count), group in zip(expected, groups):
+            # With orderBy, you only get totals:
+            assert group["by"] == {"transaction_group": expected_transaction}
+            assert group["totals"] == {
+                "count_lcp": expected_count,
+                "count_lcp_2": expected_count,
+            }
+        assert data["meta"] == sorted(
+            [
+                {"name": "count_lcp", "type": "UInt64"},
+                {"name": "count_lcp_2", "type": "UInt64"},
+                {"name": "transaction_group", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_count_transaction_with_valid_condition(self):
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2, 3]),
@@ -182,24 +268,23 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             project_ids=[self.project.id],
             select=[
                 MetricField(
-                    op="count_transaction_name",
+                    op="count_transaction_with_condition",
                     metric_name=TransactionMetricKey.DURATION.value,
-                    params={"tag_value": "unparameterized"},
-                    alias="count_unparameterized_transaction_name",
+                    params={"condition": "is_unparameterized"},
+                    alias="count_transaction_with_condition_is_unparameterized",
                 ),
                 MetricField(
-                    op="count_transaction_name",
+                    op="count_transaction_with_condition",
                     metric_name=TransactionMetricKey.DURATION.value,
-                    params={"tag_value": "null"},
-                    alias="count_null_transaction_name",
+                    params={"condition": "is_null"},
+                    alias="count_transaction_with_condition_is_null",
                 ),
                 MetricField(
-                    op="count_transaction_name",
+                    op="count_transaction_with_condition",
                     metric_name=TransactionMetricKey.DURATION.value,
-                    params={"tag_value": "has"},
-                    alias="count_has_transaction_name",
+                    params={"condition": "has_value"},
+                    alias="count_transaction_with_condition_has_value",
                 ),
-                MetricField(op="count", metric_name=TransactionMetricKey.DURATION.value),
             ],
             start=self.now - timedelta(hours=1),
             end=self.now,
@@ -221,19 +306,76 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 1
 
         assert groups[0]["totals"] == {
-            "count_unparameterized_transaction_name": 1,
-            "count_null_transaction_name": 2,
-            "count_has_transaction_name": 3,
+            "count_transaction_with_condition_is_unparameterized": 1,
+            "count_transaction_with_condition_is_null": 2,
+            "count_transaction_with_condition_has_value": 3,
         }
 
         assert data["meta"] == sorted(
             [
-                {"name": "count_unparameterized_transaction_name", "type": "UInt64"},
-                {"name": "count_null_transaction_name", "type": "UInt64"},
-                {"name": "count_has_transaction_name", "type": "UInt64"},
+                {"name": "count_transaction_with_condition_is_unparameterized", "type": "UInt64"},
+                {"name": "count_transaction_with_condition_is_null", "type": "UInt64"},
+                {"name": "count_transaction_with_condition_has_value", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )
+
+    def test_count_transaction_with_invalid_condition(self):
+        for transaction, values in (
+            ("<< unparameterized >>", [1]),
+            ("", [2]),
+            ("/foo", [4]),
+        ):
+            if transaction == "":
+                tags = {}
+            else:
+                tags = {"transaction": transaction}
+
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags=tags,
+                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        invalid_condition = "invalid"
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count_transaction_with_condition",
+                    metric_name=TransactionMetricKey.DURATION.value,
+                    params={"condition": invalid_condition},
+                    alias="count_transaction_with_condition_invalid",
+                ),
+            ],
+            start=self.now - timedelta(hours=1),
+            end=self.now,
+            groupby=[],
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        with pytest.raises(
+            InvalidParams,
+            match=f"the condition must be either is_unparameterized is_null has_value but {invalid_condition} "
+            f"was received",
+        ):
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
 
     @freeze_time()
     def test_alias_on_single_entity_derived_metrics(self):

@@ -76,6 +76,9 @@ MetricOperationType = Literal[
     "p95",
     "p99",
     "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_with_condition",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -203,7 +206,7 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
+DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_with_condition")
 OPERATIONS = (
     (
         "avg",
@@ -233,7 +236,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "histogram": [],
     "rate": 0,
     "count_web_vitals": 0,
-    "count_transaction_name": 0,
+    "count_transaction_with_condition": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}

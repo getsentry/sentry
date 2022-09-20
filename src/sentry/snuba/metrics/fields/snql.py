@@ -3,6 +3,7 @@ from typing import List, Optional
 from snuba_sdk import Column, Function
 
 from sentry import options
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
@@ -370,21 +371,28 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
     )
 
 
-def count_transaction_name_snql_factory(aggregate_filter, org_id, tag_value, alias=None):
-    def _generate_snql(operator, tag_value_temp):
-        if tag_value_temp == "unparameterized":
+def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, alias=None):
+    is_unparameterized = "is_unparameterized"
+    is_null = "is_null"
+    has_value = "has_value"
+
+    def _generate_transaction_tag_value_filter(operation, inner_condition):
+        if inner_condition == is_unparameterized:
             inner_tag_value = resolve_tag_value(
                 UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
             )
-        elif tag_value_temp == "null":
+        elif inner_condition == is_null:
             inner_tag_value = (
                 "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
             )
         else:
-            raise Exception
+            raise InvalidParams(
+                f"the condition must be either {is_unparameterized} {is_null} {has_value} but {inner_condition} was "
+                f"received"
+            )
 
         return Function(
-            operator,
+            operation,
             [
                 Column(
                     resolve_tag_key(
@@ -397,18 +405,23 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, tag_value, ali
             ],
         )
 
-    if tag_value in ["unparameterized", "null"]:
-        snql_function = _generate_snql("equals", tag_value)
-    elif tag_value == "has":
+    if condition in [is_unparameterized, is_null]:
+        snql_function = _generate_transaction_tag_value_filter("equals", condition)
+    elif condition == has_value:
         snql_function = Function(
             "and",
-            [_generate_snql("notEquals", "null"), _generate_snql("notEquals", "unparameterized")],
+            [
+                _generate_transaction_tag_value_filter("notEquals", is_null),
+                _generate_transaction_tag_value_filter("notEquals", is_unparameterized),
+            ],
         )
     else:
-        raise Exception
+        raise InvalidParams(
+            f"the condition must be either {is_unparameterized} {is_null} {has_value} but {condition} was received"
+        )
 
     return Function(
-        "sumIf",
+        "countIf",
         [
             Column("value"),
             Function(
