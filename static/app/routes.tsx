@@ -43,10 +43,10 @@ const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & Cust
 
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
-const SafeLazyLoad = errorHandler(LazyLoad);
+export const SafeLazyLoad = errorHandler(LazyLoad);
 
-type PromisedImport<C> = Promise<{default: C}>;
-type ComponentType = React.ComponentType<any>;
+export type PromisedImport<C> = Promise<{default: C}>;
+export type ComponentType = React.ComponentType<any>;
 
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
@@ -66,10 +66,10 @@ export function makeLazyloadComponent<C extends ComponentType>(
   return RouteLazyLoad;
 }
 
-// Shorthand to avoid extra line wrapping
-const make = makeLazyloadComponent;
-
 function buildRoutes() {
+  // Shorthand to avoid extra line wrapping
+  const make =
+    HookStore.get('wrapper:make-component-with-analytics')[0] || makeLazyloadComponent;
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.
