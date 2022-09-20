@@ -22,6 +22,7 @@ BUILTIN_MEASUREMENTS = [
     "frames_slow_rate",
     "frames_slow",
     "frames_total",
+    "inp",
     "lcp",
     "stall_count",
     "stall_longest_time",
