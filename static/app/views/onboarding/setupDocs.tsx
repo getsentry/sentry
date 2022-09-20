@@ -26,11 +26,10 @@ import {Theme} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import withProjects from 'sentry/utils/withProjects';
 
-import IntegrationSetup from '../integrationSetup';
-
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
 import ProjectSidebarSection from './components/projectSidebarSection';
+import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 

@@ -19,7 +19,7 @@ import {
 } from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
-import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+import {OnboardingState} from 'sentry/views/onboarding/types';
 
 import OnboardingProjectsCard from './onboardingCard';
 

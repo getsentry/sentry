@@ -15,7 +15,7 @@ import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
