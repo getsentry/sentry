@@ -55,7 +55,7 @@ type UseMemberlistProps = {
   organization: Organization;
 };
 
-function useMemnberList({group, organization}: UseMemberlistProps) {
+function useMembersList({group, organization}: UseMemberlistProps) {
   const {project} = group;
   const api = useApi();
 
@@ -150,7 +150,7 @@ function GroupHeader({
     return [];
   }, [organization, groupReprocessingStatus]);
 
-  const errrorIussueTabs = useMemo(() => {
+  const errorIssueTabs = useMemo(() => {
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
 
@@ -332,7 +332,7 @@ function GroupHeader({
     tabClickAnalyticsEvent,
   ]);
 
-  const membersList = useMemnberList({group, organization});
+  const membersList = useMembersList({group, organization});
   const {userCount} = group;
 
   let className = 'group-detail';
@@ -472,7 +472,7 @@ function GroupHeader({
         <NavTabs>
           {group.issueCategory === IssueCategory.PERFORMANCE
             ? performanceIssueTabs
-            : errrorIussueTabs}
+            : errorIssueTabs}
         </NavTabs>
       </div>
     </Layout.Header>
