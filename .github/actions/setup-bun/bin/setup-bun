@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+import argparse
+import hashlib
+import io
+import os.path
+import platform
+import secrets
+import shutil
+import stat
+import sys
+import urllib.request
+import zipfile
+
+BUN = "0.5.8"
+BUN_DIR = os.path.expanduser("~/.local/share/bun")
+BUN_CACHE_DIR = os.path.expanduser("~/.bun")
+BUN_EXE = os.path.join(BUN_DIR, "bun")
+
+BUN_ARCH = {
+    "x86_64": "x64",
+    "aarch64": "aarch64",
+    "arm64": "arm64",
+}[platform.machine()]
+
+URL = (
+    f"https://github.com/oven-sh/bun/releases/download/bun-v{BUN}/bun-{sys.platform}-{BUN_ARCH}.zip"
+)
+
+SHA256 = {
+    ("darwin", "aarch64"): "a614c1574bd04fb4207f5c18f50a9cef15ebb370a6b3d8caa63a752b19536f3f",
+    ("darwin", "x64"): "a58bc18e54cf2eec0e95aae564a5eebe7ef2eb04d17721ccfe579bde13891eb6",
+    ("linux", "aarch64"): "c1e1fe032821f1477d71f30e56965ef048cbec15ac5c1966f460e79196bfc747",
+    ("linux", "x64"): "f8d899b4c5100463ed23855bb5f21bfa8657f913232098939c46efa1e7820bce",
+}[sys.platform, BUN_ARCH]
+
+
+def _command_vars() -> int:
+    with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+        f.write(f"bun-dir={BUN_DIR}\n")
+        f.write(f"bun-cache-dir={BUN_CACHE_DIR}\n")
+        f.write(f"cache-key=bun-{BUN}-{BUN_ARCH}-{SHA256}\n")
+
+    print(f"adding {BUN_DIR} to path")
+    with open(os.environ["GITHUB_PATH"], "a+") as f:
+        f.write(f"{BUN_DIR}\n")
+
+    return 0
+
+
+def _make_executable(filename: str) -> None:
+    original_mode = os.stat(filename).st_mode
+    new_mode = original_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    os.chmod(filename, new_mode)
+
+
+def _command_install() -> int:
+    print("downloading...")
+    req = urllib.request.urlopen(URL, timeout=30)
+    bio = io.BytesIO(req.read())
+    checksum = hashlib.sha256(bio.getvalue()).hexdigest()
+    if not secrets.compare_digest(checksum, SHA256):
+        print(f"bun checksum mismatch {checksum} {SHA256}")
+        return 1
+
+    print("extracting...")
+    os.makedirs(BUN_DIR, exist_ok=True)
+    with zipfile.ZipFile(bio) as zipf:
+        with zipf.open(f"bun-{sys.platform}-{BUN_ARCH}/bun") as src_f:
+            with open(BUN_EXE, "wb") as f:
+                shutil.copyfileobj(src_f, f)
+    _make_executable(BUN_EXE)
+
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("command", choices=("vars", "install"))
+    args = parser.parse_args()
+
+    return {
+        "vars": _command_vars,
+        "install": _command_install,
+    }[args.command]()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

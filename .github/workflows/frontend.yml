@@ -56,11 +56,11 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: ./.github/actions/setup-bun
 
       - name: Install dependencies
         id: dependencies
-        run: yarn install --frozen-lockfile
+        run: bun install --yarn
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -84,20 +84,20 @@ jobs:
           # Run relax config on main branch (and stricter config for changed files)
           SENTRY_ESLINT_RELAXED: 1
         run: |
-          yarn lint
-          yarn lint:css
+          bun run lint
+          bun run lint:css
 
       # Otherwise... only lint modified files
       # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
         if: steps.eslint.outputs.all-files != 'true'
         run: |
-          yarn eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
+          bun run eslint --fix ${{ needs.files-changed.outputs.frontend_modified_lintable_files }}
 
       - name: stylelint (changed files only)
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
         run: |
-          yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
+          bun run stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and
@@ -117,7 +117,7 @@ jobs:
       - name: tsc
         id: tsc
         if: steps.dependencies.outcome == 'success'
-        run: yarn tsc -p config/tsconfig.ci.json
+        run: bun run tsc -p config/tsconfig.ci.json
 
   frontend-browser-tests:
     if: needs.files-changed.outputs.frontend == 'true'
@@ -146,7 +146,7 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: ./.github/actions/setup-bun
 
       - name: node_modules cache
         uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
@@ -157,7 +157,7 @@ jobs:
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: bun install --yarn
 
       - name: Build CSS
         run: NODE_ENV=production yarn build-css

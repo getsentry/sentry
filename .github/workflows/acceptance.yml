@@ -66,7 +66,7 @@ jobs:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         name: Checkout sentry
 
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+      - uses: ./.github/actions/setup-bun
 
       - name: Step configurations
         id: config
@@ -87,7 +87,7 @@ jobs:
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile
+        run: bun install --yarn
 
       - name: webpack
         env:
@@ -95,8 +95,7 @@ jobs:
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-        run: |
-          yarn build-acceptance
+        run: bun build-acceptance
 
       - name: Build chartcuterie configuration module
         run: |

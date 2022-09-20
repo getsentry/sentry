@@ -1,0 +1,27 @@
+name: bun setup
+description: installs bun.sh
+runs:
+  using: composite
+  steps:
+  - name: setup-bun vars
+    id: vars
+    shell: bash
+    run: python3 -uS ${{ github.action_path }}/bin/setup-bun vars
+
+  - name: cache bun
+    id: cache
+    uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+    with:
+      path: ${{ steps.vars.outputs.bun-dir }}
+      key: ${{ steps.vars.outputs.cache-key }}
+
+  - name: install bun
+    if: steps.cache.outputs.cache_hit != 'true'
+    shell: bash
+    run: python3 -uS ${{ github.action_path }}/bin/setup-bun install
+
+  - name: cache bun install
+    uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
+    with:
+      path: ${{ steps.vars.outputs.bun-cache-dir }}
+      key: ${{ steps.vars.outputs.cache-key }}-${{ hashFiles('**/yarn.lock') }}
