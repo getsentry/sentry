@@ -1214,6 +1214,9 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing
+    # TODO(smcache): How to enable this only for projects that we want? Is Flagr the only way?
+    "projects:sourcemapcache-processor": True,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
