@@ -63,9 +63,7 @@ class MessageProcessor:
         The value of the message is what we need to parse and then translate
         using the indexer.
         """
-        batch = IndexerBatch(
-            self._config.use_case_id, outer_message, self._config.index_tag_values_rollout_option
-        )
+        batch = IndexerBatch(self._config.use_case_id, outer_message)
 
         with metrics.timer("metrics_consumer.check_cardinality_limits"):
             cardinality_limiter = cardinality_limiter_factory.get_ratelimiter(self._config)
