@@ -1,4 +1,6 @@
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbLevelType, Crumb} from 'sentry/types/breadcrumbs';
 
 export const getLogLevels = (breadcrumbs: Crumb[]) =>
-  Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
+  Array.from(
+    new Set<BreadcrumbLevelType>(breadcrumbs.map(breadcrumb => breadcrumb.level))
+  );
