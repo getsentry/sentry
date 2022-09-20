@@ -340,9 +340,10 @@ describe('GroupEventEntries', function () {
 
       const newEvent = {
         ...event,
-        perfProblem: true,
+        title: 'test',
+        perfProblem: {parentSpanIds: ['a'], causeSpanIds: ['a'], offenderSpanIds: ['a']},
         entries: [
-          {type: EntryType.SPANS, data: []},
+          {type: EntryType.SPANS, data: [{span_id: 'a'}]},
           {type: EntryType.BREADCRUMBS, data: {values: [sampleBreadcrumb]}},
           {type: EntryType.REQUEST, data: {}},
         ],
@@ -350,16 +351,27 @@ describe('GroupEventEntries', function () {
 
       render(
         <OrganizationContext.Provider value={organization}>
-          <EventEntries
-            organization={organization}
-            event={newEvent}
-            project={project}
-            location={location}
-            api={api}
-            group={group}
-          />
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <EventEntries
+              organization={organization}
+              event={newEvent}
+              project={project}
+              location={location}
+              api={api}
+              group={group}
+            />
+          </RouteContext.Provider>
         </OrganizationContext.Provider>
       );
+
+      screen.debug();
 
       const eventEntriesContainer = screen.getByTestId('event-entries-loading-false');
       const spanEvidenceHeading = within(eventEntriesContainer).getByRole('heading', {
@@ -378,7 +390,19 @@ describe('GroupEventEntries', function () {
 
       expect(
         within(eventEntriesContainer.children[0] as HTMLElement).getByRole('heading', {
+          name: /span evidence/i,
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        within(eventEntriesContainer.children[1] as HTMLElement).getByRole('heading', {
           name: /breadcrumbs/i,
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        within(eventEntriesContainer.children[2] as HTMLElement).getByRole('heading', {
+          name: /resources and whatever/i,
         })
       ).toBeInTheDocument();
     });
