@@ -12,6 +12,7 @@ import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateMultiPlotType} from 'sentry/utils/discover/fields';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -184,6 +185,10 @@ export function MetricsBaselineContainer({
               LineSeries({
                 name: series.seriesName,
                 data: series.data.map(({name, value}) => [name, value]),
+                stack:
+                  aggregateMultiPlotType(yAxis[order]) === 'area'
+                    ? 'processed'
+                    : undefined,
                 lineStyle: {
                   color: additionalSeriesColor[order],
                   type: 'dashed',
