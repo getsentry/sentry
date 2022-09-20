@@ -7,41 +7,7 @@ import Prism from 'prismjs';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
-  overflow-x: scroll;
-  ${p =>
-    p.unsetBorderRadiusTop
-      ? `
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  `
-      : null}
-
-  word-break: break-all;
-  white-space: pre-wrap;
-
-  code {
-    white-space: pre;
-  }
-`;
-const UnstyledButton = styled('button')`
-  all: unset;
-  cursor: pointer;
-`;
-
-const CodeContainerActionBar = styled('div')`
-  display: flex;
-  justify-content: end;
-  gap: 10px;
-  padding: 10px;
-
-  color: ${p => p.theme.white};
-  font-size: ${p => p.theme.fontSizeSmall};
-  border-bottom: 1px solid ${p => p.theme.purple200};
-  background: #251f3d;
-  border-radius: ${p => p.theme.borderRadiusTop};
-`;
+import space from 'sentry/styles/space';
 
 interface CodeSnippetProps {
   children: string;
@@ -95,10 +61,54 @@ export function CodeSnippet({
       )}
 
       <PreContainer unsetBorderRadiusTop={!hideActionBar}>
-        <code className={`language-${language}`} ref={ref}>
+        <code ref={ref} className={`language-${language}`}>
           {children}
         </code>
       </PreContainer>
     </Fragment>
   );
 }
+
+const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
+  overflow-x: scroll;
+  ${p =>
+    p.unsetBorderRadiusTop
+      ? `
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  `
+      : null}
+
+  word-break: break-all;
+  white-space: pre-wrap;
+
+  code {
+    white-space: pre;
+  }
+`;
+
+const UnstyledButton = styled('button')`
+  all: unset;
+  cursor: pointer;
+`;
+
+// code blocks are globally styled by `prism-sentry`
+// its design tokens are slightly different than the app
+// so we've left it in charge of colors while overriding
+// css that breaks the experience
+const CodeContainerActionBar = styled(({children, ...props}) => (
+  <div {...props}>
+    <pre className="language-">{children}</pre>
+  </div>
+))`
+  pre.language- {
+    display: flex;
+    justify-content: end;
+    gap: ${space(1)};
+    padding: ${space(1.5)};
+    margin-bottom: 0px;
+    border-bottom: 1px solid ${p => p.theme.purple200};
+    border-radius: ${p => p.theme.borderRadiusTop};
+    font-size: ${p => p.theme.fontSizeSmall};
+  }
+`;
