@@ -134,7 +134,12 @@ const FilterToken = ({
       forceVisible
       skipWrapper
     >
-      <Filter ref={filterElementRef} active={isActive} invalid={showInvalid}>
+      <Filter
+        ref={filterElementRef}
+        active={isActive}
+        invalid={showInvalid}
+        data-test-id={showInvalid ? 'filter-token-invalid' : 'filter-token'}
+      >
         {filter.negated && <Negation>!</Negation>}
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}

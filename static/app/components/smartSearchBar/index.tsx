@@ -1487,6 +1487,7 @@ class SmartSearchBar extends Component<Props, State> {
           this.setState({
             searchTerm: tagName,
           });
+
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         }
         return;
