@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
@@ -323,6 +323,57 @@ describe('GroupEventEntries', function () {
       });
 
       expect(resourcesHeadingText).toBeInTheDocument();
+    });
+
+    it('injects the resources section in the correct spot', function () {
+      const group: Group = TestStubs.Group();
+      group.issueCategory = IssueCategory.PERFORMANCE;
+      const sampleBreadcrumb = {
+        type: 'default',
+        timestamp: '2022-09-19T19:29:32.261000Z',
+        level: 'info',
+        message: 'span.css-1hs7lfd.e1b8u3ky1 > svg',
+        category: 'ui.click',
+        data: null,
+        event_id: null,
+      };
+
+      const newEvent = {
+        ...event,
+        entries: [
+          {type: EntryType.SPANS, data: []},
+          {type: EntryType.BREADCRUMBS, data: {values: [sampleBreadcrumb]}},
+          {type: EntryType.REQUEST, data: {}},
+        ],
+      };
+
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <EventEntries
+            organization={organization}
+            event={newEvent}
+            project={project}
+            location={location}
+            api={api}
+            group={group}
+          />
+        </OrganizationContext.Provider>
+      );
+
+      const eventEntriesContainer = screen.getByTestId('event-entries-loading-false');
+      const breadcrumbsHeading = within(eventEntriesContainer).getByRole('heading', {
+        name: /breadcrumbs/i,
+      });
+      const resourcesHeadingText = screen.getByRole('heading', {
+        name: /resources and whatever/i,
+      });
+
+      expect(breadcrumbsHeading).toBeInTheDocument();
+      expect(resourcesHeadingText).toBeInTheDocument();
+
+      expect(eventEntriesContainer.firstChild?.childNodes[0]).toEqual(
+        breadcrumbsHeading.parentElement
+      );
     });
   });
 });
