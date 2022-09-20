@@ -46,6 +46,7 @@ export function MetricsBaselineContainer({
   location,
   organization,
   api,
+  router,
   ...props
 }: MetricsBaselineContainerProps) {
   const metricsCardinality = useMetricsCardinalityContext();
@@ -73,7 +74,7 @@ export function MetricsBaselineContainer({
     ? getUtcToLocalDateObject(pageFilters.datetime.end)
     : null;
 
-  const [showBaseline, setShowBaseline] = useState<boolean>(true);
+  const showBaseline = location.query.baseline === '0' ? false : true;
   const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
@@ -245,14 +246,23 @@ export function MetricsBaselineContainer({
       eventView={eventView}
       location={location}
       yAxis={yAxis}
+      router={router}
       processedLineSeries={showBaseline ? processedLineSeries : undefined}
       disableProcessedBaselineToggle={
         disableProcessedBaselineToggle || !metricsCompatible
       }
       processedTotal={processedTotal}
-      showBaseline={showBaseline}
-      setShowBaseline={setShowBaseline}
       loadingProcessedTotals={loadingTotals}
+      showBaseline={showBaseline}
+      setShowBaseline={(value: boolean) => {
+        router.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            baseline: value === false ? '0' : '1',
+          },
+        });
+      }}
       {...props}
     />
   );

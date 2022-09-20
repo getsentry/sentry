@@ -2,7 +2,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
@@ -57,6 +57,8 @@ export function renderMetricsBaselineContainer(
       />
     </MetricsCardinalityProvider>
   );
+
+  return initialData.router;
 }
 
 describe('MetricsBaselineContainer', function () {
@@ -225,5 +227,43 @@ describe('MetricsBaselineContainer', function () {
 
     expect(screen.getByText(/Processed events/i)).toBeInTheDocument();
     expect(screen.getByTestId('processed-events-toggle')).toBeDisabled();
+  });
+
+  it('pushes toggle selection to URL', async function () {
+    addMetricsDataMock();
+    const organization = TestStubs.Organization({
+      features: [
+        ...features,
+        'discover-metrics-baseline',
+        'server-side-sampling',
+        'mep-rollout-flag',
+      ],
+    });
+    const yAxis = ['p50(transaction.duration)'];
+
+    const router = renderMetricsBaselineContainer(
+      organization,
+      project,
+      eventView,
+      yAxis
+    );
+
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'metrics',
+          }),
+        })
+      );
+    });
+
+    expect(screen.getByTestId('processed-events-toggle')).toBeEnabled();
+    expect(screen.getByTestId('processed-events-toggle')).toBeChecked();
+    userEvent.click(screen.getByTestId('processed-events-toggle'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: expect.objectContaining({baseline: '0'})})
+    );
   });
 });
