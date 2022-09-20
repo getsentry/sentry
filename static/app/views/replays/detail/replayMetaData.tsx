@@ -90,11 +90,9 @@ function ReplayMetaData({replayRecord}: Props) {
   );
 }
 
-export const HeaderPlaceholder = styled(function HeaderPlaceholder(
-  props: ComponentProps<typeof Placeholder>
-) {
-  return <Placeholder width="80px" height="19px" {...props} />;
-})`
+export const HeaderPlaceholder = styled((props: ComponentProps<typeof Placeholder>) => (
+  <Placeholder width="80px" height="19px" {...props} />
+))`
   background-color: ${p => p.theme.background};
 `;
 
