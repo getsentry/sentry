@@ -1,3 +1,4 @@
+from django.core.validators import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 
@@ -7,6 +8,9 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
+DEFAULT_QUERY_UNIQUENESS_VALIDATION_MESSAGE = (
+    "Only one DiscoverSavedQuery may be the default per user"
+)
 
 
 @region_silo_model
@@ -47,6 +51,25 @@ class DiscoverSavedQuery(Model):
         db_table = "sentry_discoversavedquery"
 
     __repr__ = sane_repr("organization_id", "created_by", "name")
+
+    def validate_unique(self, exclude=None):
+        default_queries_for_user = DiscoverSavedQuery.objects.filter(
+            created_by=self.created_by, is_default=True
+        )
+        if self.is_default:
+            if (
+                self.pk is None
+                and default_queries_for_user.exists()
+                or self.pk
+                and default_queries_for_user.exclude(pk=self.pk).exists()
+            ):
+                raise ValidationError(DEFAULT_QUERY_UNIQUENESS_VALIDATION_MESSAGE)
+
+        super().validate_unique(exclude)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def set_projects(self, project_ids):
         with transaction.atomic():
