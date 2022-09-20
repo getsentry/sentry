@@ -1,10 +1,10 @@
 import {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import withApi from 'sentry/utils/withApi';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
+  useGenericDiscoverQuery,
 } from './genericDiscoverQuery';
 
 /**
@@ -76,4 +76,24 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
   );
 }
 
-export default withApi(DiscoverQuery);
+export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
+  const endpoint = props.useEvents ? 'events' : 'eventsv2';
+  const afterFetch = props.useEvents
+    ? (data, _) => {
+        const {fields, ...otherMeta} = data.meta ?? {};
+        return {
+          ...data,
+          meta: {...fields, ...otherMeta},
+        };
+      }
+    : undefined;
+
+  return useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
+    route: endpoint,
+    shouldRefetchData,
+    afterFetch,
+    ...props,
+  });
+}
+
+export default DiscoverQuery;

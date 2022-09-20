@@ -352,7 +352,7 @@ const TagsHeatMap = (
                 return (
                   <div>
                     {!transactionTableData?.data.length ? <Placeholder /> : null}
-                    {[...transactionTableData?.data].slice(0, 3).map(row => {
+                    {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
                       const target = generateTransactionLink(transactionName)(
                         organization,
                         row,
@@ -365,7 +365,7 @@ const TagsHeatMap = (
                             <Truncate value={row.id} maxLength={12} />
                             <SectionSubtext>
                               <PerformanceDuration
-                                milliseconds={row[aggregateColumn]}
+                                milliseconds={Number(row[aggregateColumn])}
                                 abbreviation
                               />
                             </SectionSubtext>

@@ -4,7 +4,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 
 import {SpanOps} from './types';
 
@@ -34,4 +33,4 @@ function SpanOpsQuery(props: Props) {
   );
 }
 
-export default withApi(SpanOpsQuery);
+export default SpanOpsQuery;

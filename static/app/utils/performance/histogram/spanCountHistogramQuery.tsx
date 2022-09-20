@@ -5,7 +5,6 @@ import GenericDiscoverQuery, {
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
-import withApi from 'sentry/utils/withApi';
 
 type HistogramProps = {
   numBuckets: number;
@@ -63,4 +62,4 @@ function SpanCountHistogramQuery(props: Props) {
   );
 }
 
-export default withApi(SpanCountHistogramQuery);
+export default SpanCountHistogramQuery;

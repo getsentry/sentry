@@ -4,7 +4,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 
 /**
  * An individual row in a Segment explorer result
@@ -86,4 +85,4 @@ function SegmentExplorerQuery(props: QueryProps) {
   );
 }
 
-export default withApi(SegmentExplorerQuery);
+export default SegmentExplorerQuery;

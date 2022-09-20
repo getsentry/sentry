@@ -14,7 +14,6 @@ import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
-import withApi from 'sentry/utils/withApi';
 
 type AdditionalQueryProps = {
   detailed?: boolean;
@@ -97,14 +96,10 @@ function GenericTraceFullQuery<T>({
   );
 }
 
-export const TraceFullQuery = withApi(
-  (props: Omit<QueryProps<TraceFull[]>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />
-  )
+export const TraceFullQuery = (props: Omit<QueryProps<TraceFull[]>, 'detailed'>) => (
+  <GenericTraceFullQuery<TraceFull[]> {...props} detailed={false} />
 );
 
-export const TraceFullDetailedQuery = withApi(
-  (props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>) => (
-    <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />
-  )
-);
+export const TraceFullDetailedQuery = (
+  props: Omit<QueryProps<TraceFullDetailed[]>, 'detailed'>
+) => <GenericTraceFullQuery<TraceFullDetailed[]> {...props} detailed />;
