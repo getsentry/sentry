@@ -54,7 +54,6 @@ type OptionalContextProps = {
 };
 
 type BaseDiscoverQueryProps = {
-  api: Client;
   /**
    * Used as the default source for cursor values.
    */
@@ -130,7 +129,7 @@ type ComponentProps<T, P> = {
   /**
    * Allows components to modify the payload before it is set.
    */
-  getRequestPayload?: (props: Omit<Props<T, P>, 'api'>) => any;
+  getRequestPayload?: (props: Props<T, P>) => any;
   /**
    * An external hook to parse errors in case there are differences for a specific api.
    */
@@ -145,6 +144,7 @@ type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 
 type State<T> = {
+  api: Client;
   tableFetchID: symbol | undefined;
 } & GenericChildrenProps<T>;
 
@@ -159,6 +159,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
     tableData: null,
     pageLinks: null,
+    api: new Client(),
   };
 
   componentDidMount() {
@@ -222,7 +223,6 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
 
   fetchData = async () => {
     const {
-      api,
       queryBatching,
       beforeFetch,
       afterFetch,
@@ -232,6 +232,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       route,
       setError,
     } = this.props;
+    const {api} = this.state;
 
     if (!eventView.isValid()) {
       return;
@@ -347,7 +348,7 @@ export function doDiscoverQuery<T>(
   });
 }
 
-function getPayload<T, P>(props: Omit<Props<T, P>, 'api'>) {
+function getPayload<T, P>(props: Props<T, P>) {
   const {
     cursor,
     limit,
@@ -380,7 +381,7 @@ function getPayload<T, P>(props: Omit<Props<T, P>, 'api'>) {
   return payload;
 }
 
-export function useGenericDiscoverQuery<T, P>(props: Omit<Props<T, P>, 'api'>) {
+export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const api = useApi();
   const {orgSlug, route} = props;
   const url = `/organizations/${orgSlug}/${route}/`;
