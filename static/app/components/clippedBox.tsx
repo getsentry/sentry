@@ -10,11 +10,17 @@ import space from 'sentry/styles/space';
 
 type DefaultProps = {
   btnText?: string;
+  /**
+   * The "show more" button is 20px tall.
+   * Do not clip if there isn't more to hide after the button
+   */
+  clipFlex?: number;
   clipHeight?: number;
   defaultClipped?: boolean;
 };
 
 type Props = {
+  clipFlex: number;
   clipHeight: number;
   className?: string;
   /**
@@ -43,6 +49,7 @@ class ClippedBox extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     defaultClipped: false,
     clipHeight: 200,
+    clipFlex: 20,
     btnText: t('Show More'),
   };
 
@@ -93,7 +100,10 @@ class ClippedBox extends PureComponent<Props, State> {
       return;
     }
 
-    if (!this.state.isClipped && renderedHeight > this.props.clipHeight) {
+    if (
+      !this.state.isClipped &&
+      renderedHeight > this.props.clipHeight + this.props.clipFlex
+    ) {
       /* eslint react/no-did-mount-set-state:0 */
       // okay if this causes re-render; cannot determine until
       // rendered first anyways
@@ -159,7 +169,6 @@ const Wrapper = styled('div', {
     prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
 })<State & {clipHeight: number}>`
   position: relative;
-  padding: ${space(1.5)} 0;
 
   /* For "Show More" animation */
   ${p =>
