@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useEffect} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -7,8 +7,6 @@ import {
   ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import isEmpty from 'lodash/isEmpty';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
@@ -22,13 +20,11 @@ import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useExtractedCrumbHtml, {
-  Extraction,
-} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import useDomFilters from 'sentry/views/replays/detail/domMutations/useDomFilters';
 import {getDomMutationsTypes} from 'sentry/views/replays/detail/domMutations/utils';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 
 type Props = {
   replay: ReplayReader;
@@ -42,60 +38,31 @@ const cache = new CellMeasurerCache({
 
 function DomMutations({replay}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
-  const [searchTerm, setSearchTerm] = useState('');
   let listRef: ReactVirtualizedList | null = null;
-  const [filters, setFilters] = useState<Filters<Extraction>>({});
 
-  const filteredDomMutations = useMemo(
-    () =>
-      getFilteredItems({
-        items: actions,
-        filters,
-        searchTerm,
-        searchProp: 'html',
-      }),
-    [actions, filters, searchTerm]
-  );
-
-  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
+  const {
+    items,
+    type: filteredTypes,
+    searchTerm,
+    setType,
+    setSearchTerm,
+  } = useDomFilters({actions});
 
   const startTimestampMs = replay.getReplay().startedAt.getTime();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const handleFilters = useCallback(
-    (
-      selectedValues: (string | number)[],
-      key: string,
-      filter: (mutation: Extraction) => boolean
-    ) => {
-      const filtersCopy = {...filters};
-
-      if (selectedValues.length === 0) {
-        delete filtersCopy[key];
-        setFilters(filtersCopy);
-        return;
-      }
-
-      setFilters({
-        ...filters,
-        [key]: filter,
-      });
-    },
-    [filters]
-  );
-
-  // Restart cache when filteredDomMutations changes
   useEffect(() => {
+    // Restart cache when items changes
     if (listRef) {
       cache.clearAll();
       listRef?.forceUpdateGrid();
     }
-  }, [filteredDomMutations, listRef]);
+  }, [items, listRef]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const mutation = filteredDomMutations[index];
+    const mutation = items[index];
     const {html, crumb} = mutation;
     const {title} = getDetails(crumb);
 
@@ -143,26 +110,20 @@ function DomMutations({replay}: Props) {
     <MutationContainer>
       <MutationFilters>
         <CompactSelect
-          triggerProps={{
-            prefix: t('Event Type'),
-          }}
-          triggerLabel={isEmpty(filters) ? t('Any') : null}
+          triggerProps={{prefix: t('Event Type')}}
+          triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
           multiple
-          options={getDomMutationsTypes(actions).map(mutationEventType => ({
-            value: mutationEventType,
-            label: mutationEventType,
-          }))}
+          options={getDomMutationsTypes(actions).map(value => ({value, label: value}))}
           size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(selectedValues, 'eventType', (mutation: Extraction) => {
-              return selectedValues.includes(mutation.crumb.type);
-            });
-          }}
+          onChange={selected => setType(selected.map(_ => _.value))}
+          value={filteredTypes}
         />
-
-        <SearchBar size="sm" onChange={handleSearch} placeholder={t('Search DOM')} />
+        <SearchBar
+          size="sm"
+          onChange={setSearchTerm}
+          placeholder={t('Search DOM')}
+          query={searchTerm}
+        />
       </MutationFilters>
       {isLoading ? (
         <Placeholder height="200px" />
@@ -177,7 +138,7 @@ function DomMutations({replay}: Props) {
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
-                rowCount={filteredDomMutations.length}
+                rowCount={items.length}
                 noRowsRenderer={() => (
                   <EmptyStateWarning withIcon={false} small>
                     {t('No related DOM Events recorded')}
