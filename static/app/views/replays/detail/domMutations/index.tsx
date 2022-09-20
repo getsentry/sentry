@@ -111,20 +111,14 @@ function DomMutations({replay}: Props) {
     <MutationContainer>
       <MutationFilters>
         <CompactSelect
-          triggerProps={{
-            prefix: t('Event Type'),
-          }}
+          triggerProps={{prefix: t('Event Type')}}
           triggerLabel={filteredTypes.length === 0 ? t('Any') : null}
           multiple
-          options={getDomMutationsTypes(actions).map(mutationEventType => ({
-            value: mutationEventType,
-            label: mutationEventType,
-          }))}
+          options={getDomMutationsTypes(actions).map(value => ({value, label: value}))}
           size="sm"
-          onChange={setType}
+          onChange={selected => setType(selected.map(_ => _.value))}
           value={filteredTypes}
         />
-
         <SearchBar
           size="sm"
           onChange={setSearchTerm}

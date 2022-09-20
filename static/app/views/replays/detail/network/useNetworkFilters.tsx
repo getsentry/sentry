@@ -1,10 +1,15 @@
 import {useCallback, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {NetworkSpan, UNKNOWN_STATUS} from 'sentry/views/replays/detail/network/utils';
 import {filterItems} from 'sentry/views/replays/detail/utils';
+
+type FilterFields = {
+  f_n_search: string;
+  f_n_status: string[];
+  f_n_type: string[];
+};
 
 type Options = {
   networkSpans: NetworkSpan[];
@@ -14,8 +19,8 @@ type Return = {
   items: NetworkSpan[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
-  setStatus: (status: {value: string}[]) => void;
-  setType: (type: {value: string}[]) => void;
+  setStatus: (status: string[]) => void;
+  setType: (type: string[]) => void;
   status: string[];
   type: string[];
 };
@@ -34,15 +39,11 @@ const FILTERS = {
 };
 
 function useNetworkFilters({networkSpans}: Options): Return {
-  const {pathname, query} = useLocation();
+  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  /* eslint-disable react-hooks/exhaustive-deps */
-  const stringyStatus = JSON.stringify(query.networkStatus);
-  const stringyType = JSON.stringify(query.networkType);
-  const status = useMemo(() => decodeList(query.networkStatus), [stringyStatus]);
-  const type = useMemo(() => decodeList(query.networkType), [stringyType]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-  const searchTerm = decodeScalar(query.networkSearch, '').toLowerCase();
+  const status = decodeList(query.f_n_status);
+  const type = decodeList(query.f_n_type);
+  const searchTerm = decodeScalar(query.f_n_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
@@ -55,33 +56,15 @@ function useNetworkFilters({networkSpans}: Options): Return {
   );
 
   const setStatus = useCallback(
-    (networkStatus: {value: string}[]) => {
-      browserHistory.push({
-        pathname,
-        query: {...query, networkStatus: networkStatus.map(_ => _.value)},
-      });
-    },
-    [pathname, query]
+    (f_n_status: string[]) => setFilter({f_n_status}),
+    [setFilter]
   );
 
-  const setType = useCallback(
-    (networkType: {value: string}[]) => {
-      browserHistory.push({
-        pathname,
-        query: {...query, networkType: networkType.map(_ => _.value)},
-      });
-    },
-    [pathname, query]
-  );
+  const setType = useCallback((f_n_type: string[]) => setFilter({f_n_type}), [setFilter]);
 
   const setSearchTerm = useCallback(
-    (networkSearch: string) => {
-      browserHistory.push({
-        pathname,
-        query: {...query, networkSearch: networkSearch ? networkSearch : undefined},
-      });
-    },
-    [pathname, query]
+    (f_n_search: string) => setFilter({f_n_search: f_n_search || undefined}),
+    [setFilter]
   );
 
   return {

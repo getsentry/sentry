@@ -1,11 +1,15 @@
 import {useCallback, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
+
+export type FilterFields = {
+  f_c_logLevel: string[];
+  f_c_search: string;
+};
 
 type Item = Extract<Crumb, BreadcrumbTypeDefault>;
 
@@ -30,18 +34,15 @@ const FILTERS = {
 };
 
 function useConsoleFilters({breadcrumbs}: Options): Return {
-  const {pathname, query} = useLocation();
+  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const typeDefaultCrumbs = useMemo(
     () => breadcrumbs.filter(isBreadcrumbTypeDefault),
     [breadcrumbs]
   );
 
-  /* eslint-disable react-hooks/exhaustive-deps */
-  const stringyLogLevel = JSON.stringify(query.consoleLogLevel);
-  const logLevel = useMemo(() => decodeList(query.consoleLogLevel), [stringyLogLevel]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-  const searchTerm = decodeScalar(query.consoleSearch, '').toLowerCase();
+  const logLevel = decodeList(query.f_c_logLevel);
+  const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
@@ -54,20 +55,13 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
   );
 
   const setLogLevel = useCallback(
-    (consoleLogLevel: string[]) => {
-      browserHistory.push({pathname, query: {...query, consoleLogLevel}});
-    },
-    [pathname, query]
+    (f_c_logLevel: string[]) => setFilter({f_c_logLevel}),
+    [setFilter]
   );
 
   const setSearchTerm = useCallback(
-    (consoleSearch: string) => {
-      browserHistory.push({
-        pathname,
-        query: {...query, consoleSearch: consoleSearch ? consoleSearch : undefined},
-      });
-    },
-    [pathname, query]
+    (f_c_search: string) => setFilter({f_c_search: f_c_search || undefined}),
+    [setFilter]
   );
 
   return {

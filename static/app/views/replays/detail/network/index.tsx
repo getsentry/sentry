@@ -203,24 +203,18 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           triggerProps={{prefix: t('Status')}}
           triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
-          options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
-            value: String(networkSpanStatusType),
-            label: String(networkSpanStatusType),
-          }))}
+          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
           size="sm"
-          onChange={setStatus}
+          onChange={selected => setStatus(selected.map(_ => _.value))}
           value={selectedStatus}
         />
         <CompactSelect
           triggerProps={{prefix: t('Type')}}
           triggerLabel={selectedType.length === 0 ? t('Any') : null}
           multiple
-          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
-            value: networkSpanResourceType,
-            label: networkSpanResourceType,
-          }))}
+          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
           size="sm"
-          onChange={setType}
+          onChange={selected => setType(selected.map(_ => _.value))}
           value={selectedType}
         />
         <SearchBar

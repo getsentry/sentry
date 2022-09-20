@@ -1,10 +1,14 @@
 import {useCallback, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
-import {useLocation} from 'sentry/utils/useLocation';
+import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
+
+type FilterFields = {
+  f_d_search: string;
+  f_d_type: string[];
+};
 
 type Options = {
   actions: Extraction[];
@@ -14,7 +18,7 @@ type Return = {
   items: Extraction[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
-  setType: (type: {value: string}[]) => void;
+  setType: (type: string[]) => void;
   type: string[];
 };
 
@@ -27,13 +31,10 @@ const FILTERS = {
 };
 
 function useDomFilters({actions}: Options): Return {
-  const {pathname, query} = useLocation();
+  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  /* eslint-disable react-hooks/exhaustive-deps */
-  const stringyType = JSON.stringify(query.domType);
-  const type = useMemo(() => decodeList(query.domType), [stringyType]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-  const searchTerm = decodeScalar(query.domSearch, '').toLowerCase();
+  const type = decodeList(query.f_d_type);
+  const searchTerm = decodeScalar(query.f_d_search, '').toLowerCase();
 
   const items = useMemo(
     () =>
@@ -45,24 +46,11 @@ function useDomFilters({actions}: Options): Return {
     [actions, type, searchTerm]
   );
 
-  const setType = useCallback(
-    (domType: {value: string}[]) => {
-      browserHistory.push({
-        pathname,
-        query: {...query, domType: domType.map(_ => _.value)},
-      });
-    },
-    [pathname, query]
-  );
+  const setType = useCallback((f_d_type: string[]) => setFilter({f_d_type}), [setFilter]);
 
   const setSearchTerm = useCallback(
-    (domSearch: string) => {
-      browserHistory.push({
-        pathname,
-        query: {...query, domSearch: domSearch ? domSearch : undefined},
-      });
-    },
-    [pathname, query]
+    (f_d_search: string) => setFilter({f_d_search: f_d_search || undefined}),
+    [setFilter]
   );
 
   return {

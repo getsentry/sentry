@@ -7,7 +7,7 @@ import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import useConsoleFilters from './useConsoleFilters';
+import useConsoleFilters, {FilterFields} from './useConsoleFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -16,11 +16,6 @@ const mockUseLocation = useLocation as jest.MockedFunction<typeof useLocation>;
 const mockBrowserHistoryPush = browserHistory.push as jest.MockedFunction<
   typeof browserHistory.push
 >;
-
-type Query = {
-  consoleLogLevel: undefined | string[];
-  consoleSearch: string;
-};
 
 const breadcrumbs: Crumb[] = [
   {
@@ -117,28 +112,37 @@ describe('useConsoleFilters', () => {
     mockBrowserHistoryPush.mockReset();
   });
 
-  it('should update the url on user input', () => {
-    mockUseLocation.mockReturnValue({
-      pathname: '/',
-      query: {},
-    } as Location<Query>);
+  it('should update the url when setters are called', () => {
+    mockUseLocation
+      .mockReturnValueOnce({
+        pathname: '/',
+        query: {},
+      } as Location<FilterFields>)
+      .mockReturnValueOnce({
+        pathname: '/',
+        query: {f_c_logLevel: ['error']},
+      } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result, rerender} = reactHooks.renderHook(() =>
+      useConsoleFilters({breadcrumbs})
+    );
 
     result.current.setLogLevel(['error']);
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        consoleLogLevel: ['error'],
+        f_c_logLevel: ['error'],
       },
     });
+
+    rerender();
 
     result.current.setSearchTerm('component');
     expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {
-        consoleLogLevel: ['error'],
-        consoleSearch: 'component',
+        f_c_logLevel: ['error'],
+        f_c_search: 'component',
       },
     });
   });
@@ -147,7 +151,7 @@ describe('useConsoleFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {},
-    } as Location<Query>);
+    } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
     expect(result.current.items.length).toEqual(4);
@@ -157,9 +161,9 @@ describe('useConsoleFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        consoleLogLevel: ['error', 'warning'],
+        f_c_logLevel: ['error', 'warning'],
       },
-    } as Location<Query>);
+    } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
     expect(result.current.items.length).toEqual(2);
@@ -169,9 +173,9 @@ describe('useConsoleFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        consoleSearch: 'component',
+        f_c_search: 'component',
       },
-    } as Location<Query>);
+    } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
     expect(result.current.items.length).toEqual(2);
@@ -181,10 +185,10 @@ describe('useConsoleFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        consoleSearch: 'error occurred',
-        consoleLogLevel: ['error'],
+        f_c_search: 'error occurred',
+        f_c_logLevel: ['error'],
       },
-    } as Location<Query>);
+    } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
     expect(result.current.items.length).toEqual(1);
