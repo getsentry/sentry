@@ -4,6 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {SelectField} from 'sentry/components/forms';
 import {SelectFieldProps} from 'sentry/components/forms/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -324,13 +325,13 @@ function AndroidInstallSteps({
       </li>
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
-        <CodeContainer>
+        <CodeSnippet language="xml" filename="AndroidManifest.xml">
           {`<application>
   <meta-data android:name="io.sentry.dsn" android:value="..." />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
 </application>`}
-        </CodeContainer>
+        </CodeSnippet>
       </li>
     </Fragment>
   );
@@ -367,11 +368,11 @@ function IOSInstallSteps({
         <StepTitle>
           {t('Enable profiling in your app by configuring the SDKs like below:')}
         </StepTitle>
-        <CodeContainer>{`SentrySDK.start { options in
+        <CodeSnippet language="swift">{`SentrySDK.start { options in
     options.dsn = "..."
     options.tracesSampleRate = 1.0 // Make sure transactions are enabled
     options.profilesSampleRate = 1.0
-}`}</CodeContainer>
+}`}</CodeSnippet>
       </li>
     </Fragment>
   );
@@ -610,18 +611,3 @@ const StepIndicator = styled('span')`
   color: ${p => p.theme.subText};
   margin-right: ${space(2)};
 `;
-
-const PreContainer = styled('pre')`
-  overflow-x: scroll;
-
-  code {
-    white-space: pre;
-  }
-`;
-function CodeContainer({children}: {children: React.ReactNode}) {
-  return (
-    <PreContainer>
-      <code>{children}</code>
-    </PreContainer>
-  );
-}
