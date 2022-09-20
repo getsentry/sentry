@@ -127,6 +127,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
+    slack_request_class = SlackActionRequest
 
     def respond_ephemeral(self, text: str) -> Response:
         return self.respond({"response_type": "ephemeral", "replace_original": False, "text": text})
@@ -373,7 +374,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
     @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
-            slack_request = SlackActionRequest(request)
+            slack_request = self.slack_request_class(request)
             slack_request.validate()
         except SlackRequestError as e:
             return self.respond(status=e.status)

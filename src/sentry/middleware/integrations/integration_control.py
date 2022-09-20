@@ -21,7 +21,7 @@ class IntegrationControlMiddleware:
             e.g. `/extensions/slack/commands/` -> `slack`
         """
         # TODO(Leander): Catch errors in this method
-        webhook_prefix_regex = self.webhook_prefix.replace("/", r"\/")
+        webhook_prefix_regex = re.escape(self.webhook_prefix)
         provider_regex = rf"^{webhook_prefix_regex}(\w+)"
         result = re.search(provider_regex, request.path)
         return result.group(1)
