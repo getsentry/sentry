@@ -259,7 +259,7 @@ export function MetricsBaselineContainer({
       }
       processedTotal={processedTotal}
       loadingProcessedTotals={loadingTotals}
-      loadingProcessedBaseline={loadingProcessedEventsBaseline}
+      loadingProcessedEventsBaseline={loadingProcessedEventsBaseline}
       showBaseline={showBaseline}
       setShowBaseline={(value: boolean) => {
         router.push({
