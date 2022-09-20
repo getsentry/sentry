@@ -18,7 +18,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.dates import get_interval_from_range, parse_stats_period, parse_timestamp
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -956,11 +955,6 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        start, end = parse_timestamp(links[0].args.get("query").get("start")), parse_timestamp(
-            links[0].args.get("query").get("end")
-        )
-        expected_interval = get_interval_from_range(end - start, False)
-
         with self.feature(
             [
                 "organizations:discover",
@@ -980,7 +974,7 @@ class UnfurlTest(TestCase):
         assert len(api_mock.mock_calls) == 1
 
         assert "interval" in api_mock.call_args[1]["params"]
-        assert api_mock.call_args[1]["params"]["interval"] == expected_interval
+        assert api_mock.call_args[1]["params"]["interval"] == "1h"
 
     @patch("sentry.integrations.slack.unfurl.discover.client.get")
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
@@ -996,9 +990,6 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        stats_period = links[0].args.get("query").get("statsPeriod")
-        expected_interval = get_interval_from_range(parse_stats_period(stats_period), False)
-
         with self.feature(
             [
                 "organizations:discover",
@@ -1018,4 +1009,4 @@ class UnfurlTest(TestCase):
         assert len(api_mock.mock_calls) == 1
 
         assert "interval" in api_mock.call_args[1]["params"]
-        assert api_mock.call_args[1]["params"]["interval"] == expected_interval
+        assert api_mock.call_args[1]["params"]["interval"] == "1d"
