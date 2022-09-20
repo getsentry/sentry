@@ -3,7 +3,6 @@ from typing import Callable, Mapping
 
 from arroyo.types import Message
 
-from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
