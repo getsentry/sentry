@@ -11,7 +11,7 @@ import space from 'sentry/styles/space';
 type DefaultProps = {
   btnText?: string;
   /**
-   * The "show more" button is 20px tall.
+   * The "show more" button is 28px tall.
    * Do not clip if there is only a few more pixels
    */
   clipFlex?: number;
@@ -49,7 +49,7 @@ class ClippedBox extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     defaultClipped: false,
     clipHeight: 200,
-    clipFlex: 20,
+    clipFlex: 28,
     btnText: t('Show More'),
   };
 

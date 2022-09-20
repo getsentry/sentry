@@ -53,11 +53,11 @@ export const ClipFlex = () => (
     <div>
       With clipFlex off, show more is hardly hiding anything
       <ClippedBox clipHeight={100} clipFlex={0}>
-        <div style={{backgroundColor: 'SeaGreen', height: '105px'}} />
+        <div style={{backgroundColor: 'SeaGreen', height: '80px'}} />
       </ClippedBox>
       With clipFlex on (component should be expanded)
       <ClippedBox clipHeight={100}>
-        <div style={{backgroundColor: 'SeaGreen', height: '105px'}} />
+        <div style={{backgroundColor: 'SeaGreen', height: '80px'}} />
       </ClippedBox>
     </div>
   </div>
