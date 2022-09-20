@@ -423,7 +423,6 @@ describe('TimeRangeSelector', function () {
     userEvent.type(input, '5');
 
     // With just the number "5", all unit options should be present
-    expect(screen.getByText('Last 5 seconds')).toBeInTheDocument();
     expect(screen.getByText('Last 5 minutes')).toBeInTheDocument();
     expect(screen.getByText('Last 5 hours')).toBeInTheDocument();
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
@@ -433,7 +432,6 @@ describe('TimeRangeSelector', function () {
 
     // With "5d", only "Last 5 days" should be shown
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
-    expect(screen.queryByText('Last 5 seconds')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 minutes')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 hours')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 weeks')).not.toBeInTheDocument();
