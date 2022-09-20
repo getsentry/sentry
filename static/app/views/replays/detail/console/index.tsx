@@ -28,7 +28,9 @@ interface Props {
 }
 
 const getDistinctLogLevels = (breadcrumbs: Crumb[]) =>
-  Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
+  Array.from(
+    new Set<BreadcrumbLevelType>(breadcrumbs.map(breadcrumb => breadcrumb.level))
+  );
 
 function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();

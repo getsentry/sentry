@@ -7,7 +7,8 @@ import {t, tn} from 'sentry/locale';
 
 import TimeRangeItemLabel from './timeRangeItemLabel';
 
-type RelativePeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
+type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
+type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
 export type RelativeUnitsMapping = {
   [Unit: string]: {
@@ -23,12 +24,6 @@ const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 const STATS_PERIOD_REGEX = /^(\d+)([smhdw]{1})$/;
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
-  s: {
-    label: (num: number) => tn('Last second', 'Last %s seconds', num),
-    searchKey: t('seconds'),
-    momentUnit: 'seconds',
-    convertToDaysMultiplier: 1 / (60 * 60 * 24),
-  },
   m: {
     label: (num: number) => tn('Last minute', 'Last %s minutes', num),
     searchKey: t('minutes'),
