@@ -139,7 +139,7 @@ const Label = styled('p')`
 
 const HighlightedCode = styled('code')`
   /** Increase specificity to override default styles */
-  ${/* sc-selector */ Wrap} > & {
+  ${Wrap} > & {
     font-family: ${p => p.theme.text.familyMono};
     font-size: 0.875rem;
     line-height: 1.6;
