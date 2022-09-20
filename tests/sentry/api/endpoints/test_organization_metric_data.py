@@ -1768,18 +1768,18 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_errored_sessions(self):
         user_ts = time.time()
         org_id = self.organization.id
-        for tag, tag_value, value in (
-            ("session.status", "errored_preaggr", 10),
-            ("session.status", "crashed", 2),
-            ("session.status", "abnormal", 4),
-            ("session.status", "init", 15),
+        for tag_value, value in (
+            ("errored_preaggr", 10),
+            ("crashed", 2),
+            ("abnormal", 4),
+            ("init", 15),
         ):
             self.store_metric(
                 org_id=org_id,
                 project_id=self.project.id,
                 type="counter",
                 name=SessionMRI.SESSION.value,
-                tags={tag: tag_value},
+                tags={"session.status": tag_value},
                 timestamp=(user_ts // 60 - 4) * 60,
                 value=value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
@@ -1924,29 +1924,21 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_abnormal_user_sessions(self):
         user_ts = time.time()
 
-        for value in [1, 2, 4]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"session.status": "abnormal"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
-
-        for value in [1, 2, 4, 7, 9]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
+        for tags, values in (
+            ({"session.status": "abnormal"}, [1, 2, 4]),
+            ({}, [1, 2, 4, 7, 9]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -1960,41 +1952,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_crash_free_user_percentage_with_orderby(self):
         user_ts = time.time()
-        for value in [1, 2, 4, 8]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"release": "foobar@1.0"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
-
-        for value in [1, 2]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"session.status": "crashed", "release": "foobar@1.0"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
-
-        for value in [3, 5]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"release": "foobar@2.0"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "crashed", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -2019,42 +1992,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Users crash free rate
         # foobar@1.0 -> 0.5
         # foobar@2.0 -> 1
-
-        for value in [1, 2, 4, 8]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"release": "foobar@1.0"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
-
-        for value in [1, 2]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"session.status": "crashed", "release": "foobar@1.0"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
-
-        for value in [3, 5]:
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="set",
-                name=SessionMRI.USER.value,
-                tags={"release": "foobar@2.0"},
-                timestamp=user_ts,
-                value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
-            )
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "crashed", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
 
         # Crash free rate
         # foobar@1.0 -> 0.75
@@ -2107,16 +2060,16 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_healthy_sessions(self):
         user_ts = time.time()
 
-        for tag_value, release_tag_value, value, timestamp in (
-            ("errored_preaggr", "foo", 4, (user_ts // 60) * 60),
-            ("init", "foo", 10, user_ts),
+        for tags, value, timestamp in (
+            ({"session.status": "errored_preaggr", "release": "foo"}, 4, (user_ts // 60) * 60),
+            ({"session.status": "init", "release": "foo"}, 10, user_ts),
         ):
             self.store_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="counter",
                 name=SessionMRI.SESSION.value,
-                tags={"session.status": tag_value, "release": release_tag_value},
+                tags=tags,
                 timestamp=timestamp,
                 value=value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
@@ -2148,16 +2101,16 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         """Healthy sessions works also when there are no individual errors"""
         user_ts = time.time()
 
-        for tag_value, release_tag_value, value, timestamp in (
-            ("errored_preaggr", "foo", 4, (user_ts // 60) * 60),
-            ("init", "foo", 10, user_ts),
+        for tag_value, value, timestamp in (
+            ("errored_preaggr", 4, (user_ts // 60) * 60),
+            ("init", 10, user_ts),
         ):
             self.store_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="counter",
                 name=SessionMRI.SESSION.value,
-                tags={"session.status": tag_value, "release": release_tag_value},
+                tags={"session.status": tag_value, "release": "foo"},
                 timestamp=timestamp,
                 value=value,
                 use_case_id=UseCaseKey.RELEASE_HEALTH,
