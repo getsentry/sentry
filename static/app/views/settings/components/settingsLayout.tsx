@@ -167,6 +167,10 @@ const Content = styled('div')`
   padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
 
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
+
   /**
    * PageContent is not normally used in settings but <PermissionDenied /> uses it under the hood.
    * This prevents double padding.

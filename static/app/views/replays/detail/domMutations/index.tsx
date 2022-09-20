@@ -37,7 +37,7 @@ type Props = {
 // The cache is used to measure the height of each row
 const cache = new CellMeasurerCache({
   fixedWidth: true,
-  minHeight: 42,
+  minHeight: 82,
 });
 
 function DomMutations({replay}: Props) {
@@ -112,7 +112,6 @@ function DomMutations({replay}: Props) {
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
         >
-          {index < filteredDomMutations.length - 1 && <StepConnector />}
           <IconWrapper color={crumb.color}>
             <BreadcrumbIcon type={crumb.type} />
           </IconWrapper>
@@ -196,10 +195,6 @@ function DomMutations({replay}: Props) {
   );
 }
 
-const MutationContainer = styled(FluidHeight)`
-  height: 100%;
-`;
-
 const MutationFilters = styled('div')`
   display: grid;
   gap: ${space(1)};
@@ -208,6 +203,10 @@ const MutationFilters = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
+`;
+
+const MutationContainer = styled(FluidHeight)`
+  height: 100%;
 `;
 
 const MutationList = styled('ul')`
@@ -223,19 +222,47 @@ const MutationList = styled('ul')`
 
 const MutationListItem = styled('li')`
   display: flex;
+  gap: ${space(1)};
   flex-grow: 1;
-  padding: ${space(2)};
+  padding: ${space(1)} ${space(1.5)};
   position: relative;
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
+  &::after {
+    content: '';
+    position: absolute;
+    left: 23.5px;
+    top: 0;
+    width: 1px;
+    background: ${p => p.theme.gray200};
+    height: 100%;
+  }
+
+  &:first-of-type::after {
+    top: ${space(1)};
+    bottom: 0;
+  }
+
+  &:last-of-type::after {
+    top: 0;
+    height: ${space(1)};
+  }
+
+  &:only-of-type::after {
+    height: 0;
   }
 `;
 
 const MutationContent = styled('div')`
   overflow: hidden;
   width: 100%;
-  margin-left: ${space(1.5)};
-  margin-right: ${space(1.5)};
+
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const MutationDetailsContainer = styled('div')`
@@ -252,9 +279,9 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
@@ -262,17 +289,9 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   z-index: 2;
 `;
 
-const UnstyledButton = styled('button')`
-  background: none;
-  border: none;
-  padding: 0;
-  line-height: 0.75;
-`;
-
 const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
 `;
 
 const Title = styled('span')`
@@ -283,25 +302,21 @@ const Title = styled('span')`
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
+const UnstyledButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  line-height: 0.75;
+`;
+
 const MutationMessage = styled('p')`
-  color: ${p => p.theme.blue300};
-  margin-bottom: ${space(1.5)};
+  color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
+  margin-bottom: 0;
 `;
 
 const CodeContainer = styled('div')`
-  overflow: auto;
   max-height: 400px;
-  max-width: 100%;
-`;
-
-const StepConnector = styled('div')`
-  position: absolute;
-  height: 100%;
-  top: 28px;
-  left: 29px;
-  border-right: 1px ${p => p.theme.border} solid;
-  z-index: 1;
 `;
 
 export default DomMutations;
