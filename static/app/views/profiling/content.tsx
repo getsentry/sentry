@@ -112,9 +112,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   // Open the modal on demand
   const onSetupProfilingClick = useCallback(() => {
     openModal(props => {
-      return <ProfilingOnboardingModal {...props} />;
+      return <ProfilingOnboardingModal {...props} organization={organization} />;
     });
-  }, []);
+  }, [organization]);
 
   const shouldShowProfilingOnboardingPanel = useMemo((): boolean => {
     if (transactions.type !== 'resolved') {

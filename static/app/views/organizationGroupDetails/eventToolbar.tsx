@@ -74,7 +74,7 @@ class GroupEventToolbar extends Component<Props> {
     const dateReceived = evt.dateReceived ? moment(evt.dateReceived) : null;
 
     return (
-      <DescriptionList className="flat">
+      <DescriptionList>
         <dt>Occurred</dt>
         <dd>
           {dateCreated.format('ll')}
@@ -116,8 +116,47 @@ class GroupEventToolbar extends Component<Props> {
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
     return (
-      <StyledDataSection>
-        <StyledNavigationButtonGroup
+      <Wrapper>
+        <div>
+          <Heading>
+            {t('Event')}{' '}
+            <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
+            <LinkContainer>
+              <ExternalLink
+                href={jsonUrl}
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+                    organization,
+                    group_id: parseInt(`${evt.groupID}`, 10),
+                  })
+                }
+              >
+                {'JSON'} (<FileSize bytes={evt.size} />)
+              </ExternalLink>
+            </LinkContainer>
+          </Heading>
+          <Tooltip title={this.getDateTooltip()} showUnderline disableForVisualTest>
+            <StyledDateTime
+              format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
+              date={getDynamicText({
+                value: evt.dateCreated,
+                fixed: 'Dummy timestamp',
+              })}
+            />
+            {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
+          </Tooltip>
+          <StyledGlobalAppStoreConnectUpdateAlert
+            project={project}
+            organization={organization}
+          />
+          <QuickTrace
+            event={evt}
+            group={group}
+            organization={organization}
+            location={location}
+          />
+        </div>
+        <NavigationButtonGroup
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
           links={[
@@ -132,55 +171,17 @@ class GroupEventToolbar extends Component<Props> {
           onNewestClick={() => this.handleNavigationClick('newest')}
           size="sm"
         />
-        <Heading>
-          {t('Event')}{' '}
-          <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
-          <LinkContainer>
-            <ExternalLink
-              href={jsonUrl}
-              onClick={() =>
-                trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
-                  organization,
-                  group_id: parseInt(`${evt.groupID}`, 10),
-                })
-              }
-            >
-              {'JSON'} (<FileSize bytes={evt.size} />)
-            </ExternalLink>
-          </LinkContainer>
-        </Heading>
-        <Tooltip title={this.getDateTooltip()} showUnderline disableForVisualTest>
-          <StyledDateTime
-            format={is24Hours ? 'MMM D, YYYY HH:mm:ss zz' : 'll LTS z'}
-            date={getDynamicText({
-              value: evt.dateCreated,
-              fixed: 'Dummy timestamp',
-            })}
-          />
-          {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
-        </Tooltip>
-        <StyledGlobalAppStoreConnectUpdateAlert
-          project={project}
-          organization={organization}
-        />
-        <QuickTrace
-          event={evt}
-          group={group}
-          organization={organization}
-          location={location}
-        />
-      </StyledDataSection>
+      </Wrapper>
     );
   }
 }
 
-const StyledDataSection = styled(DataSection)`
+const Wrapper = styled(DataSection)`
   position: relative;
-  display: block;
-  border-top: 0;
-  /* z-index seems unnecessary, but increasing (instead of removing) just in case(billy) */
-  /* Fixes tooltips in toolbar having lower z-index than .btn-group .btn.active */
-  z-index: 3;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: ${space(3)};
 
   @media (max-width: 767px) {
     display: none;
@@ -195,10 +196,6 @@ const Heading = styled('h4')`
   line-height: 1.3;
   margin: 0;
   font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const StyledNavigationButtonGroup = styled(NavigationButtonGroup)`
-  float: right;
 `;
 
 const StyledIconWarning = styled(IconWarning)`
@@ -234,10 +231,11 @@ const LinkContainer = styled('span')`
 `;
 
 const DescriptionList = styled('dl')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${space(0.75)} ${space(1)};
   text-align: left;
   margin: 0;
-  min-width: 200px;
-  max-width: 250px;
 `;
 
 export default GroupEventToolbar;

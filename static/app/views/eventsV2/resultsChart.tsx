@@ -166,7 +166,7 @@ type ContainerProps = {
   location: Location;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
-  onIntervalChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
