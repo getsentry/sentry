@@ -3,6 +3,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ProfilingOnboardingModal} from 'sentry/components/profiling/ProfilingOnboarding/profilingOnboardingModal';
 import ProjectStore from 'sentry/stores/projectsStore';
+import {UpdateSdkSuggestion} from 'sentry/types';
 import {Project} from 'sentry/types/project';
 
 const MockRenderModalProps: ModalRenderProps = {
@@ -108,7 +109,12 @@ describe('ProfilingOnboarding', function () {
           projectId: project.id,
           sdkName: 'sentry ios',
           sdkVersion: '6.0.0',
-          suggestions: [],
+          suggestions: [
+            {
+              sdkName: 'sentry ios',
+              newSdkVersion: '9.0.0',
+            } as UpdateSdkSuggestion,
+          ],
         },
       ],
     });

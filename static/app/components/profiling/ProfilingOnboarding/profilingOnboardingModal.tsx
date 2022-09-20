@@ -7,12 +7,13 @@ import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
 import {SelectField} from 'sentry/components/forms';
 import {SelectFieldProps} from 'sentry/components/forms/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, UpdateSdkSuggestion} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
 import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import {semverCompare} from 'sentry/utils/profiling/units/versions';
@@ -202,10 +203,18 @@ function SelectProjectStep({
             </div>
           </li>
           {project?.platform === 'android' ? (
-            <AndroidInstallSteps sdkUpdates={sdkUpdates} project={project} />
+            <AndroidInstallSteps
+              sdkUpdates={sdkUpdates}
+              project={project}
+              organization={organization}
+            />
           ) : null}
           {project?.platform === 'apple-ios' ? (
-            <IOSInstallSteps sdkUpdates={sdkUpdates} project={project} />
+            <IOSInstallSteps
+              sdkUpdates={sdkUpdates}
+              project={project}
+              organization={organization}
+            />
           ) : null}
         </StyledList>
         <ModalFooter>
@@ -233,11 +242,11 @@ function SetupPerformanceMonitoringStep({href}: {href: string}) {
     <Fragment>
       <StepTitle>{t('Setup Performance Monitoring')}</StepTitle>
       {tct(
-        `For Sentry to ingest profiles, we first require you to setup performance monitoring. [setupDocs]`,
+        `For Profiling to function, it's required to set up Performance monitoring. Follow the [setupDocs]`,
         {
           setupDocs: (
             <ExternalLink openInNewTab href={href}>
-              {t('Learn more about performance monitoring.')}
+              {t('step-by-step instructions here.')}
             </ExternalLink>
           ),
         }
@@ -247,39 +256,38 @@ function SetupPerformanceMonitoringStep({href}: {href: string}) {
 }
 
 interface ProjectSdkUpdateProps {
-  minSdkVersion: string;
+  organization: Organization;
   project: Project;
-  sdkUpdates: RequestState<ProjectSdkUpdates | null>;
+  sdkUpdates: ProjectSdkUpdates;
 }
-function ProjectSdkUpdate(props: ProjectSdkUpdateProps) {
-  if (props.sdkUpdates.type !== 'resolved') {
-    return <div>{t('Verifying Sentry SDK')}</div>;
-  }
+
+function ProjectSdkUpdate({sdkUpdates, organization, project}: ProjectSdkUpdateProps) {
+  const newSdk = sdkUpdates?.suggestions[0] as UpdateSdkSuggestion;
 
   return (
     <Fragment>
       <SDKUpdatesContainer>
-        <SdkUpdatesPlatformIcon platform={props.project.platform ?? 'unknown'} />
-        <span>{props.project.name}</span>
+        <SdkUpdatesPlatformIcon platform={project.platform ?? 'unknown'} />
+        <Link
+          to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+        >
+          {project.name}
+        </Link>
       </SDKUpdatesContainer>
-      {props.sdkUpdates.data === null ? (
-        <SdkUpdatesText>
-          {t('This project is using the latest SDK version.')}
-        </SdkUpdatesText>
-      ) : (
-        <SdkUpdatesText>
-          {t(
-            'For profiling to function, we requires you to update your Sentry SDK to version %s or higher.',
-            props.minSdkVersion
-          )}
-        </SdkUpdatesText>
-      )}
+
+      <SdkUpdatesText>
+        {t('This project is on %s@%s', sdkUpdates.sdkName, sdkUpdates.sdkVersion)}
+        <br />
+        <Link to={newSdk?.sdkUrl ?? ''}>
+          {t('Update to %s@%s', newSdk.sdkName, newSdk.newSdkVersion)}
+        </Link>
+      </SdkUpdatesText>
     </Fragment>
   );
 }
 
 const SdkUpdatesText = styled('p')`
-  margin-top: ${space(1.5)};
+  margin-top: ${space(0.75)};
   padding-left: ${space(4)};
 `;
 
@@ -295,30 +303,30 @@ const SDKUpdatesContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
-function AndroidInstallSteps({
-  project,
-  sdkUpdates,
-}: {
+interface InstallStepsProps {
+  organization: Organization;
   project: Project;
   sdkUpdates: RequestState<ProjectSdkUpdates | null>;
-}) {
+}
+
+function AndroidInstallSteps({project, sdkUpdates, organization}: InstallStepsProps) {
+  const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
-    sdkUpdates.type === 'resolved' && sdkUpdates.data?.sdkVersion
+    hasSdkUpdates && sdkUpdates.data?.sdkVersion
       ? semverCompare(sdkUpdates.data.sdkVersion, '6.0.0') < 0
       : false;
-
   return (
     <Fragment>
-      {requiresSdkUpdates ? (
+      {hasSdkUpdates && requiresSdkUpdates && (
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
-            minSdkVersion="6.0.0 (sentry-android)"
             project={project}
-            sdkUpdates={sdkUpdates}
+            sdkUpdates={sdkUpdates.data!}
+            organization={organization}
           />
         </li>
-      ) : null}
+      )}
       <li>
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/android/performance/" />
       </li>
@@ -336,30 +344,24 @@ function AndroidInstallSteps({
   );
 }
 
-function IOSInstallSteps({
-  project,
-  sdkUpdates,
-}: {
-  project: Project;
-  sdkUpdates: RequestState<ProjectSdkUpdates | null>;
-}) {
+function IOSInstallSteps({project, sdkUpdates, organization}: InstallStepsProps) {
+  const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
-    sdkUpdates.type === 'resolved' && sdkUpdates.data?.sdkVersion
+    hasSdkUpdates && sdkUpdates.data?.sdkVersion
       ? semverCompare(sdkUpdates.data.sdkVersion, '7.23.0') < 0
       : false;
-
   return (
     <Fragment>
-      {requiresSdkUpdates ? (
+      {hasSdkUpdates && requiresSdkUpdates && (
         <li>
           <StepTitle>{t('Update your projects SDK version')}</StepTitle>
           <ProjectSdkUpdate
-            minSdkVersion="7.23.0 (sentry-cocoa)"
             project={project}
-            sdkUpdates={sdkUpdates}
+            sdkUpdates={sdkUpdates.data!}
+            organization={organization}
           />
         </li>
-      ) : null}
+      )}
       <li>
         <SetupPerformanceMonitoringStep href="https://docs.sentry.io/platforms/apple/guides/ios/performance/" />
       </li>
