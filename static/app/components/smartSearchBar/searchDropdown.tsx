@@ -316,6 +316,7 @@ const DropdownItem = ({
   return (
     <Fragment>
       <SearchListItem
+        role="option"
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
