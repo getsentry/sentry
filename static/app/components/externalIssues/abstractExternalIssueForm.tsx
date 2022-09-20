@@ -327,7 +327,7 @@ export default class AbstractExternalIssueForm<
       (accumulator, field: FormField) => {
         accumulator[field.name] =
           // Passing an empty array breaks MultiSelect.
-          field.multiple && field.default === [] ? '' : field.default;
+          field.multiple && field.default.length === 0 ? '' : field.default;
         return accumulator;
       },
       {}
