@@ -17,6 +17,8 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
+        self.now = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+        self.project = self.create_project()
         self.group.times_seen_pending = 0
 
     def test_until_not_reached(self):
@@ -60,8 +62,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         assert snooze.is_valid(test_rates=True)
 
     def test_user_delta_reached(self):
-        project = self.create_project()
-
         for i in range(0, 100):
             self.store_event(
                 data={
@@ -69,7 +69,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                     "timestamp": iso_format(before_now(seconds=1)),
                     "fingerprint": ["group1"],
                 },
-                project_id=project.id,
+                project_id=self.project.id,
             )
 
         group = list(Group.objects.all())[-1]
