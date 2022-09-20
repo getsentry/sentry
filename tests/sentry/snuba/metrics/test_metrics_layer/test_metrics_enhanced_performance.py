@@ -269,19 +269,19 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="count_transaction_with_condition",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": "is_unparameterized"},
                     alias="count_transaction_with_condition_is_unparameterized",
                 ),
                 MetricField(
                     op="count_transaction_with_condition",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": "is_null"},
                     alias="count_transaction_with_condition_is_null",
                 ),
                 MetricField(
                     op="count_transaction_with_condition",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": "has_value"},
                     alias="count_transaction_with_condition_has_value",
                 ),
@@ -351,7 +351,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="count_transaction_with_condition",
-                    metric_name=TransactionMetricKey.DURATION.value,
+                    metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": invalid_condition},
                     alias="count_transaction_with_condition_invalid",
                 ),
