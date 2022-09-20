@@ -73,12 +73,12 @@ class SlackEventEndpoint(SlackDMEndpoint):
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
-        if not slack_request.channel_name:
+        if not slack_request.channel_id:
             return
 
         payload = {
             "token": self._get_access_token(slack_request.integration),
-            "channel": slack_request.channel_name,
+            "channel": slack_request.channel_id,
             "user": slack_request.user_id,
             "text": "Link your Slack identity to Sentry to unfurl Discover charts.",
             **SlackPromptLinkMessageBuilder(associate_url).as_payload(),
