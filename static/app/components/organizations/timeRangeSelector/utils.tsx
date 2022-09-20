@@ -122,19 +122,16 @@ export function getRelativeSummary(
   }
 }
 
-function makeItem(
+export function makeItem(
   amount: number,
   unit: keyof typeof SUPPORTED_RELATIVE_PERIOD_UNITS,
+  label: (num: number) => string,
   index: number
 ) {
   return {
     value: `${amount}${unit}`,
     ['data-test-id']: `${amount}${unit}`,
-    label: (
-      <TimeRangeItemLabel>
-        {SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(amount)}
-      </TimeRangeItemLabel>
-    ),
+    label: <TimeRangeItemLabel>{label(amount)}</TimeRangeItemLabel>,
     searchKey: `${amount}${unit}`,
     index,
   };
@@ -153,9 +150,11 @@ function makeItem(
  *
  * If the input does not begin with a number, we do a simple filter of the preset options.
  */
-export const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
+export const _timeRangeAutoCompleteFilter = function (
   items,
-  filterValue
+  filterValue,
+  supportedPeriods,
+  supportedUnits
 ) {
   if (!items) {
     return [];
@@ -170,28 +169,44 @@ export const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
 
   // If there is a number w/o units, show all unit options
   if (userSuppliedAmountIsValid && !userSuppliedUnits) {
-    return SUPPORTED_RELATIVE_UNITS_LIST.map((unit, index) =>
-      makeItem(userSuppliedAmount, unit, index)
+    return supportedUnits.map((unit, index) =>
+      makeItem(userSuppliedAmount, unit, supportedPeriods[unit].label, index)
     );
   }
 
   // If there is a number followed by units, show the matching number/unit option
   if (userSuppliedAmountIsValid && userSuppliedUnits) {
-    const matchingUnit = SUPPORTED_RELATIVE_UNITS_LIST.find(unit => {
+    const matchingUnit = supportedUnits.find(unit => {
       if (userSuppliedUnits.length === 1) {
         return unit === userSuppliedUnits;
       }
 
-      return SUPPORTED_RELATIVE_PERIOD_UNITS[unit].searchKey.startsWith(
-        userSuppliedUnits
-      );
+      return supportedPeriods[unit].searchKey.startsWith(userSuppliedUnits);
     });
 
     if (matchingUnit) {
-      return [makeItem(userSuppliedAmount, matchingUnit, 0)];
+      return [
+        makeItem(
+          userSuppliedAmount,
+          matchingUnit,
+          supportedPeriods[matchingUnit].label,
+          0
+        ),
+      ];
     }
   }
 
   // Otherwise, do a normal filter search
   return autoCompleteFilter(items, filterValue);
+};
+export const timeRangeAutoCompleteFilter: typeof autoCompleteFilter = function (
+  items,
+  filterValue
+) {
+  return _timeRangeAutoCompleteFilter(
+    items,
+    filterValue,
+    SUPPORTED_RELATIVE_PERIOD_UNITS,
+    SUPPORTED_RELATIVE_UNITS_LIST
+  );
 };
