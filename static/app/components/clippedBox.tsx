@@ -12,7 +12,7 @@ type DefaultProps = {
   btnText?: string;
   /**
    * The "show more" button is 20px tall.
-   * Do not clip if there isn't more to hide after the button
+   * Do not clip if there is only a few more pixels
    */
   clipFlex?: number;
   clipHeight?: number;
