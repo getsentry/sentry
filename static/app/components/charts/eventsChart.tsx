@@ -422,6 +422,10 @@ export type EventsChartProps = {
    */
   interval?: string;
   /**
+   * Whether or not the request for processed baseline data has been resolved/terminated
+   */
+  loadingProcessedEventsBaseline?: boolean;
+  /**
    * Order condition when showing topEvents
    */
   orderby?: string;
@@ -538,6 +542,7 @@ class EventsChart extends React.Component<EventsChartProps> {
       withoutZerofill,
       fromDiscover,
       additionalSeries,
+      loadingProcessedEventsBaseline,
       ...props
     } = this.props;
 
@@ -584,7 +589,7 @@ class EventsChart extends React.Component<EventsChartProps> {
 
       return (
         <TransitionChart
-          loading={loading}
+          loading={loading || loadingProcessedEventsBaseline === true}
           reloading={reloading}
           height={height ? `${height}px` : undefined}
         >

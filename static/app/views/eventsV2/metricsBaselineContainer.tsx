@@ -81,6 +81,8 @@ export function MetricsBaselineContainer({
   >(undefined);
   const [processedTotal, setProcessedTotal] = useState<number | undefined>(undefined);
   const [loadingTotals, setLoadingTotals] = useState<boolean>(true);
+  const [loadingProcessedEventsBaseline, setLoadingProcessedEventsBaseline] =
+    useState<boolean>(true);
 
   useEffect(() => {
     let shouldCancelRequest = false;
@@ -140,6 +142,7 @@ export function MetricsBaselineContainer({
 
     if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
       setProcessedLineSeries(undefined);
+      setLoadingProcessedEventsBaseline(false);
       return undefined;
     }
 
@@ -215,15 +218,18 @@ export function MetricsBaselineContainer({
 
         setMetricsCompatible(true);
         setProcessedLineSeries(additionalSeries);
+        setLoadingProcessedEventsBaseline(false);
       })
       .catch(() => {
         if (shouldCancelRequest) {
           return;
         }
         setMetricsCompatible(false);
+        setLoadingProcessedEventsBaseline(false);
       });
     return () => {
       shouldCancelRequest = true;
+      setLoadingProcessedEventsBaseline(true);
     };
   }, [
     disableProcessedBaselineToggle,
@@ -253,6 +259,7 @@ export function MetricsBaselineContainer({
       }
       processedTotal={processedTotal}
       loadingProcessedTotals={loadingTotals}
+      loadingProcessedBaseline={loadingProcessedEventsBaseline}
       showBaseline={showBaseline}
       setShowBaseline={(value: boolean) => {
         router.push({

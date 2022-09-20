@@ -39,6 +39,7 @@ type ResultsChartProps = {
   organization: Organization;
   router: InjectedRouter;
   yAxisValue: string[];
+  loadingProcessedEventsBaseline?: boolean;
   processedLineSeries?: LineSeriesOption[];
 };
 
@@ -64,6 +65,7 @@ class ResultsChart extends Component<ResultsChartProps> {
       confirmedQuery,
       yAxisValue,
       processedLineSeries,
+      loadingProcessedEventsBaseline,
     } = this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
@@ -149,6 +151,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               fromDiscover
               disableableSeries={disableableSeries}
               additionalSeries={processedLineSeries}
+              loadingProcessedEventsBaseline={loadingProcessedEventsBaseline}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -176,6 +179,7 @@ type ContainerProps = {
   // chart footer props
   total: number | null;
   yAxis: string[];
+  loadingProcessedBaseline?: boolean;
   loadingProcessedTotals?: boolean;
   processedLineSeries?: LineSeriesOption[];
   processedTotal?: number;
@@ -243,8 +247,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       processedLineSeries,
       showBaseline,
       setShowBaseline,
-      processedTotal,
-      loadingProcessedTotals,
+      loadingProcessedBaseline,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -293,6 +296,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
             confirmedQuery={confirmedQuery}
             yAxisValue={yAxis}
             processedLineSeries={processedLineSeries}
+            loadingProcessedEventsBaseline={loadingProcessedBaseline}
           />
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
@@ -311,8 +315,6 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
           topEvents={eventView.topEvents ?? TOP_N.toString()}
           showBaseline={showBaseline}
           setShowBaseline={setShowBaseline}
-          processedTotal={processedTotal}
-          loadingProcessedTotals={loadingProcessedTotals}
         />
       </StyledPanel>
     );
