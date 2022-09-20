@@ -1966,8 +1966,6 @@ def _calculate_span_grouping(jobs, projects):
         # as the feature is under development.
         try:
             event = job["event"]
-            project = projects[job["project_id"]]
-
             groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
