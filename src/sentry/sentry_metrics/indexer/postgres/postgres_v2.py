@@ -1,5 +1,6 @@
 from functools import reduce
 from operator import or_
+from time import sleep
 from typing import Any, Mapping, Optional, Sequence, Set
 
 from django.conf import settings
@@ -61,29 +62,22 @@ class PGStringIndexerV2(StringIndexer):
         fairly normal event.
         """
         retry_count = 0
-        max_retries = 3
-        success = False
-        last_seen_exception: Optional[BaseException] = None
+        sleep_ms = 5
 
         with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
             # records might have be created between when we queried in `bulk_record` and the
             # attempt to create the rows down below.
-            while not success and retry_count + 1 < max_retries:
+            while retry_count + 1 < settings.SENTRY_POSTGRES_INDEXER_RETRY_COUNT:
                 try:
                     table.objects.bulk_create(new_records, ignore_conflicts=True)
-                    success = True
+                    sleep(sleep_ms / 1000 * (2**retry_count))
                 except OperationalError as e:
                     if e.pgcode == DEADLOCK_DETECTED:
-                        last_seen_exception = e
                         metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked")
                         retry_count += 1
                     else:
                         raise e
-            if not success:
-                metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked_no_recovery")
-                assert isinstance(last_seen_exception, BaseException)
-                raise last_seen_exception
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
