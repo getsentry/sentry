@@ -1,7 +1,7 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import theme from 'sentry/utils/theme';
 
 export type LoadingContainerProps = {
   children?: React.ReactNode;
@@ -19,18 +19,20 @@ type MaskProps = {
 export default function LoadingContainer({
   isLoading = false,
   isReloading = false,
-  maskBackgroundColor = theme.white,
+  maskBackgroundColor,
   className,
   children,
 }: LoadingContainerProps) {
+  const theme = useTheme();
   const isLoadingOrReloading = isLoading || isReloading;
+
   return (
     <Container className={className}>
       {isLoadingOrReloading && (
         <div>
           <LoadingMask
             isReloading={isReloading}
-            maskBackgroundColor={maskBackgroundColor}
+            maskBackgroundColor={maskBackgroundColor ?? theme.white}
           />
           <Indicator />
         </div>
