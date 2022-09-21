@@ -91,3 +91,22 @@ class DiscoverSavedQueryTest(TestCase):
 
         with pytest.raises(IntegrityError), transaction.atomic():
             DiscoverSavedQuery.objects.filter(id=new_query.id).update(is_default=True)
+
+    def test_user_can_have_default_query_in_multiple_orgs(self):
+        other_org = self.create_organization()
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            name="Test query",
+            query=self.query,
+            created_by=self.user,
+            is_default=True,
+        )
+        new_query = DiscoverSavedQuery.objects.create(
+            organization=other_org,
+            name="Test query 2",
+            query=self.query,
+            created_by=self.user,
+        )
+
+        # Does not error since the query is in another org
+        new_query.update(is_default=True)
