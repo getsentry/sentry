@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment, useCallback} from 'react';
+import {ComponentProps, Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -26,28 +26,21 @@ function ReplayMetaData({replayRecord}: Props) {
   const {projects} = useProjects();
   const [slug] = replaySlug.split(':');
 
-  const getErrorsTabHref = useCallback(
-    () => ({
-      pathname,
-      query: {
-        ...query,
-        t_main: 'console',
-        f_c_logLevel: 'error',
-        f_c_search: undefined,
-      },
-    }),
-    [pathname, query]
-  );
+  const errorsTabHref = {
+    pathname,
+    query: {
+      ...query,
+      t_main: 'console',
+      f_c_logLevel: 'error',
+      f_c_search: undefined,
+    },
+  };
 
   return (
     <KeyMetrics>
       {replayRecord ? (
         <ProjectBadge
-          project={
-            projects.find(p => p.id === replayRecord.projectId) || {
-              slug,
-            }
-          }
+          project={projects.find(p => p.id === replayRecord.projectId) || {slug}}
           avatarSize={16}
         />
       ) : (
@@ -77,10 +70,10 @@ function ReplayMetaData({replayRecord}: Props) {
       <KeyMetricData>
         {replayRecord ? (
           <Fragment>
-            <ErrorTag to={getErrorsTabHref} icon={null} type="error">
+            <ErrorTag to={errorsTabHref} icon={null} type="error">
               {replayRecord?.countErrors}
             </ErrorTag>
-            <Link to={getErrorsTabHref}>{t('Errors')}</Link>
+            <Link to={errorsTabHref}>{t('Errors')}</Link>
           </Fragment>
         ) : (
           <HeaderPlaceholder />
