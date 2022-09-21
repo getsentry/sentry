@@ -50,43 +50,46 @@ export enum EventGroupVariantType {
   SPAN_EVIDENCE = 'span-evidence',
 }
 
-type BaseVariant = {
+interface BaseVariant {
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
   key: string;
   type: string;
-};
+}
 
-type FallbackVariant = BaseVariant & {
+interface FallbackVariant extends BaseVariant {
   type: EventGroupVariantType.FALLBACK;
-};
+}
 
-type ChecksumVariant = BaseVariant & {
+interface ChecksumVariant extends BaseVariant {
   type: EventGroupVariantType.CHECKSUM;
-};
+}
 
-type ComponentVariant = BaseVariant & {
-  type: EventGroupVariantType.COMPONENT;
+interface HasComponentGrouping {
   client_values?: Array<string>;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
   matched_rule?: string;
   values?: Array<string>;
-};
+}
 
-type CustomFingerprintVariant = Omit<ComponentVariant, 'type'> & {
+interface ComponentVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.COMPONENT;
+}
+
+interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
-};
+}
 
-type SaltedComponentVariant = Omit<ComponentVariant, 'type'> & {
+interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
-};
+}
 
-type SpanEvidenceVariant = BaseVariant & {
+interface SpanEvidenceVariant extends BaseVariant {
   evidence: VariantEvidence;
   type: EventGroupVariantType.SPAN_EVIDENCE;
-};
+}
 
 export type EventGroupVariant =
   | FallbackVariant
