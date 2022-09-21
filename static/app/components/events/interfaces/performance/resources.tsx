@@ -16,7 +16,7 @@ type Props = {
   links: ResourceLink[];
 };
 
-// This section provides users with resources on how to resolve Performance Issues
+// This section provides users with resources on how to resolve an issue
 export function Resources(props: Props) {
   return (
     <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
