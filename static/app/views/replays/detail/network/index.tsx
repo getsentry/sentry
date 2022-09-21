@@ -307,7 +307,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     }
   }
 
-  ${/* sc-selector */ PanelTableHeader} {
+  ${PanelTableHeader} {
     min-height: 24px;
     border-radius: 0;
     color: ${p => p.theme.subText};

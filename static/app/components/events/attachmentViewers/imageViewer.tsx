@@ -17,7 +17,12 @@ type Props = Omit<ViewerProps, 'attachment'> & {
 function ImageViewer({className, onLoad, onError, ...props}: Props) {
   return (
     <Container className={className}>
-      <img src={getAttachmentUrl(props, true)} onLoad={onLoad} onError={onError} />
+      <img
+        data-test-id="image-viewer"
+        src={getAttachmentUrl(props, true)}
+        onLoad={onLoad}
+        onError={onError}
+      />
     </Container>
   );
 }

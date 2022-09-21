@@ -13,6 +13,12 @@ export enum DisplayModes {
   BAR = 'bar',
 }
 
+export enum DiscoverDatasets {
+  DISCOVER = 'discover',
+  METRICS = 'metrics',
+  METRICS_ENHANCED = 'metricsEnhanced',
+}
+
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
 
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
