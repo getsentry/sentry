@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -16,26 +15,20 @@ import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
   getResourceTypes,
   getStatusTypes,
   ISortConfig,
   NetworkSpan,
   sortNetwork,
-  UNKNOWN_STATUS,
 } from 'sentry/views/replays/detail/network/utils';
-import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   networkSpans: NetworkSpan[];
   replayRecord: ReplayRecord;
 };
-
-enum FilterTypesEnum {
-  RESOURCE_TYPE = 'resourceType',
-  STATUS = 'status',
-}
 
 type SortDirection = 'asc' | 'desc';
 
@@ -51,22 +44,18 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     getValue: row => row[sortConfig.by],
   });
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Filters<NetworkSpan>>({});
-
-  const filteredNetworkSpans = useMemo(
-    () =>
-      getFilteredItems({
-        items: networkSpans,
-        filters,
-        searchTerm,
-        searchProp: 'description',
-      }),
-    [filters, networkSpans, searchTerm]
-  );
+  const {
+    items,
+    status: selectedStatus,
+    type: selectedType,
+    searchTerm,
+    setStatus,
+    setType,
+    setSearchTerm,
+  } = useNetworkFilters({networkSpans});
 
   const currentNetworkSpan = getPrevReplayEvent({
-    items: filteredNetworkSpans.map(span => ({
+    items: items.map(span => ({
       ...span,
       id: createSpanId(span),
       timestamp: span.startTimestamp * 1000,
@@ -106,7 +95,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
-
   function handleSort(
     fieldName: string | keyof NetworkSpan,
     getValue?: (row: NetworkSpan) => any
@@ -122,11 +110,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     });
   }
 
-  const networkData = useMemo(
-    () => sortNetwork(filteredNetworkSpans, sortConfig),
-    [filteredNetworkSpans, sortConfig]
-  );
-
   const sortArrow = (sortedBy: string) => {
     return sortConfig.by === sortedBy ? (
       <IconArrow
@@ -136,28 +119,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       />
     ) : null;
   };
-
-  const handleFilters = useCallback(
-    (
-      selectedValues: (string | number)[],
-      key: string,
-      filter: (network: NetworkSpan) => boolean
-    ) => {
-      const filtersCopy = {...filters};
-
-      if (selectedValues.length === 0) {
-        delete filtersCopy[key];
-        setFilters(filtersCopy);
-        return;
-      }
-
-      setFilters({
-        ...filters,
-        [key]: filter,
-      });
-    },
-    [filters]
-  );
 
   const columns = [
     <SortItem key="status">
@@ -204,9 +165,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     const spanId = createSpanId(network);
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
+    const statusCode = network.data.statusCode;
 
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
     const columnProps = {
+      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
       isCurrent: currentNetworkSpan?.id === spanId,
       hasOccurred:
         currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
@@ -218,8 +181,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
     return (
       <Fragment key={spanId}>
-        <Item {...columnHandlers} {...columnProps}>
-          {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
+        <Item {...columnHandlers} {...columnProps} isStatusCode>
+          {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
         <Item {...columnHandlers} {...columnProps}>
           {network.description ? (
@@ -264,73 +227,39 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     <NetworkContainer>
       <NetworkFilters>
         <CompactSelect
-          triggerProps={{
-            prefix: t('Status'),
-          }}
-          triggerLabel={!filters[FilterTypesEnum.STATUS] ? t('Any') : null}
+          triggerProps={{prefix: t('Status')}}
+          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
-          options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
-            value: networkSpanStatusType,
-            label: networkSpanStatusType,
-          }))}
+          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
           size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(
-              selectedValues,
-              FilterTypesEnum.STATUS,
-              (networkSpan: NetworkSpan) => {
-                if (
-                  selectedValues.includes(UNKNOWN_STATUS) &&
-                  !defined(networkSpan.data.statusCode)
-                ) {
-                  return true;
-                }
-
-                return selectedValues.includes(networkSpan.data.statusCode);
-              }
-            );
-          }}
+          onChange={selected => setStatus(selected.map(_ => _.value))}
+          value={selectedStatus}
         />
         <CompactSelect
-          triggerProps={{
-            prefix: t('Type'),
-          }}
-          triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
+          triggerProps={{prefix: t('Type')}}
+          triggerLabel={selectedType.length === 0 ? t('Any') : null}
           multiple
-          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
-            value: networkSpanResourceType,
-            label: networkSpanResourceType,
-          }))}
+          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
           size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(
-              selectedValues,
-              FilterTypesEnum.RESOURCE_TYPE,
-              (networkSpan: NetworkSpan) => {
-                return selectedValues.includes(networkSpan.op.replace('resource.', ''));
-              }
-            );
-          }}
+          onChange={selected => setType(selected.map(_ => _.value))}
+          value={selectedType}
         />
         <SearchBar
           size="sm"
-          onChange={handleSearch}
+          onChange={setSearchTerm}
           placeholder={t('Search Network...')}
+          query={searchTerm}
         />
       </NetworkFilters>
       <StyledPanelTable
         columns={columns.length}
-        isEmpty={networkData.length === 0}
+        isEmpty={items.length === 0}
         emptyMessage={t('No related network requests found.')}
         headers={columns}
         disablePadding
         stickyHeaders
       >
-        {networkData.map(renderTableRow) || null}
+        {items.map(renderTableRow) || null}
       </StyledPanelTable>
     </NetworkContainer>
   );
@@ -369,6 +298,8 @@ const Item = styled('div')<{
   color?: ColorOrAlias;
   hasOccurred?: boolean;
   isCurrent?: boolean;
+  isStatusCode?: boolean;
+  isStatusError?: boolean;
   numeric?: boolean;
   timestampSort?: SortDirection;
 }>`
@@ -376,19 +307,21 @@ const Item = styled('div')<{
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${({hasOccurred = true, timestampSort, ...p}) => {
+  color: ${({hasOccurred = true, isStatusError, timestampSort, ...p}) => {
     if (hasOccurred || !timestampSort) {
-      return p.theme.gray400;
+      return isStatusError ? p.theme.red400 : p.theme.gray400;
     }
     return p.theme.gray300;
   }};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
-  border-bottom: ${({isCurrent = false, timestampSort, ...p}) => {
+  border-bottom: ${({isCurrent = false, isStatusError, timestampSort, ...p}) => {
     if (isCurrent && timestampSort === 'asc') {
       return `1px solid ${p.theme.purple300} !important`;
     }
-    return `1px solid ${p.theme.innerBorder}`;
+    return isStatusError
+      ? `1px solid ${p.theme.red100}`
+      : `1px solid ${p.theme.innerBorder}`;
   }};
 
   border-top: ${({isCurrent = false, timestampSort, ...p}) => {
@@ -452,7 +385,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     }
   }
 
-  ${/* sc-selector */ PanelTableHeader} {
+  ${PanelTableHeader} {
     min-height: 24px;
     border-radius: 0;
     color: ${p => p.theme.subText};

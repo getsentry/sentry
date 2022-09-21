@@ -6,7 +6,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {Column, isAggregateField, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
@@ -84,13 +84,23 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
+
   const useEvents = organization.features.includes(
     'performance-frontend-use-events-endpoint'
   );
+  const queryData = useDiscoverQuery({
+    eventView: getTotalsEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+    useEvents,
+  });
+
+  const {data: tableData, isLoading, error} = queryData;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
-
-  const totalsView = getTotalsEventView(organization, eventView);
 
   const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
     trackAdvancedAnalyticsEvent('performance_views.filter_dropdown.selection', {
@@ -113,35 +123,22 @@ function OverviewContentWrapper(props: ChildProps) {
     });
   };
 
+  const totals: TotalValues | null =
+    (tableData?.data?.[0] as {[k: string]: number}) ?? null;
+
   return (
-    <DiscoverQuery
-      eventView={totalsView}
-      orgSlug={organization.slug}
+    <SummaryContent
       location={location}
-      transactionThreshold={transactionThreshold}
-      transactionThresholdMetric={transactionThresholdMetric}
-      referrer="api.performance.transaction-summary"
-      useEvents={useEvents}
-    >
-      {({isLoading, error, tableData}) => {
-        const totals: TotalValues | null =
-          (tableData?.data?.[0] as {[k: string]: number}) ?? null;
-        return (
-          <SummaryContent
-            location={location}
-            organization={organization}
-            eventView={eventView}
-            projectId={projectId}
-            transactionName={transactionName}
-            isLoading={isLoading}
-            error={error}
-            totalValues={totals}
-            onChangeFilter={onChangeFilter}
-            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-          />
-        );
-      }}
-    </DiscoverQuery>
+      organization={organization}
+      eventView={eventView}
+      projectId={projectId}
+      transactionName={transactionName}
+      isLoading={isLoading}
+      error={error}
+      totalValues={totals}
+      onChangeFilter={onChangeFilter}
+      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+    />
   );
 }
 

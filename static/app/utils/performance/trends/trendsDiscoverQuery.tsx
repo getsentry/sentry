@@ -3,7 +3,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {
   TrendChangeType,
@@ -94,6 +93,6 @@ function EventsDiscoverQuery(props: EventProps) {
   );
 }
 
-export const TrendsEventsDiscoverQuery = withApi(withProjects(EventsDiscoverQuery));
+export const TrendsEventsDiscoverQuery = withProjects(EventsDiscoverQuery);
 
-export default withApi(withProjects(TrendsDiscoverQuery));
+export default withProjects(TrendsDiscoverQuery);

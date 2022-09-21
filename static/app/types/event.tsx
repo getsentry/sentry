@@ -36,23 +36,55 @@ export type EventGroupingConfig = {
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
+  CHECKSUM = 'checksum',
+  FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
 }
 
-export type EventGroupVariant = {
+interface BaseVariant {
   description: string | null;
   hash: string | null;
   hashMismatch: boolean;
-  key: EventGroupVariantKey;
-  type: EventGroupVariantType;
+  key: string;
+  type: string;
+}
+
+interface FallbackVariant extends BaseVariant {
+  type: EventGroupVariantType.FALLBACK;
+}
+
+interface ChecksumVariant extends BaseVariant {
+  type: EventGroupVariantType.CHECKSUM;
+}
+
+interface HasComponentGrouping {
   client_values?: Array<string>;
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
   matched_rule?: string;
   values?: Array<string>;
-};
+}
+
+interface ComponentVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.COMPONENT;
+}
+
+interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.CUSTOM_FINGERPRINT;
+}
+
+interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.SALTED_COMPONENT;
+}
+
+export type EventGroupVariant =
+  | FallbackVariant
+  | ChecksumVariant
+  | ComponentVariant
+  | SaltedComponentVariant
+  | CustomFingerprintVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
