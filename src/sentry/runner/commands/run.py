@@ -634,6 +634,25 @@ def metrics_parallel_consumer(**options):
     streamer.run()
 
 
+@run.command("billing-metrics-consumer")
+@log_options()
+@batching_kafka_options("billing-metrics-consumer")
+@configuration
+# what options do we need?
+# --process ???
+@click.option("--topic", default="snuba-generic-metrics", help="Topic to get metrics from")
+def metrics_billing_consumer(**options):
+    print(options)
+
+    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    print("hello hello!")
+
+    consumer = get_metrics_billing_consumer(**options)
+    print(consumer)
+    print(vars(consumer))
+
+
 @run.command("ingest-profiles")
 @log_options()
 @click.option("--topic", default="profiles", help="Topic to get profiles data from.")
@@ -653,6 +672,9 @@ def profiles_consumer(**options):
     "--topic", default="ingest-replay-recordings", help="Topic to get replay recording data from"
 )
 def replays_recordings_consumer(**options):
+
+    print(options)
+
     from sentry.replays.consumers import get_replays_recordings_consumer
 
     get_replays_recordings_consumer(**options).run()
@@ -668,6 +690,9 @@ def replays_recordings_consumer(**options):
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
+
+    print(options)
+
     from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
     from sentry.utils.metrics import global_tags
