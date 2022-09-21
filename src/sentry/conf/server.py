@@ -1584,6 +1584,9 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
+# Set this variable to your whitelisted domains to avoid SSRF vulnerability e.g. "*.example.com, api.google.com, "
+SENTRY_FETCH_FILE_WHITELIST = ""
+
 SENTRY_SCOPES = {
     "org:read",
     "org:write",

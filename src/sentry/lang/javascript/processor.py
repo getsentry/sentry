@@ -646,6 +646,25 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
             )
 
     if result is None:
+        domains_str = settings.SENTRY_FETCH_FILE_WHITELIST
+        if domains_str:
+            allowed = False
+            domains = domains_str.split(",")
+            for domain in domains:
+                domain = r"^https*:\/\/" + domain.strip().replace(".", r"\.").replace(
+                    "*", r"[^\.]+"
+                )
+
+                if re.match(domain, url):
+                    allowed = True
+            if not allowed:
+                error = {
+                    "type": EventError.JS_FETCH_FILE_NOT_ALLOWED,
+                    "url": http.expose_url(url),
+                    "domains": domains_str,
+                }
+                raise http.CannotFetch(error)
+
         headers = {}
         verify_ssl = False
         if project and is_valid_origin(url, project=project):

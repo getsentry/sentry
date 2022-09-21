@@ -28,6 +28,7 @@ class EventError:
     JS_INVALID_CONTENT = "js_invalid_content"
     JS_NO_COLUMN = "js_no_column"
     JS_MISSING_SOURCE = "js_no_source"
+    JS_FETCH_FILE_NOT_ALLOWED = "js_fetch_file_not_allowed"
     JS_INVALID_SOURCEMAP = "js_invalid_source"
     JS_TOO_MANY_REMOTE_SOURCES = "js_too_many_sources"
     JS_INVALID_SOURCE_ENCODING = "js_invalid_source_encoding"
@@ -74,6 +75,7 @@ class EventError:
         JS_INVALID_CONTENT: "Source file was not JavaScript",
         JS_NO_COLUMN: "Cannot expand sourcemap due to missing column information",
         JS_MISSING_SOURCE: "Source code was not found",
+        JS_FETCH_FILE_NOT_ALLOWED: "Domain not allowed for download",
         JS_INVALID_SOURCEMAP: "Sourcemap was invalid or not parseable",
         JS_TOO_MANY_REMOTE_SOURCES: "The maximum number of remote source requests was made",
         JS_INVALID_SOURCE_ENCODING: "Source file was not encoded properly",
