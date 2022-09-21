@@ -106,9 +106,8 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
-logger = logging.getLogger("sentry.events")
 logging.addLevelName(UNKNOWN_LOG_LEVEL, "UNKNOWN")  # used for performance issues
-
+logger = logging.getLogger("sentry.events")
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
