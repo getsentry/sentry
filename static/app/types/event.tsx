@@ -36,11 +36,11 @@ export type EventGroupingConfig = {
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
-  SALTED_COMPONENT = 'salted-component',
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
+  SALTED_COMPONENT = 'salted-component',
 }
 
 interface BaseVariant {
