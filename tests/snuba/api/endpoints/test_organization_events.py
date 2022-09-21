@@ -557,6 +557,26 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 0
 
+    def test_performance_issue_ids_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:undefined",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_issue_ids_array_with_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:[1,2,3,undefined]",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
     def test_performance_short_group_id(self):
         project = self.create_project(name="foo bar")
         perf_group = self.create_group(
