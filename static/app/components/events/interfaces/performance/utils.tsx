@@ -4,14 +4,14 @@ import {IssueType} from 'sentry/types';
 import {ResourceLink} from './resources';
 
 const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
-  [IssueType.PERFORMANCE_N_PLUS_ONE]: t(
+  [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: t(
     "N+1 queries are extraneous queries (N) caused by a single, initial query (+1). In the Span Evidence above, we've identified the parent span where the extraneous spans are located, the source span where the queries are initialized, and the extraneous spans themselves. To learn more about how to fix N+1 problems, check out these resources:"
   ),
   [IssueType.ERROR]: '',
 };
 
 const RESOURCE_LINKS: Record<IssueType, ResourceLink[]> = {
-  [IssueType.PERFORMANCE_N_PLUS_ONE]: [
+  [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: [
     {
       text: t('Finding and Fixing Django N+1 Problems'),
       link: 'https://blog.sentry.io/2020/09/14/finding-and-fixing-django-n-1-problems',

@@ -173,6 +173,7 @@ function EventEntry({
         />
       );
     case EntryType.RESOURCES:
+      console.log(group?.issueType);
       if (!group || !group.issueType) {
         return null;
       }
