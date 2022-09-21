@@ -3,7 +3,6 @@ from operator import or_
 from time import sleep
 from typing import Any, Mapping, Optional, Sequence, Set
 
-import sentry_sdk
 from django.conf import settings
 from django.db.models import Q
 from psycopg2 import OperationalError
@@ -64,6 +63,7 @@ class PGStringIndexerV2(StringIndexer):
         """
         retry_count = 0
         sleep_ms = 5
+        last_seen_exception: Optional[BaseException] = None
 
         with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
@@ -72,14 +72,18 @@ class PGStringIndexerV2(StringIndexer):
             while retry_count + 1 < settings.SENTRY_POSTGRES_INDEXER_RETRY_COUNT:
                 try:
                     table.objects.bulk_create(new_records, ignore_conflicts=True)
-                    sleep(sleep_ms / 1000 * (2**retry_count))
+                    return
                 except OperationalError as e:
                     if e.pgcode == DEADLOCK_DETECTED:
-                        sentry_sdk.capture_exception(e)
                         metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked")
                         retry_count += 1
+                        sleep(sleep_ms / 1000 * (2**retry_count))
+                        last_seen_exception = e
                     else:
                         raise e
+            # If we haven't returned after successful bulk create, we should re-raise the last
+            # seen exception
+            raise last_seen_exception
 
     def bulk_record(
         self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
