@@ -1,13 +1,16 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {initializeData} from 'sentry-test/performance/initializePerformanceData';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Error} from 'sentry/components/events/errors';
 import EventEntries from 'sentry/components/events/eventEntries';
+import {Group, IssueCategory} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-const {organization, project, router} = initializeOrg();
+const {organization, project, router} = initializeData({
+  features: ['performance-issues'],
+});
 
 const api = new MockApiClient();
 
@@ -291,6 +294,115 @@ describe('GroupEventEntries', function () {
           expect(screen.getByText('Sentry Gradle Plugin')).toBeInTheDocument();
         });
       });
+    });
+  });
+  describe('Rendering', function () {
+    it('renders the Resources section for Performance Issues', function () {
+      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+
+      const newEvent = {
+        ...event,
+        entries: [{type: EntryType.SPANS, data: []}],
+      };
+
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <EventEntries
+            organization={organization}
+            event={newEvent}
+            project={project}
+            location={location}
+            api={api}
+            group={group}
+          />
+        </OrganizationContext.Provider>
+      );
+
+      const resourcesHeadingText = screen.getByRole('heading', {
+        name: /resources and whatever/i,
+      });
+
+      expect(resourcesHeadingText).toBeInTheDocument();
+    });
+
+    it('injects the resources section in the correct spot', function () {
+      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
+      group.issueCategory = IssueCategory.PERFORMANCE;
+      const sampleBreadcrumb = {
+        type: 'default',
+        timestamp: '2022-09-19T19:29:32.261000Z',
+        level: 'info',
+        message: 'span.css-1hs7lfd.e1b8u3ky1 > svg',
+        category: 'ui.click',
+        data: null,
+        event_id: null,
+      };
+
+      const newEvent = {
+        ...event,
+        title: 'test',
+        perfProblem: {parentSpanIds: ['a'], causeSpanIds: ['a'], offenderSpanIds: ['a']},
+        entries: [
+          {type: EntryType.SPANS, data: [{span_id: 'a'}]},
+          {type: EntryType.BREADCRUMBS, data: {values: [sampleBreadcrumb]}},
+          {type: EntryType.REQUEST, data: {}},
+        ],
+      };
+
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <EventEntries
+              organization={organization}
+              event={newEvent}
+              project={project}
+              location={location}
+              api={api}
+              group={group}
+            />
+          </RouteContext.Provider>
+        </OrganizationContext.Provider>
+      );
+
+      const eventEntriesContainer = screen.getByTestId('event-entries-loading-false');
+      const spanEvidenceHeading = within(eventEntriesContainer).getByRole('heading', {
+        name: /span evidence/i,
+      });
+      const breadcrumbsHeading = within(eventEntriesContainer).getByRole('heading', {
+        name: /breadcrumbs/i,
+      });
+      const resourcesHeadingText = screen.getByRole('heading', {
+        name: /resources and whatever/i,
+      });
+
+      expect(spanEvidenceHeading).toBeInTheDocument();
+      expect(breadcrumbsHeading).toBeInTheDocument();
+      expect(resourcesHeadingText).toBeInTheDocument();
+
+      expect(
+        within(eventEntriesContainer.children[0] as HTMLElement).getByRole('heading', {
+          name: /span evidence/i,
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        within(eventEntriesContainer.children[1] as HTMLElement).getByRole('heading', {
+          name: /breadcrumbs/i,
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        within(eventEntriesContainer.children[2] as HTMLElement).getByRole('heading', {
+          name: /resources and whatever/i,
+        })
+      ).toBeInTheDocument();
     });
   });
 });
