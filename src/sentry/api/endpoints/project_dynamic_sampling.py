@@ -307,7 +307,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "start": query_time_range.start_time,
                     "end": query_time_range.end_time,
                     "project_id": list(projects_in_org),
-                    "organization_id": project.organization,
+                    "organization_id": project.organization.id,
                 },
                 limit=20,
                 referrer="dynamic-sampling.distribution.fetch-project-breakdown",
