@@ -86,8 +86,14 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
+  const transactionsSort = decodeScalar(location.query.sort, '-count()');
   const profileFilters = useProfileFilters({query: '', selection});
-  const transactions = useProfileTransactions({cursor, query, selection});
+  const transactions = useProfileTransactions({
+    cursor,
+    query,
+    selection,
+    sort: transactionsSort,
+  });
   const {projects} = useProjects();
 
   useEffect(() => {
@@ -179,6 +185,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                           : null
                       }
                       isLoading={transactions.type === 'loading'}
+                      sort={transactionsSort}
                       transactions={
                         transactions.type === 'resolved'
                           ? transactions.data.transactions
