@@ -112,7 +112,7 @@ const NavMenuToggle = styled(Button)`
   &:active {
     color: ${p => p.theme.textColor};
   }
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
 `;
@@ -133,7 +133,7 @@ const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
   background: ${p => p.theme.background};
   border-right: 1px solid ${p => p.theme.border};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
     position: fixed;
     top: ${p => p.offsetTop}px;
@@ -147,7 +147,7 @@ const SidebarWrapper = styled('div')<{isVisible: boolean; offsetTop: number}>`
 
 const NavMask = styled('div')<{isVisible: boolean}>`
   display: none;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: ${p => (p.isVisible ? 'block' : 'none')};
     background: rgba(0, 0, 0, 0.35);
     height: 100%;
@@ -166,6 +166,10 @@ const Content = styled('div')`
   flex: 1;
   padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding: ${space(2)};
+  }
 
   /**
    * PageContent is not normally used in settings but <PermissionDenied /> uses it under the hood.

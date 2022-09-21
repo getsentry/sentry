@@ -166,7 +166,7 @@ type ContainerProps = {
   location: Location;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
-  onIntervalChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
@@ -176,7 +176,9 @@ type ContainerProps = {
   // chart footer props
   total: number | null;
   yAxis: string[];
+  loadingProcessedTotals?: boolean;
   processedLineSeries?: LineSeriesOption[];
+  processedTotal?: number;
 };
 
 type ContainerState = {
@@ -241,6 +243,8 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       processedLineSeries,
       showBaseline,
       setShowBaseline,
+      processedTotal,
+      loadingProcessedTotals,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -307,6 +311,8 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
           topEvents={eventView.topEvents ?? TOP_N.toString()}
           showBaseline={showBaseline}
           setShowBaseline={setShowBaseline}
+          processedTotal={processedTotal}
+          loadingProcessedTotals={loadingProcessedTotals}
         />
       </StyledPanel>
     );

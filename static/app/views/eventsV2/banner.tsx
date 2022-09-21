@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import tourAlert from 'sentry-images/spot/discover-tour-alert.svg';
 import tourExplore from 'sentry-images/spot/discover-tour-explore.svg';
 import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
@@ -13,7 +15,6 @@ import FeatureTourModal, {
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
@@ -91,6 +92,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
     trackAdvancedAnalyticsEvent('discover_v2.tour.close', {organization, step, duration});
   }
 
+  const theme = useTheme();
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   return (

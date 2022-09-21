@@ -8,6 +8,7 @@ import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -20,7 +21,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
-import FirstEventFooter from './components/firstEventFooter';
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
@@ -78,10 +78,6 @@ function IntegrationSetup(props: Props) {
       Platform documentation is not rendered in for tests in CI
     </Alert>
   );
-
-  const handleFullDocsClick = () => {
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
-  };
 
   const renderSetupInstructions = () => {
     const currentPlatform = project?.platform ?? 'other';
@@ -182,12 +178,16 @@ function IntegrationSetup(props: Props) {
           platform={project.platform}
           isOnboarding
         />
-        <FirstEventFooter
-          project={project}
-          organization={organization}
-          docsLink="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" // TODO: make dynamic based on the integration
-          docsOnClick={handleFullDocsClick}
-        />
+        <ExternalLink
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {
+              organization,
+            });
+          }}
+          href="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/"
+        >
+          {t('View Full Documentation')}
+        </ExternalLink>
       </Fragment>
     );
   };

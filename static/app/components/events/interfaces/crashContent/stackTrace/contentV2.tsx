@@ -1,17 +1,17 @@
 import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
+
+import StacktracePlatformIcon from './platformIcon';
 
 type Props = {
   data: StacktraceType;
@@ -243,13 +243,11 @@ function Content({
     return [...convertedFrames].reverse();
   }
 
+  const platformIcon = stackTracePlatformIcon(platform, frames);
+
   return (
     <Wrapper className={getClassName()} data-test-id="stack-trace-content-v2">
-      <StyledPlatformIcon
-        platform={stackTracePlatformIcon(platform, frames)}
-        size="20px"
-        style={{borderRadius: '3px 0 0 3px'}}
-      />
+      <StacktracePlatformIcon platform={platformIcon} />
       <StyledList>{renderConvertedFrames()}</StyledList>
     </Wrapper>
   );
@@ -259,12 +257,6 @@ export default Content;
 
 const Wrapper = styled('div')`
   position: relative;
-`;
-
-const StyledPlatformIcon = styled(PlatformIcon)`
-  position: absolute;
-  margin-top: -1px;
-  left: -${space(3)};
 `;
 
 const StyledList = styled(List)`
