@@ -149,15 +149,19 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   const renderTableRow = (network: NetworkSpan, index: number) => {
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
+    const statusCode = network.data.statusCode;
 
+    const columnProps = {
+      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+    };
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
 
     return (
       <Fragment key={index}>
-        <Item {...columnHandlers}>
-          {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
+        <Item {...columnHandlers} {...columnProps} isStatusCode>
+          {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           {network.description ? (
             <Tooltip
               title={network.description}
@@ -173,10 +177,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
             <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {defined(network.data.size) ? (
             <FileSize bytes={network.data.size} />
           ) : (
@@ -184,10 +188,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           )}
         </Item>
 
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
             {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
           </UnstyledButton>
@@ -253,14 +257,21 @@ const NetworkFilters = styled('div')`
   }
 `;
 
-const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
+const Item = styled('div')<{
+  center?: boolean;
+  color?: ColorOrAlias;
+  isStatusCode?: boolean;
+  isStatusError?: boolean;
+  numeric?: boolean;
+}>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => p.theme[p.color || 'subText']};
+  color: ${p =>
+    p.isStatusCode && p.isStatusError ? p.theme.red400 : p.theme[p.color || 'subText']};
   padding: ${space(0.75)} ${space(1.5)};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => (p.isStatusError ? p.theme.red100 : p.theme.background)};
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
 `;
