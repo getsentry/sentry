@@ -209,8 +209,6 @@ export enum EntryType {
   THREADS = 'threads',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
-  SPANTREE = 'spantree',
-  PERFORMANCE = 'performance',
   RESOURCES = 'resources',
 }
 
