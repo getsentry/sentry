@@ -13,27 +13,26 @@ export interface Props {
 }
 
 const PerfEventsTable = (props: Props) => {
-  const eventView: EventView = EventView.fromSavedQuery({
-    query: `performance.issue_ids:${props.issueId}`,
-    fields: [
-      'id',
-      'transaction',
-      'user.display',
-      'span_ops_breakdown.relative',
-      'transaction.duration',
-      'trace',
-      'timestamp',
-      'spans.browser',
-      'spans.db',
-      'spans.http',
-      'spans.resource',
-      'spans.ui',
-    ],
-    id: undefined,
-    name: 'All events',
-    projects: [],
-    version: 1,
-  });
+  const eventView: EventView = EventView.fromSavedQueryOrLocation(
+    undefined,
+    props.location
+  );
+
+  eventView.fields = [
+    {field: 'id'},
+    {field: 'transaction'},
+    {field: 'user.display'},
+    {field: 'span_ops_breakdown.relative'},
+    {field: 'transaction.duration'},
+    {field: 'trace'},
+    {field: 'timestamp'},
+    {field: 'spans.browser'},
+    {field: 'spans.db'},
+    {field: 'spans.http'},
+    {field: 'spans.resource'},
+    {field: 'spans.ui'},
+  ];
+  eventView.query = `performance.issue_ids:${props.issueId}`;
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
