@@ -184,8 +184,10 @@ def _symbolicate(
 
     while True:
         try:
-            return symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
-                "stacktraces", []
+            return list(
+                symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
+                    "stacktraces", []
+                )
             )
         except RetrySymbolication as e:
             if (
@@ -203,10 +205,11 @@ def _symbolicate(
         except Exception as e:
             sentry_sdk.capture_exception(e)
             break
+    return []
 
 
 @metrics.wraps("process_profile.symbolicate.process")
-def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]):
+def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> None:
     if "version" in profile.get("profile", {}):
         profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
@@ -219,24 +222,24 @@ def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]):
     profile["profile"] = profile.pop("sampled_profile")
 
 
-def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]):
+def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
     if profile["platform"] == "rust":
         for frame in stacktraces[0]["frames"]:
             frame.pop("pre_context", None)
             frame.pop("context_line", None)
             frame.pop("post_context", None)
 
-        def truncate_stack_needed(frame):
-            return frame.get("function", "") == "perf_signal_handler"
+        def truncate_stack_needed(frame: dict[str, Any]) -> bool:
+            return bool(frame.get("function", "") == "perf_signal_handler")
 
     elif profile["platform"] == "cocoa":
 
-        def truncate_stack_needed(frame):
-            return frame.get("instruction_addr", "") == "0xffffffffc"
+        def truncate_stack_needed(frame: dict[str, Any]) -> bool:
+            return bool(frame.get("instruction_addr", "") == "0xffffffffc")
 
     else:
 
-        def truncate_stack_needed(frame):
+        def truncate_stack_needed(frame: dict[str, Any]) -> bool:
             return False
 
     for sample in profile["profile"]["samples"]:
@@ -252,7 +255,7 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             profile["profile"]["stacks"][stack_id] = stack[:-2]
 
 
-def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]):
+def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]) -> None:
     for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
         for frame in symbolicated["frames"]:
             frame.pop("pre_context", None)
