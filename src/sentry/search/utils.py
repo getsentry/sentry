@@ -114,9 +114,25 @@ def parse_size(value, size):
         byte = size_value * 1000**7
     elif size == "yb":
         byte = size_value * 1000**8
+    elif size == "kib":
+        byte = size_value * 1024
+    elif size == "mib":
+        byte = size_value * 1024**2
+    elif size == "gib":
+        byte = size_value * 1024**3
+    elif size == "tib":
+        byte = size_value * 1024**4
+    elif size == "pib":
+        byte = size_value * 1024**5
+    elif size == "eib":
+        byte = size_value * 1024**6
+    elif size == "zib":
+        byte = size_value * 1024**7
+    elif size == "yib":
+        byte = size_value * 1024**8
     else:
         raise InvalidQuery(
-            f"{size} is not a valid size type, must be bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb"
+            f"{size} is not a valid size type, must be bit, bytes, kb, mb, gb, tb, pb, eb, zb, yb, kib, mib, gib, tib, pib, eib, zib, yib"
         )
 
     return byte
