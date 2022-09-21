@@ -42,7 +42,6 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         hashes = event.get_hashes()
 
         try:
-            # TODO: Check feature flag
             if event.get_event_type() == "transaction":
                 # Transactions events are grouped using performance detection. They
                 # are not subject to grouping configs, and the only relevant
