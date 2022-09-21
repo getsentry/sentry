@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -151,6 +151,9 @@ describe('ProjectAlertsCreate', function () {
           },
         })
       );
+
+      // updateOnboardingTask triggers an out of band state update
+      await act(tick);
     });
 
     it('can remove triggers', async function () {
@@ -198,6 +201,9 @@ describe('ProjectAlertsCreate', function () {
           },
         })
       );
+
+      // updateOnboardingTask triggers an out of band state update
+      await act(tick);
     });
 
     it('can remove actions', async function () {
@@ -235,6 +241,9 @@ describe('ProjectAlertsCreate', function () {
           },
         })
       );
+
+      // updateOnboardingTask triggers an out of band state update
+      await act(tick);
     });
 
     describe('updates and saves', function () {

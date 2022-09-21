@@ -17,6 +17,7 @@ type ProfileTransactionsResult = {
 
 interface UseProfileTransactionsOptions {
   query: string;
+  sort: string;
   cursor?: string;
   limit?: number;
   selection?: PageFilters;
@@ -24,6 +25,7 @@ interface UseProfileTransactionsOptions {
 
 function useProfileTransactions({
   cursor,
+  sort,
   limit,
   query,
   selection,
@@ -44,7 +46,7 @@ function useProfileTransactions({
 
     setRequestState({type: 'loading'});
 
-    fetchTransactions(api, organization, {cursor, limit, query, selection})
+    fetchTransactions(api, organization, {cursor, limit, query, selection, sort})
       .then(([transactions, , response]) => {
         setRequestState({
           type: 'resolved',
@@ -63,7 +65,7 @@ function useProfileTransactions({
       });
 
     return () => api.clear();
-  }, [api, organization, cursor, limit, query, selection]);
+  }, [api, organization, cursor, limit, query, selection, sort]);
 
   return requestState;
 }
@@ -76,11 +78,13 @@ function fetchTransactions(
     limit,
     query,
     selection,
+    sort,
   }: {
     cursor: string | undefined;
     limit: number | undefined;
     query: string;
     selection: PageFilters;
+    sort: string;
   }
 ) {
   return api.requestPromise(
@@ -90,6 +94,7 @@ function fetchTransactions(
       includeAllArgs: true,
       query: {
         cursor,
+        sort,
         query,
         per_page: limit,
         project: selection.projects,
