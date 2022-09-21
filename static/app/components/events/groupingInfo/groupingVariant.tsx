@@ -173,10 +173,10 @@ class GroupVariant extends Component<Props, State> {
             />
           </TextWithQuestionTooltip>,
         ]);
-        data.push(['Span Operation', variant.evidence?.op]);
-        data.push(['Parent Span Hashes', variant.evidence?.parent_span_hashes]);
-        data.push(['Source Span Hashes', variant.evidence?.cause_span_hashes]);
-        data.push(['Offender Span Hashes', variant.evidence?.offender_span_hashes]);
+        data.push(['Span Operation', variant.evidence.op]);
+        data.push(['Parent Span Hashes', variant.evidence.parent_span_hashes]);
+        data.push(['Source Span Hashes', variant.evidence.cause_span_hashes]);
+        data.push(['Offender Span Hashes', variant.evidence.offender_span_hashes]);
         break;
       default:
         break;
