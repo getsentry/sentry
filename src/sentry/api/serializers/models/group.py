@@ -873,7 +873,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             error_issue_list,
-            self.start or self.end or self.conditions,
+            bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
 
@@ -889,7 +889,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 environment_ids=self.environment_ids,
             ),
             perf_issue_list,
-            self.start or self.end or self.conditions,
+            bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
 
@@ -940,7 +940,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
             start=start,
             end=end,
             groupby=["group_id"],
-            conditions=conditions,
+            conditions=[
+                [["notEmpty", ["group_ids"]], "=", 1],
+                [["hasAny", ["group_ids", ["array", group_ids]]], "=", 1],
+            ]
+            + conditions,
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
