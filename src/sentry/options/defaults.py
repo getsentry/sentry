@@ -533,3 +533,6 @@ register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
 register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
+
+#
+register("buffer.redis-user-memorystore", default=0.0)

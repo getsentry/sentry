@@ -523,7 +523,7 @@ BROKER_TRANSPORT_OPTIONS = {}
 # Ensure workers run async by default
 # in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases
-CELERY_ALWAYS_EAGER = False
+CELERY_ALWAYS_EAGER = True
 
 # Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
 # this works.
@@ -1382,8 +1382,24 @@ SENTRY_ENABLE_INVITES = True
 SENTRY_ALLOW_ORIGIN = None
 
 # Buffer backend
-SENTRY_BUFFER = "sentry.buffer.Buffer"
-SENTRY_BUFFER_OPTIONS = {}
+# SENTRY_BUFFER = "sentry.buffer.Buffer"
+# SENTRY_BUFFER_OPTIONS = {}
+
+SENTRY_BUFFER = "sentry.utils.services.ServiceDelegator"
+SENTRY_BUFFER_OPTIONS = {
+    "backend_base": "sentry.buffer.base.Buffer",
+    "backends": {
+        "default": {
+            "path": "sentry.buffer.redis.RedisBuffer",
+        },
+        "memorystore": {
+            "path": "sentry.buffer.redis.RedisNoopProcess",
+            "options": {"cluster": "buffer-memorystore"},
+        },
+    },
+    "selector_func": "sentry.buffer.redis.selector_func",
+}
+
 
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional

@@ -1,4 +1,5 @@
 import pickle
+import random
 import threading
 from datetime import datetime
 from time import time
@@ -7,6 +8,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 
+from sentry import options
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
@@ -324,3 +326,27 @@ class RedisBuffer(Buffer):
             super().process(model, incr_values, filters, extra_values, signal_only)
         finally:
             client.delete(lock_key)
+
+
+def selector_func(context, method, callargs):
+    print(f"context={context}")
+    print(f"method={method}")
+    print(f"callargs={callargs}")
+    backends = ["default"]
+    if random.random() < options.get("buffer.redis-user-memorystore"):
+        backends = ["default", "memorystore"]
+    print(f"backends={backends}")
+    return backends
+
+
+class NoopProcess:
+    def process(self, model, columns, filters, extra=None, signal_only=None):
+        print("noop process")
+        pass
+
+
+class RedisNoopProcess(RedisBuffer, NoopProcess):
+    """
+    buffer implementation that executes all the redis commands but not the
+    actuall database mutations or signal.
+    """
