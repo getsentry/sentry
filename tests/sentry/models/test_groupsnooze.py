@@ -1,11 +1,12 @@
-import itertools
 import functools
+import itertools
+import random
 from datetime import datetime, timedelta
+from typing import Optional, Sequence
 from unittest import mock
 
 import pytest
 import pytz
-import random
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -16,7 +17,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
-from typing import Optional, Sequence
 
 
 @region_silo_test
