@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_type_status_l_074196b6_idx" ON "sentry_groupedmessage" ("project_id", "type", "status", "last_seen", "id");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_type_status_l_074196b6_idx" ON "sentry_groupedmessage" ("project_id", "status", "type", "last_seen", "id");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_type_status_l_074196b6_idx",
                     hints={"tables": ["sentry_groupedmessage"]},
@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
                     index_together={
                         ("project", "status", "last_seen", "id"),
                         ("project", "first_release"),
-                        ("project", "type", "status", "last_seen", "id"),
+                        ("project", "status", "type", "last_seen", "id"),
                         ("project", "id"),
                     },
                 ),
