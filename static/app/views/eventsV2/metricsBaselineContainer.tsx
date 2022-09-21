@@ -15,12 +15,14 @@ import EventView from 'sentry/utils/discover/eventView';
 import {aggregateMultiPlotType} from 'sentry/utils/discover/fields';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import localStorage from 'sentry/utils/localStorage';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import theme from 'sentry/utils/theme';
 import {transformSeries} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {SeriesWithOrdering} from '../dashboardsV2/datasetConfig/errorsAndTransactions';
 
+import {PROCESSED_BASELINE_TOGGLE_KEY} from './chartFooter';
 import ResultsChart from './resultsChart';
 import {usesTransactionsDataset} from './utils';
 
@@ -75,7 +77,11 @@ export function MetricsBaselineContainer({
     ? getUtcToLocalDateObject(pageFilters.datetime.end)
     : null;
 
-  const showBaseline = location.query.baseline === '0' ? false : true;
+  const showBaseline =
+    (location.query.baseline ?? localStorage.getItem(PROCESSED_BASELINE_TOGGLE_KEY)) ===
+    '0'
+      ? false
+      : true;
   const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
