@@ -1,4 +1,4 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Error} from 'sentry/components/events/errors';
@@ -8,8 +8,9 @@ import {EntryType, Event} from 'sentry/types/event';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
-const {organization, project, router} = initializeOrg();
-organization.features.push('performance-issues');
+const {organization, project, router} = initializeData({
+  features: ['performance-issues'],
+});
 
 const api = new MockApiClient();
 
