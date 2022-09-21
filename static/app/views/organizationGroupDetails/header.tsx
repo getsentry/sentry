@@ -28,7 +28,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Event, Group, IssueCategory, Organization, User} from 'sentry/types';
+import {Event, Group, IssueCategory, Organization, Project, User} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getMessage} from 'sentry/utils/events';
@@ -46,6 +46,7 @@ type Props = {
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
+  project: Project;
   replaysCount: number | undefined;
   event?: Event;
 };
@@ -79,9 +80,9 @@ function GroupHeader({
   organization,
   replaysCount,
   event,
+  project,
 }: Props) {
   const location = useLocation();
-  const {project} = group;
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
     useCallback(() => {
