@@ -32,12 +32,6 @@ export type EventGroupingConfig = {
   risk: number;
   strategies: string[];
 };
-export type VariantEvidence = {
-  cause_span_hashes?: string[];
-  offender_span_hashes?: string[];
-  op?: string;
-  parent_span_hashes?: string[];
-};
 
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
@@ -47,7 +41,6 @@ export enum EventGroupVariantType {
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
-  SPAN_EVIDENCE = 'span-evidence',
 }
 
 interface BaseVariant {
@@ -86,18 +79,12 @@ interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
 
-interface SpanEvidenceVariant extends BaseVariant {
-  evidence: VariantEvidence;
-  type: EventGroupVariantType.SPAN_EVIDENCE;
-}
-
 export type EventGroupVariant =
   | FallbackVariant
   | ChecksumVariant
   | ComponentVariant
   | SaltedComponentVariant
-  | CustomFingerprintVariant
-  | SpanEvidenceVariant;
+  | CustomFingerprintVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
