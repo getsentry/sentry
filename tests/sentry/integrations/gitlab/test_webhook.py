@@ -45,7 +45,9 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_EVENT="lol",
         )
         assert response.status_code == 400
-        assert response.reason_phrase == "Gitlab sent us a payload without HTTP_X_GITLAB_TOKEN."
+        assert (
+            response.reason_phrase == "The customer needs to set a Secret Token in their webhook."
+        )
 
     def test_unknown_event(self):
         response = self.client.post(
@@ -67,7 +69,7 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         assert response.status_code == 400
-        assert response.reason_phrase == "Gitlab sent us a malformed HTTP_X_GITLAB_TOKEN."
+        assert response.reason_phrase == "The customer's Secret Token is malformed."
 
     def test_valid_id_invalid_secret(self):
         response = self.client.post(

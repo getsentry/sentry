@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception, capture_message
+from sentry_sdk import capture_exception
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -180,6 +180,12 @@ class PushEventWebhook(Webhook):
                 pass
 
 
+def validate_secrets(secret_one, secret_two):
+    if not constant_time_compare(secret_one, secret_two):
+        # This forces a stack trace to be produced
+        raise Exception("The webhook secrets do not match.")
+
+
 class GitlabWebhookEndpoint(View):
     provider = "gitlab"
 
@@ -207,14 +213,14 @@ class GitlabWebhookEndpoint(View):
             capture_exception(e)
             return HttpResponse(
                 status=400,
-                reason="Gitlab sent us a payload without HTTP_X_GITLAB_TOKEN.",
+                reason="The customer needs to set a Secret Token in their webhook.",
             )
         except ValueError as e:
             logger.info("gitlab.webhook.malformed-gitlab-token", extra={"token": token})
             capture_exception(e)
             return HttpResponse(
                 status=400,
-                reason="Gitlab sent us a malformed HTTP_X_GITLAB_TOKEN.",
+                reason="The customer's Secret Token is malformed.",
             )
         except Exception as e:
             capture_exception(e)
@@ -227,19 +233,28 @@ class GitlabWebhookEndpoint(View):
                 .prefetch_related("organizations")
                 .get()
             )
-        except Integration.DoesNotExist:
+        except Integration.DoesNotExist as e:
             logger.info(
                 "gitlab.webhook.invalid-organization",
                 extra={"external_id": request.META["HTTP_X_GITLAB_TOKEN"]},
             )
-            return HttpResponse(status=400)
-
-        if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
-            logger.info(
-                "gitlab.webhook.invalid-token-secret", extra={"integration_id": integration.id}
+            capture_exception(e)
+            return HttpResponse(
+                status=400, reason="There is not integration that matches your organization."
             )
-            # XXX: Look into using set_context
-            capture_message("Gitlab's webhook secret does not match.")
+
+        try:
+            validate_secrets(secret, integration.metadata["webhook_secret"])
+        except Exception as e:
+            logger.info(
+                "gitlab.webhook.invalid-token-secret",
+                extra={
+                    "user-agent": request.META.get("HTTP_USER_AGENT"),
+                    "instance": integration.instance,
+                    "integration_id": integration.id,
+                },
+            )
+            capture_exception(e)
             return HttpResponse(
                 status=400,
                 reason="Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens.",
