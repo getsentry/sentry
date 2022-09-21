@@ -29,6 +29,9 @@ logger = logging.getLogger("tasks.commit_context")
 def process_commit_context(
     event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
+    """
+    For a given event, look at the first in_app frame, and if we can find who modified the line, we can then update who is assigned to the issue.
+    """
     lock = locks.get(
         f"process-commit-context:{group_id}", duration=10, name="process_commit_context"
     )

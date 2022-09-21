@@ -23,6 +23,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author, ReleaseSerializer
 from sentry.eventstore.models import Event
+from sentry.integrations.utils.commit_context import get_stacktrace_path_from_event_frame
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.models.groupowner import get_release_committers_for_group
 from sentry.utils import metrics
@@ -265,12 +266,7 @@ def get_event_file_committers(
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
-        str(f)
-        for f in (
-            frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
-            for frame in app_frames
-        )
-        if f
+        str(f) for f in (get_stacktrace_path_from_event_frame(frame) for frame in app_frames) if f
     }
 
     file_changes: Sequence[CommitFileChange] = (
@@ -285,7 +281,7 @@ def get_event_file_committers(
         {
             "frame": str(frame),
             "commits": commit_path_matches.get(
-                str(frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")),
+                str(get_stacktrace_path_from_event_frame(frame)),
                 [],
             ),
         }
