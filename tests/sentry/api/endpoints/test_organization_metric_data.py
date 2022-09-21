@@ -1169,7 +1169,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
-    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_one_field_orderby_with_no_groupby_returns_one_row(self):
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
