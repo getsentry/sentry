@@ -241,6 +241,26 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
     @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    def test_ibyte_size_filter(self, mock_type):
+        config = SearchConfig()
+        mock_type.return_value = "gibibyte"
+
+        assert parse_search_query(
+            "measurements.foo:>5gib measurements.bar:<3pib", config=config
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="measurements.foo"),
+                operator=">",
+                value=SearchValue(5 * 1024**3),
+            ),
+            SearchFilter(
+                key=SearchKey(name="measurements.bar"),
+                operator="<",
+                value=SearchValue(3 * 1024**5),
+            ),
+        ]
+
+    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
     def test_aggregate_size_filter(self, mock_type):
         config = SearchConfig()
         mock_type.return_value = "gigabyte"
@@ -257,6 +277,26 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="p100(measurements.bar)"),
                 operator="<",
                 value=SearchValue(3 * 1000**5),
+            ),
+        ]
+
+    @patch("sentry.search.events.builder.QueryBuilder.get_field_type")
+    def test_aggregate_ibyte_size_filter(self, mock_type):
+        config = SearchConfig()
+        mock_type.return_value = "gibibyte"
+
+        assert parse_search_query(
+            "p50(measurements.foo):>5gib p100(measurements.bar):<3pib", config=config
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="p50(measurements.foo)"),
+                operator=">",
+                value=SearchValue(5 * 1024**3),
+            ),
+            SearchFilter(
+                key=SearchKey(name="p100(measurements.bar)"),
+                operator="<",
+                value=SearchValue(3 * 1024**5),
             ),
         ]
 

@@ -1,5 +1,5 @@
 ---
-created: '2021-05-21T13:05:26.731185Z'
+created: '2022-09-20T14:56:10.907629Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -13,6 +13,47 @@ config:
     scrubIpAddresses: false
     sensitiveFields: []
   features: []
+  measurements:
+    builtinMeasurements:
+    - name: app_start_cold
+      unit: millisecond
+    - name: app_start_warm
+      unit: millisecond
+    - name: cls
+      unit: none
+    - name: fcp
+      unit: millisecond
+    - name: fid
+      unit: millisecond
+    - name: fp
+      unit: millisecond
+    - name: frames_frozen_rate
+      unit: ratio
+    - name: frames_frozen
+      unit: none
+    - name: frames_slow_rate
+      unit: ratio
+    - name: frames_slow
+      unit: none
+    - name: frames_total
+      unit: none
+    - name: inp
+      unit: millisecond
+    - name: lcp
+      unit: millisecond
+    - name: stall_count
+      unit: none
+    - name: stall_longest_time
+      unit: millisecond
+    - name: stall_percentage
+      unit: ratio
+    - name: stall_total_time
+      unit: millisecond
+    - name: ttfb.requesttime
+      unit: millisecond
+    - name: ttfb
+      unit: millisecond
+    maxCustomMeasurements: 5
   piiConfig:
     applications:
       $string:

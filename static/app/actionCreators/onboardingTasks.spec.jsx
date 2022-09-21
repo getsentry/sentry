@@ -1,12 +1,12 @@
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import OrganizationActions from 'sentry/actions/organizationActions';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();
   const user = ConfigStore.get('user');
 
-  jest.spyOn(OrganizationActions, 'update');
+  jest.spyOn(OrganizationStore, 'onUpdate');
 
   describe('updateOnboardingTask', function () {
     it('Adds the task to the organization when task does not exists', async function () {
@@ -32,7 +32,7 @@ describe('actionCreators/onboardingTasks', function () {
 
       expect(mockUpdate).toHaveBeenCalled();
 
-      expect(OrganizationActions.update).toHaveBeenCalledWith({
+      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
         onboardingTasks: [{...testTask, user}],
       });
     });
@@ -63,7 +63,7 @@ describe('actionCreators/onboardingTasks', function () {
 
       // NOTE: user is not passed as it is already associated to the existing
       // onboarding task.
-      expect(OrganizationActions.update).toHaveBeenCalledWith({
+      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
         onboardingTasks: [testTask],
       });
     });
@@ -88,7 +88,7 @@ describe('actionCreators/onboardingTasks', function () {
       await tick();
 
       expect(mockUpdate).not.toHaveBeenCalled();
-      expect(OrganizationActions.update).toHaveBeenCalledWith({
+      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
         onboardingTasks: [{...testTask, user}],
       });
     });

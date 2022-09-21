@@ -525,16 +525,6 @@ const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-const ErrorContainer = styled('div')`
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
-    border-top: none;
-  }
-`;
-
 const BorderlessEventEntries = styled(EventEntries)`
   & ${DataSection} {
     margin-left: 0 !important;
@@ -544,9 +534,6 @@ const BorderlessEventEntries = styled(EventEntries)`
   & ${DataSection}:first-child {
     padding-top: 0;
     border-top: 0;
-  }
-  & ${ErrorContainer} {
-    margin-bottom: ${space(2)};
   }
 `;
 
