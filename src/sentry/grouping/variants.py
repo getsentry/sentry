@@ -64,8 +64,15 @@ class FallbackVariant(BaseVariant):
 
 
 class PerformanceProblemVariant(BaseVariant):
-    # TODO: Improve this comment
-    """This variant delegates the hash generation to a performance problem that was detected using PerformanceDetection."""
+    """
+    Applies only to transaction events! Transactions are not subject to the
+    normal grouping pipeline. Instead, they are fingerprinted by
+    `PerformanceDetector` when the event is saved by `EventManager`. We detect
+    problems, generate some metadata called "evidence" and use that evidence
+    for fingerprinting. The evidence is then stored in `nodestore`. This
+        variant's hash is delegated to the `EventPerformanceProblem` that
+        contains the event and the evidence.
+    """
 
     type = "span-evidence"
     description = "span evidence"
