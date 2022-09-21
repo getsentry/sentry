@@ -74,8 +74,8 @@ class PerformanceProblemVariant(BaseVariant):
         contains the event and the evidence.
     """
 
-    type = "span-evidence"
-    description = "span evidence"
+    type = "performance-problem"
+    description = "performanced problem"
     contributes = True
 
     def __init__(self, event_performance_problem):
