@@ -1,7 +1,6 @@
 import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import pick from 'lodash/pick';
 
 import {Client} from 'sentry/api';
@@ -22,7 +21,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import PerfIssueTable from './perfIssueTable';
+import PerfEventsTable from './perfIssueTable';
 
 type Props = {
   api: Client;
@@ -129,16 +128,12 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderPerfIssueEvents() {
-    const client = new QueryClient();
-
     return (
-      <QueryClientProvider client={client}>
-        <PerfIssueTable
-          issueId={this.props.group.id}
-          location={this.props.location}
-          organization={this.props.organization}
-        />
-      </QueryClientProvider>
+      <PerfEventsTable
+        issueId={this.props.group.id}
+        location={this.props.location}
+        organization={this.props.organization}
+      />
     );
   }
 
@@ -158,18 +153,18 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderBody() {
-    const {issueCategory} = this.props.group;
+    const {issueCategory, id} = this.props.group;
 
     let body: React.ReactNode;
-
-    if (issueCategory === IssueCategory.PERFORMANCE) {
-      return this.renderPerfIssueEvents();
-    }
 
     if (this.state.loading) {
       body = <LoadingIndicator />;
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
+    }
+    // TODO - in the future we may share the perfIssueEvents with errorEvents
+    else if (id && issueCategory === IssueCategory.PERFORMANCE) {
+      return this.renderPerfIssueEvents();
     } else if (this.state.eventList.length > 0) {
       body = this.renderResults();
     } else if (this.state.query && this.state.query !== '') {
@@ -178,7 +173,11 @@ class GroupEvents extends Component<Props, State> {
       body = this.renderEmpty();
     }
 
-    return body;
+    return (
+      <Panel className="event-list">
+        <PanelBody>{body}</PanelBody>
+      </Panel>
+    );
   }
 
   render() {
@@ -196,9 +195,7 @@ class GroupEvents extends Component<Props, State> {
               />
             </FilterSection>
 
-            <Panel className="event-list">
-              <PanelBody>{this.renderBody()}</PanelBody>
-            </Panel>
+            {this.renderBody()}
             <Pagination pageLinks={this.state.pageLinks} />
           </Wrapper>
         </Layout.Main>

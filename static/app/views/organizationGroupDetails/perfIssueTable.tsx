@@ -4,7 +4,7 @@ import {Location} from 'history';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import PerfEventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 export interface Props {
   issueId: string;
@@ -12,7 +12,7 @@ export interface Props {
   organization: Organization;
 }
 
-const PerfIssueTable = (props: Props) => {
+const PerfEventsTable = (props: Props) => {
   const eventView: EventView = EventView.fromSavedQuery({
     query: `performance.issue_ids:${props.issueId}`,
     fields: [
@@ -46,7 +46,7 @@ const PerfIssueTable = (props: Props) => {
   ];
 
   return (
-    <PerfEventsTable
+    <EventsTable
       eventView={eventView}
       location={props.location}
       organization={props.organization}
@@ -58,4 +58,4 @@ const PerfIssueTable = (props: Props) => {
   );
 };
 
-export default PerfIssueTable;
+export default PerfEventsTable;
