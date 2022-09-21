@@ -8,9 +8,6 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField
 
 MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
-DEFAULT_QUERY_UNIQUENESS_VALIDATION_MESSAGE = (
-    "Only one DiscoverSavedQuery may be the default per user"
-)
 
 
 @region_silo_model
