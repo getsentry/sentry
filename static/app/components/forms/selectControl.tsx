@@ -13,6 +13,7 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -216,7 +217,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
                     overflow: 'hidden',
                   }),
             }
-          : theme.form[size ?? 'md']),
+          : omit(theme.form[size ?? 'md'], 'height')),
       }),
 
       menu: (provided: React.CSSProperties) => ({
