@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, Mapping, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -15,12 +15,12 @@ from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.profiling import get_from_profiling_service
 from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
@@ -45,7 +45,14 @@ def process_profile(
 
     try:
         if _should_symbolicate(profile):
-            _symbolicate(profile=profile, project=project)
+            modules, stacktraces = _prepare_frames_from_profile(profile)
+            stacktraces = _symbolicate(
+                project=project,
+                profile_id=profile["profile_id"],
+                modules=modules,
+                stacktraces=stacktraces,
+            )
+            _process_symbolicator_results(profile=profile, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -150,44 +157,33 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     )
 
 
-@metrics.wraps("process_profile.symbolicate")
-def _symbolicate(profile: Profile, project: Project) -> None:
-    symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
+def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
     modules = profile["debug_meta"]["images"]
-    stacktraces = [
-        {
-            "registers": {},
-            "frames": s["frames"],
-        }
-        for s in profile["sampled_profile"]["samples"]
-    ]
+    if "frames" in profile["profile"]:
+        stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
+    else:
+        stacktraces = [
+            {
+                "registers": {},
+                "frames": s["frames"],
+            }
+            for s in profile["sampled_profile"]["samples"]
+        ]
+    return (modules, stacktraces)
 
+
+@metrics.wraps("process_profile.symbolicate.request")
+def _symbolicate(
+    project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
+) -> List[Any]:
+    symbolicator = Symbolicator(project=project, event_id=profile_id)
     symbolication_start_time = time()
 
     while True:
         try:
-            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-
-            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
-
-            for original, symbolicated in zip(
-                profile["sampled_profile"]["samples"], response["stacktraces"]
-            ):
-                for frame in symbolicated["frames"]:
-                    frame.pop("pre_context", None)
-                    frame.pop("context_line", None)
-                    frame.pop("post_context", None)
-
-                # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
-                if (
-                    profile["platform"] == "rust"
-                    and len(symbolicated["frames"]) >= 2
-                    and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
-                ):
-                    original["frames"] = symbolicated["frames"][2:]
-                else:
-                    original["frames"] = symbolicated["frames"]
-            break
+            return symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
+                "stacktraces", []
+            )
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -205,8 +201,81 @@ def _symbolicate(profile: Profile, project: Project) -> None:
             sentry_sdk.capture_exception(e)
             break
 
-    # rename the profile key to suggest it has been processed
-    profile["profile"] = profile.pop("sampled_profile")
+
+@metrics.wraps("process_profile.symbolicate.process")
+def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]):
+    if "version" in profile.get("profile", {}):
+        profile["profile"]["frames"] = stacktraces[0]["frames"]
+
+    if profile["platform"] == "rust":
+        if "version" in profile.get("profile", {}):
+            _process_symbolicator_results_for_rust_sample(profile, stacktraces)
+        else:
+            _process_symbolicator_results_for_rust(profile, stacktraces)
+    elif profile["platform"] == "cocoa" and "version" in profile.get("profile", {}):
+        _process_symbolicator_results_for_cocoa_sample(profile, stacktraces)
+
+    if "version" in profile.get("profile", {}):
+        profile["profile"]["frames"] = stacktraces[0]["frames"]
+
+    # remove debug information we don't need anymore
+    profile.pop("debug_meta")
+
+    if "version" not in profile["profile"]:
+        # rename the profile key to suggest it has been processed
+        profile["profile"] = profile.pop("sampled_profile")
+
+
+def _process_symbolicator_results_for_cocoa_sample(profile: Profile, stacktraces: List[Any]):
+    for sample in profile["profile"]["samples"]:
+        stack = profile["profile"]["stacks"][sample["stack_id"]]
+
+        if len(stack) < 2:
+            continue
+
+        frame = profile["profile"]["frames"][stack[-1]]
+
+        # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
+        if frame.get("instruction_addr", "") == "0xffffffffc":
+            stack = stack[:2]
+
+
+def _process_symbolicator_results_for_rust_sample(profile: Profile, stacktraces: List[Any]):
+    for frame in stacktraces[0]["frames"]:
+        frame.pop("pre_context", None)
+        frame.pop("context_line", None)
+        frame.pop("post_context", None)
+
+    profile["profile"]["frames"] = stacktraces[0]["frames"]
+
+    for sample in profile["profile"]["samples"]:
+        stack = profile["profile"]["stacks"][sample["stack_id"]]
+
+        if len(stack) < 2:
+            continue
+
+        frame = profile["profile"]["frames"][stack[-1]]
+
+        # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
+        if frame.get("function", "") == "perf_signal_handler":
+            stack = stack[:2]
+
+
+def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]):
+    for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
+        for frame in symbolicated["frames"]:
+            frame.pop("pre_context", None)
+            frame.pop("context_line", None)
+            frame.pop("post_context", None)
+
+        # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
+        if (
+            len(symbolicated["frames"]) >= 2
+            and symbolicated["frames"][-1].get("function", "") == "perf_signal_handler"
+        ):
+            original["frames"] = symbolicated["frames"][:2]
+        else:
+            original["frames"] = symbolicated["frames"]
 
 
 @metrics.wraps("process_profile.deobfuscate")
