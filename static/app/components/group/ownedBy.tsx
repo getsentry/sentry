@@ -73,11 +73,11 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
           ) : (
             <IconUser size="md" />
           )}
-          <div>
+          <ActorName>
             {currentOwner?.type === 'team'
               ? `#${currentOwner?.name}`
               : currentOwner?.name ?? t('No-one')}
-          </div>
+          </ActorName>
         </ActorWrapper>
 
         <StyledLink
@@ -96,6 +96,11 @@ const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  max-width: 85%;
+`;
+
+const ActorName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledSidebarContent = styled(SidebarSection.Content)`

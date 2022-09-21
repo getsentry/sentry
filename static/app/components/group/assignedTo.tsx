@@ -66,7 +66,7 @@ function AssignedTo({group, projectId}: AssignedToProps) {
                 ) : (
                   <IconUser size="md" />
                 )}
-                {getAssignedToDisplayName(assignedTo)}
+                <ActorName>{getAssignedToDisplayName(assignedTo)}</ActorName>
               </ActorWrapper>
               <IconChevron direction={isOpen ? 'up' : 'down'} />
             </DropdownButton>
@@ -90,6 +90,11 @@ const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+  max-width: 85%;
+`;
+
+const ActorName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledSidebarSectionContent = styled(SidebarSection.Content)`
