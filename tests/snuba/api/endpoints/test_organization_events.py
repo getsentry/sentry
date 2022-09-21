@@ -571,7 +571,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
-            "query": "performance.issue_ids:[1,2,3,undefine]",
+            "query": "performance.issue_ids:[1,2,3,undefined]",
             "project": [self.project.id],
         }
         response = self.do_request(query)
