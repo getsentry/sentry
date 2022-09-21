@@ -48,7 +48,7 @@ export type TeamInsightsEventParameters = {
   };
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
-  'issue_details.suspect_commits': {count: number};
+  'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };

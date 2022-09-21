@@ -9,7 +9,7 @@ import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {AvatarProject, Group} from 'sentry/types';
+import {AvatarProject, Group, IssueCategory} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useCommitters from 'sentry/utils/useCommitters';
@@ -39,8 +39,11 @@ function EventCause({group, event, project}: Props) {
     trackAdvancedAnalyticsEvent('issue_details.suspect_commits', {
       organization,
       count: committers.length,
+      project_id: parseInt(project.id as string, 10),
+      group_id: parseInt(group!.id, 10),
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
     });
-  }, [organization, fetching, committers.length]);
+  }, [organization, fetching, committers.length, project.id, group]);
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
