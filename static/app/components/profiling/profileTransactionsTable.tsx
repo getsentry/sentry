@@ -198,7 +198,7 @@ function ProfilingTransactionsTableCell({
     case 'last_seen()':
       return (
         <Container>
-          <DateTime date={value} />
+          <DateTime date={value} year seconds timeZone />
         </Container>
       );
     default:
