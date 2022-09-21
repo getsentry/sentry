@@ -241,7 +241,7 @@ function useHoverOverlay(
         };
 
         // Basic DOM nodes can be cloned and have more props applied.
-        return cloneElement(triggerChildren, {...props, style: triggerStyle});
+        return cloneElement<any>(triggerChildren, {...props, style: triggerStyle});
       }
 
       const ourContainerProps = {

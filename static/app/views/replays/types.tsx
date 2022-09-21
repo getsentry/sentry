@@ -52,7 +52,7 @@ export type ReplayRecord = {
   };
   platform: string;
   projectId: string;
-  release: null | string;
+  releases: null | string[];
   sdk: {
     name: string;
     version: string;
@@ -61,7 +61,7 @@ export type ReplayRecord = {
    * The **earliest** timestamp received as determined by the SDK.
    */
   startedAt: Date;
-  tags: Record<string, string>;
+  tags: Record<string, string[]>;
   title: string;
   traceIds: string[];
   urls: string[];

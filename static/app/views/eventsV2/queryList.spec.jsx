@@ -11,6 +11,7 @@ import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/type
 import QueryList from 'sentry/views/eventsV2/queryList';
 
 jest.mock('sentry/actionCreators/modal');
+jest.mock('sentry/components/charts/eventsRequest');
 
 describe('EventsV2 > QueryList', function () {
   let location, savedQueries, organization, deleteMock, duplicateMock, queryChangeMock;
@@ -88,6 +89,7 @@ describe('EventsV2 > QueryList', function () {
         location={location}
       />
     );
+
     const content = wrapper.find('QueryCard');
     // pre built + saved queries
     expect(content).toHaveLength(5);
@@ -269,7 +271,7 @@ describe('EventsV2 > QueryList', function () {
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+        features: ['dashboards-edit'],
       });
       const wrapper = mountWithTheme(
         <QueryList
@@ -339,7 +341,7 @@ describe('EventsV2 > QueryList', function () {
 
     it('opens a modal with the correct params for other chart', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+        features: ['dashboards-edit'],
       });
       const wrapper = mountWithTheme(
         <QueryList

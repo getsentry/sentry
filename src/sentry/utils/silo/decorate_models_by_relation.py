@@ -36,15 +36,11 @@ def decorate_models_by_relation(
         target_classes=target_relations.models,
         naming_conventions=target_relations.naming_conventions,
     )
-    customer_classes = search.sweep_for_relations()
-    control_classes = model_classes.difference(customer_classes)
+    region_classes = search.sweep_for_relations()
+    control_classes = model_classes.difference(region_classes)
 
     def filtered_names(classes):
-        return (
-            (c.__module__, c.__name__)
-            for c in classes
-            if not hasattr(c._meta, "_ModelSiloLimit__silo_limit")
-        )
+        return ((c.__module__, c.__name__) for c in classes if not hasattr(c._meta, "silo_limit"))
 
     apply_decorators(
         "control_silo_model",
@@ -53,9 +49,9 @@ def decorate_models_by_relation(
         path_name,
     )
     apply_decorators(
-        "customer_silo_model",
-        "from sentry.db.models import customer_silo_model",
-        filtered_names(customer_classes),
+        "region_silo_model",
+        "from sentry.db.models import region_silo_model",
+        filtered_names(region_classes),
         path_name,
     )
 

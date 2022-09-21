@@ -15,14 +15,14 @@ export class EventedProfile extends Profile {
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): EventedProfile {
-    const profile = new EventedProfile(
-      eventedProfile.endValue - eventedProfile.startValue,
-      eventedProfile.startValue,
-      eventedProfile.endValue,
-      eventedProfile.name,
-      eventedProfile.unit,
-      eventedProfile.threadID
-    );
+    const profile = new EventedProfile({
+      duration: eventedProfile.endValue - eventedProfile.startValue,
+      startedAt: eventedProfile.startValue,
+      endedAt: eventedProfile.endValue,
+      name: eventedProfile.name,
+      unit: eventedProfile.unit,
+      threadId: eventedProfile.threadID,
+    });
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.

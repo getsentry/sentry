@@ -16,7 +16,6 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
-import FeedbackAlert from 'sentry/views/settings/account/notifications/feedbackAlert';
 
 type Props = ModalRenderProps & {
   api: Client;
@@ -166,7 +165,6 @@ class StacktraceLinkModal extends Component<Props, State> {
                 </Button>
               ))}
             </ManualSetup>
-            <StyledFeedbackAlert />
           </ModalContainer>
         </Body>
       </Fragment>
@@ -193,10 +191,6 @@ const ModalContainer = styled('div')`
   code {
     word-break: break-word;
   }
-`;
-
-const StyledFeedbackAlert = styled(FeedbackAlert)`
-  margin-bottom: 0;
 `;
 
 const StyledInputField = styled(InputField)`

@@ -6,6 +6,14 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 describe('useHotkeys', function () {
   let events = {};
 
+  function makeKeyEvent(keyCode, options) {
+    return {
+      keyCode: getKeyCode(keyCode),
+      preventDefault: jest.fn(),
+      ...options,
+    };
+  }
+
   beforeEach(() => {
     // Empty our events before each test case
     events = {};
@@ -20,126 +28,121 @@ describe('useHotkeys', function () {
     });
   });
 
-  it('simple match', function () {
-    let didGetCalled = false;
+  it('handles a simple match', function () {
+    const callback = jest.fn();
 
-    expect(events.keydown).toBeUndefined();
+    reactHooks.renderHook(() => useHotkeys([{match: 'ctrl+s', callback}]));
+
+    expect(events.keydown).toBeDefined();
+    expect(callback).not.toHaveBeenCalled();
+
+    const evt = makeKeyEvent('s', {ctrlKey: true});
+    events.keydown(evt);
+
+    expect(evt.preventDefault).toHaveBeenCalled();
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('handles multiple matches', function () {
+    const callback = jest.fn();
+
+    reactHooks.renderHook(() => useHotkeys([{match: ['ctrl+s', 'cmd+m'], callback}]));
+
+    expect(events.keydown).toBeDefined();
+    expect(callback).not.toHaveBeenCalled();
+
+    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+
+    expect(callback).toHaveBeenCalled();
+    callback.mockClear();
+
+    events.keydown(makeKeyEvent('m', {metaKey: true}));
+
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('handles a complex match', function () {
+    const callback = jest.fn();
 
     reactHooks.renderHook(() =>
-      useHotkeys([
-        {
-          match: 'ctrl+s',
-          callback: () => {
-            didGetCalled = true;
-          },
-        },
-      ])
+      useHotkeys([{match: ['cmd+control+option+shift+x'], callback}])
     );
 
     expect(events.keydown).toBeDefined();
-    expect(didGetCalled).toEqual(false);
+    expect(callback).not.toHaveBeenCalled();
 
-    events.keydown({keyCode: getKeyCode('s'), ctrlKey: true});
-
-    expect(didGetCalled).toEqual(true);
-  });
-
-  it('multi match', function () {
-    let didGetCalled = false;
-
-    expect(events.keydown).toBeUndefined();
-
-    reactHooks.renderHook(() =>
-      useHotkeys([
-        {
-          match: ['ctrl+s', 'cmd+m'],
-          callback: () => {
-            didGetCalled = true;
-          },
-        },
-      ])
+    events.keydown(
+      makeKeyEvent('x', {
+        altKey: true,
+        metaKey: true,
+        shiftKey: true,
+        ctrlKey: true,
+      })
     );
 
-    expect(events.keydown).toBeDefined();
-    expect(didGetCalled).toEqual(false);
-
-    events.keydown({keyCode: getKeyCode('s'), ctrlKey: true});
-
-    expect(didGetCalled).toEqual(true);
-
-    didGetCalled = false;
-
-    events.keydown({keyCode: getKeyCode('m'), metaKey: true});
-
-    expect(didGetCalled).toEqual(true);
+    expect(callback).toHaveBeenCalled();
   });
 
-  it('complex match', function () {
-    let didGetCalled = false;
-
-    expect(events.keydown).toBeUndefined();
-
-    reactHooks.renderHook(() =>
-      useHotkeys([
-        {
-          match: ['cmd+control+option+shift+x'],
-          callback: () => {
-            didGetCalled = true;
-          },
-        },
-      ])
-    );
-
-    expect(events.keydown).toBeDefined();
-    expect(didGetCalled).toEqual(false);
-
-    events.keydown({
-      keyCode: getKeyCode('x'),
-      altKey: true,
-      metaKey: true,
-      shiftKey: true,
-      ctrlKey: true,
-    });
-
-    expect(didGetCalled).toEqual(true);
-  });
-
-  it('rerender', function () {
-    let didGetCalled = false;
-
-    expect(events.keydown).toBeUndefined();
+  it('updates with rerender', function () {
+    const callback = jest.fn();
 
     const {rerender} = reactHooks.renderHook(
-      p =>
-        useHotkeys([
-          {
-            match: p.match,
-            callback: () => {
-              didGetCalled = true;
-            },
-          },
-        ]),
+      p => useHotkeys([{match: p.match, callback}]),
       {
-        initialProps: {
-          match: 'ctrl+s',
-        },
+        initialProps: {match: 'ctrl+s'},
       }
     );
 
     expect(events.keydown).toBeDefined();
-    expect(didGetCalled).toEqual(false);
+    expect(callback).not.toHaveBeenCalled();
 
-    events.keydown({keyCode: getKeyCode('s'), ctrlKey: true});
+    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
 
-    expect(didGetCalled).toEqual(true);
-    didGetCalled = false;
+    expect(callback).toHaveBeenCalled();
+    callback.mockClear();
 
     rerender({match: 'cmd+m'});
 
-    events.keydown({keyCode: getKeyCode('s'), ctrlKey: true});
-    expect(didGetCalled).toEqual(false);
+    events.keydown(makeKeyEvent('s', {ctrlKey: true}));
+    expect(callback).not.toHaveBeenCalled();
 
-    events.keydown({keyCode: getKeyCode('m'), metaKey: true});
-    expect(didGetCalled).toEqual(true);
+    events.keydown(makeKeyEvent('m', {metaKey: true}));
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('skips input and textarea', function () {
+    const callback = jest.fn();
+
+    reactHooks.renderHook(() => useHotkeys([{match: ['/'], callback}]));
+
+    events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('does not skips input and textarea with includesInputs', function () {
+    const callback = jest.fn();
+
+    reactHooks.renderHook(() =>
+      useHotkeys([{match: ['/'], callback, includeInputs: true}])
+    );
+
+    events.keydown(makeKeyEvent('/', {target: document.createElement('input')}));
+
+    expect(callback).toHaveBeenCalled();
+  });
+
+  it('skips preventDefault', function () {
+    const callback = jest.fn();
+
+    reactHooks.renderHook(() =>
+      useHotkeys([{match: 'ctrl+s', callback, skipPreventDefault: true}])
+    );
+
+    const evt = makeKeyEvent('s', {ctrlKey: true});
+    events.keydown(evt);
+
+    expect(evt.preventDefault).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalled();
   });
 });

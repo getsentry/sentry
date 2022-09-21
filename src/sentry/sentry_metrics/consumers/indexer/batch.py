@@ -1,7 +1,18 @@
 import logging
 import random
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
+from typing import (
+    Any,
+    List,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    TypedDict,
+    cast,
+)
 
 import rapidjson
 import sentry_sdk
@@ -53,17 +64,25 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+class InboundMessage(TypedDict):
+    # Note: This is only the subset of fields we access in this file.
+    org_id: int
+    name: str
+    type: str
+    tags: Mapping[str, str]
+
+
 class IndexerBatch:
     def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
 
-    @metrics.wraps("process_messages.parse_outer_message")
-    def extract_strings(self) -> Mapping[int, Set[str]]:
-        org_strings = defaultdict(set)
+        self._extract_messages()
 
+    @metrics.wraps("process_messages.extract_messages")
+    def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
-        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
+        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
         for msg in self.outer_message.payload:
             partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
@@ -79,8 +98,41 @@ class IndexerBatch:
                 )
                 continue
 
+    @metrics.wraps("process_messages.filter_messages")
+    def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
+        metrics.incr(
+            "sentry_metrics.indexer.process_messages.dropped_message",
+            amount=len(keys_to_remove),
+            tags={
+                "reason": "cardinality_limit",
+            },
+        )
+
+        # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
+        for offset in keys_to_remove:
+            sentry_sdk.set_tag(
+                "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
+            )
+            if _should_sample_debug_log():
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "reason": "cardinality_limit",
+                    },
+                )
+
+        self.skipped_offsets.update(keys_to_remove)
+
+    @metrics.wraps("process_messages.extract_strings")
+    def extract_strings(self) -> Mapping[int, Set[str]]:
+        org_strings = defaultdict(set)
+
         for partition_offset, message in self.parsed_payloads_by_offset.items():
+            if partition_offset in self.skipped_offsets:
+                continue
+
             partition_idx, offset = partition_offset
+
             metric_name = message["name"]
             metric_type = message["type"]
             org_id = message["org_id"]
@@ -157,7 +209,10 @@ class IndexerBatch:
                     extra={"offset": message.offset, "partition": message.partition.index},
                 )
                 continue
-            new_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
+            new_payload_value = cast(
+                MutableMapping[Any, Any],
+                self.parsed_payloads_by_offset.pop(partition_offset),
+            )
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]
@@ -207,6 +262,7 @@ class IndexerBatch:
                 metrics.incr(
                     "sentry_metrics.indexer.process_messages.dropped_message",
                     tags={
+                        "reason": "writes_limit",
                         "string_type": "tags",
                     },
                 )
@@ -214,6 +270,7 @@ class IndexerBatch:
                     logger.error(
                         "process_messages.dropped_message",
                         extra={
+                            "reason": "writes_limit",
                             "string_type": "tags",
                             "num_global_quotas": exceeded_global_quotas,
                             "num_org_quotas": exceeded_org_quotas,

@@ -53,6 +53,7 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
+from sentry.locks import locks
 from sentry.models import (
     CRASH_REPORT_TYPES,
     Activity,
@@ -98,6 +99,7 @@ from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import (
+    EventPerformanceProblem,
     PerformanceProblem,
     detect_performance_problems,
 )
@@ -217,7 +219,12 @@ def get_stored_crashreports(cache_key, event, max_crashreports):
 
 
 class HashDiscarded(Exception):
-    pass
+    def __init__(
+        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
+    ):
+        super().__init__(message)
+        self.reason = reason
+        self.tombstone_id = tombstone_id
 
 
 class ScoreClause(Func):
@@ -487,7 +494,14 @@ class EventManager:
                     **kwargs,
                 )
                 job["groups"] = [group_info]
-        except HashDiscarded:
+        except HashDiscarded as err:
+            logger.info(
+                "event_manager.save.discard",
+                extra={
+                    "reason": err.reason,
+                    "tombstone_id": err.tombstone_id,
+                },
+            )
             discard_event(job, attachments)
             raise
 
@@ -588,13 +602,41 @@ def _auto_update_grouping(project):
 
     # update to latest grouping config but not if a user is already on
     # beta.
-    if old_grouping != new_grouping and old_grouping != BETA_GROUPING_CONFIG:
-        project.update_option("sentry:secondary_grouping_config", old_grouping)
-        project.update_option(
-            "sentry:secondary_grouping_expiry",
-            int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE,
+    if old_grouping == new_grouping or old_grouping == BETA_GROUPING_CONFIG:
+        return
+
+    # Because the way the auto grouping upgrading happening is racy, we want to
+    # try to write the audit log entry only and project option change just once.
+    # For this a cache key is used.  That's not perfect, but should reduce the
+    # risk significantly.
+    cache_key = f"grouping-config-update:{project.id}:{old_grouping}"
+    lock = f"grouping-update-lock:{project.id}"
+    if cache.get(cache_key) is not None:
+        return
+
+    with locks.get(lock, duration=60, name="grouping-update-lock").acquire():
+        if cache.get(cache_key) is None:
+            cache.set(cache_key, "1", 60 * 5)
+        else:
+            return
+
+        from sentry import audit_log
+        from sentry.utils.audit import create_system_audit_entry
+
+        expiry = int(time.time()) + settings.SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+        changes = {
+            "sentry:secondary_grouping_config": old_grouping,
+            "sentry:secondary_grouping_expiry": expiry,
+            "sentry:grouping_config": new_grouping,
+        }
+        for (key, value) in changes.items():
+            project.update_option(key, value)
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+            data={**changes, **project.get_audit_log_data()},
         )
-        project.update_option("sentry:grouping_config", new_grouping)
 
 
 @metrics.wraps("event_manager.background_grouping")
@@ -1172,6 +1214,13 @@ def materialize_metadata(data, event_type, event_metadata):
     }
 
 
+def inject_performance_problem_metadata(metadata, problem: PerformanceProblem):
+    # TODO make type here dynamic, pull it from group type
+    metadata["value"] = problem.desc
+    metadata["title"] = "N+1 Query"
+    return metadata
+
+
 def get_culprit(data):
     """Helper to calculate the default culprit"""
     return force_text(
@@ -1233,7 +1282,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
                 "platform": event.platform,
             },
         ):
-            raise HashDiscarded("Load shedding group creation")
+            raise HashDiscarded("Load shedding group creation", reason="load_shed")
 
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"
@@ -1411,7 +1460,11 @@ def _find_existing_grouphash(
         # be able to tombstone `hierarchical_hashes[4]` while still having a
         # group attached to `hierarchical_hashes[0]`? Maybe.
         if group_hash.group_tombstone_id is not None:
-            raise HashDiscarded("Matches group tombstone %s" % group_hash.group_tombstone_id)
+            raise HashDiscarded(
+                "Matches group tombstone %s" % group_hash.group_tombstone_id,
+                reason="discard",
+                tombstone_id=group_hash.group_tombstone_id,
+            )
 
     return None, root_hierarchical_hash
 
@@ -1425,7 +1478,7 @@ def _create_group(project, event, **kwargs):
             tags={"platform": event.platform or "unknown"},
         )
         sentry_sdk.capture_message("short_id.timeout")
-        raise HashDiscarded("Timeout when getting next_short_id")
+        raise HashDiscarded("Timeout when getting next_short_id", reason="timeout")
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
@@ -1956,14 +2009,17 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
     )
     for job in jobs:
         job["groups"] = []
+        hashes = []
         event = job["event"]
         project = event.project
 
+        if not features.has("organizations:performance-issues-ingest", project.organization):
+            continue
         # General system-wide option
         rate = options.get("performance.issues.all.problem-creation") or 0
 
         # More granular, per-project option
-        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 0)
+        per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
         if rate > random.random() and per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
@@ -1979,7 +2035,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
 
-            performance_problems_by_fingerprint = {p.fingerprint: p for p in performance_problems}
+            performance_problems_by_hash = {p.fingerprint: p for p in performance_problems}
             all_group_hashes = [problem.fingerprint for problem in performance_problems]
             group_hashes = all_group_hashes[:MAX_GROUPS]
 
@@ -1991,15 +2047,16 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
             new_grouphashes_count = len(new_grouphashes)
 
             if new_grouphashes:
-                granted_quota = issue_rate_limiter.check_and_use_quotas(
-                    [
-                        RequestedQuota(
-                            f"performance-issues:{project.id}",
-                            new_grouphashes_count,
-                            [PERFORMANCE_ISSUE_QUOTA],
-                        )
-                    ]
-                )[0]
+                with metrics.timer("performance.performance_issue.check_write_limits"):
+                    granted_quota = issue_rate_limiter.check_and_use_quotas(
+                        [
+                            RequestedQuota(
+                                f"performance-issues:{project.id}",
+                                new_grouphashes_count,
+                                [PERFORMANCE_ISSUE_QUOTA],
+                            )
+                        ]
+                    )[0]
 
                 # Log how many groups didn't get created because of rate limiting
                 _dropped_group_hash_count = new_grouphashes_count - granted_quota.granted
@@ -2009,18 +2066,23 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                     # GROUP DOES NOT EXIST
                     with sentry_sdk.start_span(
-                        op="event_manager.create_group_transaction"
+                        op="event_manager.create_performance_group_transaction"
                     ) as span, metrics.timer(
-                        "event_manager.create_group_transaction"
+                        "event_manager.create_performance_group_transaction",
+                        sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")
                         metric_tags["create_group_transaction.outcome"] = "no_group"
 
-                        problem = performance_problems_by_fingerprint[new_grouphash]
-                        kwargs["type"] = problem.type.value
-                        kwargs["data"]["metadata"]["title"] = f"N+1 Query:{problem.desc}"
+                        problem = performance_problems_by_hash[new_grouphash]
+                        group_kwargs = kwargs.copy()
+                        group_kwargs["type"] = problem.type.value
 
-                        group = _create_group(project, event, **kwargs)
+                        group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
+                            group_kwargs["data"]["metadata"], problem
+                        )
+
+                        group = _create_group(project, event, **group_kwargs)
                         GroupHash.objects.create(project=project, hash=new_grouphash, group=group)
 
                         is_new = True
@@ -2038,6 +2100,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         job["groups"].append(
                             GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
                         )
+                        hashes.append(new_grouphash)
 
             if existing_grouphashes:
 
@@ -2047,18 +2110,25 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
 
                     is_new = False
 
-                    description = performance_problems_by_fingerprint[existing_grouphash.hash].desc
-                    kwargs["data"]["metadata"]["title"] = f"N+1 Query:{description}"
+                    problem = performance_problems_by_hash[existing_grouphash.hash]
+                    group_kwargs = kwargs.copy()
+                    group_kwargs["data"]["metadata"] = inject_performance_problem_metadata(
+                        group_kwargs["data"]["metadata"], problem
+                    )
 
                     is_regression = _process_existing_aggregate(
-                        group=group, event=job["event"], data=kwargs, release=job["release"]
+                        group=group, event=job["event"], data=group_kwargs, release=job["release"]
                     )
 
                     job["groups"].append(
                         GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
                     )
+                    hashes.append(existing_grouphash.hash)
 
             job["event"].groups = [group_info.group for group_info in job["groups"]]
+            job["event"].data["hashes"] = hashes
+            for problem_hash in hashes:
+                EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
 @metrics.wraps("event_manager.save_transaction_events")

@@ -22,6 +22,8 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
+    control_silo_model,
+    region_silo_model,
 )
 from sentry.locks import locks
 from sentry.tasks.files import delete_file as delete_file_task
@@ -107,6 +109,7 @@ def get_storage(config=None):
     return storage(**options)
 
 
+@control_silo_model
 class FileBlob(Model):
     __include_in_export__ = False
 
@@ -315,6 +318,7 @@ class FileBlob(Model):
         return storage.open(self.path)
 
 
+@control_silo_model
 class File(Model):
     __include_in_export__ = False
 
@@ -476,6 +480,7 @@ class File(Model):
         )
 
 
+@control_silo_model
 class FileBlobIndex(Model):
     __include_in_export__ = False
 
@@ -650,6 +655,7 @@ class ChunkedFileBlobIndexWrapper:
         return bytes(result)
 
 
+@region_silo_model
 class FileBlobOwner(Model):
     __include_in_export__ = False
 

@@ -14,8 +14,8 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, Organization, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -138,6 +138,7 @@ class GroupDetails extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
+      issue_category: this.state.group?.issueCategory ?? IssueCategory.ERROR,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -163,35 +164,18 @@ class GroupDetails extends Component<Props, State> {
     return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
-  addPerformanceSpecificEntries(event: Event) {
-    const performanceData = event.contexts.performance_issue;
-
-    const performanceEntry = {
-      data: {
-        affectedSpanIds: performanceData.spans,
-      },
-      type: EntryType.PERFORMANCE,
-    };
-
-    const updatedEvent = {
-      ...event,
-      entries: [performanceEntry, ...event.entries],
-    };
-    return updatedEvent;
-  }
-
   async getEvent(group?: Group) {
     if (group) {
       this.setState({loadingEvent: true, eventError: false});
     }
 
-    const {params, environments, api, organization} = this.props;
+    const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
     const eventId = params?.eventId || 'latest';
     const projectId = group?.project?.slug;
     try {
-      let event = await fetchGroupEvent(
+      const event = await fetchGroupEvent(
         api,
         orgSlug,
         groupId,
@@ -199,15 +183,6 @@ class GroupDetails extends Component<Props, State> {
         environments,
         projectId
       );
-
-      // add extra perf issue specific entries like span tree and duration and span count charts
-      if (
-        organization.features.includes('performance-issues') &&
-        event.contexts.performance_issue
-      ) {
-        const updatedEvent = this.addPerformanceSpecificEntries(event);
-        event = updatedEvent as Event;
-      }
 
       this.setState({event, loading: false, eventError: false, loadingEvent: false});
     } catch (err) {
@@ -606,8 +581,8 @@ class GroupDetails extends Component<Props, State> {
     return (
       <Fragment>
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
           replaysCount={replayIds?.length}

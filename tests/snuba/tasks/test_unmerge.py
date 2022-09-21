@@ -263,9 +263,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert {
             (gtv.value, gtv.times_seen)
-            for gtv in tagstore.get_group_tag_values(
-                project.id, source.id, production_environment.id, "color"
-            )
+            for gtv in tagstore.get_group_tag_values(source, production_environment.id, "color")
         } == {("red", 6), ("green", 5), ("blue", 5)}
 
         similar_items = features.compare(source)
@@ -321,7 +319,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert {
             (gtv.value, gtv.times_seen)
             for gtv in tagstore.get_group_tag_values(
-                project.id, destination.id, production_environment.id, "color"
+                destination, production_environment.id, "color"
             )
         } == {("red", 4), ("green", 3), ("blue", 3)}
 
@@ -349,7 +347,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert {
             (gtk.value, gtk.times_seen)
             for gtk in tagstore.get_group_tag_values(
-                project.id, destination.id, production_environment.id, "color"
+                destination, production_environment.id, "color"
             )
         } == {("red", 4), ("blue", 3), ("green", 3)}
 

@@ -61,6 +61,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         return response.data
 
+    @pytest.mark.skip(reason="flaky: INGEST-1610")
     def test_sessions_metrics_equal_num_keys(self):
         """
         Tests whether the number of keys in the metrics implementation of

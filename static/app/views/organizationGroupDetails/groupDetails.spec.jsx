@@ -9,6 +9,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
+import {RouteContext} from 'sentry/views/routeContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -67,11 +68,20 @@ describe('groupDetails', () => {
 
   const createWrapper = (props = {selection}) => {
     return render(
-      <OrganizationContext.Provider value={organization}>
-        <GroupDetails {...router} selection={props.selection}>
-          <MockComponent />
-        </GroupDetails>
-      </OrganizationContext.Provider>,
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        <OrganizationContext.Provider value={organization}>
+          <GroupDetails {...router} selection={props.selection}>
+            <MockComponent />
+          </GroupDetails>
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>,
       {context: routerContext}
     );
   };
@@ -155,7 +165,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
     expect(
       await screen.findByText('The issue you were looking for was not found.')
     ).toBeInTheDocument();
@@ -173,7 +186,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
     expect(
       await screen.findByText(
         'No teams have access to this project yet. Ask an admin to add your team to this project.'
@@ -186,7 +202,9 @@ describe('groupDetails', () => {
       selection: {environments: ['staging']},
     });
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
 
     expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });

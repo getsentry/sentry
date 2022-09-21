@@ -34,6 +34,7 @@ import {
   ExceptionValue,
   Group,
   IssueAttachment,
+  IssueCategory,
   Organization,
   Project,
   SharedViewOrganization,
@@ -406,13 +407,15 @@ const EventEntries = ({
       {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
         <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
       )}
-      {!isShare && event.groupID && (
-        <EventGroupingInfo
-          projectId={projectSlug}
-          event={event}
-          showGroupingConfig={orgFeatures.includes('set-grouping-config')}
-        />
-      )}
+      {!isShare &&
+        event.groupID &&
+        group?.issueCategory !== IssueCategory.PERFORMANCE && (
+          <EventGroupingInfo
+            projectId={projectSlug}
+            event={event}
+            showGroupingConfig={orgFeatures.includes('set-grouping-config')}
+          />
+        )}
       {!isShare && (
         <MiniReplayView
           event={event}
@@ -522,28 +525,15 @@ const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-const ErrorContainer = styled('div')`
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
-    border-top: none;
-  }
-`;
-
 const BorderlessEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
+  & ${DataSection} {
     margin-left: 0 !important;
     margin-right: 0 !important;
     padding: ${space(3)} 0 0 0;
   }
-  & ${/* sc-selector */ DataSection}:first-child {
+  & ${DataSection}:first-child {
     padding-top: 0;
     border-top: 0;
-  }
-  & ${/* sc-selector */ ErrorContainer} {
-    margin-bottom: ${space(2)};
   }
 `;
 

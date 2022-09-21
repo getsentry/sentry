@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, projectoptions
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 
 MAX_VALUE = 2147483647
@@ -18,6 +19,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     )
 
 
+@region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     private = True  # TODO: Remove after EA.
     permission_classes = (ProjectSettingPermission,)
@@ -73,3 +75,10 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         project.update_option(SETTINGS_PROJECT_OPTION_KEY, {**performance_issue_settings, **data})
 
         return Response(data)
+
+    def delete(self, request: Request, project) -> Response:
+        if not self.has_feature(project, request):
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+
+        project.delete_option(SETTINGS_PROJECT_OPTION_KEY)
+        return Response(status=status.HTTP_204_NO_CONTENT)

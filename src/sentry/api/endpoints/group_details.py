@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import tagstore, tsdb
 from sentry.api import client
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import (
@@ -23,6 +23,7 @@ from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serial
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
 from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.types.issues import GroupCategory
@@ -33,6 +34,7 @@ from sentry.utils.safe import safe_execute
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+@region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
@@ -185,9 +187,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(
-                group.project_id, group.id, environment_ids, limit=100
-            )
+            tags = tagstore.get_group_tag_keys(group, environment_ids, limit=100)
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)
@@ -203,6 +203,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 inbox_map = get_inbox_details([group])
                 inbox_reason = inbox_map.get(group.id)
                 data.update({"inbox": inbox_reason})
+
+            if "owners" in expand:
+                owner_details = get_owner_details([group], request.user)
+                owners = owner_details.get(group.id)
+                data.update({"owners": owners})
 
             action_list = self._get_actions(request, group)
             data.update(

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Callable, Dict, Iterable, List, Mapping, Set, Tuple
 
-from sentry.utils.silo.common import Keywords, has_control_name, has_customer_name
+from sentry.utils.silo.common import Keywords, has_control_name, has_region_name
 
 
 def decorate_unit_tests(silo_keywords: Dict[str, Keywords]):
@@ -17,7 +17,7 @@ def decorate_unit_tests(silo_keywords: Dict[str, Keywords]):
     case_map = TestCaseMap(TestCaseFunction.parse(pytest_collection))
 
     for (decorator, count) in case_map.report(
-        "control_silo_test", "customer_silo_test", classes_only=True
+        "control_silo_test", "region_silo_test", classes_only=True
     ):
         print(f"{decorator or 'None'}: {count}")  # noqa
 
@@ -27,8 +27,8 @@ def decorate_unit_tests(silo_keywords: Dict[str, Keywords]):
 
         if has_control_name(match.case.name, silo_keywords):
             return "control_silo_test"
-        elif has_customer_name(match.case.name, silo_keywords):
-            return "customer_silo_test"
+        elif has_region_name(match.case.name, silo_keywords):
+            return "region_silo_test"
 
     count = case_map.add_decorators(condition)
     print(f"Decorated {count} case{'' if count == 1 else 's'}")  # noqa

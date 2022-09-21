@@ -10,6 +10,7 @@ from sentry.event_manager import _pull_out_data
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -508,6 +509,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             assert snuba.query.call_args[1]["limit"] == 5
 
 
+@region_silo_test
 class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -618,8 +620,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
     def test_range_groups_single(self):
         from sentry.snuba.dataset import Dataset
 
-        now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -706,8 +708,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         }
 
     def test_range_groups_mult(self):
-        now = (datetime.utcnow() - timedelta(hours=4)).replace(
-            hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -742,7 +744,9 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
     def test_range_groups_simple(self):
         project = self.create_project()
         group = self.create_group(project=project)
-        now = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC)
+        now = (datetime.utcnow() - timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
+        )
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]

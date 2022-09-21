@@ -3,10 +3,12 @@ from freezegun import freeze_time
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 PROFILING_FEATURES = {"organizations:profiling": True}
 
 
+@region_silo_test
 class OrganizationProfilingProfilesTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-profiles"
 
@@ -33,6 +35,7 @@ class OrganizationProfilingProfilesTest(APITestCase):
         assert response.data == []
 
 
+@region_silo_test
 class OrganizationProfilingFiltersTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-filters"
 
@@ -59,6 +62,7 @@ class OrganizationProfilingFiltersTest(APITestCase):
         assert response.data == []
 
 
+@region_silo_test
 class OrganizationProfilingTransactionsTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-transactions"
 
@@ -85,6 +89,7 @@ class OrganizationProfilingTransactionsTest(APITestCase):
         assert response.data == []
 
 
+@region_silo_test
 class OrganizationProfilingStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-stats"
 

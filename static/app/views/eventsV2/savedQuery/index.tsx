@@ -24,7 +24,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -256,7 +256,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: getDiscoverLandingUrl(organization),
+        pathname: getDiscoverQueriesUrl(organization),
         query: {},
       });
     });

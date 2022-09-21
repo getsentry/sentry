@@ -1025,7 +1025,7 @@ def resolve_column(dataset) -> Callable[[str], str]:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
-            if isinstance(col, (list, tuple)) or col == "project_id":
+            if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         else:
             if (
@@ -1460,6 +1460,16 @@ def is_percentage_measurement(key):
         "measurements.frames_slow_rate",
         "measurements.frames_frozen_rate",
         "measurements.stall_percentage",
+    ]
+
+
+def is_numeric_measurement(key):
+    return key in [
+        "measurements.cls",
+        "measurements.frames_frozen",
+        "measurements.frames_slow",
+        "measurements.frames_total",
+        "measurements.stall_count",
     ]
 
 

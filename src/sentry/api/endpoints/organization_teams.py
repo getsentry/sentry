@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -54,6 +55,7 @@ class TeamPostSerializer(serializers.Serializer):
         return attrs
 
 
+@region_silo_endpoint
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
 
@@ -78,9 +80,11 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if request.auth and hasattr(request.auth, "project"):
             return Response(status=403)
 
-        queryset = Team.objects.filter(
-            organization=organization, status=TeamStatus.VISIBLE
-        ).order_by("slug")
+        queryset = (
+            Team.objects.filter(organization=organization, status=TeamStatus.VISIBLE)
+            .order_by("slug")
+            .select_related("organization")  # Used in TeamSerializer
+        )
 
         query = request.GET.get("query")
 

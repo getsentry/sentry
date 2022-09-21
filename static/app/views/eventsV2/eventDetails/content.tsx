@@ -17,6 +17,7 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
@@ -147,6 +148,8 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
 
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
+    const hasProfilingFeature = organization.features.includes('profiling');
+
     const renderContent = (
       results?: QuickTraceQueryChildrenProps,
       metaResults?: TraceMetaQueryChildrenProps
@@ -182,6 +185,13 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               >
                 {t('JSON')} (<FileSize bytes={event.size} />)
               </Button>
+              {hasProfilingFeature && event.type === 'transaction' && (
+                <TransactionToProfileButton
+                  orgId={organization.slug}
+                  projectId={this.projectId}
+                  transactionId={event.eventID}
+                />
+              )}
               {transactionSummaryTarget && (
                 <Feature organization={organization} features={['performance-view']}>
                   {({hasFeature}) => (
@@ -360,7 +370,7 @@ const EventHeader = ({event}: {event: Event}) => {
   return (
     <EventHeaderContainer data-test-id="event-header">
       <TitleWrapper>
-        <EventOrGroupTitle data={event} />
+        <StyledEventOrGroupTitle data={event} />
       </TitleWrapper>
       {message && (
         <MessageWrapper>
@@ -376,8 +386,11 @@ const EventHeaderContainer = styled('div')`
 `;
 
 const TitleWrapper = styled('div')`
-  font-size: ${p => p.theme.headerFontSize};
   margin-top: 20px;
+`;
+
+const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+  font-size: ${p => p.theme.headerFontSize};
 `;
 
 const MessageWrapper = styled('div')`

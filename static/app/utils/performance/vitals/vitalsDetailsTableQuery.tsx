@@ -3,7 +3,6 @@ import GenericDiscoverQuery, {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import withApi from 'sentry/utils/withApi';
 
 type BaseDataRow = {
   [key: string]: React.ReactText;
@@ -64,4 +63,4 @@ function VitalsCardsDiscoverQuery(props: QueryProps) {
   return <GenericDiscoverQuery<TableData, QueryProps> route="events" {...props} />;
 }
 
-export default withApi(VitalsCardsDiscoverQuery);
+export default VitalsCardsDiscoverQuery;

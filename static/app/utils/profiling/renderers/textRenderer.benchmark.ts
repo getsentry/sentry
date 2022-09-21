@@ -4,11 +4,9 @@
 import benchmarkjs from 'benchmark';
 import maxBy from 'lodash/maxBy';
 
-import {initializeLocale} from 'sentry/bootstrap/initializeLocale';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
-
+import {initializeLocale} from '../../../bootstrap/initializeLocale';
 import {Flamegraph} from '../flamegraph';
+import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {Rect, transformMatrixBetweenRect} from '../gl/utils';
 import androidTrace from '../profile/formats/android/trace.json';
@@ -17,6 +15,7 @@ import typescriptTrace from '../profile/formats/typescript/trace.json';
 import {importProfile} from '../profile/importProfile';
 
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from './../flamegraphFrame';
+import {TextRenderer} from './textRenderer';
 
 // This logs an error which is annoying to see in the outputs
 initializeLocale({} as any);

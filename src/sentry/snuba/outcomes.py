@@ -67,7 +67,7 @@ class Field(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def select_params(self, dataset: Dataset) -> Tuple[str, str, str]:
+    def select_params(self, dataset: Dataset) -> Function:
         raise NotImplementedError()
 
 

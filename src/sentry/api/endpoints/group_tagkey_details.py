@@ -2,13 +2,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Environment
 
 
+@region_silo_endpoint
 class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def get(self, request: Request, group, key) -> Response:
         """
@@ -32,9 +33,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = tagstore.get_group_tag_key(
-                group.project_id, group.id, environment_id, lookup_key
-            )
+            group_tag_key = tagstore.get_group_tag_key(group, environment_id, lookup_key)
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
@@ -45,7 +44,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         if group_tag_key.top_values is None:
             group_tag_key.top_values = tagstore.get_top_group_tag_values(
-                group.project_id, group.id, environment_id, lookup_key
+                group, environment_id, lookup_key
             )
 
         return Response(serialize(group_tag_key, request.user))

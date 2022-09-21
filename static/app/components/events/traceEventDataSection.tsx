@@ -12,8 +12,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import Tooltip from 'sentry/components/tooltip';
-import {IconEllipsis, IconSort} from 'sentry/icons';
-import {IconAnchor} from 'sentry/icons/iconAnchor';
+import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
@@ -260,7 +259,7 @@ export function TraceEventDataSection({
                   value={state.sortBy}
                   options={Object.entries(sortByOptions).map(([value, label]) => ({
                     label,
-                    value,
+                    value: value as keyof typeof sortByOptions,
                   }))}
                 />
                 <CompositeSelect
@@ -310,26 +309,26 @@ interface PermalinkTitleProps
 export function PermalinkTitle(props: PermalinkTitleProps) {
   return (
     <Permalink {...props} href={'#' + props.type} className="permalink">
-      <StyledIconAnchor />
+      <StyledIconLink size="xs" color="subText" />
       <h3>{props.children}</h3>
     </Permalink>
   );
 }
 
-const StyledIconAnchor = styled(IconAnchor)`
+const StyledIconLink = styled(IconLink)`
   display: none;
   position: absolute;
-  top: 4px;
-  left: -22px;
+  top: 50%;
+  left: -${space(2)};
+  transform: translateY(-50%);
 `;
 
 const Permalink = styled('a')`
   display: inline-flex;
   justify-content: flex-start;
 
-  &:hover ${StyledIconAnchor} {
+  &:hover ${StyledIconLink} {
     display: block;
-    color: ${p => p.theme.gray300};
   }
 `;
 

@@ -442,7 +442,7 @@ class GroupSerializerBase(Serializer, ABC):
         ]
 
         # bulk query for the seen_stats by type
-        error_stats = self._seen_stats_error(error_issues, user) or {}
+        error_stats = (self._seen_stats_error(error_issues, user) if error_issues else {}) or {}
         perf_stats = (self._seen_stats_performance(perf_issues, user) if perf_issues else {}) or {}
         agg_stats = {**error_stats, **perf_stats}
         # combine results back

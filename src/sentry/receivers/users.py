@@ -1,14 +1,15 @@
 from django.db import router
 from django.db.models.signals import post_migrate
 
+from sentry.db.models import get_model_if_available
+
 
 def create_first_user(app_config, using, interactive, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    try:
-        User = app_config.get_model("User")
-    except LookupError:
+    User = get_model_if_available(app_config, "User")
+    if not User:
         return
 
     if User.objects.filter(is_superuser=True).exists():

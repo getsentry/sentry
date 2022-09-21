@@ -1,121 +1,86 @@
 import 'prism-sentry/index.css';
 
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {IntegrationProvider, Organization} from 'sentry/types';
+import {IntegrationProvider, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
 
-import FirstEventFooter from './components/firstEventFooter';
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';
 import SetupIntroduction from './components/setupIntroduction';
-import {StepProps} from './types';
 
-type Props = StepProps & {
-  api: Client;
+type Props = {
   integrationSlug: string;
-  organization: Organization;
+  project: Project | null;
+  onClickManualSetup?: () => void;
 };
 
-type State = {
-  hasError: boolean;
-  installed: boolean;
-  loadedPlatform: PlatformKey | null;
-  provider: IntegrationProvider | null;
-};
+function IntegrationSetup(props: Props) {
+  const [hasError, setHasError] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [provider, setProvider] = useState<IntegrationProvider | null>(null);
 
-class IntegrationSetup extends Component<Props, State> {
-  state: State = {
-    loadedPlatform: null,
-    hasError: false,
-    provider: null,
-    installed: false,
-  };
+  const organization = useOrganization();
 
-  componentDidMount() {
-    this.fetchData();
-  }
+  const {project, integrationSlug} = props;
 
-  componentDidUpdate(nextProps: Props) {
-    if (
-      nextProps.platform !== this.props.platform ||
-      nextProps.project !== this.props.project
-    ) {
-      this.fetchData();
-    }
-  }
-
-  get manualSetupUrl() {
-    const {search} = window.location;
-    // honor any existing query params
-    const separator = search.includes('?') ? '&' : '?';
-    return `${search}${separator}manual=1`;
-  }
-
-  get platformDocs() {
-    // TODO: make dynamic based on the integration
-    return 'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
-  }
-
-  fetchData = async () => {
-    const {api, organization, platform, integrationSlug} = this.props;
-
+  const api = useApi();
+  const fetchData = useCallback(() => {
     if (!integrationSlug) {
-      return;
+      return Promise.resolve();
     }
 
-    try {
-      const endpoint = `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`;
-      const integrations = await api.requestPromise(endpoint);
-      const provider = integrations.providers[0];
+    const endpoint = `/organizations/${organization.slug}/config/integrations/?provider_key=${integrationSlug}`;
+    return api
+      .requestPromise(endpoint)
+      .then(integrations => {
+        setProvider(integrations.providers[0]);
+        setHasError(false);
+      })
+      .catch(error => {
+        setHasError(true);
+        throw error;
+      });
+  }, [integrationSlug, api, organization.slug]);
 
-      this.setState({provider, loadedPlatform: platform, hasError: false});
-    } catch (error) {
-      this.setState({hasError: error});
-      throw error;
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  handleFullDocsClick = () => {
-    const {organization} = this.props;
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {organization});
-  };
+  const loadingError = (
+    <LoadingError
+      message={t(
+        'Failed to load the integration for the %s platform.',
+        project?.platform ?? 'other'
+      )}
+      onRetry={fetchData}
+    />
+  );
 
-  trackSwitchToManual = () => {
-    const {organization, integrationSlug} = this.props;
-    trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
-      integration_type: 'first_party',
-      integration: integrationSlug,
-      view: 'onboarding',
-      organization,
-    });
-  };
+  const testOnlyAlert = (
+    <Alert type="warning">
+      Platform documentation is not rendered in for tests in CI
+    </Alert>
+  );
 
-  handleAddIntegration = () => {
-    this.setState({installed: true});
-  };
-
-  renderSetupInstructions = () => {
-    const {platform} = this.props;
-    const {loadedPlatform} = this.state;
-    const currentPlatform = loadedPlatform ?? platform ?? 'other';
+  const renderSetupInstructions = () => {
+    const currentPlatform = project?.platform ?? 'other';
     return (
       <SetupIntroduction
         stepHeaderText={t(
@@ -126,17 +91,14 @@ class IntegrationSetup extends Component<Props, State> {
       />
     );
   };
-
-  renderIntegrationInstructions() {
-    const {organization, project} = this.props;
-    const {provider} = this.state;
+  const renderIntegrationInstructions = () => {
     if (!provider || !project) {
       return null;
     }
 
     return (
       <Fragment>
-        {this.renderSetupInstructions()}
+        {renderSetupInstructions()}
         <motion.p
           variants={{
             initial: {opacity: 0},
@@ -173,7 +135,7 @@ class IntegrationSetup extends Component<Props, State> {
           <StyledButtonBar gap={1}>
             <AddIntegrationButton
               provider={provider}
-              onAddIntegration={this.handleAddIntegration}
+              onAddIntegration={() => setInstalled(true)}
               organization={organization}
               priority="primary"
               size="sm"
@@ -186,7 +148,15 @@ class IntegrationSetup extends Component<Props, State> {
                 pathname: window.location.pathname,
                 query: {manual: '1'},
               }}
-              onClick={this.trackSwitchToManual}
+              onClick={() => {
+                props.onClickManualSetup?.();
+                trackIntegrationAnalytics('integrations.switch_manual_sdk_setup', {
+                  integration_type: 'first_party',
+                  integration: integrationSlug,
+                  view: 'onboarding',
+                  organization,
+                });
+              }}
             >
               {t('Manual Setup')}
             </Button>
@@ -194,57 +164,43 @@ class IntegrationSetup extends Component<Props, State> {
         </DocsWrapper>
       </Fragment>
     );
-  }
+  };
 
-  renderPostInstallInstructions() {
-    const {organization, project, platform} = this.props;
-    const {provider} = this.state;
-    if (!project || !provider || !platform) {
+  const renderPostInstallInstructions = () => {
+    if (!project || !provider) {
       return null;
     }
     return (
       <Fragment>
-        {this.renderSetupInstructions()}
-        <PostInstallCodeSnippet provider={provider} platform={platform} isOnboarding />
-        <FirstEventFooter
-          project={project}
-          organization={organization}
-          docsLink={this.platformDocs}
-          docsOnClick={this.handleFullDocsClick}
+        {renderSetupInstructions()}
+        <PostInstallCodeSnippet
+          provider={provider}
+          platform={project.platform}
+          isOnboarding
         />
+        <ExternalLink
+          onClick={() => {
+            trackAdvancedAnalyticsEvent('growth.onboarding_view_full_docs', {
+              organization,
+            });
+          }}
+          href="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/"
+        >
+          {t('View Full Documentation')}
+        </ExternalLink>
       </Fragment>
     );
-  }
+  };
 
-  render() {
-    const {platform} = this.props;
-    const {hasError} = this.state;
-
-    const loadingError = (
-      <LoadingError
-        message={t('Failed to load the integration for the %s platform.', platform)}
-        onRetry={this.fetchData}
-      />
-    );
-
-    const testOnlyAlert = (
-      <Alert type="warning">
-        Platform documentation is not rendered in for tests in CI
-      </Alert>
-    );
-
-    return (
-      <Fragment>
-        {this.state.installed
-          ? this.renderPostInstallInstructions()
-          : this.renderIntegrationInstructions()}
-        {getDynamicText({
-          value: !hasError ? null : loadingError,
-          fixed: testOnlyAlert,
-        })}
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      {installed ? renderPostInstallInstructions() : renderIntegrationInstructions()}
+      {getDynamicText({
+        value: !hasError ? null : loadingError,
+        fixed: testOnlyAlert,
+      })}
+    </Fragment>
+  );
 }
 
 const DocsWrapper = styled(motion.div)``;
@@ -266,4 +222,4 @@ const StyledButtonBar = styled(ButtonBar)`
   }
 `;
 
-export default withOrganization(withApi(IntegrationSetup));
+export default IntegrationSetup;

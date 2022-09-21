@@ -10,14 +10,48 @@ import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
+
+function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
+  const currentOrganization = useOrganization();
+  const route = useResolveRoute('/organizations/new/');
+
+  if (!canCreateOrganization) {
+    return null;
+  }
+
+  const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
+
+  if (currentOrganization.features.includes('customer-domains')) {
+    menuItemProps.href = route;
+    menuItemProps.openInNewTab = false;
+  } else {
+    menuItemProps.to = route;
+  }
+
+  return (
+    <SidebarMenuItem
+      data-test-id="sidebar-create-org"
+      style={{alignItems: 'center'}}
+      {...menuItemProps}
+    >
+      <MenuItemLabelWithIcon>
+        <StyledIconAdd />
+        <span>{t('Create a new organization')}</span>
+      </MenuItemLabelWithIcon>
+    </SidebarMenuItem>
+  );
+}
 
 type Props = {
   canCreateOrganization: boolean;
   organizations: OrganizationSummary[];
 };
+
 /**
  * Switch Organization Menu Label + Sub Menu
  */
@@ -64,18 +98,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
             {organizations && !!organizations.length && canCreateOrganization && (
               <Divider css={{marginTop: 0}} />
             )}
-            {canCreateOrganization && (
-              <SidebarMenuItem
-                data-test-id="sidebar-create-org"
-                to="/organizations/new/"
-                style={{alignItems: 'center'}}
-              >
-                <MenuItemLabelWithIcon>
-                  <StyledIconAdd />
-                  <span>{t('Create a new organization')}</span>
-                </MenuItemLabelWithIcon>
-              </SidebarMenuItem>
-            )}
+            {<CreateOrganization canCreateOrganization={canCreateOrganization} />}
           </SwitchOrganizationMenu>
         )}
       </Fragment>

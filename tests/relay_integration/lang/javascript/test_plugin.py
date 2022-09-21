@@ -424,10 +424,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        f_minified = File.objects.create(
-            name="nofiles.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_minified.putfile(open(get_fixture_path("nofiles.js"), "rb"))
+        with open(get_fixture_path("nofiles.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="nofiles.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f_minified.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}",
             release_id=release.id,
@@ -435,10 +436,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             file=f_minified,
         )
 
-        f_sourcemap = File.objects.create(
-            name="nofiles.js.map", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_sourcemap.putfile(open(get_fixture_path("nofiles.js.map"), "rb"))
+        with open(get_fixture_path("nofiles.js.map"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="nofiles.js.map",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"app:///{f_sourcemap.name}",
             release_id=release.id,
@@ -594,10 +598,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file.min.js
         # ------------
 
-        f_minified = File.objects.create(
-            name="file.min.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_minified.putfile(open(get_fixture_path("file.min.js"), "rb"))
+        with open(get_fixture_path("file.min.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="file.min.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_minified.putfile(f)
 
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
@@ -611,10 +618,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file1.js
         # ---------
 
-        f1 = File.objects.create(
-            name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f1.putfile(open(get_fixture_path("file1.js"), "rb"))
+        with open(get_fixture_path("file1.js"), "rb") as f:
+            f1 = File.objects.create(
+                name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f1.putfile(f)
 
         ReleaseFile.objects.create(
             name=f"http://example.com/{f1.name}",
@@ -626,10 +634,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file2.js
         # ----------
 
-        f2 = File.objects.create(
-            name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2.putfile(open(get_fixture_path("file2.js"), "rb"))
+        with open(get_fixture_path("file2.js"), "rb") as f:
+            f2 = File.objects.create(
+                name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f2.name}",
             release_id=release.id,
@@ -642,10 +651,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # hostname that points to an empty file. If the processor chooses
         # this empty file over the correct file2.js, it will not locate
         # context for the 2nd frame.
-        f2_empty = File.objects.create(
-            name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
+        with open(get_fixture_path("empty.js"), "rb") as f:
+            f2_empty = File.objects.create(
+                name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2_empty.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
             release_id=release.id,
@@ -656,12 +666,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # sourcemap
         # ----------
 
-        f_sourcemap = File.objects.create(
-            name="file.sourcemap.js",
-            type="release.file",
-            headers={"Content-Type": "application/json"},
-        )
-        f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
+        with open(get_fixture_path("file.sourcemap.js"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="file.sourcemap.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f_sourcemap.name}",
             release_id=release.id,
@@ -732,10 +743,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file.min.js
         # ------------
 
-        f_minified = File.objects.create(
-            name="file.min.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_minified.putfile(open(get_fixture_path("file.min.js"), "rb"))
+        with open(get_fixture_path("file.min.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="file.min.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_minified.putfile(f)
 
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
@@ -750,10 +764,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file1.js
         # ---------
 
-        f1 = File.objects.create(
-            name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f1.putfile(open(get_fixture_path("file1.js"), "rb"))
+        with open(get_fixture_path("file1.js"), "rb") as f:
+            f1 = File.objects.create(
+                name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f1.putfile(f)
 
         ReleaseFile.objects.create(
             name=f"http://example.com/{f1.name}",
@@ -766,10 +781,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file2.js
         # ----------
 
-        f2 = File.objects.create(
-            name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2.putfile(open(get_fixture_path("file2.js"), "rb"))
+        with open(get_fixture_path("file2.js"), "rb") as f:
+            f2 = File.objects.create(
+                name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f2.name}",
             release_id=release.id,
@@ -783,10 +799,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # hostname that points to an empty file. If the processor chooses
         # this empty file over the correct file2.js, it will not locate
         # context for the 2nd frame.
-        f2_empty = File.objects.create(
-            name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
+        with open(get_fixture_path("empty.js"), "rb") as f:
+            f2_empty = File.objects.create(
+                name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2_empty.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
             release_id=release.id,
@@ -798,12 +815,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # sourcemap
         # ----------
 
-        f_sourcemap = File.objects.create(
-            name="file.sourcemap.js",
-            type="release.file",
-            headers={"Content-Type": "application/json"},
-        )
-        f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
+        with open(get_fixture_path("file.sourcemap.js"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="file.sourcemap.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f_sourcemap.name}",
             release_id=release.id,
@@ -1223,12 +1241,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         release.add_project(project)
 
-        f_minified = File.objects.create(
-            name="dist.bundle.js",
-            type="release.file",
-            headers={"Content-Type": "application/javascript"},
-        )
-        f_minified.putfile(open(get_fixture_path("dist.bundle.js"), "rb"))
+        with open(get_fixture_path("dist.bundle.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="dist.bundle.js",
+                type="release.file",
+                headers={"Content-Type": "application/javascript"},
+            )
+            f_minified.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}",
             release_id=release.id,
@@ -1236,12 +1255,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             file=f_minified,
         )
 
-        f_sourcemap = File.objects.create(
-            name="dist.bundle.js.map",
-            type="release.file",
-            headers={"Content-Type": "application/javascript"},
-        )
-        f_sourcemap.putfile(open(get_fixture_path("dist.bundle.js.map"), "rb"))
+        with open(get_fixture_path("dist.bundle.js.map"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="dist.bundle.js.map",
+                type="release.file",
+                headers={"Content-Type": "application/javascript"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f_sourcemap.name}",
             release_id=release.id,

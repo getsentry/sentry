@@ -9,17 +9,19 @@ from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json, snuba
 from sentry.utils.samples import load_data
 
 
+@region_silo_test
 class SnubaEventStreamTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
 
         self.kafka_eventstream = KafkaEventStream()
-        self.kafka_eventstream.errors_producer = Mock()
-        self.kafka_eventstream.transactions_producer = Mock()
+        self.producer_mock = Mock()
+        self.kafka_eventstream.get_producer = Mock(return_value=self.producer_mock)
 
     def __build_event(self, timestamp):
         raw_event = {
@@ -46,11 +48,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
 
-        producer = (
-            self.kafka_eventstream.transactions_producer
-            if is_transaction_event
-            else self.kafka_eventstream.errors_producer
-        )
+        producer = self.producer_mock
 
         produce_args, produce_kwargs = list(producer.produce.call_args)
         assert not produce_args
@@ -156,3 +154,25 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         )
         assert len(result["data"]) == 1
         assert result["data"][0]["group_ids"] == [self.group.id]
+
+    @patch("sentry.eventstream.snuba.logger")
+    def test_invalid_groupevent_passed(self, logger):
+        event = self.__build_transaction_event()
+        event.group_id = None
+        event.group_ids = [self.group.id]
+        insert_args = ()
+        insert_kwargs = {
+            "event": event.for_group(self.group),
+            "is_new_group_environment": True,
+            "is_new": True,
+            "is_regression": False,
+            "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
+            "skip_consume": False,
+            "received_timestamp": event.data["received"],
+        }
+        self.kafka_eventstream.insert(*insert_args, **insert_kwargs)
+        assert not self.producer_mock.produce.called
+        logger.error.assert_called_with(
+            "`GroupEvent` passed to `EventStream.insert`. Only `Event` is allowed here.",
+            exc_info=True,
+        )
