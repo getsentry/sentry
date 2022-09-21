@@ -1,7 +1,8 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import ReplayContent from './replayContent';
 
@@ -109,6 +110,14 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
     }),
   };
 });
+
+const render: typeof baseRender = children => {
+  return baseRender(
+    <OrganizationContext.Provider value={TestStubs.Organization()}>
+      {children}
+    </OrganizationContext.Provider>
+  );
+};
 
 describe('ReplayContent', () => {
   it('Should render a placeholder when is fetching the replay data', () => {
