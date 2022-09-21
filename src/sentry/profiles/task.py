@@ -113,7 +113,7 @@ def _should_deobfuscate(profile: Profile) -> bool:
     return platform in SHOULD_DEOBFUSCATE
 
 
-@metrics.wraps("process_profile.normalize")
+@metrics.wraps("process_profile.normalize")  # type: ignore
 def _normalize(profile: Profile, organization: Organization) -> None:
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
@@ -175,7 +175,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
     return (modules, stacktraces)
 
 
-@metrics.wraps("process_profile.symbolicate.request")
+@metrics.wraps("process_profile.symbolicate.request")  # type: ignore
 def _symbolicate(
     project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
 ) -> List[Any]:
@@ -208,7 +208,7 @@ def _symbolicate(
     return []
 
 
-@metrics.wraps("process_profile.symbolicate.process")
+@metrics.wraps("process_profile.symbolicate.process")  # type: ignore
 def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> None:
     if "version" in profile.get("profile", {}):
         profile["profile"]["frames"] = stacktraces[0]["frames"]
@@ -272,7 +272,7 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             original["frames"] = symbolicated["frames"]
 
 
-@metrics.wraps("process_profile.deobfuscate")
+@metrics.wraps("process_profile.deobfuscate")  # type: ignore
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
@@ -320,7 +320,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                 method["class_name"] = mapped
 
 
-@metrics.wraps("process_profile.track_outcome")
+@metrics.wraps("process_profile.track_outcome")  # type: ignore
 def _track_outcome(
     profile: Profile,
     project: Project,
@@ -344,7 +344,7 @@ def _track_outcome(
     )
 
 
-@metrics.wraps("process_profile.initialize_publisher")
+@metrics.wraps("process_profile.initialize_publisher")  # type: ignore
 def _initialize_publisher() -> None:
     global processed_profiles_publisher
 
@@ -355,7 +355,7 @@ def _initialize_publisher() -> None:
         )
 
 
-@metrics.wraps("process_profile.insert_eventstream.profile")
+@metrics.wraps("process_profile.insert_eventstream.profile")  # type: ignore
 def _insert_eventstream_profile(profile: Profile) -> None:
     """
     TODO: This function directly publishes the profile to kafka.
@@ -374,7 +374,7 @@ def _insert_eventstream_profile(profile: Profile) -> None:
     )
 
 
-@metrics.wraps("process_profile.insert_eventstream.call_tree")
+@metrics.wraps("process_profile.insert_eventstream.call_tree")  # type: ignore
 def _insert_eventstream_call_tree(profile: Profile) -> None:
     # just a guard as this should always be initialized already
     if processed_profiles_publisher is None:
@@ -402,7 +402,7 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     )
 
 
-@metrics.wraps("process_profile.get_event_instance")
+@metrics.wraps("process_profile.get_event_instance")  # type: ignore
 def _get_event_instance(profile: Profile) -> Any:
     return {
         "profile_id": profile["profile_id"],
@@ -419,7 +419,7 @@ def _get_event_instance(profile: Profile) -> Any:
     }
 
 
-@metrics.wraps("process_profile.insert_vroom_profile")
+@metrics.wraps("process_profile.insert_vroom_profile")  # type: ignore
 def _insert_vroom_profile(profile: Profile) -> bool:
     original_timestamp = profile["received"]
 
