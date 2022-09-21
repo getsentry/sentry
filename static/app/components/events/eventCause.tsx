@@ -11,7 +11,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {AvatarProject, Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useCommitters from 'sentry/utils/useCommitters';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   event: Event;
@@ -20,12 +23,24 @@ interface Props {
 }
 
 function EventCause({group, event, project}: Props) {
+  const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
-  const {committers} = useCommitters({
+  const {committers, fetching} = useCommitters({
     group,
     eventId: event.id,
     projectSlug: project.slug,
   });
+
+  useEffectAfterFirstRender(() => {
+    if (fetching) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('issue_details.suspect_commits', {
+      organization,
+      count: committers.length,
+    });
+  }, [organization, fetching, committers.length]);
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
