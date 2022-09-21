@@ -2,11 +2,11 @@ import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import OrganizationActions from 'sentry/actions/organizationActions';
 import {Client} from 'sentry/api';
 import GuideStore from 'sentry/stores/guideStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization} from 'sentry/types';
@@ -122,8 +122,7 @@ export function changeOrganizationSlug(
  */
 export function updateOrganization(org: Partial<Organization>) {
   OrganizationsStore.onUpdate(org);
-  LatestContextStore.onUpdateOrganization(org);
-  OrganizationActions.update(org);
+  OrganizationStore.onUpdate(org);
 }
 
 type FetchOrganizationByMemberParams = {

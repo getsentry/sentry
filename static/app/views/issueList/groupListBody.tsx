@@ -5,7 +5,9 @@ import {PanelBody} from 'sentry/components/panels';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
+import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import NoGroupsHandler from './noGroupsHandler';
@@ -92,6 +94,7 @@ function GroupList({
 }: GroupListProps) {
   const topIssue = groupIds[0];
   const showInboxTime = sort === IssueSortOptions.INBOX;
+  const canSelect = !useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   return (
     <PanelBody>
@@ -111,6 +114,7 @@ function GroupList({
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             showInboxTime={showInboxTime}
+            canSelect={canSelect}
           />
         );
       })}

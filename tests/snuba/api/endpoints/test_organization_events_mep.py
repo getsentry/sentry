@@ -37,7 +37,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         "d:transactions/measurements.something_custom@millisecond",
         "d:transactions/measurements.runtime@hour",
         "d:transactions/measurements.bytes_transfered@byte",
-        "d:transactions/measurements.datacenter_memory@pebibyte",
+        "d:transactions/measurements.datacenter_memory@petabyte",
+        "d:transactions/measurements.custom.kilobyte@kilobyte",
         "d:transactions/measurements.longtaskcount@none",
         "d:transactions/measurements.percent@ratio",
         "d:transactions/measurements.custom_type@somethingcustom",
@@ -1358,7 +1359,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_transaction_metric(
             1,
             metric="measurements.datacenter_memory",
-            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
             entity="metrics_distributions",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -1366,7 +1367,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_transaction_metric(
             100,
             metric="measurements.datacenter_memory",
-            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
             entity="metrics_distributions",
             tags={"transaction": "bar_transaction"},
             timestamp=self.min_ago,
@@ -1392,7 +1393,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert data[0]["transaction"] == "bar_transaction"
         assert data[0]["max(measurements.datacenter_memory)"] == 100
-        assert meta["units"]["max(measurements.datacenter_memory)"] == "pebibyte"
+        assert meta["units"]["max(measurements.datacenter_memory)"] == "petabyte"
         assert meta["fields"]["max(measurements.datacenter_memory)"] == "size"
         assert meta["isMetricsData"]
 
@@ -1738,7 +1739,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_transaction_metric(
             33,
             metric="measurements.datacenter_memory",
-            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
             entity="metrics_distributions",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -1746,7 +1747,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         transaction_data = load_data("transaction", timestamp=self.min_ago)
         transaction_data["measurements"]["datacenter_memory"] = {
             "value": 33,
-            "unit": "pebibyte",
+            "unit": "petabyte",
         }
         self.store_event(transaction_data, self.project.id)
 
@@ -1754,7 +1755,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(
             {
                 "field": ["transaction", measurement],
-                "query": "",
+                "query": "measurements.datacenter_memory:33pb",
                 "dataset": "discover",
             }
         )
@@ -1767,14 +1768,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         field_meta = meta["fields"]
         unit_meta = meta["units"]
         assert field_meta[measurement] == "size"
-        assert unit_meta[measurement] == "pebibyte"
+        assert unit_meta[measurement] == "petabyte"
         assert not meta["isMetricsData"]
 
     def test_custom_measurements_with_function(self):
         self.store_transaction_metric(
             33,
             metric="measurements.datacenter_memory",
-            internal_metric="d:transactions/measurements.datacenter_memory@pebibyte",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
             entity="metrics_distributions",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
@@ -1782,7 +1783,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         transaction_data = load_data("transaction", timestamp=self.min_ago)
         transaction_data["measurements"]["datacenter_memory"] = {
             "value": 33,
-            "unit": "pebibyte",
+            "unit": "petabyte",
         }
         self.store_event(transaction_data, self.project.id)
 
@@ -1790,7 +1791,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(
             {
                 "field": ["transaction", measurement],
-                "query": "",
+                "query": "measurements.datacenter_memory:33pb",
                 "dataset": "discover",
             }
         )
@@ -1803,5 +1804,5 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         field_meta = meta["fields"]
         unit_meta = meta["units"]
         assert field_meta[measurement] == "size"
-        assert unit_meta[measurement] == "pebibyte"
+        assert unit_meta[measurement] == "petabyte"
         assert not meta["isMetricsData"]

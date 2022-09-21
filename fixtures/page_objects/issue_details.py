@@ -68,7 +68,9 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="unbookmark"]')
 
     def assign_to(self, user):
-        assignee = self.browser.find_element(by=By.CSS_SELECTOR, value=".assigned-to")
+        assignee = self.browser.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="assigned-to"]'
+        )
 
         # Open the assignee picker
         assignee.find_element(by=By.CSS_SELECTOR, value='[role="button"]').click()
