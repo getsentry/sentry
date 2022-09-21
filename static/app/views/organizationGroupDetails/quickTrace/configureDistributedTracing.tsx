@@ -13,7 +13,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {MinimalProject, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
@@ -26,7 +26,7 @@ type Props = {
   api: Client;
   event: Event;
   organization: Organization;
-  project: Project;
+  project: MinimalProject;
 };
 
 type State = {

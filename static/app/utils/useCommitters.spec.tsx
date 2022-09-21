@@ -13,7 +13,7 @@ describe('useCommitters hook', function () {
   );
   const project = TestStubs.Project();
   const event = TestStubs.Event();
-  const group = TestStubs.Group({firstRelease: {}});
+  const firstRelease = TestStubs.Release();
   let mockApiEndpoint: ReturnType<typeof MockApiClient.addMockResponse>;
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`;
@@ -43,7 +43,7 @@ describe('useCommitters hook', function () {
 
   it('returns committers', async () => {
     const {result, waitFor} = reactHooks.renderHook(
-      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      () => useCommitters({firstRelease, eventId: event.id, projectSlug: project.slug}),
       {wrapper}
     );
 
@@ -54,18 +54,18 @@ describe('useCommitters hook', function () {
 
   it('prevents repeated calls', async () => {
     const {result, waitFor} = reactHooks.renderHook(
-      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      () => useCommitters({firstRelease, eventId: event.id, projectSlug: project.slug}),
       {wrapper}
     );
 
     await waitFor(() => expect(result.current.committers).toEqual(mockData.committers));
 
     reactHooks.renderHook(
-      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      () => useCommitters({firstRelease, eventId: event.id, projectSlug: project.slug}),
       {wrapper}
     );
     reactHooks.renderHook(
-      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      () => useCommitters({firstRelease, eventId: event.id, projectSlug: project.slug}),
       {wrapper}
     );
 
@@ -83,11 +83,11 @@ describe('useCommitters hook', function () {
   it('prevents simultaneous calls', async () => {
     // Mount and run duplicates
     reactHooks.renderHook(
-      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      () => useCommitters({firstRelease, eventId: event.id, projectSlug: project.slug}),
       {wrapper}
     );
     const {result, waitFor} = reactHooks.renderHook(
-      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      () => useCommitters({firstRelease, eventId: event.id, projectSlug: project.slug}),
       {wrapper}
     );
 

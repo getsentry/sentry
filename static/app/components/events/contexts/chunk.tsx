@@ -13,7 +13,8 @@ type Props = {
   alias: string;
   event: Event;
   type: string;
-  group?: Group;
+  groupId?: string;
+  groupPluginContexts?: Group['pluginContexts'];
   value?: Record<string, any>;
 };
 
@@ -32,18 +33,15 @@ class Chunk extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (
-      prevProps.type !== this.props.type ||
-      prevProps.group?.id !== this.props.group?.id
-    ) {
+    if (prevProps.type !== this.props.type || prevProps.groupId !== this.props.groupId) {
       this.syncPlugin();
     }
   }
 
   syncPlugin() {
-    const {group, type, alias} = this.props;
+    const {groupId, groupPluginContexts, type, alias} = this.props;
     // If we don't have a grouped event we can't sync with plugins.
-    if (!group) {
+    if (!groupId) {
       return;
     }
 
@@ -51,9 +49,9 @@ class Chunk extends Component<Props, State> {
     // e.g. sessionstack
     const sourcePlugin =
       type === 'default'
-        ? getSourcePlugin(group.pluginContexts, alias) ||
-          getSourcePlugin(group.pluginContexts, type)
-        : getSourcePlugin(group.pluginContexts, type);
+        ? getSourcePlugin(groupPluginContexts ?? [], alias) ||
+          getSourcePlugin(groupPluginContexts ?? [], type)
+        : getSourcePlugin(groupPluginContexts ?? [], type);
 
     if (!sourcePlugin) {
       this.setState({pluginLoading: false});

@@ -8,10 +8,11 @@ import Chunk from './chunk';
 
 type Props = {
   event: Event;
-  group?: Group;
+  groupId?: string;
+  groupPluginContexts?: Group['pluginContexts'];
 };
 
-function Contexts({event, group}: Props) {
+function Contexts({event, groupId, groupPluginContexts}: Props) {
   const {user, contexts} = event;
 
   return (
@@ -21,7 +22,8 @@ function Contexts({event, group}: Props) {
           key="user"
           type="user"
           alias="user"
-          group={group}
+          groupId={groupId}
+          groupPluginContexts={groupPluginContexts}
           event={event}
           value={user}
         />
@@ -31,7 +33,8 @@ function Contexts({event, group}: Props) {
           key={key}
           type={value?.type ?? ''}
           alias={key}
-          group={group}
+          groupId={groupId}
+          groupPluginContexts={groupPluginContexts}
           event={event}
           value={value}
         />

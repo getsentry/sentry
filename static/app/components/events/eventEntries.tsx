@@ -25,6 +25,7 @@ import EventSdkUpdates from 'sentry/components/events/sdkUpdates';
 import {DataSection} from 'sentry/components/events/styles';
 import EventUserFeedback from 'sentry/components/events/userFeedback';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -36,7 +37,6 @@ import {
   IssueAttachment,
   IssueCategory,
   Organization,
-  Project,
   SharedViewOrganization,
   Thread,
 } from 'sentry/types';
@@ -96,18 +96,22 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
    * The organization can be the shared view on a public issue view.
    */
   organization: Organization | SharedViewOrganization;
-  project: Project;
+  projectSlug: string;
   className?: string;
   event?: Event;
-  group?: Group;
+  group?: Omit<Group, 'project'>;
   isShare?: boolean;
+  platform?: PlatformKey;
+  projectId?: string;
   showExampleCommit?: boolean;
   showTagSummary?: boolean;
 };
 
 const EventEntries = ({
   organization,
-  project,
+  projectId,
+  projectSlug,
+  platform,
   location,
   api,
   event,
@@ -124,7 +128,6 @@ const EventEntries = ({
   const [attachments, setAttachments] = useState<IssueAttachment[]>([]);
 
   const orgSlug = organization.slug;
-  const projectSlug = project.slug;
   const orgFeatures = organization?.features ?? [];
 
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
@@ -139,8 +142,6 @@ const EventEntries = ({
     const errorTypes = errors.map(errorEntries => errorEntries.type);
     const errorMessages = errors.map(errorEntries => errorEntries.message);
 
-    const platform = project.platform;
-
     // uniquify the array types
     trackAdvancedAnalyticsEvent('issue_error_banner.viewed', {
       organization: organization as Organization,
@@ -149,7 +150,7 @@ const EventEntries = ({
       error_message: uniq(errorMessages),
       ...(platform && {platform}),
     });
-  }, [event, organization, project.platform]);
+  }, [event, organization, platform]);
 
   const fetchProguardMappingFiles = useCallback(
     async (query: string): Promise<Array<DebugFile>> => {
@@ -342,9 +343,18 @@ const EventEntries = ({
       {!isShare &&
         isNotSharedOrganization(organization) &&
         (showExampleCommit ? (
-          <EventCauseEmpty event={event} organization={organization} project={project} />
+          <EventCauseEmpty
+            event={event}
+            organization={organization}
+            projectId={projectId}
+            platform={platform}
+          />
         ) : (
-          <EventCause project={project} event={event} group={group} />
+          <EventCause
+            projectSlug={projectSlug}
+            event={event}
+            firstRelease={group?.firstRelease}
+          />
         ))}
       {event.userReport && group && (
         <StyledEventUserFeedback
@@ -387,7 +397,13 @@ const EventEntries = ({
         route={route}
         router={router}
       />
-      {hasContext && <EventContexts group={group} event={event} />}
+      {hasContext && (
+        <EventContexts
+          groupId={group?.id}
+          groupPluginContexts={group?.pluginContexts}
+          event={event}
+        />
+      )}
       {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
       {event && !objectIsEmpty(event.packages) && <EventPackageData event={event} />}
       {event && !objectIsEmpty(event.device) && <EventDevice event={event} />}
@@ -459,7 +475,9 @@ function Entries({
         >
           <EventEntry
             projectSlug={projectSlug}
-            group={group}
+            groupId={group?.id}
+            issueCategory={group?.issueCategory}
+            groupingCurrentLevel={group?.metadata?.current_level}
             organization={organization}
             event={definedEvent}
             entry={entry}

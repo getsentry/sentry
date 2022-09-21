@@ -13,12 +13,12 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 import {OrganizationContext} from '../organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
+import {SharedGroup} from './types';
 
 type Props = RouteComponentProps<{shareId: string}, {}> & {
   api: Client;
@@ -26,7 +26,7 @@ type Props = RouteComponentProps<{shareId: string}, {}> & {
 
 type State = {
   error: boolean;
-  group: Group | null;
+  group: SharedGroup | null;
   loading: boolean;
 };
 
@@ -129,7 +129,8 @@ class SharedGroupDetails extends Component<Props, State> {
                       organization={project.organization}
                       group={group}
                       event={latestEvent}
-                      project={project}
+                      platform={group.platform}
+                      projectSlug={project.slug}
                       api={api}
                       route={route}
                       router={router}

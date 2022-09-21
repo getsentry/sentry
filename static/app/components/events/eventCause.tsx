@@ -9,22 +9,22 @@ import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import type {AvatarProject, Group} from 'sentry/types';
+import type {Release} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import useCommitters from 'sentry/utils/useCommitters';
 
 interface Props {
   event: Event;
-  project: AvatarProject;
-  group?: Group;
+  projectSlug: string;
+  firstRelease?: Release;
 }
 
-function EventCause({group, event, project}: Props) {
+function EventCause({firstRelease, event, projectSlug}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const {committers} = useCommitters({
-    group,
+    firstRelease,
     eventId: event.id,
-    projectSlug: project.slug,
+    projectSlug,
   });
 
   function getUniqueCommitsWithAuthors() {

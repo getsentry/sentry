@@ -4,14 +4,15 @@ import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
 import space from 'sentry/styles/space';
-import {Group} from 'sentry/types';
 
 import UnhandledTag, {
   TagAndMessageWrapper,
 } from '../organizationGroupDetails/unhandledTag';
 
+import {SharedGroup} from './types';
+
 type Props = {
-  group: Group;
+  group: SharedGroup;
 };
 
 const SharedGroupHeader = ({group}: Props) => (

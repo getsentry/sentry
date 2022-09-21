@@ -23,7 +23,7 @@ import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -244,7 +244,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                       <BorderlessEventEntries
                         organization={organization}
                         event={event}
-                        project={projects[0] as Project}
+                        project={projects[0].id}
                         location={location}
                         showExampleCommit={false}
                         showTagSummary={false}

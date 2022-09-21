@@ -5,7 +5,7 @@ import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
-import type {Project} from './project';
+import type {MinimalProject, Project} from './project';
 import type {Release} from './release';
 import type {AvatarUser, User} from './user';
 
@@ -499,7 +499,7 @@ export interface BaseGroup extends GroupRelease {
   pluginActions: any[]; // TODO(ts)
   pluginContexts: any[]; // TODO(ts)
   pluginIssues: any[]; // TODO(ts)
-  project: Project;
+  project: MinimalProject;
   seenBy: User[];
   shareId: string;
   shortId: string;

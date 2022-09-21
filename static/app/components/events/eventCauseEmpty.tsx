@@ -10,9 +10,10 @@ import Button from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import {DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Commit, Organization, Project, RepositoryStatus} from 'sentry/types';
+import {Commit, Organization, RepositoryStatus} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {IssueEventKey} from 'sentry/utils/analytics/issueAnalyticsEvents';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -89,7 +90,8 @@ type Props = {
   api: Client;
   event: Event;
   organization: Organization;
-  project: Project;
+  platform?: PlatformKey;
+  projectId?: string;
 };
 
 type State = {
@@ -114,7 +116,7 @@ class EventCauseEmpty extends Component<Props, State> {
   }
 
   async fetchData() {
-    const {api, event, project, organization} = this.props;
+    const {api, event, projectId, organization} = this.props;
 
     if (!promptCanShow(SUSPECT_COMMITS_FEATURE, event.eventID)) {
       this.setState({shouldShow: false});
@@ -122,7 +124,7 @@ class EventCauseEmpty extends Component<Props, State> {
     }
 
     const data = await promptsCheck(api, {
-      projectId: project.id,
+      projectId,
       organizationId: organization.id,
       feature: SUSPECT_COMMITS_FEATURE,
     });
@@ -131,10 +133,10 @@ class EventCauseEmpty extends Component<Props, State> {
   }
 
   handleClick({action, eventKey}: ClickPayload) {
-    const {api, project, organization} = this.props;
+    const {api, projectId, organization} = this.props;
 
     const data = {
-      projectId: project.id,
+      projectId,
       organizationId: organization.id,
       feature: SUSPECT_COMMITS_FEATURE,
       status: action,
@@ -144,11 +146,11 @@ class EventCauseEmpty extends Component<Props, State> {
   }
 
   trackAnalytics(eventKey: IssueEventKey) {
-    const {project, organization} = this.props;
+    const {projectId, platform, organization} = this.props;
 
     trackAdvancedAnalyticsEvent(eventKey, {
-      project_id: project.id,
-      platform: project.platform,
+      project_id: projectId,
+      platform,
       organization,
     });
   }

@@ -4,7 +4,7 @@ import {getCommitters} from 'sentry/actionCreators/committers';
 import {Client} from 'sentry/api';
 import CommitterStore, {getCommitterStoreKey} from 'sentry/stores/committerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Committer, Group, Organization, ReleaseCommitter} from 'sentry/types';
+import type {Committer, Organization, Release, ReleaseCommitter} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
 import useOrganization from './useOrganization';
@@ -12,7 +12,7 @@ import useOrganization from './useOrganization';
 interface Props {
   eventId: string;
   projectSlug: string;
-  group?: Group;
+  firstRelease?: Release;
 }
 
 interface Result {
@@ -39,7 +39,7 @@ async function fetchCommitters(
   }
 }
 
-function useCommitters({group, eventId, projectSlug}: Props): Result {
+function useCommitters({firstRelease, eventId, projectSlug}: Props): Result {
   const api = useApi();
   const organization = useOrganization();
   const store = useLegacyStore(CommitterStore);
@@ -50,12 +50,12 @@ function useCommitters({group, eventId, projectSlug}: Props): Result {
 
   useEffect(() => {
     // No committers if group doesn't have any releases
-    if (!group?.firstRelease || !organization) {
+    if (!firstRelease || !organization) {
       return;
     }
 
     loadCommitters();
-  }, [eventId, group?.firstRelease, loadCommitters, organization]);
+  }, [eventId, firstRelease, loadCommitters, organization]);
 
   const key = getCommitterStoreKey(organization?.slug ?? '', projectSlug, eventId);
   return {

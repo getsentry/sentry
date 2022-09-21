@@ -13,13 +13,7 @@ import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
 import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
-import {
-  Group,
-  IssueCategory,
-  Organization,
-  Project,
-  SharedViewOrganization,
-} from 'sentry/types';
+import {IssueCategory, Organization, Project, SharedViewOrganization} from 'sentry/types';
 import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
@@ -27,7 +21,9 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   event: Event;
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
-  group?: Group;
+  groupId?: string;
+  groupingCurrentLevel?: any;
+  issueCategory?: IssueCategory;
 };
 
 function EventEntry({
@@ -35,7 +31,9 @@ function EventEntry({
   projectSlug,
   event,
   organization,
-  group,
+  groupId,
+  groupingCurrentLevel,
+  issueCategory,
   route,
   router,
 }: Props) {
@@ -46,8 +44,6 @@ function EventEntry({
   const hasNativeStackTraceV2 = !!organization.features?.includes(
     'native-stack-trace-v2'
   );
-
-  const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
     case EntryType.EXCEPTION: {
@@ -145,14 +141,14 @@ function EventEntry({
         <DebugMeta
           event={event}
           projectId={projectSlug}
-          groupId={group?.id}
+          groupId={groupId}
           organization={organization as Organization}
           data={entry.data}
         />
       );
     case EntryType.SPANS:
       if (
-        group?.issueCategory === IssueCategory.PERFORMANCE &&
+        issueCategory === IssueCategory.PERFORMANCE &&
         organization?.features?.includes('performance-issues')
       ) {
         return (

@@ -39,7 +39,12 @@ describe('EventCauseEmpty', function () {
 
   it('renders', async function async() {
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     expect(
@@ -67,7 +72,12 @@ describe('EventCauseEmpty', function () {
     };
 
     render(
-      <EventCauseEmpty event={newEvent} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={newEvent}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     expect(
@@ -79,7 +89,12 @@ describe('EventCauseEmpty', function () {
 
   it('can be snoozed', async function () {
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     userEvent.click(await screen.findByRole('button', {name: 'Snooze'}));
@@ -122,7 +137,12 @@ describe('EventCauseEmpty', function () {
     });
 
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     expect(
@@ -140,7 +160,12 @@ describe('EventCauseEmpty', function () {
     });
 
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     expect(
@@ -150,7 +175,12 @@ describe('EventCauseEmpty', function () {
 
   it('can be dismissed', async function () {
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     userEvent.click(await screen.findByRole('button', {name: 'Dismiss'}));
@@ -191,7 +221,12 @@ describe('EventCauseEmpty', function () {
     });
 
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     expect(
@@ -201,7 +236,12 @@ describe('EventCauseEmpty', function () {
 
   it('can capture analytics on docs click', async function () {
     render(
-      <EventCauseEmpty event={event} organization={organization} project={project} />
+      <EventCauseEmpty
+        event={event}
+        organization={organization}
+        projectId={project.id}
+        platform={project.platform}
+      />
     );
 
     userEvent.click(await screen.findByRole('button', {name: 'Read the docs'}));

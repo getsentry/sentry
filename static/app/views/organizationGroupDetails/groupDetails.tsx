@@ -14,7 +14,14 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  AvatarProject,
+  Group,
+  IssueCategory,
+  MinimalProject,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
@@ -58,7 +65,7 @@ type State = {
   loadingEvent: boolean;
   loadingGroup: boolean;
   loadingReplayIds: boolean;
-  project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
+  project: null | MinimalProject;
   replayIds: null | string[];
   event?: Event;
 };
@@ -577,6 +584,8 @@ class GroupDetails extends Component<Props, State> {
     } else if (currentTab === Tab.REPLAYS) {
       childProps = {...childProps, replayIds};
     }
+
+    console.log({project, state: this.state});
 
     return (
       <Fragment>
