@@ -21,7 +21,7 @@ const FILE_EXTENSION_TO_PLATFORM = {
   exs: 'elixir',
   cs: 'csharp',
   fs: 'fsharp',
-  vb: 'vb',
+  vb: 'visualbasic',
   kt: 'kotlin',
   dart: 'dart',
   sc: 'scala',
