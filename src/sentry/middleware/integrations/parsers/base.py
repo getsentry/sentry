@@ -7,20 +7,14 @@ from django.http.request import HttpRequest
 class BaseRequestParser(abc.ABC):
     """Base Class for Webhook Request Parsers"""
 
-    exempt_paths: Sequence[str] = []
-    """
-    Paths caught by the parser that will not have their requests forwarded. These will be
-    handled by the Control Silo directly.
-    """
-
     def __init__(self, request: HttpRequest):
         self.request = request
 
-    def is_path_exempt(self) -> bool:
+    def should_disperse(self):
         """
-        Returns whether or not the current request path is exempt.
+        Evaluate whether or not a webhook should be forwarded to different regions
         """
-        return self.request.path in self.exempt_paths
+        return False
 
     def get_organizations(self):
         """

@@ -1,6 +1,6 @@
 from typing import Sequence
 
-from django.urls import resolve
+from django.urls import ResolverMatch, resolve
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
@@ -13,16 +13,12 @@ from .base import BaseRequestParser
 
 
 class SlackRequestParser(BaseRequestParser):
-    exempt_paths = ["/extensions/slack/setup/"]
-
-    path_map = {}
-
     def get_organizations(self) -> Sequence[Organization]:
+        match: ResolverMatch = resolve(self.request.path)
         # We need convert the raw Django request to a Django Rest Framework request
         # since that's the type the SlackRequest expects
-        func, args, kwargs = resolve(self.request.path)
         drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-        slack_request_class = func.view_class.slack_request_class
+        slack_request_class = match.func.view_class.slack_request_class
         slack_request = slack_request_class(drf_request)
         organizations = []
 
