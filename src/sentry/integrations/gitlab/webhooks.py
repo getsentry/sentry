@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception, capture_message
 
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -187,7 +188,7 @@ class GitlabWebhookEndpoint(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         if request.method != "POST":
-            return HttpResponse(status=405)
+            return HttpResponse(status=405, reason="HTTP method not supported.")
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -198,11 +199,27 @@ class GitlabWebhookEndpoint(View):
             # gitlab hook payloads don't give us enough unique context
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
+            # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
             instance, group_path, secret = token.split(":")
             external_id = f"{instance}:{group_path}"
-        except Exception:
+        except KeyError as e:
+            logger.info("gitlab.webhook.missing-gitlab-token")
+            capture_exception(e)
+            return HttpResponse(
+                status=400,
+                reason="Gitlab sent us a payload without HTTP_X_GITLAB_TOKEN.",
+            )
+        except ValueError as e:
+            logger.info("gitlab.webhook.malformed-gitlab-token", extra={"token": token})
+            capture_exception(e)
+            return HttpResponse(
+                status=400,
+                reason="Gitlab sent us a malformed HTTP_X_GITLAB_TOKEN.",
+            )
+        except Exception as e:
+            capture_exception(e)
             logger.info("gitlab.webhook.invalid-token", extra={"token": token})
-            return HttpResponse(status=400)
+            return HttpResponse(status=400, reason="Generic catch-all error.")
 
         try:
             integration = (
@@ -221,23 +238,30 @@ class GitlabWebhookEndpoint(View):
             logger.info(
                 "gitlab.webhook.invalid-token-secret", extra={"integration_id": integration.id}
             )
-            return HttpResponse(status=400)
+            # XXX: Look into using set_context
+            capture_message("Gitlab's webhook secret does not match.")
+            return HttpResponse(
+                status=400,
+                reason="Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens.",
+            )
 
         try:
             event = json.loads(request.body.decode("utf-8"))
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             logger.info(
                 "gitlab.webhook.invalid-json", extra={"external_id": integration.external_id}
             )
-            return HttpResponse(status=400)
+            capture_exception(e)
+            return HttpResponse(status=400, reason="Data received is not JSON.")
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
-        except KeyError:
+        except KeyError as e:
             logger.info(
                 "gitlab.webhook.missing-event", extra={"event": request.META["HTTP_X_GITLAB_EVENT"]}
             )
-            return HttpResponse(status=400)
+            capture_exception(e)
+            return HttpResponse(status=400, reason="Invalid Gitlab event sent.")
 
         for organization in integration.organizations.all():
             handler()(integration, organization, event)
