@@ -63,6 +63,37 @@ class FallbackVariant(BaseVariant):
         return hash_from_values([])
 
 
+class PerformanceProblemVariant(BaseVariant):
+    # TODO: Improve this comment
+    """This variant delegates the hash generation to a performance problem that was detected using PerformanceDetection."""
+
+    type = "span-evidence"
+    description = "span evidence"
+    contributes = True
+
+    def __init__(self, event_performance_problem):
+        self.problem = event_performance_problem.problem
+        self.event = event_performance_problem.event
+        self.spans_by_id = {x["span_id"]: x for x in self.event.data["spans"]}
+
+    def get_hash(self):
+        return self.problem.fingerprint
+
+    def _get_span_hash_by_id(self, span_id):
+        # TODO: Add error handling
+        return self.spans_by_id[span_id]["hash"]
+
+    def _get_metadata_as_dict(self):
+        evidence = self.problem.to_dict()
+
+        for key in ["parent", "cause", "offender"]:
+            evidence[key + "_span_hashes"] = [
+                self._get_span_hash_by_id(id) for id in evidence[key + "_span_ids"]
+            ]
+
+        return {"evidence": evidence}
+
+
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
     `GroupComponent` it encloses.
