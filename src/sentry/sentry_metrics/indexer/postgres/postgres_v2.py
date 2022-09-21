@@ -83,6 +83,7 @@ class PGStringIndexerV2(StringIndexer):
                         raise e
             # If we haven't returned after successful bulk create, we should re-raise the last
             # seen exception
+            assert isinstance(last_seen_exception, BaseException)
             raise last_seen_exception
 
     def bulk_record(
