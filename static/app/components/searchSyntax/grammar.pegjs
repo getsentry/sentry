@@ -352,7 +352,7 @@ duration_format
 
 size_format
   = value:numeric
-    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb")
+    unit:("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib")
     &end_value {
       return tc.tokenValueSize(value, unit);
     }
