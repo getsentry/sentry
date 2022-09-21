@@ -40,6 +40,7 @@ class DiscoverSavedQuery(Model):
     date_updated = models.DateTimeField(auto_now=True)
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
+    show_processed_baseline = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"
