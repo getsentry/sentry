@@ -88,6 +88,7 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Transactions,
             "group_id",
             "tags[sentry:user]",
+            [],
             [["arrayJoin", "group_ids", "group_id"]],
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(

@@ -171,7 +171,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                 project_id=self.project.id,
             ).group
 
-        snooze = GroupSnooze.objects.create(group=group, user_count=5, user_window=60)
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
