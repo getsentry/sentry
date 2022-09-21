@@ -297,8 +297,7 @@ describe('GroupEventEntries', function () {
   });
   describe('Rendering', function () {
     it('renders the Resources section for Performance Issues', function () {
-      const group: Group = TestStubs.Group();
-      group.issueCategory = IssueCategory.PERFORMANCE;
+      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
 
       const newEvent = {
         ...event,
@@ -326,7 +325,7 @@ describe('GroupEventEntries', function () {
     });
 
     it('injects the resources section in the correct spot', function () {
-      const group: Group = TestStubs.Group();
+      const group: Group = TestStubs.Group({issueCategory: IssueCategory.PERFORMANCE});
       group.issueCategory = IssueCategory.PERFORMANCE;
       const sampleBreadcrumb = {
         type: 'default',
