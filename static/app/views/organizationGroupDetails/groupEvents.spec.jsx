@@ -32,7 +32,7 @@ describe('groupEvents', function () {
           },
           culprit: '',
           dateCreated: '2019-05-21T18:00:23Z',
-          'event.type': 'transaction',
+          'event.type': 'error',
           eventID: '123456',
           groupID: '1',
           id: '98654',
