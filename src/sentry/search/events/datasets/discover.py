@@ -1560,9 +1560,11 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
 
         for v in value:
             if isinstance(v, str) and v.isdigit():
-                value_list_as_ints.append(int(v) if v else 0)
+                value_list_as_ints.append(int(v))
             elif isinstance(v, int):
                 value_list_as_ints.append(v)
+            elif not v:
+                value_list_as_ints.append(0)
             else:
                 raise InvalidSearchQuery("performance.issue_ids should be a number")
 
