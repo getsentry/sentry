@@ -589,7 +589,7 @@ class EventsChart extends React.Component<EventsChartProps> {
 
       return (
         <TransitionChart
-          loading={loading || loadingProcessedEventsBaseline === true}
+          loading={loading || !!loadingProcessedEventsBaseline}
           reloading={reloading}
           height={height ? `${height}px` : undefined}
         >
