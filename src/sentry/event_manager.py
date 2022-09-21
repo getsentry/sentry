@@ -34,6 +34,7 @@ from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
+    UNKNOWN_LOG_LEVEL,
     DataCategory,
 )
 from sentry.culprit import generate_culprit
@@ -106,6 +107,8 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 logger = logging.getLogger("sentry.events")
+logging.addLevelName(UNKNOWN_LOG_LEVEL, "UNKNOWN")  # used for performance issues
+
 
 SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple")
 
@@ -473,6 +476,7 @@ class EventManager:
 
         kwargs = _create_kwargs(job)
 
+        kwargs["level"] = LOG_LEVELS_MAP.get(job["level"])
         kwargs["culprit"] = job["culprit"]
 
         # Load attachments first, but persist them at the very last after
@@ -891,7 +895,6 @@ def _create_kwargs(job):
         "platform": job["platform"],
         "message": job["event"].search_message,
         "logger": job["logger_name"],
-        "level": LOG_LEVELS_MAP.get(job["level"]),
         "last_seen": job["event"].datetime,
         "first_seen": job["event"].datetime,
         "active_at": job["event"].datetime,
@@ -2023,6 +2026,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
         if rate > random.random() and per_project_rate > random.random():
 
             kwargs = _create_kwargs(job)
+            kwargs["level"] = LOG_LEVELS_MAP.get("unknown")
             kwargs["culprit"] = job["culprit"]
             kwargs["data"] = materialize_metadata(
                 event.data,

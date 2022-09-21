@@ -177,6 +177,7 @@ RESERVED_PROJECT_SLUGS = frozenset(
     )
 )
 
+UNKNOWN_LOG_LEVEL = 100
 LOG_LEVELS = {
     logging.NOTSET: "sample",
     logging.DEBUG: "debug",
@@ -184,6 +185,7 @@ LOG_LEVELS = {
     logging.WARNING: "warning",
     logging.ERROR: "error",
     logging.FATAL: "fatal",
+    UNKNOWN_LOG_LEVEL: "unknown",
 }
 DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""

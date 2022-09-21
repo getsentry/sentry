@@ -2138,7 +2138,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 "value": description,
             }
             assert group.location() == "/books/"
-            assert group.level == 40
+            assert group.level == 100
             assert group.issue_category == GroupCategory.PERFORMANCE
             assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
             assert EventPerformanceProblem.fetch(
