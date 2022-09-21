@@ -333,15 +333,19 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     if not hasattr(settings, "SUDO_COOKIE_SECURE"):
         settings.SUDO_COOKIE_SECURE = getattr(settings, "SESSION_COOKIE_SECURE", False)
-    if not hasattr(settings, "SUDO_COOKIE_DOMAIN"):
-        settings.SUDO_COOKIE_DOMAIN = getattr(settings, "SESSION_COOKIE_DOMAIN", None)
+    # if not hasattr(settings, "SUDO_COOKIE_DOMAIN"):
+    #     settings.SUDO_COOKIE_DOMAIN = getattr(settings, "SESSION_COOKIE_DOMAIN", None)
+    print(f"🇨🇦🇨🇦🇨🇦 {settings.SESSION_COOKIE_DOMAIN=}")
+    SUDO_COOKIE_DOMAIN = getattr(settings, "SUDO_COOKIE_DOMAIN", None)
+    print(f"🇨🇦🇨🇦🇨🇦 {SUDO_COOKIE_DOMAIN=}")
     if not hasattr(settings, "SUDO_COOKIE_PATH"):
         settings.SUDO_COOKIE_PATH = getattr(settings, "SESSION_COOKIE_PATH", "/")
 
     if not hasattr(settings, "CSRF_COOKIE_SECURE"):
         settings.CSRF_COOKIE_SECURE = getattr(settings, "SESSION_COOKIE_SECURE", False)
-    if not hasattr(settings, "CSRF_COOKIE_DOMAIN"):
-        settings.CSRF_COOKIE_DOMAIN = getattr(settings, "SESSION_COOKIE_DOMAIN", None)
+    # if not hasattr(settings, "CSRF_COOKIE_DOMAIN"):
+    #     settings.CSRF_COOKIE_DOMAIN = getattr(settings, "SESSION_COOKIE_DOMAIN", None)
+    print(f"🇨🇦🇨🇦🇨🇦 {settings.CSRF_COOKIE_DOMAIN=}")
     if not hasattr(settings, "CSRF_COOKIE_PATH"):
         settings.CSRF_COOKIE_PATH = getattr(settings, "SESSION_COOKIE_PATH", "/")
 

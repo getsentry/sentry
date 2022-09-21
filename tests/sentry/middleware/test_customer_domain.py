@@ -2,7 +2,8 @@ from django.conf import settings
 from django.conf.urls import url
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
-from rest_framework.permissions import AllowAny
+from django.views.decorators.csrf import ensure_csrf_cookie
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -119,7 +120,7 @@ class CustomerDomainMiddlewareTest(TestCase):
 
 
 class OrganizationTestEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request, organization_slug):
         return Response(
@@ -144,7 +145,7 @@ class OrganizationTestEndpoint(Endpoint):
 urlpatterns = [
     url(
         r"^api/0/(?P<organization_slug>[^\/]+)/$",
-        OrganizationTestEndpoint.as_view(),
+        ensure_csrf_cookie(OrganizationTestEndpoint.as_view()),
         name="org-events-endpoint",
     ),
     url(
@@ -166,6 +167,9 @@ def provision_middleware():
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
+    SESSION_COOKIE_DOMAIN=None,
+    CSRF_COOKIE_DOMAIN=None,
+    SUDO_COOKIE_DOMAIN=None,
 )
 class End2EndTest(APITestCase):
     def setUp(self):
@@ -327,23 +331,60 @@ class End2EndTest(APITestCase):
             assert response.status_code == 400
 
     def test_with_middleware_and_is_staff(self):
+        self.client = self.client_class(enforce_csrf_checks=True)
         self.create_organization(name="albertos-apples")
-        is_staff_user = self.create_user(is_staff=True)
-        self.login_as(user=is_staff_user)
+        superuser = self.create_user(is_staff=True, is_superuser=True)
+        self.login_as(user=superuser)
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             response = self.client.get(
                 reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
-                HTTP_HOST="albertos-apples.testserver",
+                # HTTP_HOST="albertos-apples.testserver",
             )
             assert response.status_code == 200
             assert response.data == {
                 "organization_slug": "albertos-apples",
-                "subdomain": "albertos-apples",
-                "activeorg": "albertos-apples",
+                "subdomain": None,
+                "activeorg": None,
             }
-            assert "activeorg" in self.client.session
-            assert self.client.session["activeorg"] == "albertos-apples"
+            # assert self.client.cookies[settings.SESSION_COOKIE_NAME].domain == ".testserver"
+            # assert "activeorg" in self.client.session
+            # assert self.client.session["activeorg"] == "albertos-apples"
+
+            # Set CSRF
+            # csrf_token = self.client.cookies[settings.CSRF_COOKIE_NAME].value
+            # breakpoint()
+            csrf_token = self.client.cookies[settings.CSRF_COOKIE_NAME].value
+            assert self.client.cookies[settings.CSRF_COOKIE_NAME]["domain"] == ""
+
+            # cookies = self.client.cookies
+
+            with self.settings(
+                SESSION_COOKIE_DOMAIN=".testserver", CSRF_COOKIE_DOMAIN=".testserver"
+            ):
+                response = self.client.get(
+                    reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                    # HTTP_HOST="albertos-apples.testserver",
+                )
+                assert response.status_code == 200
+
+                new_csrf_token = self.client.cookies[settings.CSRF_COOKIE_NAME].value
+                breakpoint()
+                assert new_csrf_token != csrf_token
+                assert self.client.cookies[settings.CSRF_COOKIE_NAME]["domain"] == ".testserver"
+
+                headers = {"HTTP_X_CSRFTOKEN": new_csrf_token}
+                response = self.client.post(
+                    reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                    # HTTP_HOST="albertos-apples.testserver",
+                    **headers,
+                )
+                assert response.status_code == 200
+                assert response.data == {
+                    "organization_slug": "albertos-apples",
+                    "subdomain": None,
+                    "activeorg": "albertos-apples",
+                }
 
     def test_without_middleware(self):
         self.create_organization(name="albertos-apples")
