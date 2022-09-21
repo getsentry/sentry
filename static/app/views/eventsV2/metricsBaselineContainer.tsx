@@ -82,7 +82,7 @@ export function MetricsBaselineContainer({
     '0'
       ? false
       : true;
-  const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
+  const [metricsCompatible, setMetricsCompatible] = useState<boolean>(true);
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
   >(undefined);
