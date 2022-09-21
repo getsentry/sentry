@@ -3,6 +3,7 @@ from operator import or_
 from time import sleep
 from typing import Any, Mapping, Optional, Sequence, Set
 
+import sentry_sdk
 from django.conf import settings
 from django.db.models import Q
 from psycopg2 import OperationalError
@@ -74,6 +75,7 @@ class PGStringIndexerV2(StringIndexer):
                     sleep(sleep_ms / 1000 * (2**retry_count))
                 except OperationalError as e:
                     if e.pgcode == DEADLOCK_DETECTED:
+                        sentry_sdk.capture_exception(e)
                         metrics.incr("sentry_metrics.indexer.pg_bulk_create.deadlocked")
                         retry_count += 1
                     else:
