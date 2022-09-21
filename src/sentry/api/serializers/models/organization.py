@@ -41,6 +41,7 @@ from sentry.constants import (
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     ApiKey,
+    AuthProvider,
     Organization,
     OrganizationAccessRequest,
     OrganizationAvatar,
@@ -159,6 +160,7 @@ class OrganizationSerializerResponse(TypedDict):
     avatar: Any  # TODO replace with Avatar
     features: Any  # TODO
     links: _Links
+    hasAuthProvider: bool
 
 
 @register(Organization)
@@ -170,9 +172,15 @@ class OrganizationSerializer(Serializer):  # type: ignore
             a.organization_id: a
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
+        auth_providers = {
+            a.organization_id: a for a in AuthProvider.objects.filter(organization__in=item_list)
+        }
         data: MutableMapping[Organization, MutableMapping[str, Any]] = {}
         for item in item_list:
-            data[item] = {"avatar": avatars.get(item.id)}
+            data[item] = {
+                "avatar": avatars.get(item.id),
+                "auth_provider": auth_providers.get(item.id, None),
+            }
         return data
 
     def serialize(
@@ -242,6 +250,8 @@ class OrganizationSerializer(Serializer):  # type: ignore
         if "server-side-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
             feature_list.remove("mep-rollout-flag")
 
+        has_auth_provider = attrs.get("auth_provider", None) is not None
+
         return {
             "id": str(obj.id),
             "slug": obj.slug,
@@ -260,6 +270,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
                 "organizationUrl": generate_organization_url(obj.slug),
                 "regionUrl": generate_region_url(),
             },
+            "hasAuthProvider": has_auth_provider,
         }
 
 

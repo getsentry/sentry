@@ -54,7 +54,7 @@ export async function fetchOrgMembers(
   return [];
 }
 
-type IndexedMembersByProject = Record<string, Member['user'][]>;
+export type IndexedMembersByProject = Record<string, Member['user'][]>;
 
 /**
  * Convert a list of members with user & project data

@@ -423,7 +423,6 @@ describe('TimeRangeSelector', function () {
     userEvent.type(input, '5');
 
     // With just the number "5", all unit options should be present
-    expect(screen.getByText('Last 5 seconds')).toBeInTheDocument();
     expect(screen.getByText('Last 5 minutes')).toBeInTheDocument();
     expect(screen.getByText('Last 5 hours')).toBeInTheDocument();
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
@@ -433,7 +432,6 @@ describe('TimeRangeSelector', function () {
 
     // With "5d", only "Last 5 days" should be shown
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
-    expect(screen.queryByText('Last 5 seconds')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 minutes')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 hours')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 weeks')).not.toBeInTheDocument();
@@ -450,6 +448,34 @@ describe('TimeRangeSelector', function () {
       start: undefined,
       end: undefined,
     });
+  });
+
+  it('respects maxPickableDays for arbitrary time ranges', () => {
+    renderComponent({maxPickableDays: 30});
+
+    userEvent.click(screen.getByRole('button'));
+
+    const input = screen.getByRole('textbox');
+    userEvent.type(input, '3');
+
+    // With just the number "3", all unit options should be present
+    expect(screen.getByText('Last 3 minutes')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 hours')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 days')).toBeInTheDocument();
+    expect(screen.getByText('Last 3 weeks')).toBeInTheDocument();
+
+    userEvent.type(input, '1');
+
+    // With "31", days and weeks should not be suggested
+    expect(screen.getByText('Last 31 minutes')).toBeInTheDocument();
+    expect(screen.getByText('Last 31 hours')).toBeInTheDocument();
+    expect(screen.queryByText('Last 31 days')).not.toBeInTheDocument();
+    expect(screen.queryByText('Last 31 weeks')).not.toBeInTheDocument();
+
+    userEvent.type(input, 'd');
+
+    // "31d" should return nothing
+    expect(screen.getByText('No items found')).toBeInTheDocument();
   });
 
   it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', () => {

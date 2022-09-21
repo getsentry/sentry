@@ -1,6 +1,5 @@
 import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
@@ -11,12 +10,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 import Line from '../../frame/line';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
 
-const defaultProps = {
-  includeSystemFrames: true,
-  expandFirstFrame: true,
-};
+import StacktracePlatformIcon from './platformIcon';
 
-type DefaultProps = typeof defaultProps;
+type DefaultProps = {
+  expandFirstFrame: boolean;
+  includeSystemFrames: boolean;
+};
 
 type Props = {
   data: StacktraceType;
@@ -261,12 +260,7 @@ class Content extends Component<Props, State> {
 
     return (
       <Wrapper className={className} data-test-id="stack-trace-content">
-        <StyledPlatformIcon
-          platform={platformIcon}
-          size="20px"
-          style={{borderRadius: '3px 0 0 3px'}}
-          data-test-id={`platform-icon-${platformIcon}`}
-        />
+        <StacktracePlatformIcon platform={platformIcon} />
         <StyledList data-test-id="frames">{frames}</StyledList>
       </Wrapper>
     );
@@ -277,12 +271,6 @@ export default withOrganization(Content);
 
 const Wrapper = styled('div')`
   position: relative;
-`;
-
-const StyledPlatformIcon = styled(PlatformIcon)`
-  position: absolute;
-  top: -1px;
-  left: -20px;
 `;
 
 const StyledList = styled('ul')`
