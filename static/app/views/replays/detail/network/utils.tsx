@@ -57,9 +57,10 @@ export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
 
 export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
-    new Set<string | number>(
+    new Set<string>(
       networkSpans
         .map(networkSpan => networkSpan.data?.statusCode ?? UNKNOWN_STATUS)
         .sort()
+        .map(String)
     )
   );
