@@ -294,6 +294,12 @@ class TableView extends Component<TableViewProps> {
       }
     }
 
+    const topResultsIndicator =
+      isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
+        // Add one if we need to include Other in the series
+        <TopResultsIndicator count={count} index={rowIndex} />
+      ) : null;
+
     const fieldName = columnKey;
     const value = dataRow[fieldName];
     if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -303,6 +309,7 @@ class TableView extends Component<TableViewProps> {
           containerDisplayMode="block"
           position="right"
         >
+          {topResultsIndicator}
           <CellAction
             column={column}
             dataRow={dataRow}
@@ -316,10 +323,7 @@ class TableView extends Component<TableViewProps> {
 
     return (
       <Fragment>
-        {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
-          // Add one if we need to include Other in the series
-          <TopResultsIndicator count={count} index={rowIndex} />
-        ) : null}
+        {topResultsIndicator}
         <CellAction
           column={column}
           dataRow={dataRow}
