@@ -56,6 +56,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
                 variants = {
                     problem.problem.type.name: PerformanceProblemVariant(problem)
                     for problem in problems
+                    if problem
                 }
             else:
                 variants = event.get_grouping_variants(
