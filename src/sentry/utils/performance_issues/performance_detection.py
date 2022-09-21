@@ -108,6 +108,21 @@ class EventPerformanceProblem:
         identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
         return f"p-i-e:{identifier}"
 
+    @property
+    def evidence_hashes(self):
+        evidence_ids = self.problem.to_dict()
+        evidence_hashes = {}
+
+        spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
+
+        for key in ["parent", "cause", "offender"]:
+            span_ids = evidence_ids.get(key + "_span_ids", []) or []
+            spans = [spans_by_id.get(id) for id in span_ids]
+            hashes = [span.get("hash") for span in spans if span]
+            evidence_hashes[key + "_span_hashes"] = hashes
+
+        return evidence_hashes
+
     def save(self):
         nodestore.set(self.identifier, self.problem.to_dict())
 
