@@ -3,9 +3,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
-import OrganizationActions from 'sentry/actions/organizationActions';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getItem} from 'sentry/utils/localStorage';
@@ -72,7 +72,7 @@ describe('PageFiltersContainer', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(organization.projects);
-    OrganizationActions.update(organization);
+    OrganizationStore.onUpdate(organization);
     OrganizationsStore.addOrReplace(organization);
 
     getItem.mockImplementation(() => null);
@@ -421,7 +421,7 @@ describe('PageFiltersContainer', function () {
       },
     });
 
-    OrganizationActions.update(initializationObj.organization);
+    OrganizationStore.onUpdate(initializationObj.organization);
 
     wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer hideGlobalHeader />,
@@ -512,7 +512,7 @@ describe('PageFiltersContainer', function () {
 
       // Eventually OrganizationContext will fetch org details for `org-slug`
       // and update `organization` prop emulate fetchOrganizationDetails
-      OrganizationActions.update(updatedOrganization);
+      OrganizationStore.onUpdate(updatedOrganization);
       wrapper.setContext({
         organization: updatedOrganization,
         location: {query: {}},

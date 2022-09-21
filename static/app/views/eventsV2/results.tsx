@@ -391,7 +391,7 @@ class Results extends Component<Props, State> {
     }
   };
 
-  handleIntervalChange = (value: string) => {
+  handleIntervalChange = (value: string | undefined) => {
     const {router, location} = this.props;
 
     const newQuery = {
@@ -654,7 +654,7 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {location} = this.props;
     if (
       !defined(location.query?.id) &&
@@ -662,6 +662,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     ) {
       this.setState({savedQuery: undefined});
     }
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

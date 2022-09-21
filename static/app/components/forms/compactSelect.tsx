@@ -35,8 +35,8 @@ interface MenuProps extends OverlayProps, Omit<AriaPositionProps, 'overlayRef'> 
   minMenuWidth?: number;
 }
 
-interface Props<OptionType extends OptionTypeBase>
-  extends Omit<ControlProps<OptionType>, 'choices'>,
+interface Props<OptionType extends OptionTypeBase, MultipleType extends boolean>
+  extends Omit<ControlProps<OptionType>, 'choices' | 'multiple' | 'onChange'>,
     Partial<OverlayProps>,
     Partial<AriaPositionProps> {
   options: Array<OptionType & {options?: OptionType[]}>;
@@ -49,6 +49,10 @@ interface Props<OptionType extends OptionTypeBase>
    * display a loading indicator in the header.
    */
   isLoading?: boolean;
+  multiple?: MultipleType;
+  onChange?: MultipleType extends true
+    ? (values: OptionType[]) => void
+    : (value: OptionType) => void;
   onChangeValueMap?: (value: OptionType[]) => ControlProps<OptionType>['value'];
   /**
    * Tag name for the outer wrap, defaults to `div`
@@ -82,11 +86,14 @@ interface Props<OptionType extends OptionTypeBase>
  * Recursively finds the selected option(s) from an options array. Useful for
  * non-flat arrays that contain sections (groups of options).
  */
-function getSelectedOptions<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  opts: Props<OptionType>['options'],
-  value: Props<OptionType>['value']
-): Props<OptionType>['options'] {
-  return opts.reduce((acc: Props<OptionType>['options'], cur) => {
+function getSelectedOptions<
+  OptionType extends GeneralSelectValue,
+  MultipleType extends boolean
+>(
+  opts: Props<OptionType, MultipleType>['options'],
+  value: Props<OptionType, MultipleType>['value']
+): Props<OptionType, MultipleType>['options'] {
+  return opts.reduce((acc: Props<OptionType, MultipleType>['options'], cur) => {
     if (cur.options) {
       return acc.concat(getSelectedOptions(cur.options, value));
     }
@@ -196,7 +203,10 @@ function Menu({
  * A select component with a more compact trigger button. Accepts the same
  * props as SelectControl, plus some more for the trigger button & overlay.
  */
-function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValue>({
+function CompactSelect<
+  OptionType extends GeneralSelectValue = GeneralSelectValue,
+  MultipleType extends boolean = false
+>({
   // Select props
   options,
   onChange,
@@ -218,7 +228,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   menuTitle,
   onClose,
   ...props
-}: Props<OptionType>) {
+}: Props<OptionType, MultipleType>) {
   // Manage the dropdown menu's open state
   const isDisabled = disabledProp || options?.length === 0;
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -242,7 +252,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     const newValue = valueProp ?? internalValue;
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
     const selectedOptions = valueSet
-      .map(val => getSelectedOptions<OptionType>(options, val))
+      .map(val => getSelectedOptions<OptionType, MultipleType>(options, val))
       .flat();
 
     return (
