@@ -21,7 +21,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import PerfEventsTable from './perfIssueTable';
+import PerfIssueTable from './perfEventsTable';
 
 type Props = {
   api: Client;
@@ -129,7 +129,7 @@ class GroupEvents extends Component<Props, State> {
 
   renderPerfIssueEvents() {
     return (
-      <PerfEventsTable
+      <PerfIssueTable
         issueId={this.props.group.id}
         location={this.props.location}
         organization={this.props.organization}
