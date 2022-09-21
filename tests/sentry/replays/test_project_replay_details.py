@@ -153,7 +153,7 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             with TaskRunner():
                 response = self.client.delete(self.url)
-                assert response.status_code == 204
+                assert response.status_code == 202
 
         try:
             ReplayRecordingSegment.objects.get(id=recording_segment_id)

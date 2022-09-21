@@ -10,7 +10,7 @@ from sentry.models.project import Project
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
-from sentry.replays.tasks import delete_recording_segment
+from sentry.replays.tasks import delete_recording_segments
 
 
 @region_silo_endpoint
@@ -53,10 +53,11 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        recording_segments = ReplayRecordingSegment.objects.filter(
+        count = ReplayRecordingSegment.objects.filter(
             project_id=project.id, replay_id=replay_id
-        ).all()
-        for recording_segment in recording_segments:
-            delete_recording_segment.delay(recording_segment.id)
+        ).count()
+        if count == 0:
+            return Response(status=404)
 
-        return Response(status=204)
+        delete_recording_segments.delay(project_id=project.id, replay_id=replay_id)
+        return Response(status=202)
