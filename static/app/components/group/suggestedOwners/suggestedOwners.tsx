@@ -162,12 +162,15 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       actor: {...commiter.author, type: 'user'},
       commits: commiter.commits,
       release: (commiter as ReleaseCommitter).release,
+      source: 'suspectCommit',
     }));
 
     this.state.eventOwners.owners.forEach(owner => {
-      const normalizedOwner = {
+      const matchingRule = findMatchedRules(this.state.eventOwners.rules || [], owner);
+      const normalizedOwner: OwnerList[0] = {
         actor: owner,
-        rules: findMatchedRules(this.state.eventOwners.rules || [], owner),
+        rules: matchingRule,
+        source: matchingRule?.[0] === 'codeowners' ? 'codeowners' : 'projectOwnership',
       };
 
       const existingIdx =
@@ -221,6 +224,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       <Fragment>
         {owners.length > 0 && (
           <SuggestedAssignees
+            group={group}
             organization={organization}
             owners={owners}
             projectId={group.project.id}
