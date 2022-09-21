@@ -93,7 +93,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
             ).status_code
             == 200
         )
@@ -249,7 +249,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             action.perform()
 
             # Click on delete button
-            delete_buttons = self.browser.elements('[aria-label="Delete"]')
+            delete_buttons = self.browser.elements('[data-test-id="delete"]')
             action.click(delete_buttons[0])
             action.perform()
 

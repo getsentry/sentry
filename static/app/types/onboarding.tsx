@@ -1,7 +1,7 @@
 import {RouteContextInterface} from 'react-router';
 
 import {Organization, Project} from 'sentry/types';
-import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+import {OnboardingState} from 'sentry/views/onboarding/types';
 
 import type {AvatarUser} from './user';
 
@@ -93,7 +93,7 @@ export type OnboardingTaskDescriptor =
 export interface OnboardingTaskStatus {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
-  completionSeen?: string;
+  completionSeen?: string | boolean;
   data?: {[key: string]: string};
   dateCompleted?: string;
   user?: AvatarUser | null;

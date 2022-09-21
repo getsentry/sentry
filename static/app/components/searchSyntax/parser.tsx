@@ -491,7 +491,26 @@ export class TokenConverter {
 
   tokenValueSize = (
     value: string,
-    unit: 'bit' | 'nb' | 'bytes' | 'kb' | 'mb' | 'gb' | 'tb' | 'pb' | 'eb' | 'zb' | 'yb'
+    unit:
+      | 'bit'
+      | 'nb'
+      | 'bytes'
+      | 'kb'
+      | 'mb'
+      | 'gb'
+      | 'tb'
+      | 'pb'
+      | 'eb'
+      | 'zb'
+      | 'yb'
+      | 'kib'
+      | 'mib'
+      | 'gib'
+      | 'tib'
+      | 'pib'
+      | 'eib'
+      | 'zib'
+      | 'yib'
   ) => ({
     ...this.defaultTokenFields,
 
@@ -678,7 +697,7 @@ export class TokenConverter {
     if (this.keyValidation.isSize(keyName)) {
       return {
         reason: t('Invalid file size. Expected number followed by file size unit suffix'),
-        expectedType: [FilterType.Duration],
+        expectedType: [FilterType.Size],
       };
     }
 
