@@ -1,5 +1,5 @@
 import pytest
-from django.db.utils import IntegrityError
+from django.db import IntegrityError, transaction
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models import User
@@ -82,42 +82,12 @@ class DiscoverSavedQueryTest(TestCase):
             created_by=self.user,
         )
 
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError), transaction.atomic():
             new_query.update(is_default=True)
 
-    def test_can_only_have_single_default_query_for_user_on_update_query_set(self):
-        DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            name="Test query",
-            query=self.query,
-            created_by=self.user,
-            is_default=True,
-        )
-        new_query = DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            name="Test query 2",
-            query=self.query,
-            created_by=self.user,
-        )
-
-        with pytest.raises(IntegrityError):
-            DiscoverSavedQuery.objects.filter(id=new_query.id).update(is_default=True)
-
-    def test_only_have_single_default_query_for_user_on_direct_update(self):
-        DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            name="Test query",
-            query=self.query,
-            created_by=self.user,
-            is_default=True,
-        )
-        new_query = DiscoverSavedQuery.objects.create(
-            organization=self.org,
-            name="Test query 2",
-            query=self.query,
-            created_by=self.user,
-        )
-
-        with pytest.raises(IntegrityError):
+        with pytest.raises(IntegrityError), transaction.atomic():
             new_query.is_default = True
             new_query.save()
+
+        with pytest.raises(IntegrityError), transaction.atomic():
+            DiscoverSavedQuery.objects.filter(id=new_query.id).update(is_default=True)
