@@ -32,7 +32,7 @@ describe('groupEvents', function () {
           },
           culprit: '',
           dateCreated: '2019-05-21T18:00:23Z',
-          'event.type': 'error',
+          'event.type': 'transaction',
           eventID: '123456',
           groupID: '1',
           id: '98654',
@@ -47,6 +47,14 @@ describe('groupEvents', function () {
     });
 
     browserHistory.push = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [],
+        meta: [],
+      },
+    });
   });
 
   afterEach(() => {
@@ -118,5 +126,22 @@ describe('groupEvents', function () {
         query: {limit: 50, query: '', environment: ['prod', 'staging']},
       })
     );
+  });
+
+  it('renders events table if perf issue', function () {
+    const group = TestStubs.Group();
+    group.issueCategory = 'performance';
+    render(
+      <GroupEvents
+        organization={organization}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    const perfEventsColumn = screen.getByText('operation duration');
+    expect(perfEventsColumn).toBeInTheDocument();
   });
 });

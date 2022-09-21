@@ -47,7 +47,6 @@ const PerfEventsTable = (props: Props) => {
 
   return (
     <EventsTable
-      data-test-id="perf-events-table"
       eventView={eventView}
       location={props.location}
       organization={props.organization}

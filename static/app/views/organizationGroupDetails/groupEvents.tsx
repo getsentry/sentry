@@ -21,7 +21,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import PerfIssueTable from './perfEventsTable';
+import PerfEventsTable from './perfEventsTable';
 
 type Props = {
   api: Client;
@@ -129,7 +129,7 @@ class GroupEvents extends Component<Props, State> {
 
   renderPerfIssueEvents() {
     return (
-      <PerfIssueTable
+      <PerfEventsTable
         issueId={this.props.group.id}
         location={this.props.location}
         organization={this.props.organization}
@@ -157,15 +157,16 @@ class GroupEvents extends Component<Props, State> {
 
     let body: React.ReactNode;
 
+    if (id && issueCategory === IssueCategory.PERFORMANCE) {
+      return this.renderPerfIssueEvents();
+    }
     if (this.state.loading) {
       body = <LoadingIndicator />;
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     }
     // TODO - in the future we may share the perfIssueEvents with errorEvents
-    else if (id && issueCategory === IssueCategory.PERFORMANCE) {
-      return this.renderPerfIssueEvents();
-    } else if (this.state.eventList.length > 0) {
+    else if (this.state.eventList.length > 0) {
       body = this.renderResults();
     } else if (this.state.query && this.state.query !== '') {
       body = this.renderNoQueryResults();
@@ -194,7 +195,6 @@ class GroupEvents extends Component<Props, State> {
                 onSearch={this.handleSearch}
               />
             </FilterSection>
-
             {this.renderBody()}
             <Pagination pageLinks={this.state.pageLinks} />
           </Wrapper>
