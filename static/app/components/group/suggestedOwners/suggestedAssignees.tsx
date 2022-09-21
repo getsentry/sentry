@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
 import SuggestedOwnerHovercard from 'sentry/components/group/suggestedOwnerHovercard';
 import * as SidebarSection from 'sentry/components/sidebarSection';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {Actor, Commit, Organization, Release} from 'sentry/types';
@@ -34,22 +35,41 @@ const SuggestedAssignees = ({owners, projectId, organization, onAssign}: Props) 
     <SidebarSection.Content>
       <Content>
         {owners.map((owner, i) => (
-          <SuggestedOwnerHovercard
+          <SuggestionRow
             key={`${owner.actor.id}:${owner.actor.email}:${owner.actor.name}:${i}`}
-            projectId={projectId}
-            organization={organization}
-            {...owner}
           >
-            <ActorAvatar
-              css={css`
-                cursor: pointer;
-              `}
+            <ActorMaxWidth>
+              <SuggestedOwnerHovercard
+                projectId={projectId}
+                organization={organization}
+                {...owner}
+              >
+                <ActorWrapper>
+                  <ActorAvatar
+                    hasTooltip={false}
+                    actor={owner.actor}
+                    data-test-id="suggested-assignee"
+                    size={20}
+                  />
+                  <ActorName>
+                    {owner.actor.type === 'team'
+                      ? `#${owner.actor.name}`
+                      : owner.actor.name}
+                  </ActorName>
+                </ActorWrapper>
+              </SuggestedOwnerHovercard>
+            </ActorMaxWidth>
+
+            <Button
+              role="button"
+              size="zero"
+              borderless
+              aria-label={t('Assign')}
+              icon={<IconCheckmark />}
+              disabled={owner.actor.id === undefined}
               onClick={onAssign(owner.actor)}
-              hasTooltip={false}
-              actor={owner.actor}
-              data-test-id="suggested-assignee"
             />
-          </SuggestedOwnerHovercard>
+          </SuggestionRow>
         ))}
       </Content>
     </SidebarSection.Content>
@@ -68,7 +88,27 @@ const Subheading = styled('small')`
 `;
 
 const Content = styled('div')`
-  display: grid;
+  display: flex;
   gap: ${space(1)};
-  grid-template-columns: repeat(auto-fill, 20px);
+  flex-direction: column;
+`;
+
+const ActorMaxWidth = styled('div')`
+  max-width: 85%;
+`;
+
+const ActorWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const ActorName = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const SuggestionRow = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
