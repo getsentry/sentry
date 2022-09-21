@@ -126,28 +126,20 @@ def _normalize(profile: Profile, organization: Organization) -> None:
                 }
             )
 
-        classification_options.update(
-            {
+        if "version" in "profile":
+            device_options = {
+                "model": profile["device"]["model"],
+                "os_name": profile["os"]["name"],
+                "is_emulator": profile["device"]["is_emulator"],
+            }
+        else:
+            device_options = {
                 "model": profile["device_model"],
                 "os_name": profile["device_os_name"],
                 "is_emulator": profile["device_is_emulator"],
             }
-        )
-
+        classification_options.update(device_options)
         profile.update({"device_classification": str(classify_device(**classification_options))})
-    else:
-        profile.update(
-            {
-                attr: ""
-                for attr in (
-                    "device_classification",
-                    "device_locale",
-                    "device_manufacturer",
-                    "device_model",
-                )
-                if attr not in profile
-            }
-        )
 
     profile.update(
         {
