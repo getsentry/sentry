@@ -21,7 +21,6 @@ import {
   getStatusTypes,
   ISortConfig,
   NetworkSpan,
-  sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -62,8 +61,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     })),
     targetTimestampMs: startTimestampMs + currentTime,
   });
-
-  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
 
   const handleMouseEnter = useCallback(
     (timestamp: number) => {
