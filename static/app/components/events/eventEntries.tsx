@@ -476,9 +476,7 @@ function Entries({
   definedEvent: Event;
   projectSlug: string;
 } & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
-  const entries = definedEvent.entries;
-
-  if (!Array.isArray(entries)) {
+  if (!Array.isArray(definedEvent.entries)) {
     return null;
   }
 
