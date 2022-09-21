@@ -251,7 +251,9 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
         frame = profile["profile"]["frames"][stack[-1]]
 
+        # truncate some unneeded top frames in the stack (related to the profiler itself or impossible to symbolicate)
         if truncate_stack_needed(frame):
+            # stacks are inverted and top frame is last
             profile["profile"]["stacks"][stack_id] = stack[:-2]
 
 
@@ -267,6 +269,7 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
 
         # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
         if symbolicated["frames"][-1].get("function", "") == "perf_signal_handler":
+            # stacks are inverted and top frame is last
             original["frames"] = symbolicated["frames"][:-2]
         else:
             original["frames"] = symbolicated["frames"]
