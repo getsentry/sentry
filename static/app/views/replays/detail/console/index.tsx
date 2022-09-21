@@ -16,7 +16,7 @@ import type {
   Crumb,
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
-import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
@@ -44,8 +44,8 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     [logLevel, searchTerm, breadcrumbs]
   );
 
-  const currentUserAction = getPrevBreadcrumb({
-    crumbs: breadcrumbs,
+  const currentUserAction = getPrevReplayEvent({
+    items: breadcrumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
     allowEqual: true,
@@ -53,8 +53,8 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
 
   const closestUserAction =
     currentHoverTime !== undefined
-      ? getPrevBreadcrumb({
-          crumbs: breadcrumbs,
+      ? getPrevReplayEvent({
+          items: breadcrumbs,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
           allowEqual: true,

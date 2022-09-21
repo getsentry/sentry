@@ -17,10 +17,13 @@ import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml, {
   Extraction,
@@ -41,10 +44,14 @@ const cache = new CellMeasurerCache({
 });
 
 function DomMutations({replay}: Props) {
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   const [searchTerm, setSearchTerm] = useState('');
   let listRef: ReactVirtualizedList | null = null;
   const [filters, setFilters] = useState<Filters<Extraction>>({});
+
+  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
 
   const filteredDomMutations = useMemo(
     () =>
@@ -57,9 +64,10 @@ function DomMutations({replay}: Props) {
     [actions, filters, searchTerm]
   );
 
-  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
-
-  const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const currentDomMutation = getPrevReplayEvent({
+    items: filteredDomMutations.map(mutation => mutation.crumb),
+    targetTimestampMs: startTimestampMs + currentTime,
+  });
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -99,6 +107,9 @@ function DomMutations({replay}: Props) {
     const {html, crumb} = mutation;
     const {title} = getDetails(crumb);
 
+    const hasOccurred =
+      currentTime >= relativeTimeInMs(crumb.timestamp || '', startTimestampMs);
+
     return (
       <CellMeasurer
         cache={cache}
@@ -111,6 +122,8 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(crumb)}
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
+          isCurrent={crumb.id === currentDomMutation?.id}
+          hasOccurred={hasOccurred}
         >
           {index < filteredDomMutations.length - 1 && <StepConnector />}
           <IconWrapper color={crumb.color}>
@@ -221,16 +234,6 @@ const MutationList = styled('ul')`
   margin-bottom: 0;
 `;
 
-const MutationListItem = styled('li')`
-  display: flex;
-  flex-grow: 1;
-  padding: ${space(2)};
-  position: relative;
-  &:hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-`;
-
 const MutationContent = styled('div')`
   overflow: hidden;
   width: 100%;
@@ -260,6 +263,33 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   background: ${p => p.theme[p.color] ?? p.color};
   box-shadow: ${p => p.theme.dropShadowLightest};
   z-index: 2;
+`;
+
+const StepConnector = styled('div')`
+  position: absolute;
+  height: 100%;
+  top: 28px;
+  left: 29px;
+  border-right: 1px ${p => p.theme.border} solid;
+  z-index: 1;
+`;
+
+const MutationListItem = styled('li')<{hasOccurred?: boolean; isCurrent?: boolean}>`
+  display: flex;
+  flex-grow: 1;
+  padding: ${space(2)};
+  position: relative;
+  border-bottom: 1px solid ${p => (p.isCurrent ? p.theme.purple300 : 'transparent')};
+  &:hover {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
+
+  ${MutationDetailsContainer} {
+    opacity: ${p => (p.hasOccurred ? 1 : 0.5)};
+  }
+  ${IconWrapper} {
+    background: ${p => (p.hasOccurred ? p.theme.purple300 : p.theme.purple200)};
+  }
 `;
 
 const UnstyledButton = styled('button')`
@@ -293,15 +323,6 @@ const CodeContainer = styled('div')`
   overflow: auto;
   max-height: 400px;
   max-width: 100%;
-`;
-
-const StepConnector = styled('div')`
-  position: absolute;
-  height: 100%;
-  top: 28px;
-  left: 29px;
-  border-right: 1px ${p => p.theme.border} solid;
-  z-index: 1;
 `;
 
 export default DomMutations;

@@ -13,6 +13,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
@@ -36,14 +37,20 @@ enum FilterTypesEnum {
   STATUS = 'status',
 }
 
+type SortDirection = 'asc' | 'desc';
+
+const createSpanId = (span: NetworkSpan) =>
+  `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
+
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
-  const {setCurrentHoverTime, setCurrentTime} = useReplayContext();
+  const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
     getValue: row => row[sortConfig.by],
   });
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<Filters<NetworkSpan>>({});
 
@@ -57,6 +64,15 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       }),
     [filters, networkSpans, searchTerm]
   );
+
+  const currentNetworkSpan = getPrevReplayEvent({
+    items: filteredNetworkSpans.map(span => ({
+      ...span,
+      id: createSpanId(span),
+      timestamp: span.startTimestamp * 1000,
+    })),
+    targetTimestampMs: startTimestampMs + currentTime,
+  });
 
   const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
 
@@ -184,18 +200,28 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </SortItem>,
   ];
 
-  const renderTableRow = (network: NetworkSpan, index: number) => {
+  const renderTableRow = (network: NetworkSpan) => {
+    const spanId = createSpanId(network);
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
 
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
+    const columnProps = {
+      isCurrent: currentNetworkSpan?.id === spanId,
+      hasOccurred:
+        currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
+      timestampSort:
+        sortConfig.by === 'startTimestamp'
+          ? ((sortConfig.asc ? 'asc' : 'desc') as SortDirection)
+          : undefined,
+    };
 
     return (
-      <Fragment key={index}>
-        <Item {...columnHandlers}>
+      <Fragment key={spanId}>
+        <Item {...columnHandlers} {...columnProps}>
           {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           {network.description ? (
             <Tooltip
               title={network.description}
@@ -211,10 +237,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
             <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {defined(network.data.size) ? (
             <FileSize bytes={network.data.size} />
           ) : (
@@ -222,10 +248,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           )}
         </Item>
 
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
             {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
           </UnstyledButton>
@@ -325,16 +351,63 @@ const NetworkFilters = styled('div')`
   }
 `;
 
-const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
+const Text = styled('p')`
+  padding: 0;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+`;
+
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
+`;
+
+const Item = styled('div')<{
+  center?: boolean;
+  color?: ColorOrAlias;
+  hasOccurred?: boolean;
+  isCurrent?: boolean;
+  numeric?: boolean;
+  timestampSort?: SortDirection;
+}>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => p.theme[p.color || 'subText']};
+  color: ${({hasOccurred = true, timestampSort, ...p}) => {
+    if (hasOccurred || !timestampSort) {
+      return p.theme.gray400;
+    }
+    return p.theme.gray300;
+  }};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
+  border-bottom: ${({isCurrent = false, timestampSort, ...p}) => {
+    if (isCurrent && timestampSort === 'asc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return `1px solid ${p.theme.innerBorder}`;
+  }};
 
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
+  border-top: ${({isCurrent = false, timestampSort, ...p}) => {
+    if (isCurrent && timestampSort === 'desc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return 0;
+  }};
+
+  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
+
+  ${EmptyText} {
+    color: ${({hasOccurred = true, timestampSort, ...p}) => {
+      if (hasOccurred || !timestampSort) {
+        return p.theme.gray400;
+      }
+      return p.theme.gray300;
+    }};
+  }
 `;
 
 const UnstyledButton = styled('button')`
@@ -395,19 +468,6 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
       text-align: start;
     }
   }
-`;
-
-const Text = styled('p')`
-  padding: 0;
-  margin: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const EmptyText = styled(Text)`
-  font-style: italic;
-  color: ${p => p.theme.subText};
 `;
 
 const SortItem = styled('span')`

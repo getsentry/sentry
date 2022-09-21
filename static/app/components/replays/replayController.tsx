@@ -21,7 +21,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 
 const SECOND = 1000;
@@ -89,10 +89,8 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
               return;
             }
             const transformedCrumbs = replay?.getRawCrumbs() || [];
-            const next = getNextBreadcrumb({
-              crumbs: transformedCrumbs.filter(crumb =>
-                USER_ACTIONS.includes(crumb.type)
-              ),
+            const next = getNextReplayEvent({
+              items: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
               targetTimestampMs: startTimestampMs + currentTime,
             });
 
