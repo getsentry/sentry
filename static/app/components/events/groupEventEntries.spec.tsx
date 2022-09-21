@@ -371,8 +371,6 @@ describe('GroupEventEntries', function () {
         </OrganizationContext.Provider>
       );
 
-      screen.debug();
-
       const eventEntriesContainer = screen.getByTestId('event-entries-loading-false');
       const spanEvidenceHeading = within(eventEntriesContainer).getByRole('heading', {
         name: /span evidence/i,
