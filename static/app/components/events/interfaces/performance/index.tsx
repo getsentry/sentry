@@ -1,8 +1,15 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
 
 import {t} from 'sentry/locale';
-import {EntryType, EventTransaction, KeyValueListData, Organization} from 'sentry/types';
+import {
+  EntryType,
+  EventTransaction,
+  IssueCategory,
+  KeyValueListData,
+  Organization,
+} from 'sentry/types';
 
 import DataSection from '../../eventTagsAndScreenshot/dataSection';
 import KeyValueList from '../keyValueList';
@@ -17,6 +24,12 @@ interface Props {
 
 export function SpanEvidenceSection({event, organization}: Props) {
   if (!event.perfProblem) {
+    if (
+      event.issueCategory === IssueCategory.PERFORMANCE &&
+      event.endTimestamp > 1663560000 //  (Sep 19, 2022 onward), Some events could have been missing evidence before EA
+    ) {
+      Sentry.captureException(new Error('Span Evidence missing for performance issue.'));
+    }
     return null;
   }
 
