@@ -21,6 +21,7 @@ import {
   getStatusTypes,
   ISortConfig,
   NetworkSpan,
+  sortNetwork,
 } from 'sentry/views/replays/detail/network/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -53,8 +54,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     setSearchTerm,
   } = useNetworkFilters({networkSpans});
 
+  const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
+
   const currentNetworkSpan = getPrevReplayEvent({
-    items: items.map(span => ({
+    items: networkData.map(span => ({
       ...span,
       id: createSpanId(span),
       timestamp: span.startTimestamp * 1000,
@@ -250,13 +253,13 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       </NetworkFilters>
       <StyledPanelTable
         columns={columns.length}
-        isEmpty={items.length === 0}
+        isEmpty={networkData.length === 0}
         emptyMessage={t('No related network requests found.')}
         headers={columns}
         disablePadding
         stickyHeaders
       >
-        {items.map(renderTableRow) || null}
+        {networkData.map(renderTableRow) || null}
       </StyledPanelTable>
     </NetworkContainer>
   );
