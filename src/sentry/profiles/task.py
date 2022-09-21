@@ -159,8 +159,11 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
     modules = profile["debug_meta"]["images"]
+
+    # in the sample format, we have a frames key containing all the frames
     if "frames" in profile["profile"]:
         stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
+    # in the original format, we need to gather frames from all samples
     else:
         stacktraces = [
             {
@@ -206,59 +209,47 @@ def _symbolicate(
 def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]):
     if "version" in profile.get("profile", {}):
         profile["profile"]["frames"] = stacktraces[0]["frames"]
+        _process_symbolicator_results_for_sample(profile, stacktraces)
+        return
 
     if profile["platform"] == "rust":
-        if "version" in profile.get("profile", {}):
-            _process_symbolicator_results_for_rust_sample(profile, stacktraces)
-        else:
-            _process_symbolicator_results_for_rust(profile, stacktraces)
-    elif profile["platform"] == "cocoa" and "version" in profile.get("profile", {}):
-        _process_symbolicator_results_for_cocoa_sample(profile, stacktraces)
+        _process_symbolicator_results_for_rust(profile, stacktraces)
 
-    if "version" in profile.get("profile", {}):
-        profile["profile"]["frames"] = stacktraces[0]["frames"]
-
-    # remove debug information we don't need anymore
-    profile.pop("debug_meta")
-
-    if "version" not in profile["profile"]:
-        # rename the profile key to suggest it has been processed
-        profile["profile"] = profile.pop("sampled_profile")
+    # rename the profile key to suggest it has been processed
+    profile["profile"] = profile.pop("sampled_profile")
 
 
-def _process_symbolicator_results_for_cocoa_sample(profile: Profile, stacktraces: List[Any]):
+def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]):
+    if profile["platform"] == "rust":
+        for frame in stacktraces[0]["frames"]:
+            frame.pop("pre_context", None)
+            frame.pop("context_line", None)
+            frame.pop("post_context", None)
+
+        def truncate_stack_needed(frame):
+            return frame.get("function", "") == "perf_signal_handler"
+
+    elif profile["platform"] == "cocoa":
+
+        def truncate_stack_needed(frame):
+            return frame.get("instruction_addr", "") == "0xffffffffc"
+
+    else:
+
+        def truncate_stack_needed(frame):
+            return False
+
     for sample in profile["profile"]["samples"]:
-        stack = profile["profile"]["stacks"][sample["stack_id"]]
+        stack_id = sample["stack_id"]
+        stack = profile["profile"]["stacks"][stack_id]
 
         if len(stack) < 2:
             continue
 
         frame = profile["profile"]["frames"][stack[-1]]
 
-        # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
-        if frame.get("instruction_addr", "") == "0xffffffffc":
-            stack = stack[:2]
-
-
-def _process_symbolicator_results_for_rust_sample(profile: Profile, stacktraces: List[Any]):
-    for frame in stacktraces[0]["frames"]:
-        frame.pop("pre_context", None)
-        frame.pop("context_line", None)
-        frame.pop("post_context", None)
-
-    profile["profile"]["frames"] = stacktraces[0]["frames"]
-
-    for sample in profile["profile"]["samples"]:
-        stack = profile["profile"]["stacks"][sample["stack_id"]]
-
-        if len(stack) < 2:
-            continue
-
-        frame = profile["profile"]["frames"][stack[-1]]
-
-        # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
-        if frame.get("function", "") == "perf_signal_handler":
-            stack = stack[:2]
+        if truncate_stack_needed(frame):
+            profile["profile"]["stacks"][stack_id] = stack[:-2]
 
 
 def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]):
@@ -268,12 +259,12 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             frame.pop("context_line", None)
             frame.pop("post_context", None)
 
+        if len(symbolicated["frames"]) < 2:
+            continue
+
         # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
-        if (
-            len(symbolicated["frames"]) >= 2
-            and symbolicated["frames"][-1].get("function", "") == "perf_signal_handler"
-        ):
-            original["frames"] = symbolicated["frames"][:2]
+        if symbolicated["frames"][-1].get("function", "") == "perf_signal_handler":
+            original["frames"] = symbolicated["frames"][:-2]
         else:
             original["frames"] = symbolicated["frames"]
 
