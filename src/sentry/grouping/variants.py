@@ -81,22 +81,23 @@ class PerformanceProblemVariant(BaseVariant):
     def __init__(self, event_performance_problem):
         self.problem = event_performance_problem.problem
         self.event = event_performance_problem.event
-        self.spans_by_id = {x["span_id"]: x for x in self.event.data["spans"]}
+        self.spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
 
     def get_hash(self):
         return self.problem.fingerprint
 
-    def _get_span_hash_by_id(self, span_id):
-        # TODO: Add error handling
-        return self.spans_by_id[span_id]["hash"]
+    def _get_span_by_id(self, span_id):
+        return self.spans_by_id.get(span_id)
 
     def _get_metadata_as_dict(self):
         evidence = self.problem.to_dict()
 
+        # Find matching span hashes for each span ID
         for key in ["parent", "cause", "offender"]:
-            evidence[key + "_span_hashes"] = [
-                self._get_span_hash_by_id(id) for id in evidence[key + "_span_ids"]
-            ]
+            span_ids = evidence.get(key + "_span_ids", [])
+            spans = [self._get_span_by_id(id) for id in span_ids]
+            hashes = [span.get("hash") for span in spans if span]
+            evidence[key + "_span_hashes"] = [hashes]
 
         return {"evidence": evidence}
 
