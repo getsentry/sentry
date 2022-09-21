@@ -67,11 +67,11 @@ export default function useFullscreen(): FullscreenHook {
     [enter, exit, isFullscreen]
   );
 
-  const onChange = () => {
-    setIsFullscreen(screenfull.isFullscreen);
-  };
-
   useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(screenfull.isFullscreen);
+    };
+
     screenfull.on('change', onChange);
     return () => screenfull.off('change', onChange);
   }, []);
