@@ -1,3 +1,5 @@
+import {defined} from 'sentry/utils';
+
 export type NetworkSpan = {
   data: Record<string, any>;
   endTimestamp: number;
@@ -24,6 +26,15 @@ export function sortNetwork(
 
     valueA = typeof valueA === 'string' ? valueA.toUpperCase() : valueA;
     valueB = typeof valueB === 'string' ? valueB.toUpperCase() : valueB;
+
+    // if the values are not defined, we want to push them to the bottom of the list
+    if (!defined(valueA)) {
+      return 1;
+    }
+
+    if (!defined(valueB)) {
+      return -1;
+    }
 
     if (valueA === valueB) {
       return 0;

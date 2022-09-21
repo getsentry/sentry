@@ -820,7 +820,9 @@ def get_series(
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
-    metrics_query_fields = {str(metric_field) for metric_field in metrics_query.select}
+    metrics_query_fields = {
+        str(metric_field) for metric_field in converter._alias_to_metric_obj.keys()
+    }
 
     return {
         "start": metrics_query.start,

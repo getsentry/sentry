@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
@@ -18,7 +19,6 @@ import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import GroupChart from 'sentry/components/stream/groupChart';
-import GroupCheckBox from 'sentry/components/stream/groupCheckBox';
 import TimeSince from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -26,12 +26,18 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Group, GroupReprocessing, NewQuery, Organization, User} from 'sentry/types';
+import {
+  Group,
+  GroupReprocessing,
+  InboxDetails,
+  NewQuery,
+  Organization,
+  User,
+} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import usePrevious from 'sentry/utils/usePrevious';
 import withOrganization from 'sentry/utils/withOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
@@ -83,17 +89,20 @@ function BaseGroupRow({
   const groups = useLegacyStore(GroupStore);
   const group = groups.find(item => item.id === id) as Group;
 
+  const selectedGroups = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroups[id];
+
   const {selection} = usePageFilters();
 
-  const lastInboxState = usePrevious(group.inbox);
+  const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
   const reviewed =
-    isForReviewQuery(query) &&
-    lastInboxState !== false &&
-    lastInboxState?.reason !== undefined &&
-    group.inbox === false;
-
-  const actionTaken = group.status !== 'unresolved';
+    // Original state had an inbox reason
+    originalInboxState.current?.reason !== undefined &&
+    // Updated state has been removed from inbox
+    !group.inbox &&
+    // Only apply reviewed on the "for review" tab
+    isForReviewQuery(query);
 
   const {period, start, end} = selection.datetime || {};
   const summary =
@@ -141,7 +150,7 @@ function BaseGroupRow({
       [query, sharedAnalytics]
     );
 
-  const toggleSelect = useCallback(
+  const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
 
@@ -166,6 +175,19 @@ function BaseGroupRow({
       if (evt.shiftKey) {
         SelectedGroupStore.shiftToggleItems(group.id);
         window.getSelection()?.removeAllRanges();
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  const checkboxToggle = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+
+      if (mouseEvent.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
       } else {
         SelectedGroupStore.toggleSelect(group.id);
       }
@@ -390,15 +412,19 @@ function BaseGroupRow({
     <Wrapper
       data-test-id="group"
       data-test-reviewed={reviewed}
-      onClick={displayReprocessingLayout ? undefined : toggleSelect}
+      onClick={displayReprocessingLayout ? undefined : wrapperToggle}
       reviewed={reviewed}
-      unresolved={group.status === 'unresolved'}
-      actionTaken={actionTaken}
       useTintRow={useTintRow ?? true}
     >
       {canSelect && (
         <GroupCheckBoxWrapper>
-          <GroupCheckBox id={group.id} disabled={!!displayReprocessingLayout} />
+          <Checkbox
+            id={group.id}
+            aria-label={t('Select Issue')}
+            checked={isSelected}
+            disabled={!!displayReprocessingLayout}
+            onChange={checkboxToggle}
+          />
         </GroupCheckBoxWrapper>
       )}
       <GroupSummary canSelect={canSelect}>
@@ -455,9 +481,7 @@ export default StreamGroup;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
-  actionTaken: boolean;
   reviewed: boolean;
-  unresolved: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
@@ -466,8 +490,7 @@ const Wrapper = styled(PanelItem)<{
 
   ${p =>
     p.useTintRow &&
-    (p.reviewed || !p.unresolved) &&
-    !p.actionTaken &&
+    p.reviewed &&
     css`
       animation: tintRow 0.2s linear forwards;
       position: relative;

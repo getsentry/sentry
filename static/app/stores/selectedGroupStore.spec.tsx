@@ -281,14 +281,15 @@ describe('SelectedGroupStore', function () {
         ['15', true],
       ]);
 
-      // Deslect between selection (15) and 13
-      SelectedGroupStore.shiftToggleItems('13');
+      // Deslect between 14 and 12
+      SelectedGroupStore.toggleSelect('14');
+      SelectedGroupStore.shiftToggleItems('12');
       expect([...SelectedGroupStore.records.entries()]).toEqual([
         ['11', true],
-        ['12', true],
+        ['12', false],
         ['13', false],
         ['14', false],
-        ['15', false],
+        ['15', true],
       ]);
     });
   });

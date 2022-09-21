@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery, SelectValue} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -169,13 +169,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   };
 
   handleSortChange = (value: string) => {
-    const {location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.change_sort',
-      eventName: 'Discoverv2: Sort By Changed',
-      organization_id: parseInt(this.props.organization.id, 10),
-      sort: value,
-    });
+    const {location, organization} = this.props;
+    trackAdvancedAnalyticsEvent('discover_v2.change_sort', {organization, sort: value});
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -288,10 +283,8 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
                     to={to}
                     priority="primary"
                     onClick={() => {
-                      trackAnalyticsEvent({
-                        eventKey: 'discover_v2.build_new_query',
-                        eventName: 'Discoverv2: Build a new Discover Query',
-                        organization_id: parseInt(this.props.organization.id, 10),
+                      trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {
+                        organization,
                       });
                     }}
                   >

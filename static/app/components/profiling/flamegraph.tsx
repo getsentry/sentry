@@ -344,6 +344,8 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
         }
         frameStack={
           <FrameStack
+            profileGroup={props.profiles}
+            flamegraph={flamegraph}
             referenceNode={referenceNode}
             rootNodes={rootNodes}
             getFrameColor={getFrameColor}

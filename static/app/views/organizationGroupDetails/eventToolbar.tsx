@@ -115,9 +115,6 @@ class GroupEventToolbar extends Component<Props> {
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
 
-    // TODO: In the future we will be able to access a 'type' property on groups, we should use that instead
-    const isPerformanceIssue = !!evt.contexts?.performance_issue;
-
     return (
       <StyledDataSection>
         <StyledNavigationButtonGroup
@@ -166,15 +163,12 @@ class GroupEventToolbar extends Component<Props> {
           project={project}
           organization={organization}
         />
-        {/* If this is a Performance issue, the QuickTrace will be rendered along with the embedded span tree instead */}
-        {!isPerformanceIssue && (
-          <QuickTrace
-            event={evt}
-            group={group}
-            organization={organization}
-            location={location}
-          />
-        )}
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
       </StyledDataSection>
     );
   }

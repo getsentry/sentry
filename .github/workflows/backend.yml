@@ -448,14 +448,10 @@ jobs:
 
       # We don't call setup-sentry, because we don't need devservices.
       - name: Setup backend typing
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          pip install -r requirements-dev-frozen.txt
+        run: pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        run: |
-          make backend-typing
+        run: make backend-typing
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)

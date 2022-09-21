@@ -81,7 +81,7 @@ cmdclass = {
 
 def get_requirements(env):
     with open(f"requirements-{env}.txt") as fp:
-        return [x.strip() for x in fp.read().split("\n") if not x.startswith("#")]
+        return [x.strip() for x in fp.read().split("\n") if not x.startswith(("#", "--"))]
 
 
 # Only include dev requirements in non-binary distributions as we don't want these

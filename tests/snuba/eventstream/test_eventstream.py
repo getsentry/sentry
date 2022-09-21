@@ -133,7 +133,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = None
-        event.group_ids = [self.group.id]
+        event.groups = [self.group]
         insert_args = ()
         insert_kwargs = {
             "event": event,

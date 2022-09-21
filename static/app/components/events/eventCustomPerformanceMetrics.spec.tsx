@@ -1,10 +1,15 @@
+import {browserHistory} from 'react-router';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {Event} from 'sentry/types/event';
 
 describe('EventCustomPerformanceMetrics', function () {
+  beforeEach(function () {
+    browserHistory.push = jest.fn();
+  });
   it('should not render anything', function () {
     const {router, organization} = initializeOrg();
     render(
@@ -62,5 +67,28 @@ describe('EventCustomPerformanceMetrics', function () {
     screen.getByText('456.0 KiB');
     screen.getByText('30%');
     expect(screen.queryByText('Largest Contentful Paint')).not.toBeInTheDocument();
+  });
+
+  it('should render custom performance metrics context menu', function () {
+    const {router, organization} = initializeOrg();
+    const event = TestStubs.Event({
+      measurements: {
+        'custom.size': {unit: 'kibibyte', value: 456},
+      },
+    });
+    render(
+      <EventCustomPerformanceMetrics
+        location={router.location}
+        organization={organization}
+        event={event}
+      />
+    );
+
+    expect(screen.getByLabelText('Widget actions')).toBeInTheDocument();
+    userEvent.click(screen.getByLabelText('Widget actions'));
+    expect(screen.getByText('Show events with this value')).toBeInTheDocument();
+    expect(screen.getByText('Hide events with this value')).toBeInTheDocument();
+    expect(screen.getByText('Show events with values greater than')).toBeInTheDocument();
+    expect(screen.getByText('Show events with values less than')).toBeInTheDocument();
   });
 });

@@ -7,11 +7,13 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import (
     Any,
+    Callable,
     Iterable,
     List,
     Mapping,
     MutableMapping,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     TypedDict,
@@ -64,6 +66,7 @@ from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
+from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
@@ -692,60 +695,84 @@ class GroupSerializerBase(Serializer, ABC):
 
 @register(Group)
 class GroupSerializer(GroupSerializerBase):
-    def __init__(self, environment_func=None):
+    class GroupUserCountsFunc(Protocol):
+        def __call__(
+            self,
+            project_ids: Sequence[int],
+            item_ids: Sequence[int],
+            environment_ids: Optional[Sequence[int]],
+        ) -> Mapping[int, int]:
+            pass
+
+    def __init__(self, environment_func: Callable[[], Environment] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _seen_stats_error(self, item_list, user):
-        try:
-            environment = self.environment_func()
-        except Environment.DoesNotExist:
-            user_counts = {}
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-        else:
-            project_id = item_list[0].project_id
-            item_ids = [g.id for g in item_list]
-            user_counts = tagstore.get_groups_user_counts(
-                [project_id], item_ids, environment_ids=environment and [environment.id]
-            )
-            first_seen = {}
-            last_seen = {}
-            times_seen = {}
-            if environment is not None:
-                environment_tagvalues = tagstore.get_group_list_tag_value(
-                    [project_id], item_ids, [environment.id], "environment", environment.name
-                )
-                for item_id, value in environment_tagvalues.items():
-                    first_seen[item_id] = value.first_seen
-                    last_seen[item_id] = value.last_seen
-                    times_seen[item_id] = value.times_seen
-            else:
-                for item in item_list:
-                    first_seen[item.id] = item.first_seen
-                    last_seen[item.id] = item.last_seen
-                    times_seen[item.id] = item.times_seen
-
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {
-                "times_seen": times_seen.get(item.id, 0),
-                "first_seen": first_seen.get(item.id),  # TODO: missing?
-                "last_seen": last_seen.get(item.id),
-                "user_count": user_counts.get(item.id, 0),
-            }
-
-        return attrs
+    def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
+        return self.__seen_stats_impl(
+            item_list, tagstore.get_groups_user_counts, tagstore.get_group_list_tag_value
+        )
 
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        # TODO(gilbert): implement this to return real data
-        if perf_issue_list:
-            raise NotImplementedError
+        return self.__seen_stats_impl(
+            perf_issue_list,
+            tagstore.get_perf_groups_user_counts,
+            tagstore.get_perf_group_list_tag_value,
+        )
 
-        return {}
+    def __seen_stats_impl(
+        self,
+        issue_list: Sequence[Group],
+        user_counts_func: GroupUserCountsFunc,
+        environment_seen_stats_func: Callable[
+            [Sequence[int], Sequence[int], Sequence[int], str, str], Mapping[int, GroupTagValue]
+        ],
+    ) -> Mapping[Group, SeenStats]:
+        if not issue_list:
+            return {}
+        try:
+            environment = self.environment_func()
+        except Environment.DoesNotExist:
+            return {
+                item: {"times_seen": 0, "first_seen": None, "last_seen": None, "user_count": 0}
+                for item in issue_list
+            }
+
+        project_id = issue_list[0].project_id
+        item_ids = [g.id for g in issue_list]
+        user_counts: Mapping[int, int] = user_counts_func(
+            [project_id], item_ids, environment_ids=environment and [environment.id]
+        )
+        first_seen: MutableMapping[int, datetime] = {}
+        last_seen: MutableMapping[int, datetime] = {}
+        times_seen: MutableMapping[int, int] = {}
+
+        if environment is not None:
+            environment_seen_stats = environment_seen_stats_func(
+                [project_id], item_ids, [environment.id], "environment", environment.name
+            )
+            for item_id, value in environment_seen_stats.items():
+                first_seen[item_id] = value.first_seen
+                last_seen[item_id] = value.last_seen
+                times_seen[item_id] = value.times_seen
+        else:
+            # fallback to the model data since we can't query tagstore
+            for item in issue_list:
+                first_seen[item.id] = item.first_seen
+                last_seen[item.id] = item.last_seen
+                times_seen[item.id] = item.times_seen
+
+        return {
+            item: {
+                "times_seen": times_seen.get(item.id, 0),
+                "first_seen": first_seen.get(item.id),
+                "last_seen": last_seen.get(item.id),
+                "user_count": user_counts.get(item.id, 0),
+            }
+            for item in issue_list
+        }
 
 
 class SharedGroupSerializer(GroupSerializer):
@@ -769,8 +796,8 @@ SKIP_SNUBA_FIELDS = frozenset(
         "subscribed_by",
         "first_release",
         "first_seen",
-        "category",
-        "type",
+        "issue.category",
+        "issue.type",
     )
 )
 
@@ -834,26 +861,41 @@ class GroupSerializerSnuba(GroupSerializerBase):
             else []
         )
 
-    def _seen_stats_error(self, error_issue_list: Sequence[Group], user) -> Mapping[Any, SeenStats]:
-        return self._execute_seen_stats_query(
-            item_list=error_issue_list,
-            start=self.start,
-            end=self.end,
-            conditions=self.conditions,
-            environment_ids=self.environment_ids,
+    def _seen_stats_error(
+        self, error_issue_list: Sequence[Group], user
+    ) -> Mapping[Group, SeenStats]:
+        return self._parse_seen_stats_results(
+            self._execute_error_seen_stats_query(
+                item_list=error_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+                environment_ids=self.environment_ids,
+            ),
+            error_issue_list,
+            self.start or self.end or self.conditions,
+            self.environment_ids,
         )
 
     def _seen_stats_performance(
         self, perf_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
-        # TODO(gilbert): implement this to return real data
-        if perf_issue_list:
-            raise NotImplementedError
+        return self._parse_seen_stats_results(
+            self._execute_perf_seen_stats_query(
+                item_list=perf_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+                environment_ids=self.environment_ids,
+            ),
+            perf_issue_list,
+            self.start or self.end or self.conditions,
+            self.environment_ids,
+        )
 
-        return {}
-
-    def _execute_seen_stats_query(
-        self, item_list, start=None, end=None, conditions=None, environment_ids=None
+    @staticmethod
+    def _execute_error_seen_stats_query(
+        item_list, start=None, end=None, conditions=None, environment_ids=None
     ):
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
@@ -864,9 +906,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             ["uniq", "tags[sentry:user]", "count"],
         ]
         filters = {"project_id": project_ids, "group_id": group_ids}
-        if self.environment_ids:
-            filters["environment"] = self.environment_ids
-        result = aliased_query(
+        if environment_ids:
+            filters["environment"] = environment_ids
+        return aliased_query(
             dataset=Dataset.Events,
             start=start,
             end=end,
@@ -874,8 +916,40 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer="serializers.GroupSerializerSnuba._execute_seen_stats_query",
+            referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
         )
+
+    @staticmethod
+    def _execute_perf_seen_stats_query(
+        item_list, start=None, end=None, conditions=None, environment_ids=None
+    ):
+        project_ids = list({item.project_id for item in item_list})
+        group_ids = [item.id for item in item_list]
+        aggregations = [
+            ["arrayJoin", ["group_ids"], "group_id"],
+            ["count()", "", "times_seen"],
+            ["min", "timestamp", "first_seen"],
+            ["max", "timestamp", "last_seen"],
+            ["uniq", "tags[sentry:user]", "count"],
+        ]
+        filters = {"project_id": project_ids, "group_id": group_ids}
+        if environment_ids:
+            filters["environment"] = environment_ids
+        return aliased_query(
+            dataset=Dataset.Transactions,
+            start=start,
+            end=end,
+            groupby=["group_id"],
+            conditions=conditions,
+            filter_keys=filters,
+            aggregations=aggregations,
+            referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+        )
+
+    @staticmethod
+    def _parse_seen_stats_results(
+        result, item_list, use_result_first_seen_times_seen, environment_ids=None
+    ):
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
                 dict(filter(lambda key: key[0] != "group_id", issue.items()))
@@ -884,7 +958,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         }
         user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
-        if start or end or conditions:
+        if use_result_first_seen_times_seen:
             first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
             times_seen = {item_id: value["times_seen"] for item_id, value in seen_data.items()}
         else:
@@ -902,13 +976,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 first_seen = {item.id: item.first_seen for item in item_list}
             times_seen = {item.id: item.times_seen for item in item_list}
 
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {
+        return {
+            item: {
                 "times_seen": times_seen.get(item.id, 0),
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
-
-        return attrs
+            for item in item_list
+        }

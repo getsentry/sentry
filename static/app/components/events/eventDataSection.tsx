@@ -137,25 +137,16 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   align-items: center;
   margin-bottom: ${space(1)};
 
-  > * {
-    margin-bottom: ${space(0.5)};
-  }
-
   & h3,
   & h3 a {
-    font-size: 14px;
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSizeMedium};
     font-weight: 600;
-    line-height: 1.2;
-    color: ${p => p.theme.gray300};
   }
 
   & h3 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
     padding: ${space(0.75)} 0;
     margin-bottom: 0;
-    text-transform: uppercase;
   }
 
   & small {

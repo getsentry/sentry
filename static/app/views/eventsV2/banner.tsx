@@ -12,7 +12,7 @@ import FeatureTourModal, {
 } from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 
@@ -81,22 +81,14 @@ type Props = {
 
 function DiscoverBanner({organization, resultsUrl}: Props) {
   function onAdvance(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.tour.advance',
-      eventName: 'Discoverv2: Tour Advance',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('discover_v2.tour.advance', {
+      organization,
       step,
       duration,
     });
   }
   function onCloseModal(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'discover_v2.tour.close',
-      eventName: 'Discoverv2: Tour Close',
-      organization_id: parseInt(organization.id, 10),
-      step,
-      duration,
-    });
+    trackAdvancedAnalyticsEvent('discover_v2.tour.close', {organization, step, duration});
   }
 
   const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -115,11 +107,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
         translucentBorder
         to={resultsUrl}
         onClick={() => {
-          trackAnalyticsEvent({
-            eventKey: 'discover_v2.build_new_query',
-            eventName: 'Discoverv2: Build a new Discover Query',
-            organization_id: parseInt(organization.id, 10),
-          });
+          trackAdvancedAnalyticsEvent('discover_v2.build_new_query', {organization});
         }}
       >
         {t('Build a new query')}
@@ -136,11 +124,7 @@ function DiscoverBanner({organization, resultsUrl}: Props) {
             size={isSmallBanner ? 'xs' : undefined}
             translucentBorder
             onClick={() => {
-              trackAnalyticsEvent({
-                eventKey: 'discover_v2.tour.start',
-                eventName: 'Discoverv2: Tour Start',
-                organization_id: parseInt(organization.id, 10),
-              });
+              trackAdvancedAnalyticsEvent('discover_v2.tour.start', {organization});
               showModal();
             }}
           >

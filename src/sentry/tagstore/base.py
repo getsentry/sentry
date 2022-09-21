@@ -40,8 +40,10 @@ class TagStorage(Service):
             "get_group_tag_value",
             "get_group_tag_values",
             "get_group_list_tag_value",
+            "get_perf_group_list_tag_value",
             "get_tag_keys_for_projects",
             "get_groups_user_counts",
+            "get_perf_groups_user_counts",
             "get_group_event_filter",
             "get_group_tag_value_count",
             "get_top_group_tag_values",
@@ -181,8 +183,13 @@ class TagStorage(Service):
 
     def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
         """
-        >>> get_group_tag_value([1, 2], [1, 2, 3, 4, 5], [3], "key1", "value1")
+        >>> get_group_list_tag_value([1, 2], [1, 2, 3, 4, 5], [3], "key1", "value1")
         """
+        raise NotImplementedError
+
+    def get_perf_group_list_tag_value(
+        self, project_ids, group_id_list, environment_ids, key, value
+    ):
         raise NotImplementedError
 
     def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
@@ -248,6 +255,11 @@ class TagStorage(Service):
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])
         `start` and `end` are only used by the snuba backend
         """
+        raise NotImplementedError
+
+    def get_perf_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None
+    ):
         raise NotImplementedError
 
     def get_group_tag_value_count(self, project_id, group_id, environment_id, key):

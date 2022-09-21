@@ -310,6 +310,12 @@ const Wrapper = styled('div')`
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
+  padding-top: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding-top: ${space(1)};
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-right: 1px solid ${p => p.theme.border};
     padding-right: 0;

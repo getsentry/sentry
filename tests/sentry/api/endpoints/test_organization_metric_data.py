@@ -1856,19 +1856,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.errored"] == 7
         assert group["series"]["session.errored"] == [0, 4, 0, 0, 0, 3]
 
-        response = self.get_success_response(
-            self.organization.slug,
-            field=["session.errored"],
-            statsPeriod="6m",
-            interval="1m",
-        )
-        group = response.data["groups"][0]
-        assert group == {
-            "by": {},
-            "totals": {"session.errored": 7},
-            "series": {"session.errored": [0, 4, 0, 0, 0, 3]},
-        }
-
     def test_orderby_composite_entity_derived_metric(self):
         self.store_session(
             self.build_session(

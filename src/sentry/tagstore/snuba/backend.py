@@ -449,8 +449,36 @@ class SnubaTagStorage(TagStorage):
         )
 
         return {
-            issue: GroupTagValue(group_id=issue, key=key, value=value, **fix_tag_value_data(data))
-            for issue, data in result.items()
+            group_id: GroupTagValue(
+                group_id=group_id, key=key, value=value, **fix_tag_value_data(data)
+            )
+            for group_id, data in result.items()
+        }
+
+    def get_perf_group_list_tag_value(
+        self, project_ids, group_id_list, environment_ids, key, value
+    ):
+        filters = {"project_id": project_ids, "group_id": group_id_list}
+        if environment_ids:
+            filters["environment"] = environment_ids
+
+        result = snuba.query(
+            dataset=Dataset.Transactions,
+            groupby=["group_id"],
+            conditions=[[f"tags[{key}]", "=", value]],
+            filter_keys=filters,
+            aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
+                ["count()", "", "times_seen"],
+                ["min", SEEN_COLUMN, "first_seen"],
+                ["max", SEEN_COLUMN, "last_seen"],
+            ],
+            referrer="tagstore.get_perf_group_list_tag_value",
+        )
+
+        return {
+            group_id: GroupTagValue(key=key, value=value, **fix_tag_value_data(data))
+            for group_id, data in result.items()
         }
 
     def get_group_seen_values_for_environments(
@@ -693,6 +721,35 @@ class SnubaTagStorage(TagStorage):
         )
 
         return defaultdict(int, {k: v for k, v in result.items() if v})
+
+    def get_perf_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None
+    ):
+        filters_keys = {"project_id": project_ids, "group_id": group_ids}
+        if environment_ids:
+            filters_keys["environment"] = environment_ids
+
+        result = snuba.query(
+            dataset=Dataset.Transactions,
+            start=start,
+            end=start,
+            filter_keys=filters_keys,
+            aggregations=[
+                ["arrayJoin", ["group_ids"], "group_id"],
+                ["uniq", "tags[sentry:user]", "user_counts"],
+            ],
+            groupby=["group_id"],
+            referrer="tagstore.get_perf_groups_user_counts",
+        )
+
+        return defaultdict(
+            int,
+            {
+                group_id: agg["user_counts"]
+                for group_id, agg in result.items()
+                if agg.get("user_counts")
+            },
+        )
 
     def get_tag_value_paginator(
         self,

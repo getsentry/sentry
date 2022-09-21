@@ -6,32 +6,24 @@ import {PageContent} from 'sentry/styles/organization';
 import type {Group} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useReplayList, {
-  DEFAULT_SORT,
-  REPLAY_LIST_FIELDS,
-} from 'sentry/utils/replays/hooks/useReplayList';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
+import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Props = {
   group: Group;
+  replayIds: string[];
 };
 
-const GroupReplays = ({group}: Props) => {
+const GroupReplays = ({group, replayIds}: Props) => {
   const location = useLocation<ReplayListLocationQuery>();
   const organization = useOrganization();
-  const params = useParams();
   const {project} = group;
 
   const eventView = useMemo(() => {
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-    conditions.addFilterValues('issue.id', params.groupId);
-
     return EventView.fromNewQueryWithLocation(
       {
         id: '',
@@ -39,12 +31,12 @@ const GroupReplays = ({group}: Props) => {
         version: 2,
         fields: REPLAY_LIST_FIELDS,
         projects: [Number(project.id)],
-        query: conditions.formatString(),
+        query: `id:[${String(replayIds)}]`,
         orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
       },
       location
     );
-  }, [location, project.id, params.groupId]);
+  }, [location, project.id, replayIds]);
 
   const {replays, pageLinks, isFetching} = useReplayList({
     organization,

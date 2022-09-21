@@ -19,6 +19,7 @@ from tests.sentry.spans.grouping.test_strategy import SpanBuilder
 _fixture_path = os.path.join(os.path.dirname(__file__), "events")
 
 EVENTS = {}
+PROJECT_ID = 1
 
 for filename in os.listdir(_fixture_path):
     if not filename.endswith(".json"):
@@ -27,7 +28,9 @@ for filename in os.listdir(_fixture_path):
     [event_name, _extension] = filename.split(".")
 
     with open(os.path.join(_fixture_path, filename)) as f:
-        EVENTS[event_name] = json.load(f)
+        event = json.load(f)
+        event["project"] = PROJECT_ID
+        EVENTS[event_name] = event
 
 
 # Duration is in ms
@@ -53,10 +56,16 @@ def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %
 
 
 def create_event(spans, event_id="a" * 16):
-    return {"event_id": event_id, "spans": spans}
+    return {"event_id": event_id, "project": PROJECT_ID, "spans": spans}
 
 
 class PerformanceDetectionTest(unittest.TestCase):
+    def setUp(self):
+        super().setUp()
+        patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
+        self.project_option_mock = patch_project_option_get.start()
+        self.addCleanup(patch_project_option_get.stop)
+
     @patch("sentry.utils.performance_issues.performance_detection._detect_performance_problems")
     def test_options_disabled(self, mock):
         event = {}
@@ -70,6 +79,40 @@ class PerformanceDetectionTest(unittest.TestCase):
             with override_options({"performance.issues.all.problem-detection": 1.0}):
                 detect_performance_problems(event)
         assert mock.call_count == 1
+
+    def test_project_option_overrides_default(self):
+        n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        sdk_span_mock = Mock()
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                op="db",
+                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                spans_involved=[
+                    "9179e43ae844b174",
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            )
+        ]
+
+        self.project_option_mock.return_value = {
+            "n_plus_one_db_duration_threshold": 100000,
+        }
+
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        assert perf_problems == []
 
     def test_calls_detect_duplicate(self):
         no_duplicate_event = create_event([create_span("db")] * 4)
@@ -118,7 +161,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         assert _detect_performance_problems(no_duplicate_event, sdk_span_mock) == []
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
 
-        perf_problems = _detect_performance_problems(duplicate_event, sdk_span_mock)
+        _detect_performance_problems(duplicate_event, sdk_span_mock)
         assert sdk_span_mock.containing_transaction.set_tag.call_count == 4
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
@@ -140,21 +183,6 @@ class PerformanceDetectionTest(unittest.TestCase):
                 ),
             ]
         )
-        assert perf_problems == [
-            PerformanceProblem(
-                fingerprint="1-GroupType.PERFORMANCE_DUPLICATE_SPANS-4691ce1ec85e08c8870ab4494afedfc86cdfc65d",
-                op="http",
-                desc="http://example.com/slow?q=1",
-                type=GroupType.PERFORMANCE_DUPLICATE_SPANS,
-                spans_involved=[
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
-                ],
-            )
-        ]
 
     def test_calls_detect_slow_span(self):
         no_slow_span_event = create_event([create_span("db", 999.0)] * 1)
@@ -367,6 +395,7 @@ class PerformanceDetectionTest(unittest.TestCase):
     def test_calls_detect_render_blocking_asset(self):
         render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -379,6 +408,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         non_render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -394,6 +424,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         no_fcp_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": None,
@@ -406,6 +437,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         }
         short_render_blocking_asset_event = {
             "event_id": "a" * 16,
+            "project": PROJECT_ID,
             "measurements": {
                 "fcp": {
                     "value": 2500.0,
@@ -459,14 +491,14 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
-        _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        assert sdk_span_mock.containing_transaction.set_tag.call_count == 5
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 7
         sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
             [
                 call(
                     "_pi_all_issue_count",
-                    3,
+                    4,
                 ),
                 call(
                     "_pi_transaction",
@@ -481,6 +513,96 @@ class PerformanceDetectionTest(unittest.TestCase):
                     "_pi_sequential",
                     "b409e78a092e642f",
                 ),
+                call(
+                    "_pi_n_plus_one_db_fp",
+                    "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                ),
+                call("_pi_n_plus_one_db", "9179e43ae844b174"),
+            ]
+        )
+        assert perf_problems == [
+            PerformanceProblem(
+                fingerprint="1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8",
+                op="db",
+                desc="SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+                type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                spans_involved=[
+                    "9179e43ae844b174",
+                    "b8be6138369491dd",
+                    "b2d4826e7b618f1b",
+                    "b3fdeea42536dbf1",
+                    "b409e78a092e642f",
+                    "86d2ede57bbf48d4",
+                    "8e554c84cdc9731e",
+                    "94d6230f3f910e12",
+                    "a210b87a2191ceb6",
+                    "88a5ccaf25b9bd8f",
+                    "bb32cf50fc56b296",
+                ],
+            )
+        ]
+
+    def test_n_plus_one_db_detector_has_different_fingerprints_for_different_n_plus_one_events(
+        self,
+    ):
+        index_n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
+        new_n_plus_one_event = EVENTS["n-plus-one-in-django-new-view"]
+
+        sdk_span_mock = Mock()
+        _detect_performance_problems(index_n_plus_one_event, sdk_span_mock)
+        index_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                index_fingerprint = args[0][1]
+        assert index_fingerprint
+
+        sdk_span_mock.reset_mock()
+        _detect_performance_problems(new_n_plus_one_event, sdk_span_mock)
+        new_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                new_fingerprint = args[0][1]
+        assert new_fingerprint
+
+        assert index_fingerprint != new_fingerprint
+
+    def test_ignores_fast_n_plus_one(self):
+        fast_n_plus_one_event = EVENTS["fast-n-plus-one-in-django-new-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(fast_n_plus_one_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 0
+
+    def test_finds_n_plus_one_with_db_dot_something_spans(self):
+        activerecord_n_plus_one_event = EVENTS["n-plus-one-in-django-index-view-activerecord"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(activerecord_n_plus_one_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert (
+            n_plus_one_fingerprint
+            == "1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-8d86357da4d8a866b19c97670edee38d037a7bc8"
+        )
+
+    def test_detects_slow_span_but_not_n_plus_one_in_query_waterfall(self):
+        query_waterfall_event = EVENTS["query-waterfall-in-django-random-view"]
+        sdk_span_mock = Mock()
+
+        _detect_performance_problems(query_waterfall_event, sdk_span_mock)
+
+        assert sdk_span_mock.containing_transaction.set_tag.call_count == 3
+        sdk_span_mock.containing_transaction.set_tag.assert_has_calls(
+            [
+                call(
+                    "_pi_all_issue_count",
+                    1,
+                ),
+                call("_pi_transaction", "ba9cf0e72b8c42439a6490be90d9733e"),
+                call("_pi_slow_span", "870ada8266466319"),
             ]
         )
 
@@ -501,6 +623,17 @@ class PerformanceDetectionTest(unittest.TestCase):
                 call("_pi_slow_span", "9f31e1ee4ef94970"),
             ]
         )
+
+    def test_n_plus_one_detector_ignores_non_select_queries(self):
+        update_n_plus_one_event = EVENTS["n-plus-one-in-django-new-view-updates"]
+
+        sdk_span_mock = Mock()
+        _detect_performance_problems(update_n_plus_one_event, sdk_span_mock)
+        n_plus_one_fingerprint = None
+        for args in sdk_span_mock.containing_transaction.set_tag.call_args_list:
+            if args[0][0] == "_pi_n_plus_one_db_fp":
+                n_plus_one_fingerprint = args[0][1]
+        assert not n_plus_one_fingerprint
 
 
 class PrepareProblemForGroupingTest(unittest.TestCase):
