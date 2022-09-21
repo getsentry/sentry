@@ -126,6 +126,19 @@ def test_timestamps():
     assert actual_timestamps == expected_timestamps
 
 
+@freeze_time("2020-12-18T11:14:17.105Z")
+def test_timestamps_optional_params():
+    query = QueryDict("statsPeriod=1d&interval=12h&field=sum(session)")
+    start, end, rollup = get_constrained_date_range(
+        query,
+        allowed_resolution=AllowedResolution.one_hour,
+    )
+
+    expected_timestamps = ["2020-12-17T12:00:00Z", "2020-12-18T00:00:00Z"]
+    actual_timestamps = get_timestamps(query=None, start=start, end=end, rollup=rollup)
+    assert actual_timestamps == expected_timestamps
+
+
 @freeze_time("2021-03-08T09:34:00.000Z")
 def test_hourly_rounded_start():
     query = _make_query("statsPeriod=30m&interval=1m&field=sum(session)")

@@ -619,14 +619,18 @@ def isoformat_z(date):
     return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
 
 
-def get_timestamps(query):
+def get_timestamps(query, rollup=None, start=None, end=None):
     """
     Generates a list of timestamps according to `query`.
     The timestamps are returned as ISO strings for now.
     """
-    rollup = query.rollup
-    start = int(to_timestamp(query.start))
-    end = int(to_timestamp(query.end))
+    if query:
+        rollup = query.rollup
+        start = query.start
+        end = query.end
+
+    start = int(to_timestamp(start))
+    end = int(to_timestamp(end))
 
     return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
