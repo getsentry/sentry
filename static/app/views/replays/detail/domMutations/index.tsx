@@ -92,16 +92,15 @@ function DomMutations({replay}: Props) {
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
           isCurrent={crumb.id === currentDomMutation?.id}
-          hasOccurred={hasOccurred}
         >
-          <IconWrapper color={crumb.color}>
+          <IconWrapper color={crumb.color} hasOccurred={hasOccurred}>
             <BreadcrumbIcon type={crumb.type} />
           </IconWrapper>
           <MutationContent>
             <MutationDetailsContainer>
               <div>
                 <TitleContainer>
-                  <Title>{title}</Title>
+                  <Title hasOccurred={hasOccurred}>{title}</Title>
                 </TitleContainer>
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
@@ -215,7 +214,9 @@ const MutationDetailsContainer = styled('div')`
 /**
  * Taken `from events/interfaces/.../breadcrumbs/types`
  */
-const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
+const IconWrapper = styled('div')<
+  {hasOccurred?: boolean} & Required<Pick<SVGIconProps, 'color'>>
+>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -224,12 +225,12 @@ const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
   height: 24px;
   border-radius: 50%;
   color: ${p => p.theme.white};
-  background: ${p => p.theme[p.color] ?? p.color};
+  background: ${p => (p.hasOccurred ? p.theme[p.color] ?? p.color : p.theme.purple200)};
   box-shadow: ${p => p.theme.dropShadowLightest};
   z-index: 2;
 `;
 
-const MutationListItem = styled('li')<{hasOccurred?: boolean; isCurrent?: boolean}>`
+const MutationListItem = styled('li')<{isCurrent?: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-grow: 1;
@@ -264,13 +265,6 @@ const MutationListItem = styled('li')<{hasOccurred?: boolean; isCurrent?: boolea
   &:only-of-type::after {
     height: 0;
   }
-
-  ${MutationDetailsContainer} {
-    opacity: ${p => (p.hasOccurred ? 1 : 0.5)};
-  }
-  ${IconWrapper} {
-    background: ${p => (p.hasOccurred ? p.theme.purple300 : p.theme.purple200)};
-  }
 `;
 
 const TitleContainer = styled('div')`
@@ -278,10 +272,10 @@ const TitleContainer = styled('div')`
   justify-content: space-between;
 `;
 
-const Title = styled('span')`
+const Title = styled('span')<{hasOccurred?: boolean}>`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
-  color: ${p => p.theme.gray400};
+  color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
