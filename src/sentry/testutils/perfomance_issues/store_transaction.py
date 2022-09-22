@@ -43,7 +43,7 @@ class PerfIssueTransactionTestMixin:
                 "timestamp": insert_time.timestamp(),
                 "start_timestamp": insert_time.timestamp(),
                 "received": insert_time.timestamp(),
-                #
+                # we need to randomize the value here to make sure ingestion doesn't dedupe these transactions
                 "transaction": "transaction: " + str(insert_time) + str(random.randint(0, 1000)),
             }
             if environment:
