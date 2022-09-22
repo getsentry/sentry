@@ -978,14 +978,20 @@ def report_metrics_for_detectors(
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
 
+    try:
+        # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
+        set_tag = sdk_span.containing_transaction.set_tag
+    except AttributeError:
+        set_tag = lambda *args: None
+
     if has_detected_problems:
-        sdk_span.containing_transaction.set_tag("_pi_all_issue_count", len(all_detected_problems))
+        set_tag("_pi_all_issue_count", len(all_detected_problems))
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
         )
         if event_id:
-            sdk_span.containing_transaction.set_tag("_pi_transaction", event_id)
+            set_tag("_pi_transaction", event_id)
 
     detected_tags = {}
     for detector_enum, detector in detectors.items():
@@ -999,16 +1005,14 @@ def report_metrics_for_detectors(
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:
-            sdk_span.containing_transaction.set_tag(
-                f"_pi_{detector_key}_fp", first_problem.fingerprint
-            )
+            set_tag(f"_pi_{detector_key}_fp", first_problem.fingerprint)
 
         span_id = (
             first_problem.span_id
             if isinstance(first_problem, PerformanceSpanProblem)
             else first_problem.offender_span_ids[0]
         )
-        sdk_span.containing_transaction.set_tag(f"_pi_{detector_key}", span_id)
+        set_tag(f"_pi_{detector_key}", span_id)
 
         op_tags = {}
         for problem in detected_problems.values():

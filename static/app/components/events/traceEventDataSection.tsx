@@ -259,7 +259,7 @@ export function TraceEventDataSection({
                   value={state.sortBy}
                   options={Object.entries(sortByOptions).map(([value, label]) => ({
                     label,
-                    value,
+                    value: value as keyof typeof sortByOptions,
                   }))}
                 />
                 <CompositeSelect

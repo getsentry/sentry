@@ -39,10 +39,6 @@ describe('DatePageFilter', function () {
     );
   });
 
-  afterEach(() => {
-    OrganizationStore.teardown();
-  });
-
   it('can change period', async function () {
     render(<DatePageFilter />, {
       context: routerContext,

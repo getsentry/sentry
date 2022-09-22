@@ -14,6 +14,7 @@ export type LineChartSeries = Series &
 
 export interface LineChartProps extends Omit<ChartProps, 'series'> {
   series: LineChartSeries[];
+  additionalSeries?: LineSeriesOption[];
   seriesOptions?: LineSeriesOption;
 }
 

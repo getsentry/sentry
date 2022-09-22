@@ -1,6 +1,5 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationActions from 'sentry/actions/organizationActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import {Organization, Project} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
@@ -52,9 +51,6 @@ const storeConfig: LatestContextStoreDefinition = {
     );
     this.unsubscribeListeners.push(
       this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.update, this.onUpdateOrganization)
     );
   },
 

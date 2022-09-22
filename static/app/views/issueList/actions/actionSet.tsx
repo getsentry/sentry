@@ -1,5 +1,5 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -9,7 +9,6 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
 import {
   BaseGroup,
   IssueCategory,
@@ -24,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
-import IssueListSortOptions from './sortOptions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -35,11 +33,9 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
   query: string;
   queryCount: number;
-  sort: string;
   selectedProjectSlug?: string;
 };
 
@@ -55,8 +51,6 @@ function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
-  sort,
-  onSortChange,
 }: Props) {
   const organization = useOrganization();
   const numIssues = issues.size;
@@ -204,7 +198,7 @@ function ActionSet({
   ];
 
   return (
-    <Wrapper>
+    <Fragment>
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -284,8 +278,7 @@ function ActionSet({
         }}
         isDisabled={!anySelected}
       />
-      <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-    </Wrapper>
+    </Fragment>
   );
 }
 
@@ -305,19 +298,3 @@ function isActionSupported(
 }
 
 export default ActionSet;
-
-const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    width: 66.66%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    width: 50%;
-  }
-  flex: 1;
-  margin: 0 ${space(1)};
-  display: grid;
-  gap: ${space(0.5)};
-  grid-auto-flow: column;
-  justify-content: flex-start;
-  white-space: nowrap;
-`;

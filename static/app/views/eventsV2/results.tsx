@@ -50,7 +50,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import ResultsChart from './resultsChart';
+import {MetricsBaselineContainer} from './metricsBaselineContainer';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -391,7 +391,7 @@ class Results extends Component<Props, State> {
     }
   };
 
-  handleIntervalChange = (value: string) => {
+  handleIntervalChange = (value: string | undefined) => {
     const {router, location} = this.props;
 
     const newQuery = {
@@ -511,7 +511,7 @@ class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection} = this.props;
+    const {organization, location, router, selection, api} = this.props;
     const {
       eventView,
       error,
@@ -571,7 +571,8 @@ class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <ResultsChart
+                    <MetricsBaselineContainer
+                      api={api}
                       router={router}
                       organization={organization}
                       eventView={eventView}
@@ -653,7 +654,7 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {location} = this.props;
     if (
       !defined(location.query?.id) &&
@@ -661,6 +662,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     ) {
       this.setState({savedQuery: undefined});
     }
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
