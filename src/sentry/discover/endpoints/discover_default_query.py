@@ -27,11 +27,17 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
     )
 
     def has_feature(self, organization, request):
-        return features.has(
-            "organizations:discover", organization, actor=request.user
-        ) or features.has("organizations:discover-query", organization, actor=request.user)
+        return (
+            features.has("organizations:discover", organization, actor=request.user)
+            or features.has("organizations:discover-query", organization, actor=request.user)
+        ) and features.has(
+            "organizations:discover-query-builder-as-landing-page", organization, actor=request.user
+        )
 
     def get(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+
         try:
             query = get_default_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
@@ -40,6 +46,9 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
         return Response(serialize(query), status=status.HTTP_200_OK)
 
     def put(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+
         try:
             previous_default = get_default_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
@@ -83,6 +92,9 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_201_CREATED)
 
     def delete(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
+
         try:
             default_query = get_default_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
