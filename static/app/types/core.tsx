@@ -7,12 +7,13 @@
 import type {getInterval} from 'sentry/components/charts/utils';
 import {MenuListItemProps} from 'sentry/components/menuListItem';
 import type {API_ACCESS_SCOPES} from 'sentry/constants';
+import {AvatarTypeSchema} from 'sentry/endpoints/schemas/common/core';
 
 /**
  * Visual representation of a project/team/organization/user
  */
 export type Avatar = {
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background' | 'default';
+  avatarType: AvatarTypeSchema;
   avatarUuid: string | null;
   color?: boolean;
 };

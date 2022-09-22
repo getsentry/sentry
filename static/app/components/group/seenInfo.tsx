@@ -7,9 +7,10 @@ import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {GroupReleaseSchema} from 'sentry/endpoints/schemas/groupFirstLastReleaseSchema';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Release} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {defined, toTitleCase} from 'sentry/utils';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
@@ -21,9 +22,9 @@ type Props = {
   organization: Organization;
   projectId: string;
   projectSlug: string;
+  release: GroupReleaseSchema | null;
   title: string;
   environment?: string;
-  release?: Release;
 };
 
 function SeenInfo({

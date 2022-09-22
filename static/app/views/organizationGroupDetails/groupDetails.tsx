@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {validateEndpointResponse} from 'sentry/endpoints';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
@@ -360,7 +361,11 @@ class GroupDetails extends Component<Props, State> {
 
   async fetchGroupReleases() {
     const {api} = this.props;
-    const releases = await api.requestPromise(this.groupReleaseEndpoint);
+    const response = await api.requestPromise(this.groupReleaseEndpoint);
+    const releases = validateEndpointResponse(
+      '/issues/:groupId/first-last-release/',
+      response
+    );
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
