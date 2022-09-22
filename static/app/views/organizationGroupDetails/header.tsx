@@ -6,7 +6,6 @@ import omit from 'lodash/omit';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
@@ -22,11 +21,10 @@ import UnhandledInboxTag from 'sentry/components/group/inboxBadges/unhandledTag'
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import SeenByList from 'sentry/components/seenByList';
 import ShortId from 'sentry/components/shortId';
+import {Item, TabList} from 'sentry/components/tabs';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,7 +45,6 @@ import {ReprocessingStatus} from './utils';
 type Props = WithRouterProps & {
   api: Client;
   baseUrl: string;
-  currentTab: string;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
@@ -134,20 +131,8 @@ class GroupHeader extends Component<Props, State> {
     return [];
   }
 
-  tabClickAnalyticsEvent(tab: Tab) {
-    const {organization, group, project} = this.props;
-    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
-      organization,
-      group_id: parseInt(group.id, 10),
-      issue_category: group.issueCategory,
-      project_id: parseInt(project.id, 10),
-      tab,
-    });
-  }
-
   getErrorIssueTabs() {
-    const {baseUrl, currentTab, project, organization, group, location, replaysCount} =
-      this.props;
+    const {project, organization, group, replaysCount} = this.props;
     const disabledTabs = this.getDisabledTabs();
 
     const projectFeatures = new Set(project ? project.features : []);
@@ -157,161 +142,100 @@ class GroupHeader extends Component<Props, State> {
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
-    const searchTermWithoutQuery = omit(location.query, 'query');
-    const eventRouteToObject = {
-      pathname: `${baseUrl}events/`,
-      query: searchTermWithoutQuery,
-    };
-
     return (
-      <Fragment>
-        <ListLink
-          to={`${baseUrl}${location.search}`}
-          isActive={() => currentTab === Tab.DETAILS}
-          disabled={disabledTabs.includes(Tab.DETAILS)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.DETAILS)}
-        >
+      <StyledTabList>
+        <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
-        </ListLink>
-        <StyledListLink
-          to={`${baseUrl}activity/${location.search}`}
-          isActive={() => currentTab === Tab.ACTIVITY}
+        </Item>
+        <Item
+          key={Tab.ACTIVITY}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.ACTIVITY)}
+          textValue={t('Activity')}
         >
           {t('Activity')}
-          <Badge>
+          <StyledBadge>
             {group.numComments}
             <IconChat size="xs" />
-          </Badge>
-        </StyledListLink>
-        <StyledListLink
-          to={`${baseUrl}feedback/${location.search}`}
-          isActive={() => currentTab === Tab.USER_FEEDBACK}
+          </StyledBadge>
+        </Item>
+        <Item
+          key={Tab.USER_FEEDBACK}
           disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.USER_FEEDBACK)}
+          textValue={t('User Feedback')}
         >
           {t('User Feedback')} <Badge text={group.userReportCount} />
-        </StyledListLink>
-        {hasEventAttachments && (
-          <ListLink
-            to={`${baseUrl}attachments/${location.search}`}
-            isActive={() => currentTab === Tab.ATTACHMENTS}
-            disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-            onClick={() => this.tabClickAnalyticsEvent(Tab.ATTACHMENTS)}
-          >
-            {t('Attachments')}
-          </ListLink>
-        )}
-        <ListLink
-          to={`${baseUrl}tags/${location.search}`}
-          isActive={() => currentTab === Tab.TAGS}
-          disabled={disabledTabs.includes(Tab.TAGS)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.TAGS)}
+        </Item>
+        <Item
+          key={Tab.ATTACHMENTS}
+          hidden={!hasEventAttachments}
+          disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
         >
+          {t('Attachments')}
+        </Item>
+        <Item key={Tab.TAGS} disabled={disabledTabs.includes(Tab.TAGS)}>
           {t('Tags')}
-        </ListLink>
-        <ListLink
-          to={eventRouteToObject}
-          isActive={() => currentTab === Tab.EVENTS}
-          disabled={disabledTabs.includes(Tab.EVENTS)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.EVENTS)}
-        >
+        </Item>
+        <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
           {t('Events')}
-        </ListLink>
-        <ListLink
-          to={`${baseUrl}merged/${location.search}`}
-          isActive={() => currentTab === Tab.MERGED}
-          disabled={disabledTabs.includes(Tab.MERGED)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.MERGED)}
-        >
+        </Item>
+        <Item key={Tab.MERGED} disabled={disabledTabs.includes(Tab.MERGED)}>
           {t('Merged Issues')}
-        </ListLink>
-        {hasGroupingTreeUI && (
-          <ListLink
-            to={`${baseUrl}grouping/${location.search}`}
-            isActive={() => currentTab === Tab.GROUPING}
-            disabled={disabledTabs.includes(Tab.GROUPING)}
-            onClick={() => this.tabClickAnalyticsEvent(Tab.GROUPING)}
-          >
-            {t('Grouping')}
-          </ListLink>
-        )}
-        {hasSimilarView && (
-          <ListLink
-            to={`${baseUrl}similar/${location.search}`}
-            isActive={() => currentTab === Tab.SIMILAR_ISSUES}
-            disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
-            onClick={() => this.tabClickAnalyticsEvent(Tab.SIMILAR_ISSUES)}
-          >
-            {t('Similar Issues')}
-          </ListLink>
-        )}
-        <Feature features={['session-replay-ui']} organization={organization}>
-          <ListLink
-            to={`${baseUrl}replays/${location.search}`}
-            isActive={() => currentTab === Tab.REPLAYS}
-            onClick={() => this.tabClickAnalyticsEvent(Tab.REPLAYS)}
-          >
-            {t('Replays')}{' '}
-            {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
-            <ReplaysFeatureBadge noTooltip />
-          </ListLink>
-        </Feature>
-      </Fragment>
+        </Item>
+        <Item
+          key={Tab.GROUPING}
+          hidden={!hasGroupingTreeUI}
+          disabled={disabledTabs.includes(Tab.GROUPING)}
+        >
+          {t('Grouping')}
+        </Item>
+        <Item
+          key={Tab.SIMILAR_ISSUES}
+          hidden={!hasSimilarView}
+          disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
+        >
+          {t('Similar Issues')}
+        </Item>
+        <Item
+          key={Tab.REPLAYS}
+          hidden={!organization.features.includes('session-replay-ui')}
+          textValue={t('Replays')}
+        >
+          {t('Replays')}{' '}
+          {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
+          <ReplaysFeatureBadge noTooltip />
+        </Item>
+      </StyledTabList>
     );
   }
 
   getPerformanceIssueTabs() {
-    const {baseUrl, currentTab, location, group} = this.props;
+    const {group} = this.props;
 
     const disabledTabs = this.getDisabledTabs();
 
-    const searchTermWithoutQuery = omit(location.query, 'query');
-    const eventRouteToObject = {
-      pathname: `${baseUrl}events/`,
-      query: searchTermWithoutQuery,
-    };
-
     return (
-      <Fragment>
-        <ListLink
-          to={`${baseUrl}${location.search}`}
-          isActive={() => currentTab === Tab.DETAILS}
-          disabled={disabledTabs.includes(Tab.DETAILS)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.DETAILS)}
-        >
+      <StyledTabList>
+        <Item key={Tab.DETAILS} disabled={disabledTabs.includes(Tab.DETAILS)}>
           {t('Details')}
-        </ListLink>
-        <StyledListLink
-          to={`${baseUrl}activity/${location.search}`}
-          isActive={() => currentTab === Tab.ACTIVITY}
+        </Item>
+        <Item
+          key={Tab.ACTIVITY}
           disabled={disabledTabs.includes(Tab.ACTIVITY)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.ACTIVITY)}
+          textValue={t('Activity')}
         >
           {t('Activity')}
-          <Badge>
+          <StyledBadge>
             {group.numComments}
             <IconChat size="xs" />
-          </Badge>
-        </StyledListLink>
-        <ListLink
-          to={`${baseUrl}tags/${location.search}`}
-          isActive={() => currentTab === Tab.TAGS}
-          disabled={disabledTabs.includes(Tab.TAGS)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.TAGS)}
-        >
+          </StyledBadge>
+        </Item>
+        <Item key={Tab.TAGS} disabled={disabledTabs.includes(Tab.TAGS)}>
           {t('Tags')}
-        </ListLink>
-        <ListLink
-          to={eventRouteToObject}
-          isActive={() => currentTab === Tab.EVENTS}
-          disabled={disabledTabs.includes(Tab.EVENTS)}
-          onClick={() => this.tabClickAnalyticsEvent(Tab.EVENTS)}
-        >
+        </Item>
+        <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
           {t('Events')}
-        </ListLink>
-      </Fragment>
+        </Item>
+      </StyledTabList>
     );
   }
 
@@ -468,11 +392,9 @@ class GroupHeader extends Component<Props, State> {
             event={event}
             query={location.query}
           />
-          <NavTabs>
-            {group.issueCategory === IssueCategory.PERFORMANCE
-              ? this.getPerformanceIssueTabs()
-              : this.getErrorIssueTabs()}
-          </NavTabs>
+          {group.issueCategory === IssueCategory.PERFORMANCE
+            ? this.getPerformanceIssueTabs()
+            : this.getErrorIssueTabs()}
         </div>
       </Layout.Header>
     );
@@ -532,14 +454,6 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   }
 `;
 
-const StyledListLink = styled(ListLink)`
-  svg {
-    margin-left: ${space(0.5)};
-    margin-bottom: ${space(0.25)};
-    vertical-align: middle;
-  }
-`;
-
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
 `;
@@ -548,6 +462,18 @@ const BreadcrumbProjectBadge = styled(StyledProjectBadge)`
   margin-right: ${space(0.75)};
 `;
 
+const StyledBadge = styled(Badge)`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
+
 const EventAnnotationWithSpace = styled(EventAnnotation)`
   margin-left: ${space(1)};
+`;
+
+const StyledTabList = styled(TabList)`
+  border-bottom: none;
+  margin-top: ${space(2)};
 `;

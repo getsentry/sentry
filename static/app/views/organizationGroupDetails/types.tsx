@@ -10,3 +10,16 @@ export enum Tab {
   SIMILAR_ISSUES = 'similar-issues',
   REPLAYS = 'Replays',
 }
+
+export const TabPaths = {
+  [Tab.DETAILS]: '',
+  [Tab.ACTIVITY]: 'activity/',
+  [Tab.USER_FEEDBACK]: 'feedback/',
+  [Tab.ATTACHMENTS]: 'attachments/',
+  [Tab.TAGS]: 'tags/',
+  [Tab.EVENTS]: 'events/',
+  [Tab.MERGED]: 'merged/',
+  [Tab.GROUPING]: 'grouping/',
+  [Tab.SIMILAR_ISSUES]: 'similar/',
+  [Tab.REPLAYS]: 'replays/',
+};
