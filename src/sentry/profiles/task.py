@@ -317,6 +317,11 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     if processed_profiles_publisher is None:
         return
 
+    # the call tree was empty or failed to load, skip writing
+    # it to the call trees topic
+    if not profile.get("call_trees"):
+        return
+
     try:
         event = _get_event_instance(profile)
     except Exception as e:
@@ -365,18 +370,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
         )
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
-
-        if response.status == 204:
-            profile["call_trees"] = {}
-        elif response.status == 200:
-            profile["call_trees"] = json.loads(response.data)["call_trees"]
-        else:
-            metrics.incr(
-                "profiling.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "bad status"},
-            )
-            return False
-        return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(
@@ -387,6 +380,21 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     finally:
         profile["received"] = original_timestamp
         profile["profile"] = ""
-
         # remove debug information we don't need anymore
         profile.pop("debug_meta", None)
+
+    if response.status == 204:
+        profile["call_trees"] = {}
+    elif response.status == 200:
+        try:
+            profile["call_trees"] = json.loads(response.data)["call_trees"]
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            profile["call_trees"] = {}
+    else:
+        metrics.incr(
+            "profiling.insert_vroom_profile.error",
+            tags={"platform": profile["platform"], "reason": "bad status"},
+        )
+        return False
+    return True
