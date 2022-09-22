@@ -141,6 +141,7 @@ class GroupHeader extends Component<Props, State> {
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
+    const hasSessionReplay = organizationFeatures.has('session-replay-ui');
 
     return (
       <StyledTabList>
@@ -195,11 +196,7 @@ class GroupHeader extends Component<Props, State> {
         >
           {t('Similar Issues')}
         </Item>
-        <Item
-          key={Tab.REPLAYS}
-          hidden={!organization.features.includes('session-replay-ui')}
-          textValue={t('Replays')}
-        >
+        <Item key={Tab.REPLAYS} hidden={!hasSessionReplay} textValue={t('Replays')}>
           {t('Replays')}{' '}
           {replaysCount !== undefined ? <Badge text={replaysCount} /> : null}
           <ReplaysFeatureBadge noTooltip />
