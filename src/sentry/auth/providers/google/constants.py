@@ -2,7 +2,7 @@ from django.conf import settings
 
 AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/auth"
 
-ACCESS_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token"
+ACCESS_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 ERR_INVALID_DOMAIN = (
     "The domain for your Google account (%s) is not allowed to authenticate with this provider."
