@@ -221,26 +221,30 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             frame.pop("context_line", None)
             frame.pop("post_context", None)
 
-        def truncate_stack_needed(
-            frame: dict[str, Any], stack: List[Any]
-        ) -> Tuple[bool, List[Any]]:
+        def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
             # remove top frames related to the profiler
-            return bool(frame.get("function", "") == "perf_signal_handler"), stack[2:]
+            if frames[0].get("function", "") == "perf_signal_handler":
+                return stack[2:]
+            return stack
 
     elif profile["platform"] == "cocoa":
 
         def truncate_stack_needed(
-            frame: dict[str, Any], stack: List[Any]
-        ) -> Tuple[bool, List[Any]]:
+            frames: List[dict[str, Any]],
+            stack: List[Any],
+        ) -> List[Any]:
             # remove bottom frames we can't symbolicate
-            return bool(frame.get("instruction_addr", "") == "0xffffffffc"), stack[:-2]
+            if frames[-1].get("instruction_addr", "") == "0xffffffffc":
+                return stack[:-2]
+            return stack
 
     else:
 
         def truncate_stack_needed(
-            frame: dict[str, Any], stack: List[Any]
-        ) -> Tuple[bool, List[Any]]:
-            return False, []
+            frames: List[dict[str, Any]],
+            stack: List[Any],
+        ) -> List[Any]:
+            return stack
 
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
@@ -249,12 +253,10 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         if len(stack) < 2:
             continue
 
-        frame = profile["profile"]["frames"][stack[-1]]
-
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
-        needs_truncation, new_stack = truncate_stack_needed(frame, stack)
-        if needs_truncation:
-            profile["profile"]["stacks"][stack_id] = new_stack
+        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
+            profile["profile"]["frames"], stack
+        )
 
 
 def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]) -> None:
@@ -382,6 +384,10 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     if processed_profiles_publisher is None:
         return
 
+    # call_trees is empty because of an error earlier, skip aggregation
+    if not profile.get("call_trees"):
+        return
+
     try:
         event = _get_event_instance(profile)
     except Exception as e:
@@ -441,6 +447,12 @@ def _insert_vroom_profile(profile: Profile) -> bool:
                 tags={"platform": profile["platform"], "reason": "bad status"},
             )
             return False
+        return True
+    except RecursionError as e:
+        sentry_sdk.set_context(
+            "profile", {"profile_id": profile["profile_id"], "platform": profile["platform"]}
+        )
+        sentry_sdk.capture_exception(e)
         return True
     except Exception as e:
         sentry_sdk.capture_exception(e)

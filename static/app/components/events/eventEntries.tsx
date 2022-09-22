@@ -429,6 +429,42 @@ const EventEntries = ({
   );
 };
 
+function injectResourcesEntry(definedEvent: Event) {
+  const entries = definedEvent.entries;
+  let adjustedEntries: Entry[] = [];
+
+  // This check is to ensure we are not injecting multiple Resources entries
+  const resourcesIndex = entries.findIndex(entry => entry.type === EntryType.RESOURCES);
+  if (resourcesIndex === -1) {
+    const spansIndex = entries.findIndex(entry => entry.type === EntryType.SPANS);
+    const breadcrumbsIndex = entries.findIndex(
+      entry => entry.type === EntryType.BREADCRUMBS
+    );
+
+    // We want the Resources section to appear after Breadcrumbs.
+    // If Breadcrumbs are included on this event, we will inject this entry right after it.
+    // Otherwise, we inject it after the Spans entry.
+    const resourcesEntry: Entry = {type: EntryType.RESOURCES, data: null};
+    if (breadcrumbsIndex > -1) {
+      adjustedEntries = [
+        ...entries.slice(0, breadcrumbsIndex + 1),
+        resourcesEntry,
+        ...entries.slice(breadcrumbsIndex + 1, entries.length),
+      ];
+    } else if (spansIndex > -1) {
+      adjustedEntries = [
+        ...entries.slice(0, spansIndex + 1),
+        resourcesEntry,
+        ...entries.slice(spansIndex + 1, entries.length),
+      ];
+    }
+  }
+
+  if (adjustedEntries.length > 0) {
+    definedEvent.entries = adjustedEntries;
+  }
+}
+
 function Entries({
   definedEvent,
   projectSlug,
@@ -440,15 +476,20 @@ function Entries({
   definedEvent: Event;
   projectSlug: string;
 } & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
-  const entries = definedEvent.entries;
-
-  if (!Array.isArray(entries)) {
+  if (!Array.isArray(definedEvent.entries)) {
     return null;
+  }
+
+  if (
+    group?.issueCategory === IssueCategory.PERFORMANCE &&
+    organization.features?.includes('performance-issues')
+  ) {
+    injectResourcesEntry(definedEvent);
   }
 
   return (
     <Fragment>
-      {(entries as Array<Entry>).map((entry, entryIdx) => (
+      {(definedEvent.entries as Array<Entry>).map((entry, entryIdx) => (
         <ErrorBoundary
           key={`entry-${entryIdx}`}
           customComponent={
