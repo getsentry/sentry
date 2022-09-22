@@ -67,7 +67,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
     <DataSection
       title={t('Span Evidence')}
       description={t(
-        'Span Evidence identifies the parent span where the N+1 occurs, the source span that occurs immediately before the repeating spans, and the repeating span itself.'
+        'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
       )}
     >
       <KeyValueList data={data} />
