@@ -250,6 +250,8 @@ class GitlabWebhookEndpoint(View):
                         "id": integration.id,  # This is useful to query via Redash
                         "status": integration.status,  # 0 seems to be active
                     },
+                    # I do not know how we could have multiple integration installation to many organizations
+                    "slugs": ",".join(map(lambda x: x.slug, integration.organizations.all())),
                 },
             }
         except Integration.DoesNotExist as e:
