@@ -586,14 +586,17 @@ class EventManager:
 
         # Check if the project is configured for auto upgrading and we need to upgrade
         # to the latest grouping config.
-        if (
-            auto_upgrade_grouping
-            and settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED
-            and project.get_option("sentry:grouping_auto_update")
-        ):
+        if auto_upgrade_grouping and _project_should_update_grouping(project):
             _auto_update_grouping(project)
 
         return job["event"]
+
+
+def _project_should_update_grouping(project):
+    should_update_org = (
+        project.organization_id % 1000 < float(settings.SENTRY_GROUPING_AUTO_UPDATE_ENABLED) * 1000
+    )
+    return project.get_option("sentry:grouping_auto_update") and should_update_org
 
 
 def _auto_update_grouping(project):
