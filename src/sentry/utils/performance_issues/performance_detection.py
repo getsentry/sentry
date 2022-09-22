@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
@@ -65,7 +65,9 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
 
-    def to_dict(self) -> str:
+    def to_dict(
+        self,
+    ) -> Mapping[str, Any]:
         return {
             "fingerprint": self.fingerprint,
             "op": self.op,
