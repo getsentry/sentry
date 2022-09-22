@@ -324,7 +324,14 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
-def main(num_events=1, extra_events=False, load_trends=False, slow=False):
+def main(
+    skip_default_setup=False,
+    num_events=1,
+    extra_events=False,
+    load_trends=False,
+    load_performance_issues=False,
+    slow=False,
+):
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
@@ -365,284 +372,157 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     # Allow for 0 events, if you only want transactions
     event1 = event2 = event3 = event4 = event5 = None
 
-    for team_name, project_names in mocks:
-        print(f"> Mocking team {team_name}")  # NOQA
-        team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
+    if skip_default_setup:
+        # Quickly fetch/create the teams and projects
+        for team_name, project_names in mocks:
+            print(f"> Mocking team {team_name}")  # NOQA
+            team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
 
-        for project_name in project_names:
-            print(f"  > Mocking project {project_name}")  # NOQA
-            project, _ = Project.objects.get_or_create(
-                name=project_name,
-                defaults={
-                    "organization": org,
-                    "first_event": timezone.now(),
-                    "flags": Project.flags.has_releases,
-                },
-            )
-            project_map[project_name] = project
-            project.add_team(team)
-            if not project.first_event:
-                project.update(first_event=project.date_added)
-            if not project.flags.has_releases:
-                project.update(flags=F("flags").bitor(Project.flags.has_releases))
+            for project_name in project_names:
+                print(f"  > Mocking project {project_name}")  # NOQA
+                project, _ = Project.objects.get_or_create(
+                    name=project_name,
+                    defaults={
+                        "organization": org,
+                        "first_event": timezone.now(),
+                        "flags": Project.flags.has_releases,
+                    },
+                )
+                project_map[project_name] = project
+                project.add_team(team)
 
-            monitor, created = Monitor.objects.get_or_create(
-                name=next(MONITOR_NAMES),
-                project_id=project.id,
-                organization_id=org.id,
-                type=MonitorType.CRON_JOB,
-                defaults={
-                    "config": {"schedule": next(MONITOR_SCHEDULES)},
-                    "next_checkin": timezone.now() + timedelta(minutes=60),
-                    "last_checkin": timezone.now(),
-                },
-            )
-            if not created:
-                if not (monitor.config or {}).get("schedule"):
-                    monitor.config = {"schedule": next(MONITOR_SCHEDULES)}
-                monitor.update(
-                    config=monitor.config,
-                    status=MonitorStatus.OK if randint(0, 10) < 7 else MonitorStatus.ERROR,
-                    last_checkin=timezone.now(),
-                    next_checkin=monitor.get_next_scheduled_checkin(timezone.now()),
+    else:
+        for team_name, project_names in mocks:
+            print(f"> Mocking team {team_name}")  # NOQA
+            team, _ = Team.objects.get_or_create(name=team_name, defaults={"organization": org})
+
+            for project_name in project_names:
+                print(f"  > Mocking project {project_name}")  # NOQA
+                project, _ = Project.objects.get_or_create(
+                    name=project_name,
+                    defaults={
+                        "organization": org,
+                        "first_event": timezone.now(),
+                        "flags": Project.flags.has_releases,
+                    },
+                )
+                project_map[project_name] = project
+                project.add_team(team)
+                if not project.first_event:
+                    project.update(first_event=project.date_added)
+                if not project.flags.has_releases:
+                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
+
+                monitor, created = Monitor.objects.get_or_create(
+                    name=next(MONITOR_NAMES),
+                    project_id=project.id,
+                    organization_id=org.id,
+                    type=MonitorType.CRON_JOB,
+                    defaults={
+                        "config": {"schedule": next(MONITOR_SCHEDULES)},
+                        "next_checkin": timezone.now() + timedelta(minutes=60),
+                        "last_checkin": timezone.now(),
+                    },
+                )
+                if not created:
+                    if not (monitor.config or {}).get("schedule"):
+                        monitor.config = {"schedule": next(MONITOR_SCHEDULES)}
+                    monitor.update(
+                        config=monitor.config,
+                        status=MonitorStatus.OK if randint(0, 10) < 7 else MonitorStatus.ERROR,
+                        last_checkin=timezone.now(),
+                        next_checkin=monitor.get_next_scheduled_checkin(timezone.now()),
+                    )
+
+                MonitorCheckIn.objects.create(
+                    project_id=monitor.project_id,
+                    monitor=monitor,
+                    status=CheckInStatus.OK
+                    if monitor.status == MonitorStatus.OK
+                    else CheckInStatus.ERROR,
                 )
 
-            MonitorCheckIn.objects.create(
-                project_id=monitor.project_id,
-                monitor=monitor,
-                status=CheckInStatus.OK
-                if monitor.status == MonitorStatus.OK
-                else CheckInStatus.ERROR,
-            )
-
-            with transaction.atomic():
-                has_release = Release.objects.filter(
-                    version=sha1(uuid4().bytes).hexdigest(),
-                    organization_id=project.organization_id,
-                    projects=project,
-                ).exists()
-                if not has_release:
-                    release = Release.objects.filter(
+                with transaction.atomic():
+                    has_release = Release.objects.filter(
                         version=sha1(uuid4().bytes).hexdigest(),
                         organization_id=project.organization_id,
-                    ).first()
-                    if not release:
-                        release = Release.objects.create(
+                        projects=project,
+                    ).exists()
+                    if not has_release:
+                        release = Release.objects.filter(
                             version=sha1(uuid4().bytes).hexdigest(),
                             organization_id=project.organization_id,
+                        ).first()
+                        if not release:
+                            release = Release.objects.create(
+                                version=sha1(uuid4().bytes).hexdigest(),
+                                organization_id=project.organization_id,
+                            )
+                        release.add_project(project)
+
+                generate_tombstones(project, user)
+
+                raw_commits = generate_commits(user)
+
+                try:
+                    with transaction.atomic():
+                        repo, _ = Repository.objects.get_or_create(
+                            organization_id=org.id,
+                            provider="integrations:github",
+                            external_id="example/example",
+                            defaults={
+                                "name": "Example Repo",
+                                "url": "https://github.com/example/example",
+                            },
                         )
-                    release.add_project(project)
-
-            generate_tombstones(project, user)
-
-            raw_commits = generate_commits(user)
-
-            try:
-                with transaction.atomic():
-                    repo, _ = Repository.objects.get_or_create(
+                except IntegrityError:
+                    # for users with legacy github plugin
+                    # upgrade to the new integration
+                    repo = Repository.objects.get(
                         organization_id=org.id,
-                        provider="integrations:github",
+                        provider="github",
                         external_id="example/example",
-                        defaults={
-                            "name": "Example Repo",
-                            "url": "https://github.com/example/example",
-                        },
+                        name="Example Repo",
                     )
-            except IntegrityError:
-                # for users with legacy github plugin
-                # upgrade to the new integration
-                repo = Repository.objects.get(
-                    organization_id=org.id,
-                    provider="github",
-                    external_id="example/example",
-                    name="Example Repo",
-                )
-                repo.provider = "integrations:github"
-                repo.save()
+                    repo.provider = "integrations:github"
+                    repo.save()
 
-            authors = set()
+                authors = set()
 
-            for commit_index, raw_commit in enumerate(raw_commits):
-                author = CommitAuthor.objects.get_or_create(
-                    organization_id=org.id,
-                    email=raw_commit["author"][1],
-                    defaults={"name": raw_commit["author"][0]},
-                )[0]
-                commit = Commit.objects.get_or_create(
-                    organization_id=org.id,
-                    repository_id=repo.id,
-                    key=raw_commit["key"],
-                    defaults={"author": author, "message": raw_commit["message"]},
-                )[0]
-                authors.add(author)
+                for commit_index, raw_commit in enumerate(raw_commits):
+                    author = CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        email=raw_commit["author"][1],
+                        defaults={"name": raw_commit["author"][0]},
+                    )[0]
+                    commit = Commit.objects.get_or_create(
+                        organization_id=org.id,
+                        repository_id=repo.id,
+                        key=raw_commit["key"],
+                        defaults={"author": author, "message": raw_commit["message"]},
+                    )[0]
+                    authors.add(author)
 
-                for file in raw_commit["files"]:
-                    ReleaseFile.objects.get_or_create(
-                        organization_id=project.organization_id,
-                        release_id=release.id,
-                        name=file[0],
-                        file=File.objects.get_or_create(
-                            name=file[0], type="release.file", checksum="abcde" * 8, size=13043
-                        )[0],
-                        defaults={"organization_id": project.organization_id},
+                    for file in raw_commit["files"]:
+                        ReleaseFile.objects.get_or_create(
+                            organization_id=project.organization_id,
+                            release_id=release.id,
+                            name=file[0],
+                            file=File.objects.get_or_create(
+                                name=file[0], type="release.file", checksum="abcde" * 8, size=13043
+                            )[0],
+                            defaults={"organization_id": project.organization_id},
+                        )
+
+                        CommitFileChange.objects.get_or_create(
+                            organization_id=org.id, commit=commit, filename=file[0], type=file[1]
+                        )
+
+                    ReleaseCommit.objects.get_or_create(
+                        organization_id=org.id, release=release, commit=commit, order=commit_index
                     )
 
-                    CommitFileChange.objects.get_or_create(
-                        organization_id=org.id, commit=commit, filename=file[0], type=file[1]
-                    )
-
-                ReleaseCommit.objects.get_or_create(
-                    organization_id=org.id, release=release, commit=commit, order=commit_index
-                )
-
-            # create an unreleased commit
-            Commit.objects.get_or_create(
-                organization_id=org.id,
-                repository_id=repo.id,
-                key=sha1(uuid4().bytes).hexdigest(),
-                defaults={
-                    "author": CommitAuthor.objects.get_or_create(
-                        organization_id=org.id, email=user.email, defaults={"name": user.name}
-                    )[0],
-                    "message": "feat: Do something to {}\n{}".format(
-                        random.choice(loremipsum.words) + ".js", make_sentence()
-                    ),
-                },
-            )[0]
-
-            Activity.objects.create(
-                type=ActivityType.RELEASE.value,
-                project=project,
-                ident=release.version,
-                user=user,
-                data={"version": release.version},
-            )
-
-            environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
-
-            deploy = Deploy.objects.create(
-                organization_id=project.organization_id,
-                release=release,
-                environment_id=environment.id,
-            )
-
-            release.update(
-                commit_count=len(raw_commits),
-                last_commit_id=commit.id,
-                total_deploys=Deploy.objects.filter(release=release).count(),
-                last_deploy_id=deploy.id,
-                authors=[str(a.id) for a in authors],
-            )
-
-            ReleaseProjectEnvironment.objects.create_or_update(
-                project=project,
-                environment=environment,
-                release=release,
-                defaults={"last_deploy_id": deploy.id},
-            )
-
-            Activity.objects.create(
-                type=ActivityType.DEPLOY.value,
-                project=project,
-                ident=release.version,
-                data={
-                    "version": release.version,
-                    "deploy_id": deploy.id,
-                    "environment": environment.name,
-                },
-                datetime=deploy.date_finished,
-            )
-
-            # Add a bunch of additional dummy events to support pagination
-            if extra_events:
-                for _ in range(45):
-                    platform = next(PLATFORMS)
-
-                    create_sample_event(
-                        project=project,
-                        platform=platform,
-                        release=release.version,
-                        level=next(LEVELS),
-                        environment=next(ENVIRONMENTS),
-                        message="This is a mostly useless example %s exception" % platform,
-                        checksum=md5_text(platform + str(_)).hexdigest(),
-                        user=generate_user(),
-                    )
-
-            for _ in range(num_events):
-                event1 = create_sample_event(
-                    project=project,
-                    platform="python",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    user=generate_user(),
-                )
-
-                EventAttachment.objects.create(
-                    project_id=project.id,
-                    event_id=event1.event_id,
-                    name="example-logfile.txt",
-                    file_id=File.objects.get_or_create(
-                        name="example-logfile.txt",
-                        type="text/plain",
-                        checksum="abcde" * 8,
-                        size=13043,
-                    )[0].id,
-                )
-
-                event2 = create_sample_event(
-                    project=project,
-                    platform="javascript",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    sdk={"name": "raven-js", "version": "2.1.0"},
-                    user=generate_user(),
-                )
-
-                event3 = create_sample_event(project, "java")
-
-                event4 = create_sample_event(
-                    project=project,
-                    platform="ruby",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    user=generate_user(),
-                )
-
-                event5 = create_sample_event(
-                    project=project,
-                    platform="cocoa",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    user=generate_user(),
-                )
-
-                create_sample_event(
-                    project=project,
-                    platform="php",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    message=LONG_MESSAGE,
-                    user=generate_user(),
-                )
-
-                create_sample_event(
-                    project=project,
-                    platform="cocoa",
-                    sample_name="react-native",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    user=generate_user(),
-                )
-
-                create_sample_event(
-                    project=project,
-                    platform="pii",
-                    release=release.version,
-                    environment=next(ENVIRONMENTS),
-                    user=generate_user(),
-                )
-            if event5:
+                # create an unreleased commit
                 Commit.objects.get_or_create(
                     organization_id=org.id,
                     repository_id=repo.id,
@@ -651,64 +531,213 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
                         "author": CommitAuthor.objects.get_or_create(
                             organization_id=org.id, email=user.email, defaults={"name": user.name}
                         )[0],
-                        "message": f"Ooops!\nFixes {event5.group.qualified_short_id}",
+                        "message": "feat: Do something to {}\n{}".format(
+                            random.choice(loremipsum.words) + ".js", make_sentence()
+                        ),
                     },
                 )[0]
 
-            create_sample_event(project=project, environment=next(ENVIRONMENTS), platform="csp")
-
-            if event3:
-                UserReport.objects.create(
-                    project_id=project.id,
-                    event_id=event3.event_id,
-                    group_id=event3.group.id,
-                    name="Jane Bloggs",
-                    email="jane@example.com",
-                    comments=make_sentence(),
+                Activity.objects.create(
+                    type=ActivityType.RELEASE.value,
+                    project=project,
+                    ident=release.version,
+                    user=user,
+                    data={"version": release.version},
                 )
 
-            # Metric alerts
-            alert_rule = create_alert_rule(
-                org,
-                [project],
-                "My Alert Rule",
-                "level:error",
-                "count()",
-                10,
-                AlertRuleThresholdType.ABOVE,
-                1,
-            )
-            create_alert_rule_trigger(alert_rule, "critical", 10)
-            create_incident(
-                org,
-                type_=IncidentType.DETECTED,
-                title="My Incident",
-                date_started=datetime.utcnow().replace(tzinfo=utc),
-                alert_rule=alert_rule,
-                projects=[project],
-            )
+                environment = Environment.get_or_create(project=project, name=next(ENVIRONMENTS))
 
-            print(f"    > Loading time series data")  # NOQA
-            if event1:
-                create_sample_time_series(event1, release=release)
-            if event2:
-                create_sample_time_series(event2, release=release)
-            if event3:
-                create_sample_time_series(event3)
-            if event4:
-                create_sample_time_series(event4, release=release)
-            if event5:
-                create_sample_time_series(event5, release=release)
+                deploy = Deploy.objects.create(
+                    organization_id=project.organization_id,
+                    release=release,
+                    environment_id=environment.id,
+                )
 
-            if hasattr(buffer, "process_pending"):
-                print("    > Processing pending buffers")  # NOQA
-                buffer.process_pending()
+                release.update(
+                    commit_count=len(raw_commits),
+                    last_commit_id=commit.id,
+                    total_deploys=Deploy.objects.filter(release=release).count(),
+                    last_deploy_id=deploy.id,
+                    authors=[str(a.id) for a in authors],
+                )
 
-            mocks_loaded.send(project=project, sender=__name__)
+                ReleaseProjectEnvironment.objects.create_or_update(
+                    project=project,
+                    environment=environment,
+                    release=release,
+                    defaults={"last_deploy_id": deploy.id},
+                )
 
-        OrganizationAccessRequest.objects.create_or_update(member=dummy_member, team=team)
+                Activity.objects.create(
+                    type=ActivityType.DEPLOY.value,
+                    project=project,
+                    ident=release.version,
+                    data={
+                        "version": release.version,
+                        "deploy_id": deploy.id,
+                        "environment": environment.name,
+                    },
+                    datetime=deploy.date_finished,
+                )
 
-    create_mock_transactions(project_map, load_trends, slow)
+                # Add a bunch of additional dummy events to support pagination
+                if extra_events:
+                    for _ in range(45):
+                        platform = next(PLATFORMS)
+
+                        create_sample_event(
+                            project=project,
+                            platform=platform,
+                            release=release.version,
+                            level=next(LEVELS),
+                            environment=next(ENVIRONMENTS),
+                            message="This is a mostly useless example %s exception" % platform,
+                            checksum=md5_text(platform + str(_)).hexdigest(),
+                            user=generate_user(),
+                        )
+
+                for _ in range(num_events):
+                    event1 = create_sample_event(
+                        project=project,
+                        platform="python",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        user=generate_user(),
+                    )
+
+                    EventAttachment.objects.create(
+                        project_id=project.id,
+                        event_id=event1.event_id,
+                        name="example-logfile.txt",
+                        file_id=File.objects.get_or_create(
+                            name="example-logfile.txt",
+                            type="text/plain",
+                            checksum="abcde" * 8,
+                            size=13043,
+                        )[0].id,
+                    )
+
+                    event2 = create_sample_event(
+                        project=project,
+                        platform="javascript",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        sdk={"name": "raven-js", "version": "2.1.0"},
+                        user=generate_user(),
+                    )
+
+                    event3 = create_sample_event(project, "java")
+
+                    event4 = create_sample_event(
+                        project=project,
+                        platform="ruby",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        user=generate_user(),
+                    )
+
+                    event5 = create_sample_event(
+                        project=project,
+                        platform="cocoa",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        user=generate_user(),
+                    )
+
+                    create_sample_event(
+                        project=project,
+                        platform="php",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        message=LONG_MESSAGE,
+                        user=generate_user(),
+                    )
+
+                    create_sample_event(
+                        project=project,
+                        platform="cocoa",
+                        sample_name="react-native",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        user=generate_user(),
+                    )
+
+                    create_sample_event(
+                        project=project,
+                        platform="pii",
+                        release=release.version,
+                        environment=next(ENVIRONMENTS),
+                        user=generate_user(),
+                    )
+                if event5:
+                    Commit.objects.get_or_create(
+                        organization_id=org.id,
+                        repository_id=repo.id,
+                        key=sha1(uuid4().bytes).hexdigest(),
+                        defaults={
+                            "author": CommitAuthor.objects.get_or_create(
+                                organization_id=org.id,
+                                email=user.email,
+                                defaults={"name": user.name},
+                            )[0],
+                            "message": f"Ooops!\nFixes {event5.group.qualified_short_id}",
+                        },
+                    )[0]
+
+                create_sample_event(project=project, environment=next(ENVIRONMENTS), platform="csp")
+
+                if event3:
+                    UserReport.objects.create(
+                        project_id=project.id,
+                        event_id=event3.event_id,
+                        group_id=event3.group.id,
+                        name="Jane Bloggs",
+                        email="jane@example.com",
+                        comments=make_sentence(),
+                    )
+
+                # Metric alerts
+                alert_rule = create_alert_rule(
+                    org,
+                    [project],
+                    "My Alert Rule",
+                    "level:error",
+                    "count()",
+                    10,
+                    AlertRuleThresholdType.ABOVE,
+                    1,
+                )
+                create_alert_rule_trigger(alert_rule, "critical", 10)
+                create_incident(
+                    org,
+                    type_=IncidentType.DETECTED,
+                    title="My Incident",
+                    date_started=datetime.utcnow().replace(tzinfo=utc),
+                    alert_rule=alert_rule,
+                    projects=[project],
+                )
+
+                print(f"    > Loading time series data")  # NOQA
+                if event1:
+                    create_sample_time_series(event1, release=release)
+                if event2:
+                    create_sample_time_series(event2, release=release)
+                if event3:
+                    create_sample_time_series(event3)
+                if event4:
+                    create_sample_time_series(event4, release=release)
+                if event5:
+                    create_sample_time_series(event5, release=release)
+
+                if hasattr(buffer, "process_pending"):
+                    print("    > Processing pending buffers")  # NOQA
+                    buffer.process_pending()
+
+                mocks_loaded.send(project=project, sender=__name__)
+
+            OrganizationAccessRequest.objects.create_or_update(member=dummy_member, team=team)
+
+    create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
 
     Activity.objects.create(
         type=ActivityType.RELEASE.value,
@@ -721,7 +750,9 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     create_system_time_series()
 
 
-def create_mock_transactions(project_map, load_trends=False, slow=False):
+def create_mock_transactions(
+    project_map, load_trends=False, load_performance_issues=False, slow=False
+):
     backend_project = project_map["Earth"]
     frontend_project = project_map["Fire"]
     service_projects = [
@@ -868,6 +899,91 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
                 if slow:
                     time.sleep(0.05)
 
+    if load_performance_issues:
+        print(f"    > Loading performance issues data")  # NOQA
+        trace_id = uuid4().hex
+        transaction_user = generate_user()
+        frontend_root_span_id = uuid4().hex[:16]
+
+        n_plus_one_db_current_offset = timestamp
+        n_plus_one_db_duration = timedelta(milliseconds=100)
+
+        parent_span_id = uuid4().hex[:16]
+
+        source_span = {
+            "timestamp": (timestamp + n_plus_one_db_duration).timestamp(),
+            "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
+            "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
+            "op": "db",
+            "parent_span_id": parent_span_id,
+            "span_id": uuid4().hex[:16],
+            "hash": "858fea692d4d93e8",
+        }
+
+        def make_repeating_span(duration):
+            nonlocal timestamp
+            nonlocal n_plus_one_db_current_offset
+            nonlocal n_plus_one_db_duration
+            n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(milliseconds=1)
+            n_plus_one_db_current_offset = timestamp + n_plus_one_db_duration
+            return {
+                "timestamp": (
+                    n_plus_one_db_current_offset + timedelta(milliseconds=duration)
+                ).timestamp(),
+                "start_timestamp": (
+                    n_plus_one_db_current_offset + timedelta(milliseconds=1)
+                ).timestamp(),
+                "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "op": "db",
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": parent_span_id,
+                "hash": "63f1e89e6a073441",
+            }
+
+        repeating_spans = [
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+            make_repeating_span(200),
+        ]
+
+        parent_span = {
+            "timestamp": (
+                timestamp + n_plus_one_db_duration + timedelta(milliseconds=200)
+            ).timestamp(),
+            "start_timestamp": timestamp.timestamp(),
+            "description": "new",
+            "op": "django.view",
+            "parent_span_id": uuid4().hex[:16],
+            "span_id": parent_span_id,
+            "hash": "0f43fb6f6e01ca52",
+        }
+
+        create_sample_event(
+            project=backend_project,
+            platform="transaction",
+            transaction="/n_plus_one_db/backend/",
+            event_id=uuid4().hex,
+            user=transaction_user,
+            timestamp=timestamp + n_plus_one_db_duration + timedelta(milliseconds=300),
+            start_timestamp=timestamp,
+            trace=trace_id,
+            parent_span_id=frontend_root_span_id,
+            spans=[
+                parent_span,
+                source_span,
+            ]
+            + repeating_spans,
+        )
+
+        time.sleep(1.0)
+
 
 if __name__ == "__main__":
     settings.CELERY_ALWAYS_EAGER = True
@@ -876,6 +992,12 @@ if __name__ == "__main__":
 
     parser = OptionParser()
     parser.add_option("--events", default=1, type=int, help="number of events to generate")
+    parser.add_option(
+        "--skip-default-setup",
+        default=False,
+        action="store_true",
+        help="Skips creating the default project, teams and timeseries, useful when only loading specific transactions",
+    )
     parser.add_option(
         "--extra-events",
         default=False,
@@ -889,6 +1011,12 @@ if __name__ == "__main__":
         help="load multiple transactions for each id to show trends",
     )
     parser.add_option(
+        "--load-performance-issues",
+        default=False,
+        action="store_true",
+        help="load transactions with performance issues, still needs options/flags on for issues to appear.",
+    )
+    parser.add_option(
         "--slow",
         default=False,
         action="store_true",
@@ -899,9 +1027,11 @@ if __name__ == "__main__":
 
     try:
         main(
+            skip_default_setup=options.skip_default_setup,
             num_events=options.events,
             extra_events=options.extra_events,
             load_trends=options.load_trends,
+            load_performance_issues=options.load_performance_issues,
             slow=options.slow,
         )
     except Exception:

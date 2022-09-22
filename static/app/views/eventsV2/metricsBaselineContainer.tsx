@@ -8,15 +8,21 @@ import {Client} from 'sentry/api';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {EventsStats, Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateMultiPlotType} from 'sentry/utils/discover/fields';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import localStorage from 'sentry/utils/localStorage';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import theme from 'sentry/utils/theme';
 import {transformSeries} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {SeriesWithOrdering} from '../dashboardsV2/datasetConfig/errorsAndTransactions';
 
+import {PROCESSED_BASELINE_TOGGLE_KEY} from './chartFooter';
 import ResultsChart from './resultsChart';
 import {usesTransactionsDataset} from './utils';
 
@@ -71,11 +77,70 @@ export function MetricsBaselineContainer({
     ? getUtcToLocalDateObject(pageFilters.datetime.end)
     : null;
 
-  const showBaseline = location.query.baseline === '0' ? false : true;
-  const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
+  const showBaseline =
+    (location.query.baseline ?? localStorage.getItem(PROCESSED_BASELINE_TOGGLE_KEY)) ===
+    '0'
+      ? false
+      : true;
+  const [metricsCompatible, setMetricsCompatible] = useState<boolean>(true);
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
   >(undefined);
+  const [processedTotal, setProcessedTotal] = useState<number | undefined>(undefined);
+  const [loadingTotals, setLoadingTotals] = useState<boolean>(true);
+
+  useEffect(() => {
+    let shouldCancelRequest = false;
+
+    if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
+      setProcessedTotal(undefined);
+      setLoadingTotals(false);
+      return undefined;
+    }
+
+    doDiscoverQuery<EventsTableData>(api, `/organizations/${organization.slug}/events/`, {
+      ...eventView.generateQueryStringObject(),
+      field: ['count()'],
+      query: '',
+      sort: [],
+      referrer: 'api.discover.processed-baseline-total',
+      ...{dataset: DiscoverDatasets.METRICS},
+    })
+      .then(response => {
+        if (shouldCancelRequest) {
+          return;
+        }
+
+        const [data] = response;
+        const total = data.data[0]?.['count()'];
+
+        if (defined(total)) {
+          setProcessedTotal(parseInt(total as string, 10));
+          setLoadingTotals(false);
+        } else {
+          setProcessedTotal(undefined);
+          setLoadingTotals(false);
+        }
+      })
+      .catch(() => {
+        if (shouldCancelRequest) {
+          return;
+        }
+        setMetricsCompatible(false);
+        setLoadingTotals(false);
+        setProcessedTotal(undefined);
+      });
+    return () => {
+      shouldCancelRequest = true;
+    };
+  }, [
+    disableProcessedBaselineToggle,
+    api,
+    organization,
+    eventView,
+    showBaseline,
+    isRollingOut,
+  ]);
 
   useEffect(() => {
     let shouldCancelRequest = false;
@@ -126,6 +191,10 @@ export function MetricsBaselineContainer({
               LineSeries({
                 name: series.seriesName,
                 data: series.data.map(({name, value}) => [name, value]),
+                stack:
+                  aggregateMultiPlotType(yAxis[order]) === 'area'
+                    ? 'processed'
+                    : undefined,
                 lineStyle: {
                   color: additionalSeriesColor[order],
                   type: 'dashed',
@@ -193,6 +262,8 @@ export function MetricsBaselineContainer({
       disableProcessedBaselineToggle={
         disableProcessedBaselineToggle || !metricsCompatible
       }
+      processedTotal={processedTotal}
+      loadingProcessedTotals={loadingTotals}
       showBaseline={showBaseline}
       setShowBaseline={(value: boolean) => {
         router.push({

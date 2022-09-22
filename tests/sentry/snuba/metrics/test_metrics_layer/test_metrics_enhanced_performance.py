@@ -9,7 +9,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
+from zegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 
 from sentry.api.utils import InvalidParams
@@ -33,6 +33,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 pytestmark = pytest.mark.sentry_metrics
 
 
+@freeze_time()
 class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
@@ -377,7 +378,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
-    @freeze_time()
     def test_alias_on_single_entity_derived_metrics(self):
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),

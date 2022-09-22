@@ -16,8 +16,13 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Switch from 'sentry/components/switchButton';
 import {t, tct} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import localStorage from 'sentry/utils/localStorage';
+
+export const PROCESSED_BASELINE_TOGGLE_KEY = 'show-processed-baseline';
 
 type Props = {
   displayMode: string;
@@ -35,6 +40,8 @@ type Props = {
   yAxisOptions: SelectValue<string>[];
   yAxisValue: string[];
   disableProcessedBaselineToggle?: boolean;
+  loadingProcessedTotals?: boolean;
+  processedTotal?: number;
 };
 
 export default function ChartFooter({
@@ -53,14 +60,23 @@ export default function ChartFooter({
   organization,
   disableProcessedBaselineToggle,
   eventView,
+  processedTotal,
+  loadingProcessedTotals,
 }: Props) {
   const elements: React.ReactNode[] = [];
 
   elements.push(<SectionHeading key="total-label">{t('Total Events')}</SectionHeading>);
   elements.push(
-    total === null ? (
+    total === null || loadingProcessedTotals === true ? (
       <SectionValue data-test-id="loading-placeholder" key="total-value">
         &mdash;
+      </SectionValue>
+    ) : defined(processedTotal) ? (
+      <SectionValue key="total-value">
+        {tct('[indexedTotal] of [processedTotal]', {
+          indexedTotal: formatAbbreviatedNumber(total),
+          processedTotal: formatAbbreviatedNumber(processedTotal),
+        })}
       </SectionValue>
     ) : (
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
@@ -83,7 +99,14 @@ export default function ChartFooter({
               isActive={showBaseline}
               isDisabled={disableProcessedBaselineToggle ?? true}
               size="lg"
-              toggle={() => setShowBaseline(!showBaseline)}
+              toggle={() => {
+                const value = !showBaseline;
+                localStorage.setItem(
+                  PROCESSED_BASELINE_TOGGLE_KEY,
+                  value === true ? '1' : '0'
+                );
+                setShowBaseline(value);
+              }}
             />
             <QuestionTooltip
               isHoverable

@@ -15,7 +15,7 @@ from sentry.integrations.slack.message_builder.discover import SlackDiscoverMess
 from sentry.models import ApiKey, Integration
 from sentry.models.user import User
 from sentry.search.events.filter import to_list
-from sentry.utils.dates import parse_stats_period
+from sentry.utils.dates import get_interval_from_range, parse_stats_period, parse_timestamp
 
 from ..utils import logger
 from . import Handler, UnfurlableUrl, UnfurledUrl
@@ -160,6 +160,18 @@ def unfurl_discover(
 
         if "daily" in display_mode:
             params.setlist("interval", ["1d"])
+
+        if "bar" in display_mode:
+            interval = "1h"
+            if "statsPeriod" in params:
+                delta = parse_stats_period(params["statsPeriod"])
+                if delta:
+                    interval = get_interval_from_range(delta, False)
+            elif "start" in params and "end" in params:
+                start, end = parse_timestamp(params["start"]), parse_timestamp(params["end"])
+                if start and end:
+                    interval = get_interval_from_range(end - start, False)
+            params.setlist("interval", [interval])
 
         if "top5" in display_mode:
             params.setlist(
