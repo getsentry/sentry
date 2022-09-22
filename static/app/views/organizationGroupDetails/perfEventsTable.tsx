@@ -25,7 +25,9 @@ const PerfEventsTable = (props: Props) => {
     {field: 'transaction.duration'},
     {field: 'timestamp'},
   ];
-  eventView.query = `performance.issue_ids:${props.issueId} ${props.location.query.query}`;
+  eventView.query = `performance.issue_ids:${props.issueId} ${
+    props.location.query.query || ''
+  }`;
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
