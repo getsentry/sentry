@@ -33,7 +33,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 pytestmark = pytest.mark.sentry_metrics
 
 
-@freeze_time()
 class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
@@ -378,6 +377,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
+    @freeze_time()
     def test_alias_on_single_entity_derived_metrics(self):
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
