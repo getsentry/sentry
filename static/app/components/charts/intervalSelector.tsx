@@ -9,7 +9,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {INTERVAL_MODES} from 'sentry/utils/discover/types';
+import {INTERVAL_DISPLAY_MODES} from 'sentry/utils/discover/types';
 
 type IntervalUnits = 's' | 'm' | 'h' | 'd';
 
@@ -153,7 +153,7 @@ export default function IntervalSelector({
   eventView,
   onIntervalChange,
 }: Props) {
-  if (!INTERVAL_MODES.includes(displayMode)) {
+  if (!INTERVAL_DISPLAY_MODES.includes(displayMode)) {
     return null;
   }
 

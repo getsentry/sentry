@@ -22,7 +22,7 @@ export enum DiscoverDatasets {
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
 
 // The modes that support the interval selector
-export const INTERVAL_MODES: string[] = [
+export const INTERVAL_DISPLAY_MODES: string[] = [
   DisplayModes.DEFAULT,
   DisplayModes.PREVIOUS,
   DisplayModes.TOP5,
