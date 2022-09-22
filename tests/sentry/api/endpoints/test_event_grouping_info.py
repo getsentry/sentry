@@ -45,7 +45,25 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
         assert content["system"]["type"] == "component"
 
     def test_transaction_event(self):
+        data = load_data(platform="transaction")
+        event = self.store_event(data=data, project_id=self.project.id)
 
+        url = reverse(
+            "sentry-api-0-event-grouping-info",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "event_id": event.event_id,
+            },
+        )
+
+        response = self.client.get(url, format="json")
+        content = json.loads(response.content)
+
+        assert response.status_code == 200
+        assert content == {}
+
+    def test_transaction_event_with_problem(self):
         data = load_data(platform="transaction-n-plus-one")
 
         fingerprint = data["hashes"][0]
