@@ -221,18 +221,26 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             frame.pop("context_line", None)
             frame.pop("post_context", None)
 
-        def truncate_stack_needed(frame: dict[str, Any]) -> bool:
-            return bool(frame.get("function", "") == "perf_signal_handler")
+        def truncate_stack_needed(
+            frame: dict[str, Any], stack: List[Any]
+        ) -> Tuple[bool, List[Any]]:
+            # remove top frames related to the profiler
+            return bool(frame.get("function", "") == "perf_signal_handler"), stack[2:]
 
     elif profile["platform"] == "cocoa":
 
-        def truncate_stack_needed(frame: dict[str, Any]) -> bool:
-            return bool(frame.get("instruction_addr", "") == "0xffffffffc")
+        def truncate_stack_needed(
+            frame: dict[str, Any], stack: List[Any]
+        ) -> Tuple[bool, List[Any]]:
+            # remove bottom frames we can't symbolicate
+            return bool(frame.get("instruction_addr", "") == "0xffffffffc"), stack[:-2]
 
     else:
 
-        def truncate_stack_needed(frame: dict[str, Any]) -> bool:
-            return False
+        def truncate_stack_needed(
+            frame: dict[str, Any], stack: List[Any]
+        ) -> Tuple[bool, List[Any]]:
+            return False, []
 
     for sample in profile["profile"]["samples"]:
         stack_id = sample["stack_id"]
@@ -243,10 +251,10 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
         frame = profile["profile"]["frames"][stack[-1]]
 
-        # truncate some unneeded top frames in the stack (related to the profiler itself or impossible to symbolicate)
-        if truncate_stack_needed(frame):
-            # stacks are inverted and top frame is last
-            profile["profile"]["stacks"][stack_id] = stack[:-2]
+        # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
+        needs_truncation, new_stack = truncate_stack_needed(frame, stack)
+        if needs_truncation:
+            profile["profile"]["stacks"][stack_id] = new_stack
 
 
 def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]) -> None:
@@ -259,10 +267,9 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
         if len(symbolicated["frames"]) < 2:
             continue
 
-        # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
-        if symbolicated["frames"][-1].get("function", "") == "perf_signal_handler":
-            # stacks are inverted and top frame is last
-            original["frames"] = symbolicated["frames"][:-2]
+        # exclude the top frames of the stack as it's related to the profiler itself and we don't want them.
+        if symbolicated["frames"][0].get("function", "") == "perf_signal_handler":
+            original["frames"] = symbolicated["frames"][2:]
         else:
             original["frames"] = symbolicated["frames"]
 
