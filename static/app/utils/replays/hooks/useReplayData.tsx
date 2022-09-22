@@ -185,19 +185,22 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     [api, orgSlug]
   );
 
+  const fetchReplayAndErrors = useCallback(async (): Promise<[ReplayRecord, any]> => {
+    const fetchedRecord = await fetchReplay();
+    const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
+    const fetchedErrors = await fetchErrors(mappedRecord);
+    return [mappedRecord, fetchedErrors];
+  }, [fetchReplay, fetchErrors]);
+
   const loadEvents = useCallback(async () => {
     setState(INITIAL_STATE);
 
     try {
-      const [[replayRecord, errors], attachments] = await Promise.all([
-        (async (): Promise<[ReplayRecord, any]> => {
-          const fetchedRecord = await fetchReplay();
-          const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
-          const fetchedErrors = await fetchErrors(mappedRecord);
-          return [mappedRecord, fetchedErrors];
-        })(),
+      const [replayAndErrors, attachments] = await Promise.all([
+        fetchReplayAndErrors(),
         fetchAllRRwebEvents(),
       ]);
+      const [replayRecord, errors] = replayAndErrors;
 
       setState(prev => ({
         ...prev,
@@ -217,7 +220,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
         fetching: false,
       });
     }
-  }, [fetchReplay, fetchAllRRwebEvents, fetchErrors]);
+  }, [fetchReplayAndErrors, fetchAllRRwebEvents]);
 
   useEffect(() => {
     loadEvents();
