@@ -13,7 +13,7 @@ from sentry.utils.samples import load_data
 
 
 @region_silo_test
-class ProjectOwnershipEndpointTestCase(APITestCase):
+class EventGroupingInfoEndpointTestCase(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
