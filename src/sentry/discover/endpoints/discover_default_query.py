@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.exceptions import ParseError
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -14,7 +15,10 @@ from sentry.discover.models import DiscoverSavedQuery
 
 @pending_silo_endpoint
 class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
-    permission_classes = (DiscoverSavedQueryPermission,)
+    permission_classes = (
+        IsAuthenticated,
+        DiscoverSavedQueryPermission,
+    )
 
     def has_feature(self, organization, request):
         return features.has(
@@ -32,9 +36,12 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
         return Response(serialize(query), status=status.HTTP_200_OK)
 
     def put(self, request: Request, organization) -> Response:
-        previous_default = DiscoverSavedQuery.objects.get(
-            is_default=True, organization=organization, created_by=request.user
-        )
+        try:
+            previous_default = DiscoverSavedQuery.objects.get(
+                is_default=True, organization=organization, created_by=request.user
+            )
+        except DiscoverSavedQuery.DoesNotExist:
+            previous_default = None
 
         try:
             params = self.get_filter_params(
@@ -51,11 +58,24 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        previous_default.update(
+        if previous_default:
+            previous_default.update(
+                organization=organization,
+                name=data["name"],
+                query=data["query"],
+                version=data["version"],
+            )
+            return Response(status=status.HTTP_200_OK)
+
+        model = DiscoverSavedQuery.objects.create(
             organization=organization,
             name=data["name"],
             query=data["query"],
             version=data["version"],
+            created_by=request.user,
+            is_default=True,
         )
 
-        return Response(status=status.HTTP_200_OK)
+        model.set_projects(data["project_ids"])
+
+        return Response(status=status.HTTP_201_CREATED)

@@ -57,22 +57,26 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
         assert saved_query.query["fields"] == ["field1", "field2"]
 
     def test_put_creates_new_discover_saved_query_if_none_exists(self):
-        pass
-        # default_query_payload = {
-        #     "name": "New Default Query",
-        #     "projects": ["-1"],
-        #     "fields": ["environment", "platform.name"],
-        #     "orderby": "-timestamp",
-        #     "range": None,
-        # }
-        # with self.feature("organizations:discover-query"):
-        #     response = self.client.put(self.url, data=default_query_payload)
+        default_query_payload = {
+            "version": 2,
+            "name": "New Default Query",
+            "projects": ["-1"],
+            "environment": ["alpha"],
+            "fields": ["environment", "platform.name"],
+            "orderby": "-timestamp",
+            "range": None,
+        }
+        with self.feature("organizations:discover-query"):
+            response = self.client.put(self.url, data=default_query_payload)
 
-        # assert response.status_code == 201, response.content
+        assert response.status_code == 201, response.content
 
-        # data = response.data
-        # assert data["name"] == "New Default Query"
-        # assert data["fields"] == ["environment", "platform.name"]
+        new_query = DiscoverSavedQuery.objects.get(
+            created_by=self.user, organization=self.org, is_default=True
+        )
+        assert new_query.name == default_query_payload["name"]
+        assert new_query.query["fields"] == default_query_payload["fields"]
+        assert new_query.query["environment"] == default_query_payload["environment"]
 
     def test_delete_resets_saved_query(self):
         pass
