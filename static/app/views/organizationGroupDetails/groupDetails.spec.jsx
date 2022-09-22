@@ -34,7 +34,6 @@ describe('groupDetails', () => {
     {
       componentPromise: null,
       component: null,
-      props: {currentTab: 'details', isEventRoute: false},
     },
   ];
 

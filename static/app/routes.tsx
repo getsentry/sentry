@@ -1277,214 +1277,126 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEventDetails')
         )}
-        props={{
-          currentTab: Tab.DETAILS,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.REPLAYS]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupReplays')
         )}
-        props={{
-          currentTab: Tab.REPLAYS,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.ACTIVITY]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupActivity')
         )}
-        props={{
-          currentTab: Tab.ACTIVITY,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.EVENTS]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEvents')
         )}
-        props={{
-          currentTab: Tab.EVENTS,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.TAGS]}
         component={make(() => import('sentry/views/organizationGroupDetails/groupTags'))}
-        props={{
-          currentTab: Tab.TAGS,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={`${TabPaths[Tab.TAGS]}:tagKey/`}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupTagValues')
         )}
-        props={{
-          currentTab: Tab.TAGS,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.USER_FEEDBACK]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
         )}
-        props={{
-          currentTab: Tab.USER_FEEDBACK,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.ATTACHMENTS]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
         )}
-        props={{
-          currentTab: Tab.ATTACHMENTS,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.SIMILAR_ISSUES]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
         )}
-        props={{
-          currentTab: Tab.SIMILAR_ISSUES,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.MERGED]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupMerged')
         )}
-        props={{
-          currentTab: Tab.MERGED,
-          isEventRoute: false,
-        }}
       />
       <Route
         path={TabPaths[Tab.GROUPING]}
         component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
-        props={{
-          currentTab: Tab.GROUPING,
-          isEventRoute: false,
-        }}
       />
       <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEventDetails')
           )}
-          props={{
-            currentTab: Tab.DETAILS,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.REPLAYS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupReplays')
           )}
-          props={{
-            currentTab: Tab.REPLAYS,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.ACTIVITY]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupActivity')
           )}
-          props={{
-            currentTab: Tab.ACTIVITY,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.EVENTS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEvents')
           )}
-          props={{
-            currentTab: Tab.EVENTS,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
           )}
-          props={{
-            currentTab: Tab.SIMILAR_ISSUES,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.TAGS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupTags')
           )}
-          props={{
-            currentTab: Tab.TAGS,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={`${TabPaths[Tab.TAGS]}:tagKey/`}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupTagValues')
           )}
-          props={{
-            currentTab: Tab.TAGS,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.USER_FEEDBACK]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
           )}
-          props={{
-            currentTab: Tab.USER_FEEDBACK,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.ATTACHMENTS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
           )}
-          props={{
-            currentTab: Tab.ATTACHMENTS,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.MERGED]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupMerged')
           )}
-          props={{
-            currentTab: Tab.MERGED,
-            isEventRoute: true,
-          }}
         />
         <Route
           path={TabPaths[Tab.GROUPING]}
           component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
-          props={{
-            currentTab: Tab.GROUPING,
-            isEventRoute: true,
-          }}
         />
       </Route>
     </Route>

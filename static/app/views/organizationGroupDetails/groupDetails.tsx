@@ -195,21 +195,18 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {routes, organization} = this.props;
+    const {organization, router, routes} = this.props;
     const {event} = this.state;
 
-    // All the routes under /organizations/:orgId/issues/:groupId have a defined props
-    const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
-      currentTab: Tab;
-      isEventRoute: boolean;
-    };
+    const currentRoute = routes[routes.length - 1];
+    const currentTab =
+      Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS;
 
-    const baseUrl =
-      isEventRoute && event
-        ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
-        : `/organizations/${organization.slug}/issues/${group.id}/`;
+    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
+      router.params.eventId && event ? `events/${event.id}/` : ''
+    }`;
 
-    return {currentTab, baseUrl};
+    return {baseUrl, currentTab};
   }
 
   updateReprocessingProgress() {
