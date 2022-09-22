@@ -508,7 +508,7 @@ def convert_codeowners_syntax(
 
 def get_source_code_path_from_stacktrace_path(
     stacktrace_path: str, code_mapping: RepositoryProjectPathConfig
-):
+) -> str | None:
     if re.search(r"[\/].{1}", stacktrace_path):
         path_with_source_root = stacktrace_path.replace(
             code_mapping.stack_root, code_mapping.source_root, 1

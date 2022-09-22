@@ -360,7 +360,7 @@ def get_serialized_release_committers_for_group(
     return serialized_committers
 
 
-def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]):
+def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]) -> str | None:
     """
     Returns the filepath from a stacktrace's frame.
     frame: Event frame
