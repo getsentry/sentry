@@ -47,7 +47,7 @@ def _archive_replay(project_id: int, replay_id: str) -> None:
         "urls": [],
         "timestamp": time.time(),
         "is_archived": True,
-        "platform": "backend",
+        "platform": None,
     }
 
     replay_publisher.publish(
