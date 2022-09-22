@@ -212,7 +212,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
 
 export const DATA_CATEGORY_NAMES = {
   [DataCategory.ERRORS]: t('Errors'),
-  [DataCategory.TRANSACTIONS]: t('Transactions'),
+  [DataCategory.TRANSACTIONS]: t('Indexed Transactions'),
   [DataCategory.ATTACHMENTS]: t('Attachments'),
   [DataCategory.TRANSACTIONS_PROCESSED]: t('Processed Transactions'),
 };

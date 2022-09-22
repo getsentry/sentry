@@ -60,6 +60,7 @@ export class OrganizationStats extends Component<Props> {
     switch (dataCategory) {
       case DataCategory.ERRORS:
       case DataCategory.TRANSACTIONS:
+      case DataCategory.TRANSACTIONS_PROCESSED:
       case DataCategory.ATTACHMENTS:
         return dataCategory as DataCategory;
       default:
@@ -283,7 +284,7 @@ export class OrganizationStats extends Component<Props> {
                   </PageHeader>
                   <p>
                     {t(
-                      'We collect usage metrics on three categories: errors, transactions, and attachments. The charts below reflect data that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                      'We collect usage metrics for errors, processed transactions, indexed transactions, and attachments. The charts below reflect data that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
                     )}
                   </p>
                 </Fragment>

@@ -59,6 +59,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
+    label: DATA_CATEGORY_NAMES[DataCategory.TRANSACTIONS_PROCESSED],
+    value: DataCategory.TRANSACTIONS_PROCESSED,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
     label: DATA_CATEGORY_NAMES[DataCategory.ATTACHMENTS],
     value: DataCategory.ATTACHMENTS,
     disabled: false,
