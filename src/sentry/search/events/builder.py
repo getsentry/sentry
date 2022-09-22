@@ -1097,7 +1097,7 @@ class QueryBuilder:
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
         name = search_filter.key.name
-        if measurement_meta := self.get_measument_by_name(name):
+        if search_filter.value.value and (measurement_meta := self.get_measument_by_name(name)):
             unit = measurement_meta.get("unit")
             value = self.resolve_measurement_value(unit, search_filter.value.value)
             search_filter = SearchFilter(

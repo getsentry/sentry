@@ -1397,6 +1397,43 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["max(measurements.datacenter_memory)"] == "size"
         assert meta["isMetricsData"]
 
+    def test_has_custom_measurement(self):
+        self.store_transaction_metric(
+            33,
+            metric="measurements.datacenter_memory",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["measurements"]["datacenter_memory"] = {
+            "value": 33,
+            "unit": "petabyte",
+        }
+        self.store_event(transaction_data, self.project.id)
+
+        measurement = "measurements.datacenter_memory"
+        response = self.do_request(
+            {
+                "field": ["transaction", measurement],
+                "query": "has:measurements.datacenter_memory",
+                "dataset": "discover",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+
+        response = self.do_request(
+            {
+                "field": ["transaction", measurement],
+                "query": "!has:measurements.datacenter_memory",
+                "dataset": "discover",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 0
+
     def test_environment_param(self):
         self.create_environment(self.project, name="staging")
         self.store_transaction_metric(
