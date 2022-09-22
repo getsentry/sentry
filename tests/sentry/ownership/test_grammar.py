@@ -7,6 +7,7 @@ from sentry.ownership.grammar import (
     convert_codeowners_syntax,
     convert_schema_to_rules_text,
     dump_schema,
+    get_source_code_path_from_stacktrace_path,
     load_schema,
     parse_code_owners,
     parse_rules,
@@ -893,6 +894,19 @@ def test_parse_code_owners_with_line_of_spaces():
         ["@getsentry/frontend", "@getsentry/docs", "@getsentry/ecosystem"],
         ["@NisanthanNanthakumar", "@AnotherUser", "@NisanthanNanthakumar"],
         ["nisanthan.nanthakumar@sentry.io"],
+    )
+
+
+def test_get_source_code_path_from_stacktrace_path():
+    code_mapping = type("", (), {})()
+    code_mapping.stack_root = "webpack://docs"
+    code_mapping.source_root = "docs"
+    assert (
+        get_source_code_path_from_stacktrace_path(
+            "webpack://docs/index.js",
+            code_mapping,
+        )
+        == "docs/index.js"
     )
 
 

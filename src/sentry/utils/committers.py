@@ -265,12 +265,7 @@ def get_event_file_committers(
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
-        str(f)
-        for f in (
-            frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
-            for frame in app_frames
-        )
-        if f
+        str(f) for f in (get_stacktrace_path_from_event_frame(frame) for frame in app_frames) if f
     }
 
     file_changes: Sequence[CommitFileChange] = (
@@ -285,7 +280,7 @@ def get_event_file_committers(
         {
             "frame": str(frame),
             "commits": commit_path_matches.get(
-                str(frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")),
+                str(get_stacktrace_path_from_event_frame(frame)),
                 [],
             ),
         }
@@ -363,3 +358,11 @@ def get_serialized_release_committers_for_group(
         )
 
     return serialized_committers
+
+
+def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]) -> str | None:
+    """
+    Returns the filepath from a stacktrace's frame.
+    frame: Event frame
+    """
+    return frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")

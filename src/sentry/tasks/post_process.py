@@ -339,6 +339,7 @@ def post_process_group(
         from sentry.models.group import get_group_with_redirect
         from sentry.models.groupinbox import add_group_to_inbox
         from sentry.rules.processor import RuleProcessor
+        from sentry.tasks.commit_context import process_commit_context
         from sentry.tasks.groupowner import process_suspect_commits
         from sentry.tasks.servicehooks import process_service_hook
 
@@ -431,14 +432,26 @@ def post_process_group(
                             cache.set(group_cache_key, True, 604800)  # 1 week in seconds
                             event_frames = get_frame_paths(event)
                             sdk_name = get_sdk_name(event.data)
-                            process_suspect_commits.delay(
-                                event_id=event.event_id,
-                                event_platform=event.platform,
-                                event_frames=event_frames,
-                                group_id=event.group_id,
-                                project_id=event.project_id,
-                                sdk_name=sdk_name,
-                            )
+                            if features.has(
+                                "organizations:commit-context", event.project.organization
+                            ):
+                                process_commit_context.delay(
+                                    event_id=event.event_id,
+                                    event_platform=event.platform,
+                                    event_frames=event_frames,
+                                    group_id=event.group_id,
+                                    project_id=event.project_id,
+                                    sdk_name=sdk_name,
+                                )
+                            else:
+                                process_suspect_commits.delay(
+                                    event_id=event.event_id,
+                                    event_platform=event.platform,
+                                    event_frames=event_frames,
+                                    group_id=event.group_id,
+                                    project_id=event.project_id,
+                                    sdk_name=sdk_name,
+                                )
             except UnableToAcquireLock:
                 pass
             except Exception:
