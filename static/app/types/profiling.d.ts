@@ -1,4 +1,60 @@
 declare namespace Profiling {
+  interface SentryProfileSample {
+    stack_id: number;
+    thread_id: string;
+    relative_timestamp_ns: string;
+  }
+
+  type SentryProfileStack = number[];
+
+  type SentryProfileFrame = {
+    function: string;
+    file: string;
+    line: number;
+    column: number;
+  };
+
+  type SentrySampledProfile = {
+    event_id: string;
+    version: string;
+    os: {
+      architecture: string;
+      is_emulator: boolean;
+      locale: string;
+      manufacturer: string;
+      model: string;
+    };
+    timestamp: string;
+    release: string;
+    platform: string;
+    profile: {
+      samples: SentryProfileSample[];
+      stacks: SentryProfileStack[];
+      frames: SentryProfileFrame[];
+    };
+    thread_metadata: Record<string, {priority?: number}>;
+    queue_metadata: Record<string, {label: string}>;
+    debug_meta: {
+      images: {
+        debug_id: string;
+        image_addr: string;
+        code_file: string;
+        type: string;
+        image_size: number;
+        image_vmaddr: string;
+      }[];
+    };
+    transaction: {
+      name: string;
+      trace_id: string;
+      id: string;
+      active_thread_id: string;
+      relative_start_ns: string;
+      relative_end_ns: string;
+    }[];
+  };
+
+  ////////////////
   interface RawProfileBase {
     endValue: number;
     startValue: number;
