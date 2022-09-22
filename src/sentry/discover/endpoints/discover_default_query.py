@@ -21,6 +21,8 @@ def get_default_query(organization, user):
 
 @pending_silo_endpoint
 class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
+    private = True
+
     permission_classes = (
         IsAuthenticated,
         DiscoverSavedQueryPermission,
