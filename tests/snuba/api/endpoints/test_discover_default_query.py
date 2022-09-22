@@ -31,3 +31,45 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
 
         assert response.status_code == 200, response.content
         assert response.data == serialize(saved_query)
+
+    def test_put_updates_existing_default_query_to_reflect_new_data(self):
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="Test query",
+            query=self.query,
+            is_default=True,
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.client.put(
+                self.url,
+                {
+                    "name": "A new default query update",
+                    "projects": ["-1"],
+                    "fields": ["field1", "field2"],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        saved_query.refresh_from_db()
+        assert saved_query.name == "A new default query update"
+        assert saved_query.query["fields"] == ["field1", "field2"]
+
+    def test_put_creates_new_discover_saved_query_if_none_exists(self):
+        pass
+        # default_query_payload = {
+        #     "name": "New Default Query",
+        #     "projects": ["-1"],
+        #     "fields": ["environment", "platform.name"],
+        #     "orderby": "-timestamp",
+        #     "range": None,
+        # }
+        # with self.feature("organizations:discover-query"):
+        #     response = self.client.put(self.url, data=default_query_payload)
+
+        # assert response.status_code == 201, response.content
+
+        # data = response.data
+        # assert data["name"] == "New Default Query"
+        # assert data["fields"] == ["environment", "platform.name"]
