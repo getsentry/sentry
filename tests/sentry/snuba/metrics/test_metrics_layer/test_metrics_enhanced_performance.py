@@ -34,9 +34,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
-    def setUp(self):
-        super().setUp()
-        self.now = timezone.now()
+    TIME = "2022-09-21 03:21:34"
 
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
@@ -69,7 +67,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
+    @freeze_time(TIME)
     def test_alias_on_different_metrics_expression(self):
+        now = timezone.now()
+
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_metric(
@@ -98,8 +99,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_fcp",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=now - timedelta(hours=1),
+            end=now,
             granularity=Granularity(granularity=3600),
             groupby=[MetricGroupByField(name="transaction", alias="transaction_group")],
             orderby=[
@@ -154,7 +155,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
+    @freeze_time(TIME)
     def test_alias_on_same_metrics_expression_but_different_aliases(self):
+        now = timezone.now()
+
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_metric(
@@ -183,8 +187,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_lcp_2",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=now - timedelta(hours=1),
+            end=now,
             granularity=Granularity(granularity=3600),
             groupby=[
                 MetricGroupByField("transaction", alias="transaction_group"),
@@ -240,8 +244,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time()
+    @freeze_time(TIME)
     def test_alias_on_single_entity_derived_metrics(self):
+        now = timezone.now()
+
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
@@ -254,7 +260,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
-                timestamp=self.now.timestamp(),
+                timestamp=now.timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -269,8 +275,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=self.now - timedelta(minutes=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
@@ -406,7 +412,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
+    @freeze_time(TIME)
     def test_histogram_transaction_duration(self):
+        now = timezone.now()
+
         for tag, value, numbers in (
             ("tag1", "value1", [1, 2, 3]),
             ("tag1", "value2", [10, 100, 1000]),
@@ -449,8 +458,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="histogram_lcp_2",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=now - timedelta(hours=1),
+            end=now,
             granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -473,7 +482,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             }
         ]
 
+    @freeze_time(TIME)
     def test_rate_epm_hour_rollup(self):
+        now = timezone.now()
+
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for _ in range(count):
@@ -483,7 +495,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(hours=hour)).timestamp(),
+                    timestamp=(now - timedelta(hours=hour)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -535,7 +547,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             }
         ]
 
+    @freeze_time(TIME)
     def test_rate_epm_day_rollup(self):
+        now = timezone.now()
+
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
@@ -545,7 +560,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(hours=hour)).timestamp(),
+                    timestamp=(now - timedelta(hours=hour)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -660,7 +675,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
         assert data
 
+    @freeze_time(TIME)
     def test_throughput_eps_minute_rollup(self):
+        now = timezone.now()
+
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for _ in range(count):
@@ -670,7 +688,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(minutes=minute)).timestamp(),
+                    timestamp=(now - timedelta(minutes=minute)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -724,7 +742,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             }
         ]
 
+    @freeze_time(TIME)
     def test_rate_with_missing_numerator_value(self):
+        now = timezone.now()
+
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for _ in range(count):
@@ -734,7 +755,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(minutes=minute)).timestamp(),
+                    timestamp=(now - timedelta(minutes=minute)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
