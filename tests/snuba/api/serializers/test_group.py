@@ -439,13 +439,24 @@ class PerformanceGroupSerializerSnubaTest(
             project=proj,
             first_seen=timezone.now() - timedelta(days=5),
         )
+        times = 5
+        for _ in range(0, times):
+            self.store_transaction(
+                proj.id,
+                "user1",
+                [first_group],
+                environment,
+                timestamp=first_group.first_seen + timedelta(minutes=1),
+            )
+
         self.store_transaction(
             proj.id,
-            "user1",
+            "user2",
             [first_group],
             environment,
-            timestamp=first_group.first_seen + timedelta(minutes=1),
+            timestamp=first_group.first_seen + timedelta(minutes=2),
         )
+
         result = serialize(
             first_group,
             serializer=GroupSerializerSnuba(
@@ -455,11 +466,11 @@ class PerformanceGroupSerializerSnubaTest(
             ),
         )
 
-        assert result["userCount"] == 1
+        assert result["userCount"] == 2
         assert iso_format(result["lastSeen"]) == iso_format(
-            first_group.first_seen + timedelta(minutes=1)
+            first_group.first_seen + timedelta(minutes=2)
         )
         assert iso_format(result["firstSeen"]) == iso_format(
             first_group.first_seen + timedelta(minutes=1)
         )
-        assert result["count"] == "1"
+        assert result["count"] == str(times + 1)
