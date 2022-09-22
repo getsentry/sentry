@@ -5,7 +5,9 @@ from typing import Callable
 
 import sentry_sdk
 from django.conf import settings
+from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseRedirect
+from django.http.request import split_domain_port
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -84,14 +86,26 @@ class DedupeCookiesMiddleware:
         redirect_url = f"{request.path}{qs}"
         response = HttpResponseRedirect(redirect_url)
 
+        domain = ".sentry.io"
+        try:
+            host = request.get_host().lower()
+            domain, port = split_domain_port(host)
+            domain = f".{domain}"
+        except DisallowedHost:
+            pass
+
         for cookie_name in duplicate_cookies:
             # De-dupe cookies with Domain=.sentry.io that will collide with cookies with Domain=sentry.io
             # This change will be reverted once domains are configured for session, csrf, su, and sudo cookies for
             # shipping customer domains.
-            response.delete_cookie(cookie_name, domain=".sentry.io")
+            response.delete_cookie(cookie_name, domain=domain)
 
-        sentry_sdk.set_tag("has_duplicate_cookies", "yes")
-        sentry_sdk.set_context("duplicate_cookies", {"cookies": list(duplicate_cookies)})
-        sentry_sdk.capture_message("Found duplicate cookies.")
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag("has_duplicate_cookies", "yes")
+            scope.set_tag("deleted_cookie_domain", domain)
+            scope.set_context(
+                "duplicate_cookies", {"cookies": list(duplicate_cookies), "domain": domain}
+            )
+            sentry_sdk.capture_message("Found duplicate cookies.")
 
         return response
