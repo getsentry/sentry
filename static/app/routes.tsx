@@ -1378,7 +1378,7 @@ function buildRoutes() {
           isEventRoute: false,
         }}
       />
-      <Route path={`${TabPaths[Tab.REPLAYS]}:eventId/`}>
+      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEventDetails')
