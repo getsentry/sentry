@@ -133,7 +133,11 @@ export default function ChartFooter({
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
-          <IntervalSelector eventView={eventView} onIntervalChange={onIntervalChange} />
+          <IntervalSelector
+            displayMode={displayMode}
+            eventView={eventView}
+            onIntervalChange={onIntervalChange}
+          />
         </Feature>
         <OptionSelector
           title={t('Display')}
