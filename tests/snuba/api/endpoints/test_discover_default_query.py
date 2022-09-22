@@ -4,6 +4,8 @@ from sentry.api.serializers import serialize
 from sentry.discover.models import DiscoverSavedQuery
 from tests.snuba.api.endpoints.test_discover_saved_queries import DiscoverSavedQueryBase
 
+FEATURES = ("organizations:discover-query", "organizations:discover-query-builder-as-landing-page")
+
 
 class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
     def setUp(self):
@@ -12,7 +14,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
         self.query = {"fields": ["test"], "conditions": [], "limit": 10}
 
     def test_returns_empty_dict_if_no_default_query_for_user(self):
-        with self.feature("organizations:discover-query"):
+        with self.feature(FEATURES):
             response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
@@ -26,7 +28,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             query=self.query,
             is_default=True,
         )
-        with self.feature("organizations:discover-query"):
+        with self.feature(FEATURES):
             response = self.client.get(self.url)
 
         assert response.status_code == 200, response.content
@@ -40,7 +42,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             query=self.query,
             is_default=True,
         )
-        with self.feature("organizations:discover-query"):
+        with self.feature(FEATURES):
             response = self.client.put(
                 self.url,
                 {
@@ -66,7 +68,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             "orderby": "-timestamp",
             "range": None,
         }
-        with self.feature("organizations:discover-query"):
+        with self.feature(FEATURES):
             response = self.client.put(self.url, data=default_query_payload)
 
         assert response.status_code == 201, response.content
@@ -88,7 +90,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             "orderby": "-timestamp",
             "range": None,
         }
-        with self.feature("organizations:discover-query"):
+        with self.feature(FEATURES):
             response = self.client.post(self.url, data=default_query_payload)
 
         assert response.status_code == 405, response.content
@@ -101,7 +103,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             query=self.query,
             is_default=True,
         )
-        with self.feature("organizations:discover-query"):
+        with self.feature(FEATURES):
             response = self.client.delete(self.url)
 
         assert response.status_code == 204
