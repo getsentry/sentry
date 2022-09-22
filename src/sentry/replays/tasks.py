@@ -11,7 +11,7 @@ from sentry.utils.pubsub import KafkaPublisher
 
 @instrumented_task(
     name="sentry.replays.tasks.delete_recording_segments",
-    queue="replays",
+    queue="default",
     default_retry_delay=5,
     max_retries=5,
 )
