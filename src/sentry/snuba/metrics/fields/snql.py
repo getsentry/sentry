@@ -371,17 +371,17 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
     )
 
 
-def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, alias=None):
+def count_transaction_name_snql_factory(aggregate_filter, org_id, identifier, alias=None):
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
     has_value = "has_value"
 
-    def generate_transaction_name_filter(operation, transaction_name_condition):
-        if transaction_name_condition == is_unparameterized:
+    def generate_transaction_name_filter(operation, transaction_name_identifier):
+        if transaction_name_identifier == is_unparameterized:
             inner_tag_value = resolve_tag_value(
                 UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
             )
-        elif transaction_name_condition == is_null:
+        elif transaction_name_identifier == is_null:
             inner_tag_value = (
                 "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
             )
@@ -402,9 +402,9 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, ali
             ],
         )
 
-    if condition in [is_unparameterized, is_null]:
-        transaction_name_filter = generate_transaction_name_filter("equals", condition)
-    elif condition == has_value:
+    if identifier in [is_unparameterized, is_null]:
+        transaction_name_filter = generate_transaction_name_filter("equals", identifier)
+    elif identifier == has_value:
         transaction_name_filter = Function(
             "and",
             [
@@ -415,7 +415,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, ali
     else:
         raise InvalidParams(
             f"The `count_transaction_name` function expects a valid transaction name filter, which must be either "
-            f"{is_unparameterized} {is_null} {has_value} but {condition} was passed"
+            f"{is_unparameterized} {is_null} {has_value} but {identifier} was passed"
         )
 
     return Function(
