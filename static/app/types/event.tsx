@@ -241,8 +241,7 @@ export enum EntryType {
   THREADS = 'threads',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
-  SPANTREE = 'spantree',
-  PERFORMANCE = 'performance',
+  RESOURCES = 'resources',
 }
 
 type EntryDebugMeta = {
@@ -278,7 +277,7 @@ type EntryStacktrace = {
 
 type EntrySpans = {
   data: any;
-  type: EntryType.SPANS; // data is not used
+  type: EntryType.SPANS;
 };
 
 type EntryMessage = {
@@ -323,6 +322,11 @@ type EntryGeneric = {
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
 };
 
+type EntryResources = {
+  data: any; // Data is unused here
+  type: EntryType.RESOURCES;
+};
+
 export type Entry =
   | EntryDebugMeta
   | EntryBreadcrumbs
@@ -334,7 +338,8 @@ export type Entry =
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryGeneric;
+  | EntryGeneric
+  | EntryResources;
 
 // Contexts
 type RuntimeContext = {

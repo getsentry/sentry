@@ -1,15 +1,10 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ScoreBar from 'sentry/components/scoreBar';
 import UserMisery from 'sentry/components/userMisery';
 
 describe('UserMisery', function () {
-  beforeEach(function () {});
-
-  afterEach(function () {});
-
   it('renders no bars when user misery is less than 0.05', function () {
-    const wrapper = mountWithTheme(
+    render(
       <UserMisery
         bars={10}
         barHeight={20}
@@ -19,11 +14,12 @@ describe('UserMisery', function () {
         totalUsers={100}
       />
     );
-    expect(wrapper.find(ScoreBar).props().score).toEqual(0);
+
+    expect(screen.getByTestId('score-bar-0')).toBeInTheDocument();
   });
 
   it('renders no bars when user misery is equal to 0.05', function () {
-    const wrapper = mountWithTheme(
+    render(
       <UserMisery
         bars={10}
         barHeight={20}
@@ -33,11 +29,12 @@ describe('UserMisery', function () {
         totalUsers={100}
       />
     );
-    expect(wrapper.find(ScoreBar).props().score).toEqual(0);
+
+    expect(screen.getByTestId('score-bar-0')).toBeInTheDocument();
   });
 
   it('renders one bar when user misery is greater than 0.05', function () {
-    const wrapper = mountWithTheme(
+    render(
       <UserMisery
         bars={10}
         barHeight={20}
@@ -47,6 +44,7 @@ describe('UserMisery', function () {
         totalUsers={100}
       />
     );
-    expect(wrapper.find(ScoreBar).props().score).toEqual(1);
+
+    expect(screen.getByTestId('score-bar-1')).toBeInTheDocument();
   });
 });
