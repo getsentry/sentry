@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import EventSearchBar from 'sentry/components/events/searchBar';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -137,6 +138,31 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
+  renderSearchBar() {
+    const {issueCategory, id} = this.props.group;
+
+    if (id && issueCategory === IssueCategory.PERFORMANCE) {
+      return (
+        <EventSearchBar
+          organization={this.props.organization}
+          defaultQuery=""
+          onSearch={this.handleSearch}
+          excludeEnvironment
+          query={this.state.query}
+          hasRecentSearches={false}
+        />
+      );
+    }
+    return (
+      <SearchBar
+        defaultQuery=""
+        placeholder={t('Search events by id, message, or tags')}
+        query={this.state.query}
+        onSearch={this.handleSearch}
+      />
+    );
+  }
+
   renderResults() {
     const {group, params} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
@@ -188,12 +214,7 @@ class GroupEvents extends Component<Props, State> {
           <Wrapper>
             <FilterSection>
               <EnvironmentPageFilter />
-              <SearchBar
-                defaultQuery=""
-                placeholder={t('Search events by id, message, or tags')}
-                query={this.state.query}
-                onSearch={this.handleSearch}
-              />
+              {this.renderSearchBar()}
             </FilterSection>
             {this.renderBody()}
             <Pagination pageLinks={this.state.pageLinks} />
