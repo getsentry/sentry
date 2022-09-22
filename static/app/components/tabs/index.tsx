@@ -10,10 +10,15 @@ import {ItemProps, Orientation} from '@react-types/shared';
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
 
-const _Item = Item as (props: ItemProps<any> & {disabled?: boolean}) => JSX.Element;
+const _Item = Item as (
+  props: ItemProps<any> & {disabled?: boolean; hidden?: boolean}
+) => JSX.Element;
 export {_Item as Item, TabList, TabPanels};
 
-export interface TabsProps extends TabListProps<any>, AriaTabListProps<any> {
+export interface TabsProps
+  extends Omit<TabListProps<any>, 'children'>,
+    Omit<AriaTabListProps<any>, 'children'> {
+  children?: React.ReactNode;
   className?: string;
   /**
    * [Uncontrolled] Default selected tab. Must match the `key` prop on the

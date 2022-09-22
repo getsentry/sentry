@@ -6,8 +6,6 @@ import {ListCollection} from '@react-stately/list';
 import {TabListState} from '@react-stately/tabs';
 import {CollectionBase, Node, Orientation} from '@react-types/shared';
 
-import space from 'sentry/styles/space';
-
 import {TabsContext} from './index';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
@@ -27,7 +25,9 @@ export function TabPanels(props: TabPanelsProps) {
   } = useContext(TabsContext);
 
   // Parse child tab panels from props and identify the selected panel
-  const collection = useCollection({items, ...props}, collectionFactory);
+  const collection = useCollection({items, ...props}, collectionFactory, {
+    suppressTextValueWarning: true,
+  });
   const selectedPanel = tabListState
     ? collection.getItem(tabListState.selectedKey)
     : null;
@@ -74,16 +74,7 @@ function TabPanel({state, orientation, className, children, ...props}: TabPanelP
 const TabPanelWrap = styled('div')<{orientation: Orientation}>`
   border-radius: ${p => p.theme.borderRadius};
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? `
-          height: 100%;
-          padding: ${space(2)} 0;
-        `
-      : `
-          width: 100%;
-          padding: 0 ${space(2)};
-        `};
+  ${p => (p.orientation === 'horizontal' ? `height: 100%;` : `width: 100%;`)};
 
   &.focus-visible {
     outline: none;

@@ -1,8 +1,10 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
+import {Item, useCollection} from '@react-stately/collections';
+import {ListCollection} from '@react-stately/list';
 import {TabListProps as TabListStateProps, useTabListState} from '@react-stately/tabs';
-import {Orientation} from '@react-types/shared';
+import {Node, Orientation} from '@react-types/shared';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -12,10 +14,6 @@ import space from 'sentry/styles/space';
 
 import {TabsContext} from './index';
 import {Tab} from './tab';
-
-interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
-  className?: string;
-}
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -34,7 +32,7 @@ function useOverflowTabs({
     const options = {
       root: tabListRef.current,
       // Nagative right margin to account for overflow menu's trigger button
-      rootMargin: `0px -42px 0px ${space(1)}`,
+      rootMargin: `0px -42px 1px ${space(1)}`,
       threshold: 1,
     };
 
@@ -66,23 +64,15 @@ function useOverflowTabs({
   return overflowTabs;
 }
 
-/**
- * To be used as a direct child of the <Tabs /> component. See example usage
- * in tabs.stories.js
- */
-export function TabList({className, ...props}: TabListProps) {
+interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
+  className?: string;
+}
+
+function BaseTabList({className, ...props}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
-  const [disabledKeys, setDisabledKeys] = useState<React.Key[]>([]);
   const {rootProps, setTabListState} = useContext(TabsContext);
-  const {
-    value,
-    defaultValue,
-    onChange,
-    orientation,
-    disabled,
-    disabledKeys: _disabledKeys,
-    ...otherRootProps
-  } = rootProps;
+  const {value, defaultValue, onChange, orientation, disabled, ...otherRootProps} =
+    rootProps;
 
   // Load up list state
   const ariaProps = {
@@ -90,7 +80,6 @@ export function TabList({className, ...props}: TabListProps) {
     defaultSelectedKey: defaultValue,
     onSelectionChange: onChange,
     isDisabled: disabled,
-    disabledKeys,
     ...otherRootProps,
     ...props,
   };
@@ -100,15 +89,6 @@ export function TabList({className, ...props}: TabListProps) {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
-
-  // Dynamically update `disabledKeys` when the tabs list is loaded/updated
-  useEffect(() => {
-    const newDisabledKeys = [...state.collection]
-      .filter(item => item.props.disabled)
-      .map(item => item.key);
-
-    setDisabledKeys(newDisabledKeys);
-  }, [state.collection]);
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<React.Key, HTMLLIElement | null>>({});
@@ -131,8 +111,13 @@ export function TabList({className, ...props}: TabListProps) {
   }, [state.collection, overflowTabs]);
 
   return (
-    <TabListOuterWrap className={className}>
-      <TabListWrap {...tabListProps} orientation={orientation} ref={tabListRef}>
+    <TabListOuterWrap>
+      <TabListWrap
+        {...tabListProps}
+        orientation={orientation}
+        className={className}
+        ref={tabListRef}
+      >
         {[...state.collection].map(item => (
           <Tab
             key={item.key}
@@ -167,6 +152,47 @@ export function TabList({className, ...props}: TabListProps) {
         />
       )}
     </TabListOuterWrap>
+  );
+}
+
+const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
+
+/**
+ * To be used as a direct child of the <Tabs /> component. See example usage
+ * in tabs.stories.js
+ */
+export function TabList({items, ...props}: TabListProps) {
+  /**
+   * Initial, unfiltered list of tab items.
+   */
+  const collection = useCollection({items, ...props}, collectionFactory);
+
+  /**
+   * Filtered list of items with hidden items (those with a `disbled` prop)
+   * removed. The `hidden` prop is useful for hiding tabs based on some
+   * conditions.
+   */
+  const parsedItems = useMemo(
+    () =>
+      [...collection]
+        .filter(item => !item.props.hidden)
+        .map(({key, props: itemProps}) => ({key, ...itemProps})),
+    [collection]
+  );
+
+  /**
+   * List of keys of disabled items (those with a `disbled` prop) to be passed
+   * into `BaseTabList`.
+   */
+  const disabledKeys = useMemo(
+    () => parsedItems.filter(item => item.disabled).map(item => item.key),
+    [parsedItems]
+  );
+
+  return (
+    <BaseTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
+      {item => <Item {...item} />}
+    </BaseTabList>
   );
 }
 

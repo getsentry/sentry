@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import space from 'sentry/styles/space';
 
 export default {
   title: 'Views/Tabs',
@@ -47,7 +48,7 @@ export const Default = args => {
           </Item>
         ))}
       </TabList>
-      <StyledTabPanels>
+      <StyledTabPanels orientation={args.orientation}>
         {TABS.map(tab => (
           <Item key={tab.key}>{tab.content}</Item>
         ))}
@@ -81,5 +82,10 @@ Default.argTypes = {
 
 // To add styles to tab panels, wrap styled() around `TabPanels`, not `Item`
 const StyledTabPanels = styled(TabPanels)`
+  ${p =>
+    p.orientation === 'horizontal'
+      ? `padding: ${space(2)} 0;`
+      : `padding: 0 ${space(2)};`};
+
   color: ${p => p.theme.subText};
 `;
