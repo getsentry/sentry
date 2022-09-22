@@ -40,18 +40,24 @@ def _get_metrics_billing_consumer_processing_factory():
 
 
 class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
-    # TODO: docs, explaining the strategy of generating outcomes
+    """A metrics consumer that generates a billing outcome for each matching metric.
+
+    Processing a metric bucket at a time, looks at the given metric's ID and
+    generates as many billing outcomes as values are in the bucket.
+
+    It's assumed `TRANSACTION_METRICS_NAMES` is an immutable Dict and contains
+    the given metric name. If the metric name doesn't exist as a key, it throws
+    a `ValueError` in initialization. If the metric's ID is updated in
+    `TRANSACTION_METRICS_NAMES`, the metric ID must be updated.
+    """
 
     def __init__(self, metric_name) -> None:
-        print("creating instance of consumer strategy...")
-
         if metric_name not in TRANSACTION_METRICS_NAMES:
             raise ValueError(f"Unrecognized metric name: {metric_name}")
 
         self.counter_metric = metric_name
         self.__futures = []
         self.__closed = False
-        # TODO: ensure encoding is right
         self.__message_payload_encoding = "utf-8"
 
     def poll(self) -> None:
