@@ -211,22 +211,19 @@ class GitlabWebhookEndpoint(View):
             external_id = f"{instance}:{group_path}"
         except KeyError as e:
             logger.info("gitlab.webhook.missing-gitlab-token")
+            reason = "The customer needs to set a Secret Token in their webhook."
             capture_exception(e)
-            return HttpResponse(
-                status=400,
-                reason="The customer needs to set a Secret Token in their webhook.",
-            )
+            return HttpResponse(status=400, reason=reason)
         except ValueError as e:
             logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
+            reason = "The customer's Secret Token is malformed."
             capture_exception(e)
-            return HttpResponse(
-                status=400,
-                reason="The customer's Secret Token is malformed.",
-            )
+            return HttpResponse(status=400, reason=reason)
         except Exception as e:
-            capture_exception(e)
             logger.info("gitlab.webhook.invalid-token", extra=extra)
-            return HttpResponse(status=400, reason="Generic catch-all error.")
+            reason = "Generic catch-all error."
+            capture_exception(e)
+            return HttpResponse(status=400, reason=reason)
 
         try:
             integration = (
@@ -256,10 +253,9 @@ class GitlabWebhookEndpoint(View):
             }
         except Integration.DoesNotExist as e:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
+            reason = "There is not integration that matches your organization."
             capture_exception(e)
-            return HttpResponse(
-                status=400, reason="There is not integration that matches your organization."
-            )
+            return HttpResponse(status=400, reason=reason)
 
         try:
             if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
@@ -267,18 +263,17 @@ class GitlabWebhookEndpoint(View):
                 raise Exception("The webhook secrets do not match.")
         except Exception as e:
             logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
+            reason = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
             capture_exception(e)
-            return HttpResponse(
-                status=400,
-                reason="Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens.",
-            )
+            return HttpResponse(status=400, reason=reason)
 
         try:
             event = json.loads(request.body.decode("utf-8"))
         except json.JSONDecodeError as e:
             logger.info("gitlab.webhook.invalid-json", extra=extra)
+            reason = "Data received is not JSON."
             capture_exception(e)
-            return HttpResponse(status=400, reason="Data received is not JSON.")
+            return HttpResponse(status=400, reason=reason)
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
@@ -286,11 +281,11 @@ class GitlabWebhookEndpoint(View):
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
             logger.info(f"We only support these kinds of events: {supported_events}")
-            capture_exception(e)
-            return HttpResponse(
-                status=400,
-                reason="The customer has edited the webhook in Gitlab to include other types of events.",
+            reason = (
+                "The customer has edited the webhook in Gitlab to include other types of events."
             )
+            capture_exception(e)
+            return HttpResponse(status=400, reason=reason)
 
         for organization in integration.organizations.all():
             handler()(integration, organization, event)
