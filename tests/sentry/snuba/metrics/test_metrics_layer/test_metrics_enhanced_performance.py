@@ -268,22 +268,22 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             project_ids=[self.project.id],
             select=[
                 MetricField(
-                    op="count_transaction_with_condition",
+                    op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": "is_unparameterized"},
-                    alias="count_transaction_with_condition_is_unparameterized",
+                    alias="count_transaction_name_is_unparameterized",
                 ),
                 MetricField(
-                    op="count_transaction_with_condition",
+                    op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": "is_null"},
-                    alias="count_transaction_with_condition_is_null",
+                    alias="count_transaction_name_is_null",
                 ),
                 MetricField(
-                    op="count_transaction_with_condition",
+                    op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": "has_value"},
-                    alias="count_transaction_with_condition_has_value",
+                    alias="count_transaction_name_has_value",
                 ),
             ],
             start=self.now - timedelta(hours=1),
@@ -306,16 +306,16 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 1
 
         assert groups[0]["totals"] == {
-            "count_transaction_with_condition_is_unparameterized": 1,
-            "count_transaction_with_condition_is_null": 2,
-            "count_transaction_with_condition_has_value": 3,
+            "count_transaction_name_is_unparameterized": 1,
+            "count_transaction_name_is_null": 2,
+            "count_transaction_name_has_value": 3,
         }
 
         assert data["meta"] == sorted(
             [
-                {"name": "count_transaction_with_condition_is_unparameterized", "type": "UInt64"},
-                {"name": "count_transaction_with_condition_is_null", "type": "UInt64"},
-                {"name": "count_transaction_with_condition_has_value", "type": "UInt64"},
+                {"name": "count_transaction_name_is_unparameterized", "type": "UInt64"},
+                {"name": "count_transaction_name_is_null", "type": "UInt64"},
+                {"name": "count_transaction_name_has_value", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -350,10 +350,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             project_ids=[self.project.id],
             select=[
                 MetricField(
-                    op="count_transaction_with_condition",
+                    op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
                     params={"condition": invalid_condition},
-                    alias="count_transaction_with_condition_invalid",
+                    alias="count_transaction_name_invalid",
                 ),
             ],
             start=self.now - timedelta(hours=1),
@@ -367,8 +367,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
 
         with pytest.raises(
             InvalidParams,
-            match=f"the condition must be either is_unparameterized is_null has_value but {invalid_condition} "
-            f"was received",
+            match=f"The `count_transaction_name` function expects a valid transaction name filter, which must be "
+            f"either is_unparameterized is_null has_value but {invalid_condition} was passed",
         ):
             get_series(
                 [self.project],

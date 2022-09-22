@@ -44,7 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_users,
     apdex,
     complement,
-    count_transaction_with_condition_snql_factory,
+    count_transaction_name_snql_factory,
     count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
@@ -1347,9 +1347,9 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=count_web_vitals_snql_factory,
         ),
         DerivedOp(
-            op="count_transaction_with_condition",
+            op="count_transaction_name",
             can_orderby=True,
-            snql_func=count_transaction_with_condition_snql_factory,
+            snql_func=count_transaction_name_snql_factory,
         ),
     ]
 }

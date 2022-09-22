@@ -371,22 +371,22 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
     )
 
 
-def count_transaction_with_condition_snql_factory(aggregate_filter, org_id, condition, alias=None):
+def count_transaction_name_snql_factory(aggregate_filter, org_id, condition, alias=None):
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
     has_value = "has_value"
 
-    def _generate_transaction_tag_value_filter(operation, inner_condition):
-        if inner_condition == is_unparameterized:
+    def generate_transaction_name_filter(operation, transaction_name_condition):
+        if transaction_name_condition == is_unparameterized:
             inner_tag_value = resolve_tag_value(
                 UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
             )
-        elif inner_condition == is_null:
+        elif transaction_name_condition == is_null:
             inner_tag_value = (
                 "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
             )
         else:
-            raise InvalidParams("invalid condition for tag value filter")
+            raise InvalidParams("Invalid condition for tag value filter")
 
         return Function(
             operation,
@@ -403,18 +403,19 @@ def count_transaction_with_condition_snql_factory(aggregate_filter, org_id, cond
         )
 
     if condition in [is_unparameterized, is_null]:
-        snql_function = _generate_transaction_tag_value_filter("equals", condition)
+        transaction_name_filter = generate_transaction_name_filter("equals", condition)
     elif condition == has_value:
-        snql_function = Function(
+        transaction_name_filter = Function(
             "and",
             [
-                _generate_transaction_tag_value_filter("notEquals", is_null),
-                _generate_transaction_tag_value_filter("notEquals", is_unparameterized),
+                generate_transaction_name_filter("notEquals", is_null),
+                generate_transaction_name_filter("notEquals", is_unparameterized),
             ],
         )
     else:
         raise InvalidParams(
-            f"the condition must be either {is_unparameterized} {is_null} {has_value} but {condition} was received"
+            f"The `count_transaction_name` function expects a valid transaction name filter, which must be either "
+            f"{is_unparameterized} {is_null} {has_value} but {condition} was passed"
         )
 
     return Function(
@@ -423,7 +424,7 @@ def count_transaction_with_condition_snql_factory(aggregate_filter, org_id, cond
             Column("value"),
             Function(
                 "and",
-                [aggregate_filter, snql_function],
+                [aggregate_filter, transaction_name_filter],
             ),
         ],
         alias=alias,
