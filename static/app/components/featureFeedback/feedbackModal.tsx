@@ -25,6 +25,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
@@ -179,8 +180,19 @@ export function FeedbackModal<T extends Data>({
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               priority="primary"
+              title={
+                props.children === undefined
+                  ? !defined(state.subject)
+                    ? t('Required fields must be filled out')
+                    : undefined
+                  : primaryDisabled
+                  ? t('Required fields must be filled out')
+                  : undefined
+              }
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
-              disabled={props.children === undefined ? !state.subject : primaryDisabled}
+              disabled={
+                props.children === undefined ? !defined(state.subject) : primaryDisabled
+              }
             >
               {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
             </Button>
@@ -188,7 +200,7 @@ export function FeedbackModal<T extends Data>({
         </Footer>
       );
     },
-    [Footer, isScreenSmall, closeModal, handleSubmit, state.subject, props.children]
+    [Footer, isScreenSmall, closeModal, handleSubmit, state, props.children]
   );
 
   const ModalBody = useCallback(
