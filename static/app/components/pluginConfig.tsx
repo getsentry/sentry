@@ -46,12 +46,12 @@ class PluginConfig extends Component<Props, State> {
     this.loadPlugin(this.props.data);
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    this.loadPlugin(nextProps.data);
-  }
-
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     return !isEqual(nextState, this.state) || !isEqual(nextProps.data, this.props.data);
+  }
+
+  componentDidUpdate() {
+    this.loadPlugin(this.props.data);
   }
 
   loadPlugin(data: Plugin) {
