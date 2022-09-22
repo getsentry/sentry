@@ -21,6 +21,7 @@ const BaseScoreBar = ({
   thickness = 4,
   radius = 3,
   palette = theme.similarity.colors,
+  ...props
 }: Props) => {
   const maxScore = palette.length;
 
@@ -38,7 +39,7 @@ const BaseScoreBar = ({
   };
 
   return (
-    <div className={className}>
+    <div className={className} {...props}>
       {[...Array(scoreInBounds)].map((_j, i) => (
         <Bar {...barProps} key={i} color={palette[paletteIndex]} />
       ))}
