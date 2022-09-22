@@ -63,6 +63,8 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       timestamp: span.startTimestamp * 1000,
     })),
     targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
   });
 
   const handleMouseEnter = useCallback(

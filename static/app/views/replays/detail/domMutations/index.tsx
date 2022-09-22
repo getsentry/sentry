@@ -56,6 +56,8 @@ function DomMutations({replay}: Props) {
   const currentDomMutation = getPrevReplayEvent({
     items: items.map(mutation => mutation.crumb),
     targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
   });
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
