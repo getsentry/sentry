@@ -270,19 +270,19 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 MetricField(
                     op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
-                    params={"identifier": "is_unparameterized"},
+                    params={"transaction_name": "is_unparameterized"},
                     alias="count_transaction_name_is_unparameterized",
                 ),
                 MetricField(
                     op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
-                    params={"identifier": "is_null"},
+                    params={"transaction_name": "is_null"},
                     alias="count_transaction_name_is_null",
                 ),
                 MetricField(
                     op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
-                    params={"identifier": "has_value"},
+                    params={"transaction_name": "has_value"},
                     alias="count_transaction_name_has_value",
                 ),
             ],
@@ -352,7 +352,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 MetricField(
                     op="count_transaction_name",
                     metric_mri=TransactionMRI.DURATION.value,
-                    params={"identifier": invalid_condition},
+                    params={"transaction_name": invalid_condition},
                     alias="count_transaction_name_invalid",
                 ),
             ],

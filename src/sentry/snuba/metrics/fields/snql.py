@@ -371,7 +371,7 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
     )
 
 
-def count_transaction_name_snql_factory(aggregate_filter, org_id, identifier, alias=None):
+def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_name, alias=None):
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
     has_value = "has_value"
@@ -402,9 +402,9 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, identifier, al
             ],
         )
 
-    if identifier in [is_unparameterized, is_null]:
-        transaction_name_filter = generate_transaction_name_filter("equals", identifier)
-    elif identifier == has_value:
+    if transaction_name in [is_unparameterized, is_null]:
+        transaction_name_filter = generate_transaction_name_filter("equals", transaction_name)
+    elif transaction_name == has_value:
         transaction_name_filter = Function(
             "and",
             [
@@ -415,7 +415,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, identifier, al
     else:
         raise InvalidParams(
             f"The `count_transaction_name` function expects a valid transaction name filter, which must be either "
-            f"{is_unparameterized} {is_null} {has_value} but {identifier} was passed"
+            f"{is_unparameterized} {is_null} {has_value} but {transaction_name} was passed"
         )
 
     return Function(
