@@ -9,6 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth import superuser
+from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 
 
 def _query_string(request):
@@ -19,7 +20,12 @@ def _query_string(request):
 
 
 # List of cookie names to check for duplicates in a raw Cookie header from a Request object.
-COOKIE_NAMES = [settings.SESSION_COOKIE_NAME, settings.CSRF_COOKIE_NAME, superuser.COOKIE_NAME]
+COOKIE_NAMES = [
+    settings.SESSION_COOKIE_NAME,
+    settings.CSRF_COOKIE_NAME,
+    superuser.COOKIE_NAME,
+    SUDO_COOKIE_NAME,
+]
 
 
 def count_cookies(raw_cookie):
