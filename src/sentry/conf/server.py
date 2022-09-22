@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Iterable
 from urllib.parse import urlparse
 
 import sentry
@@ -2815,4 +2815,5 @@ DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 
-SENTRY_REGION_CONFIG: Mapping[str, Region] = {}
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+SENTRY_REGION_CONFIG: Iterable[Region] = ()
