@@ -119,6 +119,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
             [next(self.sequence) for _ in range(0, 101)],
         )
         assert not snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
 
     @mock.patch("django.utils.timezone.now")
     def test_user_rate_reached2(self, mock_now):
@@ -147,6 +148,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
             )
 
         assert not snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
 
     @mock.patch("django.utils.timezone.now")
     def test_user_rate_reached_perf_issues(self, mock_now):
@@ -166,6 +168,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
             [next(self.sequence) for _ in range(0, 101)],
         )
         assert not snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
 
     @mock.patch("django.utils.timezone.now")
     def test_user_rate_reached_perf_issues2(self, mock_now):
@@ -195,6 +198,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                 transaction_name=str(i),
             )
 
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
         assert not snooze.is_valid(test_rates=True)
 
     @mock.patch("django.utils.timezone.now")
@@ -213,6 +217,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                 timestamp=mock_now() - timedelta(minutes=n),
             )
         assert not snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
 
     @mock.patch("django.utils.timezone.now")
     def test_rate_reached2(self, mock_now):
@@ -241,6 +246,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
         assert not snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
 
     @mock.patch("django.utils.timezone.now")
     def test_rate_reached_perf_issue(self, mock_now):
@@ -262,6 +268,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                 timestamp=mock_now() - timedelta(minutes=n),
             )
         assert not snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
 
     @mock.patch("django.utils.timezone.now")
     def test_rate_reached_perf_issue2(self, mock_now):
@@ -291,5 +298,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
                 transaction_name=str(i),
             )
 
+        assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
         assert not snooze.is_valid(test_rates=True)
 

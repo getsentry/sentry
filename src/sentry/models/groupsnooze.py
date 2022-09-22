@@ -57,7 +57,7 @@ class GroupSnooze(Model):
     def get_cache_key(cls, group_id):
         return "groupsnooze_group_id:1:%s" % (group_id)
 
-    def is_valid(self, group=None, test_rates=False, use_pending_data=False):
+    def is_valid(self, group=None, test_rates=False, use_pending_data=False, use_snuba_tsdb=False):
         if group is None:
             group = self.group
         elif group.id != self.group_id:
@@ -70,7 +70,7 @@ class GroupSnooze(Model):
         if self.count:
             if self.window:
                 if test_rates:
-                    if not self.test_frequency_rates():
+                    if not self.test_frequency_rates(use_snuba_tsdb):
                         return False
             else:
                 times_seen = group.times_seen_with_pending if use_pending_data else group.times_seen
@@ -79,42 +79,51 @@ class GroupSnooze(Model):
 
         if self.user_count and test_rates:
             if self.user_window:
-                if not self.test_user_rates():
+                if not self.test_user_rates(use_snuba_tsdb):
                     return False
             elif self.user_count <= group.count_users_seen() - self.state["users_seen"]:
                 return False
         return True
 
-    def test_frequency_rates(self):
+    def test_frequency_rates(self, use_snuba_tsdb):
         from sentry import tsdb
 
-        # from sentry.tsdb.snuba import SnubaTSDB
+        from sentry.tsdb.snuba import SnubaTSDB
 
-        # tsdb = SnubaTSDB()
+        snuba_tsdb = SnubaTSDB()
 
         metrics.incr("groupsnooze.test_frequency_rates")
 
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.get_sums(
-            model=ISSUE_TSDB_GROUP_MODELS[self.group.issue_category],
-            keys=[self.group_id],
-            start=start,
-            end=end,
-        )[self.group_id]
+        if not use_snuba_tsdb:
+            rate = tsdb.get_sums(
+                model=ISSUE_TSDB_GROUP_MODELS[self.group.issue_category],
+                keys=[self.group_id],
+                start=start,
+                end=end,
+            )[self.group_id]
+        else:
+            rate = snuba_tsdb.get_sums(
+                model=ISSUE_TSDB_GROUP_MODELS[self.group.issue_category],
+                keys=[self.group_id],
+                start=start,
+                end=end,
+            )[self.group_id]  
         print("rate: ", rate)
+
         if rate >= self.count:
             return False
 
         return True
 
-    def test_user_rates(self):
+    def test_user_rates(self, use_snuba_tsdb):
         from sentry import tsdb
 
-        # from sentry.tsdb.snuba import SnubaTSDB
+        from sentry.tsdb.snuba import SnubaTSDB
 
-        # tsdb = SnubaTSDB()
+        snuba_tsdb = SnubaTSDB()
 
         metrics.incr("groupsnooze.test_user_rates")
 
@@ -122,13 +131,22 @@ class GroupSnooze(Model):
         # XXX: not sure why starting this 1 second before works
         start = end - timedelta(minutes=self.user_window, seconds=1)
 
-        rate = tsdb.get_distinct_counts_totals(
-            model=ISSUE_TSDB_USER_GROUP_MODELS[self.group.issue_category],
-            keys=[self.group_id],
-            start=start,
-            end=end,
-        )[self.group_id]
+        if not use_snuba_tsdb:
+            rate = tsdb.get_distinct_counts_totals(
+                model=ISSUE_TSDB_USER_GROUP_MODELS[self.group.issue_category],
+                keys=[self.group_id],
+                start=start,
+                end=end,
+            )[self.group_id]
+        else:
+            rate = snuba_tsdb.get_distinct_counts_totals(
+                model=ISSUE_TSDB_USER_GROUP_MODELS[self.group.issue_category],
+                keys=[self.group_id],
+                start=start,
+                end=end,
+            )[self.group_id]
         print("rate: ", rate)
+
         if rate >= self.user_count:
             return False
 
