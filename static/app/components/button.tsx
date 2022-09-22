@@ -374,14 +374,13 @@ export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
     font-weight: 600;
     ${getColors({...props, theme})};
     ${getSizeStyles({...props, theme})};
-    ${getBoxShadow({...props, theme})}};
+    ${getBoxShadow({...props, theme})};
     cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
     opacity: ${(props.busy || props.disabled) && '0.65'};
     transition: background 0.1s, border 0.1s, box-shadow 0.1s;
 
-    ${
-      props.priority === 'link' && `font-size: inherit; font-weight: inherit; padding: 0;`
-    }
+    ${props.priority === 'link' &&
+    `font-size: inherit; font-weight: inherit; padding: 0;`}
     ${props.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
 
   &:focus {
