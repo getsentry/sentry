@@ -7,6 +7,7 @@ from rest_framework.request import Request
 
 from sentry import roles
 from sentry.api.exceptions import SentryAPIException, status
+from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.roles.manager import Role, TeamRole
@@ -26,10 +27,16 @@ class TeamRoleDict(TypedDict):
 @transaction.atomic
 def save_team_assignments(
     organization_member: OrganizationMember,
-    teams: list[str],
-    teams_with_roles: list[TeamRoleDict] = None,
+    teams: list[str] | None,
+    teams_with_roles: list[TeamRoleDict] | None = None,
 ):
-    team_slugs = [item["teamSlug"] for item in teams_with_roles] if teams_with_roles else teams
+    if teams_with_roles is not None:
+        team_slugs = [item["teamSlug"] for item in teams_with_roles]
+    elif teams is not None:
+        team_slugs = teams
+    else:
+        team_slugs = []
+
     target_teams = list(
         Team.objects.filter(
             organization=organization_member.organization,
@@ -37,17 +44,15 @@ def save_team_assignments(
             slug__in=team_slugs,
         )
     )
-    if len(target_teams) != len(team_slugs):
+    if len(target_teams) != len(set(team_slugs)):
         raise InvalidTeam
 
     # Avoids O(n * n) search later
-    team_role_map = {}
-    for item in teams_with_roles:
-        team_role_map[item["teamSlug"]] = item["role"]
+    team_role_map = (
+        {item["teamSlug"]: item["role"] for item in teams_with_roles} if teams_with_roles else {}
+    )
 
-    new_assignments = []
-    for team in target_teams:
-        new_assignments.append((team, team_role_map.get(team.slug, None)))
+    new_assignments = [(team, team_role_map.get(team.slug, None)) for team in target_teams]
 
     OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
     OrganizationMemberTeam.objects.bulk_create(
@@ -58,27 +63,27 @@ def save_team_assignments(
     )
 
 
-def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
-    if not can_admin_team(request, team):
+def can_set_team_role(access: Access, team: Team, new_role: TeamRole) -> bool:
+    if not can_admin_team(access, team):
         return False
 
-    org_role = request.access.get_organization_role()
+    org_role = access.get_organization_role()
     if org_role and org_role.can_manage_team_role(new_role):
         return True
 
-    team_role = request.access.get_team_role(team)
+    team_role = access.get_team_role(team)
     if team_role and team_role.can_manage(new_role):
         return True
 
     return False
 
 
-def can_admin_team(request: Request, team: Team) -> bool:
-    if request.access.has_scope("org:write"):
+def can_admin_team(access: Access, team: Team) -> bool:
+    if access.has_scope("org:write"):
         return True
-    if not request.access.has_team_membership(team):
+    if not access.has_team_membership(team):
         return False
-    return request.access.has_team_scope(team, "team:write")
+    return access.has_team_scope(team, "team:write")
 
 
 def get_allowed_org_roles(

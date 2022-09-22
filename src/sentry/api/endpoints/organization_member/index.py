@@ -247,10 +247,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.save()
 
         # Do not set team-roles when inviting members
-        if "teams" in result or "teamRoles" in result:
-            teams = result.get("teams") or [
-                item["teamSlug"] for item in result.get("teamRoles", [])
-            ]
+        if "teamRoles" in result or "teams" in result:
+            teams = (
+                [item["teamSlug"] for item in result.get("teamRoles")]
+                if "teamRoles" in result
+                else result.get("teams")
+            )
             lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member")
             with TimedRetryPolicy(10)(lock.acquire):
                 save_team_assignments(om, teams)

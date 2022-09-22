@@ -209,18 +209,21 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
-        try:
-            lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member_details")
-            with TimedRetryPolicy(10)(lock.acquire):
-                if "teamRoles" in result:
+        if "teamRoles" in result or "teams" in result:
+            try:
+                lock = locks.get(f"org:member:{member.id}", duration=5, name="org_member_details")
+                with TimedRetryPolicy(10)(lock.acquire):
+                    # If orgs do not have the flag, we'll reset their team-roles
                     if not features.has("organizations:team-roles", organization):
-                        for item in result.get("teamRoles"):
+                        for item in result.get("teamRoles", []):
                             item["roles"] = None
-                    save_team_assignments(member, None, result.get("teamRoles"))
-                elif "teams" in result:
-                    save_team_assignments(member, result.get("teams"))
-        except InvalidTeam:
-            return Response({"teams": "Invalid team"}, status=400)
+
+                    if "teamRoles" in result:
+                        save_team_assignments(member, None, result.get("teamRoles"))
+                    elif "teams" in result:
+                        save_team_assignments(member, result.get("teams"))
+            except InvalidTeam:
+                return Response({"teams": "Invalid team"}, status=400)
 
         assigned_org_role = result.get("orgRole") or result.get("role")
         if assigned_org_role:
