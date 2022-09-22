@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
@@ -100,7 +101,7 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
         try:
             default_query = get_default_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            raise ResourceDoesNotExist
 
         default_query.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
