@@ -58,7 +58,10 @@ class WebhookTest(GitLabTestCase):
             HTTP_X_GITLAB_EVENT="lol",
         )
         assert response.status_code == 400
-        assert response.reason_phrase == "Invalid Gitlab event sent."
+        assert (
+            response.reason_phrase
+            == "The customer has edited the webhook in Gitlab to include other types of events."
+        )
 
     def test_invalid_token(self):
         response = self.client.post(

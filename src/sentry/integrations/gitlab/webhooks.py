@@ -196,6 +196,7 @@ class GitlabWebhookEndpoint(View):
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
             "user-agent": request.META.get("HTTP_USER_AGENT"),
+            "event-type": request.META["HTTP_X_GITLAB_EVENT"],
         }
         token = "<unknown>"
         try:
@@ -229,7 +230,10 @@ class GitlabWebhookEndpoint(View):
 
         try:
             integration = (
-                Integration.objects.filter(provider=self.provider, external_id=external_id)
+                Integration.objects.filter(
+                    provider=self.provider,
+                    external_id=external_id,  # e.g. example.gitlab.com:group-x
+                )
                 .prefetch_related("organizations")
                 .get()
             )
@@ -270,20 +274,21 @@ class GitlabWebhookEndpoint(View):
         try:
             event = json.loads(request.body.decode("utf-8"))
         except json.JSONDecodeError as e:
-            logger.info(
-                "gitlab.webhook.invalid-json", extra={"external_id": integration.external_id}
-            )
+            logger.info("gitlab.webhook.invalid-json", extra=extra)
             capture_exception(e)
             return HttpResponse(status=400, reason="Data received is not JSON.")
 
         try:
             handler = self._handlers[request.META["HTTP_X_GITLAB_EVENT"]]
         except KeyError as e:
-            logger.info(
-                "gitlab.webhook.missing-event", extra={"event": request.META["HTTP_X_GITLAB_EVENT"]}
-            )
+            logger.info("gitlab.webhook.wrong-event-type", extra=extra)
+            supported_events = ", ".join(sorted(self._handlers.keys()))
+            logger.info(f"We only support these kinds of events: {supported_events}")
             capture_exception(e)
-            return HttpResponse(status=400, reason="Invalid Gitlab event sent.")
+            return HttpResponse(
+                status=400,
+                reason="The customer has edited the webhook in Gitlab to include other types of events.",
+            )
 
         for organization in integration.organizations.all():
             handler()(integration, organization, event)
