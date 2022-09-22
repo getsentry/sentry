@@ -5,7 +5,6 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import type {ComponentType, makeLazyloadComponent, PromisedImport} from 'sentry/routes';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -98,15 +97,6 @@ type AlertsHeaderProps = {
   organization: Organization;
 };
 
-type MakeComponentWithAnalyticsHook = <C extends ComponentType>(
-  resolve: () => PromisedImport<C>,
-  options?: {
-    disableAnalytics?: boolean;
-    // TODO: type better than any
-    getAnalyticsParams?: (props: any) => Record<string, any>;
-  }
-) => ReturnType<typeof makeLazyloadComponent>;
-
 type AdjacentRoutComponentProps = any;
 
 type RouteActivatedHook = any;
@@ -142,7 +132,6 @@ export type CustomizationHooks = {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
-  'wrapper:make-component-with-analytics': MakeComponentWithAnalyticsHook;
 };
 
 /**
