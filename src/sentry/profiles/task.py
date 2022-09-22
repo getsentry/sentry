@@ -383,6 +383,10 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return True
     except RecursionError:
         profile["call_trees"] = {}
+        metrics.incr(
+            "profiling.insert_vroom_profile.error.recursion",
+            tags={"platform": profile["platform"], "profile_id": profile["profile_id"]},
+        )
         return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
