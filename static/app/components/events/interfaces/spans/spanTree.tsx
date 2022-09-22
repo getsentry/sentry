@@ -210,7 +210,7 @@ class SpanTree extends Component<PropType> {
       }
     }, 0);
 
-    const isEmbeddedSpanTree = !!waterfallModel.focusedSpanIds;
+    const isEmbeddedSpanTree = waterfallModel.isEmbeddedSpanTree;
 
     const {spanTree, numOfSpansOutOfViewAbove, filteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType) => {
@@ -364,7 +364,11 @@ class SpanTree extends Component<PropType> {
         // This is necessary because generally these spans are dependant on intersection observers which will
         // mark them in view, but these observers are not reliable when the span tree is in a condensed state.
         // Marking them here will ensure that the horizontally positioning is correctly set when the tree is loaded.
-        if (!('type' in span) && isEmbeddedSpanTree) {
+        if (
+          !('type' in span) &&
+          isEmbeddedSpanTree &&
+          waterfallModel.focusedSpanIds?.has(span.span_id)
+        ) {
           markSpanInView(span.span_id, treeDepth);
         }
 
