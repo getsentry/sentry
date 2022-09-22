@@ -65,7 +65,7 @@ class End2EndTest(APITestCase):
             )
             assert (
                 response.cookies.output()
-                == 'Set-Cookie: sentrysid=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                == 'Set-Cookie: sentrysid=""; Domain=.sentry.io; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
             )
 
     def test_multiple_relevant_duplicate_cookies(self):
@@ -94,19 +94,19 @@ class End2EndTest(APITestCase):
             )
             set_cookie = response.cookies.output()
             assert (
-                'Set-Cookie: sc=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                'Set-Cookie: sc=""; Domain=.sentry.io; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
                 in set_cookie
             )
             assert (
-                'Set-Cookie: sentrysid=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                'Set-Cookie: sentrysid=""; Domain=.sentry.io; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
                 in set_cookie
             )
             assert (
-                'Set-Cookie: su=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                'Set-Cookie: su=""; Domain=.sentry.io; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
                 in set_cookie
             )
             assert (
-                'Set-Cookie: sudo=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                'Set-Cookie: sudo=""; Domain=.sentry.io; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
                 in set_cookie
             )
 

@@ -84,5 +84,8 @@ class DedupeCookiesMiddleware:
         response = HttpResponseRedirect(redirect_url)
 
         for cookie_name in duplicate_cookies:
-            response.delete_cookie(cookie_name)
+            # De-dupe cookies with Domain=.sentry.io that will collide with cookies with Domain=sentry.io
+            # This change will be reverted once domains are configured for session, csrf, su, and sudo cookies for
+            # shipping customer domains.
+            response.delete_cookie(cookie_name, domain=".sentry.io")
         return response
