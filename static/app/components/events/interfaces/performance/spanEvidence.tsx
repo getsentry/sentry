@@ -41,7 +41,6 @@ export function SpanEvidenceSection({event, organization}: Props) {
   const spansById = keyBy(spans, 'span_id');
 
   const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
-  const sourceSpan = spansById[event.perfProblem.causeSpanIds[0]];
   const repeatingSpan = spansById[event.perfProblem.offenderSpanIds[0]];
 
   const data: KeyValueListData = [
@@ -57,21 +56,12 @@ export function SpanEvidenceSection({event, organization}: Props) {
     },
     {
       key: '2',
-      subject: t('Source Span'),
-      value: getSpanEvidenceValue(sourceSpan),
-    },
-    {
-      key: '3',
       subject: t('Repeating Span'),
       value: getSpanEvidenceValue(repeatingSpan),
     },
   ];
 
-  const affectedSpanIds = [
-    parentSpan.span_id,
-    sourceSpan.span_id,
-    ...event.perfProblem.offenderSpanIds,
-  ];
+  const affectedSpanIds = [parentSpan.span_id, ...event.perfProblem.offenderSpanIds];
 
   return (
     <DataSection
