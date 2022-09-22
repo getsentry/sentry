@@ -22,7 +22,7 @@ const DISPATCHES = [
 module.exports = {
   dispatch: async ({github, context, fileChanges}) => {
     const shouldSkip = {
-      frontend: fileChanges.frontend !== 'true',
+      frontend: fileChanges.frontend_all !== 'true',
       backend_dependencies: fileChanges.backend_dependencies !== 'true',
     };
 

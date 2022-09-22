@@ -290,7 +290,7 @@ class GroupDetails extends Component<Props, State> {
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
-      expand: 'inbox',
+      expand: ['inbox', 'owners'],
       collapse: 'release',
     };
 
@@ -581,13 +581,14 @@ class GroupDetails extends Component<Props, State> {
     return (
       <Fragment>
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
           replaysCount={replayIds?.length}
           currentTab={currentTab}
           baseUrl={baseUrl}
+          project={project as Project}
         />
         {isValidElement(children) ? cloneElement(children, childProps) : children}
       </Fragment>

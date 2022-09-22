@@ -144,7 +144,7 @@ function CompositeSelect<OptionType extends GeneralSelectValue = GeneralSelectVa
   }
 
   return (
-    <CompactSelect<ExtendedOptionType>
+    <CompactSelect
       {...props}
       multiple
       options={options}
