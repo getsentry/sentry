@@ -44,11 +44,6 @@ export function SpanEvidenceSection({event, organization}: Props) {
     },
     {
       key: '2',
-      subject: t('Source Span'),
-      value: getSpanEvidenceValue(sourceSpan),
-    },
-    {
-      key: '3',
       subject: t('Repeating Span'),
       value: getSpanEvidenceValue(repeatingSpan),
     },
