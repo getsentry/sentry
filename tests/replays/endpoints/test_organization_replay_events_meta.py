@@ -26,11 +26,11 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
         event_id_a = "a" * 32
         event_id_b = "b" * 32
 
-        self.store_event(
+        event_a = self.store_event(
             data={"event_id": event_id_a, "timestamp": iso_format(self.min_ago)},
             project_id=self.project_1.id,
         )
-        self.store_event(
+        event_b = self.store_event(
             data={"event_id": event_id_b, "timestamp": iso_format(self.min_ago)},
             project_id=self.project_2.id,
         )
@@ -45,16 +45,20 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             {
                 "error.type": [],
                 "error.value": [],
+                "group.id": "",
                 "id": event_id_a,
                 "issue.id": 1,
+                "issue": event_a.group.qualified_short_id,
                 "project.name": self.project_1.slug,
                 "timestamp": iso_format(self.min_ago) + "+00:00",
             },
             {
                 "error.type": [],
                 "error.value": [],
+                "group.id": "",
                 "id": event_id_b,
                 "issue.id": 2,
+                "issue": event_b.group.qualified_short_id,
                 "project.name": self.project_2.slug,
                 "timestamp": iso_format(self.min_ago) + "+00:00",
             },
