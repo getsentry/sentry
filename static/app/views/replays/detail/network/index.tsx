@@ -12,6 +12,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
@@ -29,9 +30,14 @@ type Props = {
   replayRecord: ReplayRecord;
 };
 
+type SortDirection = 'asc' | 'desc';
+
+const createSpanId = (span: NetworkSpan) =>
+  `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
+
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
-  const {setCurrentHoverTime, setCurrentTime} = useReplayContext();
+  const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
@@ -49,6 +55,17 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   } = useNetworkFilters({networkSpans});
 
   const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
+
+  const currentNetworkSpan = getPrevReplayEvent({
+    items: networkData.map(span => ({
+      ...span,
+      id: createSpanId(span),
+      timestamp: span.startTimestamp * 1000,
+    })),
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
+  });
 
   const handleMouseEnter = useCallback(
     (timestamp: number) => {
@@ -146,18 +163,26 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </SortItem>,
   ];
 
-  const renderTableRow = (network: NetworkSpan, index: number) => {
+  const renderTableRow = (network: NetworkSpan) => {
+    const spanId = createSpanId(network);
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
     const statusCode = network.data.statusCode;
 
+    const columnHandlers = getColumnHandlers(networkStartTimestamp);
     const columnProps = {
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      isCurrent: currentNetworkSpan?.id === spanId,
+      hasOccurred:
+        currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
+      timestampSort:
+        sortConfig.by === 'startTimestamp'
+          ? ((sortConfig.asc ? 'asc' : 'desc') as SortDirection)
+          : undefined,
     };
-    const columnHandlers = getColumnHandlers(networkStartTimestamp);
 
     return (
-      <Fragment key={index}>
+      <Fragment key={spanId}>
         <Item {...columnHandlers} {...columnProps} isStatusCode>
           {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
@@ -257,23 +282,67 @@ const NetworkFilters = styled('div')`
   }
 `;
 
+const Text = styled('p')`
+  padding: 0;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+`;
+
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
+`;
+
 const Item = styled('div')<{
   center?: boolean;
   color?: ColorOrAlias;
+  hasOccurred?: boolean;
+  isCurrent?: boolean;
   isStatusCode?: boolean;
   isStatusError?: boolean;
   numeric?: boolean;
+  timestampSort?: SortDirection;
 }>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p =>
-    p.isStatusCode && p.isStatusError ? p.theme.red400 : p.theme[p.color || 'subText']};
+  color: ${({hasOccurred = true, isStatusError, timestampSort, ...p}) => {
+    if (hasOccurred || !timestampSort) {
+      return isStatusError ? p.theme.red400 : p.theme.gray400;
+    }
+    return p.theme.gray300;
+  }};
   padding: ${space(0.75)} ${space(1.5)};
-  background-color: ${p => (p.isStatusError ? p.theme.red100 : p.theme.background)};
+  background-color: ${p => p.theme.background};
+  border-bottom: ${({isCurrent = false, isStatusError, timestampSort, ...p}) => {
+    if (isCurrent && timestampSort === 'asc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return isStatusError
+      ? `1px solid ${p.theme.red100}`
+      : `1px solid ${p.theme.innerBorder}`;
+  }};
 
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
+  border-top: ${({isCurrent = false, timestampSort, ...p}) => {
+    if (isCurrent && timestampSort === 'desc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return 0;
+  }};
+
+  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
+
+  ${EmptyText} {
+    color: ${({hasOccurred = true, timestampSort, ...p}) => {
+      if (hasOccurred || !timestampSort) {
+        return p.theme.gray400;
+      }
+      return p.theme.gray300;
+    }};
+  }
 `;
 
 const UnstyledButton = styled('button')`
@@ -334,19 +403,6 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
       text-align: start;
     }
   }
-`;
-
-const Text = styled('p')`
-  padding: 0;
-  margin: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const EmptyText = styled(Text)`
-  font-style: italic;
-  color: ${p => p.theme.subText};
 `;
 
 const SortItem = styled('span')`
