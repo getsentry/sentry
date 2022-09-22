@@ -27,13 +27,13 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
     def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:
         return [
-            "id",
-            "error.value",
-            "timestamp",
             "error.type",
+            "error.value",
+            "group.id",
+            "id",
             "issue.id",
             "issue",
-            "group.id",
+            "timestamp",
         ]
 
     def get(self, request: Request, organization) -> Response:
