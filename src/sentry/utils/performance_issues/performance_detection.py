@@ -990,7 +990,7 @@ def report_metrics_for_detectors(
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
-            tags={"sdk_name": sdk_name}
+            tags={"sdk_name": sdk_name},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
