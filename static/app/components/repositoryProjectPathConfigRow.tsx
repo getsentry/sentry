@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -18,64 +18,62 @@ type Props = {
   project: Project;
 };
 
-export default class RepositoryProjectPathConfigRow extends Component<Props> {
-  render() {
-    const {pathConfig, project, onEdit, onDelete} = this.props;
-
-    return (
-      <Access access={['org:integrations']}>
-        {({hasAccess}) => (
-          <Fragment>
-            <NameRepoColumn>
-              <ProjectRepoHolder>
-                <RepoName>{pathConfig.repoName}</RepoName>
-                <ProjectAndBranch>
-                  <IdBadge
-                    project={project}
-                    avatarSize={14}
-                    displayName={project.slug}
-                    avatarProps={{consistentWidth: true}}
-                  />
-                  <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
-                </ProjectAndBranch>
-              </ProjectRepoHolder>
-            </NameRepoColumn>
-            <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
-            <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
-            <ButtonColumn>
-              <Tooltip
-                title={t(
-                  'You must be an organization owner, manager or admin to edit or remove a code mapping.'
-                )}
-                disabled={hasAccess}
+function RepositoryProjectPathConfigRow({pathConfig, project, onEdit, onDelete}: Props) {
+  return (
+    <Access access={['org:integrations']}>
+      {({hasAccess}) => (
+        <Fragment>
+          <NameRepoColumn>
+            <ProjectRepoHolder>
+              <RepoName>{pathConfig.repoName}</RepoName>
+              <ProjectAndBranch>
+                <IdBadge
+                  project={project}
+                  avatarSize={14}
+                  displayName={project.slug}
+                  avatarProps={{consistentWidth: true}}
+                />
+                <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
+              </ProjectAndBranch>
+            </ProjectRepoHolder>
+          </NameRepoColumn>
+          <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
+          <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
+          <ButtonColumn>
+            <Tooltip
+              title={t(
+                'You must be an organization owner, manager or admin to edit or remove a code mapping.'
+              )}
+              disabled={hasAccess}
+            >
+              <StyledButton
+                size="sm"
+                icon={<IconEdit size="sm" />}
+                aria-label={t('edit')}
+                disabled={!hasAccess}
+                onClick={() => onEdit(pathConfig)}
+              />
+              <Confirm
+                disabled={!hasAccess}
+                onConfirm={() => onDelete(pathConfig)}
+                message={t('Are you sure you want to remove this code mapping?')}
               >
                 <StyledButton
                   size="sm"
-                  icon={<IconEdit size="sm" />}
-                  aria-label={t('edit')}
+                  icon={<IconDelete size="sm" />}
+                  aria-label={t('delete')}
                   disabled={!hasAccess}
-                  onClick={() => onEdit(pathConfig)}
                 />
-                <Confirm
-                  disabled={!hasAccess}
-                  onConfirm={() => onDelete(pathConfig)}
-                  message={t('Are you sure you want to remove this code mapping?')}
-                >
-                  <StyledButton
-                    size="sm"
-                    icon={<IconDelete size="sm" />}
-                    aria-label={t('delete')}
-                    disabled={!hasAccess}
-                  />
-                </Confirm>
-              </Tooltip>
-            </ButtonColumn>
-          </Fragment>
-        )}
-      </Access>
-    );
-  }
+              </Confirm>
+            </Tooltip>
+          </ButtonColumn>
+        </Fragment>
+      )}
+    </Access>
+  );
 }
+
+export default RepositoryProjectPathConfigRow;
 
 const ProjectRepoHolder = styled('div')`
   display: flex;
