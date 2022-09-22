@@ -332,7 +332,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om).order_by(
             "role"
         )
-        print(member_teams)
         team_ids = list(map(lambda x: x.team_id, member_teams))
         assert foo.id in team_ids
         assert bar.id in team_ids
