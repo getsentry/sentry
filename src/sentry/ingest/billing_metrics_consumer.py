@@ -1,4 +1,4 @@
-from typing import Callable, Mapping, Optional
+from typing import Callable, Dict, Mapping, Optional
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -7,6 +7,7 @@ from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyF
 from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
+from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
 
@@ -44,6 +45,8 @@ class BillingMetricsConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         print("creating instance of consumer strategy...")
         self.__futures = []
         self.__closed = False
+        # TODO: ensure encoding is right
+        self.__message_payload_encoding = "utf-8"
 
     def poll(self) -> None:
         while self.__futures and self.__futures[0].done():
@@ -52,8 +55,21 @@ class BillingMetricsConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
-        print(f"received message: {message}")
-        print(message.payload)
+        payload = self._get_payload(message)
+        print(f"payload: {payload}")
+        num_processed_transactions = self._estimate_processed_transactions(payload)
+        self._generate_billing_outcomes(num_processed_transactions)
+
+    def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
+        return json.loads(message.payload.value.decode(self.__message_payload_encoding))
+
+    def _estimate_processed_transactions(self, bucket_payload: Dict) -> int:
+        # TODO: check for the metric ID
+        return len(bucket_payload["value"])
+
+    def _generate_billing_outcomes(self, amount: int) -> None:
+        # TODO
+        pass
 
     def close(self) -> None:
         self.__closed = True
