@@ -651,6 +651,7 @@ def metrics_billing_consumer(**options):
     consumer = get_metrics_billing_consumer(**options)
     print(consumer)
     print(vars(consumer))
+    consumer.run()
 
 
 @run.command("ingest-profiles")
