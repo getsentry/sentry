@@ -1,7 +1,7 @@
 {% load sentry_assets %}
 
 <div style="padding: 20px; border-bottom: 1px solid #ddd; background: #fff; margin-bottom: 20px;">
-  <div style="width: 500; margin: 0 auto">
+  <div style="width: 600; margin: 0 auto; display: flex;">
     {% if preview.subject %}<h1>{{ preview.subject }}</h1>{% endif %}
     <label for="event" style="margin-right: 10px">Selection:</label>
     <select id="event" style="width: 200px; margin-right: 20px;">
@@ -63,6 +63,9 @@
       <option value="html">HTML</option>
       <option value="txt" {% if format == 'txt' %} selected="selected"{% endif %}>Plaintext</option>
     </select>
+    <form action="" method="post" style="margin-left: auto; margin-block-end: 0;">
+      <button type="submit">Send</button>
+    </form>
   </div>
 </div>
 
