@@ -9,7 +9,7 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
-from zegun import freeze_time
+from freezegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
 
 from sentry.api.utils import InvalidParams
