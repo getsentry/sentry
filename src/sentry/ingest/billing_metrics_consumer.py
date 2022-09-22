@@ -62,7 +62,6 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         assert not self.__closed
 
         payload = self._get_payload(message)
-        print(f"payload: {payload}")
         num_processed_transactions = self._estimate_processed_transactions(payload)
         self._generate_billing_outcomes(num_processed_transactions)
 
@@ -93,8 +92,7 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self) -> None:
-        print("creating instace of factory...")
+    # TODO: docs
 
     def create_with_partitions(
         self,
