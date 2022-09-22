@@ -16,6 +16,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
+from sentry.utils.event_frames import get_sdk_name
 
 from .performance_span_issue import PerformanceSpanProblem
 
@@ -979,7 +980,7 @@ def report_metrics_for_detectors(
 ):
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
-    sdk_name = event.get("sdk", {}).get("name", "")
+    sdk_name = get_sdk_name(event.data) if "data" in event else ""
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
