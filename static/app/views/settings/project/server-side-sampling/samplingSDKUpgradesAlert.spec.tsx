@@ -46,7 +46,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
 
     expect(
       screen.getByText(
-        'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
+        'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
       )
     ).toBeInTheDocument();
 

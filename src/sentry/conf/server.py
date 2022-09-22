@@ -1103,6 +1103,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable "Owned By" and "Assigned To" on issue details
+    "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1126,6 +1128,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
+    # Enable showing INP web vital in default views
+    "organizations:performance-vitals-inp": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -2151,6 +2155,13 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
+if SENTRY_DEV_DSN:
+    # In production, this value is *not* set via an env variable
+    # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
+    # This is used in case you want to report traces of your development set up to a project of your choice
+    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
@@ -2788,6 +2799,7 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
+SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
 SENTRY_FUNCTIONS_PROJECT_NAME = None
 

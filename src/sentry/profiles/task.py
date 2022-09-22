@@ -205,9 +205,6 @@ def _symbolicate(profile: Profile, project: Project) -> None:
             sentry_sdk.capture_exception(e)
             break
 
-    # remove debug information we don't need anymore
-    profile.pop("debug_meta")
-
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
 
@@ -320,6 +317,10 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     if processed_profiles_publisher is None:
         return
 
+    # call_trees is empty because of an error earlier, skip aggregation
+    if not profile.get("call_trees"):
+        return
+
     try:
         event = _get_event_instance(profile)
     except Exception as e:
@@ -380,6 +381,12 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             )
             return False
         return True
+    except RecursionError as e:
+        sentry_sdk.set_context(
+            "profile", {"profile_id": profile["profile_id"], "platform": profile["platform"]}
+        )
+        sentry_sdk.capture_exception(e)
+        return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(
@@ -390,3 +397,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     finally:
         profile["received"] = original_timestamp
         profile["profile"] = ""
+
+        # remove debug information we don't need anymore
+        profile.pop("debug_meta", None)

@@ -18,11 +18,15 @@ import {
   IconSettings,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getNextReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const SECOND = 1000;
 
@@ -89,10 +93,8 @@ function ReplayPlayPauseBar({isCompact}: {isCompact: boolean}) {
               return;
             }
             const transformedCrumbs = replay?.getRawCrumbs() || [];
-            const next = getNextBreadcrumb({
-              crumbs: transformedCrumbs.filter(crumb =>
-                USER_ACTIONS.includes(crumb.type)
-              ),
+            const next = getNextReplayEvent({
+              items: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
               targetTimestampMs: startTimestampMs + currentTime,
             });
 
@@ -167,12 +169,25 @@ function ReplayOptionsMenu({speedOptions}: {speedOptions: number[]}) {
 }
 
 const ReplayControls = ({
-  toggleFullscreen = () => {},
+  toggleFullscreen,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
   const [compactLevel, setCompactLevel] = useState(0);
   const {isFullscreen} = useFullscreen();
+
+  const handleFullscreenToggle = () => {
+    if (toggleFullscreen) {
+      trackAdvancedAnalyticsEvent('replay.toggle-fullscreen', {
+        organization,
+        user_email: config.user.email,
+        fullscreen: !isFullscreen,
+      });
+      toggleFullscreen();
+    }
+  };
 
   const updateCompactLevel = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {width: 500};
@@ -201,7 +216,7 @@ const ReplayControls = ({
         title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
         icon={isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />}
-        onClick={toggleFullscreen}
+        onClick={handleFullscreenToggle}
       />
     </ButtonGrid>
   );

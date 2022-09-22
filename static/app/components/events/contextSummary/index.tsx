@@ -10,20 +10,17 @@ import {ContextSummaryGeneric} from './contextSummaryGeneric';
 import {ContextSummaryGPU} from './contextSummaryGPU';
 import {ContextSummaryOS} from './contextSummaryOS';
 import {ContextSummaryUser} from './contextSummaryUser';
-import filterContexts from './filterContexts';
-
-export type Context = {
-  // TODO(ts): Refactor this component
-  Component: (props: any) => JSX.Element;
-  keys: string[];
-  omitUnknownVersion?: boolean;
-  unknownTitle?: string;
-};
+import {Context} from './types';
+import {makeContextFilter} from './utils';
 
 const MIN_CONTEXTS = 3;
 const MAX_CONTEXTS = 4;
+
 const KNOWN_CONTEXTS: Context[] = [
-  {keys: ['user'], Component: ContextSummaryUser},
+  {
+    keys: ['user'],
+    Component: ContextSummaryUser,
+  },
   {
     keys: ['browser'],
     Component: ContextSummaryGeneric,
@@ -35,9 +32,18 @@ const KNOWN_CONTEXTS: Context[] = [
     unknownTitle: t('Unknown Runtime'),
     omitUnknownVersion: true,
   },
-  {keys: ['client_os', 'os'], Component: ContextSummaryOS},
-  {keys: ['device'], Component: ContextSummaryDevice},
-  {keys: ['gpu'], Component: ContextSummaryGPU},
+  {
+    keys: ['client_os', 'os'],
+    Component: ContextSummaryOS,
+  },
+  {
+    keys: ['device'],
+    Component: ContextSummaryDevice,
+  },
+  {
+    keys: ['gpu'],
+    Component: ContextSummaryGPU,
+  },
 ];
 
 type Props = {
@@ -45,75 +51,75 @@ type Props = {
 };
 
 function ContextSummary({event}: Props) {
-  let contextCount = 0;
+  const filteredContexts = KNOWN_CONTEXTS.filter(makeContextFilter(event));
 
-  // Add defined contexts in the declared order, until we reach the limit
-  // defined by MAX_CONTEXTS.
-  let contexts = KNOWN_CONTEXTS.filter(context => filterContexts(event, context)).map(
-    ({keys, Component, unknownTitle, omitUnknownVersion}) => {
-      if (contextCount >= MAX_CONTEXTS) {
-        return null;
-      }
+  // XXX: We want to have *at least* MIN_CONTEXTS, so we first find all the
+  // contexts that have data, if that doesn't complete our MIN_CONTEXTS, we add
+  // in contextrs that have no data.
 
-      const [key, data] = keys
-        .map(k => [k, event.contexts[k] || event[k]])
-        .find(([_k, d]) => !objectIsEmpty(d)) || [null, null];
+  const itemsWithData = filteredContexts
+    .map(context => {
+      // Find data for any of the keys
+      const [key, data] = context.keys
+        .map(k => [k, event.contexts[k] ?? event[k]] as const)
+        .find(([_k, d]) => !objectIsEmpty(d)) ?? [null, null];
 
+      // No context value? Skip it
       if (!key) {
         return null;
       }
 
-      contextCount += 1;
-      return (
-        <Component
-          key={key}
-          data={data}
-          unknownTitle={unknownTitle}
-          omitUnknownVersion={omitUnknownVersion}
-          meta={event._meta?.contexts?.[key] ?? {}}
-        />
-      );
-    }
-  );
+      return {context, data, key};
+    })
+    .filter((items): items is NonNullable<typeof items> => !!items)
+    .slice(0, MAX_CONTEXTS);
 
-  // Bail out if all contexts are empty or only the user context is set
-  if (contextCount === 0 || (contextCount === 1 && contexts[0])) {
+  // Don't render anything if we don't have any context
+  if (itemsWithData.length === 0) {
     return null;
   }
 
-  if (contextCount < MIN_CONTEXTS) {
-    // Add contents in the declared order until we have at least MIN_CONTEXTS
-    // contexts in our list.
-    contexts = KNOWN_CONTEXTS.filter(context => filterContexts(event, context)).map(
-      ({keys, Component, unknownTitle}, index) => {
-        if (contexts[index]) {
-          return contexts[index];
-        }
-        if (contextCount >= MIN_CONTEXTS) {
-          return null;
-        }
-        contextCount += 1;
-        return (
-          <Component
-            key={keys[0]}
-            data={{}}
-            unknownTitle={unknownTitle}
-            meta={event._meta?.contexts?.[keys[0]] ?? {}}
-          />
-        );
-      }
-    );
+  // Don't render anything if we only have the user context
+  if (itemsWithData.length === 1) {
+    return null;
   }
 
-  return <Wrapper className="context-summary">{contexts}</Wrapper>;
+  // How many contexts without data do we need to add?
+  const remaining = Math.max(0, MIN_CONTEXTS - itemsWithData.length);
+
+  const itemsWithoutData = filteredContexts
+    // Ignore context keys we already have data for
+    .filter(context => !itemsWithData.some(({key}) => context.keys.includes(key)))
+    .map(context => ({
+      context,
+      data: {} as any,
+      key: context.keys[0],
+    }))
+    .slice(0, remaining);
+
+  const contexts = [...itemsWithData, ...itemsWithoutData].map(({context, key, data}) => {
+    const {Component, unknownTitle, omitUnknownVersion} = context;
+
+    const props = {
+      data,
+      unknownTitle,
+      omitUnknownVersion,
+      meta: event._meta?.contexts?.[key] ?? {},
+    };
+
+    return <Component key={key} {...props} />;
+  });
+
+  return <Wrapper>{contexts}</Wrapper>;
 }
 
 export default ContextSummary;
 
 const Wrapper = styled('div')`
+  margin-bottom: ${space(2)};
+
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
-    gap: ${space(3)};
-    margin-bottom: ${space(2)};
+    gap: ${space(4)};
   }
 `;

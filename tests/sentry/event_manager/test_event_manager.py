@@ -2078,7 +2078,25 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         assert event.title == "foo"
 
     def test_auto_update_grouping(self):
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
+            # start out with legacy grouping, this should update us
+            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+
+            manager = EventManager(
+                make_event(
+                    message="foo",
+                    event_id="c" * 32,
+                ),
+                project=self.project,
+            )
+            manager.normalize()
+            manager.save(self.project.id, auto_upgrade_grouping=True)
+
+            # No update yet
+            project = Project.objects.get(id=self.project.id)
+            assert project.get_option("sentry:grouping_config") == LEGACY_GROUPING_CONFIG
+
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=1.0):
             # start out with legacy grouping, this should update us
             self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 

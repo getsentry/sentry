@@ -289,7 +289,7 @@ class GroupDetails extends Component<Props, State> {
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
-      expand: 'inbox',
+      expand: ['inbox', 'owners'],
       collapse: 'release',
     };
 
@@ -607,12 +607,13 @@ class GroupDetails extends Component<Props, State> {
         }}
       >
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
           replaysCount={replayIds?.length}
           baseUrl={baseUrl}
+          project={project as Project}
         />
         <TabPanels>
           <Item key={currentTab}>

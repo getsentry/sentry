@@ -241,7 +241,6 @@ function AddToDashboardModal({
                 forceTransactions={metricsDataSide.forceTransactionsOnly}
               >
                 <WidgetCard
-                  api={api}
                   organization={organization}
                   currentWidgetDragging={false}
                   isEditing={false}

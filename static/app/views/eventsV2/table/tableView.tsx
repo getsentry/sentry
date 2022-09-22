@@ -24,7 +24,11 @@ import EventView, {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  DURATION_UNITS,
+  getFieldRenderer,
+  SIZE_UNITS,
+} from 'sentry/utils/discover/fieldRenderers';
 import {
   Column,
   fieldAlignment,
@@ -294,6 +298,12 @@ class TableView extends Component<TableViewProps> {
       }
     }
 
+    const topResultsIndicator =
+      isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
+        // Add one if we need to include Other in the series
+        <TopResultsIndicator count={count} index={rowIndex} />
+      ) : null;
+
     const fieldName = columnKey;
     const value = dataRow[fieldName];
     if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -303,6 +313,7 @@ class TableView extends Component<TableViewProps> {
           containerDisplayMode="block"
           position="right"
         >
+          {topResultsIndicator}
           <CellAction
             column={column}
             dataRow={dataRow}
@@ -316,10 +327,7 @@ class TableView extends Component<TableViewProps> {
 
     return (
       <Fragment>
-        {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
-          // Add one if we need to include Other in the series
-          <TopResultsIndicator count={count} index={rowIndex} />
-        ) : null}
+        {topResultsIndicator}
         <CellAction
           column={column}
           dataRow={dataRow}
@@ -364,7 +372,7 @@ class TableView extends Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location} = this.props;
+      const {eventView, organization, projects, location, tableData} = this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -434,7 +442,18 @@ class TableView extends Component<TableViewProps> {
           return;
         }
         default: {
-          updateQuery(query, action, column, value);
+          // Some custom perf metrics have units.
+          // These custom perf metrics need to be adjusted to the correct value.
+          let cellValue = value;
+          const unit = tableData?.meta?.units?.[column.name];
+          if (typeof cellValue === 'number' && unit) {
+            if (Object.keys(SIZE_UNITS).includes(unit)) {
+              cellValue *= SIZE_UNITS[unit];
+            } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+              cellValue *= DURATION_UNITS[unit];
+            }
+          }
+          updateQuery(query, action, column, cellValue);
         }
       }
       nextView.query = query.formatString();
