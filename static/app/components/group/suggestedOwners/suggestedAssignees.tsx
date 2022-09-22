@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -51,12 +51,7 @@ const SuggestedAssignees = ({
 
   return (
     <SidebarSection.Wrap>
-      <SidebarSection.Title>
-        <Fragment>
-          {t('Suggested Assignees')}
-          <Subheading>{t('Click to assign')}</Subheading>
-        </Fragment>
-      </SidebarSection.Title>
+      <SidebarSection.Title>{t('Suggested Assignees')}</SidebarSection.Title>
       <SidebarSection.Content>
         <Content>
           {owners.map((owner, i) => (
@@ -103,15 +98,6 @@ const SuggestedAssignees = ({
 };
 
 export {SuggestedAssignees};
-
-const Subheading = styled('small')`
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray300};
-  line-height: 100%;
-  font-weight: 400;
-  margin-left: ${space(0.5)};
-  align-self: center;
-`;
 
 const Content = styled('div')`
   display: flex;
