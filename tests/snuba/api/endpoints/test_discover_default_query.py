@@ -50,7 +50,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
                 },
             )
 
-        assert response.status_code == 200, response.content
+        assert response.status_code == 204, response.content
 
         saved_query.refresh_from_db()
         assert saved_query.name == "A new default query update"
@@ -78,5 +78,33 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
         assert new_query.query["fields"] == default_query_payload["fields"]
         assert new_query.query["environment"] == default_query_payload["environment"]
 
+    def test_post_not_allowed(self):
+        default_query_payload = {
+            "version": 2,
+            "name": "New Default Query",
+            "projects": ["-1"],
+            "environment": ["alpha"],
+            "fields": ["environment", "platform.name"],
+            "orderby": "-timestamp",
+            "range": None,
+        }
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(self.url, data=default_query_payload)
+
+        assert response.status_code == 405, response.content
+
     def test_delete_resets_saved_query(self):
-        pass
+        DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by=self.user,
+            name="Test query",
+            query=self.query,
+            is_default=True,
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.client.delete(self.url)
+
+        assert response.status_code == 204
+        assert not DiscoverSavedQuery.objects.filter(
+            created_by=self.user, organization=self.org, is_default=True
+        ).exists()

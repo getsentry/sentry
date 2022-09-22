@@ -13,6 +13,12 @@ from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DiscoverSavedQuery
 
 
+def get_default_query(organization, user):
+    return DiscoverSavedQuery.objects.get(
+        organization=organization, is_default=True, created_by=user
+    )
+
+
 @pending_silo_endpoint
 class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
     permission_classes = (
@@ -27,9 +33,7 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         try:
-            query = DiscoverSavedQuery.objects.get(
-                organization=organization, is_default=True, created_by=request.user
-            )
+            query = get_default_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
             return Response({}, status=status.HTTP_200_OK)
 
@@ -37,9 +41,7 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
 
     def put(self, request: Request, organization) -> Response:
         try:
-            previous_default = DiscoverSavedQuery.objects.get(
-                is_default=True, organization=organization, created_by=request.user
-            )
+            previous_default = get_default_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
             previous_default = None
 
@@ -65,7 +67,7 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
                 query=data["query"],
                 version=data["version"],
             )
-            return Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,
@@ -79,3 +81,12 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
         model.set_projects(data["project_ids"])
 
         return Response(status=status.HTTP_201_CREATED)
+
+    def delete(self, request: Request, organization) -> Response:
+        try:
+            default_query = get_default_query(organization, request.user)
+        except DiscoverSavedQuery.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        default_query.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
