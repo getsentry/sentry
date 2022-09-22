@@ -24,7 +24,6 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
-from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 
@@ -78,22 +77,13 @@ class IndexerBatch:
         self,
         use_case_id: UseCaseKey,
         outer_message: Message[MessageBatch],
-        index_tag_value_rollout_option: Optional[str] = None,
+        should_index_tag_values: bool,
     ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
-        self.index_tag_value_rollout_option = index_tag_value_rollout_option
+        self.__should_index_tag_values = should_index_tag_values
 
         self._extract_messages()
-
-    def _should_index_tag_values(self, org_id: int) -> bool:
-        """
-        Helper method to determine whether we should index tag values for a given org_id.
-        """
-        if self.index_tag_value_rollout_option is None:
-            return True
-
-        return not sample_modulo(self.index_tag_value_rollout_option, org_id)
 
     @metrics.wraps("process_messages.extract_messages")
     def _extract_messages(self) -> None:
@@ -198,7 +188,7 @@ class IndexerBatch:
                 *tags.keys(),
             }
 
-            if self._should_index_tag_values(org_id):
+            if self.__should_index_tag_values:
                 parsed_strings.update(tags.values())
 
             org_strings[org_id].update(parsed_strings)
@@ -260,7 +250,7 @@ class IndexerBatch:
                         continue
 
                     value_to_write = v
-                    if self._should_index_tag_values(org_id):
+                    if self.__should_index_tag_values:
                         new_v = mapping[org_id][v]
                         if new_v is None:
                             metadata = bulk_record_meta[org_id].get(v)
@@ -316,7 +306,7 @@ class IndexerBatch:
             # When sending tag values as strings, set the version on the payload
             # to 2. This is used by the consumer to determine how to decode the
             # tag values.
-            if not self._should_index_tag_values(org_id):
+            if not self.__should_index_tag_values:
                 new_payload_value["version"] = 2
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]

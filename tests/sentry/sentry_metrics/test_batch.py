@@ -27,19 +27,6 @@ counter_payload = {
     "project_id": 3,
 }
 
-counter_payload_org_70 = {
-    "name": SessionMRI.SESSION.value,
-    "tags": {
-        "environment": "production",
-        "session.status": "init",
-    },
-    "timestamp": ts,
-    "type": "c",
-    "value": 1.0,
-    "org_id": 70,
-    "project_id": 3,
-}
-
 distribution_payload = {
     "name": SessionMRI.RAW_DURATION.value,
     "tags": {
@@ -150,11 +137,10 @@ def _get_string_indexer_log_records(caplog):
 
 
 @pytest.mark.parametrize(
-    "rollout_option, option_value, expected",
+    "should_index_tag_values, expected",
     [
         pytest.param(
-            None,
-            None,
+            True,
             {
                 1: {
                     "c:sessions/session@none",
@@ -167,44 +153,11 @@ def _get_string_indexer_log_records(caplog):
                     "s:sessions/error@none",
                     "session.status",
                 },
-                70: {
-                    "c:sessions/session@none",
-                    "environment",
-                    "init",
-                    "production",
-                    "session.status",
-                },
             },
-            id="rollout option is None",
+            id="index tag values true",
         ),
         pytest.param(
-            "sentry-metrics.performance.index-tag-values",
-            0.0,
-            {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "errored",
-                    "healthy",
-                    "init",
-                    "production",
-                    "s:sessions/error@none",
-                    "session.status",
-                },
-                70: {
-                    "c:sessions/session@none",
-                    "environment",
-                    "init",
-                    "production",
-                    "session.status",
-                },
-            },
-            id="no rollout",
-        ),
-        pytest.param(
-            "sentry-metrics.performance.index-tag-values",
-            0.1,
+            False,
             {
                 1: {
                     "c:sessions/session@none",
@@ -213,49 +166,24 @@ def _get_string_indexer_log_records(caplog):
                     "s:sessions/error@none",
                     "session.status",
                 },
-                70: {
-                    "c:sessions/session@none",
-                    "environment",
-                    "init",
-                    "production",
-                    "session.status",
-                },
             },
-            id="partial rollout",
-        ),
-        pytest.param(
-            "sentry-metrics.performance.index-tag-values",
-            1.0,
-            {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "s:sessions/error@none",
-                    "session.status",
-                },
-                70: {"c:sessions/session@none", "environment", "session.status"},
-            },
-            id="full rollout",
+            id="index tag values false",
         ),
     ],
 )
-def test_extract_strings_with_rollout(rollout_option, option_value, expected, set_sentry_option):
+def test_extract_strings_with_rollout(should_index_tag_values, expected):
     """
     Test that the indexer batch extracts the correct strings from the messages
-    based on the rollout option name and the option value.
+    based on whether tag values should be indexed or not.
     """
-    if rollout_option:
-        set_sentry_option(rollout_option, option_value)
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
-            (counter_payload_org_70, []),
             (distribution_payload, []),
             (set_payload, []),
         ]
     )
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, rollout_option)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values)
 
     assert batch.extract_strings() == expected
 
@@ -270,7 +198,7 @@ def test_all_resolved(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, None)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
     assert batch.extract_strings() == (
         {
             1: {
@@ -392,7 +320,7 @@ def test_all_resolved(caplog, settings):
     ]
 
 
-def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_option):
+def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
     Tests that the indexer batch skips resolving tag values for indexing and
     sends the raw tag value to Snuba.
@@ -403,7 +331,6 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_opti
     version field to specify that the tag values are not indexed.
     """
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
-    set_sentry_option("sentry-metrics.performance.index-tag-values", 1.0)
     outer_message = _construct_outer_message(
         [
             (counter_payload, []),
@@ -412,9 +339,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings, set_sentry_opti
         ]
     )
 
-    batch = IndexerBatch(
-        UseCaseKey.PERFORMANCE, outer_message, "sentry-metrics.performance.index-tag-values"
-    )
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -531,7 +456,7 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
     assert batch.extract_strings() == (
         {
             1: {
@@ -627,7 +552,7 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
     assert batch.extract_strings() == (
         {
             1: {
@@ -705,7 +630,7 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
     assert batch.extract_strings() == (
         {
             1: {
@@ -822,7 +747,7 @@ def test_one_org_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
     assert batch.extract_strings() == (
         {
             1: {
@@ -936,7 +861,7 @@ def test_cardinality_limiter(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
     # their insertion order. So we can hardcode offsets here.
