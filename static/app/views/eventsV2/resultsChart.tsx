@@ -314,7 +314,7 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
                 confirmedQuery={confirmedQuery}
                 yAxisValue={yAxis}
                 processedLineSeries={processedLineSeries}
-                customMeasurements={contextValue?.customMeasurements ?? undefined}
+                customMeasurements={contextValue?.customMeasurements}
               />
             )}
           </CustomMeasurementsContext.Consumer>
