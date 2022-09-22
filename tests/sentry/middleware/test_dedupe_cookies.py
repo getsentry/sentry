@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.auth import superuser
 from sentry.testutils import APITestCase
+from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 
 
 class OrganizationTestEndpoint(Endpoint):
@@ -75,7 +76,9 @@ class End2EndTest(APITestCase):
                 f"{settings.CSRF_COOKIE_NAME}=value; "
                 f"{settings.CSRF_COOKIE_NAME}=value2; "
                 f"{superuser.COOKIE_NAME}=value; "
-                f"{superuser.COOKIE_NAME}=value2"
+                f"{superuser.COOKIE_NAME}=value2;"
+                f"{SUDO_COOKIE_NAME}=value; "
+                f"{SUDO_COOKIE_NAME}=value2"
             )
             headers = {
                 "HTTP_COOKIE": HTTP_COOKIE,
@@ -102,6 +105,10 @@ class End2EndTest(APITestCase):
                 'Set-Cookie: su=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
                 in set_cookie
             )
+            assert (
+                'Set-Cookie: sudo=""; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                in set_cookie
+            )
 
     def test_irrelevant_duplicate_cookies(self):
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
@@ -114,13 +121,15 @@ class End2EndTest(APITestCase):
             )
 
             assert response.status_code == 200
+            assert response.cookies.output() == ""
 
     def test_good_cookies(self):
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             HTTP_COOKIE = (
                 f"{settings.SESSION_COOKIE_NAME}=value; "
                 f"{settings.CSRF_COOKIE_NAME}=value; "
-                f"{superuser.COOKIE_NAME}=value"
+                f"{superuser.COOKIE_NAME}=value; "
+                f"{SUDO_COOKIE_NAME}=value"
             )
             headers = {"HTTP_COOKIE": HTTP_COOKIE}
             response = self.client.get(
