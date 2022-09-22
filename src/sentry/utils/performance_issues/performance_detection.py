@@ -980,7 +980,7 @@ def report_metrics_for_detectors(
 ):
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
-    sdk_name = get_sdk_name(event.data)
+    sdk_name = get_sdk_name(event.data) if event.data else ""
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
