@@ -1,20 +1,47 @@
 import abc
-from typing import Sequence
+from typing import Callable
 
 from django.http.request import HttpRequest
 
+from sentry.silo import SiloLimit, SiloMode
+
 
 class BaseRequestParser(abc.ABC):
-    """Base Class for Webhook Request Parsers"""
+    """Base Class for Integration Request Parsers"""
 
-    def __init__(self, request: HttpRequest):
+    _silo_mode = SiloMode.get_current_mode()
+
+    def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
+        self.response_handler = response_handler
+        self.error_message = f"{self.__name__} should only be run on the control silo."
 
-    def should_disperse(self):
+    def get_response_from_control_silo(self):
         """
-        Evaluate whether or not a webhook should be forwarded to different regions
+        Used to synchronously process the incoming request directly on the control silo.
         """
-        return False
+        if self._silo_mode != SiloMode.CONTROL:
+            raise SiloLimit.AvailabilityError(self.error_message)
+        return self.response_handler(self.request)
+
+    def get_response_from_region_silo(self, regions, require_response=True):
+        """
+        Used to process the incoming request from region silos.
+        """
+        if self._silo_mode != SiloMode.CONTROL:
+            raise SiloLimit.AvailabilityError(self.error_message)
+
+        # TODO(Leander): Implement once region mapping exists
+        # responses = [region.send(self.request) for region in regions]
+        # return responses[0] -> Send back the first response
+        return self.response_handler(self.request)
+
+    def get_response(self):
+        """
+        Used to surface a response as part of the middleware.
+        Default behaviour is to process the response in the control silo.
+        """
+        return self.get_response_from_control_silo()
 
     def get_organizations(self):
         """
@@ -22,12 +49,11 @@ class BaseRequestParser(abc.ABC):
         """
         raise NotImplementedError
 
-    def get_regions(self) -> Sequence[str]:
+    def get_regions(self):
         """
         Use the get_organizations() method to identify forwarding regions.
         """
-        # TODO(Leander): Implement this after region mapping is added
-        # organizations: Sequence[Organization] = self.get_organizations()
+        # TODO(Leander): Implement once region mapping exists
+        # organizations = self.get_organizations()
         # return [organization.region for organization in organizations]
-        self.get_organizations()
         return []

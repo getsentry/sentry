@@ -20,8 +20,7 @@ class IntegrationControlMiddleware:
         Parses the provider out of the request path
             e.g. `/extensions/slack/commands/` -> `slack`
         """
-        # TODO(Leander): Catch errors in this method
-        webhook_prefix_regex = self.webhook_prefix.replace("/", r"\/")
+        webhook_prefix_regex = re.escape(self.webhook_prefix)
         provider_regex = rf"^{webhook_prefix_regex}(\w+)"
         result = re.search(provider_regex, request.path)
         return result.group(1)
@@ -30,22 +29,18 @@ class IntegrationControlMiddleware:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
-        is_correct_silo = self.silo_mode == SiloMode.MONOLITH
-        is_webhook = request.path.startswith(self.webhook_prefix)
-        return is_correct_silo and is_webhook
+        is_correct_silo = self.silo_mode == SiloMode.CONTROL
+        is_external = request.path.startswith(self.webhook_prefix)
+        return is_correct_silo and is_external
 
     def __call__(self, request):
         if not self._should_operate(request):
             return self.get_response(request)
 
         provider = self._identify_provider(request)
-        # TODO(Leander): Catch errors at this stage
-        parser = self.integration_parsers.get(provider)(request)
+        parser = self.integration_parsers.get(provider)(
+            request=request,
+            response_handler=self.get_response,
+        )
 
-        if not parser.should_disperse():
-            return self.get_response(request)
-
-        parser.get_regions()
-        # TODO(Leander): Forward the requests to these regions, respond to the requester immediately
-
-        return self.get_response(request)
+        return parser.get_response()
