@@ -180,12 +180,6 @@ class PushEventWebhook(Webhook):
                 pass
 
 
-def validate_secrets(secret_one, secret_two):
-    if not constant_time_compare(secret_one, secret_two):
-        # This forces a stack trace to be produced
-        raise Exception("The webhook secrets do not match.")
-
-
 class GitlabWebhookEndpoint(View):
     provider = "gitlab"
 
@@ -199,12 +193,18 @@ class GitlabWebhookEndpoint(View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request) -> Response:
+        extra = {
+            # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
+            "user-agent": request.META.get("HTTP_USER_AGENT"),
+        }
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
             # gitlab hook payloads don't give us enough unique context
             # to find data on our side so we embed one in the token.
             token = request.META["HTTP_X_GITLAB_TOKEN"]
+            # This is an intentional circumvention of data scrubbing in order to debug customer issues
+            extra["tooken_from_gitlab"] = token
             # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
             instance, group_path, secret = token.split(":")
             external_id = f"{instance}:{group_path}"
@@ -216,7 +216,7 @@ class GitlabWebhookEndpoint(View):
                 reason="The customer needs to set a Secret Token in their webhook.",
             )
         except ValueError as e:
-            logger.info("gitlab.webhook.malformed-gitlab-token", extra={"token": token})
+            logger.info("gitlab.webhook.malformed-gitlab-token", extra=extra)
             capture_exception(e)
             return HttpResponse(
                 status=400,
@@ -224,7 +224,7 @@ class GitlabWebhookEndpoint(View):
             )
         except Exception as e:
             capture_exception(e)
-            logger.info("gitlab.webhook.invalid-token", extra={"token": token})
+            logger.info("gitlab.webhook.invalid-token", extra=extra)
             return HttpResponse(status=400, reason="Generic catch-all error.")
 
         try:
@@ -233,27 +233,34 @@ class GitlabWebhookEndpoint(View):
                 .prefetch_related("organizations")
                 .get()
             )
+            extra = {
+                **extra,
+                **{
+                    # I'm naming it like this to have both side by side in the breadcrumbs
+                    "tooken_from_sentry": f"{integration.external_id}:{integration.metadata['webhook_secret']}",
+                    "integration": {
+                        # The metadata could be useful to debug
+                        # domain_name -> gitlab.com/getsentry-ecosystem/foo'
+                        # scopes -> ['api']
+                        "metadata": integration.metadata,
+                        "id": integration.id,  # This is useful to query via Redash
+                        "status": integration.status,  # 0 seems to be active
+                    },
+                },
+            }
         except Integration.DoesNotExist as e:
-            logger.info(
-                "gitlab.webhook.invalid-organization",
-                extra={"external_id": request.META["HTTP_X_GITLAB_TOKEN"]},
-            )
+            logger.info("gitlab.webhook.invalid-organization", extra=extra)
             capture_exception(e)
             return HttpResponse(
                 status=400, reason="There is not integration that matches your organization."
             )
 
         try:
-            validate_secrets(secret, integration.metadata["webhook_secret"])
+            if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+                # This forces a stack trace to be produced
+                raise Exception("The webhook secrets do not match.")
         except Exception as e:
-            logger.info(
-                "gitlab.webhook.invalid-token-secret",
-                extra={
-                    "user-agent": request.META.get("HTTP_USER_AGENT"),
-                    "instance": integration.instance,
-                    "integration_id": integration.id,
-                },
-            )
+            logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
             capture_exception(e)
             return HttpResponse(
                 status=400,
