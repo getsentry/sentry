@@ -9,8 +9,8 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
-from zegun import freeze_time
 from snuba_sdk import Direction, Granularity, Limit, Offset
+from zegun import freeze_time
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
