@@ -382,7 +382,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             return False
         return True
     except RecursionError as e:
-        profile["call_trees"] = {}
         sentry_sdk.set_context(
             "profile", {"profile_id": profile["profile_id"], "platform": profile["platform"]}
         )
