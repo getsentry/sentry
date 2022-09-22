@@ -351,7 +351,7 @@ const dataCategory = {
  */
 const outcome = {
   [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
-  [Outcome.FILTERED]: CHART_PALETTE[0][0],
+  [Outcome.FILTERED]: CHART_PALETTE[1][1],
   [Outcome.DROPPED]: CHART_PALETTE[5][3],
 };
 
