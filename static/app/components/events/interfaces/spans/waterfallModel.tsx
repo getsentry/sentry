@@ -26,6 +26,7 @@ class WaterfallModel {
   rootSpan: SpanTreeModel;
   parsedTrace: ParsedTraceType;
   fuse: Fuse<IndexedFusedSpan> | undefined = undefined;
+  affectedSpanIds: string[] | undefined = undefined;
   isEmbeddedSpanTree: boolean;
 
   // readable/writable state
@@ -59,6 +60,7 @@ class WaterfallModel {
     this.hiddenSpanSubTrees = new Set();
 
     // When viewing the span waterfall from a Performance Issue, a set of span IDs may be provided
+    this.affectedSpanIds = affectedSpanIds;
     this.focusedSpanIds = affectedSpanIds ? new Set(affectedSpanIds) : undefined;
     // If the set of span IDs is provided, this waterfall is for an embedded span tree
     this.isEmbeddedSpanTree = !!this.focusedSpanIds;

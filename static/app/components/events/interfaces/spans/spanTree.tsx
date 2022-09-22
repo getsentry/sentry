@@ -367,7 +367,8 @@ class SpanTree extends Component<PropType> {
         if (
           !('type' in span) &&
           isEmbeddedSpanTree &&
-          waterfallModel.focusedSpanIds?.has(span.span_id)
+          // We only do this for affected spans, since we don't want to always manually add every single span
+          waterfallModel.affectedSpanIds?.includes(span.span_id)
         ) {
           markSpanInView(span.span_id, treeDepth);
         }
