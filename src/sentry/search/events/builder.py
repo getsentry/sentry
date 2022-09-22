@@ -870,7 +870,7 @@ class QueryBuilder:
         return result
 
     def get_custom_measurement_names_set(self) -> Set[str]:
-        return set(map(lambda measurement: measurement["name"], self.custom_measurement_map))
+        return {measurement["name"] for measurement in self.custom_measurement_map}
 
     def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
