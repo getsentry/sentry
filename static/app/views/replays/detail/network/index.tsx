@@ -333,11 +333,11 @@ const Item = styled('div')<{
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
 
   ${EmptyText} {
-    color: ${({hasOccurred = true, timestampSortDir, ...p}) => {
-      if (hasOccurred || !timestampSortDir) {
-        return p.theme.gray400;
+    color: ${p => {
+      if (p.isStatusError) {
+        return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
       }
-      return p.theme.gray300;
+      return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
     }};
   }
 `;
