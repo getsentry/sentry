@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext, useEffect} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -19,12 +19,14 @@ import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
@@ -48,9 +50,6 @@ export const SafeLazyLoad = errorHandler(LazyLoad);
 export type PromisedImport<C> = Promise<{default: C}>;
 export type ComponentType = React.ComponentType<any>;
 
-// NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
-// pirvate routing tree.
-
 /**
  * Factory function to produce a component that will render the SafeLazyLoad
  * _with_ the required props.
@@ -60,16 +59,21 @@ export function makeLazyloadComponent<C extends ComponentType>(
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
-    return <SafeLazyLoad {...props} component={resolve} />;
+    // pass the organization to the RouteAnalyticsContext
+    const organization = useContext(OrganizationContext);
+    const {setOrganization, ...routeAnalytics} = useContext(RouteAnalyticsContext);
+    useEffect(() => {
+      organization && setOrganization(organization);
+    }, [organization, setOrganization]);
+    return <SafeLazyLoad {...props} {...routeAnalytics} component={resolve} />;
   };
 
   return RouteLazyLoad;
 }
+// Shorthand to avoid extra line wrapping
+const make = makeLazyloadComponent;
 
 function buildRoutes() {
-  // Shorthand to avoid extra line wrapping
-  const make =
-    HookStore.get('wrapper:make-component-with-analytics')[0] || makeLazyloadComponent;
   // Read this to understand where to add new routes, how / why the routing
   // tree is structured the way it is, and how the lazy-loading /
   // code-splitting works for pages.

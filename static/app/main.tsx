@@ -7,6 +7,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import {PersistedStoreProvider} from './stores/persistedStore';
+import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
 
 function Main() {
   return (
@@ -16,9 +17,11 @@ function Main() {
         <Router
           history={browserHistory}
           render={props => (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
+            <RouteAnalyticsContextProvider {...props}>
+              <RouteContext.Provider value={props}>
+                <RouterContext {...props} />
+              </RouteContext.Provider>
+            </RouteAnalyticsContextProvider>
           )}
         >
           {routes()}

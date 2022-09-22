@@ -1,4 +1,4 @@
-import {createContext} from 'react';
+import {createContext, useContext} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -253,6 +253,7 @@ class ReleasesDetailContainer extends AsyncComponent<
 
   componentDidMount() {
     this.removeGlobalDateTimeFromUrl();
+    this.props.setRouteAnalyticsParams?.({release: this.props.params.release});
   }
 
   componentDidUpdate(

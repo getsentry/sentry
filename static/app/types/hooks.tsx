@@ -36,6 +36,7 @@ export interface Hooks
     InterfaceChromeHooks,
     OnboardingHooks,
     SettingsHooks,
+    ReactHooks,
     CallbackHooks {
   _: any;
 }
@@ -106,10 +107,15 @@ type MakeComponentWithAnalyticsHook = <C extends ComponentType>(
   }
 ) => ReturnType<typeof makeLazyloadComponent>;
 
+type AdjacentRoutComponentProps = any;
+
+type RouteActivatedHook = any;
+
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:adjacent-route-component': () => React.ComponentType<AdjacentRoutComponentProps>;
   'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
@@ -226,6 +232,10 @@ export type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+};
+
+export type ReactHooks = {
+  'react-hook:route-activated': RouteActivatedHook;
 };
 
 /**
