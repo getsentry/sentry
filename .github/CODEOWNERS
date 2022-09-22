@@ -82,12 +82,13 @@ yarn.lock           @getsentry/owners-js-deps
 
 # Owners by product feature
 
-### Issue/Metric Alerts ###
+### Workflow ###
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
-/tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
-
 /static/app/views/alerts/                                       @getsentry/workflow
-/tests/js/spec/views/alerts/                                    @getsentry/workflow
+/static/app/views/projects/                                     @getsentry/workflow
+/static/app/views/projectDetail/                                @getsentry/workflow
+/static/app/views/releases/                                     @getsentry/workflow
+/static/app/views/organizationStats/teamInsights/               @getsentry/workflow
 
 /src/sentry/templates/sentry/emails/incidents/                  @getsentry/workflow
 /src/sentry/incidents/                                          @getsentry/workflow
@@ -96,6 +97,8 @@ yarn.lock           @getsentry/owners-js-deps
 
 /src/sentry/api/endpoints/group_events.py                       @getsentry/workflow
 /src/sentry/api/endpoints/organization_group_index.py           @getsentry/workflow
+/src/sentry/api/endpoints/organization_activity.py              @getsentry/workflow
+/src/sentry/api/endpoints/organization_searches.py              @getsentry/workflow
 /src/sentry/api/helpers/group_index.py                          @getsentry/workflow
 /src/sentry/api/helpers/events.py                               @getsentry/workflow
 
@@ -109,7 +112,10 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/snuba/snuba/test_query_subscription_consumer.py          @getsentry/workflow
 /src/sentry/api/issue_search.py                                 @getsentry/workflow
 /tests/sentry/api/test_issue_search.py                          @getsentry/workflow
-### Endof Issue/Metric Alerts ###
+
+/src/sentry/tasks/auto_remove_inbox.py                          @getsentry/workflow
+/src/sentry/tasks/auto_resolve_issues.py                        @getsentry/workflow
+### Endof Workflow ###
 
 
 ### Visibility ###
@@ -124,7 +130,6 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/search/events/                                      @getsentry/visibility
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
 /static/app/utils/discover/                                     @getsentry/visibility
-/tests/js/spec/utils/discover/                                  @getsentry/visibility
 /static/app/components/charts/                                  @getsentry/visibility
 ### Endof Visibility ###
 
@@ -139,9 +144,7 @@ yarn.lock           @getsentry/owners-js-deps
 /src/sentry/api/endpoints/organization_transaction_anomaly_detection.py         @getsentry/data
 
 /static/app/views/performance/                                  @getsentry/performance
-/tests/js/spec/views/performance/                               @getsentry/performance
 /static/app/utils/performance/                                  @getsentry/performance
-/tests/js/spec/utils/performance/                               @getsentry/performance
 /static/app/components/events/interfaces/spans/                 @getsentry/performance
 /static/app/components/performance/                             @getsentry/performance
 /static/app/components/quickTrace/                              @getsentry/performance
@@ -173,11 +176,8 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/sentry/data_export/                                      @getsentry/discover-n-dashboards
 
 /static/app/views/eventsV2/                                     @getsentry/discover-n-dashboards
-/tests/js/spec/views/eventsV2/                                  @getsentry/discover-n-dashboards
 /static/app/views/discover/                                     @getsentry/discover-n-dashboards
-/tests/js/spec/views/discover/                                  @getsentry/discover-n-dashboards
 /static/app/views/dashboardsV2/                                 @getsentry/discover-n-dashboards
-/tests/js/spec/views/dashboardsV2/                              @getsentry/discover-n-dashboards
 /static/app/components/dashboards/                              @getsentry/discover-n-dashboards
 ### Endof Discover/Dashboards ###
 
@@ -188,7 +188,6 @@ yarn.lock           @getsentry/owners-js-deps
 /static/app/types/profiling.d.ts                                    @getsentry/profiling
 /static/app/utils/profiling                                         @getsentry/profiling
 /static/app/views/profiling                                         @getsentry/profiling
-/tests/js/spec/utils/profiling                                      @getsentry/profiling
 /src/sentry/utils/profiling.py                                      @getsentry/profiling
 /src/sentry/api/endpoints/project_profiling_profile.py              @getsentry/profiling
 /src/sentry/api/endpoints/organization_profiling_profiles.py        @getsentry/profiling
@@ -204,9 +203,6 @@ yarn.lock           @getsentry/owners-js-deps
 /static/app/components/replays/    @getsentry/emerging-technology
 /static/app/utils/replays/         @getsentry/emerging-technology
 /static/app/views/replays/         @getsentry/emerging-technology
-/tests/js/spec/components/replays/ @getsentry/emerging-technology
-/tests/js/spec/utils/replays/      @getsentry/emerging-technology
-/tests/js/spec/views/replays/      @getsentry/emerging-technology
 /src/sentry/replays/               @getsentry/emerging-technology
 /tests/sentry/replays/             @getsentry/emerging-technology
 ###### End of Replays #######
@@ -289,7 +285,6 @@ yarn.lock           @getsentry/owners-js-deps
 ### Enterprise ###
 
 /static/app/views/organizationStats                  @getsentry/enterprise
-/tests/js/spec/views/organizationStats/              @getsentry/enterprise
 /src/sentry/api/endpoints/organization_stats*.py     @getsentry/enterprise
 
 /src/sentry/api/endpoints/organization_auditlogs.py  @getsentry/enterprise
@@ -301,21 +296,6 @@ yarn.lock           @getsentry/owners-js-deps
 /tests/sentry/api/test_scim*.py                      @getsentry/enterprise
 
 ## End of Enterprise ###
-
-
-### Workflow ###
-
-/src/sentry/api/endpoints/organization_activity.py    @getsentry/workflow
-/src/sentry/api/endpoints/organization_searches.py    @getsentry/workflow
-/src/sentry/tasks/releasemonitor.py                   @getsentry/workflow
-
-/static/app/views/organizationStats/teamInsights      @getsentry/workflow
-/tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
-
-/static/app/views/releases/                           @getsentry/workflow
-/tests/js/spec/views/releases/                        @getsentry/workflow
-
-## End of Workflow ##
 
 
 ### Native ###
@@ -359,28 +339,29 @@ yarn.lock           @getsentry/owners-js-deps
 
 ### Telemetry Experience ###
 
-/src/sentry/snuba/metrics/                                           @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_metrics.py                    @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_sessions.py                   @getsentry/telemetry-experience
-/src/sentry/snuba/metrics/query.py                                   @getsentry/telemetry-experience
-/src/sentry/release_health/metrics_sessions_v2.py                    @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_data.py         @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_details.py      @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_tag_details.py  @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metric_tags.py         @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_metrics.py             @getsentry/telemetry-experience
-/tests/sentry/snuba/metrics/                                         @getsentry/telemetry-experience
-/tests/snuba/api/endpoints/test_organization_sessions.py             @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/                                                               @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_metrics.py                                        @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_sessions.py                                       @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_dynamic_sampling.py                                    @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_dynamic_sampling_sdk_versions.py                  @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/query.py                                                       @getsentry/telemetry-experience
+/src/sentry/release_health/metrics_sessions_v2.py                                        @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_data.py                             @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_details.py                          @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_tag_details.py                      @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_tags.py                             @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metrics.py                                 @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_dynamic_sampling.py                             @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_dynamic_sampling_sdk_versions.py           @getsentry/telemetry-experience
+/tests/sentry/snuba/metrics/                                                             @getsentry/telemetry-experience
+/tests/snuba/api/endpoints/test_organization_sessions.py                                 @getsentry/telemetry-experience
 
-/static/app/views/settings/project/sampling/                         @getsentry/telemetry-experience
-/tests/js/spec/views/settings/project/sampling/                      @getsentry/telemetry-experience
-/static/app/views/settings/project/server-side-sampling/             @getsentry/telemetry-experience
-/tests/js/spec/views/settings/project/server-side-sampling/          @getsentry/telemetry-experience
-/static/app/utils/metrics/                                           @getsentry/telemetry-experience
-/tests/js/spec/utils/metrics/                                        @getsentry/telemetry-experience
-/static/app/actionCreators/metrics.tsx                               @getsentry/telemetry-experience
-/tests/js/spec/actionCreators/metrics.spec.tsx                       @getsentry/telemetry-experience
-/static/app/types/metrics.tsx                                        @getsentry/telemetry-experience
+/static/app/views/settings/project/sampling/                                             @getsentry/telemetry-experience
+/static/app/views/settings/project/server-side-sampling/                                 @getsentry/telemetry-experience
+/static/app/utils/metrics/                                                               @getsentry/telemetry-experience
+/static/app/actionCreators/metrics.tsx                                                   @getsentry/telemetry-experience
+/static/app/actionCreators/metrics.spec.tsx                                              @getsentry/telemetry-experience
+/static/app/types/metrics.tsx                                                            @getsentry/telemetry-experience
 
 ### End of Telemetry Experience ###
 

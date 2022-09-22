@@ -588,6 +588,7 @@ class GroupDetails extends Component<Props, State> {
           replaysCount={replayIds?.length}
           currentTab={currentTab}
           baseUrl={baseUrl}
+          project={project as Project}
         />
         {isValidElement(children) ? cloneElement(children, childProps) : children}
       </Fragment>
