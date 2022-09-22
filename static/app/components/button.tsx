@@ -373,7 +373,7 @@ export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
     text-transform: none;
     font-weight: 600;
     ${getColors({...props, theme})};
-    ${getSizeStyles({...props, theme})}}
+    ${getSizeStyles({...props, theme})};
     ${getBoxShadow({...props, theme})}};
     cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
     opacity: ${(props.busy || props.disabled) && '0.65'};
