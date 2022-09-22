@@ -66,7 +66,9 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._generate_billing_outcomes(num_processed_transactions)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
-        return json.loads(message.payload.value.decode(self.__message_payload_encoding))
+        return json.loads(
+            message.payload.value.decode(self.__message_payload_encoding), use_rapid_json=True
+        )
 
     def _estimate_processed_transactions(self, bucket_payload: Dict) -> int:
         # Accessing TRANSACTION_METRIC_NAMES unsafely, as opposed to using
