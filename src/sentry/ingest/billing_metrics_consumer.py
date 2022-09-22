@@ -55,7 +55,7 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         if metric_name not in TRANSACTION_METRICS_NAMES:
             raise ValueError(f"Unrecognized metric name: {metric_name}")
 
-        self.counter_metric = metric_name
+        self.counter_metric_id = TRANSACTION_METRICS_NAMES[metric_name]
         self.__futures = []
         self.__closed = False
         self.__message_payload_encoding = "utf-8"
@@ -80,7 +80,7 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         # Accessing TRANSACTION_METRIC_NAMES unsafely, as opposed to using
         # `get`, throws an exception. This makes it easier to identify
         # situations in which the consumer doesn't generate billing outcomes.
-        if bucket_payload["metric_id"] != TRANSACTION_METRICS_NAMES[self.counter_metric]:
+        if bucket_payload["metric_id"] != self.counter_metric_id:
             return 0
         return len(bucket_payload["value"])
 
