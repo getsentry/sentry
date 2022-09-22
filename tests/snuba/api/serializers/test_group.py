@@ -20,6 +20,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.types.issues import GroupType
@@ -415,6 +416,20 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
         assert result["count"] == "1"
 
+    def test_get_start_from_seen_stats(self):
+        for days, expected in [(None, 30), (0, 14), (1000, 90)]:
+            last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
+            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
+
+            assert iso_format(start) == iso_format(before_now(days=expected))
+
+
+@region_silo_test
+class PerformanceGroupSerializerSnubaTest(
+    APITestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+):
     def test_perf_seen_stats(self):
         proj = self.create_project()
         environment = self.create_environment(project=proj)
@@ -448,10 +463,3 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             first_group.first_seen + timedelta(minutes=1)
         )
         assert result["count"] == "1"
-
-    def test_get_start_from_seen_stats(self):
-        for days, expected in [(None, 30), (0, 14), (1000, 90)]:
-            last_seen = None if days is None else before_now(days=days).replace(tzinfo=pytz.UTC)
-            start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
-
-            assert iso_format(start) == iso_format(before_now(days=expected))
