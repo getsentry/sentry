@@ -23,7 +23,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author, ReleaseSerializer
 from sentry.eventstore.models import Event
-from sentry.integrations.utils.commit_context import get_stacktrace_path_from_event_frame
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.models.groupowner import get_release_committers_for_group
 from sentry.utils import metrics
@@ -359,3 +358,11 @@ def get_serialized_release_committers_for_group(
         )
 
     return serialized_committers
+
+
+def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]):
+    """
+    Returns the filepath from a stacktrace's frame.
+    frame: Event frame
+    """
+    return frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")

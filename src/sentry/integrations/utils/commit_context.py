@@ -2,18 +2,11 @@ from typing import Any, Mapping, Sequence
 
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
-
-
-def get_stacktrace_path_from_event_frame(self, frame: Mapping[str, Any]):
-    """
-    Returns the filepath from a stacktrace's frame.
-    frame: Event frame
-    """
-    return frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
+from sentry.utils.committers import get_stacktrace_path_from_event_frame
 
 
 def find_commit_context_for_event(
-    self, code_mappings: Sequence[RepositoryProjectPathConfig], frame: Mapping[str, Any]
+    code_mappings: Sequence[RepositoryProjectPathConfig], frame: Mapping[str, Any]
 ):
     """
     Returns the Commit Context for an event frame using a source code integration, if it exists.
@@ -41,4 +34,4 @@ def find_commit_context_for_event(
             selected_code_mapping = code_mapping
             break
 
-        return commit_context, selected_code_mapping
+    return commit_context, selected_code_mapping
