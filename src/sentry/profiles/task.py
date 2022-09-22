@@ -86,8 +86,8 @@ def process_profile(
         return
 
     _initialize_publisher()
-    _insert_eventstream_profile(profile=profile)
     _insert_eventstream_call_tree(profile=profile)
+    _insert_eventstream_profile(profile=profile)
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
 
@@ -317,6 +317,10 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
     if processed_profiles_publisher is None:
         return
 
+    # call_trees is empty because of an error earlier, skip aggregation
+    if not profile.get("call_trees"):
+        return
+
     try:
         event = _get_event_instance(profile)
     except Exception as e:
@@ -369,13 +373,16 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         if response.status == 204:
             profile["call_trees"] = {}
         elif response.status == 200:
-            profile["call_trees"] = json.loads(response.data, use_rapid_json=True)["call_trees"]
+            profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
             metrics.incr(
                 "profiling.insert_vroom_profile.error",
                 tags={"platform": profile["platform"], "reason": "bad status"},
             )
             return False
+        return True
+    except RecursionError:
+        profile["call_trees"] = {}
         return True
     except Exception as e:
         sentry_sdk.capture_exception(e)
