@@ -9,7 +9,7 @@ from sentry.models import Organization, Project, ProjectCodeOwners
 
 
 class OrganizationCodeOwnersAssociationsPermission(OrganizationPermission):
-    scope_map = {"GET": ["org:integrations"]}
+    scope_map = {"GET": ["org:read", "org:write", "org:integrations"]}
 
 
 @region_silo_endpoint
