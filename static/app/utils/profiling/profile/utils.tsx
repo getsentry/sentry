@@ -18,7 +18,7 @@ export function createSentrySampleProfileFrameIndex(
 
     frameIndex[i] = new Frame({
       key: i,
-      name: frame.function,
+      name: frame.name,
       line: frame.line,
     });
   }

@@ -9,6 +9,7 @@ import {
   isNodeProfile,
   isSampledProfile,
   isSchema,
+  isSentrySampledProfile,
   isTypescriptChromeTraceArrayFormat,
 } from '../guards/profile';
 
@@ -17,7 +18,12 @@ import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
-import {createFrameIndex, wrapWithSpan} from './utils';
+import {SentrySampledProfile} from './sentrySampledProfile';
+import {
+  createFrameIndex,
+  createSentrySampleProfileFrameIndex,
+  wrapWithSpan,
+} from './utils';
 
 export interface ImportOptions {
   transaction: Transaction | undefined;
@@ -36,6 +42,7 @@ export function importProfile(
     | Profiling.Schema
     | JSSelfProfiling.Trace
     | ChromeTrace.ProfileType
+    | Profiling.SentrySampledProfile
     | [Profiling.NodeProfile, {}], // this is hack so that we distinguish between typescript and node profiles
   traceID: string
 ): ProfileGroup {
@@ -68,6 +75,14 @@ export function importProfile(
         transaction.setTag('profile.type', 'chrometrace');
       }
       return importChromeTrace(input, traceID, {transaction});
+    }
+
+    if (isSentrySampledProfile(input)) {
+      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+      if (transaction) {
+        transaction.setTag('profile.type', 'sentry-sampled');
+      }
+      return importSentrySampledProfile(input, {transaction});
     }
 
     if (isSchema(input)) {
@@ -125,6 +140,60 @@ function importChromeTrace(
   }
 
   throw new Error('Failed to parse trace input format');
+}
+
+function importSentrySampledProfile(
+  input: Profiling.SentrySampledProfile,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createSentrySampleProfileFrameIndex(input.profile.frames);
+  const samplesByThread: Record<
+    string,
+    Profiling.SentrySampledProfile['profile']['samples']
+  > = {};
+
+  for (let i = 0; i < input.profile.samples.length; i++) {
+    const sample = input.profile.samples[i];
+    if (!samplesByThread[sample.thread_id]) {
+      samplesByThread[sample.thread_id] = [];
+    }
+    samplesByThread[sample.thread_id].push(sample);
+  }
+
+  for (const key in samplesByThread) {
+    samplesByThread[key].sort(
+      (a, b) =>
+        parseInt(a.relative_timestamp_ns, 10) - parseInt(b.relative_timestamp_ns, 10)
+    );
+  }
+
+  const profiles: Profile[] = [];
+
+  for (const key in samplesByThread) {
+    profiles.push(
+      wrapWithSpan(
+        options.transaction,
+        () =>
+          SentrySampledProfile.FromProfile(
+            samplesByThread[key],
+            input.profile.stacks,
+            frameIndex
+          ),
+        {
+          op: 'profile.import',
+          description: 'evented',
+        }
+      )
+    );
+  }
+
+  return {
+    traceID: '',
+    name: '',
+    activeProfileIndex: 0,
+    metadata: {},
+    profiles,
+  };
 }
 
 function importSchema(
