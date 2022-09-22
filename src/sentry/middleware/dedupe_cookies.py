@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Callable
 
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from rest_framework.request import Request
@@ -88,4 +89,9 @@ class DedupeCookiesMiddleware:
             # This change will be reverted once domains are configured for session, csrf, su, and sudo cookies for
             # shipping customer domains.
             response.delete_cookie(cookie_name, domain=".sentry.io")
+
+        sentry_sdk.set_tag("has_duplicate_cookies", "yes")
+        sentry_sdk.set_context("duplicate_cookies", {"cookies": list(duplicate_cookies)})
+        sentry_sdk.capture_message("Found duplicate cookies.")
+
         return response
