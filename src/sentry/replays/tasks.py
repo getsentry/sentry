@@ -18,7 +18,7 @@ from sentry.utils.pubsub import KafkaPublisher
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: dict) -> None:
     """Asynchronously delete a replay."""
     _delete_replay_recording(project_id, replay_id)
-    _archive_replay(replay_id)
+    _archive_replay(project_id, replay_id)
 
 
 def _delete_replay_recording(project_id: int, replay_id: str) -> None:
@@ -30,23 +30,37 @@ def _delete_replay_recording(project_id: int, replay_id: str) -> None:
         segment.delete()  # Three queries + one request to the message broker
 
 
-def _archive_replay(replay_id: str) -> None:
+def _archive_replay(project_id: int, replay_id: str) -> None:
     """Archive a Replay instance. The Replay is not deleted."""
     config = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_REPLAY_EVENTS]
     replay_publisher = KafkaPublisher(
         kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
     )
 
+    replay_payload = {
+        "type": "replay_event",
+        "replay_id": replay_id,
+        "event_id": uuid.uuid4().hex,
+        "segment_id": None,
+        "trace_ids": [],
+        "error_ids": [],
+        "urls": [],
+        "timestamp": time.time(),
+        "is_archived": True,
+        "platform": "backend",
+    }
+
     replay_publisher.publish(
         "ingest-replay-events",
         json.dumps(
             {
                 "type": "replay_event",
+                "start_time": int(time.time()),
                 "replay_id": replay_id,
-                "event_id": uuid.uuid4().hex,
+                "project_id": project_id,
                 "segment_id": None,
-                "timestamp": time.time(),
-                "is_deleted": True,
+                "retention_days": 30,
+                "payload": list(bytes(json.dumps(replay_payload).encode())),
             }
         ),
     )
