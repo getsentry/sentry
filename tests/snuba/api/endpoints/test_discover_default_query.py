@@ -73,3 +73,6 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
         # data = response.data
         # assert data["name"] == "New Default Query"
         # assert data["fields"] == ["environment", "platform.name"]
+
+    def test_delete_resets_saved_query(self):
+        pass
