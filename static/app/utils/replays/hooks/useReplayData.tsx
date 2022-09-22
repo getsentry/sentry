@@ -189,12 +189,22 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     setState(INITIAL_STATE);
 
     try {
-      const [record, attachments] = await Promise.all([
-        fetchReplay(),
+      // const [record, attachments] = await Promise.all([
+      //   fetchReplay(),
+      //   fetchAllRRwebEvents(),
+      // ]);
+      // const replayRecord = mapResponseToReplayRecord(record);
+      // const errors = await fetchErrors(replayRecord);
+
+      const [[replayRecord, errors], attachments] = await Promise.all([
+        (async (): Promise<[ReplayRecord, any]> => {
+          const fetchedRecord = await fetchReplay();
+          const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
+          const fetchedErrors = await fetchErrors(mappedRecord);
+          return [mappedRecord, fetchedErrors];
+        })(),
         fetchAllRRwebEvents(),
       ]);
-      const replayRecord = mapResponseToReplayRecord(record);
-      const errors = await fetchErrors(replayRecord);
 
       setState(prev => ({
         ...prev,
