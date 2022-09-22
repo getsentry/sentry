@@ -98,7 +98,11 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             #: These strings should be common strings, but we cannot add them
             #: to the indexer because they already exist in the release health
             #: indexer db.
-            known_non_common_strings = {"other", "platform"}
+            known_non_common_strings = {
+                "other",
+                "platform",
+                "d:transactions/measurements.inp@millisecond",
+            }
 
             # Make sure that all the standard strings are part of the list of common strings:
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()

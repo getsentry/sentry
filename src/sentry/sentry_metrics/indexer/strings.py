@@ -71,7 +71,6 @@ TRANSACTION_METRICS_NAMES = {
     "d:transactions/breakdowns.span_ops.ops.browser@millisecond": PREFIX + 122,
     "d:transactions/breakdowns.span_ops.ops.resource@millisecond": PREFIX + 123,
     "d:transactions/breakdowns.span_ops.ops.ui@millisecond": PREFIX + 124,
-    "d:transactions/measurements.inp@millisecond": PREFIX + 125,
 }
 
 # 200 - 299
