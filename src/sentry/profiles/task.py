@@ -86,8 +86,8 @@ def process_profile(
         return
 
     _initialize_publisher()
-    _insert_eventstream_call_tree(profile=profile)
     _insert_eventstream_profile(profile=profile)
+    _insert_eventstream_call_tree(profile=profile)
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
 
