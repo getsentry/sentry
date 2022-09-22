@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
@@ -65,7 +65,9 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
 
-    def to_dict(self) -> str:
+    def to_dict(
+        self,
+    ) -> Mapping[str, Any]:
         return {
             "fingerprint": self.fingerprint,
             "op": self.op,
@@ -259,7 +261,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         detector.on_complete()
 
     # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(event_id, detectors, sdk_span)
+    report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
     # Get list of detectors that are allowed to create issues.
     allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
@@ -973,10 +975,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
+    sdk_name = event.get("sdk", {}).get("name", "")
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
@@ -989,11 +992,12 @@ def report_metrics_for_detectors(
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
+            tags={"sdk_name": sdk_name},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
 
-    detected_tags = {}
+    detected_tags = {"sdk_name": sdk_name}
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems
