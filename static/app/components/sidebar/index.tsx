@@ -407,13 +407,7 @@ function Sidebar({location, organization}: Props) {
                 id="collapse"
                 data-test-id="sidebar-collapse"
                 {...sidebarItemProps}
-                icon={
-                  <IconChevron
-                    isCircled
-                    direction={collapsed ? 'right' : 'left'}
-                    size="md"
-                  />
-                }
+                icon={<IconChevron direction={collapsed ? 'right' : 'left'} size="sm" />}
                 label={collapsed ? t('Expand') : t('Collapse')}
                 onClick={toggleCollapse}
               />

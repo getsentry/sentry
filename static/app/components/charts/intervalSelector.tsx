@@ -14,7 +14,8 @@ import {INTERVAL_MODES} from 'sentry/utils/discover/types';
 type IntervalUnits = 's' | 'm' | 'h' | 'd';
 
 type RelativeUnitsMapping = {
-  [unit in IntervalUnits]: {
+  [Unit: string]: {
+    convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
@@ -26,21 +27,25 @@ const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
     label: (num: number) => tn('Second', '%s seconds', num),
     searchKey: t('seconds'),
     momentUnit: 'seconds',
+    convertToDaysMultiplier: 1 / (60 * 60 * 24),
   },
   m: {
     label: (num: number) => tn('Minute', '%s minutes', num),
     searchKey: t('minutes'),
     momentUnit: 'minutes',
+    convertToDaysMultiplier: 1 / (60 * 24),
   },
   h: {
     label: (num: number) => tn('Hour', '%s hours', num),
     searchKey: t('hours'),
     momentUnit: 'hours',
+    convertToDaysMultiplier: 1 / 24,
   },
   d: {
     label: (num: number) => tn('Day', '%s days', num),
     searchKey: t('days'),
     momentUnit: 'days',
+    convertToDaysMultiplier: 1,
   },
 };
 
@@ -177,12 +182,10 @@ export default function IntervalSelector({
 
   const intervalAutoComplete: typeof autoCompleteFilter = function (items, filterValue) {
     let newItem: number | undefined = undefined;
-    const results = _timeRangeAutoCompleteFilter(
-      items,
-      filterValue,
-      SUPPORTED_RELATIVE_PERIOD_UNITS,
-      SUPPORTED_RELATIVE_UNITS_LIST
-    ).filter(item => {
+    const results = _timeRangeAutoCompleteFilter(items, filterValue, {
+      supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,
+      supportedUnits: SUPPORTED_RELATIVE_UNITS_LIST,
+    }).filter(item => {
       const itemHours = parsePeriodToHours(item.value);
       if (itemHours < intervalOption.min) {
         newItem = intervalOption.min;
