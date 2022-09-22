@@ -294,6 +294,13 @@ const EmptyText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
+const fontColor = p => {
+  if (p.isStatusError) {
+    return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
+  }
+  return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
+};
+
 const Item = styled('div')<{
   hasOccurred: boolean;
   isCurrent: boolean;
@@ -307,12 +314,7 @@ const Item = styled('div')<{
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => {
-    if (p.isStatusError) {
-      return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
-    }
-    return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
-  }};
+  color: ${fontColor};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
   border-bottom: ${p => {
@@ -333,12 +335,7 @@ const Item = styled('div')<{
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
 
   ${EmptyText} {
-    color: ${p => {
-      if (p.isStatusError) {
-        return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
-      }
-      return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
-    }};
+    color: ${fontColor};
   }
 `;
 
