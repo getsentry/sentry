@@ -17,8 +17,8 @@ from sentry.utils.pubsub import KafkaPublisher
 )
 def delete_recording_segments(project_id: int, replay_id: str, **kwargs: dict) -> None:
     """Asynchronously delete a replay."""
-    _delete_replay_recording(project_id, replay_id)
     _archive_replay(project_id, replay_id)
+    _delete_replay_recording(project_id, replay_id)
 
 
 def _delete_replay_recording(project_id: int, replay_id: str) -> None:
