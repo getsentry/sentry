@@ -73,7 +73,10 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           triggerProps={{prefix: t('Log Level')}}
           triggerLabel={logLevel.length === 0 ? t('Any') : null}
           multiple
-          options={getLogLevels(breadcrumbs).map(value => ({value, label: value}))}
+          options={getLogLevels(breadcrumbs, logLevel).map(value => ({
+            value,
+            label: value,
+          }))}
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}
