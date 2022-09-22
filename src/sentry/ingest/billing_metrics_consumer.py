@@ -7,6 +7,7 @@ from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyF
 from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
+from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
@@ -38,11 +39,16 @@ def _get_metrics_billing_consumer_processing_factory():
     return BillingMetricsConsumerStrategyFactory()
 
 
-class BillingMetricsConsumerStrategy(ProcessingStrategy[KafkaPayload]):
+class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     # TODO: docs, explaining the strategy of generating outcomes
 
-    def __init__(self) -> None:
+    def __init__(self, metric_name) -> None:
         print("creating instance of consumer strategy...")
+
+        if metric_name not in TRANSACTION_METRICS_NAMES:
+            raise ValueError(f"Unrecognized metric name: {metric_name}")
+
+        self.counter_metric = metric_name
         self.__futures = []
         self.__closed = False
         # TODO: ensure encoding is right
@@ -64,7 +70,11 @@ class BillingMetricsConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return json.loads(message.payload.value.decode(self.__message_payload_encoding))
 
     def _estimate_processed_transactions(self, bucket_payload: Dict) -> int:
-        # TODO: check for the metric ID
+        # Accessing TRANSACTION_METRIC_NAMES unsafely, as opposed to using
+        # `get`, throws an exception. This makes it easier to identify
+        # situations in which the consumer doesn't generate billing outcomes.
+        if bucket_payload["metric_id"] != TRANSACTION_METRICS_NAMES[self.counter_metric]:
+            return 0
         return len(bucket_payload["value"])
 
     def _generate_billing_outcomes(self, amount: int) -> None:
@@ -91,4 +101,6 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingMetricsConsumerStrategy()
+        return BillingSingleMetricConsumerStrategy(
+            metric_name="d:transactions/duration@millisecond"
+        )
