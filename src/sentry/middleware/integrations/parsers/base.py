@@ -14,7 +14,7 @@ class BaseRequestParser(abc.ABC):
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
         self.response_handler = response_handler
-        self.error_message = f"{self.__name__} should only be run on the control silo."
+        self.error_message = "Integration Request Parsers should only be run on the control silo."
 
     def get_response_from_control_silo(self):
         """
