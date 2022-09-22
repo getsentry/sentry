@@ -8,7 +8,7 @@ declare namespace Profiling {
   type SentryProfileStack = number[];
 
   type SentryProfileFrame = {
-    function: string;
+    name: string;
     file: string;
     line: number;
     column: number;
