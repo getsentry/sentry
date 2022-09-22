@@ -15,7 +15,7 @@ export async function fetchOrgMembers(
   api: Client,
   orgId: string,
   projectIds: string[] | null = null
-) {
+): Promise<Member[]> {
   const endpoint = `/organizations/${orgId}/users/`;
   const query = projectIds ? {project: projectIds} : {};
 
