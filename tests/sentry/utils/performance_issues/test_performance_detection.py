@@ -109,7 +109,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         "sentry.utils.performance_issues.performance_detection.get_allowed_issue_creation_detectors"
     )
     def test_n_plus_one_extended_detection_no_parent_span(self, mock):
-        allowed_detectors = set([DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED])
+        allowed_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED}
         mock.return_value = allowed_detectors
         n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
         sdk_span_mock = Mock()
@@ -146,12 +146,12 @@ class PerformanceDetectionTest(unittest.TestCase):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
-        allowed_detectors = set([DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED])
+        allowed_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED}
         mock.return_value = allowed_detectors
 
         n_plus_one_extended_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
 
-        allowed_detectors = set([DetectorType.N_PLUS_ONE_DB_QUERIES])
+        allowed_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES}
         mock.return_value = allowed_detectors
 
         n_plus_one_original_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
