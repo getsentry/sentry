@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -19,7 +18,6 @@ import RepositoryProjectPathConfigRow, {
   NameRepoColumn,
   OutputPathColumn,
 } from 'sentry/components/repositoryProjectPathConfigRow';
-import Tooltip from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -216,29 +214,16 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
               <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
               <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
-
-              <Access access={['org:integrations']}>
-                {({hasAccess}) => (
-                  <ButtonColumn>
-                    <Tooltip
-                      title={t(
-                        'You must be an organization owner, manager or admin to edit or remove a code mapping.'
-                      )}
-                      disabled={hasAccess}
-                    >
-                      <Button
-                        data-test-id="add-mapping-button"
-                        onClick={() => this.openModal()}
-                        size="xs"
-                        icon={<IconAdd size="xs" isCircled />}
-                        disabled={!hasAccess}
-                      >
-                        {t('Add Code Mapping')}
-                      </Button>
-                    </Tooltip>
-                  </ButtonColumn>
-                )}
-              </Access>
+              <ButtonColumn>
+                <Button
+                  data-test-id="add-mapping-button"
+                  onClick={() => this.openModal()}
+                  size="xs"
+                  icon={<IconAdd size="xs" isCircled />}
+                >
+                  {t('Add Code Mapping')}
+                </Button>
+              </ButtonColumn>
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>

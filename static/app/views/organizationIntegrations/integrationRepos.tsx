@@ -133,8 +133,11 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
   }
 
   renderDropdown() {
+    const allowMemberConfiguration = ['github', 'gitlab'].includes(
+      this.props.integration.provider.key
+    );
     const access = new Set(this.props.organization.access);
-    if (!access.has('org:integrations')) {
+    if (!allowMemberConfiguration && !access.has('org:integrations')) {
       return (
         <DropdownButton
           disabled
@@ -241,6 +244,7 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
                 api={this.api}
                 key={repo.id}
                 repository={repo}
+                provider={this.props.integration.provider}
                 orgId={orgId}
                 onRepositoryChange={this.onRepositoryChange}
               />

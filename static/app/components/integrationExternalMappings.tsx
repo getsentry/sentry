@@ -4,7 +4,6 @@ import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Access from 'sentry/components/acl/access';
 import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
@@ -118,7 +117,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     return [...inlineMappings, ...mappings];
   }
 
-  renderMappingName(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
+  renderMappingName(mapping: ExternalActorMappingOrSuggestion) {
     const {
       type,
       getBaseFormEndpoint,
@@ -128,8 +127,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
       onResults,
       defaultOptions,
     } = this.props;
-    const mappingName = isExternalActorMapping(mapping) ? mapping.sentryName : '';
-    return hasAccess ? (
+    return (
       <IntegrationExternalMappingForm
         type={type}
         integration={integration}
@@ -151,45 +149,34 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
         isInline
         defaultOptions={defaultOptions}
       />
-    ) : (
-      mappingName
     );
   }
 
-  renderMappingOptions(mapping: ExternalActorMappingOrSuggestion, hasAccess: boolean) {
+  renderMappingOptions(mapping: ExternalActorMappingOrSuggestion) {
     const {type, onDelete} = this.props;
     return isExternalActorMapping(mapping) ? (
-      <Tooltip
-        title={t(
-          'You must be an organization owner, manager or admin to make changes to an external user mapping.'
-        )}
-        disabled={hasAccess}
+      <DropdownLink
+        anchorRight
+        customTitle={
+          <Button
+            borderless
+            size="sm"
+            icon={<IconEllipsisVertical size="sm" />}
+            aria-label={t('Actions')}
+            data-test-id="mapping-option"
+          />
+        }
       >
-        <DropdownLink
-          anchorRight
-          customTitle={
-            <Button
-              borderless
-              size="sm"
-              icon={<IconEllipsisVertical size="sm" />}
-              disabled={!hasAccess}
-              aria-label={t('Actions')}
-              data-test-id="mapping-option"
-            />
-          }
+        <MenuItemActionLink
+          shouldConfirm
+          message={t(`Are you sure you want to remove this external ${type} mapping?`)}
+          onAction={() => onDelete(mapping)}
+          aria-label={t(`Delete External ${capitalize(type)}`)}
+          data-test-id="delete-mapping-button"
         >
-          <MenuItemActionLink
-            shouldConfirm
-            message={t(`Are you sure you want to remove this external ${type} mapping?`)}
-            disabled={!hasAccess}
-            onAction={() => onDelete(mapping)}
-            aria-label={t(`Delete External ${capitalize(type)}`)}
-            data-test-id="delete-mapping-button"
-          >
-            <RedText>{t('Delete')}</RedText>
-          </MenuItemActionLink>
-        </DropdownLink>
-      </Tooltip>
+          <RedText>{t('Delete')}</RedText>
+        </MenuItemActionLink>
+      </DropdownLink>
     ) : (
       <Tooltip
         title={t(`This ${type} mapping suggestion was generated from a CODEOWNERS file`)}
@@ -222,29 +209,16 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
                 <IconArrow direction="right" size="md" />
               </ArrowColumn>
               <SentryNameColumn>{tct('Sentry [type]', {type})}</SentryNameColumn>
-              <Access access={['org:integrations']}>
-                {({hasAccess}) => (
-                  <ButtonColumn>
-                    <Tooltip
-                      title={tct(
-                        'You must be an organization owner, manager or admin to edit or remove a [type] mapping.',
-                        {type}
-                      )}
-                      disabled={hasAccess}
-                    >
-                      <AddButton
-                        data-test-id="add-mapping-button"
-                        onClick={() => onCreate()}
-                        size="xs"
-                        icon={<IconAdd size="xs" isCircled />}
-                        disabled={!hasAccess}
-                      >
-                        <ButtonText>{tct('Add [type] Mapping', {type})}</ButtonText>
-                      </AddButton>
-                    </Tooltip>
-                  </ButtonColumn>
-                )}
-              </Access>
+              <ButtonColumn>
+                <AddButton
+                  data-test-id="add-mapping-button"
+                  onClick={() => onCreate()}
+                  size="xs"
+                  icon={<IconAdd size="xs" isCircled />}
+                >
+                  <ButtonText>{tct('Add [type] Mapping', {type})}</ButtonText>
+                </AddButton>
+              </ButtonColumn>
             </HeaderLayout>
           </PanelHeader>
           <PanelBody data-test-id="mapping-table">
@@ -257,27 +231,19 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
               </EmptyMessage>
             )}
             {this.allMappings.map((mapping, index) => (
-              <Access access={['org:integrations']} key={index}>
-                {({hasAccess}) => (
-                  <ConfigPanelItem>
-                    <Layout>
-                      <ExternalNameColumn>
-                        <StyledPluginIcon pluginId={integration.provider.key} size={19} />
-                        <span>{mapping.externalName}</span>
-                      </ExternalNameColumn>
-                      <ArrowColumn>
-                        <IconArrow direction="right" size="md" />
-                      </ArrowColumn>
-                      <SentryNameColumn>
-                        {this.renderMappingName(mapping, hasAccess)}
-                      </SentryNameColumn>
-                      <ButtonColumn>
-                        {this.renderMappingOptions(mapping, hasAccess)}
-                      </ButtonColumn>
-                    </Layout>
-                  </ConfigPanelItem>
-                )}
-              </Access>
+              <ConfigPanelItem key={index}>
+                <Layout>
+                  <ExternalNameColumn>
+                    <StyledPluginIcon pluginId={integration.provider.key} size={19} />
+                    <span>{mapping.externalName}</span>
+                  </ExternalNameColumn>
+                  <ArrowColumn>
+                    <IconArrow direction="right" size="md" />
+                  </ArrowColumn>
+                  <SentryNameColumn>{this.renderMappingName(mapping)}</SentryNameColumn>
+                  <ButtonColumn>{this.renderMappingOptions(mapping)}</ButtonColumn>
+                </Layout>
+              </ConfigPanelItem>
             ))}
           </PanelBody>
         </Panel>

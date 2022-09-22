@@ -1,11 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import IdBadge from 'sentry/components/idBadge';
-import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -23,56 +21,42 @@ export default class RepositoryProjectPathConfigRow extends Component<Props> {
     const {pathConfig, project, onEdit, onDelete} = this.props;
 
     return (
-      <Access access={['org:integrations']}>
-        {({hasAccess}) => (
-          <Fragment>
-            <NameRepoColumn>
-              <ProjectRepoHolder>
-                <RepoName>{pathConfig.repoName}</RepoName>
-                <ProjectAndBranch>
-                  <IdBadge
-                    project={project}
-                    avatarSize={14}
-                    displayName={project.slug}
-                    avatarProps={{consistentWidth: true}}
-                  />
-                  <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
-                </ProjectAndBranch>
-              </ProjectRepoHolder>
-            </NameRepoColumn>
-            <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
-            <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
-            <ButtonColumn>
-              <Tooltip
-                title={t(
-                  'You must be an organization owner, manager or admin to edit or remove a code mapping.'
-                )}
-                disabled={hasAccess}
-              >
-                <StyledButton
-                  size="sm"
-                  icon={<IconEdit size="sm" />}
-                  aria-label={t('edit')}
-                  disabled={!hasAccess}
-                  onClick={() => onEdit(pathConfig)}
-                />
-                <Confirm
-                  disabled={!hasAccess}
-                  onConfirm={() => onDelete(pathConfig)}
-                  message={t('Are you sure you want to remove this code mapping?')}
-                >
-                  <StyledButton
-                    size="sm"
-                    icon={<IconDelete size="sm" />}
-                    aria-label={t('delete')}
-                    disabled={!hasAccess}
-                  />
-                </Confirm>
-              </Tooltip>
-            </ButtonColumn>
-          </Fragment>
-        )}
-      </Access>
+      <Fragment>
+        <NameRepoColumn>
+          <ProjectRepoHolder>
+            <RepoName>{pathConfig.repoName}</RepoName>
+            <ProjectAndBranch>
+              <IdBadge
+                project={project}
+                avatarSize={14}
+                displayName={project.slug}
+                avatarProps={{consistentWidth: true}}
+              />
+              <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
+            </ProjectAndBranch>
+          </ProjectRepoHolder>
+        </NameRepoColumn>
+        <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
+        <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
+        <ButtonColumn>
+          <StyledButton
+            size="sm"
+            icon={<IconEdit size="sm" />}
+            aria-label={t('edit')}
+            onClick={() => onEdit(pathConfig)}
+          />
+          <Confirm
+            onConfirm={() => onDelete(pathConfig)}
+            message={t('Are you sure you want to remove this code mapping?')}
+          >
+            <StyledButton
+              size="sm"
+              icon={<IconDelete size="sm" />}
+              aria-label={t('delete')}
+            />
+          </Confirm>
+        </ButtonColumn>
+      </Fragment>
     );
   }
 }

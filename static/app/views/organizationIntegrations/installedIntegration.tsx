@@ -108,7 +108,16 @@ export default class InstalledIntegration extends Component<Props> {
         : this.removeConfirmProps;
 
     return (
-      <Access access={['org:integrations']}>
+      <Access
+        access={[
+          'org:integrations',
+          // Allow github/gitlab to edit
+          ...(['github', 'gitlab'].includes(provider.key)
+            ? ['member:read' as const]
+            : []),
+        ]}
+        requireAll={false}
+      >
         {({hasAccess}) => {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
@@ -144,7 +153,7 @@ export default class InstalledIntegration extends Component<Props> {
                   <StyledButton
                     borderless
                     icon={<IconSettings />}
-                    disabled={disableAction}
+                    disabled={!allowMemberConfiguration && disableAction}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >
