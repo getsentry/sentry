@@ -171,6 +171,43 @@ export function SamplingFeedback() {
           );
         }
 
+        const submitEventData = {
+          contexts: {
+            survey: {
+              samplingUsageReasons: state.samplingUsageReasons
+                .filter(samplingUsageReason => samplingUsageReason.checked)
+                .map(samplingUsageReason => samplingUsageReason.title)
+                .join(', '),
+              samplingUsageOtherReason: state.samplingUsageOtherReason,
+              sampleByOptions: state.sampleByOptions
+                .filter(sampleByOption => sampleByOption.checked)
+                .map(sampleByOption => sampleByOption.title)
+                .join(', '),
+              sampleByOtherOption: state.sampleByOtherOption,
+              additionalFeedback: state.additionalFeedback,
+              feelingIfFeatureNotAvailable: defined(state.feelingIfFeatureNotAvailable)
+                ? featureNotAvailableRatingOptions[state.feelingIfFeatureNotAvailable]
+                    .label
+                : null,
+            },
+          },
+          message: state.additionalFeedback
+            ? `Feedback: 'dynamic sampling' feature - ${state.additionalFeedback}`
+            : `Feedback: 'dynamic sampling' feature`,
+        };
+
+        const primaryButtonDisabled = Object.keys(submitEventData.contexts.survey).every(
+          s => {
+            const value = submitEventData.contexts.survey[s] ?? null;
+
+            if (typeof value === 'string') {
+              return value.trim() === '';
+            }
+
+            return value === null;
+          }
+        );
+
         return (
           <Fragment>
             <Header>{t('A few questions (2/2)')}</Header>
@@ -187,6 +224,14 @@ export function SamplingFeedback() {
                 stacked
                 options={featureNotAvailableRatingOptions}
                 name="feelingIfFeatureNotAvailableRating"
+                defaultValue={
+                  defined(state.feelingIfFeatureNotAvailable)
+                    ? String(state.feelingIfFeatureNotAvailable)
+                    : undefined
+                }
+                onChange={value =>
+                  onFieldChange('feelingIfFeatureNotAvailable', Number(value))
+                }
               />
               <Field
                 label={<Label>{t('Anything else you would like to share?')}</Label>}
@@ -209,33 +254,12 @@ export function SamplingFeedback() {
             </Body>
             <Footer
               onBack={() => onFieldChange('step', 0)}
-              submitEventData={{
-                contexts: {
-                  survey: {
-                    samplingUsageReasons: state.samplingUsageReasons
-                      .filter(samplingUsageReason => samplingUsageReason.checked)
-                      .map(samplingUsageReason => samplingUsageReason.title)
-                      .join(', '),
-                    samplingUsageOtherReason: state.samplingUsageOtherReason,
-                    sampleByOptions: state.sampleByOptions
-                      .filter(sampleByOption => sampleByOption.checked)
-                      .map(sampleByOption => sampleByOption.title)
-                      .join(', '),
-                    sampleByOtherOption: state.sampleByOtherOption,
-                    additionalFeedback: state.additionalFeedback,
-                    feelingIfFeatureNotAvailable: defined(
-                      state.feelingIfFeatureNotAvailable
-                    )
-                      ? featureNotAvailableRatingOptions[
-                          state.feelingIfFeatureNotAvailable
-                        ].label
-                      : null,
-                  },
-                },
-                message: state.additionalFeedback
-                  ? `Feedback: 'dynamic sampling' feature - ${state.additionalFeedback}`
-                  : `Feedback: 'dynamic sampling' feature`,
-              }}
+              primaryDisabledReason={
+                primaryButtonDisabled
+                  ? t('Please answer at least one question')
+                  : undefined
+              }
+              submitEventData={submitEventData}
             />
           </Fragment>
         );
