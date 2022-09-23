@@ -15,9 +15,14 @@ from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
 
 
-def get_metrics_billing_consumer(**options) -> StreamProcessor[KafkaPayload]:
-    kafka_topic = options["topic"]
-    cluster_name = settings.KAFKA_TOPICS[kafka_topic]["cluster"]
+def get_metrics_billing_consumer(
+    topic: str,
+    group_id: str,
+    auto_offset_reset: str,
+    **options,
+) -> StreamProcessor[KafkaPayload]:
+    # TODO: support force_topic and force_cluster
+    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
     processing_factory = _get_metrics_billing_consumer_processing_factory()
 
@@ -25,15 +30,15 @@ def get_metrics_billing_consumer(**options) -> StreamProcessor[KafkaPayload]:
         consumer=KafkaConsumer(
             get_kafka_consumer_cluster_options(
                 cluster_name=cluster_name,
-                # TODO: these overriding params are a workaround for now
                 override_params={
                     "enable.auto.commit": False,
                     "enable.auto.offset.store": False,
-                    "group.id": options["group_id"],
+                    "auto.offset.reset": auto_offset_reset,
+                    "group.id": group_id,
                 },
             )
         ),
-        topic=Topic(kafka_topic),
+        topic=Topic(topic),
         processor_factory=processing_factory,
     )
 
