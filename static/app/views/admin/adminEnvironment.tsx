@@ -29,7 +29,7 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
     const {data} = this.state;
     const {environment, config, pythonVersion} = data;
 
-    const {version} = ConfigStore.getConfig();
+    const {version} = ConfigStore.getState();
 
     return (
       <div>

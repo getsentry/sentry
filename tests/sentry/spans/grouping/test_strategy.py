@@ -16,7 +16,7 @@ from sentry.spans.grouping.strategy.config import (
     register_configuration,
 )
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils.perfomance_issues.span_builder import SpanBuilder
+from sentry.testutils.performance_issues.span_builder import SpanBuilder
 
 
 def test_register_duplicate_confiig() -> None:
