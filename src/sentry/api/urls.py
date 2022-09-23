@@ -66,6 +66,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_events_meta import (
+    OrganizationReplayEventsMetaEndpoint,
+)
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -1568,6 +1571,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/replays/$",
                     OrganizationReplayIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
+                    OrganizationReplayEventsMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-events-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/functions/$",

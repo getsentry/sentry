@@ -17,7 +17,6 @@ import space from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -108,7 +107,7 @@ class GroupDetails extends Component<Props, State> {
 
   componentWillUnmount() {
     GroupStore.reset();
-    callIfFunction(this.listener);
+    this.listener?.();
     if (this.refetchInterval) {
       window.clearInterval(this.refetchInterval);
     }
@@ -172,7 +171,7 @@ class GroupDetails extends Component<Props, State> {
     const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
-    const eventId = params?.eventId || 'latest';
+    const eventId = params.eventId ?? 'latest';
     const projectId = group?.project?.slug;
     try {
       const event = await fetchGroupEvent(
@@ -290,7 +289,7 @@ class GroupDetails extends Component<Props, State> {
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
-      expand: 'inbox',
+      expand: ['inbox', 'owners'],
       collapse: 'release',
     };
 
@@ -581,13 +580,14 @@ class GroupDetails extends Component<Props, State> {
     return (
       <Fragment>
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
           replaysCount={replayIds?.length}
           currentTab={currentTab}
           baseUrl={baseUrl}
+          project={project as Project}
         />
         {isValidElement(children) ? cloneElement(children, childProps) : children}
       </Fragment>

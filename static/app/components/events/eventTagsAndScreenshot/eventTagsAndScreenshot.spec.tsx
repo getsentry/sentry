@@ -1,4 +1,3 @@
-import React from 'react';
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -320,7 +319,7 @@ describe('EventTagsAndScreenshot', function () {
       // Screenshot Container
       expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
-      expect(screen.getByRole('img')).toHaveAttribute(
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
@@ -335,7 +334,7 @@ describe('EventTagsAndScreenshot', function () {
       ).toBeInTheDocument();
 
       // Screenshot is clickable
-      userEvent.click(screen.getByRole('img'));
+      userEvent.click(screen.getByTestId('image-viewer'));
 
       // Open 'view screenshot' dialog
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -368,7 +367,7 @@ describe('EventTagsAndScreenshot', function () {
       // Screenshot Container
       expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
-      expect(screen.getByRole('img')).toHaveAttribute(
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
@@ -403,7 +402,7 @@ describe('EventTagsAndScreenshot', function () {
       // Screenshot Container
       expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
-      expect(screen.getByRole('img')).toHaveAttribute(
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
@@ -438,7 +437,7 @@ describe('EventTagsAndScreenshot', function () {
       // Screenshot Container
       expect(screen.getByText('Screenshot')).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
-      expect(screen.getByRole('img')).toHaveAttribute(
+      expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );

@@ -494,7 +494,7 @@ class SmartSearchBar extends Component<Props, State> {
       search_source: searchSource,
     });
 
-    callIfFunction(onSearch, query);
+    onSearch?.(query);
 
     // Only save recent search query if we have a savedSearchType (also 0 is a valid value)
     // Do not save empty string queries (i.e. if they clear search)
@@ -691,13 +691,13 @@ class SmartSearchBar extends Component<Props, State> {
   clearSearch = () => {
     this.setState(this.makeQueryState(''), () => {
       this.close();
-      callIfFunction(this.props.onSearch, this.state.query);
+      this.props.onSearch?.(this.state.query);
     });
   };
 
   close = () => {
     this.setState({showDropdown: false});
-    callIfFunction(this.props.onClose, this.state.query);
+    this.props.onClose?.(this.state.query);
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   };
 
@@ -713,14 +713,14 @@ class SmartSearchBar extends Component<Props, State> {
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     this.setState({inputHasFocus: false});
-    callIfFunction(this.props.onBlur, e.target.value);
+    this.props.onBlur?.(e.target.value);
   };
 
   onQueryChange = (evt: React.ChangeEvent<HTMLTextAreaElement>) => {
     const query = evt.target.value.replace('\n', '');
 
     this.setState(this.makeQueryState(query), this.updateAutoCompleteItems);
-    callIfFunction(this.props.onChange, evt.target.value, evt);
+    this.props.onChange?.(evt.target.value, evt);
   };
 
   /**
@@ -764,7 +764,7 @@ class SmartSearchBar extends Component<Props, State> {
     const {onKeyDown} = this.props;
     const {key} = evt;
 
-    callIfFunction(onKeyDown, evt);
+    onKeyDown?.(evt);
 
     const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
@@ -1487,6 +1487,7 @@ class SmartSearchBar extends Component<Props, State> {
           this.setState({
             searchTerm: tagName,
           });
+
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         }
         return;

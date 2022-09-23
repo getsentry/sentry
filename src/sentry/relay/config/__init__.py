@@ -26,6 +26,8 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
+from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
+
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = ["organizations:profiling", "organizations:session-replay"]
 
@@ -197,6 +199,9 @@ def _get_project_config(project, full_config=True, project_keys=None):
                     active_rules.append(rule)
 
             cfg["config"]["dynamicSampling"] = {"rules": active_rules}
+
+    # Limit the number of custom measurements
+    cfg["config"]["measurements"] = get_measurements_config()
 
     if not full_config:
         # This is all we need for external Relay processors
@@ -427,6 +432,7 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.app_start_warm@millisecond",
         "d:transactions/measurements.cls@none",
         "d:transactions/measurements.fid@millisecond",
+        "d:transactions/measurements.inp@millisecond",
         "d:transactions/measurements.fp@millisecond",
         "d:transactions/measurements.frames_frozen@none",
         "d:transactions/measurements.frames_frozen_rate@ratio",
@@ -441,9 +447,6 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.ttfb.requesttime@millisecond",
     ]
 )
-
-#: The maximum number of custom measurements to be extracted from transactions.
-CUSTOM_MEASUREMENT_LIMIT = 5
 
 
 class CustomMeasurementSettings(TypedDict):

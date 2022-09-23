@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 import List from './list';
 
@@ -61,7 +60,7 @@ class SimilarStackTrace extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   onGroupingChange = ({

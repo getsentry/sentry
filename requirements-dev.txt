@@ -35,3 +35,4 @@ types-python-dateutil
 types-pytz
 types-redis
 types-requests
+types-psycopg2
