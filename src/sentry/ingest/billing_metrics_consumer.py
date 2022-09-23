@@ -71,7 +71,7 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         assert not self.__closed
 
         payload = self._get_payload(message)
-        num_processed_transactions = self._estimate_processed_transactions(payload)
+        num_processed_transactions = self._count_processed_transactions(payload)
         self._produce_billing_outcomes(payload, num_processed_transactions)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
@@ -79,7 +79,7 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             message.payload.value.decode(self.__message_payload_encoding), use_rapid_json=True
         )
 
-    def _estimate_processed_transactions(self, bucket_payload: Dict) -> int:
+    def _count_processed_transactions(self, bucket_payload: Dict) -> int:
         # Accessing TRANSACTION_METRIC_NAMES unsafely, as opposed to using
         # `get`, throws an exception. This makes it easier to identify
         # situations in which the consumer doesn't generate billing outcomes.
