@@ -10,6 +10,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.request import Request as SnubaRequest
 
 from sentry import features
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
@@ -45,6 +46,7 @@ class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
 
+@region_silo_endpoint
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
     private = True
     permission_classes = (DynamicSamplingPermission,)
@@ -95,7 +97,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "start": query_time_range.start_time,
                 "end": query_time_range.end_time,
                 "project_id": [project.id],
-                "organization_id": project.organization,
+                "organization_id": project.organization.id,
             },
             limit=sample_size,
             referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
@@ -138,7 +140,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "start": start_bound_time,
                     "end": end_bound_time,
                     "project_id": [project.id],
-                    "organization_id": project.organization,
+                    "organization_id": project.organization.id,
                 },
                 orderby=["-timestamp.to_day"],
                 limit=1,
@@ -195,7 +197,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "start": query_time_range.start_time,
                 "end": query_time_range.end_time,
                 "project_id": [project.id],
-                "organization_id": project.organization,
+                "organization_id": project.organization.id,
             },
             query=f"{query} event.type:transaction !has:trace.parent_span",
             selected_columns=[
@@ -305,7 +307,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     "start": query_time_range.start_time,
                     "end": query_time_range.end_time,
                     "project_id": list(projects_in_org),
-                    "organization_id": project.organization,
+                    "organization_id": project.organization.id,
                 },
                 limit=20,
                 referrer="dynamic-sampling.distribution.fetch-project-breakdown",
@@ -317,7 +319,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 return Response(
                     status=status.HTTP_400_BAD_REQUEST,
                     data={
-                        "details": "Way too many projects in the distributed trace's project breakdown"
+                        "detail": "Way too many projects in the distributed trace's project breakdown"
                     },
                 )
 

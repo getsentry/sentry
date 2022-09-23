@@ -2,6 +2,9 @@ import React, {useCallback, useContext, useEffect, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
 import {
   clearAllHighlights,
@@ -10,6 +13,7 @@ import {
 } from 'sentry/utils/replays/highlightNode';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 enum ReplayLocalstorageKeys {
@@ -195,9 +199,11 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 }
 
 export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+  const config = useLegacyStore(ConfigStore);
+  const organization = useOrganization();
   const events = replay?.getRRWebEvents();
-  const savedReplayConfig: ReplayConfig = JSON.parse(
-    localStorage.getItem(ReplayLocalstorageKeys.ReplayConfig) || '{}'
+  const savedReplayConfigRef = useRef<ReplayConfig>(
+    JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.ReplayConfig) || '{}')
   );
 
   const theme = useTheme();
@@ -210,9 +216,9 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
-    savedReplayConfig?.skip ?? true
+    savedReplayConfigRef.current.skip ?? true
   );
-  const [speed, setSpeedState] = useState(savedReplayConfig?.speed || 1);
+  const [speed, setSpeedState] = useState(savedReplayConfigRef.current.speed || 1);
   const [fastForwardSpeed, setFFSpeed] = useState(0);
   const [buffer, setBufferTime] = useState({target: -1, previous: -1});
   const playTimer = useRef<number | undefined>(undefined);
@@ -304,7 +310,8 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         },
         // unpackFn: _ => _,
         // plugins: [],
-        skipInactive: true,
+        skipInactive: savedReplayConfigRef.current.skip ?? true,
+        speed: savedReplayConfigRef.current.speed || 1,
       });
 
       // @ts-expect-error: rrweb types event handlers with `unknown` parameters
@@ -383,12 +390,12 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const setSpeed = useCallback(
     (newSpeed: number) => {
       const replayer = replayerRef.current;
-      const newReplayConfig = {
-        ...savedReplayConfig,
+      savedReplayConfigRef.current = {
+        ...savedReplayConfigRef.current,
         speed: newSpeed,
       };
 
-      updateSavedReplayConfig(newReplayConfig);
+      updateSavedReplayConfig(savedReplayConfigRef.current);
 
       if (!replayer) {
         return;
@@ -403,7 +410,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
 
       setSpeedState(newSpeed);
     },
-    [getCurrentTime, isPlaying, savedReplayConfig]
+    [getCurrentTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -419,8 +426,14 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         replayer.pause(getCurrentTime());
       }
       setIsPlaying(play);
+
+      trackAdvancedAnalyticsEvent('replay.play-pause', {
+        organization,
+        user_email: config.user.email,
+        play,
+      });
     },
-    [getCurrentTime]
+    [getCurrentTime, config.user.email, organization]
   );
 
   const restart = useCallback(() => {
@@ -430,27 +443,24 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     }
   }, []);
 
-  const toggleSkipInactive = useCallback(
-    (skip: boolean) => {
-      const replayer = replayerRef.current;
-      const newReplayConfig = {
-        ...savedReplayConfig,
-        skip,
-      };
+  const toggleSkipInactive = useCallback((skip: boolean) => {
+    const replayer = replayerRef.current;
+    savedReplayConfigRef.current = {
+      ...savedReplayConfigRef.current,
+      skip,
+    };
 
-      updateSavedReplayConfig(newReplayConfig);
+    updateSavedReplayConfig(savedReplayConfigRef.current);
 
-      if (!replayer) {
-        return;
-      }
-      if (skip !== replayer.config.skipInactive) {
-        replayer.setConfig({skipInactive: skip});
-      }
+    if (!replayer) {
+      return;
+    }
+    if (skip !== replayer.config.skipInactive) {
+      replayer.setConfig({skipInactive: skip});
+    }
 
-      setIsSkippingInactive(skip);
-    },
-    [savedReplayConfig]
-  );
+    setIsSkippingInactive(skip);
+  }, []);
 
   // Only on pageload: set the initial playback timestamp
   useEffect(() => {

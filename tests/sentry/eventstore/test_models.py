@@ -4,15 +4,17 @@ import pytest
 
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
 
 
+@region_silo_test
 class EventTest(TestCase):
     def test_pickling_compat(self):
         event = self.store_event(
@@ -283,7 +285,7 @@ class EventTest(TestCase):
         )
         # TODO: Remove this once snuba is writing group_ids, and we can create groups as part
         # of self.store_event
-        event_from_snuba.group_ids = [self.group.id]
+        event_from_snuba.groups = [self.group]
 
         assert event_from_nodestore.event_id == event_from_snuba.event_id
         assert event_from_nodestore.project_id == event_from_snuba.project_id
@@ -302,11 +304,11 @@ class EventTest(TestCase):
 
         # Group IDs must be fetched from Snuba since they are not present in nodestore
         assert not event_from_snuba.group_id
-        assert event_from_snuba.group_ids
+        assert event_from_snuba.groups == [self.group]
         assert not event_from_snuba.group
 
         assert not event_from_nodestore.group_id
-        assert not event_from_nodestore.group_ids
+        assert not event_from_nodestore.groups
         assert not event_from_nodestore.group
 
     def test_grouping_reset(self):
@@ -365,6 +367,171 @@ class EventTest(TestCase):
         )
 
 
+@region_silo_test
+class EventGroupsTest(TestCase):
+    def test_none(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert event.groups == []
+
+    def test_snuba(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            snuba_data={"group_ids": [self.group.id]},
+            project_id=self.project.id,
+        )
+        assert event.groups == [self.group]
+
+    def test_passed_explicitly(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            groups=[self.group],
+        )
+        assert event.groups == [self.group]
+
+    def test_from_group(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            group_id=self.group.id,
+        )
+        assert event.groups == [self.group]
+
+    def test_from_group_snuba(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            snuba_data={"group_id": self.group.id},
+            project_id=self.project.id,
+        )
+        assert event.groups == [self.group]
+
+
+@region_silo_test
+class EventBuildGroupEventsTest(TestCase):
+    def test_none(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert list(event.build_group_events()) == []
+
+    def test(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            groups=[self.group],
+        )
+        assert list(event.build_group_events()) == [GroupEvent.from_event(event, self.group)]
+
+    def test_multiple(self):
+        self.group_2 = self.create_group()
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+            groups=[self.group, self.group_2],
+        )
+        sort_key = lambda group_event: (group_event.event_id, group_event.group_id)
+        assert sorted(event.build_group_events(), key=sort_key) == sorted(
+            [GroupEvent.from_event(event, self.group), GroupEvent.from_event(event, self.group_2)],
+            key=sort_key,
+        )
+
+
+@region_silo_test
+class EventForGroupTest(TestCase):
+    def test(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert GroupEvent.from_event(event, self.group) == GroupEvent(
+            self.project.id, event.event_id, self.group, event.data, event._snuba_data
+        )
+
+
+@region_silo_test
+class GroupEventFromEventTest(TestCase):
+    def test(self):
+        event = Event(
+            event_id="a" * 32,
+            data={
+                "level": "info",
+                "message": "Foo bar",
+                "culprit": "app/components/events/eventEntries in map",
+                "type": "transaction",
+                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
+            },
+            project_id=self.project.id,
+        )
+        assert event.for_group(self.group) == GroupEvent.from_event(event, self.group)
+
+
 @pytest.mark.django_db
 def test_renormalization(monkeypatch, factories, task_runner, default_project):
     from sentry_relay.processing import StoreNormalizer
@@ -389,6 +556,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     assert len(normalize_mock_calls) == 1
 
 
+@region_silo_test
 class EventNodeStoreTest(TestCase):
     def test_event_node_id(self):
         # Create an event without specifying node_id. A node_id should be generated

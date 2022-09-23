@@ -21,9 +21,11 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.event_search import SearchConfig, SearchFilter
 from sentry.replays.lib.query import (
+    ListField,
     Number,
     QueryConfig,
     String,
+    Tag,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -152,7 +154,7 @@ def make_select_statement() -> List[Union[Column, Function]]:
         ),
         _grouped_unique_scalar_value(column_name="platform"),
         _grouped_unique_scalar_value(column_name="environment", alias="agg_environment"),
-        _grouped_unique_scalar_value(column_name="release"),
+        _grouped_unique_values(column_name="release", alias="releases", aliased=True),
         _grouped_unique_scalar_value(column_name="dist"),
         _grouped_unique_scalar_value(column_name="user_id"),
         _grouped_unique_scalar_value(column_name="user_email"),
@@ -177,9 +179,17 @@ def make_select_statement() -> List[Union[Column, Function]]:
         _grouped_unique_scalar_value(column_name="device_model"),
         _grouped_unique_scalar_value(column_name="sdk_name"),
         _grouped_unique_scalar_value(column_name="sdk_version"),
-        _grouped_unique_scalar_value(column_name="tags.key"),
-        _grouped_unique_scalar_value(column_name="tags.value"),
         # Flatten array of arrays.
+        Function(
+            "groupArrayArray",
+            parameters=[Column("tags.key")],
+            alias="tk",
+        ),
+        Function(
+            "groupArrayArray",
+            parameters=[Column("tags.value")],
+            alias="tv",
+        ),
         Function(
             "arrayMap",
             parameters=[
@@ -227,7 +237,9 @@ def make_select_statement() -> List[Union[Column, Function]]:
     ]
 
 
-def _grouped_unique_values(column_name: str, aliased: bool = False) -> Function:
+def _grouped_unique_values(
+    column_name: str, alias: Optional[str] = None, aliased: bool = False
+) -> Function:
     """Returns an array of unique, non-null values.
 
     E.g.
@@ -236,7 +248,7 @@ def _grouped_unique_values(column_name: str, aliased: bool = False) -> Function:
     return Function(
         "groupUniqArray",
         parameters=[Column(column_name)],
-        alias=column_name if aliased else None,
+        alias=alias or column_name if aliased else None,
     )
 
 
@@ -259,29 +271,6 @@ def _grouped_unique_scalar_value(
 
 replay_url_parser_config = SearchConfig(
     numeric_keys={"duration", "countErrors", "countSegments"},
-    allowed_keys={
-        "projectId",
-        "platform",
-        "release",
-        "dist",
-        "duration",
-        "countErrors",
-        "countSegments",
-        "user.id",
-        "user.email",
-        "user.name",
-        "user.ipAddress",
-        "sdk.name",
-        "sdk.version",
-        "os.name",
-        "os.version",
-        "browser.name",
-        "browser.version",
-        "device.name",
-        "device.brand",
-        "device.model",
-        "device.family",
-    },
 )
 
 
@@ -292,9 +281,10 @@ class ReplayQueryConfig(QueryConfig):
     count_segments = Number(name="countSegments")
 
     # String filters.
+    replay_id = String(field_alias="id")
     platform = String()
     agg_environment = String(field_alias="environment")
-    release = String()
+    releases = ListField()
     dist = String()
     user_id = String(field_alias="user.id")
     user_email = String(field_alias="user.email")
@@ -310,6 +300,9 @@ class ReplayQueryConfig(QueryConfig):
     device_model = String(field_alias="device.model")
     sdk_name = String(field_alias="sdk.name")
     sdk_version = String(field_alias="sdk.version")
+
+    # Tag
+    tags = Tag(field_alias="*")
 
     # Sort keys
     started_at = String(name="startedAt", is_filterable=False)

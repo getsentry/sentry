@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework import serializers
 
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -55,6 +56,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     def get(self, request: Request, user) -> Response:
         """

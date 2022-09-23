@@ -1,9 +1,12 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTracePreview} from 'sentry/components/stacktracePreview';
 import {EventError} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
   const evt: Event = {
@@ -13,6 +16,25 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
 
   return evt;
 };
+
+function TestComponent({children}: {children: React.ReactNode}) {
+  const {organization, router} = initializeOrg();
+
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    </OrganizationContext.Provider>
+  );
+}
 
 jest.mock('sentry/utils/useApi');
 
@@ -28,14 +50,16 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <StackTracePreview
-        issueId="issue"
-        eventId="event_id"
-        projectSlug="project_slug"
-        organization={TestStubs.Organization({slug: 'org_slug'})}
-      >
-        Preview Trigger
-      </StackTracePreview>
+      <TestComponent>
+        <StackTracePreview
+          issueId="issue"
+          eventId="event_id"
+          projectSlug="project_slug"
+          organization={TestStubs.Organization({slug: 'org_slug'})}
+        >
+          Preview Trigger
+        </StackTracePreview>
+      </TestComponent>
     );
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
@@ -57,12 +81,14 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <StackTracePreview
-        issueId="issue"
-        organization={TestStubs.Organization({slug: 'org_slug'})}
-      >
-        Preview Trigger
-      </StackTracePreview>
+      <TestComponent>
+        <StackTracePreview
+          issueId="issue"
+          organization={TestStubs.Organization({slug: 'org_slug'})}
+        >
+          Preview Trigger
+        </StackTracePreview>
+      </TestComponent>
     );
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
@@ -84,12 +110,14 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <StackTracePreview
-        issueId="issue"
-        organization={TestStubs.Organization({slug: 'org_slug'})}
-      >
-        Preview Trigger
-      </StackTracePreview>
+      <TestComponent>
+        <StackTracePreview
+          issueId="issue"
+          organization={TestStubs.Organization({slug: 'org_slug'})}
+        >
+          Preview Trigger
+        </StackTracePreview>
+      </TestComponent>
     );
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
@@ -107,12 +135,14 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <StackTracePreview
-        issueId="issue"
-        organization={TestStubs.Organization({slug: 'org_slug'})}
-      >
-        Preview Trigger
-      </StackTracePreview>
+      <TestComponent>
+        <StackTracePreview
+          issueId="issue"
+          organization={TestStubs.Organization({slug: 'org_slug'})}
+        >
+          Preview Trigger
+        </StackTracePreview>
+      </TestComponent>
     );
 
     userEvent.hover(screen.getByText(/Preview Trigger/));
@@ -184,15 +214,17 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <StackTracePreview
-        issueId="issue"
-        organization={TestStubs.Organization({
-          slug: 'org_slug',
-          features,
-        })}
-      >
-        Preview Trigger
-      </StackTracePreview>
+      <TestComponent>
+        <StackTracePreview
+          issueId="issue"
+          organization={TestStubs.Organization({
+            slug: 'org_slug',
+            features,
+          })}
+        >
+          Preview Trigger
+        </StackTracePreview>
+      </TestComponent>
     );
 
     userEvent.hover(screen.getByText(/Preview Trigger/));

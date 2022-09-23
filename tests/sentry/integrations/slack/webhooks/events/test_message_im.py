@@ -2,6 +2,7 @@ import responses
 
 from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.testutils.helpers import get_response_text
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 from . import BaseEventTest
@@ -47,10 +48,20 @@ MESSAGE_IM_BOT_EVENT = """{
 }"""
 
 
+@region_silo_test
 class MessageIMEventTest(BaseEventTest):
     def get_block_section_text(self, data):
         blocks = data["blocks"]
         return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
+
+    @responses.activate
+    def test_identifying_channel_correctly(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        event_data = json.loads(MESSAGE_IM_EVENT)
+        self.post_webhook(event_data=event_data)
+        request = responses.calls[0].request
+        data = json.loads(request.body)
+        assert data.get("channel") == event_data["channel"]
 
     @responses.activate
     def test_user_message_im_notification_platform(self):

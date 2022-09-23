@@ -28,6 +28,8 @@ import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprec
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
+import Feature from './components/acl/feature';
+
 type CustomProps = {
   name?: string;
 };
@@ -43,9 +45,6 @@ const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
 const SafeLazyLoad = errorHandler(LazyLoad);
 
-type PromisedImport<C> = Promise<{default: C}>;
-type ComponentType = React.ComponentType<any>;
-
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
 
@@ -53,8 +52,8 @@ type ComponentType = React.ComponentType<any>;
  * Factory function to produce a component that will render the SafeLazyLoad
  * _with_ the required props.
  */
-export function makeLazyloadComponent<C extends ComponentType>(
-  resolve: () => PromisedImport<C>
+export function makeLazyloadComponent<C extends React.ComponentType<any>>(
+  resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
@@ -145,6 +144,7 @@ function buildRoutes() {
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
 
@@ -200,9 +200,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          component={make(
-            () => import('sentry/views/onboarding/targetedOnboarding/onboarding')
-          )}
+          component={make(() => import('sentry/views/onboarding/onboarding'))}
         />
       </Route>
     </Fragment>
@@ -413,11 +411,19 @@ function buildRoutes() {
         name={t('Data Forwarding')}
         component={make(() => import('sentry/views/settings/projectDataForwarding'))}
       />
-      <Route
-        path="security-and-privacy/"
-        name={t('Security & Privacy')}
-        component={make(() => import('sentry/views/settings/projectSecurityAndPrivacy'))}
-      />
+      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          )}
+        />
+        <Route
+          path="advanced-data-scrubbing/:scrubbingId/"
+          component={make(
+            () => import('sentry/views/settings/projectSecurityAndPrivacy')
+          )}
+        />
+      </Route>
       <Route
         path="debug-symbols/"
         name={t('Debug Information Files')}
@@ -463,12 +469,13 @@ function buildRoutes() {
         <Route path=":filterType/" />
       </Route>
       <Route
-        path="server-side-sampling/"
-        name={t('Server-Side Sampling')}
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
       />
+      <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -658,13 +665,19 @@ function buildRoutes() {
           () => import('sentry/views/settings/organizationGeneralSettings')
         )}
       />
-      <Route
-        path="security-and-privacy/"
-        name={t('Security & Privacy')}
-        component={make(
-          () => import('sentry/views/settings/organizationSecurityAndPrivacy')
-        )}
-      />
+      <Route path="security-and-privacy/" name={t('Security & Privacy')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          )}
+        />
+        <Route
+          path="advanced-data-scrubbing/:scrubbingId/"
+          component={make(
+            () => import('sentry/views/settings/organizationSecurityAndPrivacy')
+          )}
+        />
+      </Route>
       <Route name={t('Teams')} path="teams/">
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}
@@ -762,7 +775,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
@@ -1117,7 +1129,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
     </Route>
   );
@@ -1131,6 +1142,9 @@ function buildRoutes() {
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <IndexRedirect to="results/" />
+      </Feature>
       <IndexRedirect to="queries/" />
       <Route
         path="queries/"

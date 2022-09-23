@@ -8,7 +8,7 @@ type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
   ['highlight frame']: (
-    frame: FlamegraphFrame | null,
+    frame: FlamegraphFrame[] | null,
     mode: 'hover' | 'selected'
   ) => void;
   ['reset zoom']: () => void;

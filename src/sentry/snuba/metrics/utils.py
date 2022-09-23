@@ -76,6 +76,9 @@ MetricOperationType = Literal[
     "p95",
     "p99",
     "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -94,6 +97,12 @@ MetricUnit = Literal[
     "tebibyte",
     "pebibyte",
     "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
@@ -197,17 +206,19 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-
-# ToDo Dynamically generate this from OP_TO_SNUBA_FUNCTION
+DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
 OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "min",
-    "sum",
-    "histogram",
-) + OPERATIONS_PERCENTILES
+    (
+        "avg",
+        "count_unique",
+        "count",
+        "max",
+        "min",
+        "sum",
+    )
+    + OPERATIONS_PERCENTILES
+    + DERIVED_OPERATIONS
+)
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
@@ -223,6 +234,9 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "sum": 0,
     "percentage": None,
     "histogram": [],
+    "rate": 0,
+    "count_web_vitals": 0,
+    "count_transaction_name": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}

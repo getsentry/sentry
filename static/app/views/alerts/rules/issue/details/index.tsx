@@ -20,7 +20,7 @@ function RuleDetailsContainer({children, params}: Props) {
   }
 
   return children && isValidElement(children)
-    ? cloneElement(children, {
+    ? cloneElement<any>(children, {
         organization,
         project: projects[0],
       })

@@ -54,90 +54,90 @@ def _assoc_hash(group, hash):
 
 @pytest.mark.django_db
 def test_move_all_events(default_project, fast_save):
-    group, is_new, is_regression = fast_save("f")
+    group_info = fast_save("f")
 
-    assert is_new
-    assert not is_regression
+    assert group_info.is_new
+    assert not group_info.is_regression
 
-    new_group, is_new, is_regression = fast_save("f")
-    assert not is_new
-    assert not is_regression
-    assert new_group.id == group.id
+    new_group_info = fast_save("f")
+    assert not new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id == group_info.group.id
 
-    _assoc_hash(group, "a" * 32)
-    _assoc_hash(group, "b" * 32)
+    _assoc_hash(group_info.group, "a" * 32)
+    _assoc_hash(group_info.group, "b" * 32)
 
-    assert _group_hashes(group.id) == {"a" * 32, "b" * 32, "c" * 32}
-    assert Group.objects.get(id=new_group.id).title == "foo"
+    assert _group_hashes(group_info.group.id) == {"a" * 32, "b" * 32, "c" * 32}
+    assert Group.objects.get(id=new_group_info.group.id).title == "foo"
 
     # simulate split operation where all events of group are moved into a more specific hash
-    GroupHash.objects.filter(group=group).delete()
-    GroupHash.objects.create(project=default_project, hash="f" * 32, group_id=group.id)
+    GroupHash.objects.filter(group=group_info.group).delete()
+    GroupHash.objects.create(project=default_project, hash="f" * 32, group_id=group_info.group.id)
 
-    new_group, is_new, is_regression = fast_save("f")
-    assert not is_new
-    assert not is_regression
-    assert new_group.id == group.id
+    new_group_info = fast_save("f")
+    assert not new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id == group_info.group.id
 
-    assert {g.hash for g in GroupHash.objects.filter(group=group)} == {
+    assert {g.hash for g in GroupHash.objects.filter(group=group_info.group)} == {
         # one hierarchical hash associated
         # no flat hashes associated when sorting into split group!
         "f"
         * 32,
     }
 
-    assert Group.objects.get(id=new_group.id).title == "bam"
+    assert Group.objects.get(id=new_group_info.group.id).title == "bam"
 
-    new_group, is_new, is_regression = fast_save("g")
-    assert is_new
-    assert not is_regression
-    assert new_group.id != group.id
+    new_group_info = fast_save("g")
+    assert new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id != group_info.group.id
 
-    assert _group_hashes(new_group.id) == {"c" * 32}
-    assert Group.objects.get(id=new_group.id).title == "foo"
+    assert _group_hashes(new_group_info.group.id) == {"c" * 32}
+    assert Group.objects.get(id=new_group_info.group.id).title == "foo"
 
 
 @pytest.mark.django_db
 def test_partial_move(default_project, fast_save):
-    group, is_new, is_regression = fast_save("f")
-    assert is_new
-    assert not is_regression
+    group_info = fast_save("f")
+    assert group_info.is_new
+    assert not group_info.is_regression
 
-    new_group, is_new, is_regression = fast_save("g")
-    assert not is_new
-    assert not is_regression
-    assert new_group.id == group.id
+    new_group_info = fast_save("g")
+    assert not new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id == group_info.group.id
 
-    assert _group_hashes(group.id) == {"c" * 32}
+    assert _group_hashes(group_info.group.id) == {"c" * 32}
 
     # simulate split operation where event "f" of group is moved into a more specific hash
     group2 = Group.objects.create(project=default_project)
     f_hash = GroupHash.objects.create(project=default_project, hash="f" * 32, group_id=group2.id)
 
-    new_group, is_new, is_regression = fast_save("f")
-    assert not is_new
-    assert not is_regression
-    assert new_group.id == group2.id
+    new_group_info = fast_save("f")
+    assert not new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id == group2.id
 
-    assert _group_hashes(new_group.id) == {
+    assert _group_hashes(new_group_info.group.id) == {
         # one hierarchical hash associated
         # no flat hashes associated when sorting into split group!
         "f"
         * 32,
     }
 
-    new_group, is_new, is_regression = fast_save("g")
-    assert not is_new
-    assert not is_regression
-    assert new_group.id == group.id
+    new_group_info = fast_save("g")
+    assert not new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id == group_info.group.id
 
-    assert _group_hashes(new_group.id) == {
+    assert _group_hashes(new_group_info.group.id) == {
         "c" * 32,
     }
 
     f_hash.delete()
 
-    new_group, is_new, is_regression = fast_save("f")
-    assert not is_new
-    assert not is_regression
-    assert new_group.id == group.id
+    new_group_info = fast_save("f")
+    assert not new_group_info.is_new
+    assert not new_group_info.is_regression
+    assert new_group_info.group.id == group_info.group.id

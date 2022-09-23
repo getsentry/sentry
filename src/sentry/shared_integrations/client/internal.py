@@ -25,13 +25,13 @@ class BaseInternalApiClient(ApiClient, TrackResponseMixin):  # type: ignore
             tags={str(self.integration_type): self.name},
         )
 
-        try:
-            with sentry_sdk.configure_scope() as scope:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-        except AttributeError:
-            parent_span_id = None
-            trace_id = None
+        with sentry_sdk.configure_scope() as scope:
+            if scope.span is not None:
+                parent_span_id: str | None = scope.span.span_id
+                trace_id: str | None = scope.span.trace_id
+            else:
+                parent_span_id = None
+                trace_id = None
 
         with sentry_sdk.start_transaction(
             op=f"{self.integration_type}.http",

@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
-import convertRelayPiiConfig from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
+import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import Add from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {

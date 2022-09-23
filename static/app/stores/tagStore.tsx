@@ -3,7 +3,6 @@ import {createStore} from 'reflux';
 import {Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -18,7 +17,6 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
   getIssueAttributes(): TagCollection;
   getIssueTags(): TagCollection;
-  getStateTags(): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -26,7 +24,6 @@ interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
 
 const storeConfig: TagStoreDefinition = {
   state: {},
-  unsubscribeListeners: [],
 
   init() {
     this.state = {};
@@ -52,7 +49,7 @@ const storeConfig: TagStoreDefinition = {
       return a.toLowerCase().localeCompare(b.toLowerCase());
     });
 
-    return {
+    const tagCollection = {
       [FieldKey.IS]: {
         key: FieldKey.IS,
         name: 'Status',
@@ -76,6 +73,18 @@ const storeConfig: TagStoreDefinition = {
         key: FieldKey.BOOKMARKS,
         name: 'Bookmarked By',
         values: [],
+        predefined: true,
+      },
+      [FieldKey.ISSUE_CATEGORY]: {
+        key: FieldKey.ISSUE_CATEGORY,
+        name: 'Issue Category',
+        values: ['error', 'performance'],
+        predefined: true,
+      },
+      [FieldKey.ISSUE_TYPE]: {
+        key: FieldKey.ISSUE_TYPE,
+        name: 'Issue Type',
+        values: ['performance_n_plus_one_db_queries'],
         predefined: true,
       },
       [FieldKey.LAST_SEEN]: {
@@ -119,6 +128,15 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
     };
+
+    // Ony include fields that that are part of the ISSUE_FIELDS. This is
+    // because we may sometimes have fields that are turned off by removing
+    // them from ISSUE_FIELDS
+    const filteredCollection = Object.entries(tagCollection).filter(([key]) =>
+      ISSUE_FIELDS.includes(key as FieldKey)
+    );
+
+    return Object.fromEntries(filteredCollection);
   },
 
   /**
@@ -133,13 +151,6 @@ const storeConfig: TagStoreDefinition = {
       // We want issue attributes to overwrite any built in and state tags
       ...this.getIssueAttributes(),
     };
-  },
-
-  /**
-   * Get only tags loaded from the backend
-   */
-  getStateTags() {
-    return this.getState();
   },
 
   getState() {
@@ -166,5 +177,5 @@ const storeConfig: TagStoreDefinition = {
   },
 };
 
-const TagStore = createStore(makeSafeRefluxStore(storeConfig));
+const TagStore = createStore(storeConfig);
 export default TagStore;

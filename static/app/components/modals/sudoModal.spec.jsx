@@ -41,10 +41,6 @@ describe('Sudo Modal', function () {
     });
   });
 
-  afterEach(() => {
-    ConfigStore.teardown();
-  });
-
   it('can delete an org with sudo flow', async function () {
     setHasPasswordAuth(true);
 

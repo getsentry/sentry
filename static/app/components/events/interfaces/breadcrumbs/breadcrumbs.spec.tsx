@@ -1,13 +1,43 @@
+import {InjectedRouter} from 'react-router';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
+import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
+
+function TestComponent({
+  organization,
+  router,
+  children,
+}: {
+  children: React.ReactNode;
+  organization: Organization;
+  router: InjectedRouter;
+}) {
+  return (
+    <OrganizationContext.Provider value={organization}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    </OrganizationContext.Provider>
+  );
+}
 
 describe('Breadcrumbs', () => {
   let props: React.ComponentProps<typeof Breadcrumbs>;
-  const {router} = initializeOrg();
+  const {router, organization} = initializeOrg();
 
   beforeEach(() => {
     props = {
@@ -66,7 +96,11 @@ describe('Breadcrumbs', () => {
 
   describe('filterCrumbs', function () {
     it('should filter crumbs based on crumb message', async function () {
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
@@ -86,7 +120,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should filter crumbs based on crumb level', function () {
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
@@ -96,7 +134,11 @@ describe('Breadcrumbs', () => {
     });
 
     it('should filter crumbs based on crumb category', function () {
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
@@ -108,7 +150,11 @@ describe('Breadcrumbs', () => {
     it('should display the correct number of crumbs with no filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       // data.values + virtual crumb
       expect(screen.getAllByTestId('crumb')).toHaveLength(4);
@@ -119,7 +165,11 @@ describe('Breadcrumbs', () => {
     it('should display the correct number of crumbs with a filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
@@ -145,7 +195,11 @@ describe('Breadcrumbs', () => {
         },
       ];
 
-      render(<Breadcrumbs {...props} />);
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs {...props} />
+        </TestComponent>
+      );
 
       // data.values + virtual crumb
       expect(screen.getByTestId('crumb')).toBeInTheDocument();

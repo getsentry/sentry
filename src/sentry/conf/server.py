@@ -10,9 +10,11 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
+from typing import Mapping
 from urllib.parse import urlparse
 
 import sentry
+from sentry.types.region import Region
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -643,6 +645,7 @@ CELERY_QUEUES = [
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
+    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
@@ -964,6 +967,8 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
+    # Enable the Commit Context feature
+    "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
     # is not enabled).
     "organizations:create": True,
@@ -973,6 +978,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": True,
+    # Enable using All Events as the landing page for Discover
+    "organizations:discover-query-builder-as-landing-page": False,
     # Enables events endpoint usage on performance frontend
     "organizations:performance-frontend-use-events-endpoint": True,
     # Enables events endpoint rate limit
@@ -987,6 +994,10 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable the interval selector in discover
+    "organizations:discover-interval-selector": False,
+    # Enable metrics baseline in discover
+    "organizations:discover-metrics-baseline": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1011,6 +1022,8 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Whether to allow issue only search on the issue list
+    "organizations:issue-search-allow-postgres-only-search": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
@@ -1019,12 +1032,6 @@ SENTRY_FEATURES = {
     "organizations:metrics": False,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
-    # Enable the new widget builder experience on Dashboards
-    "organizations:new-widget-builder-experience": False,
-    # Enable the new widget builder experience "design" on Dashboards
-    "organizations:new-widget-builder-experience-design": False,
-    # Enable access to the Add to Dashboard modal for metrics work
-    "organizations:new-widget-builder-experience-modal-access": False,
     # Automatically extract metrics during ingestion.
     #
     # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
@@ -1070,7 +1077,7 @@ SENTRY_FEATURES = {
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
     # Enable react-grid-layout dashboards
-    "organizations:dashboard-grid-layout": False,
+    "organizations:dashboard-grid-layout": True,
     # Enable readonly dashboards
     "organizations:dashboards-basic": True,
     # Enable custom editable dashboards
@@ -1082,7 +1089,7 @@ SENTRY_FEATURES = {
     # Enable release health widgets in dashboards
     "organizations:dashboards-releases": False,
     # Enable top level query filters in dashboards
-    "organizations:dashboards-top-level-filter": False,
+    "organizations:dashboards-top-level-filter": True,
     # Enables usage of custom measurements in dashboard widgets
     "organizations:dashboard-custom-measurement-widgets": False,
     # Enable widget viewer modal in dashboards
@@ -1097,6 +1104,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable "Owned By" and "Assigned To" on issue details
+    "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
     # Prefix host with organization ID when giving users DSNs (can be
@@ -1120,8 +1129,8 @@ SENTRY_FEATURES = {
     "organizations:performance-span-tree-autoscroll": False,
     # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
-    # Enable performance issue view
-    "organizations:performance-extraneous-spans-poc": False,
+    # Enable showing INP web vital in default views
+    "organizations:performance-vitals-inp": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable populating suggested assignees with release committers
@@ -1145,6 +1154,10 @@ SENTRY_FEATURES = {
     "organizations:native-stack-trace-v2": False,
     # Enable performance issues
     "organizations:performance-issues": False,
+    # Enable the creation of performance issues in the ingest pipeline. Turning this on will eventually make performance issues be created with default settings.
+    "organizations:performance-issues-ingest": False,
+    # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
+    "organizations:performance-issues-dev": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1160,12 +1173,16 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling": False,
     # Enable the server-side sampling feature (frontend)
     "organizations:server-side-sampling-ui": False,
+    # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
+    "organizations:server-side-sampling-allow-incompatible-platforms": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
     "organizations:release-comparison-performance": False,
     # Enable team insights page
     "organizations:team-insights": True,
+    # Enable u2f verification on superuser form
+    "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
     # Enable snowflake ids
@@ -1496,6 +1513,11 @@ SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
 # Controls the sample rate with which we report errors to Sentry for metric messages
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
+
+# Cardinality limits during metric bucket ingestion.
+# Which cluster to use. Example: {"cluster": "default"}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS = {}
+SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE = {}
 
 # Release Health
 SENTRY_RELEASE_HEALTH = "sentry.release_health.sessions.SessionsReleaseHealthBackend"
@@ -2134,6 +2156,12 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
+if SENTRY_DEV_DSN:
+    # In production, this value is *not* set via an env variable
+    # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
+    # This is used in case you want to report traces of your development set up to a project of your choice
+    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -2374,7 +2402,7 @@ INVALID_EMAIL_ADDRESS_PATTERN = re.compile(r"\@qq\.com$", re.I)
 
 # This is customizable for sentry.io, but generally should only be additive
 # (currently the values not used anymore so this is more for documentation purposes)
-SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin")
+SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 
 KAFKA_CLUSTERS = {
     "default": {
@@ -2402,6 +2430,10 @@ KAFKA_EVENTS = "events"
 # changes to support different topic, switch this to "transactions" to start
 # producing to the new topic.
 KAFKA_TRANSACTIONS = "events"
+# TODO: KAFKA_NEW_TRANSACTIONS only exists in order to facilitate the errors/transactions
+# split. It is only supposed to exist briefly so we can map transactions of a subset of
+# projects to the new topic first before migrating them all over.
+KAFKA_NEW_TRANSACTIONS = "transactions"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2440,6 +2472,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_NEW_TRANSACTIONS: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2739,6 +2772,7 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
@@ -2766,12 +2800,19 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
+SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
 SENTRY_FUNCTIONS_PROJECT_NAME = None
 
 SENTRY_FUNCTIONS_REGION = "us-central1"
 
+# Settings related to SiloMode
 SILO_MODE = os.environ.get("SENTRY_SILO_MODE", None)
 FAIL_ON_UNAVAILABLE_API_CALL = False
+SILO_MODE_SPLICE_TESTS = bool(os.environ.get("SENTRY_SILO_MODE_SPLICE_TESTS", False))
 
 DISALLOWED_CUSTOMER_DOMAINS = []
+
+SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
+
+SENTRY_REGION_CONFIG: Mapping[str, Region] = {}

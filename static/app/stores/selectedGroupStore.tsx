@@ -18,7 +18,7 @@ interface InternalDefinition {
 }
 
 interface SelectedGroupStoreDefinition
-  extends CommonStoreDefinition<Map<string, boolean>>,
+  extends CommonStoreDefinition<Record<string, boolean>>,
     InternalDefinition {
   add(ids: string[]): void;
   allSelected(): boolean;
@@ -55,7 +55,7 @@ const storeConfig: SelectedGroupStoreDefinition = {
   },
 
   getState() {
-    return this.records;
+    return Object.fromEntries(this.records);
   },
 
   onGroupChange(itemIds) {
@@ -120,10 +120,8 @@ const storeConfig: SelectedGroupStoreDefinition = {
 
     const newState = !this.records.get(itemId);
     this.records.set(itemId, newState);
+    this.lastSelected = itemId;
 
-    if (newState) {
-      this.lastSelected = itemId;
-    }
     this.trigger();
   },
 

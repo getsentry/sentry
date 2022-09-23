@@ -2,10 +2,10 @@ import {
   ChromeTraceProfile,
   collapseSamples,
   parseTypescriptChromeTraceArrayFormat,
-  splitEventsByProcessAndTraceId,
+  splitEventsByProcessAndThreadId,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
 
-describe('splitEventsByProcessAndTraceId', () => {
+describe('splitEventsByProcessAndThreadId', () => {
   it('splits by thread id', () => {
     const trace: ChromeTrace.ArrayFormat = [
       {
@@ -28,8 +28,8 @@ describe('splitEventsByProcessAndTraceId', () => {
       },
     ];
 
-    expect(splitEventsByProcessAndTraceId(trace).get(0)?.get(0)).toEqual([trace[0]]);
-    expect(splitEventsByProcessAndTraceId(trace).get(0)?.get(1)).toEqual([trace[1]]);
+    expect(splitEventsByProcessAndThreadId(trace).get(0)?.get(0)).toEqual([trace[0]]);
+    expect(splitEventsByProcessAndThreadId(trace).get(0)?.get(1)).toEqual([trace[1]]);
   });
 });
 

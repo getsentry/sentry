@@ -4,9 +4,6 @@ describe('OrganizationEnvironmentsStore', function () {
   beforeEach(() => {
     OrganizationEnvironmentsStore.init();
   });
-  afterEach(() => {
-    OrganizationEnvironmentsStore.teardown();
-  });
 
   it('get()', function () {
     expect(OrganizationEnvironmentsStore.getState()).toEqual({

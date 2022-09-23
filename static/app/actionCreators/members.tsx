@@ -15,7 +15,7 @@ export async function fetchOrgMembers(
   api: Client,
   orgId: string,
   projectIds: string[] | null = null
-) {
+): Promise<Member[]> {
   const endpoint = `/organizations/${orgId}/users/`;
   const query = projectIds ? {project: projectIds} : {};
 
@@ -54,7 +54,7 @@ export async function fetchOrgMembers(
   return [];
 }
 
-type IndexedMembersByProject = Record<string, Member['user'][]>;
+export type IndexedMembersByProject = Record<string, Member['user'][]>;
 
 /**
  * Convert a list of members with user & project data

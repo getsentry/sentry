@@ -132,6 +132,11 @@ type Props = DefaultProps & {
   usageStats: ChartStats;
 
   /**
+   * Override chart colors for each outcome
+   */
+  categoryColors?: string[];
+
+  /**
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
@@ -394,7 +399,7 @@ export class UsageChart extends Component<Props, State> {
   }
 
   renderChart() {
-    const {theme, title, isLoading, isError, errors} = this.props;
+    const {categoryColors, theme, title, isLoading, isError, errors} = this.props;
     if (isLoading) {
       return (
         <Placeholder height="200px">
@@ -423,13 +428,15 @@ export class UsageChart extends Component<Props, State> {
       yAxisFormatter,
     } = this.chartMetadata;
 
+    const colors = categoryColors?.length ? categoryColors : this.chartColors;
+
     return (
       <Fragment>
         <HeaderTitleLegend>{title || t('Current Usage Period')}</HeaderTitleLegend>
         {getDynamicText({
           value: (
             <BaseChart
-              colors={this.chartColors}
+              colors={colors}
               grid={{bottom: '3px', left: '0px', right: '10px', top: '40px'}}
               xAxis={xAxis({
                 show: true,

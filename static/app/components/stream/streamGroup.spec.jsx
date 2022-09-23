@@ -36,23 +36,14 @@ describe('StreamGroup', function () {
   afterEach(function () {
     trackAdvancedAnalyticsEvent.mockClear();
     GroupStore.reset();
-    GroupStore.teardown();
   });
 
   it('renders with anchors', function () {
-    const {routerContext} = initializeOrg();
-    const wrapper = render(
-      <StreamGroup
-        id="1337"
-        orgId="orgId"
-        groupId="groupId"
-        lastSeen="2017-07-25T22:56:12Z"
-        firstSeen="2017-07-01T02:06:02Z"
-        hasGuideAnchor
-        {...routerContext}
-      />,
-      {context: routerContext}
-    );
+    const {routerContext, organization} = initializeOrg();
+    const wrapper = render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
+      context: routerContext,
+      organization,
+    });
 
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
     expect(wrapper.container).toSnapshot();
@@ -63,22 +54,33 @@ describe('StreamGroup', function () {
     render(
       <StreamGroup
         id="1337"
-        orgId="orgId"
-        groupId="groupId"
-        lastSeen="2017-07-25T22:56:12Z"
-        firstSeen="2017-07-01T02:06:02Z"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        organization={organization}
         {...routerContext}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
-    act(() => GroupStore.onUpdate('', ['1337'], {inbox: false}));
+    const data = {inbox: false};
+    act(() => GroupStore.onUpdate('1337', undefined, data));
+    act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
 
     // Reviewed only applies styles, difficult to select with RTL
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
+  });
+
+  it('marks as resolved', function () {
+    const {routerContext, organization} = initializeOrg();
+    render(<StreamGroup id="1337" query="is:unresolved" />, {
+      context: routerContext,
+      organization,
+    });
+
+    expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
+    const data = {status: 'resolved', statusDetails: {}};
+    act(() => GroupStore.onUpdate('1337', undefined, data));
+    act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
+    expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
   it('tracks clicks from issues stream', function () {
@@ -86,15 +88,10 @@ describe('StreamGroup', function () {
     render(
       <StreamGroup
         id="1337"
-        orgId="orgId"
-        groupId="groupId"
-        lastSeen="2017-07-25T22:56:12Z"
-        firstSeen="2017-07-01T02:06:02Z"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        organization={organization}
         {...routerContext}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     userEvent.click(screen.getByText('RequestError'));

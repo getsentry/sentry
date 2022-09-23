@@ -13,6 +13,7 @@ import type {
   ReleaseCommitter,
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {getIssueCapability} from 'sentry/utils/groupCapabilities';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useCommitters from 'sentry/utils/useCommitters';
@@ -137,9 +138,9 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    * users who are both owners based on having commits, and owners matching
    * project ownership rules into one array.
    *
-   * The return array will include objects of the format:
+   * ### The return array will include objects of the format:
    *
-   * {
+   * ```ts
    *   actor: <
    *    type,              # Either user or team
    *    SentryTypes.User,  # API expanded user object
@@ -147,14 +148,16 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    *    {email, name}      # Unidentified user (from commits)
    *    {id, name},        # Sentry team (check `type`)
    *   >,
+   * ```
    *
-   *   # One or both of commits and rules will be present
+   * ### One or both of commits and rules will be present
    *
+   * ```ts
    *   commits: [...]  # List of commits made by this owner
    *   rules:   [...]  # Project rules matched for this owner
-   * }
+   * ```
    */
-  getOwnerList() {
+  getOwnerList(): OwnerList {
     const committers = this.props.committers ?? [];
     const releaseCommitters = this.props.releaseCommitters ?? [];
     const owners: OwnerList = [...committers, ...releaseCommitters].map(commiter => ({
@@ -214,6 +217,8 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     const {organization, project, group} = this.props;
     const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
+    const codeownersCapability = getIssueCapability(group.issueCategory, 'codeowners');
+
     return (
       <Fragment>
         {owners.length > 0 && (
@@ -224,14 +229,16 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
             onAssign={this.handleAssign}
           />
         )}
-        <OwnershipRules
-          issueId={group.id}
-          project={project}
-          organization={organization}
-          codeowners={codeowners}
-          isDismissed={isDismissed}
-          handleCTAClose={this.handleCTAClose}
-        />
+        {codeownersCapability.enabled && (
+          <OwnershipRules
+            issueId={group.id}
+            project={project}
+            organization={organization}
+            codeowners={codeowners}
+            isDismissed={isDismissed}
+            handleCTAClose={this.handleCTAClose}
+          />
+        )}
       </Fragment>
     );
   }

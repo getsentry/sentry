@@ -6,8 +6,10 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import GroupStore from 'sentry/stores/groupStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {IssueCategory} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupDetails from 'sentry/views/organizationGroupDetails';
+import {RouteContext} from 'sentry/views/routeContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -15,7 +17,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 describe('groupDetails', () => {
-  const group = TestStubs.Group();
+  const group = TestStubs.Group({issueCategory: IssueCategory.ERROR});
   const event = TestStubs.Event();
   const project = TestStubs.Project({teams: [TestStubs.Team()]});
   const selection = {environments: []};
@@ -66,11 +68,20 @@ describe('groupDetails', () => {
 
   const createWrapper = (props = {selection}) => {
     return render(
-      <OrganizationContext.Provider value={organization}>
-        <GroupDetails {...router} selection={props.selection}>
-          <MockComponent />
-        </GroupDetails>
-      </OrganizationContext.Provider>,
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        <OrganizationContext.Provider value={organization}>
+          <GroupDetails {...router} selection={props.selection}>
+            <MockComponent />
+          </GroupDetails>
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>,
       {context: routerContext}
     );
   };
@@ -154,7 +165,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
     expect(
       await screen.findByText('The issue you were looking for was not found.')
     ).toBeInTheDocument();
@@ -172,7 +186,10 @@ describe('groupDetails', () => {
 
     createWrapper();
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
     expect(
       await screen.findByText(
         'No teams have access to this project yet. Ask an admin to add your team to this project.'
@@ -185,7 +202,9 @@ describe('groupDetails', () => {
       selection: {environments: ['staging']},
     });
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
 
     expect(await screen.findByText('environment: staging')).toBeInTheDocument();
   });
@@ -238,11 +257,11 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const sampleGruop = TestStubs.Group();
-    sampleGruop.tags.push({key: 'sample_event'});
+    const sampleGroup = TestStubs.Group({issueCategory: IssueCategory.ERROR});
+    sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
-      body: {...sampleGruop},
+      body: {...sampleGroup},
     });
 
     createWrapper();

@@ -20,7 +20,6 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 
 const defaultOrgFeatures = [
   'performance-view',
-  'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
@@ -300,7 +299,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         dashboard,
-        orgFeatures: ['new-widget-builder-experience-design', 'dashboards-edit'],
+        orgFeatures: ['dashboards-edit'],
         params: {
           widgetIndex: '2', // Out of bounds, only one widget
         },
@@ -333,7 +332,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         dashboard,
-        orgFeatures: ['new-widget-builder-experience-design', 'dashboards-edit'],
+        orgFeatures: ['dashboards-edit'],
         params: {
           widgetIndex: '0.5', // Invalid index
         },
@@ -408,7 +407,7 @@ describe('WidgetBuilder', function () {
 
     it('renders new design', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       // Switch to line chart for time series
@@ -1152,14 +1151,15 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({dashboard, onSave: handleSave, params: {widgetIndex: '0'}});
 
-      userEvent.click(await screen.findByLabelText('Add Query'));
+      await act(async () => {
+        userEvent.click(await screen.findByLabelText('Add Query'));
 
-      // Triggering the onBlur of the new field should not error
-      userEvent.click(
-        screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
-      );
-      userEvent.keyboard('{esc}');
-      act(() => {
+        // Triggering the onBlur of the new field should not error
+        userEvent.click(
+          screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]
+        );
+        userEvent.keyboard('{esc}');
+
         // Run all timers because the handleBlur contains a setTimeout
         jest.runAllTimers();
       });
@@ -1248,20 +1248,26 @@ describe('WidgetBuilder', function () {
       });
     });
 
-    it('fetches tags when tag store is empty', function () {
-      renderTestComponent();
+    it('fetches tags when tag store is empty', async function () {
+      await act(async () => {
+        renderTestComponent();
+        await tick();
+      });
       expect(tagsMock).toHaveBeenCalled();
     });
 
-    it('does not fetch tags when tag store is not empty', function () {
-      TagStore.loadTagsSuccess(TestStubs.Tags());
-      renderTestComponent();
+    it('does not fetch tags when tag store is not empty', async function () {
+      await act(async () => {
+        TagStore.loadTagsSuccess(TestStubs.Tags());
+        renderTestComponent();
+        await tick();
+      });
       expect(tagsMock).not.toHaveBeenCalled();
     });
 
     it('excludes the Other series when grouping and using multiple y-axes', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
         query: {
           displayType: DisplayType.LINE,
         },
@@ -1273,7 +1279,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
 
       await waitFor(() => {
-        expect(eventsStatsMock).toBeCalledWith(
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({excludeOther: '1'}),
@@ -1284,7 +1290,7 @@ describe('WidgetBuilder', function () {
 
     it('excludes the Other series when grouping and using multiple queries', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
         query: {
           displayType: DisplayType.LINE,
         },
@@ -1294,7 +1300,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add Query'));
 
       await waitFor(() => {
-        expect(eventsStatsMock).toBeCalledWith(
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({excludeOther: '1'}),
@@ -1305,7 +1311,7 @@ describe('WidgetBuilder', function () {
 
     it('includes Other series when there is only one query and one y-axis', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
         query: {
           displayType: DisplayType.LINE,
         },
@@ -1314,7 +1320,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
       await waitFor(() => {
-        expect(eventsStatsMock).toBeCalledWith(
+        expect(eventsStatsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.not.objectContaining({excludeOther: '1'}),
@@ -1325,7 +1331,7 @@ describe('WidgetBuilder', function () {
 
     it('decreases the limit when more y-axes and queries are added', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
         query: {
           displayType: DisplayType.LINE,
         },
@@ -1465,7 +1471,7 @@ describe('WidgetBuilder', function () {
         const defaultTableColumns = ['title', 'count_unique(user)'];
 
         renderTestComponent({
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
             defaultWidgetQuery: urlEncode(defaultWidgetQuery),
@@ -1504,7 +1510,7 @@ describe('WidgetBuilder', function () {
         const defaultTableColumns = ['title', 'count_unique(user)'];
 
         renderTestComponent({
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
             defaultWidgetQuery: urlEncode(defaultWidgetQuery),
@@ -1547,7 +1553,7 @@ describe('WidgetBuilder', function () {
       const dashboard = mockDashboard({widgets: [widget]});
 
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
         dashboard,
         params: {
           widgetIndex: '0',
@@ -1562,7 +1568,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');
@@ -1588,7 +1594,7 @@ describe('WidgetBuilder', function () {
 
     it('does not wipe equation aliases when a column alias is updated', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');
@@ -1602,7 +1608,7 @@ describe('WidgetBuilder', function () {
 
     it('does not wipe equation aliases when a column selection is made', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');
@@ -1619,7 +1625,7 @@ describe('WidgetBuilder', function () {
 
     it('copies over the orderby from the previous query if adding another', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       userEvent.click(await screen.findByText('Table'));
@@ -1686,7 +1692,7 @@ describe('WidgetBuilder', function () {
       it('does not contain functions as options', async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('Group your results');
@@ -1702,7 +1708,7 @@ describe('WidgetBuilder', function () {
       it('adds more fields when Add Group is clicked', async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('Group your results');
@@ -1713,7 +1719,7 @@ describe('WidgetBuilder', function () {
       it("doesn't reset group by when changing y-axis", async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await selectEvent.select(await screen.findByText('Select group'), 'project');
@@ -1726,7 +1732,7 @@ describe('WidgetBuilder', function () {
       it("doesn't erase the selection when switching to another time series", async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await selectEvent.select(await screen.findByText('Select group'), 'project');
@@ -1740,7 +1746,7 @@ describe('WidgetBuilder', function () {
       it('sends a top N request when a grouping is selected', async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         userEvent.click(await screen.findByText('Group your results'));
@@ -1766,7 +1772,7 @@ describe('WidgetBuilder', function () {
       it('allows deleting groups until there is one left', async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('Group your results');
@@ -1782,7 +1788,7 @@ describe('WidgetBuilder', function () {
       it("display 'remove' and 'drag to reorder' buttons", async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await screen.findByText('Select group');
@@ -1811,7 +1817,7 @@ describe('WidgetBuilder', function () {
 
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
           onSave: handleSave,
         });
 
@@ -1833,7 +1839,7 @@ describe('WidgetBuilder', function () {
       it('update value', async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await selectEvent.select(await screen.findByText('Select group'), 'project');
@@ -1860,7 +1866,7 @@ describe('WidgetBuilder', function () {
       it('gets removed if no groupBy value', async function () {
         renderTestComponent({
           query: {displayType: 'line'},
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
         });
 
         await selectEvent.select(await screen.findByText('Select group'), 'project');
@@ -1896,7 +1902,7 @@ describe('WidgetBuilder', function () {
 
         renderTestComponent({
           dashboard,
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
           params: {
             widgetIndex: '0',
           },
@@ -1939,7 +1945,7 @@ describe('WidgetBuilder', function () {
 
         renderTestComponent({
           dashboard,
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
           params: {
             widgetIndex: '0',
           },
@@ -1982,7 +1988,7 @@ describe('WidgetBuilder', function () {
 
         renderTestComponent({
           dashboard,
-          orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+          orgFeatures: [...defaultOrgFeatures],
           params: {
             widgetIndex: '0',
           },
@@ -2057,11 +2063,7 @@ describe('WidgetBuilder', function () {
         const defaultTableColumns = ['title', 'count_unique(user)'];
 
         renderTestComponent({
-          orgFeatures: [
-            ...defaultOrgFeatures,
-            'new-widget-builder-experience-design',
-            'discover-frontend-use-events-endpoint',
-          ],
+          orgFeatures: [...defaultOrgFeatures, 'discover-frontend-use-events-endpoint'],
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
             defaultWidgetQuery: urlEncode(defaultWidgetQuery),

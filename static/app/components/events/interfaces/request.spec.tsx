@@ -1,9 +1,21 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
 import {EntryRequest, EntryType} from 'sentry/types/event';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('Request entry', function () {
+  const {organization, router} = initializeOrg({
+    ...initializeOrg(),
+    organization: {
+      ...initializeOrg().organization,
+      relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+    },
+  });
+
   it('display redacted data', async function () {
     const event = {
       ...TestStubs.Event(),
@@ -49,13 +61,13 @@ describe('Request entry', function () {
               data: {
                 a: {
                   '': {
-                    rem: [['project:3', 's', 0, 0]],
+                    rem: [['organization:0', 's', 0, 0]],
                     len: 1,
                     chunks: [
                       {
                         type: 'redaction',
                         text: '',
-                        rule_id: 'project:3',
+                        rule_id: 'organization:0',
                         remark: 's',
                       },
                     ],
@@ -65,13 +77,13 @@ describe('Request entry', function () {
                   0: {
                     d: {
                       '': {
-                        rem: [['project:3', 's', 0, 0]],
+                        rem: [['organization:0', 's', 0, 0]],
                         len: 1,
                         chunks: [
                           {
                             type: 'redaction',
                             text: '',
-                            rule_id: 'project:3',
+                            rule_id: 'organization:0',
                             remark: 's',
                           },
                         ],
@@ -79,13 +91,13 @@ describe('Request entry', function () {
                     },
                     f: {
                       '': {
-                        rem: [['project:3', 's', 0, 0]],
+                        rem: [['organization:0', 's', 0, 0]],
                         len: 1,
                         chunks: [
                           {
                             type: 'redaction',
                             text: '',
-                            rule_id: 'project:3',
+                            rule_id: 'organization:0',
                             remark: 's',
                           },
                         ],
@@ -97,13 +109,13 @@ describe('Request entry', function () {
               env: {
                 DOCUMENT_ROOT: {
                   '': {
-                    rem: [['project:3', 's', 0, 0]],
+                    rem: [['organization:0', 's', 0, 0]],
                     len: 78,
                     chunks: [
                       {
                         type: 'redaction',
                         text: '',
-                        rule_id: 'project:3',
+                        rule_id: 'organization:0',
                         remark: 's',
                       },
                     ],
@@ -111,13 +123,13 @@ describe('Request entry', function () {
                 },
                 REMOTE_ADDR: {
                   '': {
-                    rem: [['project:3', 's', 0, 0]],
+                    rem: [['organization:0', 's', 0, 0]],
                     len: 3,
                     chunks: [
                       {
                         type: 'redaction',
                         text: '',
-                        rule_id: 'project:3',
+                        rule_id: 'organization:0',
                         remark: 's',
                       },
                     ],
@@ -125,13 +137,13 @@ describe('Request entry', function () {
                 },
                 SERVER_NAME: {
                   '': {
-                    rem: [['project:3', 's', 0, 0]],
+                    rem: [['organization:0', 's', 0, 0]],
                     len: 7,
                     chunks: [
                       {
                         type: 'redaction',
                         text: '',
-                        rule_id: 'project:3',
+                        rule_id: 'organization:0',
                         remark: 's',
                       },
                     ],
@@ -139,13 +151,13 @@ describe('Request entry', function () {
                 },
                 SERVER_PORT: {
                   '': {
-                    rem: [['project:3', 's', 0, 0]],
+                    rem: [['organization:0', 's', 0, 0]],
                     len: 5,
                     chunks: [
                       {
                         type: 'redaction',
                         text: '',
-                        rule_id: 'project:3',
+                        rule_id: 'organization:0',
                         remark: 's',
                       },
                     ],
@@ -158,7 +170,20 @@ describe('Request entry', function () {
       },
     };
 
-    render(<Request event={event} data={event.entries[0].data} />);
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <Request event={event} data={event.entries[0].data} />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
+    );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
@@ -169,7 +194,11 @@ describe('Request entry', function () {
     userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
-      await screen.findByText('Replaced because of PII rule "project:3"')
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Replaced because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
+        )
+      )
     ).toBeInTheDocument(); // tooltip description
   });
 
@@ -197,7 +226,20 @@ describe('Request entry', function () {
         ],
       };
 
-      render(<Request event={event} data={event.entries[0].data} />);
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <Request event={event} data={event.entries[0].data} />
+          </RouteContext.Provider>
+        </OrganizationContext.Provider>
+      );
 
       expect(
         screen.getByTestId('rich-http-content-body-section-pre')
@@ -227,7 +269,20 @@ describe('Request entry', function () {
         ],
       };
 
-      render(<Request event={event} data={event.entries[0].data} />);
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <Request event={event} data={event.entries[0].data} />
+          </RouteContext.Provider>
+        </OrganizationContext.Provider>
+      );
 
       expect(
         screen.getByTestId('rich-http-content-body-key-value-list')
@@ -257,7 +312,20 @@ describe('Request entry', function () {
         ],
       };
 
-      render(<Request event={event} data={event.entries[0].data} />);
+      render(
+        <OrganizationContext.Provider value={organization}>
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <Request event={event} data={event.entries[0].data} />
+          </RouteContext.Provider>
+        </OrganizationContext.Provider>
+      );
 
       expect(
         screen.getByTestId('rich-http-content-body-context-data')
@@ -289,7 +357,20 @@ describe('Request entry', function () {
       };
 
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />)
+        render(
+          <OrganizationContext.Provider value={organization}>
+            <RouteContext.Provider
+              value={{
+                router,
+                location: router.location,
+                params: {},
+                routes: [],
+              }}
+            >
+              <Request event={event} data={event.entries[0].data} />
+            </RouteContext.Provider>
+          </OrganizationContext.Provider>
+        )
       ).not.toThrow();
     });
 
@@ -316,7 +397,20 @@ describe('Request entry', function () {
       };
 
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />)
+        render(
+          <OrganizationContext.Provider value={organization}>
+            <RouteContext.Provider
+              value={{
+                router,
+                location: router.location,
+                params: {},
+                routes: [],
+              }}
+            >
+              <Request event={event} data={event.entries[0].data} />
+            </RouteContext.Provider>
+          </OrganizationContext.Provider>
+        )
       ).not.toThrow();
     });
   });

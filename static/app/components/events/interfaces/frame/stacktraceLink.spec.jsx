@@ -11,7 +11,7 @@ describe('StacktraceLink', function () {
 
   const frame = {filename: '/sentry/app.py', lineNo: 233};
   const platform = 'python';
-  const config = TestStubs.RepositoryProjectPathConfig(project, repo, integration);
+  const config = TestStubs.RepositoryProjectPathConfig({project, repo, integration});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

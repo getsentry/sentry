@@ -2,16 +2,22 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import SearchBar from 'sentry/components/searchBar';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
+  getResourceTypes,
+  getStatusTypes,
   ISortConfig,
   NetworkSpan,
   sortNetwork,
@@ -23,13 +29,41 @@ type Props = {
   replayRecord: ReplayRecord;
 };
 
+type SortDirection = 'asc' | 'desc';
+
+const createSpanId = (span: NetworkSpan) =>
+  `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
+
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
-  const {setCurrentHoverTime, setCurrentTime} = useReplayContext();
+  const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
     getValue: row => row[sortConfig.by],
+  });
+
+  const {
+    items,
+    status: selectedStatus,
+    type: selectedType,
+    searchTerm,
+    setStatus,
+    setType,
+    setSearchTerm,
+  } = useNetworkFilters({networkSpans});
+
+  const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
+
+  const currentNetworkSpan = getPrevReplayEvent({
+    items: networkData.map(span => ({
+      ...span,
+      id: createSpanId(span),
+      timestamp: span.startTimestamp * 1000,
+    })),
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
   });
 
   const handleMouseEnter = useCallback(
@@ -62,7 +96,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
-
   function handleSort(
     fieldName: string | keyof NetworkSpan,
     getValue?: (row: NetworkSpan) => any
@@ -78,17 +111,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     });
   }
 
-  const networkData = useMemo(
-    () => sortNetwork(networkSpans, sortConfig),
-    [networkSpans, sortConfig]
-  );
-
   const sortArrow = (sortedBy: string) => {
     return sortConfig.by === sortedBy ? (
       <IconArrow
         color="gray300"
         size="xs"
-        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'up' : 'down'}
+        direction={sortConfig.by === sortedBy && !sortConfig.asc ? 'down' : 'up'}
       />
     ) : null;
   };
@@ -134,18 +162,30 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </SortItem>,
   ];
 
-  const renderTableRow = (network: NetworkSpan, index: number) => {
+  const renderTableRow = (network: NetworkSpan) => {
+    const spanId = createSpanId(network);
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
+    const statusCode = network.data.statusCode;
 
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
+    const columnProps = {
+      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      isCurrent: currentNetworkSpan?.id === spanId,
+      hasOccurred:
+        currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
+      timestampSortDir:
+        sortConfig.by === 'startTimestamp'
+          ? ((sortConfig.asc ? 'asc' : 'desc') as SortDirection)
+          : undefined,
+    };
 
     return (
-      <Fragment key={index}>
-        <Item {...columnHandlers}>
-          {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
+      <Fragment key={spanId}>
+        <Item {...columnHandlers} {...columnProps} isStatusCode>
+          {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           {network.description ? (
             <Tooltip
               title={network.description}
@@ -158,24 +198,24 @@ function NetworkList({replayRecord, networkSpans}: Props) {
               <Text>{network.description}</Text>
             </Tooltip>
           ) : (
-            <EmptyText>({t('Missing path')})</EmptyText>
+            <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {defined(network.data.size) ? (
             <FileSize bytes={network.data.size} />
           ) : (
-            <EmptyText>({t('Missing size')})</EmptyText>
+            <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
 
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
             {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
           </UnstyledButton>
@@ -185,29 +225,118 @@ function NetworkList({replayRecord, networkSpans}: Props) {
   };
 
   return (
-    <StyledPanelTable
-      columns={columns.length}
-      isEmpty={networkData.length === 0}
-      emptyMessage={t('No related network requests found.')}
-      headers={columns}
-      disablePadding
-      stickyHeaders
-    >
-      {networkData.map(renderTableRow) || null}
-    </StyledPanelTable>
+    <NetworkContainer>
+      <NetworkFilters>
+        <CompactSelect
+          triggerProps={{prefix: t('Status')}}
+          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
+          multiple
+          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
+          size="sm"
+          onChange={selected => setStatus(selected.map(_ => _.value))}
+          value={selectedStatus}
+        />
+        <CompactSelect
+          triggerProps={{prefix: t('Type')}}
+          triggerLabel={selectedType.length === 0 ? t('Any') : null}
+          multiple
+          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
+          size="sm"
+          onChange={selected => setType(selected.map(_ => _.value))}
+          value={selectedType}
+        />
+        <SearchBar
+          size="sm"
+          onChange={setSearchTerm}
+          placeholder={t('Search Network...')}
+          query={searchTerm}
+        />
+      </NetworkFilters>
+      <StyledPanelTable
+        columns={columns.length}
+        isEmpty={networkData.length === 0}
+        emptyMessage={t('No related network requests found.')}
+        headers={columns}
+        disablePadding
+        stickyHeaders
+      >
+        {networkData.map(renderTableRow) || null}
+      </StyledPanelTable>
+    </NetworkContainer>
   );
 }
 
-const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
+const NetworkContainer = styled(FluidHeight)`
+  height: 100%;
+`;
+
+const NetworkFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content max-content 1fr;
+  margin-bottom: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    margin-top: ${space(1)};
+  }
+`;
+
+const Text = styled('p')`
+  padding: 0;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+`;
+
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
+`;
+
+const fontColor = p => {
+  if (p.isStatusError) {
+    return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
+  }
+  return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
+};
+
+const Item = styled('div')<{
+  hasOccurred: boolean;
+  isCurrent: boolean;
+  isStatusError: boolean;
+  timestampSortDir: SortDirection | undefined;
+  center?: boolean;
+  isStatusCode?: boolean;
+  numeric?: boolean;
+}>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => p.theme[p.color || 'subText']};
+  color: ${fontColor};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
+  border-bottom: ${p => {
+    if (p.isCurrent && p.timestampSortDir === 'asc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return p.isStatusError
+      ? `1px solid ${p.theme.red100}`
+      : `1px solid ${p.theme.innerBorder}`;
+  }};
 
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
+  border-top: ${p => {
+    return p.isCurrent && p.timestampSortDir === 'desc'
+      ? `1px solid ${p.theme.purple300} !important`
+      : 0;
+  }};
+
+  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
+
+  ${EmptyText} {
+    color: ${fontColor};
+  }
 `;
 
 const UnstyledButton = styled('button')`
@@ -226,10 +355,7 @@ const UnstyledHeaderButton = styled(UnstyledButton)`
 `;
 
 const StyledPanelTable = styled(PanelTable)<{columns: number}>`
-  grid-template-columns: max-content minmax(200px, 1fr) repeat(
-      4,
-      minmax(max-content, 160px)
-    );
+  grid-template-columns: max-content minmax(200px, 1fr) repeat(4, max-content);
   grid-template-rows: 24px repeat(auto-fit, 28px);
   font-size: ${p => p.theme.fontSizeSmall};
   margin-bottom: 0;
@@ -255,7 +381,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     }
   }
 
-  ${/* sc-selector */ PanelTableHeader} {
+  ${PanelTableHeader} {
     min-height: 24px;
     border-radius: 0;
     color: ${p => p.theme.subText};
@@ -271,19 +397,6 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
       text-align: start;
     }
   }
-`;
-
-const Text = styled('p')`
-  padding: 0;
-  margin: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const EmptyText = styled(Text)`
-  font-style: italic;
-  color: ${p => p.theme.subText};
 `;
 
 const SortItem = styled('span')`

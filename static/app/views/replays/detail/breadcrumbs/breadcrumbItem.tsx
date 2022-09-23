@@ -33,7 +33,7 @@ function BreadcrumbItem({
   onMouseLeave,
   onClick,
 }: Props) {
-  const {title, description} = getDetails(crumb);
+  const {title, description} = getDetails(crumb, startTimestampMs);
   const {setActiveTab} = useActiveReplayTab();
 
   const handleMouseEnter = useCallback(

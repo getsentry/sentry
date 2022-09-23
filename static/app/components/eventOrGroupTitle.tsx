@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
+import {BaseGroup, GroupTombstone, IssueCategory, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getTitle} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -30,6 +30,7 @@ function EventOrGroupTitle({
 }: Props) {
   const event = data as Event;
   const groupingCurrentLevel = (data as BaseGroup).metadata?.current_level;
+  const groupingIssueCategory = (data as BaseGroup)?.issueCategory;
 
   const hasGroupingTreeUI = !!organization?.features.includes('grouping-tree-ui');
   const hasGroupingStacktraceUI = !!organization?.features.includes(
@@ -41,7 +42,7 @@ function EventOrGroupTitle({
 
   return (
     <Wrapper className={className} hasGroupingTreeUI={hasGroupingTreeUI}>
-      {withStackTracePreview ? (
+      {withStackTracePreview && groupingIssueCategory === IssueCategory.ERROR ? (
         <StyledStacktracePreview
           organization={organization}
           issueId={groupID ? groupID : id}
@@ -87,7 +88,6 @@ const Subtitle = styled('em')`
 const StyledStacktracePreview = styled(StackTracePreview)<{
   hasGroupingStacktraceUI: boolean;
 }>`
-  font-size: ${p => p.theme.fontSizeLarge};
   ${p =>
     p.hasGroupingStacktraceUI &&
     css`
@@ -101,6 +101,7 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 `;
 
 const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
+  font-size: ${p => p.theme.fontSizeLarge};
   ${p =>
     p.hasGroupingTreeUI &&
     css`

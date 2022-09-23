@@ -27,8 +27,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
 
     const {container} = render(<GlobalModal />);
 
@@ -151,8 +151,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('render done button', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...TestStubs.Outcomes(),
       groups: [],
     });
@@ -226,8 +226,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('cancel flow', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...TestStubs.Outcomes(),
       groups: [],
     });
@@ -271,9 +271,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       body: [TestStubs.Project({id: project.id, slug: project.slug})],
     });
 
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(outcomesWithoutClientDiscarded);
-    ServerSideSamplingStore.fetchProjectStats48hSuccess(outcomesWithoutClientDiscarded);
-    ServerSideSamplingStore.fetchSdkVersionsSuccess([
+    ServerSideSamplingStore.projectStats30dRequestSuccess(outcomesWithoutClientDiscarded);
+    ServerSideSamplingStore.projectStats48hRequestSuccess(outcomesWithoutClientDiscarded);
+    ServerSideSamplingStore.sdkVersionsRequestSuccess([
       {
         isSendingSampleRate: false,
         isSendingSource: false,
@@ -330,8 +330,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('does not display "Specify client rate modal" if no groups', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.fetchProjectStats48hSuccess({
+    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
+    ServerSideSamplingStore.projectStats48hRequestSuccess({
       ...outcomesWithoutClientDiscarded,
       groups: [],
     });
@@ -361,9 +361,9 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display request error message', async function () {
-    ServerSideSamplingStore.fetchProjectStats30dError('some error');
+    ServerSideSamplingStore.projectStats30dRequestError('some error');
 
-    ServerSideSamplingStore.fetchProjectStats48hError('some error');
+    ServerSideSamplingStore.projectStats48hRequestError('some error');
 
     const {organization, project} = getMockData();
 

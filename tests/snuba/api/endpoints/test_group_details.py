@@ -2,12 +2,21 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import Environment, GroupInboxReason, Release
+from sentry.models import (
+    GROUP_OWNER_TYPE,
+    Environment,
+    GroupInboxReason,
+    GroupOwner,
+    GroupOwnerType,
+    Release,
+)
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_multiple_environments(self):
         group = self.create_group()
@@ -153,6 +162,36 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["inbox"] is None
 
+    def test_group_expand_owners(self):
+        self.login_as(user=self.user)
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        group = event.group
+        url = f"/api/0/issues/{group.id}/?expand=owners"
+
+        self.login_as(user=self.user)
+        # Test with no owner
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert response.data["owners"] is None
+
+        # Test with owners
+        GroupOwner.objects.create(
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user=self.user,
+        )
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["owners"] is not None
+        assert len(response.data["owners"]) == 1
+        assert response.data["owners"][0]["owner"] == f"user:{self.user.id}"
+        assert response.data["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
+
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)
         event = self.store_event(
@@ -203,3 +242,20 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["userCount"] is not None  # key shouldn't be present
         assert response.data["firstSeen"] is not None  # key shouldn't be present
         assert response.data["lastSeen"] is not None  # key shouldn't be present
+
+    def test_issue_type_category(self):
+        """Test that the issue's type and category is returned in the results"""
+
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(minutes=3))},
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/issues/{event.group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert int(response.data["id"]) == event.group.id
+        assert response.data["issueType"] == "error"
+        assert response.data["issueCategory"] == "error"

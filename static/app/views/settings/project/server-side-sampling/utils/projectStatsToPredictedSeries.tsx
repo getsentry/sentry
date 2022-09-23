@@ -1,11 +1,10 @@
 import moment from 'moment';
 
 import {t} from 'sentry/locale';
-import {SeriesApi} from 'sentry/types';
+import {Outcome, SeriesApi} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import commonTheme from 'sentry/utils/theme';
-import {Outcome} from 'sentry/views/organizationStats/types';
 
 import {quantityField} from '.';
 
@@ -23,7 +22,7 @@ export function projectStatsToPredictedSeries(
   let serverRate = Math.max(Math.min(server, 1), 0);
 
   const commonSeriesConfig = {
-    barMinHeight: 1,
+    barMinHeight: 0,
     type: 'bar',
     stack: 'predictedUsage',
   };

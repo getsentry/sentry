@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tagstore
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 
 
+@region_silo_endpoint
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
     def get(self, request: Request, group, key) -> Response:
         """
@@ -28,10 +29,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
         try:
-            tagstore.get_tag_key(group.project_id, None, lookup_key)
-        except tagstore.TagKeyNotFound:
+            tagstore.get_group_tag_key(group, None, lookup_key)
+        except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
-
         sort = request.GET.get("sort")
         if sort == "date":
             order_by = "-last_seen"
@@ -48,7 +48,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             serializer_cls = None
 
         paginator = tagstore.get_group_tag_value_paginator(
-            group.project_id, group.id, environment_ids, lookup_key, order_by=order_by
+            group, environment_ids, lookup_key, order_by=order_by
         )
 
         return self.paginate(

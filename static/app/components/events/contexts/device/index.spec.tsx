@@ -1,7 +1,11 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
 import {DeviceData} from 'sentry/components/events/contexts/device/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 export const deviceMockData = {
   screen_resolution: '1136x768',
@@ -39,7 +43,7 @@ export const deviceMockData = {
 export const deviceContextMetaMockData = {
   name: {
     '': {
-      rem: [['project:1', 's', 0, 0]],
+      rem: [['organization:0', 's', 0, 0]],
       len: 25,
     },
   },
@@ -56,12 +60,37 @@ const event = {
 
 describe('device event context', function () {
   it('display redacted data', async function () {
-    render(<DeviceEventContext event={event} data={deviceMockData} />);
+    const {organization, router} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        relayPiiConfig: JSON.stringify(TestStubs.DataScrubbingRelayPiiConfig()),
+      },
+    });
+
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <DeviceEventContext event={event} data={deviceMockData} />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
+    );
     expect(screen.getByText('Name')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
     userEvent.hover(screen.getByText(/redacted/));
     expect(
-      await screen.findByText('Replaced because of PII rule "project:1"')
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Replaced because of the PII rule [Replace] [Password fields] with [Scrubbed] from [password] in the settings of the organization org-slug'
+        )
+      )
     ).toBeInTheDocument(); // tooltip description
   });
 });

@@ -1,3 +1,5 @@
+import {act} from 'react-dom/test-utils';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -95,18 +97,23 @@ describe('EventsV2 > MiniGraph', function () {
     expect(eventsRequestProps.interval).toEqual('12h');
   });
 
-  it('renders WorldMapChart', function () {
+  it('renders WorldMapChart', async function () {
     const yAxis = ['count()', 'failure_count()'];
     eventView.display = 'worldmap';
-    const wrapper = mountWithTheme(
-      <MiniGraph
-        location={location}
-        eventView={eventView}
-        organization={organization}
-        yAxis={yAxis}
-      />,
-      initialData.routerContext
-    );
+    let wrapper;
+
+    await act(async () => {
+      wrapper = mountWithTheme(
+        <MiniGraph
+          location={location}
+          eventView={eventView}
+          organization={organization}
+          yAxis={yAxis}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+    });
     const worldMapChartProps = wrapper.find('WorldMapChart').props();
     expect(worldMapChartProps.series).toEqual([
       {

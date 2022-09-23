@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import TagsTableRow from 'sentry/components/tagsTableRow';
 import {t} from 'sentry/locale';

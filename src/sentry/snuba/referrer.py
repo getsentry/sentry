@@ -226,8 +226,11 @@ class Referrer(Enum):
     OUTCOMES_TOTALS = "outcomes.totals"
     SEARCH = "search"
     SEARCH_SAMPLE = "search_sample"
-    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_seen_stats_query"
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
+        "serializers.groupserializersnuba._execute_error_seen_stats_query"
+    )
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_PERF_SEEN_STATS_QUERY = (
+        "serializers.groupserializersnuba._execute_perf_seen_stats_query"
     )
     SESSIONS_CRASH_FREE_BREAKDOWN = "sessions.crash-free-breakdown"
     SESSIONS_GET_PROJECT_SESSIONS_COUNT = "sessions.get_project_sessions_count"

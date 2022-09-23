@@ -1,7 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventTags} from 'sentry/components/events/eventTags';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 
 describe('event tags', function () {
   it('display redacted tags', async function () {
@@ -13,20 +16,39 @@ describe('event tags', function () {
       },
     };
 
-    const {organization, project, router} = initializeOrg();
+    const {organization, project, router} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        relayPiiConfig: null,
+      },
+    });
 
     render(
-      <EventTags
-        organization={organization}
-        projectId={project.id}
-        location={router.location}
-        event={event}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <EventTags
+            organization={organization}
+            projectId={project.id}
+            location={router.location}
+            event={event}
+          />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
     );
 
     userEvent.hover(screen.getByText(/redacted/));
     expect(
-      await screen.findByText('Removed because of PII rule "project:2"')
+      await screen.findByText(
+        textWithMarkupMatcher('Removed because of the PII rule project:2')
+      ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
 
@@ -50,15 +72,32 @@ describe('event tags', function () {
       },
     };
 
-    const {organization, project, router} = initializeOrg();
+    const {organization, project, router} = initializeOrg({
+      ...initializeOrg(),
+      organization: {
+        ...initializeOrg().organization,
+        relayPiiConfig: null,
+      },
+    });
 
     render(
-      <EventTags
-        organization={organization}
-        projectId={project.id}
-        location={router.location}
-        event={event}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <EventTags
+            organization={organization}
+            projectId={project.id}
+            location={router.location}
+            event={event}
+          />
+        </RouteContext.Provider>
+      </OrganizationContext.Provider>
     );
 
     expect(screen.getByText('device.family')).toBeInTheDocument();
@@ -68,7 +107,9 @@ describe('event tags', function () {
     userEvent.hover(screen.getByText(/redacted/));
 
     expect(
-      await screen.findByText('Removed because of PII rule "project:2"')
+      await screen.findByText(
+        textWithMarkupMatcher('Removed because of the PII rule project:2')
+      ) // Fall back case
     ).toBeInTheDocument(); // tooltip description
   });
 });

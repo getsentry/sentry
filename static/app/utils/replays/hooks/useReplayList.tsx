@@ -1,44 +1,25 @@
-import {useCallback, useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
-
-export const DEFAULT_SORT = '-startedAt';
-
-export const REPLAY_LIST_FIELDS = [
-  'countErrors',
-  'duration',
-  'finishedAt',
-  'id',
-  'projectId',
-  'startedAt',
-  'urls',
-  'user',
-];
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 type Options = {
   eventView: EventView;
   organization: Organization;
 };
 
-type State = {
-  fetchError: undefined | RequestError;
-  isFetching: boolean;
-  pageLinks: null | string;
-  replays: undefined | ReplayListRecord[];
-};
+type State = Awaited<ReturnType<typeof fetchReplayList>>;
 
 type Result = State;
 
 function useReplayList({eventView, organization}: Options): Result {
   const api = useApi();
   const location = useLocation<ReplayListLocationQuery>();
+  const querySearchRef = useRef<string>();
 
   const [data, setData] = useState<State>({
     fetchError: undefined,
@@ -47,45 +28,26 @@ function useReplayList({eventView, organization}: Options): Result {
     replays: [],
   });
 
-  const init = useCallback(async () => {
-    try {
-      setData(prev => ({
-        ...prev,
-        isFetching: true,
-      }));
-
-      const path = `/organizations/${organization.slug}/replays/`;
-
-      const [{data: records}, _textStatus, resp] = await api.requestPromise(path, {
-        includeAllArgs: true,
-        query: {
-          ...eventView.getEventsAPIPayload(location),
-          cursor: location.query.cursor,
-        },
-      });
-
-      const pageLinks = resp?.getResponseHeader('Link') ?? '';
-
-      setData({
-        fetchError: undefined,
-        isFetching: false,
-        pageLinks,
-        replays: records.map(mapResponseToReplayRecord),
-      });
-    } catch (error) {
-      Sentry.captureException(error);
-      setData({
-        fetchError: error,
-        isFetching: false,
-        pageLinks: null,
-        replays: [],
-      });
-    }
+  const loadReplays = useCallback(async () => {
+    setData(prev => ({
+      ...prev,
+      isFetching: true,
+    }));
+    const response = await fetchReplayList({
+      api,
+      organization,
+      location,
+      eventView,
+    });
+    setData(response);
   }, [api, organization, location, eventView]);
 
   useEffect(() => {
-    init();
-  }, [init]);
+    if (!querySearchRef.current || querySearchRef.current !== location.search) {
+      querySearchRef.current = location.search;
+      loadReplays();
+    }
+  }, [loadReplays, location.search]);
 
   return data;
 }

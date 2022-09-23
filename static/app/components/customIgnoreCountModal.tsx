@@ -14,6 +14,7 @@ type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
 type Props = ModalRenderProps & {
   countLabel: string;
   countName: CountNames;
+  isPerformanceIssue: boolean;
   label: string;
   onSelected: (statusDetails: ResolutionStatusDetails) => void;
   windowName: WindowNames;
@@ -48,9 +49,23 @@ class CustomIgnoreCountModal extends Component<Props, State> {
   };
 
   render() {
-    const {Header, Footer, Body, countLabel, label, closeModal, windowOptions} =
-      this.props;
+    const {
+      Header,
+      Footer,
+      Body,
+      countLabel,
+      label,
+      closeModal,
+      windowOptions,
+      isPerformanceIssue,
+    } = this.props;
     const {count, window} = this.state;
+
+    // TODO: Revert this when this option becomes available for Performance Issues
+    const helpSubtext = isPerformanceIssue
+      ? t('This option is currently not available for Performance issues.')
+      : t('(Optional) If supplied, this rule will apply as a rate of change.');
+
     return (
       <Fragment>
         <Header>
@@ -80,7 +95,8 @@ class CustomIgnoreCountModal extends Component<Props, State> {
             options={windowOptions}
             placeholder={t('e.g. per hour')}
             allowClear
-            help={t('(Optional) If supplied, this rule will apply as a rate of change.')}
+            help={helpSubtext}
+            disabled={isPerformanceIssue}
           />
         </Body>
         <Footer>

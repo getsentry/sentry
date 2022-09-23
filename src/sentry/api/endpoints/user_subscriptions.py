@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from sentry import newsletter
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.models import User, UserEmail
 
@@ -20,6 +21,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@control_silo_endpoint
 class UserSubscriptionsEndpoint(UserEndpoint):
     def get(self, request: Request, user) -> Response:
         """

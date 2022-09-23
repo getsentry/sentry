@@ -12,8 +12,10 @@ from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, O
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationMemberTest(TestCase):
     def test_legacy_token_generation(self):
         member = OrganizationMember(id=1, organization_id=1, email="foo@example.com")

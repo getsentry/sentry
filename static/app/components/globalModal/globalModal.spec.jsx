@@ -14,9 +14,6 @@ describe('GlobalModal', function () {
   beforeEach(() => {
     ModalStore.reset();
   });
-  afterEach(() => {
-    ModalStore.teardown();
-  });
 
   it('uses actionCreators to open and close Modal', async function () {
     renderGlobalModal();

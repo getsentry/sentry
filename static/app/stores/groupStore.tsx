@@ -11,7 +11,6 @@ import {
   GroupRelease,
   GroupStats,
 } from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 import {CommonStoreDefinition} from './types';
 
@@ -486,5 +485,5 @@ const storeConfig: GroupStoreDefinition = {
   },
 };
 
-const GroupStore = createStore(makeSafeRefluxStore(storeConfig));
+const GroupStore = createStore(storeConfig);
 export default GroupStore;

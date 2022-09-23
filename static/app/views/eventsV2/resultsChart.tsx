@@ -1,10 +1,12 @@
 import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {LineSeriesOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
@@ -13,11 +15,17 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, SelectValue} from 'sentry/types';
 import {valueIsEqual} from 'sentry/utils';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  getAggregateArg,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -27,6 +35,8 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+
+import {isCustomMeasurement} from '../dashboardsV2/utils';
 
 import ChartFooter from './chartFooter';
 
@@ -38,6 +48,8 @@ type ResultsChartProps = {
   organization: Organization;
   router: InjectedRouter;
   yAxisValue: string[];
+  customMeasurements?: CustomMeasurementCollection | undefined;
+  processedLineSeries?: LineSeriesOption[];
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -53,8 +65,17 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 
   render() {
-    const {api, eventView, location, organization, router, confirmedQuery, yAxisValue} =
-      this.props;
+    const {
+      api,
+      eventView,
+      location,
+      organization,
+      router,
+      confirmedQuery,
+      yAxisValue,
+      processedLineSeries,
+      customMeasurements,
+    } = this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
       'performance-chart-interpolation'
@@ -79,11 +100,19 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const aggregateParam = getAggregateArg(yAxisValue[0]) || '';
+    const customPerformanceMetricFieldType = isCustomMeasurement(aggregateParam)
+      ? customMeasurements
+        ? customMeasurements[aggregateParam]?.fieldType
+        : null
+      : null;
     const chartComponent =
       display === DisplayModes.WORLDMAP
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
+        : customPerformanceMetricFieldType === 'size' && isTopEvents
+        ? AreaChart
         : undefined;
     const interval =
       display === DisplayModes.BAR
@@ -103,6 +132,11 @@ class ResultsChart extends Component<ResultsChartProps> {
       ...seriesLabels,
       ...seriesLabels.map(getPreviousSeriesName),
     ];
+    if (processedLineSeries?.length) {
+      processedLineSeries.forEach(series =>
+        disableableSeries.push((series.name as string) ?? '')
+      );
+    }
     return (
       <Fragment>
         {getDynamicText({
@@ -133,6 +167,7 @@ class ResultsChart extends Component<ResultsChartProps> {
               referrer={referrer}
               fromDiscover
               disableableSeries={disableableSeries}
+              additionalSeries={processedLineSeries}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -145,21 +180,32 @@ class ResultsChart extends Component<ResultsChartProps> {
 type ContainerProps = {
   api: Client;
   confirmedQuery: boolean;
+  disableProcessedBaselineToggle: boolean;
   eventView: EventView;
   location: Location;
   onAxisChange: (value: string[]) => void;
   onDisplayChange: (value: string) => void;
+  onIntervalChange: (value: string | undefined) => void;
   onTopEventsChange: (value: string) => void;
 
   organization: Organization;
   router: InjectedRouter;
+  setShowBaseline: (value: boolean) => void;
+  showBaseline: boolean;
   // chart footer props
   total: number | null;
   yAxis: string[];
+  loadingProcessedTotals?: boolean;
+  processedLineSeries?: LineSeriesOption[];
+  processedTotal?: number;
 };
 
-class ResultsChartContainer extends Component<ContainerProps> {
-  state = {
+type ContainerState = {
+  yAxisOptions: SelectValue<string>[];
+};
+
+class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
+  state: ContainerState = {
     yAxisOptions: this.getYAxisOptions(this.props.eventView),
   };
 
@@ -207,10 +253,17 @@ class ResultsChartContainer extends Component<ContainerProps> {
       total,
       onAxisChange,
       onDisplayChange,
+      onIntervalChange,
       onTopEventsChange,
       organization,
       confirmedQuery,
       yAxis,
+      disableProcessedBaselineToggle,
+      processedLineSeries,
+      showBaseline,
+      setShowBaseline,
+      processedTotal,
+      loadingProcessedTotals,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -250,27 +303,40 @@ class ResultsChartContainer extends Component<ContainerProps> {
     return (
       <StyledPanel>
         {(yAxis.length > 0 && (
-          <ResultsChart
-            api={api}
-            eventView={eventView}
-            location={location}
-            organization={organization}
-            router={router}
-            confirmedQuery={confirmedQuery}
-            yAxisValue={yAxis}
-          />
+          <CustomMeasurementsContext.Consumer>
+            {contextValue => (
+              <ResultsChart
+                api={api}
+                eventView={eventView}
+                location={location}
+                organization={organization}
+                router={router}
+                confirmedQuery={confirmedQuery}
+                yAxisValue={yAxis}
+                processedLineSeries={processedLineSeries}
+                customMeasurements={contextValue?.customMeasurements}
+              />
+            )}
+          </CustomMeasurementsContext.Consumer>
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}
           total={total}
+          disableProcessedBaselineToggle={disableProcessedBaselineToggle}
           yAxisValue={yAxis}
           yAxisOptions={yAxisOptions}
+          eventView={eventView}
           onAxisChange={onAxisChange}
           displayOptions={displayOptions}
           displayMode={eventView.getDisplayMode()}
           onDisplayChange={onDisplayChange}
           onTopEventsChange={onTopEventsChange}
+          onIntervalChange={onIntervalChange}
           topEvents={eventView.topEvents ?? TOP_N.toString()}
+          showBaseline={showBaseline}
+          setShowBaseline={setShowBaseline}
+          processedTotal={processedTotal}
+          loadingProcessedTotals={loadingProcessedTotals}
         />
       </StyledPanel>
     );

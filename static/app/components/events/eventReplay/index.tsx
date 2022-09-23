@@ -21,7 +21,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug}: Props) {
           priority="primary"
           to={`/organizations/${orgSlug}/replays/${projectSlug}:${replayId}`}
         >
-          View Details
+          {t('View Details')}
         </Button>
       }
     >
