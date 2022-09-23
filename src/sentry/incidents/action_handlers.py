@@ -92,7 +92,7 @@ class EmailActionHandler(ActionHandler):
 
     def email_users(self, trigger_status: TriggerStatus, incident_status: IncidentStatus) -> None:
         for user_id, email in self.get_targets():
-            user = User.objects.get(id=user_id)
+            user = User.objects.get_from_cache(id=user_id)
             email_context = generate_incident_trigger_email_context(
                 self.project,
                 self.incident,
