@@ -86,5 +86,4 @@ const storeConfig: OrganizationStoreDefinition = {
 };
 
 const OrganizationStore = createStore(storeConfig);
-
 export default OrganizationStore;
