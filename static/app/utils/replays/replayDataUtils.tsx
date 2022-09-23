@@ -70,9 +70,13 @@ export function breadcrumbFactory(
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
     category: 'exception',
-    message: error['error.value'],
+    message: error['error.value'].join(''),
     data: {
-      label: error['error.type'],
+      label: error['error.type'].join(''),
+      eventId: error.id,
+      groupId: error['issue.id'] || 1,
+      groupShortId: error.issue || 'POKEDEX-4NN',
+      project: error['project.name'],
     },
     timestamp: error.timestamp,
   }));

@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment} from 'react';
+import {ComponentProps, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -9,6 +9,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
+import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 
 const ICONS = {
   error: <IconClose isCircled size="xs" />,
@@ -35,9 +36,15 @@ function ConsoleMessage({
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
   const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
-  const handleOnClick = () => setCurrentTime(diff);
-  const handleOnMouseOver = () => setCurrentHoverTime(diff);
-  const handleOnMouseOut = () => setCurrentHoverTime(undefined);
+  const handleOnClick = useCallback(() => setCurrentTime(diff), [setCurrentTime, diff]);
+  const handleOnMouseOver = useCallback(
+    () => setCurrentHoverTime(diff),
+    [setCurrentHoverTime, diff]
+  );
+  const handleOnMouseOut = useCallback(
+    () => setCurrentHoverTime(undefined),
+    [setCurrentHoverTime]
+  );
 
   const timeHandlers = {
     isActive,
@@ -68,6 +75,7 @@ function ConsoleMessage({
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
+        <ViewIssueLink breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
@@ -155,6 +163,8 @@ const Message = styled(Common)`
   padding: ${space(0.25)} 0;
   white-space: pre-wrap;
   word-break: break-word;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default ConsoleMessage;
