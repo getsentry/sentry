@@ -42,26 +42,17 @@ def _get_metrics_billing_consumer_processing_factory():
     return BillingMetricsConsumerStrategyFactory()
 
 
-class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
-    """A metrics consumer that generates a billing outcome for each matching metric.
-
-    Processing a metric bucket at a time, looks at the given metric's ID and
-    generates as many billing outcomes as values are in the bucket.
-
-    It's assumed `TRANSACTION_METRICS_NAMES` is an immutable Dict and contains
-    the given metric name. If the metric name doesn't exist as a key, it throws
-    a `ValueError` in initialization. If the metric's ID is updated in
-    `TRANSACTION_METRICS_NAMES`, the metric ID must be updated.
+class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
+    """A metrics consumer that generates a billing outcome for each processed
+    transaction, processing a bucket at a time. The transaction count is
+    computed from the amount of values from `d:transactions/duration@millisecond`
+    buckets.
     """
 
-    def __init__(self, metric_name) -> None:
-        if metric_name not in TRANSACTION_METRICS_NAMES:
-            raise ValueError(f"Unrecognized metric name: {metric_name}")
-
-        self.counter_metric_id = TRANSACTION_METRICS_NAMES[metric_name]
+    def __init__(self) -> None:
+        self.counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
         self.__futures = []
         self.__closed = False
-        self.__message_payload_encoding = "utf-8"
 
     def poll(self) -> None:
         while self.__futures and self.__futures[0].done():
@@ -75,14 +66,9 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._produce_billing_outcomes(payload, num_processed_transactions)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
-        return json.loads(
-            message.payload.value.decode(self.__message_payload_encoding), use_rapid_json=True
-        )
+        return json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
 
     def _count_processed_transactions(self, bucket_payload: Dict) -> int:
-        # Accessing TRANSACTION_METRIC_NAMES unsafely, as opposed to using
-        # `get`, throws an exception. This makes it easier to identify
-        # situations in which the consumer doesn't generate billing outcomes.
         if bucket_payload["metric_id"] != self.counter_metric_id:
             return 0
         return len(bucket_payload["value"])
@@ -122,6 +108,4 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingSingleMetricConsumerStrategy(
-            metric_name="d:transactions/duration@millisecond"
-        )
+        return BillingTxCountMetricConsumerStrategy()
