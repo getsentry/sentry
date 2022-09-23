@@ -20,7 +20,7 @@ def get_default_query(organization, user):
     )
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
     private = True
 
