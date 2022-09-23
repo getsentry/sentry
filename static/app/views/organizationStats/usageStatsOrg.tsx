@@ -12,7 +12,7 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DataCategory, IntervalPeriod, Organization} from 'sentry/types';
+import {DataCategory, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
@@ -20,7 +20,7 @@ import {
   FORMAT_DATETIME_HOURLY,
   getDateFromMoment,
 } from './usageChart/utils';
-import {Outcome, UsageSeries, UsageStat} from './types';
+import {UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
   ChartDataTransform,
