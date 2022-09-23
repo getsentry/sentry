@@ -108,7 +108,7 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "org:integrations"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
         "PUT": ["org:read", "org:write", "org:admin", "org:integrations"],
-        "DELETE": ["org:read", "org:write", "org:admin", "org:integrations"],
+        "DELETE": ["org:admin", "org:integrations"],
     }
 
 
