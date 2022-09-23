@@ -45,6 +45,7 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | ResolutionStatus;
+    assigned_suggestion_reason?: string;
   };
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};

@@ -90,23 +90,27 @@ function GroupHeader({
   const location = useLocation();
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
-    useCallback(() => {
-      const {alert_date, alert_rule_id, alert_type} = location.query;
-      trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
-        organization,
-        project_id: parseInt(project.id, 10),
-        group_id: parseInt(group.id, 10),
-        issue_category: group.issueCategory,
-        action_type: 'assign',
-        // Alert properties track if the user came from email/slack alerts
-        alert_date:
-          typeof alert_date === 'string'
-            ? getUtcDateString(Number(alert_date))
-            : undefined,
-        alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-        alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      });
-    }, [group.id, group.issueCategory, project.id, organization, location.query]);
+    useCallback(
+      (_, __, suggestedAssignee) => {
+        const {alert_date, alert_rule_id, alert_type} = location.query;
+        trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+          organization,
+          project_id: parseInt(project.id, 10),
+          group_id: parseInt(group.id, 10),
+          issue_category: group.issueCategory,
+          action_type: 'assign',
+          assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
+          // Alert properties track if the user came from email/slack alerts
+          alert_date:
+            typeof alert_date === 'string'
+              ? getUtcDateString(Number(alert_date))
+              : undefined,
+          alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+          alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+        });
+      },
+      [group.id, group.issueCategory, project.id, organization, location.query]
+    );
 
   const tabClickAnalyticsEvent = useCallback(
     (tab: Tab) =>
