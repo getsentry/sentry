@@ -2,6 +2,8 @@ from typing import List, Optional
 
 from snuba_sdk import Column, Function
 
+from sentry import options
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_tag_values
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
@@ -363,6 +365,66 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
                         ),
                     ),
                 ],
+            ),
+        ],
+        alias=alias,
+    )
+
+
+def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_name, alias=None):
+    is_unparameterized = "is_unparameterized"
+    is_null = "is_null"
+    has_value = "has_value"
+
+    def generate_transaction_name_filter(operation, transaction_name_identifier):
+        if transaction_name_identifier == is_unparameterized:
+            inner_tag_value = resolve_tag_value(
+                UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
+            )
+        elif transaction_name_identifier == is_null:
+            inner_tag_value = (
+                "" if options.get("sentry-metrics.performance.tags-values-are-strings") else 0
+            )
+        else:
+            raise InvalidParams("Invalid condition for tag value filter")
+
+        return Function(
+            operation,
+            [
+                Column(
+                    resolve_tag_key(
+                        UseCaseKey.PERFORMANCE,
+                        org_id,
+                        "transaction",
+                    )
+                ),
+                inner_tag_value,
+            ],
+        )
+
+    if transaction_name in [is_unparameterized, is_null]:
+        transaction_name_filter = generate_transaction_name_filter("equals", transaction_name)
+    elif transaction_name == has_value:
+        transaction_name_filter = Function(
+            "and",
+            [
+                generate_transaction_name_filter("notEquals", is_null),
+                generate_transaction_name_filter("notEquals", is_unparameterized),
+            ],
+        )
+    else:
+        raise InvalidParams(
+            f"The `count_transaction_name` function expects a valid transaction name filter, which must be either "
+            f"{is_unparameterized} {is_null} {has_value} but {transaction_name} was passed"
+        )
+
+    return Function(
+        "countIf",
+        [
+            Column("value"),
+            Function(
+                "and",
+                [aggregate_filter, transaction_name_filter],
             ),
         ],
         alias=alias,
