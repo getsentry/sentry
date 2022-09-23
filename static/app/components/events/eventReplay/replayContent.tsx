@@ -28,7 +28,9 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
     replaySlug,
   });
   const {ref: fullscreenRef, toggle: toggleFullscreen} = useFullscreen();
-  const eventTimestamp = event.dateCreated;
+  const eventTimestamp = event.dateCreated
+    ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
+    : 0;
 
   if (fetchError) {
     throw new Error('Failed to load Replay');
