@@ -241,7 +241,6 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
                 api={this.api}
                 key={repo.id}
                 repository={repo}
-                provider={this.props.integration.provider}
                 orgId={orgId}
                 onRepositoryChange={this.onRepositoryChange}
               />
