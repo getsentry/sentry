@@ -51,12 +51,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def __init__(self) -> None:
         self.counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
-        self.__futures = []
         self.__closed = False
 
     def poll(self) -> None:
-        while self.__futures and self.__futures[0].done():
-            self.__futures.popleft()
+        pass
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
@@ -94,15 +92,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def terminate(self) -> None:
         self.close()
-        # TODO: do we need anything else to force the shutdown?
 
     def join(self, timeout: Optional[float] = None) -> None:
         pass
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    # TODO: docs
-
     def create_with_partitions(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
