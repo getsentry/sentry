@@ -36,6 +36,7 @@ class DetectorType(Enum):
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
+    N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -48,6 +49,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -248,6 +250,10 @@ def get_detection_settings(project_id: str):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
+        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+        },
     }
 
 
@@ -268,6 +274,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
+            detection_settings, data
+        ),
     }
 
     for span in spans:
@@ -836,6 +845,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems = {}
         self.potential_parents = {}
+        self.n_hash = None
         self.n_spans = []
         self.source_span = None
 
@@ -987,6 +997,27 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             (str(parent_op) + str(parent_hash) + str(source_hash) + str(n_hash)).encode("utf8"),
         ).hexdigest()
         return f"1-{problem_class}-{full_fingerprint}"
+
+
+class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
+    """
+    Detector goals:
+    - Extend N+1 DB Detector to make it compatible with more frameworks.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    def init(self):
+        super().init()
+        root_span = self._event.get("trace", None)
+        if root_span:
+            self.potential_parents[root_span.get("span_id")] = root_span
 
 
 # Reports metrics and creates spans for detection
