@@ -399,6 +399,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
                 # It's important that we store metric between now and now - 1 minute
+                # Note: now is not included
                 timestamp=(now - timedelta(seconds=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
