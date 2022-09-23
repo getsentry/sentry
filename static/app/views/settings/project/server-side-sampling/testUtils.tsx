@@ -3,7 +3,7 @@ import {InjectedRouter} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Outcome, Project} from 'sentry/types';
 import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
@@ -15,7 +15,6 @@ import {
   SamplingSdkVersion,
 } from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {Outcome} from 'sentry/views/organizationStats/types';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 
