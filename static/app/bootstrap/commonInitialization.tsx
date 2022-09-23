@@ -3,7 +3,6 @@ import 'focus-visible';
 import {NODE_ENV} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {Config} from 'sentry/types';
-import {setupColorScheme} from 'sentry/utils/matchMedia';
 
 export function commonInitialization(config: Config) {
   if (NODE_ENV === 'development') {
@@ -11,7 +10,4 @@ export function commonInitialization(config: Config) {
   }
 
   ConfigStore.loadInitialData(config);
-
-  // setup darkmode + favicon
-  setupColorScheme();
 }
