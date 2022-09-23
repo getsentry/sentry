@@ -1,14 +1,21 @@
 import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {Hovercard} from 'sentry/components/hovercard';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import ShortId from 'sentry/components/shortId';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
+import StackTraceExpando from 'sentry/views/replays/detail/console/stackTraceExpando';
 
 const ICONS = {
   error: <IconClose isCircled size="xs" />,
@@ -32,6 +39,7 @@ function ConsoleMessage({
   isCurrent,
   startTimestampMs = 0,
 }: Props) {
+  const organization = useOrganization();
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
   const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
@@ -65,9 +73,12 @@ function ConsoleMessage({
         aria-current={isCurrent}
         {...timeHandlers}
       >
-        <ErrorBoundary mini>
-          <MessageFormatter breadcrumb={breadcrumb} />
-        </ErrorBoundary>
+        <StackTraceExpando issueId="123" organization={organization}>
+          <ErrorBoundary mini>
+            <MessageFormatter breadcrumb={breadcrumb} />
+          </ErrorBoundary>
+        </StackTraceExpando>
+        <ViewIssueLink breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
@@ -84,6 +95,60 @@ function ConsoleMessage({
   );
 }
 
+interface IssueLinkProps extends ComponentProps<typeof MessageFormatter> {}
+
+function ViewIssueLink({breadcrumb}: IssueLinkProps) {
+  const {projects} = useProjects();
+
+  if (breadcrumb.category !== 'exception') {
+    return null;
+  }
+  const project = projects.find(p => p.name === 'pokedex') || {
+    slug: 'pokedex', // breadcrumb.project_name,
+  };
+  return (
+    <LessPaddingHovercard
+      forceVisible
+      body={
+        <ShortIdBreadrcumb>
+          <ProjectBadge
+            project={project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          />
+          <StyledShortId to="/" shortId="123" />
+        </ShortIdBreadrcumb>
+      }
+    >
+      <Button priority="link">View Details</Button>
+    </LessPaddingHovercard>
+  );
+}
+
+const ShortIdBreadrcumb = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const StyledShortId = styled(ShortId)`
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const LessPaddingHovercard = styled(
+  ({children, bodyClassName, ...props}: React.ComponentProps<typeof Hovercard>) => (
+    <Hovercard bodyClassName={bodyClassName || '' + ' less-padding'} {...props}>
+      {children}
+    </Hovercard>
+  )
+)`
+  .less-padding {
+    padding: ${space(0.75)} ${space(1.5)};
+  }
+`;
+
 const Common = styled('div')<{
   isActive: boolean;
   isCurrent: boolean;
@@ -92,10 +157,7 @@ const Common = styled('div')<{
   hasOccurred?: boolean;
   isOcurring?: boolean;
 }>`
-  background-color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].backgroundLight
-      : 'inherit'};
+  background-color: ${p => p.theme.alert[p.level]?.backgroundLight || 'inherit'};
   color: ${({hasOccurred = true, ...p}) => {
     if (!hasOccurred) {
       return p.theme.gray300;

@@ -75,6 +75,9 @@ export function breadcrumbFactory(
       label: error['error.type'],
     },
     timestamp: error.timestamp,
+    event_id: error.id,
+    group: error['issue.id'],
+    project_name: error['project.name'],
   }));
 
   const spanCrumbs: (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[] = spans
