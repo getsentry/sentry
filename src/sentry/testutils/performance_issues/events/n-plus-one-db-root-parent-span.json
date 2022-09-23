@@ -139,12 +139,14 @@
   "start_timestamp": 1661957619.181783,
   "timestamp": 1661957623.393462,
   "title": "GET /books/new",
-  "trace": {
-    "trace_id": "a5c94c91f0a248d19e5068ca6acc8afe",
-    "span_id": "86d3f8a7e85d7324",
-    "op": "http.server",
-    "status": "ok",
-    "hash": "aa6df963e9081e3a"
+  "contexts": {
+    "trace": {
+      "trace_id": "a5c94c91f0a248d19e5068ca6acc8afe",
+      "span_id": "86d3f8a7e85d7324",
+      "op": "http.server",
+      "status": "ok",
+      "hash": "aa6df963e9081e3a"
+    }
   },
   "transaction": "GET /books/new",
   "type": "transaction"
