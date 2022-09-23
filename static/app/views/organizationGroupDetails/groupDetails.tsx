@@ -172,7 +172,7 @@ class GroupDetails extends Component<Props, State> {
     const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
-    const eventId = params?.eventId || 'latest';
+    const eventId = params.eventId ?? 'latest';
     const projectId = group?.project?.slug;
     try {
       const event = await fetchGroupEvent(
