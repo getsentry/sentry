@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import itertools
 import logging
 import time
@@ -10,10 +11,13 @@ from random import Random
 from typing import Any, MutableMapping
 
 import pytz
+from django.shortcuts import redirect
 from django.template.defaultfilters import slugify
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -45,7 +49,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.email import inline_css
+from sentry.utils.email import MessageBuilder, inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
@@ -153,6 +157,46 @@ class MailPreview:
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
         )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class MailPreviewView(View, abc.ABC):
+    @abc.abstractmethod
+    def get_context(self, request):
+        pass
+
+    def get_subject(self, request):
+        return None
+
+    @property
+    @abc.abstractmethod
+    def html_template(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def text_template(self):
+        pass
+
+    def get(self, request):
+        return MailPreview(
+            text_template=self.text_template,
+            html_template=self.html_template,
+            context=self.get_context(request),
+            subject=self.get_subject(request),
+        ).render(request)
+
+    def post(self, request):
+        msg = MessageBuilder(
+            subject=self.get_subject(request),
+            template=self.text_template,
+            html_template=self.html_template,
+            type="email.debug",
+            context=self.get_context(request),
+        )
+        msg.send_async(to=["dummy@stuff.com"])
+
+        return redirect(request.path)
 
 
 class MailPreviewAdapter(MailPreview):

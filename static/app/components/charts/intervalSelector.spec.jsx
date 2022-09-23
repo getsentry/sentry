@@ -2,6 +2,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import IntervalSelector from 'sentry/components/charts/intervalSelector';
 import EventView from 'sentry/utils/discover/eventView';
+import {DisplayModes} from 'sentry/utils/discover/types';
 
 describe('IntervalSelector', function () {
   const project = TestStubs.Project();
@@ -19,6 +20,7 @@ describe('IntervalSelector', function () {
     const intervalSelector = (
       <IntervalSelector
         eventView={eventView}
+        displayMode={DisplayModes.DEFAULT}
         onIntervalChange={newInterval => (interval = newInterval)}
       />
     );
@@ -31,6 +33,7 @@ describe('IntervalSelector', function () {
     const intervalSelector = (
       <IntervalSelector
         eventView={eventView}
+        displayMode={DisplayModes.DEFAULT}
         onIntervalChange={newInterval => (eventView.interval = newInterval)}
       />
     );
@@ -44,6 +47,7 @@ describe('IntervalSelector', function () {
     const intervalSelector = (
       <IntervalSelector
         eventView={eventView}
+        displayMode={DisplayModes.DEFAULT}
         onIntervalChange={_newInterval => (interval = 'called')}
       />
     );
