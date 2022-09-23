@@ -638,9 +638,8 @@ def metrics_parallel_consumer(**options):
 @log_options()
 @batching_kafka_options("billing-metrics-consumer")
 @configuration
-# what options do we need?
-# --process ???
 @click.option("--topic", default="snuba-generic-metrics", help="Topic to get metrics from")
+@click.option("--processes", default=1, type=int)
 def metrics_billing_consumer(**options):
     print(options)
 
