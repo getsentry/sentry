@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
@@ -16,6 +16,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
+from sentry.utils.event_frames import get_sdk_name
 
 from .performance_span_issue import PerformanceSpanProblem
 
@@ -65,7 +66,9 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
 
-    def to_dict(self) -> str:
+    def to_dict(
+        self,
+    ) -> Mapping[str, Any]:
         return {
             "fingerprint": self.fingerprint,
             "op": self.op,
@@ -107,6 +110,21 @@ class EventPerformanceProblem:
     def build_identifier(cls, event_id: str, problem_hash: str) -> str:
         identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
         return f"p-i-e:{identifier}"
+
+    @property
+    def evidence_hashes(self):
+        evidence_ids = self.problem.to_dict()
+        evidence_hashes = {}
+
+        spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
+
+        for key in ["parent", "cause", "offender"]:
+            span_ids = evidence_ids.get(key + "_span_ids", []) or []
+            spans = [spans_by_id.get(id) for id in span_ids]
+            hashes = [span.get("hash") for span in spans if span]
+            evidence_hashes[key + "_span_hashes"] = hashes
+
+        return evidence_hashes
 
     def save(self):
         nodestore.set(self.identifier, self.problem.to_dict())
@@ -259,7 +277,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         detector.on_complete()
 
     # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(event_id, detectors, sdk_span)
+    report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
     # Get list of detectors that are allowed to create issues.
     allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
@@ -973,10 +991,11 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
+    sdk_name = get_sdk_name(event)
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
@@ -989,11 +1008,12 @@ def report_metrics_for_detectors(
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
+            tags={"sdk_name": sdk_name},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
 
-    detected_tags = {}
+    detected_tags = {"sdk_name": sdk_name}
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems

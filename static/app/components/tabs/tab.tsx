@@ -99,7 +99,12 @@ const TabWrap = styled('li')<{
       }
     `}
 
-  ${p => p.overflowing && `opacity: 0;`}
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
 `;
 
 const HoverLayer = styled('div')<{orientation: Orientation}>`
