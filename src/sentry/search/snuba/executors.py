@@ -9,7 +9,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from heapq import merge
-from typing import Any, Callable, Iterable, List, Mapping, Sequence, Set, Tuple, cast
+from typing import Any, Callable, Iterable, List, Mapping, Protocol, Sequence, Set, Tuple, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -49,16 +49,24 @@ from sentry.utils.snuba import (
     raw_query_params,
 )
 
+
+class QueryPartial(Protocol):
+    def __call__(
+        self, conditions: Sequence[Any], aggregations: Sequence[Any], condition_resolver: Any
+    ) -> Mapping[str, Any]:
+        ...
+
+
 GroupSearchStrategy = Callable[
     [
         Set[GroupCategory],
-        List[Any],
-        functools.partial,
+        Sequence[Any],
+        QueryPartial,
         int,
         Sequence[int],
-        Sequence[Environment],
+        Optional[Sequence[Environment]],
         Sequence[int],
-        List[Any],
+        Sequence[Any],
     ],
     Optional[SnubaQueryParams],
 ]
@@ -155,7 +163,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         raise NotImplementedError
 
     @staticmethod
-    def update_conditions(
+    def updated_conditions(
         key: str,
         operator: str,
         value: str,
@@ -163,7 +171,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         project_ids: Sequence[int],
         environments: Sequence[Environment],
         environment_ids: Sequence[int],
-        conditions: List[Any],
+        conditions: Sequence[Any],
     ) -> Sequence[Any]:
         search_filter = SearchFilter(
             key=SearchKey(name=key),
@@ -181,9 +189,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         converted_filter = AbstractQueryExecutor._transform_converted_filter(
             search_filter, converted_filter, project_ids, environment_ids
         )
-        conditions = deepcopy(conditions)
-        conditions.append(converted_filter)
-        return conditions
+        new_conditions = deepcopy(list(conditions))
+        new_conditions.append(converted_filter)
+        return new_conditions
 
     def snuba_search(
         self,
@@ -286,22 +294,25 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
             referrer = "search"
 
-        query_partial = functools.partial(
-            aliased_query_params,
-            dataset=snuba.Dataset.Discover,
-            start=start,
-            end=end,
-            selected_columns=selected_columns,
-            groupby=["group_id"],
-            limit=limit,
-            offset=offset,
-            orderby=orderby,
-            referrer=referrer,
-            having=having,
-            filter_keys=filters,
-            totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
-            turbo=get_sample,  # Turn off FINAL when in sampling mode
-            sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+        query_partial: QueryPartial = cast(
+            QueryPartial,
+            functools.partial(
+                aliased_query_params,
+                dataset=snuba.Dataset.Discover,
+                start=start,
+                end=end,
+                selected_columns=selected_columns,
+                groupby=["group_id"],
+                limit=limit,
+                offset=offset,
+                orderby=orderby,
+                referrer=referrer,
+                having=having,
+                filter_keys=filters,
+                totals=True,  # Needs to have totals_mode=after_having_exclusive so we get groups matching HAVING only
+                turbo=get_sample,  # Turn off FINAL when in sampling mode
+                sample=1,  # Don't use clickhouse sampling, even when in turbo mode.
+            ),
         )
 
         SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
@@ -309,18 +320,18 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             GroupCategory.PERFORMANCE: AbstractQueryExecutor._query_params_for_perf,
         }
 
-        search_strategies_for_categories = (
+        search_strategies_for_categories: Sequence[GroupSearchStrategy] = (
             list(SEARCH_STRATEGIES.values())
             if not group_categories
             else [SEARCH_STRATEGIES[gc] for gc in group_categories]
         )
 
-        synth_res = bulk_raw_query(
+        bulk_query_results = bulk_raw_query(
             list(
                 filter(
-                    lambda x: x is not None,
-                    map(
-                        lambda fn_query_params_for_category: fn_query_params_for_category(
+                    lambda param_or_none: param_or_none is not None,
+                    [
+                        fn_query_params(
                             group_categories,
                             aggregations,
                             query_partial,
@@ -329,34 +340,35 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                             environments,
                             environment_ids,
                             conditions,
-                        ),
-                        search_strategies_for_categories,
-                    ),
+                        )
+                        for fn_query_params in search_strategies_for_categories
+                    ],
                 )
             ),
             referrer="search",
         )
 
         # [([row1a, row2a,], totala, row_lengtha), ([row1b, row2b,], totalb, row_lengthb), ...]
-        mapped_res: Sequence[Tuple[Iterable, int, int]] = list(
+        mapped_res: Sequence[Tuple[Iterable[Any], int, int]] = list(
             map(
                 lambda bulk_result: (
                     bulk_result["data"],
                     bulk_result["totals"]["total"],
                     len(bulk_result),
                 ),
-                filter(lambda bulk_result: bool(bulk_result), synth_res),
+                filter(lambda bulk_result: bool(bulk_result), bulk_query_results),
             )
         )
-        merged_res: Tuple[Iterable, int, int] = functools.reduce(
+        merged_res: Tuple[Iterable[Any], int, int] = functools.reduce(
             lambda left, right: (
-                merge(left[0], right[0], key=lambda row: row.get("group_id")),
+                list(merge(left[0], right[0], key=lambda row: row.get("group_id"))),
                 left[1] + right[1],
                 left[2] + right[2],
             ),
             mapped_res,
             ([], 0, 0),
         )
+
         rows: Sequence[Mapping[str, int]] = list(merged_res[0])
         total: int = merged_res[1]
         row_length: int = merged_res[2]
@@ -369,16 +381,16 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     @staticmethod
     def _query_params_for_error(
         group_categories: Set[GroupCategory],
-        aggregations: List[Any],
-        query_partial: functools.partial,
+        aggregations: Sequence[Any],
+        query_partial: QueryPartial,
         organization_id: int,
         project_ids: Sequence[int],
-        environments: Sequence[Environment],
+        environments: Optional[Sequence[Environment]],
         environment_ids: Sequence[int],
-        conditions: List[Any],
+        conditions: Sequence[Any],
     ) -> Optional[SnubaQueryParams]:
         if not group_categories or GroupCategory.ERROR in group_categories:
-            error_conditions = AbstractQueryExecutor.update_conditions(
+            error_conditions = AbstractQueryExecutor.updated_conditions(
                 "event.type",
                 "!=",
                 "transaction",
@@ -401,13 +413,13 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     @staticmethod
     def _query_params_for_perf(
         group_categories: Set[GroupCategory],
-        aggregations: List[Any],
-        query_partial: Any,
-        organization_id,
-        project_ids,
-        environments,
-        environment_ids,
-        conditions,
+        aggregations: Sequence[Any],
+        query_partial: QueryPartial,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Optional[Sequence[Environment]],
+        environment_ids: Sequence[int],
+        conditions: Sequence[Any],
     ) -> Optional[SnubaQueryParams]:
         organization = Organization.objects.filter(id=organization_id).first()
         if (
@@ -415,7 +427,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             and features.has("organizations:performance-issues", organization)
             and (not group_categories or GroupCategory.PERFORMANCE in group_categories)
         ):
-            transaction_conditions = AbstractQueryExecutor.update_conditions(
+            transaction_conditions = AbstractQueryExecutor.updated_conditions(
                 "event.type",
                 "=",
                 "transaction",
@@ -426,7 +438,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 conditions,
             )
 
-            mod_agg = aggregations.copy() if aggregations else []
+            mod_agg = list(aggregations).copy() if aggregations else []
             mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
             params = query_partial(
