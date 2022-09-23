@@ -47,7 +47,7 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy()
+        return BillingTxCountMetricConsumerStrategy(commit)
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -57,8 +57,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     buckets.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, commit: Callable[[Mapping[Partition, Position]], None]) -> None:
         self.counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+        self.__commit = commit
+        self.__ready_to_commit: Mapping[Partition, Position] = {}
         self.__closed = False
 
     def poll(self) -> None:
@@ -70,6 +72,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         payload = self._get_payload(message)
         num_processed_transactions = self._count_processed_transactions(payload)
         self._produce_billing_outcomes(payload, num_processed_transactions)
+        self._mark_commit_ready(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
         return json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
@@ -95,6 +98,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             quantity=amount,
         )
 
+    def _mark_commit_ready(self, message: Message[KafkaPayload]):
+        self.__ready_to_commit[message.partition] = Position(message.offset, message.timestamp)
+
     def close(self) -> None:
         self.__closed = True
 
@@ -102,4 +108,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.close()
 
     def join(self, timeout: Optional[float] = None) -> None:
-        pass
+        self._bulk_commit()
+
+    def _bulk_commit(self):
+        self.__commit(self.__ready_to_commit)
+        self.__ready_to_commit = {}
