@@ -50,16 +50,14 @@ export function sortNetwork(
 
 export const getResourceTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
-    new Set<string>(
-      networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')).sort()
-    )
-  );
+    new Set(networkSpans.map(networkSpan => networkSpan.op.replace('resource.', '')))
+  ).sort();
 
 export const getStatusTypes = (networkSpans: NetworkSpan[]) =>
   Array.from(
-    new Set<string | number>(
+    new Set(
       networkSpans
-        .map(networkSpan => networkSpan.data?.statusCode ?? UNKNOWN_STATUS)
-        .sort()
+        .map(networkSpan => networkSpan.data.statusCode ?? UNKNOWN_STATUS)
+        .map(String)
     )
-  );
+  ).sort();

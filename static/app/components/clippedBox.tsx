@@ -10,11 +10,17 @@ import space from 'sentry/styles/space';
 
 type DefaultProps = {
   btnText?: string;
+  /**
+   * The "show more" button is 28px tall.
+   * Do not clip if there is only a few more pixels
+   */
+  clipFlex?: number;
   clipHeight?: number;
   defaultClipped?: boolean;
 };
 
 type Props = {
+  clipFlex: number;
   clipHeight: number;
   className?: string;
   /**
@@ -43,6 +49,7 @@ class ClippedBox extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     defaultClipped: false,
     clipHeight: 200,
+    clipFlex: 28,
     btnText: t('Show More'),
   };
 
@@ -93,7 +100,10 @@ class ClippedBox extends PureComponent<Props, State> {
       return;
     }
 
-    if (!this.state.isClipped && renderedHeight > this.props.clipHeight) {
+    if (
+      !this.state.isClipped &&
+      renderedHeight > this.props.clipHeight + this.props.clipFlex
+    ) {
       /* eslint react/no-did-mount-set-state:0 */
       // okay if this causes re-render; cannot determine until
       // rendered first anyways

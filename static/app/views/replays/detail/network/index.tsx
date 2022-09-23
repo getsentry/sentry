@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -13,17 +12,17 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
   getResourceTypes,
   getStatusTypes,
   ISortConfig,
   NetworkSpan,
   sortNetwork,
-  UNKNOWN_STATUS,
 } from 'sentry/views/replays/detail/network/utils';
-import {Filters, getFilteredItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -31,34 +30,42 @@ type Props = {
   replayRecord: ReplayRecord;
 };
 
-enum FilterTypesEnum {
-  RESOURCE_TYPE = 'resourceType',
-  STATUS = 'status',
-}
+type SortDirection = 'asc' | 'desc';
+
+const createSpanId = (span: NetworkSpan) =>
+  `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
   const startTimestampMs = replayRecord.startedAt.getTime();
-  const {setCurrentHoverTime, setCurrentTime} = useReplayContext();
+  const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
     by: 'startTimestamp',
     asc: true,
     getValue: row => row[sortConfig.by],
   });
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<Filters<NetworkSpan>>({});
 
-  const filteredNetworkSpans = useMemo(
-    () =>
-      getFilteredItems({
-        items: networkSpans,
-        filters,
-        searchTerm,
-        searchProp: 'description',
-      }),
-    [filters, networkSpans, searchTerm]
-  );
+  const {
+    items,
+    status: selectedStatus,
+    type: selectedType,
+    searchTerm,
+    setStatus,
+    setType,
+    setSearchTerm,
+  } = useNetworkFilters({networkSpans});
 
-  const handleSearch = useMemo(() => debounce(query => setSearchTerm(query), 150), []);
+  const networkData = useMemo(() => sortNetwork(items, sortConfig), [items, sortConfig]);
+
+  const currentNetworkSpan = getPrevReplayEvent({
+    items: networkData.map(span => ({
+      ...span,
+      id: createSpanId(span),
+      timestamp: span.startTimestamp * 1000,
+    })),
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
+  });
 
   const handleMouseEnter = useCallback(
     (timestamp: number) => {
@@ -90,7 +97,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
   function handleSort(fieldName: keyof NetworkSpan): void;
   function handleSort(key: string, getValue: (row: NetworkSpan) => any): void;
-
   function handleSort(
     fieldName: string | keyof NetworkSpan,
     getValue?: (row: NetworkSpan) => any
@@ -106,11 +112,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     });
   }
 
-  const networkData = useMemo(
-    () => sortNetwork(filteredNetworkSpans, sortConfig),
-    [filteredNetworkSpans, sortConfig]
-  );
-
   const sortArrow = (sortedBy: string) => {
     return sortConfig.by === sortedBy ? (
       <IconArrow
@@ -120,28 +121,6 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       />
     ) : null;
   };
-
-  const handleFilters = useCallback(
-    (
-      selectedValues: (string | number)[],
-      key: string,
-      filter: (network: NetworkSpan) => boolean
-    ) => {
-      const filtersCopy = {...filters};
-
-      if (selectedValues.length === 0) {
-        delete filtersCopy[key];
-        setFilters(filtersCopy);
-        return;
-      }
-
-      setFilters({
-        ...filters,
-        [key]: filter,
-      });
-    },
-    [filters]
-  );
 
   const columns = [
     <SortItem key="status">
@@ -184,18 +163,30 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     </SortItem>,
   ];
 
-  const renderTableRow = (network: NetworkSpan, index: number) => {
+  const renderTableRow = (network: NetworkSpan) => {
+    const spanId = createSpanId(network);
     const networkStartTimestamp = network.startTimestamp * 1000;
     const networkEndTimestamp = network.endTimestamp * 1000;
+    const statusCode = network.data.statusCode;
 
     const columnHandlers = getColumnHandlers(networkStartTimestamp);
+    const columnProps = {
+      isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      isCurrent: currentNetworkSpan?.id === spanId,
+      hasOccurred:
+        currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
+      timestampSort:
+        sortConfig.by === 'startTimestamp'
+          ? ((sortConfig.asc ? 'asc' : 'desc') as SortDirection)
+          : undefined,
+    };
 
     return (
-      <Fragment key={index}>
-        <Item {...columnHandlers}>
-          {network.data.statusCode ? network.data.statusCode : <EmptyText>---</EmptyText>}
+      <Fragment key={spanId}>
+        <Item {...columnHandlers} {...columnProps} isStatusCode>
+          {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           {network.description ? (
             <Tooltip
               title={network.description}
@@ -211,10 +202,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
             <EmptyText>({t('Missing')})</EmptyText>
           )}
         </Item>
-        <Item {...columnHandlers}>
+        <Item {...columnHandlers} {...columnProps}>
           <Text>{network.op.replace('resource.', '')}</Text>
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {defined(network.data.size) ? (
             <FileSize bytes={network.data.size} />
           ) : (
@@ -222,10 +213,10 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           )}
         </Item>
 
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
-        <Item {...columnHandlers} numeric>
+        <Item {...columnHandlers} {...columnProps} numeric>
           <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
             {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
           </UnstyledButton>
@@ -238,62 +229,28 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     <NetworkContainer>
       <NetworkFilters>
         <CompactSelect
-          triggerProps={{
-            prefix: t('Status'),
-          }}
-          triggerLabel={!filters[FilterTypesEnum.STATUS] ? t('Any') : null}
+          triggerProps={{prefix: t('Status')}}
+          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
           multiple
-          options={getStatusTypes(networkSpans).map(networkSpanStatusType => ({
-            value: networkSpanStatusType,
-            label: networkSpanStatusType,
-          }))}
+          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
           size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(
-              selectedValues,
-              FilterTypesEnum.STATUS,
-              (networkSpan: NetworkSpan) => {
-                if (
-                  selectedValues.includes(UNKNOWN_STATUS) &&
-                  !defined(networkSpan.data.statusCode)
-                ) {
-                  return true;
-                }
-
-                return selectedValues.includes(networkSpan.data.statusCode);
-              }
-            );
-          }}
+          onChange={selected => setStatus(selected.map(_ => _.value))}
+          value={selectedStatus}
         />
         <CompactSelect
-          triggerProps={{
-            prefix: t('Type'),
-          }}
-          triggerLabel={!filters[FilterTypesEnum.RESOURCE_TYPE] ? t('Any') : null}
+          triggerProps={{prefix: t('Type')}}
+          triggerLabel={selectedType.length === 0 ? t('Any') : null}
           multiple
-          options={getResourceTypes(networkSpans).map(networkSpanResourceType => ({
-            value: networkSpanResourceType,
-            label: networkSpanResourceType,
-          }))}
+          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
           size="sm"
-          onChange={selections => {
-            const selectedValues = selections.map(selection => selection.value);
-
-            handleFilters(
-              selectedValues,
-              FilterTypesEnum.RESOURCE_TYPE,
-              (networkSpan: NetworkSpan) => {
-                return selectedValues.includes(networkSpan.op.replace('resource.', ''));
-              }
-            );
-          }}
+          onChange={selected => setType(selected.map(_ => _.value))}
+          value={selectedType}
         />
         <SearchBar
           size="sm"
-          onChange={handleSearch}
+          onChange={setSearchTerm}
           placeholder={t('Search Network...')}
+          query={searchTerm}
         />
       </NetworkFilters>
       <StyledPanelTable
@@ -325,16 +282,67 @@ const NetworkFilters = styled('div')`
   }
 `;
 
-const Item = styled('div')<{center?: boolean; color?: ColorOrAlias; numeric?: boolean}>`
+const Text = styled('p')`
+  padding: 0;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+`;
+
+const EmptyText = styled(Text)`
+  font-style: italic;
+  color: ${p => p.theme.subText};
+`;
+
+const Item = styled('div')<{
+  center?: boolean;
+  color?: ColorOrAlias;
+  hasOccurred?: boolean;
+  isCurrent?: boolean;
+  isStatusCode?: boolean;
+  isStatusError?: boolean;
+  numeric?: boolean;
+  timestampSort?: SortDirection;
+}>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${p => p.theme[p.color || 'subText']};
+  color: ${({hasOccurred = true, isStatusError, timestampSort, ...p}) => {
+    if (hasOccurred || !timestampSort) {
+      return isStatusError ? p.theme.red400 : p.theme.gray400;
+    }
+    return p.theme.gray300;
+  }};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
+  border-bottom: ${({isCurrent = false, isStatusError, timestampSort, ...p}) => {
+    if (isCurrent && timestampSort === 'asc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return isStatusError
+      ? `1px solid ${p.theme.red100}`
+      : `1px solid ${p.theme.innerBorder}`;
+  }};
 
-  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'}
+  border-top: ${({isCurrent = false, timestampSort, ...p}) => {
+    if (isCurrent && timestampSort === 'desc') {
+      return `1px solid ${p.theme.purple300} !important`;
+    }
+    return 0;
+  }};
+
+  ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
+
+  ${EmptyText} {
+    color: ${({hasOccurred = true, timestampSort, ...p}) => {
+      if (hasOccurred || !timestampSort) {
+        return p.theme.gray400;
+      }
+      return p.theme.gray300;
+    }};
+  }
 `;
 
 const UnstyledButton = styled('button')`
@@ -379,7 +387,7 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
     }
   }
 
-  ${/* sc-selector */ PanelTableHeader} {
+  ${PanelTableHeader} {
     min-height: 24px;
     border-radius: 0;
     color: ${p => p.theme.subText};
@@ -395,19 +403,6 @@ const StyledPanelTable = styled(PanelTable)<{columns: number}>`
       text-align: start;
     }
   }
-`;
-
-const Text = styled('p')`
-  padding: 0;
-  margin: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-`;
-
-const EmptyText = styled(Text)`
-  font-style: italic;
-  color: ${p => p.theme.subText};
 `;
 
 const SortItem = styled('span')`
