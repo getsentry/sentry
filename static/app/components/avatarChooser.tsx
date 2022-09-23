@@ -85,10 +85,6 @@ class AvatarChooser extends Component<Props, State> {
     }
   }
 
-  updateState(model: Model) {
-    this.setState({model});
-  }
-
   getModelFromResponse(resp: any): Model {
     const {type} = this.props;
     const isSentryApp = type?.startsWith('sentryApp');
@@ -151,10 +147,12 @@ class AvatarChooser extends Component<Props, State> {
   };
 
   handleChange = (id: AvatarType) =>
-    this.updateState({
-      ...this.state.model,
-      avatar: {avatarUuid: this.state.model.avatar?.avatarUuid ?? '', avatarType: id},
-    });
+    this.setState(state => ({
+      model: {
+        ...state.model,
+        avatar: {avatarUuid: state.model.avatar?.avatarUuid ?? '', avatarType: id},
+      },
+    }));
 
   render() {
     const {
