@@ -69,6 +69,8 @@ class AsyncComponent<
   constructor(props: P, context: any) {
     super(props, context);
 
+    this.api = new Client();
+
     this.fetchData = wrapErrorHandling(this, this.fetchData.bind(this));
     this.render = wrapErrorHandling(this, this.render.bind(this));
 
@@ -80,15 +82,14 @@ class AsyncComponent<
     if (props.routes) {
       metric.mark({name: `async-component-${getRouteStringFromRoutes(props.routes)}`});
     }
-  }
-
-  UNSAFE_componentWillMount() {
-    this.api = new Client();
-    this.fetchData();
 
     if (this.reloadOnVisible) {
       document.addEventListener('visibilitychange', this.visibilityReloader);
     }
+  }
+
+  componentDidMount() {
+    this.fetchData();
   }
 
   componentDidUpdate(prevProps: P, prevContext: any) {
