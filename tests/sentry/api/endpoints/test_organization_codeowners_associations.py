@@ -112,7 +112,7 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         member = self.create_user("hernando@life.com")
         self.create_member(user=member, organization=self.organization, role="member")
         self.login_as(member)
-        self.get_success_response(self.organization.slug, status=status.HTTP_403_FORBIDDEN)
+        self.get_success_response(self.organization.slug)
 
     def test_query_by_provider(self):
         """
