@@ -7,13 +7,18 @@ function changeFavicon(theme: 'dark' | 'light'): void {
     return;
   }
 
-  const n = document.querySelector<HTMLLinkElement>('[rel="icon"][type="image/png"]');
-  if (!n) {
+  const faviconNode = document.querySelector<HTMLLinkElement>(
+    '[rel="icon"][type="image/png"]'
+  );
+
+  if (faviconNode === null) {
     return;
   }
 
-  const path = n.href.split('/sentry/')[0];
-  n.href = `${path}/sentry/images/${theme === 'dark' ? 'favicon-dark' : 'favicon'}.png`;
+  const path = faviconNode.href.split('/sentry/')[0];
+  const iconName = theme === 'dark' ? 'favicon-dark' : 'favicon';
+
+  faviconNode.href = `${path}/sentry/images/${iconName}.png`;
 }
 
 function updateTheme(theme: 'dark' | 'light') {
@@ -33,17 +38,7 @@ function handleColorSchemeChange(e: MediaQueryListEvent): void {
   updateTheme(type);
 }
 
-function prefersDark(): boolean {
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
 export function setupColorScheme(): void {
-  // Set favicon to dark on load if necessary)
-  if (prefersDark()) {
-    changeFavicon('dark');
-    updateTheme('dark');
-  }
-
   // If matchmedia is not supported, keep whatever configStore.init theme was set to
   if (!window.matchMedia) {
     return;
@@ -52,6 +47,12 @@ export function setupColorScheme(): void {
   // Watch for changes in preferred color scheme
   const lightMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
   const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+  // Set favicon to dark on load if necessary
+  if (darkMediaQuery.matches) {
+    changeFavicon('dark');
+    updateTheme('dark');
+  }
 
   lightMediaQuery.addEventListener('change', handleColorSchemeChange);
   darkMediaQuery.addEventListener('change', handleColorSchemeChange);
