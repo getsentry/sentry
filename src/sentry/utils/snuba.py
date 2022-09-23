@@ -654,6 +654,32 @@ class SnubaQueryParams:
         self.kwargs = kwargs
 
 
+def raw_query_params(
+    dataset=None,
+    start=None,
+    end=None,
+    groupby=None,
+    conditions=None,
+    filter_keys=None,
+    aggregations=None,
+    rollup=None,
+    is_grouprelease=False,
+    **kwargs,
+) -> SnubaQueryParams:
+    return SnubaQueryParams(
+        dataset=dataset,
+        start=start,
+        end=end,
+        groupby=groupby,
+        conditions=conditions,
+        filter_keys=filter_keys,
+        aggregations=aggregations,
+        rollup=rollup,
+        is_grouprelease=is_grouprelease,
+        **kwargs,
+    )
+
+
 def raw_query(
     dataset=None,
     start=None,
@@ -672,7 +698,7 @@ def raw_query(
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
     """
-    snuba_params = SnubaQueryParams(
+    snuba_params = raw_query_params(
         dataset=dataset,
         start=start,
         end=end,
@@ -1127,7 +1153,11 @@ def aliased_query(**kwargs):
         return _aliased_query_impl(**kwargs)
 
 
-def _aliased_query_impl(
+def _aliased_query_impl(**kwargs):
+    return raw_query(**aliased_query_params(**kwargs))
+
+
+def aliased_query_params(
     start=None,
     end=None,
     groupby=None,
@@ -1141,7 +1171,7 @@ def _aliased_query_impl(
     orderby=None,
     condition_resolver=None,
     **kwargs,
-):
+) -> Mapping[str, Any]:
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
@@ -1180,7 +1210,7 @@ def _aliased_query_impl(
             updated_order.append("{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
-    return raw_query(
+    return dict(
         start=start,
         end=end,
         groupby=groupby,
@@ -1192,6 +1222,7 @@ def _aliased_query_impl(
         having=having,
         dataset=dataset,
         orderby=orderby,
+        condition_resolver=condition_resolver,
         **kwargs,
     )
 
