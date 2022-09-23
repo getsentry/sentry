@@ -33,7 +33,7 @@ class PerformanceLandingTest(AcceptanceTestCase, SnubaTestCase):
     def test_with_data(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
 
-        event = load_data("transaction", timestamp=before_now(minutes=1))
+        event = load_data("transaction", timestamp=before_now(minutes=10))
         self.store_event(data=event, project_id=self.project.id)
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
