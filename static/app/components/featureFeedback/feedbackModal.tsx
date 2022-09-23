@@ -84,14 +84,17 @@ export function FeedbackModal<T extends Data>({
   ...props
 }: FeedbackModalProps<T> & ModalRenderProps) {
   const {organization} = useLegacyStore(OrganizationStore);
-  const {user, isSelfHosted} = useLegacyStore(ConfigStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
-
-  const [state, setState] = useState<State>({
-    subject: undefined,
-    additionalInfo: undefined,
-  });
+  const theme = useTheme();
+  const user = ConfigStore.get('user');
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const [state, setState] = useState<T>(
+    props.children === undefined
+      ? ({subject: undefined, additionalInfo: undefined} as unknown as T)
+      : props.initialData
+  );
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const project = useMemo(() => {
     if (projectsLoaded && location.query.project) {
