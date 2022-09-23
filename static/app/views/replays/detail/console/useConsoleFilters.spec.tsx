@@ -42,6 +42,18 @@ const breadcrumbs: Crumb[] = [
     },
     event_id: null,
   },
+  // `data` doesn't necessarily exist
+  {
+    type: BreadcrumbType.DEFAULT,
+    timestamp: '2022-05-11T23:00:45.094000Z',
+    level: BreadcrumbLevelType.INFO,
+    color: 'blue300',
+    description: '',
+    id: 0,
+    message: 'longtask - does not exist [object PerformanceLongTaskTiming]',
+    category: 'console',
+    event_id: null,
+  },
   {
     type: BreadcrumbType.DEFAULT,
     timestamp: '2022-05-11T23:00:45.093000Z',
@@ -157,7 +169,7 @@ describe('useConsoleFilters', () => {
     } as Location<FilterFields>);
 
     const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
-    expect(result.current.items.length).toEqual(4);
+    expect(result.current.items.length).toEqual(5);
   });
 
   it('should filter by logLevel', () => {

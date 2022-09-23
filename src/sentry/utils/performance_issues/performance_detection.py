@@ -16,6 +16,8 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
+from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
 
@@ -35,6 +37,7 @@ class DetectorType(Enum):
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
+    N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -47,6 +50,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
@@ -109,6 +113,21 @@ class EventPerformanceProblem:
     def build_identifier(cls, event_id: str, problem_hash: str) -> str:
         identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
         return f"p-i-e:{identifier}"
+
+    @property
+    def evidence_hashes(self):
+        evidence_ids = self.problem.to_dict()
+        evidence_hashes = {}
+
+        spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
+
+        for key in ["parent", "cause", "offender"]:
+            span_ids = evidence_ids.get(key + "_span_ids", []) or []
+            spans = [spans_by_id.get(id) for id in span_ids]
+            hashes = [span.get("hash") for span in spans if span]
+            evidence_hashes[key + "_span_hashes"] = hashes
+
+        return evidence_hashes
 
     def save(self):
         nodestore.set(self.identifier, self.problem.to_dict())
@@ -232,6 +251,10 @@ def get_detection_settings(project_id: str):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
+        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+        },
     }
 
 
@@ -252,6 +275,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
+            detection_settings, data
+        ),
     }
 
     for span in spans:
@@ -820,6 +846,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems = {}
         self.potential_parents = {}
+        self.n_hash = None
         self.n_spans = []
         self.source_span = None
 
@@ -973,13 +1000,34 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return f"1-{problem_class}-{full_fingerprint}"
 
 
+class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
+    """
+    Detector goals:
+    - Extend N+1 DB Detector to make it compatible with more frameworks.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    def init(self):
+        super().init()
+        root_span = get_path(self._event, "contexts", "trace")
+        if root_span:
+            self.potential_parents[root_span.get("span_id")] = root_span
+
+
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
     event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
-    sdk_name = event.get("sdk", {}).get("name", "")
+    sdk_name = get_sdk_name(event)
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
