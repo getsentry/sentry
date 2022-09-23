@@ -13,7 +13,6 @@ interface ConfigStoreDefinition
   extends CommonStoreDefinition<Config>,
     InternalConfigStore {
   get<K extends keyof Config>(key: K): Config[K];
-  getConfig(): Config;
   init(): void;
   loadInitialData(config: Config): void;
   set<K extends keyof Config>(key: K, value: Config[K]): void;
@@ -33,10 +32,7 @@ const storeConfig: ConfigStoreDefinition = {
   },
 
   set(key, value) {
-    this.config = {
-      ...this.config,
-      [key]: value,
-    };
+    this.config = {...this.config, [key]: value};
     this.trigger({[key]: value});
   },
 
@@ -56,10 +52,6 @@ const storeConfig: ConfigStoreDefinition = {
     }
 
     this.trigger(config);
-  },
-
-  getConfig() {
-    return this.config;
   },
 
   getState() {
