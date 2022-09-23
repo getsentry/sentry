@@ -153,30 +153,40 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
   }
 
   renderMappingOptions(mapping: ExternalActorMappingOrSuggestion) {
-    const {type, onDelete} = this.props;
+    const {type, onDelete, organization} = this.props;
+    const canDelete = organization.access.includes('org:integrations');
     return isExternalActorMapping(mapping) ? (
-      <DropdownLink
-        anchorRight
-        customTitle={
-          <Button
-            borderless
-            size="sm"
-            icon={<IconEllipsisVertical size="sm" />}
-            aria-label={t('Actions')}
-            data-test-id="mapping-option"
-          />
-        }
+      <Tooltip
+        title={t(
+          'You must be an organization owner, manager or admin to delete an external user mapping.'
+        )}
+        disabled={canDelete}
       >
-        <MenuItemActionLink
-          shouldConfirm
-          message={t(`Are you sure you want to remove this external ${type} mapping?`)}
-          onAction={() => onDelete(mapping)}
-          aria-label={t(`Delete External ${capitalize(type)}`)}
-          data-test-id="delete-mapping-button"
+        <DropdownLink
+          anchorRight
+          disabled={!canDelete}
+          customTitle={
+            <Button
+              borderless
+              size="sm"
+              icon={<IconEllipsisVertical size="sm" />}
+              aria-label={t('Actions')}
+              data-test-id="mapping-option"
+              disabled={!canDelete}
+            />
+          }
         >
-          <RedText>{t('Delete')}</RedText>
-        </MenuItemActionLink>
-      </DropdownLink>
+          <MenuItemActionLink
+            shouldConfirm
+            message={t(`Are you sure you want to remove this external ${type} mapping?`)}
+            onAction={() => onDelete(mapping)}
+            aria-label={t(`Delete External ${capitalize(type)}`)}
+            data-test-id="delete-mapping-button"
+          >
+            <RedText>{t('Delete')}</RedText>
+          </MenuItemActionLink>
+        </DropdownLink>
+      </Tooltip>
     ) : (
       <Tooltip
         title={t(`This ${type} mapping suggestion was generated from a CODEOWNERS file`)}

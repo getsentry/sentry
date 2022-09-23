@@ -13,7 +13,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import RepositoryProjectPathConfigForm from 'sentry/components/repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
-  ButtonColumn,
+  ButtonWrapper,
   InputPathColumn,
   NameRepoColumn,
   OutputPathColumn,
@@ -214,7 +214,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
               <NameRepoColumn>{t('Code Mappings')}</NameRepoColumn>
               <InputPathColumn>{t('Stack Trace Root')}</InputPathColumn>
               <OutputPathColumn>{t('Source Code Root')}</OutputPathColumn>
-              <ButtonColumn>
+              <ButtonWrapper>
                 <Button
                   data-test-id="add-mapping-button"
                   onClick={() => this.openModal()}
@@ -223,7 +223,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
                 >
                   {t('Add Code Mapping')}
                 </Button>
-              </ButtonColumn>
+              </ButtonWrapper>
             </HeaderLayout>
           </PanelHeader>
           <PanelBody>
