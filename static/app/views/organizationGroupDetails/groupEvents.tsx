@@ -49,20 +49,14 @@ class GroupEvents extends Component<Props, State> {
     };
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.fetchData();
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (this.props.location.search !== nextProps.location.search) {
-      const queryParams = nextProps.location.query;
-
-      this.setState(
-        {
-          query: queryParams.query,
-        },
-        this.fetchData
-      );
+  componentDidUpdate(prevProps: Props) {
+    const queryParams = this.props.location.query;
+    if (queryParams !== prevProps.location.search) {
+      this.setState({query: queryParams.query}, this.fetchData);
     }
   }
 
