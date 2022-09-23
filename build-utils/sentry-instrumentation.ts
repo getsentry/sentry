@@ -26,6 +26,16 @@ const createSignature = function (secret: string, payload: string) {
   return `sha1=${hmac.update(payload).digest('hex')}`;
 };
 
+async function initSentryReplays() {
+  const {SentryReplay} = await import('@sentry/replay');
+
+  const replays = new SentryReplay({
+    stickySession: true,
+  });
+
+  replays.start();
+}
+
 class SentryInstrumentation {
   initialBuild: boolean = false;
 
@@ -46,6 +56,10 @@ class SentryInstrumentation {
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
     });
+
+    if (process.env.IS_ACCEPTANCE_TEST) {
+      initSentryReplays();
+    }
 
     if (IS_CI) {
       sentry.setTag('branch', GITHUB_REF);
