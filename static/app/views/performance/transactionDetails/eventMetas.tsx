@@ -55,13 +55,13 @@ class EventMetas extends Component<Props, State> {
 
   componentDidMount() {
     if (this.mq) {
-      this.mq.addListener(this.handleMediaQueryChange);
+      this.mq.addEventListener('change', this.handleMediaQueryChange);
     }
   }
 
   componentWillUnmount() {
     if (this.mq) {
-      this.mq.removeListener(this.handleMediaQueryChange);
+      this.mq.removeEventListener('change', this.handleMediaQueryChange);
     }
   }
 
