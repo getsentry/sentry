@@ -3,9 +3,14 @@ import isObject from 'lodash/isObject';
 import {EventGroupComponent} from 'sentry/types';
 
 export function hasNonContributingComponent(component: EventGroupComponent | undefined) {
-  if (!component?.contributes) {
+  if (component === undefined) {
+    return false;
+  }
+
+  if (!component.contributes) {
     return true;
   }
+
   for (const value of component.values) {
     if (isObject(value) && hasNonContributingComponent(value)) {
       return true;

@@ -43,7 +43,7 @@ async function renderComponent(event: Event, errors?: Array<Error>) {
   return {alertSummaryInfo, errorItem: errorItems};
 }
 
-describe('GroupEventEntries', function () {
+describe('EventEntries', function () {
   const event = TestStubs.Event();
 
   beforeEach(() => {

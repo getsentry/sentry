@@ -33,6 +33,15 @@ export type EventGroupingConfig = {
   strategies: string[];
 };
 
+export type VariantEvidence = {
+  desc: string;
+  fingerprint: string;
+  cause_span_hashes?: string[];
+  offender_span_hashes?: string[];
+  op?: string;
+  parent_span_hashes?: string[];
+};
+
 type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
 
 export enum EventGroupVariantType {
@@ -41,6 +50,7 @@ export enum EventGroupVariantType {
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
+  PERFORMANCE_PROBLEM = 'performance-problem',
 }
 
 interface BaseVariant {
@@ -79,12 +89,18 @@ interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
 
+interface PerformanceProblemVariant extends BaseVariant {
+  evidence: VariantEvidence;
+  type: EventGroupVariantType.PERFORMANCE_PROBLEM;
+}
+
 export type EventGroupVariant =
   | FallbackVariant
   | ChecksumVariant
   | ComponentVariant
   | SaltedComponentVariant
-  | CustomFingerprintVariant;
+  | CustomFingerprintVariant
+  | PerformanceProblemVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
 
