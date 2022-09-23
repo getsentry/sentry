@@ -62,10 +62,15 @@ function useMembersList({group, organization}: UseMemberlistProps) {
 
   const [membersList, setMembersList] = useState<User[]>();
 
+  const hasIssueDetailsOwners = organization.features.includes('issue-details-owners');
   const loadMemberList = useCallback(async () => {
+    if (hasIssueDetailsOwners) {
+      return;
+    }
+
     const members = await fetchOrgMembers(api, organization.slug, [project.id]);
     setMembersList(members.map(member => member.user));
-  }, [api, organization.slug, project]);
+  }, [api, organization.slug, project, hasIssueDetailsOwners]);
 
   useEffect(() => void loadMemberList(), [loadMemberList]);
 
@@ -338,6 +343,7 @@ function GroupHeader({
   ]);
 
   const membersList = useMembersList({group, organization});
+  const hasIssueDetailsOwners = organization.features.includes('issue-details-owners');
   const {userCount} = group;
 
   let className = 'group-detail';
@@ -430,7 +436,7 @@ function GroupHeader({
               />
             </StyledTagAndMessageWrapper>
           </TitleWrapper>
-          <StatsWrapper>
+          <StatsWrapper numItems={hasIssueDetailsOwners ? '2' : '3'}>
             <div className="count">
               <h6 className="nav-header">{t('Events')}</h6>
               <Link disabled={disableActions} to={eventRouteToObject}>
@@ -450,15 +456,17 @@ function GroupHeader({
                 <span>0</span>
               )}
             </div>
-            <div data-test-id="assigned-to">
-              <h6 className="nav-header">{t('Assignee')}</h6>
-              <AssigneeSelector
-                id={group.id}
-                memberList={membersList}
-                disabled={disableActions}
-                onAssign={trackAssign}
-              />
-            </div>
+            {!hasIssueDetailsOwners && (
+              <div data-test-id="assigned-to">
+                <h6 className="nav-header">{t('Assignee')}</h6>
+                <AssigneeSelector
+                  id={group.id}
+                  memberList={membersList}
+                  disabled={disableActions}
+                  onAssign={trackAssign}
+                />
+              </div>
+            )}
           </StatsWrapper>
         </HeaderRow>
         <HeaderRow>
@@ -530,9 +538,9 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-size: inherit;
 `;
 
-const StatsWrapper = styled('div')`
+const StatsWrapper = styled('div')<{numItems: '2' | '3'}>`
   display: grid;
-  grid-template-columns: repeat(3, min-content);
+  grid-template-columns: repeat(${p => p.numItems}, min-content);
   gap: calc(${space(3)} + ${space(3)});
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {

@@ -18,18 +18,18 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
  * in which case we should load their list of organizations and make a decision
  */
 function AppRoot() {
-  const config = useLegacyStore(ConfigStore);
+  const {lastOrganization} = useLegacyStore(ConfigStore);
 
   useEffect(() => {
-    if (!config.lastOrganization) {
+    if (!lastOrganization) {
       return;
     }
 
-    const orgSlug = config.lastOrganization;
+    const orgSlug = lastOrganization;
     const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug});
 
     browserHistory.replace(url);
-  }, [config]);
+  }, [lastOrganization]);
 
   return null;
 }

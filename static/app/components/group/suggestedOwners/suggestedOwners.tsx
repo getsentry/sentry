@@ -79,9 +79,9 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    * users who are both owners based on having commits, and owners matching
    * project ownership rules into one array.
    *
-   * The return array will include objects of the format:
+   * ### The return array will include objects of the format:
    *
-   * {
+   * ```ts
    *   actor: <
    *    type,              # Either user or team
    *    SentryTypes.User,  # API expanded user object
@@ -89,14 +89,16 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
    *    {email, name}      # Unidentified user (from commits)
    *    {id, name},        # Sentry team (check `type`)
    *   >,
+   * ```
    *
-   *   # One or both of commits and rules will be present
+   * ### One or both of commits and rules will be present
    *
+   * ```ts
    *   commits: [...]  # List of commits made by this owner
    *   rules:   [...]  # Project rules matched for this owner
-   * }
+   * ```
    */
-  getOwnerList() {
+  getOwnerList(): OwnerList {
     const committers = this.props.committers ?? [];
     const releaseCommitters = this.props.releaseCommitters ?? [];
     const owners: OwnerList = [...committers, ...releaseCommitters].map(commiter => ({
