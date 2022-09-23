@@ -681,7 +681,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Route name={t('Teams')} path="teams/">
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}
@@ -779,7 +778,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
@@ -1134,7 +1132,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
     </Route>
   );
