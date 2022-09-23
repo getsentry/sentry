@@ -29,8 +29,8 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
 
         replay_id = uuid4().hex
-        seq1_timestamp = datetime.now() - timedelta(seconds=52)
-        seq2_timestamp = datetime.now() - timedelta(seconds=35)
+        seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)
+        seq2_timestamp = datetime.now() - timedelta(minutes=10, seconds=35)
         self.store_replays(
             [
                 mock_replay(
