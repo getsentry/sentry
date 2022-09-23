@@ -297,7 +297,9 @@ class OrganizationEndpoint(Endpoint):
         # get the top level params -- projects, time range, and environment
         # from the request
         try:
-            data = request.data if len(request.GET) == 0 else request.GET
+            data = (
+                request.data if len(request.GET) == 0 and hasattr(request, "data") else request.GET
+            )
             start, end = get_date_range_from_params(data, optional=date_filter_optional)
             if start and end:
                 total_seconds = (end - start).total_seconds()
