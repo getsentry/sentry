@@ -24,8 +24,6 @@ def get_metrics_billing_consumer(
     # TODO: support force_topic and force_cluster
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
 
-    processing_factory = _get_metrics_billing_consumer_processing_factory()
-
     return StreamProcessor(
         consumer=KafkaConsumer(
             get_kafka_consumer_cluster_options(
@@ -39,12 +37,8 @@ def get_metrics_billing_consumer(
             )
         ),
         topic=Topic(topic),
-        processor_factory=processing_factory,
+        processor_factory=BillingMetricsConsumerStrategyFactory(),
     )
-
-
-def _get_metrics_billing_consumer_processing_factory():
-    return BillingMetricsConsumerStrategyFactory()
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
