@@ -5,7 +5,7 @@ from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.perfomance_issues.event_generators import (
+from sentry.testutils.performance_issues.event_generators import (
     EVENTS,
     PROJECT_ID,
     create_event,

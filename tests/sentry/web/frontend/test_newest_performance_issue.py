@@ -9,7 +9,7 @@ from exam import fixture
 from sentry.event_manager import EventManager
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.perfomance_issues.event_generators import EVENTS
+from sentry.testutils.performance_issues.event_generators import EVENTS
 
 
 def make_event(**kwargs):
