@@ -13,7 +13,6 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import {ColorOrAlias} from 'sentry/utils/theme';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
@@ -175,7 +174,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
       isCurrent: currentNetworkSpan?.id === spanId,
       hasOccurred:
         currentTime >= relativeTimeInMs(networkStartTimestamp, startTimestampMs),
-      timestampSort:
+      timestampSortDir:
         sortConfig.by === 'startTimestamp'
           ? ((sortConfig.asc ? 'asc' : 'desc') as SortDirection)
           : undefined,
@@ -295,53 +294,48 @@ const EmptyText = styled(Text)`
   color: ${p => p.theme.subText};
 `;
 
+const fontColor = p => {
+  if (p.isStatusError) {
+    return p.hasOccurred || !p.timestampSortDir ? p.theme.red400 : p.theme.red200;
+  }
+  return p.hasOccurred || !p.timestampSortDir ? p.theme.gray400 : p.theme.gray300;
+};
+
 const Item = styled('div')<{
+  hasOccurred: boolean;
+  isCurrent: boolean;
+  isStatusError: boolean;
+  timestampSortDir: SortDirection | undefined;
   center?: boolean;
-  color?: ColorOrAlias;
-  hasOccurred?: boolean;
-  isCurrent?: boolean;
   isStatusCode?: boolean;
-  isStatusError?: boolean;
   numeric?: boolean;
-  timestampSort?: SortDirection;
 }>`
   display: flex;
   align-items: center;
   ${p => p.center && 'justify-content: center;'}
   max-height: 28px;
-  color: ${({hasOccurred = true, isStatusError, timestampSort, ...p}) => {
-    if (hasOccurred || !timestampSort) {
-      return isStatusError ? p.theme.red400 : p.theme.gray400;
-    }
-    return p.theme.gray300;
-  }};
+  color: ${fontColor};
   padding: ${space(0.75)} ${space(1.5)};
   background-color: ${p => p.theme.background};
-  border-bottom: ${({isCurrent = false, isStatusError, timestampSort, ...p}) => {
-    if (isCurrent && timestampSort === 'asc') {
+  border-bottom: ${p => {
+    if (p.isCurrent && p.timestampSortDir === 'asc') {
       return `1px solid ${p.theme.purple300} !important`;
     }
-    return isStatusError
+    return p.isStatusError
       ? `1px solid ${p.theme.red100}`
       : `1px solid ${p.theme.innerBorder}`;
   }};
 
-  border-top: ${({isCurrent = false, timestampSort, ...p}) => {
-    if (isCurrent && timestampSort === 'desc') {
-      return `1px solid ${p.theme.purple300} !important`;
-    }
-    return 0;
+  border-top: ${p => {
+    return p.isCurrent && p.timestampSortDir === 'desc'
+      ? `1px solid ${p.theme.purple300} !important`
+      : 0;
   }};
 
   ${p => p.numeric && 'font-variant-numeric: tabular-nums;'};
 
   ${EmptyText} {
-    color: ${({hasOccurred = true, timestampSort, ...p}) => {
-      if (hasOccurred || !timestampSort) {
-        return p.theme.gray400;
-      }
-      return p.theme.gray300;
-    }};
+    color: ${fontColor};
   }
 `;
 
