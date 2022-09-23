@@ -42,7 +42,6 @@ const DemoSignUpModalV2 = ({closeModal}: Props) => {
           closeModal();
         }}
       />
-
       <div>
         <TrialCheckInfo>
           <Subheader>{t('Sign Up')}</Subheader>
