@@ -161,6 +161,29 @@ class GroupVariant extends Component<Props, State> {
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
+      case EventGroupVariantType.PERFORMANCE_PROBLEM:
+        data.push([
+          t('Type'),
+          <TextWithQuestionTooltip key="type">
+            {variant.type}
+            <QuestionTooltip
+              size="xs"
+              position="top"
+              title={t(
+                'Uses the evidence from performance issue detection to generate a fingerprint.'
+              )}
+            />
+          </TextWithQuestionTooltip>,
+        ]);
+
+        data.push(['Span Operation', variant.evidence.op]);
+        data.push(['Parent Span Hashes', variant.evidence.parent_span_hashes]);
+        data.push(['Source Span Hashes', variant.evidence.cause_span_hashes]);
+        data.push([
+          'Offender Span Hashes',
+          [...new Set(variant.evidence.offender_span_hashes)],
+        ]);
+        break;
       default:
         break;
     }
