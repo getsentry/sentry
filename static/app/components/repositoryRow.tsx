@@ -17,19 +17,13 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  Organization,
-  OrganizationIntegrationProvider,
-  Repository,
-  RepositoryStatus,
-} from 'sentry/types';
+import {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   api: Client;
   orgId: string;
   organization: Organization;
-  provider: OrganizationIntegrationProvider;
   repository: Repository;
   onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
   showProvider?: boolean;
@@ -56,7 +50,6 @@ function RepositoryRow({
   onRepositoryChange,
   organization,
   orgId,
-  provider,
   showProvider = false,
 }: Props) {
   const isCustomRepo =
@@ -132,14 +125,7 @@ function RepositoryRow({
     ));
 
   return (
-    <Access
-      access={[
-        'org:integrations',
-        // Allow github/gitlab to edit
-        ...(['github', 'gitlab'].includes(provider.key) ? ['member:read' as const] : []),
-      ]}
-      requireAll={false}
-    >
+    <Access access={['org:integrations']}>
       {({hasAccess}) => (
         <StyledPanelItem status={repository.status}>
           <RepositoryTitleAndUrl>

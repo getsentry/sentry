@@ -107,17 +107,12 @@ export default class InstalledIntegration extends Component<Props> {
         ? this.disableConfirmProps
         : this.removeConfirmProps;
 
+    const allowMemberConfiguration = ['github', 'gitlab'].includes(
+      this.props.provider.key
+    );
+
     return (
-      <Access
-        access={[
-          'org:integrations',
-          // Allow github/gitlab to edit
-          ...(['github', 'gitlab'].includes(provider.key)
-            ? ['member:read' as const]
-            : []),
-        ]}
-        requireAll={false}
-      >
+      <Access access={['org:integrations']}>
         {({hasAccess}) => {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
@@ -127,7 +122,7 @@ export default class InstalledIntegration extends Component<Props> {
               </IntegrationItemBox>
               <div>
                 <Tooltip
-                  disabled={hasAccess}
+                  disabled={allowMemberConfiguration || hasAccess}
                   position="left"
                   title={t(
                     'You must be an organization owner, manager or admin to configure'
