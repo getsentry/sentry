@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
-import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
@@ -32,8 +32,8 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     breadcrumbs,
   });
 
-  const currentUserAction = getPrevBreadcrumb({
-    crumbs: breadcrumbs,
+  const currentUserAction = getPrevReplayEvent({
+    items: breadcrumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
     allowEqual: true,
@@ -41,8 +41,8 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
 
   const closestUserAction =
     currentHoverTime !== undefined
-      ? getPrevBreadcrumb({
-          crumbs: breadcrumbs,
+      ? getPrevReplayEvent({
+          items: breadcrumbs,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
           allowEqual: true,
@@ -73,7 +73,10 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
           triggerProps={{prefix: t('Log Level')}}
           triggerLabel={logLevel.length === 0 ? t('Any') : null}
           multiple
-          options={getLogLevels(breadcrumbs).map(value => ({value, label: value}))}
+          options={getLogLevels(breadcrumbs, logLevel).map(value => ({
+            value,
+            label: value,
+          }))}
           onChange={selected => setLogLevel(selected.map(_ => _.value))}
           size="sm"
           value={logLevel}

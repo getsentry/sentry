@@ -17,7 +17,6 @@ import space from 'sentry/styles/space';
 import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -108,7 +107,7 @@ class GroupDetails extends Component<Props, State> {
 
   componentWillUnmount() {
     GroupStore.reset();
-    callIfFunction(this.listener);
+    this.listener?.();
     if (this.refetchInterval) {
       window.clearInterval(this.refetchInterval);
     }
@@ -290,7 +289,7 @@ class GroupDetails extends Component<Props, State> {
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
-      expand: 'inbox',
+      expand: ['inbox', 'owners'],
       collapse: 'release',
     };
 
