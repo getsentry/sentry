@@ -53,6 +53,7 @@ class DiscoverSavedQuerySerializer(Serializer):
             "yAxis",
             "display",
             "topEvents",
+            "interval",
         ]
         data = {
             "id": str(obj.id),

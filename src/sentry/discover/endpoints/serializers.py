@@ -13,6 +13,7 @@ from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
 from sentry.search.events.builder import QueryBuilder
+from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset
 
 
@@ -164,9 +165,10 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
     yAxis = ListField(child=serializers.CharField(), required=False, allow_null=True)
     display = serializers.CharField(required=False, allow_null=True)
     topEvents = serializers.IntegerField(min_value=1, max_value=10, required=False, allow_null=True)
+    interval = serializers.CharField(required=False, allow_null=True)
 
     disallowed_fields = {
-        1: {"environment", "query", "yAxis", "display", "topEvents"},
+        1: {"environment", "query", "yAxis", "display", "topEvents", "interval"},
         2: {"groupby", "rollup", "aggregations", "conditions", "limit"},
     }
 
@@ -192,6 +194,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             "yAxis",
             "display",
             "topEvents",
+            "interval",
         ]
 
         for key in query_keys:
@@ -209,6 +212,15 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             query["all_projects"] = True
 
         if "query" in query:
+            if "interval" in query:
+                interval = parse_stats_period(query["interval"])
+                date_range = self.context["params"]["end"] - self.context["params"]["start"]
+                validate_interval(
+                    interval,
+                    serializers.ValidationError("Interval would cause too many results"),
+                    date_range,
+                    0,
+                )
             try:
                 equations, columns = categorize_columns(query["fields"])
                 builder = QueryBuilder(
