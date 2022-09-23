@@ -21,7 +21,7 @@ const mockEvent = {
 };
 
 const mockButtonHref =
-  '/organizations/sentry-emerging-tech/replays/replays:761104e184c64d439ee1014b72b4d83b/?t=62.596&t_main=console';
+  '/organizations/sentry-emerging-tech/replays/replays:761104e184c64d439ee1014b72b4d83b/?t=62&t_main=console';
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
