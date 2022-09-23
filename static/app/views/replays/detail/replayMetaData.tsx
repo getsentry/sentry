@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment} from 'react';
+import {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -83,9 +83,11 @@ function ReplayMetaData({replayRecord}: Props) {
   );
 }
 
-export const HeaderPlaceholder = styled((props: ComponentProps<typeof Placeholder>) => (
-  <Placeholder width="80px" height="19px" {...props} />
-))`
+export const HeaderPlaceholder = styled(
+  (props: React.ComponentProps<typeof Placeholder>) => (
+    <Placeholder width="80px" height="19px" {...props} />
+  )
+)`
   background-color: ${p => p.theme.background};
 `;
 
