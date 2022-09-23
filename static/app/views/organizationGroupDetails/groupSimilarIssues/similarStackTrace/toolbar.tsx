@@ -8,7 +8,6 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   onMerge: () => void;
@@ -25,7 +24,7 @@ class SimilarToolbar extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   onGroupChange = ({mergeList}) => {

@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0316_add_context_field_to_groupowner"),
+        ("sentry", "0317_groupedmessage_type_index"),
     ]
 
     operations = [

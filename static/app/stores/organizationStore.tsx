@@ -1,16 +1,12 @@
 import {createStore} from 'reflux';
 
-import OrganizationActions from 'sentry/actions/organizationActions';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {Organization} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import RequestError from 'sentry/utils/requestError/requestError';
 
+import LatestContextStore from './latestContextStore';
+import ReleaseStore from './releaseStore';
 import {CommonStoreDefinition} from './types';
-
-type UpdateOptions = {
-  replace?: boolean;
-};
 
 type State = {
   dirty: boolean;
@@ -24,22 +20,14 @@ interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
   get(): State;
   init(): void;
   onFetchOrgError(err: RequestError): void;
-  onUpdate(org: Organization, options?: UpdateOptions): void;
+  onUpdate(org: Organization, options?: {replace: true}): void;
+  onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
   reset(): void;
 }
 
 const storeConfig: OrganizationStoreDefinition = {
-  unsubscribeListeners: [],
-
   init() {
     this.reset();
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.update, this.onUpdate)
-    );
-    this.unsubscribeListeners.push(this.listenTo(OrganizationActions.reset, this.reset));
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.fetchOrgError, this.onFetchOrgError)
-    );
   },
 
   reset() {
@@ -51,13 +39,16 @@ const storeConfig: OrganizationStoreDefinition = {
     this.trigger(this.get());
   },
 
-  onUpdate(updatedOrg, {replace = false} = {}) {
+  onUpdate(updatedOrg: Organization, {replace = false} = {}) {
     this.loading = false;
     this.error = null;
     this.errorType = null;
     this.organization = replace ? updatedOrg : {...this.organization, ...updatedOrg};
     this.dirty = false;
     this.trigger(this.get());
+
+    ReleaseStore.updateOrganization(this.organization);
+    LatestContextStore.onUpdateOrganization(this.organization);
   },
 
   onFetchOrgError(err) {
@@ -94,6 +85,5 @@ const storeConfig: OrganizationStoreDefinition = {
   },
 };
 
-const OrganizationStore = createStore(makeSafeRefluxStore(storeConfig));
-
+const OrganizationStore = createStore(storeConfig);
 export default OrganizationStore;
