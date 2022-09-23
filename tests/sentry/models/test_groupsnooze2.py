@@ -9,6 +9,7 @@ import pytest
 import pytz
 from django.utils import timezone
 
+from sentry import tsdb
 from sentry.event_manager import _pull_out_data
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
@@ -16,8 +17,8 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
-from sentry import tsdb
 
+### This file is purely for debugging. I'll delete it before the PR is merged. ###
 
 
 @region_silo_test
@@ -153,8 +154,8 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
     @mock.patch("django.utils.timezone.now")
     def test_user_rate_reached_perf_issues(self, mock_now):
         """Using the original way the error issue test was written to try to test for perf issues.
-           This doesn't pass using either tsdb. 
-           Test that ignoring a performance issue until it's hit by 100 users in an hour works.
+        This doesn't pass using either tsdb.
+        Test that ignoring a performance issue until it's hit by 100 users in an hour works.
         """
         mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
         perf_group = self.create_group(
@@ -251,7 +252,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
     @mock.patch("django.utils.timezone.now")
     def test_rate_reached_perf_issue(self, mock_now):
         """The performance issue version of the original implementation of this test.
-        This doesn't pass using either tsdb. 
+        This doesn't pass using either tsdb.
         Test when a performance issue is ignored until it happens 100 times in a day.
         """
         mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
@@ -272,7 +273,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
 
     @mock.patch("django.utils.timezone.now")
     def test_rate_reached_perf_issue2(self, mock_now):
-        """Write perf events. This does not pass unless SnubaTSDB is used. 
+        """Write perf events. This does not pass unless SnubaTSDB is used.
         Test when a performance issue is ignored until it happens 6 times in a day.
         """
         now = (datetime.utcnow() - timedelta(days=1)).replace(
@@ -285,7 +286,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         )
         snooze = GroupSnooze.objects.create(group=perf_group, count=6, window=24 * 60)
 
-        times = 6 # this works up to 6 but fails after
+        times = 6  # this works up to 6 but fails after
 
         for i in range(0, times):
             self.__insert_transaction(
@@ -300,4 +301,3 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
 
         assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
         assert not snooze.is_valid(test_rates=True)
-

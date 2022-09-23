@@ -16,9 +16,6 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
-from sentry import tsdb
-
 
 
 @region_silo_test
