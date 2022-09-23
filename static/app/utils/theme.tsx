@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {DataCategory} from 'sentry/types';
+import {DataCategory, Outcome} from 'sentry/types';
 
 /**
  * Exporting for use in Storybook only. Do not import this
@@ -344,6 +344,15 @@ const dataCategory = {
   [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
   [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
   [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
+};
+
+/**
+ * Default colors for data usage outcomes
+ */
+const outcome = {
+  [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
+  [Outcome.FILTERED]: CHART_PALETTE[1][1],
+  [Outcome.DROPPED]: CHART_PALETTE[5][3],
 };
 
 const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
@@ -795,6 +804,7 @@ const commonTheme = {
   },
 
   dataCategory,
+  outcome,
 
   tag: generateTagTheme(lightColors),
 
