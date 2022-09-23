@@ -1806,3 +1806,39 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert field_meta[measurement] == "size"
         assert unit_meta[measurement] == "petabyte"
         assert not meta["isMetricsData"]
+
+    def test_custom_measurements_equation(self):
+        self.store_transaction_metric(
+            33,
+            metric="measurements.datacenter_memory",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["measurements"]["datacenter_memory"] = {
+            "value": 33,
+            "unit": "petabyte",
+        }
+        self.store_event(transaction_data, self.project.id)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "measurements.datacenter_memory",
+                    "equation|measurements.datacenter_memory / 3",
+                ],
+                "query": "",
+                "dataset": "discover",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.datacenter_memory"] == 33
+        assert data[0]["equation|measurements.datacenter_memory / 3"] == 11
+
+        meta = response.data["meta"]
+        assert not meta["isMetricsData"]
