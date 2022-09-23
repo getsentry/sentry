@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import Mock, call, patch
 
+import pytest
+
 from sentry import projectoptions
 from sentry.eventstore.models import Event
 from sentry.testutils import TestCase
@@ -104,6 +106,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert perf_problems == []
 
+    @pytest.mark.skip(reason="flakey: PERF-1759")
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @patch(
         "sentry.utils.performance_issues.performance_detection.get_allowed_issue_creation_detectors"
