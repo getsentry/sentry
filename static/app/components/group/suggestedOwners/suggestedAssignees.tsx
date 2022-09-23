@@ -21,7 +21,7 @@ type Owner = {
 
 type Props = {
   group: Group;
-  onAssign: (actor: Actor) => () => void;
+  onAssign: (actor: Actor) => void;
   organization: Organization;
   owners: Array<Owner>;
   projectId?: string;
