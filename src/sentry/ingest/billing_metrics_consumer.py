@@ -66,6 +66,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def poll(self) -> None:
         pass
 
+    def terminate(self) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self.__closed = True
+
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
 
@@ -101,15 +107,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def _mark_commit_ready(self, message: Message[KafkaPayload]):
         self.__ready_to_commit[message.partition] = Position(message.offset, message.timestamp)
 
-    def close(self) -> None:
-        self.__closed = True
-
-    def terminate(self) -> None:
-        self.close()
-
     def join(self, timeout: Optional[float] = None) -> None:
         self._bulk_commit()
 
-    def _bulk_commit(self):
+    def _bulk_commit(self) -> None:
         self.__commit(self.__ready_to_commit)
         self.__ready_to_commit = {}
