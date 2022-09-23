@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment} from 'react';
+import {ComponentProps, Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -36,9 +36,15 @@ function ConsoleMessage({
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
   const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestampMs);
-  const handleOnClick = () => setCurrentTime(diff);
-  const handleOnMouseOver = () => setCurrentHoverTime(diff);
-  const handleOnMouseOut = () => setCurrentHoverTime(undefined);
+  const handleOnClick = useCallback(() => setCurrentTime(diff), [setCurrentTime, diff]);
+  const handleOnMouseOver = useCallback(
+    () => setCurrentHoverTime(diff),
+    [setCurrentHoverTime, diff]
+  );
+  const handleOnMouseOut = useCallback(
+    () => setCurrentHoverTime(undefined),
+    [setCurrentHoverTime]
+  );
 
   const timeHandlers = {
     isActive,
