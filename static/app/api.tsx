@@ -11,7 +11,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import {metric} from 'sentry/utils/analytics';
-import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
 
@@ -436,7 +435,7 @@ export class Client {
     const isSameOrigin = window.location.origin === absoluteUrl.origin;
 
     if (!csrfSafeMethod(method) && isSameOrigin) {
-      headers.set('X-CSRFToken', getCsrfToken());
+      // headers.set('X-CSRFToken', getCsrfToken());
     }
 
     const fetchRequest = fetch(fullUrl, {
