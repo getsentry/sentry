@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -10,14 +10,16 @@ import {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, UpdateSdkSuggestion} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
-import {Project, ProjectSdkUpdates} from 'sentry/types/project';
+import {Project, ProjectKey, ProjectSdkUpdates} from 'sentry/types/project';
 import {semverCompare} from 'sentry/utils/profiling/units/versions';
+import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
@@ -183,6 +185,8 @@ function SelectProjectStep({
 
   const sdkUpdates = useProjectSdkUpdates({organization, projectId: project?.id ?? null});
 
+  const publicDSN = usePublicDSN({organization, project});
+
   return (
     <ModalBody>
       <ModalHeader>
@@ -208,6 +212,7 @@ function SelectProjectStep({
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
+              publicDSN={publicDSN}
             />
           ) : null}
           {project?.platform === 'apple-ios' ? (
@@ -215,6 +220,7 @@ function SelectProjectStep({
               sdkUpdates={sdkUpdates}
               project={project}
               organization={organization}
+              publicDSN={publicDSN}
             />
           ) : null}
         </StyledList>
@@ -226,7 +232,9 @@ function SelectProjectStep({
               <PreviousStepButton type="button" onClick={closeModal} />
               <NextStepButton
                 disabled={
-                  !(project?.platform && platformToInstructionsMapping[project.platform])
+                  !(
+                    project?.platform && platformToInstructionsMapping[project.platform]
+                  ) || publicDSN.loading
                 }
                 type="submit"
               />
@@ -236,6 +244,49 @@ function SelectProjectStep({
       </form>
     </ModalBody>
   );
+}
+
+function usePublicDSN({
+  organization,
+  project,
+}: {
+  organization: Organization | null | undefined;
+  project: Project | null | undefined;
+}) {
+  const api = useApi();
+  const [response, setResponse] = useState<
+    RequestState<string | null> & {loading: boolean}
+  >({
+    type: 'initial',
+    loading: false,
+  });
+  useEffect(() => {
+    if (!organization || !project) {
+      return;
+    }
+    setResponse(v => ({...v, type: 'initial', data: null, loading: true}));
+    const request: Promise<ProjectKey[]> = api.requestPromise(
+      `/projects/${organization.slug}/${project.slug}/keys/`
+    );
+
+    request
+      .then(data => {
+        setResponse({
+          type: 'resolved',
+          data: data[0]?.dsn.public ?? null,
+          loading: false,
+        });
+      })
+      .catch(error =>
+        setResponse({
+          type: 'errored',
+          error,
+          loading: false,
+        })
+      );
+  }, [organization, project, api]);
+
+  return response;
 }
 
 function SetupPerformanceMonitoringStep({href}: {href: string}) {
@@ -323,15 +374,24 @@ const SDKUpdatesContainer = styled('div')`
 interface InstallStepsProps {
   organization: Organization;
   project: Project;
+  publicDSN: RequestState<string | null> & {loading: boolean};
   sdkUpdates: RequestState<ProjectSdkUpdates | null>;
 }
 
-function AndroidInstallSteps({project, sdkUpdates, organization}: InstallStepsProps) {
+function AndroidInstallSteps({
+  project,
+  sdkUpdates,
+  organization,
+  publicDSN,
+}: InstallStepsProps) {
   const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
     hasSdkUpdates && sdkUpdates.data?.sdkVersion
       ? semverCompare(sdkUpdates.data.sdkVersion, '6.0.0') < 0
       : false;
+
+  const dsn =
+    publicDSN.type === 'resolved' && publicDSN.data !== null ? publicDSN.data : '...';
   return (
     <Fragment>
       {hasSdkUpdates && requiresSdkUpdates && (
@@ -350,24 +410,36 @@ function AndroidInstallSteps({project, sdkUpdates, organization}: InstallStepsPr
       </li>
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
-        <CodeSnippet language="xml" filename="AndroidManifest.xml">
-          {`<application>
-  <meta-data android:name="io.sentry.dsn" android:value="..." />
+        {publicDSN.loading ? (
+          <LoadingIndicator />
+        ) : (
+          <CodeSnippet language="xml" filename="AndroidManifest.xml">
+            {`<application>
+  <meta-data android:name="io.sentry.dsn" android:value="${dsn}" />
   <meta-data android:name="io.sentry.traces.sample-rate" android:value="1.0" />
   <meta-data android:name="io.sentry.traces.profiling.enable" android:value="true" />
-</application>`}
-        </CodeSnippet>
+  </application>`}
+          </CodeSnippet>
+        )}
       </li>
     </Fragment>
   );
 }
 
-function IOSInstallSteps({project, sdkUpdates, organization}: InstallStepsProps) {
+function IOSInstallSteps({
+  project,
+  sdkUpdates,
+  organization,
+  publicDSN,
+}: InstallStepsProps) {
   const hasSdkUpdates = sdkUpdates.type === 'resolved' && sdkUpdates.data !== null;
   const requiresSdkUpdates =
     hasSdkUpdates && sdkUpdates.data?.sdkVersion
       ? semverCompare(sdkUpdates.data.sdkVersion, '7.23.0') < 0
       : false;
+
+  const dsn =
+    publicDSN.type === 'resolved' && publicDSN.data !== null ? publicDSN.data : '...';
   return (
     <Fragment>
       {hasSdkUpdates && requiresSdkUpdates && (
@@ -388,11 +460,16 @@ function IOSInstallSteps({project, sdkUpdates, organization}: InstallStepsProps)
         <StepTitle>
           {t('Enable profiling in your app by configuring the SDKs like below:')}
         </StepTitle>
-        <CodeSnippet language="swift">{`SentrySDK.start { options in
-    options.dsn = "..."
-    options.tracesSampleRate = 1.0 // Make sure transactions are enabled
-    options.profilesSampleRate = 1.0
-}`}</CodeSnippet>
+
+        {publicDSN.loading ? (
+          <LoadingIndicator />
+        ) : (
+          <CodeSnippet language="swift">{`SentrySDK.start { options in
+              options.dsn = "${dsn}"
+              options.tracesSampleRate = 1.0 // Make sure transactions are enabled
+              options.profilesSampleRate = 1.0
+            }`}</CodeSnippet>
+        )}
       </li>
     </Fragment>
   );
