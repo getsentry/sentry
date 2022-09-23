@@ -166,11 +166,13 @@ describe('groupEvents', function () {
   });
 
   it('renders events table if perf issue', function () {
+    const org = initializeOrg();
+    org.features = ['performance-issues-all-events-tab'];
     const group = TestStubs.Group();
     group.issueCategory = 'performance';
     render(
       <GroupEvents
-        organization={organization}
+        organization={org}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={group}

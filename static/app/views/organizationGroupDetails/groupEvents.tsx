@@ -36,6 +36,7 @@ type State = {
   loading: boolean;
   pageLinks: string;
   query: string;
+  renderPerfIssueEvents: boolean;
 };
 
 class GroupEvents extends Component<Props, State> {
@@ -43,12 +44,18 @@ class GroupEvents extends Component<Props, State> {
     super(props);
 
     const queryParams = this.props.location.query;
+    const renderPerfIssueEvents =
+      !!this.props.group.id &&
+      this.props.group.issueCategory === IssueCategory.PERFORMANCE &&
+      this.props.organization.features.includes('performance-issues-all-events-tab');
+
     this.state = {
       eventList: [],
       loading: true,
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
+      renderPerfIssueEvents,
     };
   }
 
@@ -139,9 +146,9 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderSearchBar() {
-    const {issueCategory, id} = this.props.group;
+    const {renderPerfIssueEvents} = this.state;
 
-    if (id && issueCategory === IssueCategory.PERFORMANCE) {
+    if (renderPerfIssueEvents) {
       return (
         <EventSearchBar
           organization={this.props.organization}
@@ -179,11 +186,11 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderBody() {
-    const {issueCategory, id} = this.props.group;
+    const {renderPerfIssueEvents} = this.state;
 
     let body: React.ReactNode;
 
-    if (id && issueCategory === IssueCategory.PERFORMANCE) {
+    if (renderPerfIssueEvents) {
       return this.renderPerfIssueEvents();
     }
     if (this.state.loading) {
