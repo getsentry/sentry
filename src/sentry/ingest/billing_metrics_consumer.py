@@ -42,6 +42,15 @@ def _get_metrics_billing_consumer_processing_factory():
     return BillingMetricsConsumerStrategyFactory()
 
 
+class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def create_with_partitions(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        return BillingTxCountMetricConsumerStrategy()
+
+
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     """A metrics consumer that generates a billing outcome for each processed
     transaction, processing a bucket at a time. The transaction count is
@@ -95,12 +104,3 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def join(self, timeout: Optional[float] = None) -> None:
         pass
-
-
-class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def create_with_partitions(
-        self,
-        commit: Callable[[Mapping[Partition, Position]], None],
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy()
