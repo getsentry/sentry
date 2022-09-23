@@ -43,7 +43,6 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -258,7 +257,7 @@ class IssueListOverview extends Component<Props, State> {
     this._poller.disable();
     GroupStore.reset();
     this.props.api.clear();
-    callIfFunction(this.listener);
+    this.listener?.();
     // Reset store when unmounting because we always fetch on mount
     // This means if you navigate away from stream and then back to stream,
     // this component will go from:

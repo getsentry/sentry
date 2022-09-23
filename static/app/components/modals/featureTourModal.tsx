@@ -7,7 +7,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 export type TourStep = {
   body: React.ReactNode;
@@ -83,7 +82,7 @@ class FeatureTourModal extends Component<Props, State> {
   // Record the step change and call the callback this component was given.
   handleAdvance = (current: number, duration: number) => {
     this.setState({current});
-    callIfFunction(this.props.onAdvance, current, duration);
+    this.props.onAdvance?.(current, duration);
   };
 
   handleShow = () => {
@@ -110,7 +109,7 @@ class FeatureTourModal extends Component<Props, State> {
     const {onCloseModal} = this.props;
 
     const duration = Date.now() - this.state.openedAt;
-    callIfFunction(onCloseModal, this.state.current, duration);
+    onCloseModal?.(this.state.current, duration);
 
     // Reset the state now that the modal is closed, used to deduplicate close actions.
     this.setState({openedAt: 0, current: 0});
@@ -147,7 +146,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
       prevState => ({current: prevState.current + 1}),
       () => {
         const duration = Date.now() - openedAt;
-        callIfFunction(onAdvance, this.state.current, duration);
+        onAdvance?.(this.state.current, duration);
       }
     );
   };

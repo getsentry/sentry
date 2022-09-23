@@ -9,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import {Group, Organization, Project} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
@@ -58,7 +57,7 @@ class GroupMergedView extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   onGroupingChange = ({mergedItems, mergedLinks, loading, error}) => {

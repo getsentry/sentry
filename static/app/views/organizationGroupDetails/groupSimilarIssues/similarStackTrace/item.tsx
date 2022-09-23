@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   groupId: Group['id'];
@@ -44,7 +43,7 @@ class Item extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);

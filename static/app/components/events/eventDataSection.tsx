@@ -8,7 +8,6 @@ import Anchor from 'sentry/components/links/anchor';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   children: React.ReactNode;
@@ -76,18 +75,10 @@ function EventDataSection({
           </Title>
           {type === 'extra' && (
             <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
-              <Button
-                barId="formatted"
-                size="xs"
-                onClick={() => callIfFunction(toggleRaw, false)}
-              >
+              <Button barId="formatted" size="xs" onClick={() => toggleRaw?.(false)}>
                 {t('Formatted')}
               </Button>
-              <Button
-                barId="raw"
-                size="xs"
-                onClick={() => callIfFunction(toggleRaw, true)}
-              >
+              <Button barId="raw" size="xs" onClick={() => toggleRaw?.(true)}>
                 {t('Raw')}
               </Button>
             </ButtonBar>
