@@ -51,8 +51,45 @@ describe('groupEvents', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
-        data: [],
-        meta: [],
+        data: [
+          {
+            timestamp: '2022-09-11T15:01:10+00:00',
+            transaction: '/api',
+            release: 'backend@1.2.3',
+            'transaction.duration': 1803,
+            environment: 'prod',
+            'user.display': 'sentry@sentry.sentry',
+            id: 'id123',
+            trace: 'trace123',
+            'project.name': 'project123',
+          },
+        ],
+        meta: {
+          fields: {
+            timestamp: 'date',
+            transaction: 'string',
+            release: 'string',
+            'transaction.duration': 'duration',
+            environment: 'string',
+            'user.display': 'string',
+            id: 'string',
+            trace: 'string',
+            'project.name': 'string',
+          },
+          units: {
+            timestamp: null,
+            transaction: null,
+            release: null,
+            'transaction.duration': 'millisecond',
+            environment: null,
+            'user.display': null,
+            id: null,
+            trace: null,
+            'project.name': null,
+          },
+          isMetricsData: false,
+          tips: {query: null, columns: null},
+        },
       },
     });
   });
@@ -141,7 +178,7 @@ describe('groupEvents', function () {
       />,
       {context: routerContext, organization}
     );
-    const perfEventsColumn = screen.getByText('operation duration');
+    const perfEventsColumn = screen.getByText('transaction');
     expect(perfEventsColumn).toBeInTheDocument();
   });
 });

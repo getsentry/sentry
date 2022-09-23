@@ -85,7 +85,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   transactionName: string;
   columnTitles?: string[];
-  disablePagination?: boolean; // Workaround for perf issue page
+  disablePagination?: boolean;
   totalEventCount?: string;
 };
 

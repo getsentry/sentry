@@ -190,9 +190,7 @@ class GroupEvents extends Component<Props, State> {
       body = <LoadingIndicator />;
     } else if (this.state.error) {
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    }
-    // TODO - in the future we may share the perfIssueEvents with errorEvents
-    else if (this.state.eventList.length > 0) {
+    } else if (this.state.eventList.length > 0) {
       body = this.renderResults();
     } else if (this.state.query && this.state.query !== '') {
       body = this.renderNoQueryResults();

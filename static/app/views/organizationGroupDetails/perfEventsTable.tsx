@@ -1,4 +1,3 @@
-// import {Fragment} from 'react';
 import {Location} from 'history';
 
 import {t} from 'sentry/locale';
