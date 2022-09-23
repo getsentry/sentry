@@ -282,12 +282,6 @@ class OrganizationContextContainer extends Component<Props, State> {
     });
   }
 
-  getOrganizationDetailsEndpoint() {
-    return `/organizations/${OrganizationContextContainer.getOrganizationSlug(
-      this.props
-    )}/`;
-  }
-
   getTitle() {
     return this.state.organization?.name ?? 'Sentry';
   }
