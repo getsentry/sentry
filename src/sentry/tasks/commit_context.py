@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
@@ -137,5 +138,12 @@ def process_commit_context(
                     else:
                         owner.delete()
 
+            analytics.record(
+                "groupowner.assignment",
+                organization_id=project.organization_id,
+                project_id=project.id,
+                group_id=group_id,
+                new_assignment=created,
+            )
     except UnableToAcquireLock:
         pass
