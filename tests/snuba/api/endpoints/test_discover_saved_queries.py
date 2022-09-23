@@ -661,7 +661,7 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
                     "name": "Interval query",
                     "projects": [-1],
                     "fields": ["title", "count()"],
-                    "range": "24h",
+                    "statsPeriod": "24h",
                     "query": "spaceAfterColon:1",
                     "version": 2,
                     "interval": "1m",
