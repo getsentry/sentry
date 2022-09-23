@@ -53,13 +53,6 @@ export function setupColorScheme(): void {
   const lightMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
   const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-  try {
-    lightMediaQuery.addEventListener('change', handleColorSchemeChange);
-    darkMediaQuery.addEventListener('change', handleColorSchemeChange);
-  } catch (err) {
-    // Safari 13 (maybe lower too) does not support `addEventListener`
-    // `addListener` is deprecated
-    lightMediaQuery.addListener(handleColorSchemeChange);
-    darkMediaQuery.addListener(handleColorSchemeChange);
-  }
+  lightMediaQuery.addEventListener('change', handleColorSchemeChange);
+  darkMediaQuery.addEventListener('change', handleColorSchemeChange);
 }
