@@ -56,9 +56,9 @@ export function FeedbackModal({
   featureName,
 }: Props) {
   const {organization} = useLegacyStore(OrganizationStore);
+  const {user, isSelfHosted} = useLegacyStore(ConfigStore);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
-  const {user, isSelfHosted} = ConfigStore.getConfig();
 
   const [state, setState] = useState<State>({
     subject: undefined,

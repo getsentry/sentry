@@ -15,7 +15,7 @@ describe('OrganizationAuditLog', function () {
     },
   };
 
-  const config: Config = {...ConfigStore.getConfig(), user};
+  const config: Config = {...ConfigStore.getState(), user};
 
   beforeEach(() => {
     ConfigStore.loadInitialData(config);
