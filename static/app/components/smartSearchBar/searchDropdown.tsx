@@ -95,7 +95,11 @@ const SearchDropdown = ({
             </Button>
           ))}
       </ButtonBar>
-      <Button size="xs" href="https://docs.sentry.io/product/sentry-basics/search/">
+      <Button
+        size="xs"
+        href="https://docs.sentry.io/product/sentry-basics/search/"
+        external
+      >
         Read the docs
       </Button>
     </DropdownFooter>
