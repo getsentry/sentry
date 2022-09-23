@@ -78,10 +78,12 @@ class AvatarChooser extends Component<Props, State> {
     hasError: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  componentDidUpdate(prevProps: Props) {
+    const {model} = this.props;
+
     // Update local state if defined in props
-    if (typeof nextProps.model !== 'undefined') {
-      this.setState({model: nextProps.model});
+    if (model !== undefined && model !== prevProps.model) {
+      this.setState({model});
     }
   }
 
