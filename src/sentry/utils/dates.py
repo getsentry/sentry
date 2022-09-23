@@ -152,7 +152,7 @@ def get_rollup_from_request(
 
 def validate_interval(
     interval: timedelta, error: Exception, date_range: timedelta, top_events: int
-):
+) -> None:
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
 
