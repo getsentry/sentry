@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Callable, Dict, Mapping, Optional
 
 from arroyo import Topic
@@ -7,9 +8,11 @@ from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyF
 from arroyo.types import Message, Partition, Position
 from django.conf import settings
 
+from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
+from sentry.utils.outcomes import Outcome, track_outcome
 
 
 def get_metrics_billing_consumer(**options) -> StreamProcessor[KafkaPayload]:
@@ -69,7 +72,7 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         payload = self._get_payload(message)
         num_processed_transactions = self._estimate_processed_transactions(payload)
-        self._generate_billing_outcomes(num_processed_transactions)
+        self._produce_billing_outcomes(payload, num_processed_transactions)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
         return json.loads(
@@ -84,9 +87,21 @@ class BillingSingleMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             return 0
         return len(bucket_payload["value"])
 
-    def _generate_billing_outcomes(self, amount: int) -> None:
-        # TODO
-        pass
+    def _produce_billing_outcomes(self, payload: Dict, amount: int) -> None:
+        if amount < 1:
+            return
+
+        track_outcome(
+            org_id=payload.get("org_id"),
+            project_id=payload.get("project_id"),
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            timestamp=datetime.fromtimestamp(payload.get("timestamp")),
+            event_id=None,
+            category=DataCategory.TRANSACTION_PROCESSED,
+            quantity=amount,
+        )
 
     def close(self) -> None:
         self.__closed = True
