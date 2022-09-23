@@ -176,6 +176,7 @@ class GroupVariant extends Component<Props, State> {
           </TextWithQuestionTooltip>,
         ]);
 
+        data.push(['Performance Issue Type', variant.key]);
         data.push(['Span Operation', variant.evidence.op]);
         data.push(['Parent Span Hashes', variant.evidence.parent_span_hashes]);
         data.push(['Source Span Hashes', variant.evidence.cause_span_hashes]);
