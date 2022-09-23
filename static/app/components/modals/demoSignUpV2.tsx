@@ -31,26 +31,24 @@ const DemoSignUpModalV2 = ({closeModal}: Props) => {
 
   return (
     <HighlightCornerContainer>
-      <div>
-        <CloseButton
-          icon={<IconClose size="xs" />}
-          size="xs"
-          aria-label={t('Close')}
-          onClick={() => {
-            trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_close', {
-              organization: null,
-            });
-            closeModal();
-          }}
-        />
-      </div>
+      <CloseButton
+        icon={<IconClose size="xs" />}
+        size="xs"
+        aria-label={t('Close')}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('growth.demo_modal_clicked_close', {
+            organization: null,
+          });
+          closeModal();
+        }}
+      />
       <div>
         <TrialCheckInfo>
           <Subheader>{t('Sign Up')}</Subheader>
           <h2>{t('Hey, like what you see?')}</h2>
           <p>
             {t(
-              "Start your free trial, and create your first project to see what's broken in your code and how to fix it"
+              "Start your free trial, and create your first project to see what's broken in your code and how to fix it."
             )}
           </p>
         </TrialCheckInfo>
@@ -79,9 +77,9 @@ const DemoSignUpModalV2 = ({closeModal}: Props) => {
           </Button>
         </StyledButtonBar>
       </div>
-      <div>
+      <ImagePosition>
         <PositionRight src={habitsSuccessfulCustomer} />
-      </div>
+      </ImagePosition>
     </HighlightCornerContainer>
   );
 };
@@ -105,7 +103,7 @@ export const modalCss = css`
     padding: 70px 80px;
     overflow: visible;
     display: flex;
-    gap: ${space(3)};
+    gap: 30px;
   }
 `;
 
@@ -119,6 +117,12 @@ const Subheader = styled('h4')`
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(2)};
+  max-width: 250px;
+`;
+
+const ImagePosition = styled('div')`
+  max-width: 360px;
+  margin: auto;
 `;
 
 const PositionRight = styled('img')`
