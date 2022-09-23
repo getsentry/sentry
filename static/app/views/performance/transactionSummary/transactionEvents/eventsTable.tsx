@@ -83,9 +83,10 @@ type Props = {
   location: Location;
   organization: Organization;
   setError: (msg: string | undefined) => void;
-  totalEventCount: string;
   transactionName: string;
   columnTitles?: string[];
+  disablePagination?: boolean;
+  totalEventCount?: string;
 };
 
 type State = {
@@ -323,7 +324,7 @@ class EventsTable extends Component<Props, State> {
           {({pageLinks, isLoading, tableData}) => {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             let currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
-            if (!parsedPageLinks?.next?.results) {
+            if (!parsedPageLinks?.next?.results && totalEventCount) {
               currentEvent = totalEventCount;
             }
             const paginationCaption =
@@ -348,11 +349,13 @@ class EventsTable extends Component<Props, State> {
                   }}
                   location={location}
                 />
-                <Pagination
-                  disabled={isLoading}
-                  caption={paginationCaption}
-                  pageLinks={pageLinks}
-                />
+                {!this.props.disablePagination && (
+                  <Pagination
+                    disabled={isLoading}
+                    caption={paginationCaption}
+                    pageLinks={pageLinks}
+                  />
+                )}
               </Fragment>
             );
           }}
