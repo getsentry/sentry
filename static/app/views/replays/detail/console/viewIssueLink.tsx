@@ -4,6 +4,7 @@ import Button from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -42,7 +43,7 @@ function ViewIssueLink({breadcrumb}: Props) {
       }
     >
       <StyledButton to={to} priority="link">
-        View Details
+        {t('View Details')}
       </StyledButton>
     </StyledHovercard>
   );

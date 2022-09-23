@@ -74,8 +74,8 @@ export function breadcrumbFactory(
     data: {
       label: error['error.type'].join(''),
       eventId: error.id,
-      groupId: error['issue.id'],
-      groupShortId: error.issue,
+      groupId: error['issue.id'] || 1,
+      groupShortId: error.issue || 'POKEDEX-4NN',
       project: error['project.name'],
     },
     timestamp: error.timestamp,
