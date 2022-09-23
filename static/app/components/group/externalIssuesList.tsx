@@ -11,7 +11,6 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
-import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import space from 'sentry/styles/space';
 import {
@@ -25,8 +24,10 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
+import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 type Props = AsyncComponent['props'] & {
+  components: SentryAppComponent[];
   event: Event;
   group: Group;
   organization: Organization;
@@ -34,7 +35,6 @@ type Props = AsyncComponent['props'] & {
 };
 
 type State = AsyncComponent['state'] & {
-  components: SentryAppComponent[];
   externalIssues: PlatformExternalIssue[];
   integrations: GroupIntegration[];
   sentryAppInstallations: SentryAppInstallation[];
@@ -51,7 +51,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   constructor(props: Props) {
     super(props, {});
     this.state = Object.assign({}, this.state, {
-      components: SentryAppComponentsStore.getInitialState(),
       sentryAppInstallations: SentryAppInstallationStore.getInitialState(),
       externalIssues: ExternalIssueStore.getInitialState(),
     });
@@ -63,7 +62,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
     this.unsubscribables = [
       SentryAppInstallationStore.listen(this.onSentryAppInstallationChange, this),
       ExternalIssueStore.listen(this.onExternalIssueChange, this),
-      SentryAppComponentsStore.listen(this.onSentryAppComponentsChange, this),
     ];
 
     this.fetchSentryAppData();
@@ -80,11 +78,6 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
 
   onExternalIssueChange = (externalIssues: PlatformExternalIssue[]) => {
     this.setState({externalIssues});
-  };
-
-  onSentryAppComponentsChange = (sentryAppComponents: SentryAppComponent[]) => {
-    const components = sentryAppComponents.filter(c => c.type === 'issue-link');
-    this.setState({components});
   };
 
   // We want to do this explicitly so that we can handle errors gracefully,
@@ -152,8 +145,8 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   }
 
   renderSentryAppIssues() {
-    const {externalIssues, sentryAppInstallations, components} = this.state;
-    const {group} = this.props;
+    const {externalIssues, sentryAppInstallations} = this.state;
+    const {components, group} = this.props;
     if (components.length === 0) {
       return null;
     }
@@ -254,4 +247,6 @@ const Wrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default withOrganization(ExternalIssueList);
+export default withSentryAppComponents(withOrganization(ExternalIssueList), {
+  componentType: 'issue-link',
+});
