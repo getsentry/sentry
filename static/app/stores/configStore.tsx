@@ -67,4 +67,5 @@ const storeConfig: ConfigStoreDefinition = {
   },
 };
 
-export default createStore(storeConfig);
+const ConfigStore = createStore(storeConfig);
+export default ConfigStore;
