@@ -8,7 +8,6 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   renderGraph: () => React.ReactNode;
@@ -25,7 +24,7 @@ type Props = {
 class QueryCard extends PureComponent<Props> {
   handleClick = () => {
     const {onEventClick} = this.props;
-    callIfFunction(onEventClick);
+    onEventClick?.();
   };
 
   render() {
