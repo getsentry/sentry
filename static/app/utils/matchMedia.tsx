@@ -16,11 +16,21 @@ function changeFavicon(theme: 'dark' | 'light'): void {
   n.href = `${path}/sentry/images/${theme === 'dark' ? 'favicon-dark' : 'favicon'}.png`;
 }
 
+function updateTheme(theme: 'dark' | 'light') {
+  const user = ConfigStore.get('user');
+
+  if (user?.options.theme === 'system') {
+    return;
+  }
+
+  ConfigStore.set('theme', theme);
+}
+
 function handleColorSchemeChange(e: MediaQueryListEvent): void {
   const isDark = e.media === '(prefers-color-scheme: dark)' && e.matches;
   const type = isDark ? 'dark' : 'light';
   changeFavicon(type);
-  ConfigStore.updateTheme(type);
+  updateTheme(type);
 }
 
 function prefersDark(): boolean {
@@ -31,7 +41,7 @@ export function setupColorScheme(): void {
   // Set favicon to dark on load if necessary)
   if (prefersDark()) {
     changeFavicon('dark');
-    ConfigStore.updateTheme('dark');
+    updateTheme('dark');
   }
 
   // If matchmedia is not supported, keep whatever configStore.init theme was set to
@@ -43,13 +53,6 @@ export function setupColorScheme(): void {
   const lightMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
   const darkMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-  try {
-    lightMediaQuery.addEventListener('change', handleColorSchemeChange);
-    darkMediaQuery.addEventListener('change', handleColorSchemeChange);
-  } catch (err) {
-    // Safari 13 (maybe lower too) does not support `addEventListener`
-    // `addListener` is deprecated
-    lightMediaQuery.addListener(handleColorSchemeChange);
-    darkMediaQuery.addListener(handleColorSchemeChange);
-  }
+  lightMediaQuery.addEventListener('change', handleColorSchemeChange);
+  darkMediaQuery.addEventListener('change', handleColorSchemeChange);
 }

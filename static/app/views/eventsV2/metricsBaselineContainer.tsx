@@ -6,20 +6,23 @@ import {Location} from 'history';
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import {isMultiSeriesStats, lightenHexToRgb} from 'sentry/components/charts/utils';
 import {EventsStats, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {aggregateMultiPlotType} from 'sentry/utils/discover/fields';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import localStorage from 'sentry/utils/localStorage';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import theme from 'sentry/utils/theme';
 import {transformSeries} from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 
 import {SeriesWithOrdering} from '../dashboardsV2/datasetConfig/errorsAndTransactions';
 
+import {PROCESSED_BASELINE_TOGGLE_KEY} from './chartFooter';
 import ResultsChart from './resultsChart';
 import {usesTransactionsDataset} from './utils';
 
@@ -74,8 +77,12 @@ export function MetricsBaselineContainer({
     ? getUtcToLocalDateObject(pageFilters.datetime.end)
     : null;
 
-  const showBaseline = location.query.baseline === '0' ? false : true;
-  const [metricsCompatible, setMetricsCompatible] = useState<boolean>(false);
+  const showBaseline =
+    (location.query.baseline ?? localStorage.getItem(PROCESSED_BASELINE_TOGGLE_KEY)) ===
+    '0'
+      ? false
+      : true;
+  const [metricsCompatible, setMetricsCompatible] = useState<boolean>(true);
   const [processedLineSeries, setProcessedLineSeries] = useState<
     LineSeriesOption[] | undefined
   >(undefined);
@@ -175,19 +182,22 @@ export function MetricsBaselineContainer({
             ];
           });
 
-          const additionalSeriesColor = theme.charts.getColorPalette(
-            seriesWithOrdering.length - 2
-          );
+          const color = theme.charts.getColorPalette(seriesWithOrdering.length - 2);
+          const additionalSeriesColor = lightenHexToRgb(color);
 
           seriesWithOrdering.forEach(([order, series]) =>
             additionalSeries.push(
               LineSeries({
                 name: series.seriesName,
                 data: series.data.map(({name, value}) => [name, value]),
+                stack:
+                  aggregateMultiPlotType(yAxis[order]) === 'area'
+                    ? 'processed'
+                    : undefined,
                 lineStyle: {
                   color: additionalSeriesColor[order],
                   type: 'dashed',
-                  width: 1,
+                  width: 1.5,
                   opacity: 0.5,
                 },
                 itemStyle: {color: additionalSeriesColor[order]},
@@ -205,7 +215,7 @@ export function MetricsBaselineContainer({
             LineSeries({
               name: transformed.seriesName,
               data: transformed.data.map(({name, value}) => [name, value]),
-              lineStyle: {type: 'dashed', width: 1, opacity: 0.5},
+              lineStyle: {color: theme.gray300, type: 'dashed', width: 1.5},
               animation: false,
               animationThreshold: 1,
               animationDuration: 0,

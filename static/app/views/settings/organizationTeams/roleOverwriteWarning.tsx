@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {PanelAlert} from 'sentry/components/panels';
 import Tooltip from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';

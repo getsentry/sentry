@@ -1,13 +1,17 @@
+/**
+ * Get the value of a cookie by name
+ */
 export default function getCookie(name: string): string | null {
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      // Does this cookie string begin with the name we want?
-      if (cookie.substring(0, name.length + 1) === name + '=') {
-        return decodeURIComponent(cookie.substring(name.length + 1));
-      }
-    }
+  if (!document.cookie || document.cookie === '') {
+    return null;
   }
-  return null;
+
+  const cookies = document.cookie.split(';');
+  const cookie = cookies.find(c => c.substring(0, name.length + 1) === `${name}=`);
+
+  if (cookie === undefined) {
+    return null;
+  }
+
+  return decodeURIComponent(cookie.trim().substring(name.length + 1));
 }

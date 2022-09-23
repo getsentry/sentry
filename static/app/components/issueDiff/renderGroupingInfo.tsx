@@ -18,7 +18,7 @@ function renderGroupVariant(variant: EventGroupVariant): string[] {
 
   const rv = [title.join('\n')];
 
-  if (variant.component) {
+  if ('component' in variant && variant.component) {
     rv.push(renderComponent(variant.component).join('\n'));
   }
 

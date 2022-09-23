@@ -1,0 +1,197 @@
+{
+  "platform": "python",
+  "message": "",
+  "tags": [
+    ["browser", "Safari 15.5"],
+    ["browser.name", "Safari"],
+    ["client_os", "Mac OS X 10.15.7"],
+    ["client_os.name", "Mac OS X"],
+    ["device", "Mac"],
+    ["device.family", "Mac"],
+    ["environment", "production"],
+    ["http.status_code", "200"],
+    ["level", "info"],
+    ["runtime", "CPython 3.8.9"],
+    ["runtime.name", "CPython"],
+    ["user", "ip:127.0.0.1"],
+    ["transaction", "/books/"],
+    ["url", "http://127.0.0.1:9007/books/"]
+  ],
+  "_metrics": {
+    "bytes.ingested.event": 11064,
+    "bytes.stored.event": 13419
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.db": {
+        "value": 3269.076,
+        "unit": "millisecond"
+      },
+      "total.time": {
+        "value": 9820.384,
+        "unit": "millisecond"
+      }
+    }
+  },
+  "contexts": {
+    "browser": {
+      "name": "Safari",
+      "version": "15.5",
+      "type": "browser"
+    },
+    "client_os": {
+      "name": "Mac OS X",
+      "version": "10.15.7",
+      "type": "os"
+    },
+    "device": {
+      "family": "Mac",
+      "model": "Mac",
+      "brand": "Apple",
+      "type": "device"
+    },
+    "runtime": {
+      "name": "CPython",
+      "version": "3.8.9",
+      "build": "3.8.9 (default, May 17 2022, 12:55:41) \n[Clang 13.1.6 (clang-1316.0.21.2.5)]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "span_id": "933e5c9a8e464da9",
+      "op": "http.server",
+      "status": "ok",
+      "exclusive_time": 0.454,
+      "hash": "b75d667af5b3341b",
+      "type": "trace"
+    }
+  },
+  "culprit": "/books/",
+  "environment": "production",
+  "extra": {
+    "sys.argv": ["manage.py", "runserver", "127.0.0.1:9007"]
+  },
+  "grouping_config": {
+    "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
+    "id": "newstyle:2019-10-29"
+  },
+  "hashes": ["19e15e0444e0bc1d5159fb07cd4bd2eb"],
+  "key_id": "10",
+  "level": "info",
+  "location": "/books/",
+  "logger": "",
+  "metadata": {
+    "location": "/books/",
+    "title": "/books/"
+  },
+  "nodestore_insert": 1663183335.308525,
+  "received": 1663183328.18301,
+  "request": {
+    "url": "http://127.0.0.1:9007/books/",
+    "method": "GET",
+    "headers": [
+      ["Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"],
+      ["Accept-Encoding", "gzip, deflate"],
+      ["Accept-Language", "en-CA,en-US;q=0.9,en;q=0.8"],
+      ["Connection", "keep-alive"],
+      ["Content-Length", ""],
+      ["Content-Type", "text/plain"],
+      ["Host", "127.0.0.1:9007"],
+      ["Upgrade-Insecure-Requests", "1"],
+      [
+        "User-Agent",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15"
+      ]
+    ],
+    "env": {
+      "REMOTE_ADDR": "127.0.0.1",
+      "SERVER_NAME": "1.0.0.127.in-addr.arpa",
+      "SERVER_PORT": "9007"
+    },
+    "inferred_content_type": "text/plain"
+  },
+  "spans": [
+    {
+      "description": "index",
+      "op": "django.view",
+      "span_id": "892612d95b7e094a",
+      "parent_span_id": "bd85cf73ece1689c",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "6a992d5529f459a4",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "connect",
+      "op": "db",
+      "span_id": "abfcab2ee013dc8b",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "b640a0ce465fa2a4",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` LIMIT 10",
+      "op": "db",
+      "span_id": "9ec7911bf3b94d1c",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "c23d7b23e98a04c5",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+      "op": "db",
+      "span_id": "af0b6c143281fdee",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "63f1e89e6a073441",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+      "op": "db",
+      "span_id": "a693d2937451761e",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "63f1e89e6a073441",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+      "op": "db",
+      "span_id": "98b5f935ab2ce5ad",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "63f1e89e6a073441",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+      "op": "db",
+      "span_id": "b837f1c666fdd827",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "63f1e89e6a073441",
+      "same_process_as_parent": true
+    },
+    {
+      "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+      "op": "db",
+      "span_id": "918b5b6507066318",
+      "parent_span_id": "892612d95b7e094a",
+      "trace_id": "c1d9559edd3e43aa8ea3d71c3ea54b95",
+      "hash": "63f1e89e6a073441",
+      "same_process_as_parent": true
+    }
+  ],
+  "title": "/books/",
+  "transaction": "/books/",
+  "transaction_info": {
+    "source": "route"
+  },
+  "type": "transaction",
+  "user": {
+    "ip_address": "127.0.0.1"
+  },
+  "version": "7"
+}
