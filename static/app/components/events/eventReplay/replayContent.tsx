@@ -40,28 +40,30 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
 
   const initialTimeOffset = useMemo(() => {
     if (eventTimestamp && startTimestampMs) {
-      return relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000 - 5;
+      return relativeTimeInMs(eventTimestamp, startTimestampMs) / 1000;
     }
 
     return 0;
   }, [eventTimestamp, startTimestampMs]);
-
-  const getReplayHref = () => ({
-    pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
-    query: {
-      t_main: 'console',
-      f_c_logLevel: 'error',
-      f_c_search: undefined,
-      ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
-    },
-  });
 
   return (
     <EventDataSection
       type="replay"
       title={t('Replay')}
       actions={
-        <Button size="sm" priority="primary" to={getReplayHref}>
+        <Button
+          size="sm"
+          priority="primary"
+          to={{
+            pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
+            query: {
+              t_main: 'console',
+              f_c_search: undefined,
+              ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
+            },
+          }}
+          data-test-id="replay-details-button"
+        >
           {t('View Details')}
         </Button>
       }
