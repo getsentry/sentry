@@ -571,6 +571,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
+    "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
