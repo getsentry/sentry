@@ -91,9 +91,13 @@ const OptionWrapper = styled('div')`
 const Label = styled('label')<{'aria-label': string; selected: boolean}>`
   cursor: pointer;
   ${p => css`
-    ${getButtonStyles({theme: p.theme, size: 'md', 'aria-label': p['aria-label']})}
+    ${getButtonStyles({
+      theme: p.theme,
+      size: 'md',
+      'aria-label': p['aria-label'],
+      priority: p.selected ? 'primary' : 'default',
+    })}
   `}
-  ${p => p.selected && `background-color: ${p.theme.button.default.backgroundActive};`}
 `;
 
 const Description = styled('div')`
