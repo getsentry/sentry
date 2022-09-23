@@ -5,7 +5,6 @@ import {Location} from 'history';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type RenderProps = {
   dataZoom: ReturnType<typeof DataZoomInside>;
@@ -71,7 +70,7 @@ class BarChartZoom extends Component<Props> {
    * Enable zoom immediately instead of having to toggle to zoom
    */
   handleChartReady = chart => {
-    callIfFunction(this.props.onChartReady, chart);
+    this.props.onChartReady?.(chart);
   };
 
   /**
@@ -129,15 +128,15 @@ class BarChartZoom extends Component<Props> {
       } else {
         // Dispatch the restore action here to stop ECharts from zooming
         chart.dispatchAction({type: 'restore'});
-        callIfFunction(this.props.onDataZoomCancelled);
+        this.props.onDataZoomCancelled?.();
       }
     } else {
       // Dispatch the restore action here to stop ECharts from zooming
       chart.dispatchAction({type: 'restore'});
-      callIfFunction(this.props.onDataZoomCancelled);
+      this.props.onDataZoomCancelled?.();
     }
 
-    callIfFunction(this.props.onDataZoom, evt, chart);
+    this.props.onDataZoom?.(evt, chart);
   };
 
   render() {
