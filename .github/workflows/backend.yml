@@ -499,6 +499,7 @@ jobs:
         migration,
         plugins,
         relay,
+        region-to-control,
         snuba,
         symbolicator,
         typing,
