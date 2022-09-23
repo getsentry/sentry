@@ -149,5 +149,4 @@ const storeConfig: PageFiltersStoreDefinition = {
 };
 
 const PageFiltersStore = createStore(storeConfig);
-
 export default PageFiltersStore;

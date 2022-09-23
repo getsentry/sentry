@@ -84,7 +84,11 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
     const {configOverride} = this.state;
     const {event} = this.props;
 
-    const configId = configOverride ?? event.groupingConfig.id;
+    if (!event.groupingConfig) {
+      return null;
+    }
+
+    const configId = configOverride ?? event.groupingConfig?.id;
 
     return (
       <GroupingConfigSelect

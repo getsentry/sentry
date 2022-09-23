@@ -68,10 +68,19 @@ export enum DataCategory {
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
-  TRANSACTIONS_PROCESSED = 'transactions_processed',
+  TRANSACTIONS_PROCESSED = 'transactionsProcessed',
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';
+
+export enum Outcome {
+  ACCEPTED = 'accepted',
+  FILTERED = 'filtered',
+  INVALID = 'invalid',
+  DROPPED = 'dropped', // this is not a real outcome coming from the server
+  RATE_LIMITED = 'rate_limited',
+  CLIENT_DISCARD = 'client_discard',
+}
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;
 

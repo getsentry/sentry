@@ -1,5 +1,8 @@
 import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {getNextBreadcrumb, getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {
+  getNextReplayEvent,
+  getPrevReplayEvent,
+} from 'sentry/utils/replays/getReplayEvent';
 
 const START_TIMESTAMP_SEC = 1651693622.951;
 const CURRENT_TIME_MS = 15000;
@@ -70,11 +73,11 @@ function createCrumbs(): Crumb[] {
   ];
 }
 
-describe('getNextBreadcrumb', () => {
+describe('getNextReplayEvent', () => {
   it('should return the next crumb', () => {
     const crumbs = createCrumbs();
-    const results = getNextBreadcrumb({
-      crumbs,
+    const results = getNextReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
@@ -83,8 +86,8 @@ describe('getNextBreadcrumb', () => {
 
   it('should return the next crumb when the the list is not sorted', () => {
     const [one, two, three, four, five] = createCrumbs();
-    const results = getNextBreadcrumb({
-      crumbs: [one, four, five, three, two],
+    const results = getNextReplayEvent({
+      items: [one, four, five, three, two],
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
@@ -93,8 +96,8 @@ describe('getNextBreadcrumb', () => {
 
   it('should return undefined when there are no crumbs', () => {
     const crumbs = [];
-    const results = getNextBreadcrumb({
-      crumbs,
+    const results = getNextReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
@@ -103,8 +106,8 @@ describe('getNextBreadcrumb', () => {
 
   it('should return undefined when the timestamp is later than any crumbs', () => {
     const crumbs = createCrumbs();
-    const results = getNextBreadcrumb({
-      crumbs,
+    const results = getNextReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + 99999999999,
     });
 
@@ -114,8 +117,8 @@ describe('getNextBreadcrumb', () => {
   it('should return the crumb after when a timestamp exactly matches', () => {
     const crumbs = createCrumbs();
     const exactCrumbTime = 8135;
-    const results = getNextBreadcrumb({
-      crumbs,
+    const results = getNextReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
@@ -125,8 +128,8 @@ describe('getNextBreadcrumb', () => {
   it('should return the crumb if timestamps exactly match and allowMatch is enabled', () => {
     const crumbs = createCrumbs();
     const exactCrumbTime = 8135;
-    const results = getNextBreadcrumb({
-      crumbs,
+    const results = getNextReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
@@ -134,11 +137,11 @@ describe('getNextBreadcrumb', () => {
   });
 });
 
-describe('getPrevBreadcrumb', () => {
+describe('getPrevReplayEvent', () => {
   it('should return the previous crumb even if the timestamp is closer to the next crumb', () => {
     const crumbs = createCrumbs();
-    const results = getPrevBreadcrumb({
-      crumbs,
+    const results = getPrevReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
@@ -147,8 +150,8 @@ describe('getPrevBreadcrumb', () => {
 
   it('should return the previous crumb when the list is not sorted', () => {
     const [one, two, three, four, five] = createCrumbs();
-    const results = getPrevBreadcrumb({
-      crumbs: [one, four, five, three, two],
+    const results = getPrevReplayEvent({
+      items: [one, four, five, three, two],
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
@@ -157,8 +160,8 @@ describe('getPrevBreadcrumb', () => {
 
   it('should return undefined when there are no crumbs', () => {
     const crumbs = [];
-    const results = getPrevBreadcrumb({
-      crumbs,
+    const results = getPrevReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
@@ -167,8 +170,8 @@ describe('getPrevBreadcrumb', () => {
 
   it('should return undefined when the timestamp is earlier than any crumbs', () => {
     const crumbs = createCrumbs();
-    const results = getPrevBreadcrumb({
-      crumbs,
+    const results = getPrevReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 - CURRENT_TIME_MS,
     });
 
@@ -178,8 +181,8 @@ describe('getPrevBreadcrumb', () => {
   it('should return the crumb previous when a crumbs timestamp exactly matches', () => {
     const crumbs = createCrumbs();
     const exactCrumbTime = 8135;
-    const results = getPrevBreadcrumb({
-      crumbs,
+    const results = getPrevReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
@@ -189,8 +192,8 @@ describe('getPrevBreadcrumb', () => {
   it('should return the crumb if timestamps exactly match and allowExact is enabled', () => {
     const crumbs = createCrumbs();
     const exactCrumbTime = 8135;
-    const results = getPrevBreadcrumb({
-      crumbs,
+    const results = getPrevReplayEvent({
+      items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
       allowExact: true,
     });
