@@ -97,7 +97,7 @@ const mockReplay = {
     {
       type: 4,
       data: {
-        href: 'https://sourcemaps.io/',
+        href: 'http://localhost:3000/',
         width: 1536,
         height: 722,
       },
@@ -125,7 +125,7 @@ const mockReplay = {
   spans: [
     {
       op: 'navigation.navigate',
-      description: 'https://sourcemaps.io/',
+      description: 'http://localhost:3000/',
       startTimestamp: 1663847686.6915,
       endTimestamp: 1663847749.2882,
       data: {
@@ -135,7 +135,7 @@ const mockReplay = {
     },
     {
       op: 'navigation.navigate',
-      description: 'https://sourcemaps.io/',
+      description: 'http://localhost:3000/',
       startTimestamp: 1663847686.6915,
       endTimestamp: 1663847749.2882,
       data: {
