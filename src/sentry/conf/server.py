@@ -1141,11 +1141,11 @@ SENTRY_FEATURES = {
     # Enable Sentry Functions
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
-    "organizations:session-replay": True,
+    "organizations:session-replay": False,
     # Enable experimental session replay SDK for recording on Sentry
-    "organizations:session-replay-sdk": True,
+    "organizations:session-replay-sdk": False,
     # Enable experimental session replay UI
-    "organizations:session-replay-ui": True,
+    "organizations:session-replay-ui": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
