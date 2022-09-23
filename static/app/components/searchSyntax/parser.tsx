@@ -633,6 +633,16 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value']
   ) => {
+    if (this.config.additionalSearchValidator) {
+      const additionalSearchValidatorResult = this.config.additionalSearchValidator(
+        filter,
+        key,
+        value
+      );
+      if (additionalSearchValidatorResult) {
+        return additionalSearchValidatorResult;
+      }
+    }
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
     if (filter === FilterType.Text) {
@@ -779,6 +789,12 @@ export type ParseResult = Array<
   | TokenResult<Token.Spaces>
 >;
 
+export type SearchValidationFunction = <T extends FilterType>(
+  filter: T,
+  key: FilterMap[T]['key'],
+  value: FilterMap[T]['value']
+) => InvalidFilter | null;
+
 /**
  * Configures behavior of search parsing
  */
@@ -816,6 +832,7 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  additionalSearchValidator?: SearchValidationFunction;
 };
 
 const defaultConfig: SearchConfig = {
@@ -876,13 +893,16 @@ export function parseSearch(
 ): ParseResult | null {
   // Merge additionalConfig with defaultConfig
   const config = additionalConfig
-    ? Object.keys(defaultConfig).reduce((configAccumulator, key) => {
-        configAccumulator[key] =
-          typeof defaultConfig[key] === 'object'
-            ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
-            : defaultConfig[key];
-        return configAccumulator;
-      }, {})
+    ? {
+        ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
+          configAccumulator[key] =
+            typeof defaultConfig[key] === 'object'
+              ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
+              : defaultConfig[key];
+          return configAccumulator;
+        }, {}),
+        additionalSearchValidator: additionalConfig.additionalSearchValidator,
+      }
     : defaultConfig;
 
   try {

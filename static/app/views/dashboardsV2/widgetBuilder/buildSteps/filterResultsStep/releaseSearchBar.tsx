@@ -4,6 +4,7 @@ import memoize from 'lodash/memoize';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
+import {SearchValidationFunction} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -67,6 +68,13 @@ export function ReleaseSearchBar({
     );
   }
 
+  const releaseSearchValidator: SearchValidationFunction = (_filter, key, _value) => {
+    if (!['release', 'project', 'environment'].includes(key.text)) {
+      return {reason: 'Search key must be release, project, or environment.'};
+    }
+    return null;
+  };
+
   const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
@@ -94,6 +102,7 @@ export function ReleaseSearchBar({
           query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}
           hasRecentSearches
+          searchValidator={releaseSearchValidator}
         />
       )}
     </ClassNames>

@@ -18,6 +18,7 @@ import {
   ParseResult,
   parseSearch,
   SearchConfig,
+  SearchValidationFunction,
   TermOperator,
   Token,
   TokenResult,
@@ -66,6 +67,7 @@ import {
   filterKeysFromQuery,
   generateOperatorEntryMap,
   getDateTagAutocompleteGroups,
+  getSearchConfigFromCustomPerformanceMetrics,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
@@ -83,42 +85,6 @@ const ACTION_OVERFLOW_WIDTH = 400;
  * Actions are moved to the overflow dropdown after each pixel step is reached.
  */
 const ACTION_OVERFLOW_STEPS = 75;
-
-const getSearchConfigFromCustomPerformanceMetrics = (
-  customPerformanceMetrics?: CustomMeasurementCollection
-): Partial<SearchConfig> => {
-  const searchConfigMap: Record<string, string[]> = {
-    sizeKeys: [],
-    durationKeys: [],
-    percentageKeys: [],
-    numericKeys: [],
-  };
-  if (customPerformanceMetrics) {
-    Object.keys(customPerformanceMetrics).forEach(metricName => {
-      const {fieldType} = customPerformanceMetrics[metricName];
-      switch (fieldType) {
-        case 'size':
-          searchConfigMap.sizeKeys.push(metricName);
-          break;
-        case 'duration':
-          searchConfigMap.durationKeys.push(metricName);
-          break;
-        case 'percentage':
-          searchConfigMap.percentageKeys.push(metricName);
-          break;
-        default:
-          searchConfigMap.numericKeys.push(metricName);
-      }
-    });
-  }
-  const searchConfig = {
-    sizeKeys: new Set(searchConfigMap.sizeKeys),
-    durationKeys: new Set(searchConfigMap.durationKeys),
-    percentageKeys: new Set(searchConfigMap.percentageKeys),
-    numericKeys: new Set(searchConfigMap.numericKeys),
-  };
-  return searchConfig;
-};
 
 const generateOpAutocompleteGroup = (
   validOps: readonly TermOperator[],
@@ -282,6 +248,10 @@ type Props = WithRouterProps & {
    */
   searchSource?: string;
   /**
+   * Custom SearchValidationFunction for additional search validation needed not provided by default
+   */
+  searchValidator?: SearchValidationFunction;
+  /**
    * Type of supported tags
    */
   supportedTagType?: ItemType;
@@ -356,7 +326,10 @@ class SmartSearchBar extends Component<Props, State> {
   state: State = {
     query: this.initialQuery,
     showDropdown: false,
-    parsedQuery: parseSearch(this.initialQuery),
+    parsedQuery: parseSearch(this.initialQuery, {
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      additionalSearchValidator: this.props.searchValidator,
+    }),
     searchTerm: '',
     searchGroups: [],
     flatSearchItems: [],
@@ -405,8 +378,10 @@ class SmartSearchBar extends Component<Props, State> {
   }
 
   makeQueryState(query: string) {
-    const additionalConfig: Partial<SearchConfig> =
-      getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics);
+    const additionalConfig: Partial<SearchConfig> = {
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      additionalSearchValidator: this.props.searchValidator,
+    };
     return {
       query,
       parsedQuery: parseSearch(query, additionalConfig),
@@ -1755,6 +1730,8 @@ class SmartSearchBar extends Component<Props, State> {
       inlineLabel,
       maxQueryLength,
       maxMenuHeight,
+      customPerformanceMetrics,
+      searchValidator,
     } = this.props;
 
     const {
@@ -1891,6 +1868,8 @@ class SmartSearchBar extends Component<Props, State> {
             runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
+            customPerformanceMetrics={customPerformanceMetrics}
+            searchValidator={searchValidator}
           />
         )}
       </Container>

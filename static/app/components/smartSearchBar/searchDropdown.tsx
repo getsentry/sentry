@@ -6,15 +6,21 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import {
+  parseSearch,
+  SearchConfig,
+  SearchValidationFunction,
+} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
+import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
@@ -27,9 +33,11 @@ type Props = {
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   className?: string;
+  customPerformanceMetrics?: CustomMeasurementCollection;
   maxMenuHeight?: number;
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
+  searchValidator?: SearchValidationFunction;
   visibleShortcuts?: Shortcut[];
 };
 
@@ -43,6 +51,8 @@ const SearchDropdown = ({
   onIconClick,
   searchSubstring = '',
   onClick = () => {},
+  customPerformanceMetrics,
+  searchValidator,
 }: Props) => (
   <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
     {loading ? (
@@ -66,6 +76,12 @@ const SearchDropdown = ({
                     searchSubstring={searchSubstring}
                     onClick={onClick}
                     onIconClick={onIconClick}
+                    additionalSearchConfig={{
+                      ...getSearchConfigFromCustomPerformanceMetrics(
+                        customPerformanceMetrics
+                      ),
+                      additionalSearchValidator: searchValidator,
+                    }}
                   />
                 ))}
               {isEmpty && <Info>{t('No items found')}</Info>}
@@ -257,6 +273,7 @@ type DropdownItemProps = {
   item: SearchItem;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
+  additionalSearchConfig?: Partial<SearchConfig>;
   isChild?: boolean;
   onIconClick?: any;
 };
@@ -267,12 +284,13 @@ const DropdownItem = ({
   searchSubstring,
   onClick,
   onIconClick,
+  additionalSearchConfig,
 }: DropdownItemProps) => {
   const isDisabled = item.value === null;
 
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
-    children = <QueryItem item={item} />;
+    children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
   } else if (item.type === ItemType.INVALID_TAG) {
     children = (
       <Invalid>
@@ -340,6 +358,7 @@ const DropdownItem = ({
             onClick={onClick}
             searchSubstring={searchSubstring}
             isChild
+            additionalSearchConfig={additionalSearchConfig}
           />
         ))}
     </Fragment>
@@ -375,14 +394,17 @@ const DropdownDocumentation = ({
   return <Documentation>{documentation}</Documentation>;
 };
 
-type QueryItemProps = {item: SearchItem};
+type QueryItemProps = {
+  item: SearchItem;
+  additionalSearchConfig?: Partial<SearchConfig>;
+};
 
-const QueryItem = ({item}: QueryItemProps) => {
+const QueryItem = ({item, additionalSearchConfig}: QueryItemProps) => {
   if (!item.value) {
     return null;
   }
 
-  const parsedQuery = parseSearch(item.value);
+  const parsedQuery = parseSearch(item.value, additionalSearchConfig);
 
   if (!parsedQuery) {
     return null;
