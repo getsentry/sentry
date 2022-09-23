@@ -508,6 +508,7 @@ class QueryBuilder:
                 equations,
                 stripped_columns,
                 **self.equation_config,
+                custom_measurements=self.get_custom_measurement_names_set(),
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
@@ -867,6 +868,9 @@ class QueryBuilder:
             sentry_sdk.capture_exception(error)
             return []
         return result
+
+    def get_custom_measurement_names_set(self) -> Set[str]:
+        return {measurement["name"] for measurement in self.custom_measurement_map}
 
     def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
