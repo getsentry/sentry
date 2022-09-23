@@ -178,7 +178,7 @@ def _symbolicate(
         try:
             return list(
                 symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
-                    "stacktraces", []
+                    "stacktraces", stacktraces
                 )
             )
         except RetrySymbolication as e:
@@ -197,7 +197,8 @@ def _symbolicate(
         except Exception as e:
             sentry_sdk.capture_exception(e)
             break
-    return []
+    # returns the unsymbolicated stacktraces to avoid errors later
+    return stacktraces
 
 
 @metrics.wraps("process_profile.symbolicate.process")
