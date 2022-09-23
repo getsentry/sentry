@@ -191,7 +191,8 @@ const render: typeof baseRender = children => {
   return baseRender(
     <OrganizationContext.Provider value={TestStubs.Organization()}>
       {children}
-    </OrganizationContext.Provider>
+    </OrganizationContext.Provider>,
+    {context: TestStubs.routerContext()}
   );
 };
 
@@ -243,8 +244,7 @@ describe('ReplayContent', () => {
         orgSlug={mockOrgSlug}
         replaySlug={mockReplaySlug}
         event={mockEvent}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     const detailButton = screen.getByTestId('replay-details-button');
