@@ -9,6 +9,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
+import ViewIssueLink from 'sentry/views/replays/detail/console/viewIssueLink';
 
 const ICONS = {
   error: <IconClose isCircled size="xs" />,
@@ -68,6 +69,7 @@ function ConsoleMessage({
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
+        <ViewIssueLink breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level} {...timeHandlers}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
@@ -155,6 +157,8 @@ const Message = styled(Common)`
   padding: ${space(0.25)} 0;
   white-space: pre-wrap;
   word-break: break-word;
+  display: flex;
+  justify-content: space-between;
 `;
 
 export default ConsoleMessage;
