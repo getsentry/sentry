@@ -13,7 +13,6 @@ class IntegrationControlMiddleware:
 
     def __init__(self, get_response):
         self.get_response = get_response
-        self.silo_mode = SiloMode.get_current_mode()
 
     def _identify_provider(self, request) -> str:
         """
@@ -29,14 +28,13 @@ class IntegrationControlMiddleware:
         """
         Determines whether this middleware will operate or just pass the request along.
         """
-        is_correct_silo = self.silo_mode == SiloMode.CONTROL
+        is_correct_silo = SiloMode.get_current_mode() == SiloMode.CONTROL
         is_external = request.path.startswith(self.webhook_prefix)
         return is_correct_silo and is_external
 
     def __call__(self, request):
         if not self._should_operate(request):
             return self.get_response(request)
-
         provider = self._identify_provider(request)
         parser = self.integration_parsers.get(provider)(
             request=request,
