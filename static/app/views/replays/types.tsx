@@ -136,12 +136,9 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
-export type ReplayCrumb = RawCrumb & {
-  /**
-   * Replay crumbs are unprocessed and come in as unix timestamp in seconds
-   */
-  timestamp: number;
-};
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+
+export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
 
 /**
  * This is a result of a custom discover query
