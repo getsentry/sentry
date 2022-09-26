@@ -253,7 +253,7 @@ class GitlabWebhookEndpoint(View):
             }
         except Integration.DoesNotExist as e:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
-            extra["reason"] = "There is not integration that matches your organization."
+            extra["reason"] = "There is no integration that matches your organization."
             capture_exception(e)
             return HttpResponse(status=400, reason=extra["reason"])
 
