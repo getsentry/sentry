@@ -93,6 +93,7 @@ from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupCategory
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
@@ -504,6 +505,9 @@ class EventManager:
             )
             discard_event(job, attachments)
             raise
+
+        if not group_info:
+            return job["event"]
 
         job["event"].group = group_info.group
 
@@ -1342,6 +1346,15 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
+    if group.issue_category != GroupCategory.ERROR:
+        logger.info(
+            "event_manager.category_mismatch",
+            extra={
+                "issue_category": group.issue_category,
+                "event_type": "error",
+            },
+        )
+        return
 
     is_new = False
 
@@ -2066,7 +2079,6 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                 metrics.incr("performance.performance_issue.dropped", _dropped_group_hash_count)
 
                 for new_grouphash in list(new_grouphashes)[: granted_quota.granted]:
-
                     # GROUP DOES NOT EXIST
                     with sentry_sdk.start_span(
                         op="event_manager.create_performance_group_transaction"
@@ -2110,6 +2122,15 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                 # GROUP EXISTS
                 for existing_grouphash in existing_grouphashes:
                     group = existing_grouphash.group
+                    if group.issue_category != GroupCategory.PERFORMANCE:
+                        logger.info(
+                            "event_manager.category_mismatch",
+                            extra={
+                                "issue_category": group.issue_category,
+                                "event_type": "performance",
+                            },
+                        )
+                        continue
 
                     is_new = False
 
