@@ -9,6 +9,7 @@ import responses
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
+from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
@@ -61,6 +62,7 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUP
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
@@ -1818,6 +1820,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         tags = dict(event.tags)
         assert tags["server_name"] == "foo.com"
 
+    @freeze_time()
     def test_save_issueless_event(self):
         manager = EventManager(
             make_event(
@@ -1831,8 +1834,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                     }
                 },
                 spans=[],
-                timestamp="2019-06-14T14:01:40Z",
-                start_timestamp="2019-06-14T14:01:40Z",
+                timestamp=iso_format(before_now(minutes=5)),
+                start_timestamp=iso_format(before_now(minutes=5)),
                 type="transaction",
                 platform="python",
             )
@@ -1845,9 +1848,10 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             tsdb.get_sums(tsdb.models.project, [self.project.id], event.datetime, event.datetime)[
                 self.project.id
             ]
-            == 1
+            == 0
         )
 
+    @freeze_time()
     def test_fingerprint_ignored(self):
         manager1 = EventManager(make_event(event_id="a" * 32, fingerprint="fingerprint1"))
         event1 = manager1.save(self.project.id)
@@ -1866,8 +1870,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                     }
                 },
                 spans=[],
-                timestamp="2019-06-14T14:01:40Z",
-                start_timestamp="2019-06-14T14:01:40Z",
+                timestamp=iso_format(before_now(minutes=1)),
+                start_timestamp=iso_format(before_now(minutes=1)),
                 type="transaction",
                 platform="python",
             )
@@ -1880,7 +1884,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             tsdb.get_sums(tsdb.models.project, [self.project.id], event1.datetime, event1.datetime)[
                 self.project.id
             ]
-            == 2
+            == 1
         )
 
         assert (
