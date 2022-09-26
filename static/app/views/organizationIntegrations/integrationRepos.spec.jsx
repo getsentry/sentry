@@ -111,6 +111,28 @@ describe('IntegrationRepos', function () {
       expect(addRepo).toHaveBeenCalled();
       expect(wrapper.find('RepoOption')).toHaveLength(0);
     });
+
+    it('does not disable add repo for members', function () {
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/integrations/1/repos/`,
+        body: {
+          repos: [{identifier: 'example/repo-name', name: 'repo-name'}],
+        },
+      });
+      Client.addMockResponse({
+        url: `/organizations/${org.slug}/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      const wrapper = mountWithTheme(
+        <IntegrationRepos
+          integration={integration}
+          organization={TestStubs.Organization({access: []})}
+        />
+      );
+      expect(wrapper.find('DropdownButton').props().disabled).toBeFalsy();
+    });
   });
 
   describe('migratable repo', function () {

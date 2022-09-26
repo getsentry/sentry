@@ -29,9 +29,6 @@ describe('IntegrationCodeMappings', function () {
   ProjectsStore.loadInitialData(projects);
 
   const org = TestStubs.Organization();
-  const invalidOrg = TestStubs.Organization({
-    access: [],
-  });
   const integration = TestStubs.GitHubIntegration();
   const repos = [
     TestStubs.Repository({
@@ -99,28 +96,6 @@ describe('IntegrationCodeMappings', function () {
     modal.update();
 
     expect(modal.find('input[name="stackRoot"]')).toHaveLength(1);
-  });
-
-  it('requires permissions to click', async () => {
-    const invalidContext = TestStubs.routerContext([{organization: invalidOrg}]);
-    wrapper = mountWithTheme(
-      <IntegrationCodeMappings organization={invalidOrg} integration={integration} />,
-      invalidContext
-    );
-    const modal = await mountGlobalModal(invalidContext);
-
-    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
-
-    const addMappingButton = wrapper
-      .find('Button[data-test-id="add-mapping-button"]')
-      .first();
-    expect(addMappingButton.prop('disabled')).toBe(true);
-    addMappingButton.simulate('click');
-
-    await tick();
-    modal.update();
-
-    expect(modal.find('input[name="stackRoot"]')).toHaveLength(0);
   });
 
   it('create new config', async () => {
