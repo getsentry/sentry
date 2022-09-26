@@ -52,6 +52,7 @@ def relay_server_setup(live_server, tmpdir_factory):
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
     config_path = tmpdir_factory.mktemp(prefix)
+    config_path.chmod(0o755)
     config_path = str(config_path)
 
     parsed_live_server_url = urlparse(live_server.url)
