@@ -415,13 +415,16 @@ const EventEntries = ({
           }
         />
       )}
-      {!isShare && (
-        <MiniReplayView
+      {!isShare && hasEventAttachmentsFeature && (
+        <RRWebIntegration
           event={event}
-          orgFeatures={orgFeatures}
-          orgSlug={orgSlug}
-          projectSlug={projectSlug}
-          replayId={replayId}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          renderer={children => (
+            <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+              {children}
+            </StyledReplayEventDataSection>
+          )}
         />
       )}
     </div>
