@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Callable, Dict, Mapping, Optional
+from typing import Callable, Dict, Mapping, Optional, Sequence
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.types import Message, Partition, Position
@@ -11,7 +12,6 @@ from django.conf import settings
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
 
 
@@ -22,23 +22,30 @@ def get_metrics_billing_consumer(
     **options,
 ) -> StreamProcessor[KafkaPayload]:
     # TODO: support force_topic and force_cluster
-    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+
+    bootstrap_servers = _get_bootstrap_servers(topic)
 
     return StreamProcessor(
         consumer=KafkaConsumer(
-            get_kafka_consumer_cluster_options(
-                cluster_name=cluster_name,
-                override_params={
-                    "enable.auto.commit": False,
-                    "enable.auto.offset.store": False,
-                    "auto.offset.reset": auto_offset_reset,
-                    "group.id": group_id,
-                },
-            )
+            build_kafka_consumer_configuration(
+                default_config={},
+                group_id=group_id,
+                auto_offset_reset=auto_offset_reset,
+                bootstrap_servers=bootstrap_servers,
+            ),
         ),
         topic=Topic(topic),
         processor_factory=BillingMetricsConsumerStrategyFactory(),
     )
+
+
+def _get_bootstrap_servers(kafka_topic: str) -> Sequence[str]:
+    cluster_name = settings.KAFKA_TOPICS[kafka_topic]["cluster"]
+    options = settings.KAFKA_CLUSTERS[cluster_name]
+    servers = options["common"]["bootstrap.servers"]
+    if isinstance(servers, (list, tuple)):
+        return servers
+    return [servers]
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
