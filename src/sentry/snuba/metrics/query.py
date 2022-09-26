@@ -36,6 +36,11 @@ class MetricField:
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
+        # Validate that it is a valid MRI format
+        parsed_mri = parse_mri(self.metric_mri)
+        if parsed_mri is None:
+            raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
+
         # Validates that the MRI requested is an MRI the metrics layer exposes
         metric_name = get_public_name_from_mri(self.metric_mri)
         if not self.alias:
@@ -103,13 +108,13 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def _use_case_id(metric_mri: str) -> UseCaseKey:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is not None:
-            if parsed_mri.namespace == "transactions":
-                return UseCaseKey.PERFORMANCE
-            elif parsed_mri.namespace == "sessions":
-                return UseCaseKey.RELEASE_HEALTH
-            raise ValueError("Can't find correct use_case_id based on metric MRI")
-        raise ValueError("Can't parse metric MRI")
+        assert parsed_mri is not None
+
+        if parsed_mri.namespace == "transactions":
+            return UseCaseKey.PERFORMANCE
+        elif parsed_mri.namespace == "sessions":
+            return UseCaseKey.RELEASE_HEALTH
+        raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
