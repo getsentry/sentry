@@ -51,6 +51,7 @@ describe('ProfilingOnboarding', function () {
   });
 
   it('goes to next step and previous step if project is supported', async () => {
+    const project = TestStubs.Project({name: 'iOS Project'});
     ProjectsStore.loadInitialData([
       TestStubs.Project({name: 'iOS Project', platform: 'apple-ios'}),
     ]);
@@ -67,7 +68,7 @@ describe('ProfilingOnboarding', function () {
     render(
       <ProfilingOnboardingModal organization={organization} {...MockRenderModalProps} />
     );
-    selectProject(TestStubs.Project({name: 'iOS Project'}));
+    selectProject(project);
     await act(async () => {
       await tick();
       userEvent.click(screen.getAllByText('Next')[0]);

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -17,9 +17,9 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, UpdateSdkSuggestion} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
-import {Project, ProjectKey, ProjectSdkUpdates} from 'sentry/types/project';
+import {Project, ProjectSdkUpdates} from 'sentry/types/project';
 import {semverCompare} from 'sentry/utils/profiling/units/versions';
-import useApi from 'sentry/utils/useApi';
+import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 import useProjects from 'sentry/utils/useProjects';
 import {useProjectSdkUpdates} from 'sentry/utils/useProjectSdkUpdates';
 
@@ -250,38 +250,17 @@ function usePublicDSN({
   organization,
   project,
 }: {
-  organization: Organization | null | undefined;
-  project: Project | null | undefined;
+  organization: Organization | null;
+  project: Project | null;
 }) {
-  const api = useApi();
-  const [response, setResponse] = useState<RequestState<string | null>>({
-    type: 'initial',
-  });
-  useEffect(() => {
-    if (!organization || !project) {
-      return;
-    }
-    setResponse(v => ({...v, type: 'loading', data: null}));
-    const request: Promise<ProjectKey[]> = api.requestPromise(
-      `/projects/${organization.slug}/${project.slug}/keys/`
-    );
-
-    request
-      .then(data => {
-        setResponse({
-          type: 'resolved',
-          data: data[0]?.dsn.public ?? null,
-        });
-      })
-      .catch(error =>
-        setResponse({
-          type: 'errored',
-          error,
-        })
-      );
-  }, [organization, project, api]);
-
-  return response;
+  const response = useProjectKeys({organization, project});
+  if (response.type !== 'resolved') {
+    return response;
+  }
+  return {
+    ...response,
+    data: response.data?.[0]?.dsn.public ?? null,
+  };
 }
 
 function SetupPerformanceMonitoringStep({href}: {href: string}) {
