@@ -6,6 +6,7 @@ import pick from 'lodash/pick';
 import {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import EventSearchBar from 'sentry/components/events/searchBar';
 import EventsTable from 'sentry/components/eventsTable/eventsTable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,11 +16,13 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import {Group, IssueCategory, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import PerfEventsTable from './perfEventsTable';
 
 type Props = {
   api: Client;
@@ -33,6 +36,7 @@ type State = {
   loading: boolean;
   pageLinks: string;
   query: string;
+  renderPerfIssueEvents: boolean;
 };
 
 class GroupEvents extends Component<Props, State> {
@@ -40,12 +44,18 @@ class GroupEvents extends Component<Props, State> {
     super(props);
 
     const queryParams = this.props.location.query;
+    const renderPerfIssueEvents =
+      !!this.props.group.id &&
+      this.props.group.issueCategory === IssueCategory.PERFORMANCE &&
+      this.props.organization.features.includes('performance-issues-all-events-tab');
+
     this.state = {
       eventList: [],
       loading: true,
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
+      renderPerfIssueEvents,
     };
   }
 
@@ -125,6 +135,41 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
+  renderPerfIssueEvents() {
+    return (
+      <PerfEventsTable
+        issueId={this.props.group.id}
+        location={this.props.location}
+        organization={this.props.organization}
+      />
+    );
+  }
+
+  renderSearchBar() {
+    const {renderPerfIssueEvents} = this.state;
+
+    if (renderPerfIssueEvents) {
+      return (
+        <EventSearchBar
+          organization={this.props.organization}
+          defaultQuery=""
+          onSearch={this.handleSearch}
+          excludeEnvironment
+          query={this.state.query}
+          hasRecentSearches={false}
+        />
+      );
+    }
+    return (
+      <SearchBar
+        defaultQuery=""
+        placeholder={t('Search events by id, message, or tags')}
+        query={this.state.query}
+        onSearch={this.handleSearch}
+      />
+    );
+  }
+
   renderResults() {
     const {group, params} = this.props;
     const tagList = group.tags.filter(tag => tag.key !== 'user') || [];
@@ -141,8 +186,13 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderBody() {
+    const {renderPerfIssueEvents} = this.state;
+
     let body: React.ReactNode;
 
+    if (renderPerfIssueEvents) {
+      return this.renderPerfIssueEvents();
+    }
     if (this.state.loading) {
       body = <LoadingIndicator />;
     } else if (this.state.error) {
@@ -155,7 +205,11 @@ class GroupEvents extends Component<Props, State> {
       body = this.renderEmpty();
     }
 
-    return body;
+    return (
+      <Panel className="event-list">
+        <PanelBody>{body}</PanelBody>
+      </Panel>
+    );
   }
 
   render() {
@@ -165,17 +219,9 @@ class GroupEvents extends Component<Props, State> {
           <Wrapper>
             <FilterSection>
               <EnvironmentPageFilter />
-              <SearchBar
-                defaultQuery=""
-                placeholder={t('Search events by id, message, or tags')}
-                query={this.state.query}
-                onSearch={this.handleSearch}
-              />
+              {this.renderSearchBar()}
             </FilterSection>
-
-            <Panel className="event-list">
-              <PanelBody>{this.renderBody()}</PanelBody>
-            </Panel>
+            {this.renderBody()}
             <Pagination pageLinks={this.state.pageLinks} />
           </Wrapper>
         </Layout.Main>

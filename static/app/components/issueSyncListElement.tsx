@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
@@ -7,10 +7,10 @@ import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
+  children?: React.ReactNode;
   disabled?: boolean;
   externalIssueDisplayName?: string | null;
   externalIssueId?: string | null;
@@ -24,30 +24,34 @@ type Props = {
   showHoverCard?: boolean;
 };
 
-class IssueSyncListElement extends Component<Props> {
-  isLinked(): boolean {
-    return !!(this.props.externalIssueLink && this.props.externalIssueId);
-  }
+function IssueSyncListElement({
+  children,
+  disabled,
+  externalIssueDisplayName,
+  externalIssueId,
+  externalIssueKey,
+  externalIssueLink,
+  hoverCardBody,
+  hoverCardHeader,
+  integrationType,
+  onClose,
+  onOpen,
+  showHoverCard,
+}: Props) {
+  const isLinked = !!(externalIssueLink && externalIssueId);
 
-  handleDelete = (): void => {
-    callIfFunction(this.props.onClose, this.props.externalIssueId);
-  };
-
-  handleIconClick = () => {
-    if (this.isLinked()) {
-      this.handleDelete();
-    } else if (this.props.onOpen) {
-      this.props.onOpen();
+  const handleIconClick = () => {
+    if (isLinked) {
+      onClose?.(externalIssueId);
+    } else {
+      onOpen?.();
     }
   };
 
-  getIcon(): React.ReactNode {
-    return getIntegrationIcon(this.props.integrationType);
-  }
+  const icon = getIntegrationIcon(integrationType);
 
-  getPrettyName(): string {
-    const type = this.props.integrationType;
-    switch (type) {
+  const prettyName = useMemo(() => {
+    switch (integrationType) {
       case 'gitlab':
         return 'GitLab';
       case 'github':
@@ -59,73 +63,58 @@ class IssueSyncListElement extends Component<Props> {
       case 'jira_server':
         return 'Jira Server';
       default:
-        return capitalize(type);
+        return capitalize(integrationType);
     }
-  }
+  }, [integrationType]);
 
-  getLink(): React.ReactElement {
-    return (
-      <IntegrationLink
-        href={this.props.externalIssueLink || undefined}
-        onClick={!this.isLinked() ? this.props.onOpen : undefined}
-        disabled={this.props.disabled}
-      >
-        {this.getText()}
-      </IntegrationLink>
-    );
-  }
+  const text =
+    children || externalIssueDisplayName || externalIssueKey || `${prettyName} Issue`;
 
-  getText(): React.ReactNode {
-    if (this.props.children) {
-      return this.props.children;
-    }
-    if (this.props.externalIssueDisplayName) {
-      return this.props.externalIssueDisplayName;
-    }
-    if (this.props.externalIssueKey) {
-      return this.props.externalIssueKey;
-    }
+  const link = (
+    <IntegrationLink
+      href={externalIssueLink || undefined}
+      onClick={!isLinked ? onOpen : undefined}
+      disabled={disabled}
+    >
+      {text}
+    </IntegrationLink>
+  );
 
-    return `${this.getPrettyName()} Issue`;
-  }
+  return (
+    <IssueSyncListElementContainer>
+      <ClassNames>
+        {({css}) => (
+          <StyledHovercard
+            containerClassName={css`
+              display: flex;
+              align-items: center;
+              min-width: 0; /* flex-box overflow workaround */
 
-  render() {
-    return (
-      <IssueSyncListElementContainer>
-        <ClassNames>
-          {({css}) => (
-            <StyledHovercard
-              containerClassName={css`
-                display: flex;
-                align-items: center;
-                min-width: 0; /* flex-box overflow workaround */
-
-                svg {
-                  flex-shrink: 0;
-                }
-              `}
-              header={this.props.hoverCardHeader}
-              body={this.props.hoverCardBody}
-              bodyClassName="issue-list-body"
-              forceVisible={this.props.showHoverCard}
-            >
-              {this.getIcon()}
-              {this.getLink()}
-            </StyledHovercard>
-          )}
-        </ClassNames>
-        {(this.props.onClose || this.props.onOpen) && (
-          <StyledIcon
-            role="button"
-            aria-label={this.isLinked() ? t('Close') : t('Add')}
-            onClick={this.handleIconClick}
+              svg {
+                flex-shrink: 0;
+              }
+            `}
+            header={hoverCardHeader}
+            body={hoverCardBody}
+            bodyClassName="issue-list-body"
+            forceVisible={showHoverCard}
           >
-            {this.isLinked() ? <IconClose /> : this.props.onOpen ? <IconAdd /> : null}
-          </StyledIcon>
+            {icon}
+            {link}
+          </StyledHovercard>
         )}
-      </IssueSyncListElementContainer>
-    );
-  }
+      </ClassNames>
+      {(onClose || onOpen) && (
+        <StyledIcon
+          role="button"
+          aria-label={isLinked ? t('Close') : t('Add')}
+          onClick={handleIconClick}
+        >
+          {isLinked ? <IconClose /> : onOpen ? <IconAdd /> : null}
+        </StyledIcon>
+      )}
+    </IssueSyncListElementContainer>
+  );
 }
 
 export const IssueSyncListElementContainer = styled('div')`
