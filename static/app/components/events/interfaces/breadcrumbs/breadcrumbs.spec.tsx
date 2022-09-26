@@ -4,11 +4,36 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import ReplayContent from 'sentry/components/events/eventReplay/replayContent';
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+
+const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
+jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
+  return {
+    __esModule: true,
+    default: jest.fn(() => {
+      return {
+        replay: mockReplay,
+        fetching: false,
+      };
+    }),
+  };
+});
 
 function TestComponent({
   organization,
@@ -205,6 +230,26 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('crumb')).toBeInTheDocument();
 
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
+    });
+
+    it('should render passed in replay', function () {
+      render(
+        <TestComponent organization={organization} router={router}>
+          <Breadcrumbs
+            {...props}
+            replay={
+              <ReplayContent
+                orgSlug="test-org"
+                replaySlug="test-project:test-replay"
+                event={TestStubs.Event()}
+              />
+            }
+          />
+        </TestComponent>
+      );
+
+      expect(screen.getByText('Replays')).toBeVisible();
+      expect(screen.getByTestId('player-container')).toBeInTheDocument();
     });
   });
 });

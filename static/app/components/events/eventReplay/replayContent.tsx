@@ -69,6 +69,7 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
           showAddressBar={false}
           controlBarActions={
             <Button
+              data-test-id="view-replay-button"
               to={{
                 pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
                 query: {
