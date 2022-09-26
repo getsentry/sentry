@@ -42,13 +42,14 @@ def process_profile(
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
+    event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     try:
         if _should_symbolicate(profile):
             modules, stacktraces = _prepare_frames_from_profile(profile)
             stacktraces = _symbolicate(
                 project=project,
-                profile_id=profile["profile_id"],
+                profile_id=event_id,
                 modules=modules,
                 stacktraces=stacktraces,
             )
@@ -203,7 +204,7 @@ def _symbolicate(
 
 @metrics.wraps("process_profile.symbolicate.process")
 def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> None:
-    if "version" in profile.get("profile", {}):
+    if "version" in profile:
         profile["profile"]["frames"] = stacktraces[0]["frames"]
         _process_symbolicator_results_for_sample(profile, stacktraces)
         return
@@ -336,6 +337,11 @@ def _track_outcome(
     if not project.flags.has_profiles:
         first_profile_received.send_robust(project=project, sender=Project)
 
+    if "transaction_id" in profile:
+        event_id = profile["transaction_id"]
+    else:
+        event_id = profile["event_id"]
+
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
@@ -343,7 +349,7 @@ def _track_outcome(
         outcome=outcome,
         reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
-        event_id=profile["transaction_id"],
+        event_id=event_id,
         category=DataCategory.PROFILE,
         quantity=1,
     )
