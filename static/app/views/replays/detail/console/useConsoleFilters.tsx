@@ -34,7 +34,9 @@ const FILTERS = {
     logLevel.length === 0 || logLevel.includes(item.level),
 
   searchTerm: (item: Item, searchTerm: string) =>
-    JSON.stringify(item.data).toLowerCase().includes(searchTerm),
+    JSON.stringify(item.data?.arguments || item.message)
+      .toLowerCase()
+      .includes(searchTerm),
 };
 
 function useConsoleFilters({breadcrumbs}: Options): Return {

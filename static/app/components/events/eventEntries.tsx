@@ -533,7 +533,12 @@ function MiniReplayView({
 
   if (replayId && hasSessionReplayFeature) {
     return (
-      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
+      <EventReplay
+        replayId={replayId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        event={event}
+      />
     );
   }
   if (hasEventAttachmentsFeature) {
