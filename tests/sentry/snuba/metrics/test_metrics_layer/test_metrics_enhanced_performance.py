@@ -377,21 +377,30 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
-    @freeze_time()
+    @freeze_time("2022-09-22 11:07:00")
     def test_alias_on_single_entity_derived_metrics(self):
+        """
+        We want to freeze time and self.now don't freezes when we decorate only function
+        it helps to reproduce flakiness. Also it's important to freeze it for :00 second,
+        otherwise you can't catch race condition and test will work.
+        """
+        now = timezone.now()
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
             (2.3, TransactionStatusTagValue.UNKNOWN.value),
             (0.5, TransactionStatusTagValue.ABORTED.value),
         ):
+
             self.store_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
-                timestamp=self.now.timestamp(),
+                # It's important that we store metric between now and now - 1 minute
+                # Note: now is not included
+                timestamp=(now - timedelta(seconds=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -406,8 +415,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=self.now - timedelta(minutes=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
