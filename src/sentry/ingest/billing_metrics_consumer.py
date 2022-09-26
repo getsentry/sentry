@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Dict, Mapping, Optional, Sequence
+from typing import Callable, Dict, Mapping, Optional, Sequence, Union
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -19,11 +19,11 @@ def get_metrics_billing_consumer(
     topic: str,
     group_id: str,
     auto_offset_reset: str,
+    force_topic: Union[str, None],
+    force_cluster: Union[str, None],
     **options,
 ) -> StreamProcessor[KafkaPayload]:
-    # TODO: support force_topic and force_cluster
-
-    bootstrap_servers = _get_bootstrap_servers(topic)
+    bootstrap_servers = _get_bootstrap_servers(topic, force_topic, force_cluster)
 
     return StreamProcessor(
         consumer=KafkaConsumer(
@@ -39,9 +39,13 @@ def get_metrics_billing_consumer(
     )
 
 
-def _get_bootstrap_servers(kafka_topic: str) -> Sequence[str]:
-    cluster_name = settings.KAFKA_TOPICS[kafka_topic]["cluster"]
-    options = settings.KAFKA_CLUSTERS[cluster_name]
+def _get_bootstrap_servers(
+    kafka_topic: str, force_topic: Union[str, None], force_cluster: Union[str, None]
+) -> Sequence[str]:
+    topic = force_topic or kafka_topic
+    cluster = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+
+    options = settings.KAFKA_CLUSTERS[cluster]
     servers = options["common"]["bootstrap.servers"]
     if isinstance(servers, (list, tuple)):
         return servers
