@@ -27,7 +27,7 @@ class Chunk extends Component<Props, State> {
     isLoading: false,
   };
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.syncPlugin();
   }
 
