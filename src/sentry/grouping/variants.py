@@ -75,7 +75,7 @@ class PerformanceProblemVariant(BaseVariant):
     """
 
     type = "performance-problem"
-    description = "performanced problem"
+    description = "performance problem"
     contributes = True
 
     def __init__(self, event_performance_problem):
