@@ -30,7 +30,8 @@ INTEGRATIONS_OF_INTEREST = [
     "django",
     "flask",
     "sqlalchemy",
-    "mongodb",  # This is a third-party integration
+    "Mongo",  # Node
+    "Postgres", # Node
 ]
 
 
