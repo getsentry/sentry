@@ -31,7 +31,7 @@ INTEGRATIONS_OF_INTEREST = [
     "flask",
     "sqlalchemy",
     "Mongo",  # Node
-    "Postgres", # Node
+    "Postgres",  # Node
 ]
 
 
@@ -1026,6 +1026,11 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
+
+    def _contains_complete_query(self, span: Span) -> bool:
+        # Remove the truncation check from the n_plus_one db detector.
+        query = span.get("description", None)
+        return bool(query)
 
 
 # Reports metrics and creates spans for detection
