@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {
   fireEvent,
   render,
@@ -263,7 +261,7 @@ describe('IssueListActions', function () {
           },
         });
       });
-
+      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
@@ -278,6 +276,7 @@ describe('IssueListActions', function () {
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
 
+      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent {...defaultProps} />);
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
@@ -315,6 +314,7 @@ describe('IssueListActions', function () {
         }
       });
 
+      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent />);
 
       // Resolve and ignore are supported
@@ -402,6 +402,7 @@ describe('IssueListActions', function () {
           </OrganizationContext.Provider>
         );
 
+        MockApiClient.warnOnMissingMocks();
         userEvent.click(screen.getByRole('checkbox'));
 
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));

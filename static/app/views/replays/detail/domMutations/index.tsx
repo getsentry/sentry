@@ -15,10 +15,13 @@ import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -37,6 +40,8 @@ const cache = new CellMeasurerCache({
 });
 
 function DomMutations({replay}: Props) {
+  const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const {currentTime} = useReplayContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   let listRef: ReactVirtualizedList | null = null;
 
@@ -48,7 +53,12 @@ function DomMutations({replay}: Props) {
     setSearchTerm,
   } = useDomFilters({actions});
 
-  const startTimestampMs = replay.getReplay().startedAt.getTime();
+  const currentDomMutation = getPrevReplayEvent({
+    items: items.map(mutation => mutation.crumb),
+    targetTimestampMs: startTimestampMs + currentTime,
+    allowEqual: true,
+    allowExact: true,
+  });
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -66,6 +76,9 @@ function DomMutations({replay}: Props) {
     const {html, crumb} = mutation;
     const {title} = getDetails(crumb);
 
+    const hasOccurred =
+      currentTime >= relativeTimeInMs(crumb.timestamp || '', startTimestampMs);
+
     return (
       <CellMeasurer
         cache={cache}
@@ -78,15 +91,16 @@ function DomMutations({replay}: Props) {
           onMouseEnter={() => handleMouseEnter(crumb)}
           onMouseLeave={() => handleMouseLeave(crumb)}
           style={style}
+          isCurrent={crumb.id === currentDomMutation?.id}
         >
-          <IconWrapper color={crumb.color}>
+          <IconWrapper color={crumb.color} hasOccurred={hasOccurred}>
             <BreadcrumbIcon type={crumb.type} />
           </IconWrapper>
           <MutationContent>
             <MutationDetailsContainer>
               <div>
                 <TitleContainer>
-                  <Title>{title}</Title>
+                  <Title hasOccurred={hasOccurred}>{title}</Title>
                 </TitleContainer>
                 <MutationMessage>{crumb.message}</MutationMessage>
               </div>
@@ -181,12 +195,48 @@ const MutationList = styled('ul')`
   margin-bottom: 0;
 `;
 
-const MutationListItem = styled('li')`
+const MutationContent = styled('div')`
+  overflow: hidden;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const MutationDetailsContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-grow: 1;
+`;
+
+/**
+ * Taken `from events/interfaces/.../breadcrumbs/types`
+ */
+const IconWrapper = styled('div')<
+  {hasOccurred?: boolean} & Required<Pick<SVGIconProps, 'color'>>
+>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: ${p => p.theme.white};
+  background: ${p => (p.hasOccurred ? p.theme[p.color] ?? p.color : p.theme.purple200)};
+  box-shadow: ${p => p.theme.dropShadowLightest};
+  z-index: 2;
+`;
+
+const MutationListItem = styled('li')<{isCurrent?: boolean}>`
   display: flex;
   gap: ${space(1)};
   flex-grow: 1;
   padding: ${space(1)} ${space(1.5)};
   position: relative;
+  border-bottom: 1px solid ${p => (p.isCurrent ? p.theme.purple300 : 'transparent')};
   &:hover {
     background-color: ${p => p.theme.backgroundSecondary};
   }
@@ -217,48 +267,15 @@ const MutationListItem = styled('li')`
   }
 `;
 
-const MutationContent = styled('div')`
-  overflow: hidden;
-  width: 100%;
-
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
-
-const MutationDetailsContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-grow: 1;
-`;
-
-/**
- * Taken `from events/interfaces/.../breadcrumbs/types`
- */
-const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: ${p => p.theme.white};
-  background: ${p => p.theme[p.color] ?? p.color};
-  box-shadow: ${p => p.theme.dropShadowLightest};
-  z-index: 2;
-`;
-
 const TitleContainer = styled('div')`
   display: flex;
   justify-content: space-between;
 `;
 
-const Title = styled('span')`
+const Title = styled('span')<{hasOccurred?: boolean}>`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
-  color: ${p => p.theme.gray400};
+  color: ${p => (p.hasOccurred ? p.theme.gray400 : p.theme.gray300)};
   font-weight: bold;
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
@@ -278,6 +295,7 @@ const MutationMessage = styled('p')`
 
 const CodeContainer = styled('div')`
   max-height: 400px;
+  max-width: 100%;
 `;
 
 export default DomMutations;
