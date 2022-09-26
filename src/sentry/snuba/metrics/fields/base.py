@@ -159,7 +159,6 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
         TransactionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
         return {
-            "c": EntityKey.GenericMetricsCounters,
             "d": EntityKey.GenericMetricsDistributions,
             "s": EntityKey.GenericMetricsSets,
         }[entity_prefix]
@@ -185,7 +184,6 @@ def _get_entity_of_metric_mri(
 
     if use_case_id == UseCaseKey.PERFORMANCE:
         metric_types = (
-            "generic_counter",
             "generic_set",
             "generic_distribution",
         )
