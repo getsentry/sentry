@@ -66,7 +66,8 @@ afterEach(() => {
         console.warn(err);
         continue;
       }
-      throw err;
+      // eslint-disable-next-line no-console
+      console.error(err);
     }
     Client.errors = {};
   }
