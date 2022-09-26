@@ -407,15 +407,15 @@ const EventEntries = ({
       {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
         <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
       )}
-      {!isShare &&
-        event.groupID &&
-        group?.issueCategory !== IssueCategory.PERFORMANCE && (
-          <EventGroupingInfo
-            projectId={projectSlug}
-            event={event}
-            showGroupingConfig={orgFeatures.includes('set-grouping-config')}
-          />
-        )}
+      {!isShare && event.groupID && (
+        <EventGroupingInfo
+          projectId={projectSlug}
+          event={event}
+          showGroupingConfig={
+            orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
+          }
+        />
+      )}
       {!isShare && (
         <MiniReplayView
           event={event}
@@ -533,7 +533,12 @@ function MiniReplayView({
 
   if (replayId && hasSessionReplayFeature) {
     return (
-      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
+      <EventReplay
+        replayId={replayId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        event={event}
+      />
     );
   }
   if (hasEventAttachmentsFeature) {

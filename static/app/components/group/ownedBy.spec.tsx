@@ -59,4 +59,26 @@ describe('Group > OwnedBy', () => {
     );
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
+
+  it('does not render suspect commit', () => {
+    const user = TestStubs.User();
+    MemberListStore.loadInitialData([user]);
+    const group = TestStubs.Group({
+      owners: [
+        {
+          date_added: new Date(),
+          owner: buildUserId(user.id),
+          type: 'suspectCommit',
+        },
+      ],
+    });
+    render(
+      <OwnedBy
+        group={group}
+        organization={TestStubs.Organization()}
+        project={TestStubs.Project()}
+      />
+    );
+    expect(screen.getByText('No-one')).toBeInTheDocument();
+  });
 });

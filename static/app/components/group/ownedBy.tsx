@@ -20,7 +20,9 @@ interface OwnedByProps {
 
 function OwnedBy({group, project, organization}: OwnedByProps) {
   const memberList = useLegacyStore(MemberListStore);
-  const owner = group.owners?.[0];
+  const owner = group.owners?.find(({type}) =>
+    ['codeowners', 'ownershipRule'].includes(type)
+  );
   let currentOwner: Actor | undefined;
 
   // converts a backend suggested owner to a suggested assignee

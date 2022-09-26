@@ -10,6 +10,7 @@ describe('TeamAlertsTriggered', () => {
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
     });
+    MockApiClient.warnOnMissingMocks();
     render(
       <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
     );

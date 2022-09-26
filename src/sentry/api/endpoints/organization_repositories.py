@@ -3,7 +3,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationIntegrationsLoosePermission,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -17,7 +20,7 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 @region_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationIntegrationsPermission,)
+    permission_classes = (OrganizationIntegrationsLoosePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
