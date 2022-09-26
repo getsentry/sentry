@@ -1,5 +1,4 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
 import {Item, useCollection} from '@react-stately/collections';
@@ -15,6 +14,7 @@ import space from 'sentry/styles/space';
 
 import {TabsContext} from './index';
 import {Tab} from './tab';
+import {tabsShouldForwardProp} from './utils';
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -201,10 +201,9 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = styled('ul', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'orientation',
-})<{orientation: Orientation}>`
+const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+  orientation: Orientation;
+}>`
   position: relative;
   display: grid;
   padding: 0;

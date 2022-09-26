@@ -1,5 +1,4 @@
 import {forwardRef} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useTab} from '@react-aria/tabs';
 import {mergeProps, useObjectRef} from '@react-aria/utils';
@@ -7,6 +6,8 @@ import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
 import space from 'sentry/styles/space';
+
+import {tabsShouldForwardProp} from './utils';
 
 interface TabProps {
   item: Node<any>;
@@ -53,10 +54,7 @@ function BaseTab(
 
 export const Tab = forwardRef(BaseTab);
 
-const TabWrap = styled('li', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'orientation',
-})<{
+const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   disabled: boolean;
   orientation: Orientation;
   overflowing: boolean;
