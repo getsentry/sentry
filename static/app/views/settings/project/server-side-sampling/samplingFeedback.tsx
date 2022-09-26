@@ -1,11 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import {TextField} from 'sentry/components/forms';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import Field from 'sentry/components/forms/field';
-import MultipleCheckboxField from 'sentry/components/forms/MultipleCheckboxField';
 import {RadioGroupRating} from 'sentry/components/radioGroupRating';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -17,31 +17,11 @@ enum SamplingUsageReason {
   OTHER = 'other',
 }
 
-const samplingUsageReasons = [
-  {
-    title: t('Reduce volume to stay within my quota'),
-    value: SamplingUsageReason.REDUCE_VOLUME_TO_STAY_WITHIN_QUOTA,
-    checked: false,
-  },
-  {title: t('Filter out noisy data'), value: 1, checked: false},
-  {title: t('Other'), value: SamplingUsageReason.OTHER, checked: false},
-];
-
 enum SampleByOption {
   TRANSACTION_NAME = 'transaction_name',
   CUSTOM_TAGS = 'custom_tags',
   OTHER = 'other',
 }
-
-const sampleByOptions = [
-  {
-    title: t('Transaction Name'),
-    value: SampleByOption.TRANSACTION_NAME,
-    checked: false,
-  },
-  {title: t('Custom Tags'), value: SampleByOption.CUSTOM_TAGS, checked: false},
-  {title: t('Other'), value: SampleByOption.OTHER, checked: false},
-];
 
 const featureNotAvailableRatingOptions = {
   0: {
@@ -63,25 +43,108 @@ const featureNotAvailableRatingOptions = {
   },
 };
 
+type Option = {
+  checked: boolean;
+  title: string;
+  value: string | number;
+};
+
 type InitialData = {
   additionalFeedback: string | null;
   feelingIfFeatureNotAvailable: number | undefined;
-  sampleByOptions: typeof sampleByOptions;
+  sampleByOptions: Option[];
   sampleByOtherOption: string | null;
   samplingUsageOtherReason: string | null;
-  samplingUsageReasons: typeof samplingUsageReasons;
+  samplingUsageReasons: Option[];
   step: number;
 };
 
 const initialData: InitialData = {
   step: 0,
-  samplingUsageReasons,
-  samplingUsageOtherReason: null,
-  sampleByOptions,
+  samplingUsageReasons: [
+    {
+      title: t('Reduce volume to stay within my quota'),
+      value: SamplingUsageReason.REDUCE_VOLUME_TO_STAY_WITHIN_QUOTA,
+      checked: false,
+    },
+    {title: t('Filter out noisy data'), value: 1, checked: false},
+    {
+      title: t('Other'),
+      value: SamplingUsageReason.OTHER,
+      checked: false,
+    },
+  ],
   sampleByOtherOption: null,
+  samplingUsageOtherReason: null,
+  sampleByOptions: [
+    {
+      title: t('Transaction Name'),
+      value: SampleByOption.TRANSACTION_NAME,
+      checked: false,
+    },
+    {title: t('Custom Tags'), value: SampleByOption.CUSTOM_TAGS, checked: false},
+    {
+      title: t('Other'),
+      value: SampleByOption.OTHER,
+      checked: false,
+    },
+  ],
   additionalFeedback: null,
   feelingIfFeatureNotAvailable: undefined,
 };
+
+function MultipleCheckboxField({
+  options,
+  onChange,
+  otherTextField,
+}: {
+  onChange: (options: Option[]) => void;
+  options: Option[];
+  otherTextField: React.ReactNode;
+}) {
+  const handleClick = useCallback(
+    (newOption: Option) => {
+      const newOptions = options.map(option => {
+        if (option.value === newOption.value) {
+          return {
+            ...option,
+            checked: !option.checked,
+          };
+        }
+        return option;
+      });
+
+      onChange(newOptions);
+    },
+    [onChange, options]
+  );
+
+  return (
+    <Fragment>
+      {options.map(option => {
+        if (option.value === 'other') {
+          return (
+            <CheckboxOtherOptionWrapper
+              key={option.value}
+              onClick={() => handleClick(option)}
+            >
+              <CheckboxFancy isChecked={option.checked} />
+              {option.title}
+              {otherTextField}
+            </CheckboxOtherOptionWrapper>
+          );
+        }
+
+        return (
+          <CheckboxOption key={option.value} onClick={() => handleClick(option)}>
+            <CheckboxFancy isChecked={option.checked} />
+            {option.title}
+          </CheckboxOption>
+        );
+      })}
+    </Fragment>
+  );
+}
 
 export function SamplingFeedback() {
   return (
@@ -92,79 +155,87 @@ export function SamplingFeedback() {
             <Fragment>
               <Header>{t('A few questions (1/2)')}</Header>
               <Body showSelfHostedMessage={false}>
-                <SamplingUsageReasons
+                <Field
                   label={<Label>{t('Why do you want to use Dynamic Sampling?')}</Label>}
                   stacked
                   inline={false}
                   flexibleControlStateSize
-                  choices={state.samplingUsageReasons}
-                  onClick={value => {
-                    const newSamplingUsageReasons = state.samplingUsageReasons.map(
-                      samplingUsageReason => {
-                        if (samplingUsageReason.value === value) {
-                          return {
-                            ...samplingUsageReason,
-                            checked: !samplingUsageReason.checked,
-                          };
-                        }
-                        return samplingUsageReason;
+                >
+                  <MultipleCheckboxField
+                    options={state.samplingUsageReasons}
+                    onChange={newSamplingUsageReasons => {
+                      if (
+                        newSamplingUsageReasons.some(
+                          newSamplingUsageReason =>
+                            newSamplingUsageReason.value === SamplingUsageReason.OTHER &&
+                            newSamplingUsageReason.checked === false
+                        )
+                      ) {
+                        onFieldChange('samplingUsageOtherReason', null);
                       }
-                    );
 
-                    onFieldChange('samplingUsageReasons', newSamplingUsageReasons);
-                  }}
-                />
-                <OtherField
-                  inline={false}
-                  name="samplingUsageOtherReason"
-                  flexibleControlStateSize
-                  stacked
-                  disabled={state.samplingUsageReasons.some(
-                    samplingUsageReason =>
-                      samplingUsageReason.value === SamplingUsageReason.OTHER &&
-                      samplingUsageReason.checked === false
-                  )}
-                  value={state.samplingUsageOtherReason}
-                  onChange={value => onFieldChange('samplingUsageOtherReason', value)}
-                  placeholder={t('Please kindly let us know the reason')}
-                />
-                <SampleByOptions
+                      onFieldChange('samplingUsageReasons', newSamplingUsageReasons);
+                    }}
+                    otherTextField={
+                      <OtherTextField
+                        inline={false}
+                        name="samplingUsageOtherReason"
+                        flexibleControlStateSize
+                        stacked
+                        disabled={state.samplingUsageReasons.some(
+                          samplingUsageReason =>
+                            samplingUsageReason.value === SamplingUsageReason.OTHER &&
+                            samplingUsageReason.checked === false
+                        )}
+                        onClick={event => event.stopPropagation()}
+                        value={state.samplingUsageOtherReason}
+                        onChange={value =>
+                          onFieldChange('samplingUsageOtherReason', value)
+                        }
+                        placeholder={t('Please kindly let us know the reason')}
+                      />
+                    }
+                  />
+                </Field>
+                <Field
                   label={<Label>{t('What else you would like to sample by?')}</Label>}
                   stacked
                   inline={false}
                   flexibleControlStateSize
-                  choices={state.sampleByOptions}
-                  onClick={value => {
-                    const newSampleByOptions = state.sampleByOptions.map(
-                      sampleByOption => {
-                        if (sampleByOption.value === value) {
-                          return {
-                            ...sampleByOption,
-                            checked: !sampleByOption.checked,
-                          };
-                        }
-                        return sampleByOption;
+                >
+                  <MultipleCheckboxField
+                    options={state.sampleByOptions}
+                    onChange={newSampleByOptions => {
+                      if (
+                        newSampleByOptions.some(
+                          sampleByOption =>
+                            sampleByOption.value === SampleByOption.OTHER &&
+                            sampleByOption.checked === false
+                        )
+                      ) {
+                        onFieldChange('sampleByOtherOption', null);
                       }
-                    );
-                    onFieldChange('sampleByOptions', newSampleByOptions);
-                  }}
-                />
-                <OtherField
-                  inline={false}
-                  name="sampleByOtherOption"
-                  flexibleControlStateSize
-                  stacked
-                  disabled={state.sampleByOptions.some(
-                    sampleByOption =>
-                      sampleByOption.value === SampleByOption.OTHER &&
-                      sampleByOption.checked === false
-                  )}
-                  value={state.sampleByOtherOption}
-                  onChange={value => onFieldChange('sampleByOtherOption', value)}
-                  placeholder={t(
-                    'Please kindly let us know by what, so we can improve your experience'
-                  )}
-                />
+                      onFieldChange('sampleByOptions', newSampleByOptions);
+                    }}
+                    otherTextField={
+                      <OtherTextField
+                        inline={false}
+                        name="sampleByOtherOption"
+                        flexibleControlStateSize
+                        stacked
+                        disabled={state.sampleByOptions.some(
+                          sampleByOption =>
+                            sampleByOption.value === SampleByOption.OTHER &&
+                            sampleByOption.checked === false
+                        )}
+                        onClick={event => event.stopPropagation()}
+                        value={state.sampleByOtherOption}
+                        onChange={value => onFieldChange('sampleByOtherOption', value)}
+                        placeholder={t('Please let us know which other attributes')}
+                      />
+                    }
+                  />
+                </Field>
               </Body>
               <Footer onNext={() => onFieldChange('step', 1)} />
             </Fragment>
@@ -174,15 +245,17 @@ export function SamplingFeedback() {
         const submitEventData = {
           contexts: {
             survey: {
-              samplingUsageReasons: state.samplingUsageReasons
-                .filter(samplingUsageReason => samplingUsageReason.checked)
-                .map(samplingUsageReason => samplingUsageReason.title)
-                .join(', '),
+              samplingUsageReasons:
+                state.samplingUsageReasons
+                  .filter(samplingUsageReason => samplingUsageReason.checked)
+                  .map(samplingUsageReason => samplingUsageReason.title)
+                  .join(', ') || null,
               samplingUsageOtherReason: state.samplingUsageOtherReason,
-              sampleByOptions: state.sampleByOptions
-                .filter(sampleByOption => sampleByOption.checked)
-                .map(sampleByOption => sampleByOption.title)
-                .join(', '),
+              sampleByOptions:
+                state.sampleByOptions
+                  .filter(sampleByOption => sampleByOption.checked)
+                  .map(sampleByOption => sampleByOption.title)
+                  .join(', ') || null,
               sampleByOtherOption: state.sampleByOtherOption,
               additionalFeedback: state.additionalFeedback,
               feelingIfFeatureNotAvailable: defined(state.feelingIfFeatureNotAvailable)
@@ -273,12 +346,33 @@ const Label = styled('strong')`
   display: inline-block;
 `;
 
-const SamplingUsageReasons = styled(MultipleCheckboxField)`
-  padding-bottom: 0;
+const CheckboxOption = styled('div')`
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${space(1)};
+  align-items: center;
+  :not(:last-child) {
+    margin-bottom: ${space(1)};
+  }
 `;
 
-const SampleByOptions = styled(MultipleCheckboxField)`
-  padding-bottom: 0;
+const CheckboxOtherOptionWrapper = styled(CheckboxOption)`
+  grid-template-columns: max-content max-content 1fr;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: max-content 1fr;
+  }
 `;
 
-const OtherField = styled(TextField)``;
+const OtherTextField = styled(TextField)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: 1/-1;
+  }
+
+  && {
+    input {
+      ${p => p.disabled && 'cursor: pointer;'}
+    }
+  }
+`;
