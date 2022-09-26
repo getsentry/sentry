@@ -6,6 +6,7 @@ describe('DiffModal', function () {
   it('renders', function () {
     const project = TestStubs.ProjectDetails();
 
+    MockApiClient.warnOnMissingMocks();
     render(
       <DiffModal
         orgId="123"

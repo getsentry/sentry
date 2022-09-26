@@ -28,6 +28,7 @@ describe('Dashboards > ViewEditDashboard', function () {
         statsPeriod: '7d',
       },
     };
+    MockApiClient.warnOnMissingMocks();
     render(
       <ViewEditDashboard
         location={TestStubs.location(location)}

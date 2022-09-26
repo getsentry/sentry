@@ -234,6 +234,7 @@ describe('GlobalSDKUpdateAlert', () => {
       organization: TestStubs.Organization(),
     });
 
+    MockApiClient.warnOnMissingMocks();
     userEvent.click(await screen.findByText(/Remind me later/));
 
     expect(promptsActivityMock).toHaveBeenCalledWith(

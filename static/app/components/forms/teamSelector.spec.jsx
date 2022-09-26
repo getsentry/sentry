@@ -125,6 +125,7 @@ describe('Team Selector', function () {
     createWrapper({useId: true, onChange: onChangeMock});
     userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
+    MockApiClient.warnOnMissingMocks();
     userEvent.type(screen.getByLabelText('Select a team'), 'team2');
 
     expect(screen.getByText('#team2')).toBeInTheDocument();

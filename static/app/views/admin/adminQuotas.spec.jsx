@@ -20,6 +20,7 @@ describe('AdminQuotas', function () {
     });
 
     it('renders', function () {
+      MockApiClient.warnOnMissingMocks();
       const wrapper = render(<AdminQuotas params={{}} />);
       expect(wrapper.container).toSnapshot();
     });

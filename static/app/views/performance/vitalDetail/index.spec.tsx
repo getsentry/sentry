@@ -512,6 +512,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
+    MockApiClient.warnOnMissingMocks();
     render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,
@@ -531,6 +532,7 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
+    MockApiClient.warnOnMissingMocks();
     render(<TestComponent router={newRouter} />, {
       context: routerContext,
       organization: org,

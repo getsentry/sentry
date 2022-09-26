@@ -136,6 +136,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   });
 
   it('does not show expanders if there is no health data', () => {
+    MockApiClient.warnOnMissingMocks();
     render(
       <ReleaseComparisonChart
         release={release}

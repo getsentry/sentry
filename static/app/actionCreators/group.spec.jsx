@@ -86,6 +86,7 @@ describe('group', () => {
     });
 
     it('should use itemIds as query if provided', function () {
+      MockApiClient.warnOnMissingMocks();
       bulkUpdate(api, {
         orgId: '1337',
         projectId: '1337',
@@ -102,6 +103,7 @@ describe('group', () => {
     });
 
     it('should use query as query if itemIds are absent', function () {
+      MockApiClient.warnOnMissingMocks();
       bulkUpdate(api, {
         orgId: '1337',
         projectId: '1337',
@@ -118,6 +120,7 @@ describe('group', () => {
     });
 
     it('should apply project option', function () {
+      MockApiClient.warnOnMissingMocks();
       bulkUpdate(api, {
         orgId: '1337',
         project: [99],
@@ -142,6 +145,7 @@ describe('group', () => {
     });
 
     it('should use itemIds as query if provided', function () {
+      MockApiClient.warnOnMissingMocks();
       mergeGroups(api, {
         orgId: '1337',
         projectId: '1337',
@@ -158,6 +162,7 @@ describe('group', () => {
     });
 
     it('should use query as query if itemIds are absent', function () {
+      MockApiClient.warnOnMissingMocks();
       mergeGroups(api, {
         orgId: '1337',
         projectId: '1337',

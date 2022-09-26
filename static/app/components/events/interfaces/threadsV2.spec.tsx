@@ -1079,6 +1079,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on raw stack trace option
+        MockApiClient.warnOnMissingMocks();
         userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
 
         // Download button is displayed

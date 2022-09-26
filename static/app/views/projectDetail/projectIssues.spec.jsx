@@ -46,6 +46,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Issues', function () {
+    MockApiClient.warnOnMissingMocks();
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
     });
@@ -66,6 +67,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
+    MockApiClient.warnOnMissingMocks();
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
     });
