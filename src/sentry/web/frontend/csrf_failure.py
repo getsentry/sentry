@@ -6,7 +6,6 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 
@@ -14,7 +13,6 @@ class CsrfFailureView(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, reason="") -> Response:
         context = {"no_referer": reason == REASON_NO_REFERER}
-        metrics.incr("csrf_failure")
         with sentry_sdk.configure_scope() as scope:
             # Emit a sentry request that the incoming request is rejected by the CSRF protection.
             scope.set_tag("csrf_failure", "yes")
@@ -27,7 +25,6 @@ class CsrfFailureView(View):
                     scope.set_tag("is_superuser", "yes")
                 if is_staff or is_superuser:
                     sentry_sdk.capture_exception("CSRF failure for staff or superuser")
-                    metrics.incr("csrf_failure.staff_or_superuser")
                 else:
                     sentry_sdk.capture_message("CSRF failure")
             else:
