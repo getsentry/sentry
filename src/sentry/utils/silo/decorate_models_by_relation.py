@@ -19,6 +19,7 @@ from sentry.utils.silo.common import apply_decorators
 ALL_SILO_SPECIAL_CASES = frozenset(
     {
         sentry.models.Actor,
+        sentry.models.AuditLogEntry,
         sentry.models.File,
         sentry.models.FileBlob,
         sentry.models.FileBlobIndex,
