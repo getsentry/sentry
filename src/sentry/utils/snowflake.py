@@ -7,7 +7,7 @@ from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
-from sentry.types.region import RegionContextError, get_region_mapping
+from sentry.types.region import RegionContextError, get_local_region
 from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
@@ -78,8 +78,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     segment_values[VERSION_ID] = msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length)
 
     try:
-        local_region = get_region_mapping().get_local_region()
-        segment_values[REGION_ID] = local_region.id
+        segment_values[REGION_ID] = get_local_region().id
     except RegionContextError:  # expected if running in monolith mode
         segment_values[REGION_ID] = 0
 
