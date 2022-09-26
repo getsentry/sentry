@@ -124,6 +124,7 @@ function DropdownLink({
                 {...getMenuProps({
                   className: classNames(menuClasses, 'dropdown-menu'),
                 })}
+                data-test-id="dropdown-link-menu"
               >
                 {children}
               </ul>
