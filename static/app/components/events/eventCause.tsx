@@ -32,7 +32,7 @@ function EventCause({group, event, project}: Props) {
   });
 
   useEffectAfterFirstRender(() => {
-    if (fetching) {
+    if (fetching || !group?.id) {
       return;
     }
 
@@ -40,10 +40,17 @@ function EventCause({group, event, project}: Props) {
       organization,
       count: committers.length,
       project_id: parseInt(project.id as string, 10),
-      group_id: parseInt(group!.id, 10),
+      group_id: parseInt(group.id, 10),
       issue_category: group?.issueCategory ?? IssueCategory.ERROR,
     });
-  }, [organization, fetching, committers.length, project.id, group]);
+  }, [
+    organization,
+    fetching,
+    committers.length,
+    project.id,
+    group?.id,
+    group?.issueCategory,
+  ]);
 
   function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
