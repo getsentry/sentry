@@ -94,6 +94,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
 
         assert not snooze.is_valid(test_rates=True)
 
+
     @freeze_time()
     def test_user_rate_not_reached(self):
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)

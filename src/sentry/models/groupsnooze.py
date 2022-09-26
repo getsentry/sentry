@@ -86,18 +86,14 @@ class GroupSnooze(Model):
         return True
 
     def test_frequency_rates(self):
-        # from sentry import tsdb # I'm scared to change this but perf tests only pass w/ snubatsdb
-
-        from sentry.tsdb.snuba import SnubaTSDB
-
-        tsdb = SnubaTSDB()
+        from sentry.tsdb.snuba import SnubaTSDB as tsdb
 
         metrics.incr("groupsnooze.test_frequency_rates")
 
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.get_sums(
+        rate = tsdb().get_sums(
             model=ISSUE_TSDB_GROUP_MODELS[self.group.issue_category],
             keys=[self.group_id],
             start=start,
@@ -110,20 +106,14 @@ class GroupSnooze(Model):
         return True
 
     def test_user_rates(self):
-        # from sentry import tsdb # I'm scared to change this but perf tests only pass w/ snubatsdb
-
-        from sentry.tsdb.snuba import SnubaTSDB
-
-        tsdb = SnubaTSDB()
+        from sentry.tsdb.snuba import SnubaTSDB as tsdb
 
         metrics.incr("groupsnooze.test_user_rates")
 
         end = timezone.now()
-        # start = end - timedelta(minutes=self.user_window)
-        # XXX: not sure why starting this 1 min before works for perf tests but only w/ snubatsdb
-        start = end - timedelta(minutes=self.user_window + 1)
+        start = end - timedelta(minutes=self.user_window)
 
-        rate = tsdb.get_distinct_counts_totals(
+        rate = tsdb().get_distinct_counts_totals(
             model=ISSUE_TSDB_USER_GROUP_MODELS[self.group.issue_category],
             keys=[self.group_id],
             start=start,
