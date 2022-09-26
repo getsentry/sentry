@@ -1,28 +1,23 @@
-import functools
 import itertools
-import random
 from datetime import datetime, timedelta
-from typing import Optional, Sequence
 from unittest import mock
 
-import pytest
 import pytz
 from django.utils import timezone
 
 from sentry import tsdb
-from sentry.event_manager import _pull_out_data
-from sentry.models import Group, GroupSnooze
+from sentry.models import GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
 
-### This file is purely for debugging. I'll delete it before the PR is merged. ###
+# This file is purely for debugging. I'll delete it before the PR is merged. ###
 
 
 @region_silo_test
-class GroupSnoozeTest(TestCase, SnubaTestCase):
+class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
     sequence = itertools.count()  # generates unique values, class scope doesn't matter
 
     def setUp(self):
@@ -30,81 +25,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         self.now = timezone.now()
         self.project = self.create_project()
         self.group.times_seen_pending = 0
-
-    def __insert_transaction(
-        self,
-        environment: Optional[str],
-        project_id: int,
-        user_id: str,
-        email: str,
-        insert_timestamp: datetime,
-        groups: Sequence[int],
-        transaction_name: str,
-    ):
-        def inject_group_ids(jobs, projects, _groups=None):
-            _pull_out_data(jobs, projects)
-            if _groups:
-                for job in jobs:
-                    job["event"].groups = _groups
-            return jobs, projects
-
-        event_data = {
-            "type": "transaction",
-            "level": "info",
-            "message": "transaction message",
-            "tags": {
-                "environment": environment,
-                "sentry:user": f"id:{user_id}",
-            },
-            "user": {
-                "id": user_id,
-                "email": email,
-            },
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            "timestamp": insert_timestamp.timestamp(),
-            "start_timestamp": insert_timestamp.timestamp(),
-            # "transaction": transaction_name,
-            "transaction": "transaction: " + str(insert_timestamp) + str(random.randint(0, 1000)),
-        }
-        with mock.patch(
-            "sentry.event_manager._pull_out_data",
-            functools.partial(
-                inject_group_ids,
-                _groups=groups,
-            ),
-        ):
-            event = self.store_event(
-                data=event_data,
-                project_id=project_id,
-            )
-            assert event
-
-            from sentry.utils import snuba
-
-            result = snuba.raw_query(
-                dataset=snuba.Dataset.Transactions,
-                start=insert_timestamp - timedelta(days=1),
-                end=insert_timestamp + timedelta(days=1),
-                selected_columns=[
-                    "event_id",
-                    "project_id",
-                    "environment",
-                    "group_ids",
-                    "tags[sentry:user]",
-                    "timestamp",
-                ],
-                groupby=None,
-                filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
-            )
-            assert len(result["data"]) == 1
-            assert result["data"][0]["event_id"] == event.event_id
-            assert result["data"][0]["project_id"] == event.project_id
-            assert result["data"][0]["group_ids"] == [g.id for g in groups]
-            assert result["data"][0]["tags[sentry:user]"] == f"id:{user_id}"
-            assert result["data"][0]["environment"] == (environment if environment else None)
-            assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
-
-            return event
 
     @mock.patch("django.utils.timezone.now")
     def test_user_rate_reached(self, mock_now):
@@ -189,14 +109,11 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         times = 4
 
         for i in range(0, times):
-            self.__insert_transaction(
+            self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
-                email="test@email.com",
-                insert_timestamp=now + timedelta(minutes=i * 10),
                 groups=[perf_group],
-                transaction_name=str(i),
             )
 
         assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
@@ -289,14 +206,11 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         times = 6  # this works up to 6 but fails after
 
         for i in range(0, times):
-            self.__insert_transaction(
+            self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
-                email="test@email.com",
-                insert_timestamp=now + timedelta(minutes=i * 10),
                 groups=[perf_group],
-                transaction_name=str(i),
             )
 
         assert not snooze.is_valid(test_rates=True, use_snuba_tsdb=True)
