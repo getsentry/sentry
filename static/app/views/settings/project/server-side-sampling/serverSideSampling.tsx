@@ -104,17 +104,9 @@ export function ServerSideSampling({project}: Props) {
         projId: project.id,
       });
 
-      await fetchSamplingDistribution({
-        orgSlug: organization.slug,
-        projSlug: project.slug,
-        api,
-      });
+      await fetchSamplingDistribution();
 
-      await fetchSamplingSdkVersions({
-        orgSlug: organization.slug,
-        api,
-        projectID: project.id,
-      });
+      await fetchSamplingSdkVersions();
     }
 
     fetchData();

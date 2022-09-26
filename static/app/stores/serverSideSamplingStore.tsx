@@ -1,12 +1,12 @@
 import {createStore} from 'reflux';
 
-import {SeriesApi} from 'sentry/types';
+import {SessionApiResponse} from 'sentry/types';
 import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 
 import {CommonStoreDefinition} from './types';
 
 type ProjectStats = {
-  data: SeriesApi | undefined;
+  data: SessionApiResponse | undefined;
   error: string | undefined;
   loading: boolean;
 };
@@ -60,11 +60,11 @@ interface ServerSideSamplingStoreDefinition extends CommonStoreDefinition<State>
 
   projectStats30dRequestError: (error: string) => void;
   projectStats30dRequestLoading(): void;
-  projectStats30dRequestSuccess: (data: SeriesApi) => void;
+  projectStats30dRequestSuccess: (data: SessionApiResponse) => void;
 
   projectStats48hRequestError: (error: string) => void;
   projectStats48hRequestLoading(): void;
-  projectStats48hRequestSuccess: (data: SeriesApi) => void;
+  projectStats48hRequestSuccess: (data: SessionApiResponse) => void;
 
   reset(): void;
 
@@ -97,7 +97,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  projectStats48hRequestSuccess(data: SeriesApi) {
+  projectStats48hRequestSuccess(data: SessionApiResponse) {
     this.state = {
       ...this.state,
       projectStats48h: {
@@ -133,7 +133,7 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
     this.trigger(this.state);
   },
 
-  projectStats30dRequestSuccess(data: SeriesApi) {
+  projectStats30dRequestSuccess(data: SessionApiResponse) {
     this.state = {
       ...this.state,
       projectStats30d: {

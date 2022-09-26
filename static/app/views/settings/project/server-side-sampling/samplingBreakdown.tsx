@@ -14,7 +14,6 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
-import useProjects from 'sentry/utils/useProjects';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 
 import {useDistribution} from './utils/useDistribution';
@@ -29,23 +28,20 @@ export const projects = [
     id: '1',
     slug: 'frontend',
     platform: 'javascript',
-    platforms: ['javascript', 'other'],
   },
   {
     id: '2',
     slug: 'backend',
     platform: 'python',
-    platforms: ['native', 'python'],
   },
   {
     id: '3',
     slug: 'database',
     platform: 'python-flask',
-    platforms: ['python'],
   },
-];
+] as Project[];
 
-export function SamplingBreakdown({orgSlug}: Props) {
+export function SamplingBreakdown(_props: Props) {
   const theme = useTheme();
   const {distribution, loading} = useDistribution();
   const projectBreakdown = distribution?.project_breakdown;

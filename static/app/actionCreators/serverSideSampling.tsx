@@ -5,15 +5,7 @@ import {Organization, Project} from 'sentry/types';
 import {SamplingDistribution, SamplingSdkVersion} from 'sentry/types/sampling';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 
-export function fetchSamplingSdkVersions({
-  api,
-  orgSlug,
-  projectID,
-}: {
-  api: Client;
-  orgSlug: Organization['slug'];
-  projectID: Project['id'];
-}): Promise<SamplingSdkVersion[]> {
+export function fetchSamplingSdkVersions(): Promise<SamplingSdkVersion[]> {
   const response = [
     {
       project: 'frontend',
@@ -48,15 +40,7 @@ export function fetchSamplingSdkVersions({
   });
 }
 
-export function fetchSamplingDistribution({
-  api,
-  orgSlug,
-  projSlug,
-}: {
-  api: Client;
-  orgSlug: Organization['slug'];
-  projSlug: Project['slug'];
-}): Promise<SamplingDistribution> {
+export function fetchSamplingDistribution(): Promise<SamplingDistribution> {
   ServerSideSamplingStore.reset();
 
   ServerSideSamplingStore.distributionRequestLoading();
@@ -126,6 +110,7 @@ function fetchProjectStats48h({
   promise
     .then(() =>
       ServerSideSamplingStore.projectStats48hRequestSuccess({
+        query: '',
         start: '2022-09-24T12:00:00Z',
         end: '2022-09-26T11:23:00Z',
         intervals: [
@@ -250,6 +235,7 @@ function fetchProjectStats30d({
   promise
     .then(() =>
       ServerSideSamplingStore.projectStats30dRequestSuccess({
+        query: '',
         start: '2022-08-28T00:00:00Z',
         end: '2022-09-26T11:23:00Z',
         intervals: [

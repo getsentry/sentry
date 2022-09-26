@@ -108,7 +108,7 @@ export type SamplingDistribution = {
     | {
         'count()': number;
         project: string;
-        project_id: number;
+        project_id: string;
       }[];
   sample_rate_distributions: null | {
     avg: null | number;
