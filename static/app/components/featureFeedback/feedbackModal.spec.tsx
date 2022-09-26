@@ -151,7 +151,9 @@ describe('FeatureFeedback', function () {
                   </Body>
                   <Footer
                     onBack={() => onFieldChange('step', 0)}
-                    primaryDisabled={!state.surname}
+                    primaryDisabledReason={
+                      !state.surname ? 'Please answer at least one question' : undefined
+                    }
                     submitEventData={{message: 'Feedback: test'}}
                   />
                 </Fragment>

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -42,12 +42,13 @@ export function RadioGroupRating({
 }: RadioGroupRatingProps) {
   const [selectedOption, setSelectedOption] = useState(defaultValue);
 
-  useEffect(() => {
-    if (!selectedOption) {
-      return;
-    }
-    onChange?.(selectedOption);
-  }, [selectedOption, onChange]);
+  const handleClickedOption = useCallback(
+    (value: string) => {
+      setSelectedOption(value);
+      onChange?.(value);
+    },
+    [onChange]
+  );
 
   return (
     <Field {...fieldProps}>
@@ -57,7 +58,7 @@ export function RadioGroupRating({
             <Label
               selected={key === selectedOption}
               htmlFor={key}
-              onClick={() => setSelectedOption(key)}
+              onClick={() => handleClickedOption(key)}
               aria-label={t('Select option %s', option.label)}
             >
               {index + 1}
