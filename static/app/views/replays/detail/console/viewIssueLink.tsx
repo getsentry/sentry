@@ -20,13 +20,13 @@ function ViewIssueLink({breadcrumb}: Props) {
     return null;
   }
 
-  const {project: projectSlug, groupId, groupShortId} = breadcrumb.data || {};
-  if (!groupId || !groupShortId) {
+  const {project: projectSlug, groupId, groupShortId, eventId} = breadcrumb.data || {};
+  if (!groupId || !groupShortId || !eventId) {
     return null;
   }
 
   const to = {
-    pathname: `/organizations/${organization.slug}/issues/${groupId}/`,
+    pathname: `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`,
   };
   return (
     <StyledHovercard

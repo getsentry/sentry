@@ -129,7 +129,7 @@ export default function ChartFooter({
                 }
               )}
             />
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="beta" />
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
