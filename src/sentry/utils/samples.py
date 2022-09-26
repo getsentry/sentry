@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytz
 from django.core.exceptions import SuspiciousFileOperation
+from rest_framework.serializers import ValidationError
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager, set_tag
@@ -113,6 +114,7 @@ def load_data(
     span_id=None,
     spans=None,
     trace_context=None,
+    fingerprint=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -236,6 +238,16 @@ def load_data(
                         "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
                     }
             measurements.update(measurement_markers)
+
+        if fingerprint is not None:
+            for f in fingerprint:
+                f_data = f.split("-")
+                if len(f_data) < 2:
+                    raise ValidationError(
+                        "Invalid performance fingerprint data. The format is: 'group_type-fingerprint'"
+                    )
+
+            data["fingerprint"] = fingerprint
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.

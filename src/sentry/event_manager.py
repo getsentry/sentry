@@ -329,15 +329,7 @@ class EventManager:
             **DEFAULT_STORE_NORMALIZER_ARGS,
         )
 
-        # TODO check if this is a right way to do this
-        # This bypasses transaction normalization to preserve fingerprint
-        fingerprint = self._data.get("fingerprint", None)
-        if fingerprint:
-            del self._data["fingerprint"]
         self._data = CanonicalKeyDict(rust_normalizer.normalize_event(dict(self._data)))
-
-        if fingerprint:
-            self._data["fingerprint"] = fingerprint
 
     def get_data(self):
         return self._data

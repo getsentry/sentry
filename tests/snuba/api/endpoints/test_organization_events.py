@@ -502,8 +502,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 platform="transaction",
                 timestamp=before_now(minutes=10),
                 start_timestamp=before_now(minutes=11),
+                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
             )
-            data["fingerprint"] = [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"]
             event = self.store_event(data=data, project_id=self.project.id)
 
             query = {
