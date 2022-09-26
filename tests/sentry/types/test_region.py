@@ -15,8 +15,8 @@ from sentry.types.region import (
 class RegionMappingTest(TestCase):
     def test_region_mapping(self):
         regions = [
-            Region("north_america", 1, "na.sentry.io", RegionCategory.GEOGRAPHIC),
-            Region("europe", 2, "eu.sentry.io", RegionCategory.GEOGRAPHIC),
+            Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
+            Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
             Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
         ]
         mapping = RegionMapping(regions)

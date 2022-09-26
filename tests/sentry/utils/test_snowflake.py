@@ -68,8 +68,8 @@ class SnowflakeUtilsTest(TestCase):
     @mock.patch("sentry.utils.snowflake.get_region_mapping")
     def test_generate_correct_ids_with_region_id(self, mock_get_region_mapping):
         regions = [
-            Region("test-region-1", 1, "localhost:8001", RegionCategory.GEOGRAPHIC),
-            Region("test-region-2", 2, "localhost:8002", RegionCategory.GEOGRAPHIC),
+            Region("test-region-1", 1, "localhost:8001", RegionCategory.MULTI_TENANT),
+            Region("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
         region_mapping = RegionMapping(regions)
         mock_get_region_mapping.return_value = region_mapping

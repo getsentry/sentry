@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class RegionCategory(Enum):
-    GEOGRAPHIC = "GEOGRAPHIC"
+    MULTI_TENANT = "MULTI_TENANT"
     SINGLE_TENANT = "SINGLE_TENANT"
 
 
