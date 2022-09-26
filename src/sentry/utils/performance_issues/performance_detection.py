@@ -17,6 +17,7 @@ from sentry.models import Organization, Project, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
 
@@ -1015,7 +1016,7 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
 
     def init(self):
         super().init()
-        root_span = self._event.get("trace", None)
+        root_span = get_path(self._event, "contexts", "trace")
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
