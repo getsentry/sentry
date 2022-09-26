@@ -32,7 +32,6 @@ __all__ = (
 
 import hashlib
 import inspect
-import os
 import os.path
 import time
 from contextlib import contextmanager

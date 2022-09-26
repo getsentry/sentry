@@ -1,15 +1,12 @@
-import functools
 from datetime import datetime, timedelta
-from typing import Optional, Sequence
-from unittest import mock
 from unittest.mock import patch
 
 import pytz
 
-from sentry.event_manager import _pull_out_data
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
@@ -99,7 +96,6 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "user": {
                         # change every 55 min so some hours have 1 user, some have 2
                         "id": f"user{r // 3300}",
-                        "email": f"user{r}@sentry.io",
                     },
                     "release": str(r // 3600) * 10,  # 1 per hour,
                 },
@@ -156,7 +152,6 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "user": {
                         # change every 55 min so some hours have 1 user, some have 2
                         "id": f"user{r // 3300}",
-                        "email": f"user{r}@sentry.io",
                     },
                     "release": str(r // 3600) * 10,  # 1 per hour,
                 },
@@ -510,7 +505,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
 
 @region_silo_test
-class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
+class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
     def setUp(self):
         super().setUp()
 
@@ -519,103 +514,30 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
             hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         self.proj1 = self.create_project()
-        env1 = "test"
-        env2 = "dev"
+
+        self.env1 = Environment.objects.get_or_create(
+            organization_id=self.proj1.organization_id, name="test"
+        )[0]
+        self.env2 = Environment.objects.get_or_create(
+            organization_id=self.proj1.organization_id, name="dev"
+        )[0]
         defaultenv = ""
 
         self.proj1group1 = self.create_group(project=self.proj1)
         self.proj1group2 = self.create_group(project=self.proj1)
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
-            self.__insert_transaction(
-                environment=[env1, None][(r // 7200) % 3],
+            self.store_transaction(
+                environment=[self.env1, None][(r // 7200) % 3],
                 project_id=self.proj1.id,
                 # change every 55 min so some hours have 1 user, some have 2
                 user_id=f"user{r // 3300}",
-                email=f"user{r}@sentry.io",
                 # release_version=str(r // 3600) * 10,  # 1 per hour,
-                insert_timestamp=self.now + timedelta(seconds=r),
+                timestamp=self.now + timedelta(seconds=r),
                 groups=[[self.proj1group1], [self.proj1group2]][(r // 600) % 2],
-                transaction_name=str(r),
             )
 
-        self.env1 = Environment.objects.get(name=env1)
-        self.env2 = self.create_environment(name=env2)  # No events
         self.defaultenv = Environment.objects.get(name=defaultenv)
-
-    def __insert_transaction(
-        self,
-        environment: Optional[str],
-        project_id: int,
-        user_id: str,
-        email: str,
-        insert_timestamp: datetime,
-        groups: Sequence[int],
-        transaction_name: str,
-    ):
-        def inject_group_ids(jobs, projects, _groups=None):
-            _pull_out_data(jobs, projects)
-            if _groups:
-                for job in jobs:
-                    job["event"].groups = _groups
-            return jobs, projects
-
-        event_data = {
-            "type": "transaction",
-            "level": "info",
-            "message": "transaction message",
-            "tags": {
-                "environment": environment,
-                "sentry:user": f"id:{user_id}",
-            },
-            "user": {
-                "id": user_id,
-                "email": email,
-            },
-            "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            "timestamp": insert_timestamp.timestamp(),
-            "start_timestamp": insert_timestamp.timestamp(),
-            "transaction": transaction_name,
-        }
-        with mock.patch(
-            "sentry.event_manager._pull_out_data",
-            functools.partial(
-                inject_group_ids,
-                _groups=groups,
-            ),
-        ):
-            event = self.store_event(
-                data=event_data,
-                project_id=project_id,
-            )
-            assert event
-
-            from sentry.utils import snuba
-
-            result = snuba.raw_query(
-                dataset=snuba.Dataset.Transactions,
-                start=insert_timestamp - timedelta(days=1),
-                end=insert_timestamp + timedelta(days=1),
-                selected_columns=[
-                    "event_id",
-                    "project_id",
-                    "environment",
-                    "group_ids",
-                    "tags[sentry:user]",
-                    "timestamp",
-                ],
-                groupby=None,
-                filter_keys={"project_id": [project_id], "event_id": [event.event_id]},
-            )
-            assert len(result["data"]) == 1
-            assert result["data"][0]["event_id"] == event.event_id
-            assert result["data"][0]["project_id"] == event.project_id
-            assert result["data"][0]["group_ids"] == [g.id for g in groups]
-            assert result["data"][0]["tags[sentry:user]"] == f"id:{user_id}"
-            assert result["data"][0]["environment"] == (environment if environment else None)
-            assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
-
-            return event
 
     def test_range_groups_single(self):
         from sentry.snuba.dataset import Dataset
@@ -633,14 +555,12 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         event_ids = []
         events = []
         for i in range(0, times):
-            res = self.__insert_transaction(
+            res = self.store_transaction(
                 environment=None,
                 project_id=project.id,
                 user_id="my_user",
-                email="test@email.com",
-                insert_timestamp=now + timedelta(minutes=i * 10),
+                timestamp=now + timedelta(minutes=i * 10),
                 groups=[group],
-                transaction_name=str(i),
             )
 
             grouped_by_project = aliased_query(
@@ -716,14 +636,12 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         group = self.create_group(project=project)
         ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
         for i, _id in enumerate(ids):
-            self.__insert_transaction(
+            self.store_transaction(
                 environment=None,
                 project_id=project.id,
                 user_id="my_user",
-                email="test@email.com",
-                insert_timestamp=now + timedelta(minutes=i * 10),
+                timestamp=now + timedelta(minutes=i * 10),
                 groups=[group],
-                transaction_name=_id,
             )
 
         assert self.db.get_range(
@@ -752,16 +670,14 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase):
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
         for r in ids:
             # for r in range(0, 9, 1):
-            self.__insert_transaction(
+            self.store_transaction(
                 environment=None,
                 project_id=project.id,
                 # change every 55 min so some hours have 1 user, some have 2
                 user_id=f"user{r}",
-                email=f"user{r}@sentry.io",
                 # release_version=str(r // 3600) * 10,  # 1 per hour,
-                insert_timestamp=now,
+                timestamp=now,
                 groups=[group],
-                transaction_name=r,
             )
 
         dts = [now + timedelta(hours=i) for i in range(4)]
