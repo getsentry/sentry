@@ -1,6 +1,7 @@
 import 'intersection-observer'; // polyfill
 
 import {createContext, useState} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {AriaTabListProps} from '@react-aria/tabs';
 import {Item} from '@react-stately/collections';
@@ -67,7 +68,10 @@ export function Tabs({orientation = 'horizontal', className, ...props}: TabsProp
   );
 }
 
-const TabsWrap = styled('div')<{orientation: Orientation}>`
+const TabsWrap = styled('div', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'orientation',
+})<{orientation: Orientation}>`
   display: flex;
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
 

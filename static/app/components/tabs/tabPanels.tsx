@@ -1,4 +1,5 @@
 import {useContext, useRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {AriaTabPanelProps, useTabPanel} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
@@ -71,7 +72,10 @@ function TabPanel({state, orientation, className, children, ...props}: TabPanelP
   );
 }
 
-const TabPanelWrap = styled('div')<{orientation: Orientation}>`
+const TabPanelWrap = styled('div', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'orientation',
+})<{orientation: Orientation}>`
   border-radius: ${p => p.theme.borderRadius};
 
   ${p => (p.orientation === 'horizontal' ? `height: 100%;` : `width: 100%;`)};

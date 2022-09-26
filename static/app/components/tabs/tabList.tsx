@@ -1,4 +1,5 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
 import {Item, useCollection} from '@react-stately/collections';
@@ -200,7 +201,10 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = styled('ul')<{orientation: Orientation}>`
+const TabListWrap = styled('ul', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'orientation',
+})<{orientation: Orientation}>`
   position: relative;
   display: grid;
   padding: 0;

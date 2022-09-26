@@ -1,4 +1,5 @@
 import {forwardRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useTab} from '@react-aria/tabs';
 import {mergeProps, useObjectRef} from '@react-aria/utils';
@@ -52,7 +53,10 @@ function BaseTab(
 
 export const Tab = forwardRef(BaseTab);
 
-const TabWrap = styled('li')<{
+const TabWrap = styled('li', {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && prop !== 'orientation',
+})<{
   disabled: boolean;
   orientation: Orientation;
   overflowing: boolean;
