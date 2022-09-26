@@ -127,7 +127,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
                 }
             )
 
-        if "version" in "profile":
+        if "version" in profile:
             device_options = {
                 "model": profile["device"]["model"],
                 "os_name": profile["os"]["name"],
@@ -154,7 +154,7 @@ def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]
     modules = profile["debug_meta"]["images"]
 
     # in the sample format, we have a frames key containing all the frames
-    if "frames" in profile["profile"]:
+    if "version" in profile:
         stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
     # in the original format, we need to gather frames from all samples
     else:
