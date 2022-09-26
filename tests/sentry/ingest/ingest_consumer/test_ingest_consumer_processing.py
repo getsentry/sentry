@@ -203,7 +203,7 @@ def test_individual_attachments(
 ):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: event_attachments)
 
-    event_id = "515539018c9b4260a6f999572f1661ee"
+    event_id = uuid.uuid4().hex
     attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
     project_id = default_project.id
     group_id = None
