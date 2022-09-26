@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -14,7 +14,8 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import useCurrentItemScroller from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import {
   getResourceTypes,
@@ -36,6 +37,9 @@ const createSpanId = (span: NetworkSpan) =>
   `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`;
 
 function NetworkList({replayRecord, networkSpans}: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useCurrentItemScroller(containerRef);
+
   const startTimestampMs = replayRecord.startedAt.getTime();
   const {setCurrentHoverTime, setCurrentTime, currentTime} = useReplayContext();
   const [sortConfig, setSortConfig] = useState<ISortConfig>({
@@ -183,7 +187,12 @@ function NetworkList({replayRecord, networkSpans}: Props) {
 
     return (
       <Fragment key={spanId}>
-        <Item {...columnHandlers} {...columnProps} isStatusCode>
+        <Item
+          {...columnHandlers}
+          {...columnProps}
+          isStatusCode
+          aria-current={currentNetworkSpan?.id === spanId}
+        >
           {statusCode ? statusCode : <EmptyText>---</EmptyText>}
         </Item>
         <Item {...columnHandlers} {...columnProps}>
@@ -227,35 +236,39 @@ function NetworkList({replayRecord, networkSpans}: Props) {
     );
   };
 
+  const filters = (
+    <NetworkFilters>
+      <CompactSelect
+        triggerProps={{prefix: t('Status')}}
+        triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
+        multiple
+        options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
+        size="sm"
+        onChange={selected => setStatus(selected.map(_ => _.value))}
+        value={selectedStatus}
+      />
+      <CompactSelect
+        triggerProps={{prefix: t('Type')}}
+        triggerLabel={selectedType.length === 0 ? t('Any') : null}
+        multiple
+        options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
+        size="sm"
+        onChange={selected => setType(selected.map(_ => _.value))}
+        value={selectedType}
+      />
+      <SearchBar
+        size="sm"
+        onChange={setSearchTerm}
+        placeholder={t('Search Network...')}
+        query={searchTerm}
+      />
+    </NetworkFilters>
+  );
+
   return (
-    <NetworkContainer>
-      <NetworkFilters>
-        <CompactSelect
-          triggerProps={{prefix: t('Status')}}
-          triggerLabel={selectedStatus.length === 0 ? t('Any') : null}
-          multiple
-          options={getStatusTypes(networkSpans).map(value => ({value, label: value}))}
-          size="sm"
-          onChange={selected => setStatus(selected.map(_ => _.value))}
-          value={selectedStatus}
-        />
-        <CompactSelect
-          triggerProps={{prefix: t('Type')}}
-          triggerLabel={selectedType.length === 0 ? t('Any') : null}
-          multiple
-          options={getResourceTypes(networkSpans).map(value => ({value, label: value}))}
-          size="sm"
-          onChange={selected => setType(selected.map(_ => _.value))}
-          value={selectedType}
-        />
-        <SearchBar
-          size="sm"
-          onChange={setSearchTerm}
-          placeholder={t('Search Network...')}
-          query={searchTerm}
-        />
-      </NetworkFilters>
+    <FluidPanel title={filters}>
       <StyledPanelTable
+        ref={containerRef}
         columns={columns.length}
         isEmpty={networkData.length === 0}
         emptyMessage={t('No related network requests found.')}
@@ -263,15 +276,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         disablePadding
         stickyHeaders
       >
-        {networkData.map(renderTableRow) || null}
+        {networkData.map(renderTableRow)}
       </StyledPanelTable>
-    </NetworkContainer>
+    </FluidPanel>
   );
 }
-
-const NetworkContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const NetworkFilters = styled('div')`
   display: grid;

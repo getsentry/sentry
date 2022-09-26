@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 
 const defer = (fn: () => void) => setTimeout(fn, 0);
 
-export function useCurrentItemScroller(containerRef: RefObject<HTMLElement>) {
+export default function useCurrentItemScroller(containerRef: RefObject<HTMLElement>) {
   const [isAutoScrollDisabled, setIsAutoScrollDisabled] = useState(false);
 
   useEffect(() => {

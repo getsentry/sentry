@@ -1,3 +1,4 @@
+import {ForwardedRef, forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -71,52 +72,58 @@ export type PanelTableProps = {
  *       with `headers`. Then we can get rid of that gross `> *` selector
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
-const PanelTable = ({
-  headers,
-  children,
-  isLoading,
-  isEmpty,
-  disablePadding,
-  className,
-  emptyMessage = t('There are no items to display'),
-  emptyAction,
-  loader,
-  stickyHeaders = false,
-  ...props
-}: PanelTableProps) => {
-  const shouldShowLoading = isLoading === true;
-  const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
-  const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
+const PanelTable = forwardRef(
+  (
+    {
+      headers,
+      children,
+      isLoading,
+      isEmpty,
+      disablePadding,
+      className,
+      emptyMessage = t('There are no items to display'),
+      emptyAction,
+      loader,
+      stickyHeaders = false,
+      ...props
+    }: PanelTableProps,
+    ref: ForwardedRef<HTMLDivElement>
+  ) => {
+    const shouldShowLoading = isLoading === true;
+    const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
+    const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
 
-  return (
-    <Wrapper
-      columns={headers.length}
-      disablePadding={disablePadding}
-      className={className}
-      hasRows={shouldShowContent}
-      {...props}
-    >
-      {headers.map((header, i) => (
-        <PanelTableHeader key={i} sticky={stickyHeaders}>
-          {header}
-        </PanelTableHeader>
-      ))}
+    return (
+      <Wrapper
+        ref={ref}
+        columns={headers.length}
+        disablePadding={disablePadding}
+        className={className}
+        hasRows={shouldShowContent}
+        {...props}
+      >
+        {headers.map((header, i) => (
+          <PanelTableHeader key={i} sticky={stickyHeaders}>
+            {header}
+          </PanelTableHeader>
+        ))}
 
-      {shouldShowLoading && (
-        <LoadingWrapper>{loader || <LoadingIndicator />}</LoadingWrapper>
-      )}
+        {shouldShowLoading && (
+          <LoadingWrapper>{loader || <LoadingIndicator />}</LoadingWrapper>
+        )}
 
-      {shouldShowEmptyMessage && (
-        <TableEmptyStateWarning>
-          <p>{emptyMessage}</p>
-          {emptyAction}
-        </TableEmptyStateWarning>
-      )}
+        {shouldShowEmptyMessage && (
+          <TableEmptyStateWarning>
+            <p>{emptyMessage}</p>
+            {emptyAction}
+          </TableEmptyStateWarning>
+        )}
 
-      {shouldShowContent && getContent(children)}
-    </Wrapper>
-  );
-};
+        {shouldShowContent && getContent(children)}
+      </Wrapper>
+    );
+  }
+);
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {

@@ -12,11 +12,11 @@ import space from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
-import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import useCurrentItemScroller from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import {getLogLevels} from 'sentry/views/replays/detail/console/utils';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
 interface Props {
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
@@ -66,60 +66,57 @@ function Console({breadcrumbs, startTimestampMs = 0}: Props) {
     return isCurrentBreadcrumb && !isMoreThanASecondOfDiff;
   };
 
+  const filters = (
+    <ConsoleFilters>
+      <CompactSelect
+        triggerProps={{prefix: t('Log Level')}}
+        triggerLabel={logLevel.length === 0 ? t('Any') : null}
+        multiple
+        options={getLogLevels(breadcrumbs, logLevel).map(value => ({
+          value,
+          label: value,
+        }))}
+        onChange={selected => setLogLevel(selected.map(_ => _.value))}
+        size="sm"
+        value={logLevel}
+      />
+      <SearchBar
+        onChange={setSearchTerm}
+        placeholder={t('Search console logs...')}
+        size="sm"
+        query={searchTerm}
+      />
+    </ConsoleFilters>
+  );
+
   return (
-    <ConsoleContainer>
-      <ConsoleFilters>
-        <CompactSelect
-          triggerProps={{prefix: t('Log Level')}}
-          triggerLabel={logLevel.length === 0 ? t('Any') : null}
-          multiple
-          options={getLogLevels(breadcrumbs, logLevel).map(value => ({
-            value,
-            label: value,
-          }))}
-          onChange={selected => setLogLevel(selected.map(_ => _.value))}
-          size="sm"
-          value={logLevel}
-        />
-        <SearchBar
-          onChange={setSearchTerm}
-          placeholder={t('Search console logs...')}
-          size="sm"
-          query={searchTerm}
-        />
-      </ConsoleFilters>
-      <ConsoleMessageContainer ref={containerRef}>
-        {items.length > 0 ? (
+    <FluidPanel title={filters}>
+      <ConsoleTableScrollContainer bodyRef={containerRef}>
+        {items.length ? (
           <ConsoleTable>
-            {items.map((breadcrumb, i) => {
-              return (
-                <ConsoleMessage
-                  isActive={closestUserAction?.id === breadcrumb.id}
-                  isCurrent={currentUserAction?.id === breadcrumb.id}
-                  isOcurring={isOcurring(breadcrumb, closestUserAction)}
-                  startTimestampMs={startTimestampMs}
-                  key={breadcrumb.id}
-                  isLast={i === breadcrumbs.length - 1}
-                  breadcrumb={breadcrumb}
-                  hasOccurred={
-                    currentTime >=
-                    relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMs)
-                  }
-                />
-              );
-            })}
+            {items.map((breadcrumb, i) => (
+              <ConsoleMessage
+                isActive={closestUserAction?.id === breadcrumb.id}
+                isCurrent={currentUserAction?.id === breadcrumb.id}
+                isOcurring={isOcurring(breadcrumb, closestUserAction)}
+                startTimestampMs={startTimestampMs}
+                key={breadcrumb.id}
+                isLast={i === breadcrumbs.length - 1}
+                breadcrumb={breadcrumb}
+                hasOccurred={
+                  currentTime >=
+                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestampMs)
+                }
+              />
+            ))}
           </ConsoleTable>
         ) : (
-          <StyledEmptyMessage title={t('No results found.')} />
+          <EmptyMessage title={t('No results found.')} />
         )}
-      </ConsoleMessageContainer>
-    </ConsoleContainer>
+      </ConsoleTableScrollContainer>
+    </FluidPanel>
   );
 }
-
-const ConsoleContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const ConsoleFilters = styled('div')`
   display: grid;
@@ -132,15 +129,9 @@ const ConsoleFilters = styled('div')`
   }
 `;
 
-const ConsoleMessageContainer = styled(FluidHeight)`
-  overflow: auto;
+const ConsoleTableScrollContainer = styled(FluidPanel)`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
-  box-shadow: ${p => p.theme.dropShadowLight};
-`;
-
-const StyledEmptyMessage = styled(EmptyMessage)`
-  align-items: center;
 `;
 
 const ConsoleTable = styled(Panel)`

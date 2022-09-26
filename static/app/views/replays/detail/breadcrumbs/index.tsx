@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -11,17 +11,17 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import useCurrentItemScroller from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
-    <BreadcrumbContainer>
+    <Fragment>
       {[...Array(number)].map((_, i) => (
         <PlaceholderMargin key={i} height="53px" />
       ))}
-    </BreadcrumbContainer>
+    </Fragment>
   );
 }
 
@@ -63,7 +63,7 @@ function Breadcrumbs({showTitle = true}: Props) {
       : undefined;
 
   const content = isLoaded ? (
-    <BreadcrumbContainer>
+    <Fragment>
       {crumbs.map(crumb => (
         <BreadcrumbItem
           key={crumb.id}
@@ -78,7 +78,7 @@ function Breadcrumbs({showTitle = true}: Props) {
           allowHover={false}
         />
       ))}
-    </BreadcrumbContainer>
+    </Fragment>
   ) : (
     <CrumbPlaceholder number={4} />
   );
@@ -89,7 +89,7 @@ function Breadcrumbs({showTitle = true}: Props) {
         bodyRef={crumbListContainerRef}
         title={showTitle ? <PanelHeader>{t('Breadcrumbs')}</PanelHeader> : undefined}
       >
-        {content}
+        <BreadcrumbContainer>{content}</BreadcrumbContainer>
       </FluidPanel>
     </Panel>
   );
