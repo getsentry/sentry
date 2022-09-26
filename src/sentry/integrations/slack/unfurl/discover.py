@@ -63,6 +63,10 @@ AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r"(\w+)\((.*)?\)"
 
 
+class IntervalException(Exception):
+    pass
+
+
 def get_double_period(period: str) -> str:
     m = re.match(r"^(\d+)([hdmsw]?)$", period)
     if not m:
@@ -184,18 +188,25 @@ def unfurl_discover(
         else:
             interval = saved_query.get("interval")
             validated_interval = None
+            delta = timedelta(days=90)
             if "statsPeriod" in params:
-                delta = parse_stats_period(params["statsPeriod"])
+                if (parsed_period := parse_stats_period(params["statsPeriod"])) is not None:
+                    delta = parsed_period
             elif "start" in params and "end" in params:
                 start, end = parse_timestamp(params["start"]), parse_timestamp(params["end"])
-                delta = end - start
-            else:
-                delta = timedelta(days=90)
+                if start is not None and end is not None:
+                    delta = end - start
             if interval:
                 try:
-                    validate_interval(parse_stats_period(interval), Exception, delta, top_events)
-                    validated_interval = interval
-                except Exception:
+                    if (parsed_interval := parse_stats_period(interval)) is not None:
+                        validate_interval(
+                            parsed_interval,
+                            IntervalException("Invalid interval"),
+                            delta,
+                            top_events,
+                        )
+                        validated_interval = interval
+                except IntervalException:
                     pass
             if validated_interval is None:
                 if delta:
