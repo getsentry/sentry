@@ -61,6 +61,8 @@ assert ID_VALIDATOR.length == 53
 MAX_AVAILABLE_REGION_SEQUENCES = 1 << REGION_SEQUENCE.length
 assert MAX_AVAILABLE_REGION_SEQUENCES > 0
 
+NULL_REGION_ID = 0
+
 
 def msb_0_ordering(value, width):
     """
@@ -80,7 +82,7 @@ def generate_snowflake_id(redis_key: str) -> int:
     try:
         segment_values[REGION_ID] = get_local_region().id
     except RegionContextError:  # expected if running in monolith mode
-        segment_values[REGION_ID] = 0
+        segment_values[REGION_ID] = NULL_REGION_ID
 
     current_time = datetime.now().timestamp()
     # supports up to 130 years

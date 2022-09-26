@@ -43,9 +43,11 @@ class Region:
     """The region's category."""
 
     def __post_init__(self) -> None:
-        from sentry.utils.snowflake import REGION_ID
+        from sentry.utils.snowflake import NULL_REGION_ID, REGION_ID
 
         REGION_ID.validate(self.id)
+        if self.id == NULL_REGION_ID:
+            raise ValueError(f"Region ID {NULL_REGION_ID} is reserved for non-multi-region systems")
 
     def to_url(self, path: str) -> str:
         return self.address + path
