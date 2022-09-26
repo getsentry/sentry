@@ -1283,7 +1283,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert query_mock.called
 
-    @mock.patch("sentry.search.snuba.executors.raw_query_params")
+    @mock.patch("sentry.issues.search.raw_query_params")
     @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
     def test_optimized_aggregates(self, bulk_raw_query_mock, raw_query_params_mock):
         # TODO this test is annoyingly fragile and breaks in hard-to-see ways
