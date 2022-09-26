@@ -923,9 +923,17 @@ class SnubaTestCase(BaseTestCase):
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
+
+            # Error groups
             stored_group = stored_event.group
             if stored_group is not None:
                 self.store_group(stored_group)
+
+            # Performance groups
+            stored_groups = stored_event.groups
+            if stored_groups is not None:
+                for group in stored_groups:
+                    self.store_group(group)
             return stored_event
 
     def wait_for_event_count(self, project_id, total, attempts=2):

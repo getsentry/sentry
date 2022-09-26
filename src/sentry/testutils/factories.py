@@ -6,6 +6,7 @@ from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
 from typing import Any, List, Optional, Sequence
+from unittest import mock
 from uuid import uuid4
 
 import petname
@@ -95,7 +96,9 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
 from sentry.utils import json, loremipsum
+from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -627,7 +630,47 @@ class Factories:
             errors = manager.get_data().get("errors")
             assert not errors, errors
 
-        event = manager.save(project_id)
+        normalized_data = manager.get_data()
+        event = None
+
+        if (
+            normalized_data.get("type") == "transaction"
+            and normalized_data.get("fingerprint") is not None
+        ):
+
+            def mock_detect_performance_problems(jobs, _):
+                for job in jobs:
+                    job["performance_problems"] = []
+                    for f in normalized_data.get("fingerprint"):
+                        f_data = f.split("-")
+                        group_type_value = int(f_data[0])
+                        group_type = GroupType(group_type_value)
+                        _fingerprint = f_data[1]
+
+                        job["performance_problems"].append(
+                            PerformanceProblem(
+                                fingerprint=_fingerprint,
+                                op="db",
+                                desc="",
+                                type=group_type,
+                                parent_span_ids=None,
+                                cause_span_ids=None,
+                                offender_span_ids=None,
+                            )
+                        )
+
+            with mock.patch(
+                "sentry.event_manager._detect_performance_problems",
+                mock_detect_performance_problems,
+            ):
+                event = manager.save(project_id)
+
+        else:
+            event = manager.save(project_id)
+        if event.groups:
+            for group in event.groups:
+                group.save()
+
         if event.group:
             event.group.save()
         return event

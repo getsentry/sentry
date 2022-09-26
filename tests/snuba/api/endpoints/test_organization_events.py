@@ -21,7 +21,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import parse_link_header
+from sentry.testutils.helpers import override_options, parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
@@ -495,36 +495,25 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
+    @override_options({"performance.issues.all.problem-creation": 1.0})
     def test_performance_issue_ids_filter(self):
-        project = self.create_project(name="hello")
-        _perf_group = self.create_group(
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-            project=project,
-            short_id=project.next_short_id(),
-        )
+        with self.feature({"organizations:performance-issues-ingest": True}):
+            data = load_data(
+                platform="transaction",
+                timestamp=before_now(minutes=10),
+                start_timestamp=before_now(minutes=11),
+            )
+            data["fingerprint"] = [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"]
+            event = self.store_event(data=data, project_id=self.project.id)
 
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [_perf_group]
-            return jobs, projects
-
-        data = load_data(
-            platform="transaction",
-            timestamp=before_now(minutes=10),
-            start_timestamp=before_now(minutes=11),
-        )
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(data=data, project_id=project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": f"project:{project.slug} performance.issue_ids:{_perf_group.id}",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
+            query = {
+                "field": ["count()"],
+                "statsPeriod": "2h",
+                "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            assert response.data["data"][0]["count()"] == 1
 
     def test_has_performance_issue_ids(self):
         perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
