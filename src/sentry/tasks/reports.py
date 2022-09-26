@@ -172,7 +172,12 @@ def clean_series(start: datetime, stop: datetime, rollup: int, series: Iterable[
 
     result = []
     for i, (timestamp, value) in enumerate(series):
-        assert timestamp == start_timestamp + rollup * i
+        assert timestamp == start_timestamp + rollup * i, (
+            timestamp,
+            start_timestamp + rollup * i,
+            to_datetime(timestamp),
+            to_datetime(start_timestamp + rollup * i),
+        )
         if timestamp >= stop_timestamp:
             break
 
