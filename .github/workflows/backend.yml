@@ -118,11 +118,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0]
         pg-version: ['9.6']
 
     env:
-      MATRIX_INSTANCE_TOTAL: 4
+      MATRIX_INSTANCE_TOTAL: 1
       MIGRATIONS_TEST_MIGRATE: 1
       SENTRY_SILO_MODE: CONTROL
 
@@ -175,11 +175,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0]
         pg-version: ['9.6']
 
     env:
-      MATRIX_INSTANCE_TOTAL: 4
+      MATRIX_INSTANCE_TOTAL: 1
       MIGRATIONS_TEST_MIGRATE: 1
       SENTRY_SILO_MODE: REGION
 
