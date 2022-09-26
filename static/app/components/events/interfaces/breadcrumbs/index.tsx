@@ -318,7 +318,7 @@ function BreadcrumbsContainer({data, event, organization, route, router, replay}
       filterOptions={filterOptions}
       filterSelections={state.filterSelections}
       onFilterChange={handleFilter}
-      isFullWidth={false}
+      isFullWidth={Boolean(replay)}
     />
   );
 
