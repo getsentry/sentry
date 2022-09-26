@@ -21,8 +21,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
 
     def setUp(self):
         super().setUp()
-        self.now = timezone.now()
-        self.project = self.create_project()
         self.group.times_seen_pending = 0
 
     def test_until_not_reached(self):
@@ -66,6 +64,8 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
         assert snooze.is_valid(test_rates=True)
 
     def test_user_delta_reached(self):
+        project = self.create_project()
+
         for i in range(0, 100):
             self.store_event(
                 data={
@@ -73,7 +73,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
                     "timestamp": iso_format(before_now(seconds=1)),
                     "fingerprint": ["group1"],
                 },
-                project_id=self.project.id,
+                project_id=project.id,
             )
 
         group = list(Group.objects.all())[-1]
@@ -92,8 +92,8 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
                 project_id=self.project.id,
             ).group
 
+        snooze = GroupSnooze.objects.create(group=group, user_count=5, user_window=60)
         assert not snooze.is_valid(test_rates=True)
-
 
     @freeze_time()
     def test_user_rate_not_reached(self):
