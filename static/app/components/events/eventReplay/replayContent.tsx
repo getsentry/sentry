@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import Button from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
+import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
@@ -40,63 +41,60 @@ function ReplayContent({orgSlug, replaySlug}: Props) {
   }
 
   return (
-    <table className="table key-value">
-      <tbody>
-        <tr key="replay">
-          <td className="key">{t('Replay')}</td>
-          <td className="value">
-            <ReplayContextProvider replay={replay} initialTimeOffset={0}>
-              <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
-                <ReplayView toggleFullscreen={toggleFullscreen} showAddressBar={false} />
-              </PlayerContainer>
-            </ReplayContextProvider>
-          </td>
-        </tr>
-        <tr key="id">
-          <td className="key">{t('Id')}</td>
-          <td className="value">
-            <pre className="val-string" data-test-id="replay-id">
-              {replayRecord.id}
-            </pre>
-          </td>
-        </tr>
-        <tr key="url">
-          <td className="key">{t('URL')}</td>
-          <td className="value">
-            <pre className="val-string" data-test-id="replay-url">
-              {replayRecord.urls[0]}
-            </pre>
-          </td>
-        </tr>
-        <tr key="timestamp">
-          <td className="key">{t('Timestamp')}</td>
-          <td className="value">
-            <pre className="val-string" data-test-id="replay-timestamp">
-              <DateTime year seconds utc date={replayRecord.startedAt} />
-            </pre>
-          </td>
-        </tr>
-        <tr key="duration">
-          <td className="key">{t('Duration')}</td>
-          <td className="value">
-            <pre className="val-string" data-test-id="replay-duration">
-              <Duration seconds={replayRecord.duration} fixedDigits={0} />
-            </pre>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <ReplayContextProvider replay={replay} initialTimeOffset={0}>
+      <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
+        <BadgeContainer>
+          <FeatureText>Replays</FeatureText>
+          <FeatureBadge type="alpha" />
+        </BadgeContainer>
+        <ReplayView
+          toggleFullscreen={toggleFullscreen}
+          showAddressBar={false}
+          controlBarActions={
+            <Button
+              to={`/organizations/${orgSlug}/replays/${replaySlug}`}
+              priority="primary"
+              size="sm"
+              icon={<IconPlay size="sm" />}
+            >
+              {t('View Full Replay')}
+            </Button>
+          }
+        />
+      </PlayerContainer>
+    </ReplayContextProvider>
   );
 }
 
 const PlayerContainer = styled(FluidHeight)`
+  position: relative;
   margin-bottom: ${space(2)};
   background: ${p => p.theme.background};
   gap: ${space(1)};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
-  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
+const BadgeContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  position: absolute;
+  top: ${space(1)};
+  right: ${space(1)};
+  background: ${p => p.theme.background};
+  border-radius: 2.5rem;
+  padding: ${space(0.75)} ${space(0.75)};
+  z-index: 2;
+  box-shadow: ${p => p.theme.dropShadowLightest};
+`;
+
+const FeatureText = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.text};
+  margin-left: ${space(0.75)};
+  margin-right: ${space(0.25)};
 `;
 
 export default ReplayContent;

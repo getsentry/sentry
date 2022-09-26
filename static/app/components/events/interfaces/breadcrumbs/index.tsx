@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {Fragment, ReactNode, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
@@ -32,6 +33,7 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   };
   event: Event;
   organization: Organization;
+  replay?: ReactNode;
 };
 
 type State = {
@@ -45,7 +47,7 @@ type State = {
   relativeTime?: string;
 };
 
-function BreadcrumbsContainer({data, event, organization, route, router}: Props) {
+function BreadcrumbsContainer({data, event, organization, route, router, replay}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -308,6 +310,18 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
     };
   }
 
+  const searchBar = (
+    <StyledSearchBarAction
+      placeholder={t('Search breadcrumbs')}
+      onChange={handleSearch}
+      query={searchTerm}
+      filterOptions={filterOptions}
+      filterSelections={state.filterSelections}
+      onFilterChange={handleFilter}
+      isFullWidth={false}
+    />
+  );
+
   return (
     <EventDataSection
       type={EntryType.BREADCRUMBS}
@@ -316,19 +330,16 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
           <h3>{t('Breadcrumbs')}</h3>
         </GuideAnchor>
       }
-      actions={
-        <StyledSearchBarAction
-          placeholder={t('Search breadcrumbs')}
-          onChange={handleSearch}
-          query={searchTerm}
-          filterOptions={filterOptions}
-          filterSelections={state.filterSelections}
-          onFilterChange={handleFilter}
-        />
-      }
+      actions={!replay && searchBar}
       wrapTitle={false}
       isCentered
     >
+      {replay && (
+        <Fragment>
+          {replay}
+          {searchBar}
+        </Fragment>
+      )}
       <ErrorBoundary>
         <Breadcrumbs
           router={router}
@@ -349,8 +360,10 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
 
 export default BreadcrumbsContainer;
 
-const StyledSearchBarAction = styled(SearchBarAction)`
+const StyledSearchBarAction = styled(SearchBarAction)<{isFullWidth: boolean}>`
   z-index: 2;
+  ${p => (p.isFullWidth ? 'width: 100% !important' : '')};
+  margin-bottom: ${p => (p.isFullWidth ? space(1) : 0)};
 `;
 
 const LevelWrap = styled('span')`

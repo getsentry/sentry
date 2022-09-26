@@ -24,10 +24,12 @@ import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 import {Resources} from './interfaces/performance/resources';
 import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
+import EventReplay from './eventReplay';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
   event: Event;
+  isShare: boolean;
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
   group?: Group;
@@ -37,6 +39,7 @@ function EventEntry({
   entry,
   projectSlug,
   event,
+  isShare,
   organization,
   group,
   route,
@@ -51,6 +54,8 @@ function EventEntry({
   );
 
   const groupingCurrentLevel = group?.metadata?.current_level;
+
+  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
   switch (entry.type) {
     case EntryType.EXCEPTION: {
@@ -114,6 +119,14 @@ function EventEntry({
       );
 
     case EntryType.BREADCRUMBS: {
+      const replay = !isShare && replayId && (
+        <EventReplay
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          replayId={replayId}
+        />
+      );
+
       return (
         <Breadcrumbs
           data={entry.data}
@@ -121,6 +134,7 @@ function EventEntry({
           event={event}
           router={router}
           route={route}
+          replay={replay}
         />
       );
     }
