@@ -49,6 +49,7 @@ describe('AdminQueue', function () {
     });
 
     it('renders', function () {
+      MockApiClient.warnOnMissingMocks();
       const wrapper = render(<AdminQueue params={{}} />);
       expect(wrapper.container).toSnapshot();
     });
