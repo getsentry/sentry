@@ -262,7 +262,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             version=2,
             date_created=before_now(minutes=10),
             date_updated=before_now(minutes=10),
-            is_default=True,
+            is_homepage=True,
         )
         model.set_projects(self.project_ids)
 

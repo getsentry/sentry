@@ -14,14 +14,14 @@ from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DiscoverSavedQuery
 
 
-def get_default_query(organization, user):
+def get_homepage_query(organization, user):
     return DiscoverSavedQuery.objects.get(
         organization=organization, is_homepage=True, created_by=user
     )
 
 
 @region_silo_endpoint
-class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
+class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     private = True
 
     permission_classes = (
@@ -42,7 +42,7 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         try:
-            query = get_default_query(organization, request.user)
+            query = get_homepage_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
             return Response({}, status=status.HTTP_200_OK)
 
@@ -53,9 +53,9 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         try:
-            previous_default = get_default_query(organization, request.user)
+            previous_homepage = get_homepage_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
-            previous_default = None
+            previous_homepage = None
 
         try:
             params = self.get_filter_params(
@@ -72,8 +72,8 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
-        if previous_default:
-            previous_default.update(
+        if previous_homepage:
+            previous_homepage.update(
                 organization=organization,
                 name=data["name"],
                 query=data["query"],
@@ -99,9 +99,9 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         try:
-            default_query = get_default_query(organization, request.user)
+            homepage_query = get_homepage_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
-        default_query.delete()
+        homepage_query.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
