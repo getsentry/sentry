@@ -61,7 +61,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
     def test_put_creates_new_discover_saved_query_if_none_exists(self):
         homepage_query_payload = {
             "version": 2,
-            "name": "New Default Query",
+            "name": "New Homepage Query",
             "projects": ["-1"],
             "environment": ["alpha"],
             "fields": ["environment", "platform.name"],
@@ -83,7 +83,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
     def test_post_not_allowed(self):
         homepage_query_payload = {
             "version": 2,
-            "name": "New Default Query",
+            "name": "New Homepage Query",
             "projects": ["-1"],
             "environment": ["alpha"],
             "fields": ["environment", "platform.name"],

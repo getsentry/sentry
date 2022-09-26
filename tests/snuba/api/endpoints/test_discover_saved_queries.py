@@ -252,12 +252,12 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 200, response.content
         assert response.data[0]["expired"]
 
-    def test_get_ignores_default_queries(self):
+    def test_get_ignores_homepage_queries(self):
         query = {"fields": ["test"], "conditions": [], "limit": 10}
         model = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by=self.user,
-            name="Default Test Query",
+            name="Homepage Test Query",
             query=query,
             version=2,
             date_created=before_now(minutes=10),
@@ -270,7 +270,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             response = self.client.get(self.url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert not any([query["name"] == "Default Test Query" for query in response.data])
+        assert not any([query["name"] == "Homepage Test Query" for query in response.data])
 
     def test_post(self):
         with self.feature(self.feature_name):
