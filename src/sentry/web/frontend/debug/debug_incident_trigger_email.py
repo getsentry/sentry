@@ -1,9 +1,5 @@
 from unittest import mock
 
-from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
-
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
     AlertRule,
@@ -15,18 +11,18 @@ from sentry.incidents.models import (
 from sentry.models import Organization, Project
 from sentry.snuba.models import SnubaQuery
 
-from .mail import MailPreview
+from .mail import MailPreviewView
 
 
 class MockedIncidentTrigger:
     date_added = "Some date"
 
 
-class DebugIncidentTriggerEmailView(View):
+class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch(
         "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
     )
-    def get(self, request: Request, mock) -> Response:
+    def get_context(self, request, mock):
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
 
@@ -44,12 +40,14 @@ class DebugIncidentTriggerEmailView(View):
         )
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
-        context = generate_incident_trigger_email_context(
+        return generate_incident_trigger_email_context(
             project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status)
         )
 
-        return MailPreview(
-            text_template="sentry/emails/incidents/trigger.txt",
-            html_template="sentry/emails/incidents/trigger.html",
-            context=context,
-        ).render(request)
+    @property
+    def html_template(self):
+        return "sentry/emails/incidents/trigger.html"
+
+    @property
+    def text_template(self):
+        return "sentry/emails/incidents/trigger.txt"

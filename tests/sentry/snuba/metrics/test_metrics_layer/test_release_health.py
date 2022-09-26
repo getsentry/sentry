@@ -5,7 +5,6 @@ import time
 
 import pytest
 from django.utils.datastructures import MultiValueDict
-from freezegun import freeze_time
 from snuba_sdk import Granularity, Limit, Offset
 
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -18,7 +17,6 @@ from sentry.testutils import BaseMetricsTestCase, TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-@freeze_time()
 class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)

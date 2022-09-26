@@ -1,10 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
@@ -76,7 +70,7 @@ describe('SuggestedOwners', function () {
     userEvent.hover(screen.getAllByTestId('suggested-assignee')[0]);
   });
 
-  it('does not call committers endpoint if `group.firstRelease` does not exist', async function () {
+  it('does not call committers endpoint if `group.firstRelease` does not exist', function () {
     const committers = Client.addMockResponse({
       url: `${endpoint}/committers/`,
       body: {
@@ -101,8 +95,6 @@ describe('SuggestedOwners', function () {
       <SuggestedOwners project={project} group={TestStubs.Group()} event={event} />,
       {organization}
     );
-
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(committers).not.toHaveBeenCalled();
   });

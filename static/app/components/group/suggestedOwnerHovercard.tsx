@@ -71,6 +71,7 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
 
     return (
       <StyledHovercard
+        skipWrapper
         header={
           <Fragment>
             <HovercardHeader>

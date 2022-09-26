@@ -166,7 +166,7 @@ function EnvironmentSelector({
     didQuickSelect.current = true;
   };
 
-  const config = ConfigStore.getConfig();
+  const {user} = ConfigStore.getState();
 
   const unsortedEnvironments = projects.flatMap(project => {
     const projectId = parseInt(project.id, 10);
@@ -179,7 +179,7 @@ function EnvironmentSelector({
       (selectedProjects.length === 1 &&
         selectedProjects[0] === ALL_ACCESS_PROJECTS &&
         project.hasAccess) ||
-      (selectedProjects.length === 0 && (project.isMember || config.user.isSuperuser)) ||
+      (selectedProjects.length === 0 && (project.isMember || user.isSuperuser)) ||
       selectedProjects.includes(projectId)
     ) {
       return project.environments;
