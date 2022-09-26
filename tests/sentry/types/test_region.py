@@ -1,8 +1,15 @@
+import pytest
 from django.test import override_settings
 
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.types.region import Region, RegionCategory, RegionMapping
+from sentry.types.region import (
+    Region,
+    RegionCategory,
+    RegionContextError,
+    RegionMapping,
+    RegionResolutionError,
+)
 
 
 class RegionMappingTest(TestCase):
@@ -17,11 +24,18 @@ class RegionMappingTest(TestCase):
         assert mapping.get_by_id(1) == regions[0]
         assert mapping.get_by_name("europe") == regions[1]
 
+        with pytest.raises(RegionResolutionError):
+            mapping.get_by_id(4)
+        with pytest.raises(RegionResolutionError):
+            mapping.get_by_name("nowhere")
+
     def test_get_for_organization(self):
         org = self.create_organization()
-        assert RegionMapping([]).get_for_organization(org) is None
+        with pytest.raises(RegionContextError):
+            RegionMapping([]).get_for_organization(org)
 
     def test_get_local_region(self):
         empty_mapping = RegionMapping([])
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            assert empty_mapping.get_local_region() is None
+            with pytest.raises(RegionContextError):
+                empty_mapping.get_local_region()

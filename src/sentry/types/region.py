@@ -50,6 +50,14 @@ class Region:
         return self.address + path
 
 
+class RegionResolutionError(Exception):
+    """Indicate that a region's identity could not be resolved."""
+
+
+class RegionContextError(Exception):
+    """Indicate that the server is not in a state to resolve a region."""
+
+
 class RegionMapping:
     """The set of all regions in this Sentry platform instance."""
 
@@ -67,23 +75,29 @@ class RegionMapping:
         # production.
         return cls(settings.SENTRY_REGION_CONFIG)
 
-    def get_by_name(self, name: str) -> Region | None:
+    def get_by_name(self, name: str) -> Region:
         """Look up a region by name."""
-        return self._by_name.get(name)
+        try:
+            return self._by_name[name]
+        except KeyError:
+            raise RegionResolutionError(f"No region with name: {name!r}")
 
-    def get_by_id(self, id: int) -> Region | None:
+    def get_by_id(self, id: int) -> Region:
         """Look up a region by numeric ID."""
-        return self._by_id.get(id)
+        try:
+            return self._by_id[id]
+        except KeyError:
+            raise RegionResolutionError(f"No region with numeric ID: {id}")
 
-    def get_for_organization(self, organization: Organization) -> Region | None:
+    def get_for_organization(self, organization: Organization) -> Region:
         """Resolve an organization to the region where its data is stored.
 
-        Returns None if this Sentry platform instance is configured to run only
-        in monolith mode.
+        Raises RegionContextError if this Sentry platform instance is configured to
+        run only in monolith mode.
         """
 
         if not self.regions:
-            return None
+            raise RegionContextError("No regions are configured")
 
         # Backend representation to be determined. If you are working on code
         # that depends on this method, you can mock it out in unit tests or
@@ -93,21 +107,17 @@ class RegionMapping:
     def get_local_region(self) -> Region | None:
         """Get the region in which this server instance is running.
 
-        Returns None if this server instance is not a region silo.
+        Raises RegionContextError if this server instance is not a region silo.
         """
 
         from django.conf import settings
 
         if SiloMode.get_current_mode() != SiloMode.REGION:
-            return None
+            raise RegionContextError("Not a region silo")
 
-        local_region_name = settings.SENTRY_REGION
-        if not local_region_name:
+        if not settings.SENTRY_REGION:
             raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
-        local_region = self.get_by_name(local_region_name)
-        if not local_region:
-            raise Exception(f"SENTRY_REGION value not resolved to region: {local_region_name!r}")
-        return local_region
+        return self.get_by_name(settings.SENTRY_REGION)
 
 
 _global_region_mapping = None
