@@ -88,6 +88,7 @@ export function MetricsBaselineContainer({
   >(undefined);
   const [processedTotal, setProcessedTotal] = useState<number | undefined>(undefined);
   const [loadingTotals, setLoadingTotals] = useState<boolean>(true);
+  const [loadingSeries, setLoadingSeries] = useState<boolean>(true);
 
   useEffect(() => {
     let shouldCancelRequest = false;
@@ -97,6 +98,8 @@ export function MetricsBaselineContainer({
       setLoadingTotals(false);
       return undefined;
     }
+
+    setLoadingTotals(true);
 
     doDiscoverQuery<EventsTableData>(api, `/organizations/${organization.slug}/events/`, {
       ...eventView.generateQueryStringObject(),
@@ -146,9 +149,13 @@ export function MetricsBaselineContainer({
     let shouldCancelRequest = false;
 
     if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
+      setLoadingSeries(false);
       setProcessedLineSeries(undefined);
       return undefined;
     }
+
+    setLoadingSeries(true);
+    setProcessedLineSeries(undefined);
 
     doEventsRequest(api, {
       organization,
@@ -223,6 +230,7 @@ export function MetricsBaselineContainer({
           );
         }
 
+        setLoadingSeries(false);
         setMetricsCompatible(true);
         setProcessedLineSeries(additionalSeries);
       })
@@ -230,7 +238,9 @@ export function MetricsBaselineContainer({
         if (shouldCancelRequest) {
           return;
         }
+        setLoadingSeries(false);
         setMetricsCompatible(false);
+        setProcessedLineSeries(undefined);
       });
     return () => {
       shouldCancelRequest = true;
@@ -264,6 +274,8 @@ export function MetricsBaselineContainer({
       processedTotal={processedTotal}
       loadingProcessedTotals={loadingTotals}
       showBaseline={showBaseline}
+      loadingProcessedEventsBaseline={loadingSeries}
+      reloadingProcessedEventsBaseline={processedLineSeries !== null && loadingSeries}
       setShowBaseline={(value: boolean) => {
         router.push({
           pathname: location.pathname,
