@@ -4,6 +4,8 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 
+import {projects} from '../samplingBreakdown';
+
 type Props = {
   organization: Organization;
   projectId: Project['id'];
@@ -25,13 +27,6 @@ export function useRecommendedSdkUpgrades({organization, projectId}: Props) {
     ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) =>
       isSendingSource && isSendingSampleRate && isSupportedPlatform
   );
-
-  const {projects} = useProjects({
-    slugs: [...sdksToUpdate, ...incompatibleSDKs, ...compatibleUpdatedSDKs].map(
-      ({project}) => project
-    ),
-    orgId: organization.slug,
-  });
 
   const recommendedSdkUpgrades = projects
     .map(project => {

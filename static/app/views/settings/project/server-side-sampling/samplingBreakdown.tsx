@@ -24,15 +24,32 @@ type Props = {
   orgSlug: Organization['slug'];
 };
 
+export const projects = [
+  {
+    id: '1',
+    slug: 'frontend',
+    platform: 'javascript',
+    platforms: ['javascript', 'other'],
+  },
+  {
+    id: '2',
+    slug: 'backend',
+    platform: 'python',
+    platforms: ['native', 'python'],
+  },
+  {
+    id: '3',
+    slug: 'database',
+    platform: 'python-flask',
+    platforms: ['python'],
+  },
+];
+
 export function SamplingBreakdown({orgSlug}: Props) {
   const theme = useTheme();
   const {distribution, loading} = useDistribution();
   const projectBreakdown = distribution?.project_breakdown;
 
-  const {projects} = useProjects({
-    slugs: projectBreakdown?.map(project => project.project) ?? [],
-    orgId: orgSlug,
-  });
   const totalCount = projectBreakdown?.reduce(
     (acc, project) => acc + project['count()'],
     0
