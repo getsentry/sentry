@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import {FieldFromConfig} from 'sentry/components/forms';
 import Form from 'sentry/components/forms/form';
 import {Field} from 'sentry/components/forms/type';
@@ -16,70 +14,67 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> & {
   repository: Repository;
 };
 
-export default class RepositoryEditForm extends Component<Props> {
-  get initialData() {
-    const {repository} = this.props;
+const formFields: Field[] = [
+  {
+    name: 'name',
+    type: 'string',
+    required: true,
+    label: t('Name of your repository.'),
+  },
+  {
+    name: 'url',
+    type: 'string',
+    required: false,
+    label: t('Full URL to your repository.'),
+    placeholder: t('https://github.com/my-org/my-repo/'),
+  },
+];
 
-    return {
-      name: repository.name,
-      url: repository.url || '',
-    };
-  }
+function RepositoryEditForm({
+  repository,
+  onCancel,
+  orgSlug,
+  onSubmitSuccess,
+  closeModal,
+}: Props) {
+  const initialData = {
+    name: repository.name,
+    url: repository.url || '',
+  };
 
-  get formFields(): Field[] {
-    const fields: any[] = [
-      {
-        name: 'name',
-        type: 'string',
-        required: true,
-        label: t('Name of your repository.'),
-      },
-      {
-        name: 'url',
-        type: 'string',
-        required: false,
-        label: t('Full URL to your repository.'),
-        placeholder: t('https://github.com/my-org/my-repo/'),
-      },
-    ];
-    return fields;
-  }
-
-  render() {
-    const {onCancel, orgSlug, repository} = this.props;
-    const endpoint = `/organizations/${orgSlug}/repos/${repository.id}/`;
-    return (
-      <Form
-        initialData={this.initialData}
-        onSubmitSuccess={data => {
-          this.props.onSubmitSuccess(data);
-          this.props.closeModal();
-        }}
-        apiEndpoint={endpoint}
-        apiMethod="PUT"
-        onCancel={onCancel}
-      >
-        <Alert type="warning" showIcon>
-          {tct(
-            'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/cli/releases/#sentry-cli-commit-integration" />
-              ),
-              name: <strong>repo name</strong>,
-            }
-          )}
-        </Alert>
-        {this.formFields.map(field => (
-          <FieldFromConfig
-            key={field.name}
-            field={field}
-            inline={false}
-            stacked
-            flexibleControlStateSize
-          />
-        ))}
-      </Form>
-    );
-  }
+  return (
+    <Form
+      initialData={initialData}
+      onSubmitSuccess={data => {
+        onSubmitSuccess(data);
+        closeModal();
+      }}
+      apiEndpoint={`/organizations/${orgSlug}/repos/${repository.id}/`}
+      apiMethod="PUT"
+      onCancel={onCancel}
+    >
+      <Alert type="warning" showIcon>
+        {tct(
+          'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/cli/releases/#sentry-cli-commit-integration" />
+            ),
+            name: <strong>repo name</strong>,
+          }
+        )}
+      </Alert>
+      {formFields.map(field => (
+        <FieldFromConfig
+          key={field.name}
+          field={field}
+          inline={false}
+          stacked
+          flexibleControlStateSize
+        />
+      ))}
+    </Form>
+  );
 }
+
+export default RepositoryEditForm;
