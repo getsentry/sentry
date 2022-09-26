@@ -234,7 +234,7 @@ function SelectProjectStep({
                 disabled={
                   !(
                     project?.platform && platformToInstructionsMapping[project.platform]
-                  ) || publicDSN.loading
+                  ) || publicDSN.type === 'loading'
                 }
                 type="submit"
               />
@@ -254,17 +254,14 @@ function usePublicDSN({
   project: Project | null | undefined;
 }) {
   const api = useApi();
-  const [response, setResponse] = useState<
-    RequestState<string | null> & {loading: boolean}
-  >({
+  const [response, setResponse] = useState<RequestState<string | null>>({
     type: 'initial',
-    loading: false,
   });
   useEffect(() => {
     if (!organization || !project) {
       return;
     }
-    setResponse(v => ({...v, type: 'initial', data: null, loading: true}));
+    setResponse(v => ({...v, type: 'loading', data: null}));
     const request: Promise<ProjectKey[]> = api.requestPromise(
       `/projects/${organization.slug}/${project.slug}/keys/`
     );
@@ -274,14 +271,12 @@ function usePublicDSN({
         setResponse({
           type: 'resolved',
           data: data[0]?.dsn.public ?? null,
-          loading: false,
         });
       })
       .catch(error =>
         setResponse({
           type: 'errored',
           error,
-          loading: false,
         })
       );
   }, [organization, project, api]);
@@ -374,7 +369,7 @@ const SDKUpdatesContainer = styled('div')`
 interface InstallStepsProps {
   organization: Organization;
   project: Project;
-  publicDSN: RequestState<string | null> & {loading: boolean};
+  publicDSN: RequestState<string | null>;
   sdkUpdates: RequestState<ProjectSdkUpdates | null>;
 }
 
@@ -410,7 +405,7 @@ function AndroidInstallSteps({
       </li>
       <li>
         <StepTitle>{t('Set Up Profiling')}</StepTitle>
-        {publicDSN.loading ? (
+        {publicDSN.type === 'loading' ? (
           <LoadingIndicator />
         ) : (
           <CodeSnippet language="xml" filename="AndroidManifest.xml">
@@ -461,7 +456,7 @@ function IOSInstallSteps({
           {t('Enable profiling in your app by configuring the SDKs like below:')}
         </StepTitle>
 
-        {publicDSN.loading ? (
+        {publicDSN.type === 'loading' ? (
           <LoadingIndicator />
         ) : (
           <CodeSnippet language="swift">{`SentrySDK.start { options in
