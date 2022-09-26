@@ -399,14 +399,16 @@ class Results extends Component<Props, State> {
       interval: value,
     };
 
-    router.push({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    if (location.query.interval !== value) {
+      router.push({
+        pathname: location.pathname,
+        query: newQuery,
+      });
 
-    // Treat display changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
+      // Treat display changing like the user already confirmed the query
+      if (!this.state.needConfirmation) {
+        this.handleConfirmed();
+      }
     }
   };
 
