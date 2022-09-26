@@ -31,12 +31,12 @@ export const projects = [
   },
   {
     id: '2',
-    slug: 'backend',
+    slug: 'backend1',
     platform: 'python',
   },
   {
     id: '3',
-    slug: 'database',
+    slug: 'backend2',
     platform: 'python-flask',
   },
 ] as Project[];
