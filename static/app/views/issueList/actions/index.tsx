@@ -11,13 +11,21 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Group, PageFilters} from 'sentry/types';
+import {Group, PageFilters, ResolutionStatusDetails} from 'sentry/types';
+import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import ActionSet from './actionSet';
 import Headers from './headers';
-import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
+import IssueListSortOptions from './sortOptions';
+import {
+  BULK_LIMIT,
+  BULK_LIMIT_STR,
+  ConfirmAction,
+  performanceIssuesSupportsIgnoreAction,
+} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -62,6 +70,8 @@ function IssueListActions({
     selectedProjectSlug,
     setAllInQuerySelected,
   } = useSelectedGroupsState();
+
+  const disableActions = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const numIssues = selectedIdsSet.size;
 
@@ -126,6 +136,16 @@ function IssueListActions({
       'issue-list-removal-action'
     );
 
+    // TODO: Remove this check when performance issues supports ignoring by time window
+    const ignoreStatusDetails = data?.statusDetails as
+      | ResolutionStatusDetails
+      | undefined;
+    const unsupportedByPerformanceIssues =
+      ignoreStatusDetails && !performanceIssuesSupportsIgnoreAction(ignoreStatusDetails);
+    const bulkUpdateQuery = unsupportedByPerformanceIssues
+      ? queryExcludingPerformanceIssues
+      : query;
+
     actionSelectedGroups(itemIds => {
       // TODO(Kelly): remove once issue-list-removal-action feature is stable
       if (!hasIssueListRemovalAction) {
@@ -152,7 +172,7 @@ function IssueListActions({
           orgId: organization.slug,
           itemIds,
           data,
-          query,
+          query: bulkUpdateQuery,
           environment: selection.environments,
           ...projectConstraints,
           ...selection.datetime,
@@ -171,31 +191,36 @@ function IssueListActions({
   return (
     <Sticky>
       <StyledFlex>
-        <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
-          <Checkbox
-            onChange={() => SelectedGroupStore.toggleSelectAll()}
-            checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-            disabled={displayReprocessingActions}
-          />
-        </ActionsCheckbox>
+        {!disableActions && (
+          <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
+            <Checkbox
+              onChange={() => SelectedGroupStore.toggleSelectAll()}
+              checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+              disabled={displayReprocessingActions}
+            />
+          </ActionsCheckbox>
+        )}
         {!displayReprocessingActions && (
-          <ActionSet
-            sort={sort}
-            onSortChange={onSortChange}
-            queryCount={queryCount}
-            query={query}
-            issues={selectedIdsSet}
-            allInQuerySelected={allInQuerySelected}
-            anySelected={anySelected}
-            multiSelected={multiSelected}
-            selectedProjectSlug={selectedProjectSlug}
-            onShouldConfirm={action =>
-              shouldConfirm(action, {pageSelected, selectedIdsSet})
-            }
-            onDelete={handleDelete}
-            onMerge={handleMerge}
-            onUpdate={handleUpdate}
-          />
+          <HeaderButtonsWrapper>
+            {!disableActions && (
+              <ActionSet
+                queryCount={queryCount}
+                query={query}
+                issues={selectedIdsSet}
+                allInQuerySelected={allInQuerySelected}
+                anySelected={anySelected}
+                multiSelected={multiSelected}
+                selectedProjectSlug={selectedProjectSlug}
+                onShouldConfirm={action =>
+                  shouldConfirm(action, {pageSelected, selectedIdsSet})
+                }
+                onDelete={handleDelete}
+                onMerge={handleMerge}
+                onUpdate={handleUpdate}
+              />
+            )}
+            <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          </HeaderButtonsWrapper>
         )}
         <Headers
           onSelectStatsPeriod={onSelectStatsPeriod}
@@ -335,6 +360,19 @@ const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
     display: block;
   }
   ${p => p.isReprocessingQuery && 'flex: 1'};
+`;
+
+const HeaderButtonsWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    width: 50%;
+  }
+  flex: 1;
+  margin: 0 ${space(1)};
+  display: grid;
+  gap: ${space(0.5)};
+  grid-auto-flow: column;
+  justify-content: flex-start;
+  white-space: nowrap;
 `;
 
 const SelectAllNotice = styled('div')`

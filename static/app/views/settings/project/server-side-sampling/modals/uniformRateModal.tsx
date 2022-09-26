@@ -21,13 +21,12 @@ import {t, tct} from 'sentry/locale';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Outcome, Project} from 'sentry/types';
 import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
-import {Outcome} from 'sentry/views/organizationStats/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {
@@ -364,7 +363,7 @@ export function UniformRateModal({
       <Body>
         <TextBlock>
           {tct(
-            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To accurately monitor overall performance, we also suggest changing your client(SDK) sample rate to allow more metrics to be processed. [learnMoreLink: Learn more about quota management].',
+            'Set a server-side sample rate for all transactions using our suggestion as a starting point. To improve the accuracy of your performance metrics, we also suggest increasing your client(SDK) sample rate to allow more transactions to be processed. [learnMoreLink: Learn more about quota management].',
             {
               learnMoreLink: (
                 <ExternalLink
@@ -615,9 +614,9 @@ export function UniformRateModal({
               }
               title={
                 isProjectIncompatible
-                  ? t('Your project is currently incompatible with Server-Side Sampling.')
+                  ? t('Your project is currently incompatible with Dynamic Sampling.')
                   : isWithoutTransactions
-                  ? t('You need at least one transaction to set up Server-Side Sampling.')
+                  ? t('You need at least one transaction to set up Dynamic Sampling.')
                   : selectedStrategy === Strategy.CURRENT
                   ? t('Current sampling values selected')
                   : !isValid

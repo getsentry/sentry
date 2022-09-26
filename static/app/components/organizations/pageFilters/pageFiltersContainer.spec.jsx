@@ -3,9 +3,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
-import OrganizationActions from 'sentry/actions/organizationActions';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {getItem} from 'sentry/utils/localStorage';
@@ -40,7 +40,7 @@ const mountWithThemeAndOrg = (component, opts, organization) =>
     ),
   });
 
-describe('GlobalSelectionHeader', function () {
+describe('PageFiltersContainer', function () {
   enforceActOnUseLegacyStoreHook();
 
   let wrapper;
@@ -72,8 +72,8 @@ describe('GlobalSelectionHeader', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(organization.projects);
-    OrganizationActions.update(organization);
-    OrganizationsStore.add(organization);
+    OrganizationStore.onUpdate(organization);
+    OrganizationsStore.addOrReplace(organization);
 
     getItem.mockImplementation(() => null);
     MockApiClient.addMockResponse({
@@ -89,42 +89,38 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not update router if there is custom routing', function () {
-    wrapper = mountWithTheme(
-      <PageFiltersContainer organization={organization} hasCustomRouting />,
-      routerContext
+    wrapper = mountWithThemeAndOrg(
+      <PageFiltersContainer hasCustomRouting />,
+      routerContext,
+      organization
     );
     expect(router.push).not.toHaveBeenCalled();
   });
 
   it('does not update router if org in URL params is different than org in context/props', function () {
-    wrapper = mountWithTheme(
-      <PageFiltersContainer organization={organization} hasCustomRouting />,
+    wrapper = mountWithThemeAndOrg(
+      <PageFiltersContainer hasCustomRouting />,
       {
         ...routerContext,
         context: {
           ...routerContext.context,
           router: {...routerContext.context.router, params: {orgId: 'diff-org'}},
         },
-      }
+      },
+      organization
     );
     expect(router.push).not.toHaveBeenCalled();
   });
 
   it('does not replace URL with values from store when mounted with no query params', function () {
-    wrapper = mountWithTheme(
-      <PageFiltersContainer organization={organization} />,
-      routerContext
-    );
+    wrapper = mountWithThemeAndOrg(<PageFiltersContainer />, routerContext, organization);
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer
-        organization={organization}
-        params={{orgId: organization.slug}}
-      />,
+      <PageFiltersContainer params={{orgId: organization.slug}} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
       }),
@@ -149,7 +145,7 @@ describe('GlobalSelectionHeader', function () {
 
   it('updates GlobalSelection store with default period', async function () {
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={organization} />,
+      <PageFiltersContainer />,
       changeQuery(routerContext, {
         environment: 'prod',
       }),
@@ -179,7 +175,7 @@ describe('GlobalSelectionHeader', function () {
 
   it('updates GlobalSelection store with empty dates in URL', async function () {
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={organization} />,
+      <PageFiltersContainer />,
       changeQuery(routerContext, {
         statsPeriod: null,
       }),
@@ -207,7 +203,7 @@ describe('GlobalSelectionHeader', function () {
 
   it('resets start&end if showAbsolute prop is false', async function () {
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={organization} showAbsolute={false} />,
+      <PageFiltersContainer showAbsolute={false} />,
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
         end: '2020-05-05T09:19:12.000',
@@ -239,7 +235,7 @@ describe('GlobalSelectionHeader', function () {
    */
   it('does not update store if url params have not changed', async function () {
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={organization} />,
+      <PageFiltersContainer />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
       }),
@@ -302,7 +298,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={initializationObj.organization} />,
+      <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
@@ -340,7 +336,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={initializationObj.organization} />,
+      <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
@@ -367,7 +363,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     wrapper = mountWithThemeAndOrg(
-      <PageFiltersContainer organization={initializationObj.organization} />,
+      <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
@@ -393,9 +389,10 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithTheme(
-      <PageFiltersContainer organization={initializationObj.organization} />,
-      initializationObj.routerContext
+    wrapper = mountWithThemeAndOrg(
+      <PageFiltersContainer />,
+      initializationObj.routerContext,
+      initializationObj.organization
     );
 
     // Router does not update because params have not changed
@@ -424,17 +421,12 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    OrganizationActions.update(initializationObj.organization);
+    OrganizationStore.onUpdate(initializationObj.organization);
 
-    wrapper = mountWithTheme(
-      <OrganizationContext.Provider value={initializationObj.organization}>
-        <PageFiltersContainer
-          organization={initializationObj.organization}
-          hideGlobalHeader
-        />
-      </OrganizationContext.Provider>,
-
-      initializationObj.routerContext
+    wrapper = mountWithThemeAndOrg(
+      <PageFiltersContainer hideGlobalHeader />,
+      initializationObj.routerContext,
+      initializationObj.organization
     );
 
     // reflux tick
@@ -499,9 +491,10 @@ describe('GlobalSelectionHeader', function () {
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
-      wrapper = mountWithTheme(
-        <PageFiltersContainer organization={initialData.organization} />,
-        initialData.routerContext
+      wrapper = mountWithThemeAndOrg(
+        <PageFiltersContainer />,
+        initialData.routerContext,
+        initialData.organization
       );
       expect(globalActions.updateProjects).not.toHaveBeenCalled();
 
@@ -519,7 +512,7 @@ describe('GlobalSelectionHeader', function () {
 
       // Eventually OrganizationContext will fetch org details for `org-slug`
       // and update `organization` prop emulate fetchOrganizationDetails
-      OrganizationActions.update(updatedOrganization);
+      OrganizationStore.onUpdate(updatedOrganization);
       wrapper.setContext({
         organization: updatedOrganization,
         location: {query: {}},
@@ -549,9 +542,10 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      wrapper = mountWithTheme(
-        <PageFiltersContainer organization={initializationObj.organization} />,
-        initializationObj.routerContext
+      wrapper = mountWithThemeAndOrg(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
       );
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
@@ -575,9 +569,10 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      wrapper = mountWithTheme(
-        <PageFiltersContainer organization={initializationObj.organization} />,
-        initializationObj.routerContext
+      wrapper = mountWithThemeAndOrg(
+        <PageFiltersContainer />,
+        initializationObj.routerContext,
+        initializationObj.organization
       );
 
       expect(initializationObj.router.replace).toHaveBeenCalledWith(
@@ -610,7 +605,6 @@ describe('GlobalSelectionHeader', function () {
 
       wrapper = mountWithThemeAndOrg(
         <PageFiltersContainer
-          organization={initialData.organization}
           shouldForceProject
           forceProject={initialData.projects[0]}
           showIssueStreamLink
@@ -654,7 +648,6 @@ describe('GlobalSelectionHeader', function () {
         <PageFiltersContainer
           skipInitializeUrlParams
           shouldForceProject
-          organization={initialData.organization}
           forceProject={initialData.projects[0]}
           showIssueStreamLink
         />,
@@ -683,13 +676,13 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = props => {
-        wrapper = mountWithTheme(
+        wrapper = mountWithThemeAndOrg(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
-            organization={initialData.organization}
             {...props}
           />,
-          initialData.routerContext
+          initialData.routerContext,
+          initialData.organization
         );
         return wrapper;
       };
@@ -790,13 +783,13 @@ describe('GlobalSelectionHeader', function () {
       ProjectsStore.loadInitialData(initialData.projects);
 
       const createWrapper = props => {
-        wrapper = mountWithTheme(
+        wrapper = mountWithThemeAndOrg(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
-            organization={initialData.organization}
             {...props}
           />,
-          initialData.routerContext
+          initialData.routerContext,
+          initialData.organization
         );
         return wrapper;
       };
@@ -842,7 +835,6 @@ describe('GlobalSelectionHeader', function () {
         wrapper = mountWithThemeAndOrg(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
-            organization={initialData.organization}
             {...props}
           />,
           {

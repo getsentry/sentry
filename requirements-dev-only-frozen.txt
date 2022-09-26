@@ -52,11 +52,11 @@ pycodestyle==2.9.0
 pyflakes==2.5.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
-pytest==6.1.2
+pytest==7.1.2
 pytest-cov==3.0.0
 pytest-django==4.4.0
 pytest-forked==1.4.0
-pytest-rerunfailures==9.1.1
+pytest-rerunfailures==10.2
 pytest-sentry==0.1.9
 pytest-xdist==2.4.0
 python-dateutil==2.8.2
@@ -70,6 +70,7 @@ tokenize-rt==4.2.1
 toml==0.10.2
 tomli==2.0.1
 types-freezegun==1.1.10
+types-psycopg2==2.9.21
 types-python-dateutil==2.8.19
 types-pytz==2022.1.2
 types-pyyaml==6.0.11

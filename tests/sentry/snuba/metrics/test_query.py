@@ -8,6 +8,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
+    OPERATIONS,
     DerivedMetricParseException,
     Groupable,
     MetricField,
@@ -16,13 +17,12 @@ from sentry.snuba.metrics import (
     OrderBy,
     parse_query,
 )
-from sentry.snuba.metrics.naming_layer import SessionMetricKey
-from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.utils.dates import parse_stats_period
 
 
 class MetricsQueryBuilder:
-    AVG_DURATION_METRIC = MetricField(op="avg", metric_name=SessionMetricKey.DURATION.value)
+    AVG_DURATION_METRIC = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
 
     def __init__(self):
         now = datetime.now()
@@ -104,14 +104,11 @@ def test_validate_select():
 
     with pytest.raises(
         InvalidParams,
-        match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
-            "histogram, p50, p75, p90, p95, p99"
-        ),
+        match=(f"Invalid operation 'foo'. Must be one of {', '.join(OPERATIONS)}"),
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
-            .with_select([MetricField(op="foo", metric_name=SessionMetricKey.DURATION.value)])
+            .with_select([MetricField(op="foo", metric_mri=SessionMRI.DURATION.value)])
             .to_metrics_query_dict()
         )
     with pytest.raises(
@@ -126,17 +123,15 @@ def test_validate_select():
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
-            .with_select(
-                [MetricField(op="sum", metric_name=SessionMetricKey.CRASH_FREE_RATE.value)]
-            )
+            .with_select([MetricField(op="sum", metric_mri=SessionMRI.CRASH_FREE_RATE.value)])
             .to_metrics_query_dict()
         )
 
 
 def test_validate_select_invalid_use_case_ids():
     with pytest.raises(InvalidParams, match="All select fields should have the same use_case_id"):
-        metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-        metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+        metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
+        metric_field_2 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
         MetricsQuery(
             **MetricsQueryBuilder()
             .with_select([metric_field_1, metric_field_2])
@@ -147,17 +142,14 @@ def test_validate_select_invalid_use_case_ids():
 def test_validate_order_by():
     with pytest.raises(
         InvalidParams,
-        match=(
-            "Invalid operation 'foo'. Must be one of avg, count_unique, count, max, min, sum, "
-            "histogram, p50, p75, p90, p95, p99"
-        ),
+        match=(f"Invalid operation 'foo'. Must be one of {', '.join(OPERATIONS)}"),
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
             .with_orderby(
                 [
                     OrderBy(
-                        field=MetricField(op="foo", metric_name=SessionMetricKey.DURATION.value),
+                        field=MetricField(op="foo", metric_mri=SessionMRI.DURATION.value),
                         direction=Direction.ASC,
                     )
                 ]
@@ -179,9 +171,7 @@ def test_validate_order_by():
             .with_orderby(
                 [
                     OrderBy(
-                        field=MetricField(
-                            op="sum", metric_name=SessionMetricKey.CRASH_FREE_RATE.value
-                        ),
+                        field=MetricField(op="sum", metric_mri=SessionMRI.CRASH_FREE_RATE.value),
                         direction=Direction.ASC,
                     )
                 ]
@@ -191,7 +181,7 @@ def test_validate_order_by():
 
 
 def test_validate_order_by_field_in_select():
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+    metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_orderby([OrderBy(field=metric_field_2, direction=Direction.ASC)])
@@ -213,8 +203,8 @@ def test_validate_order_by_field_in_select():
 
 
 def test_validate_multiple_orderby_columns_not_specified_in_select():
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+    metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
+    metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([MetricsQueryBuilder.AVG_DURATION_METRIC, metric_field_1])
@@ -238,9 +228,9 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
     The example should fail because session crash free rate is generated from
     counters entity while p50 of duration will go to distribution
     """
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_USER_RATE.value)
-    metric_field_3 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
+    metric_field_3 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
@@ -266,8 +256,8 @@ def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     This example should fail because session crash free rate is generated from
     counters while session user crash free rate is generated from sets
     """
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_USER_RATE.value)
+    metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
@@ -292,8 +282,8 @@ def test_validate_many_order_by_fields_are_in_select():
     """
     Validate no exception is raised when all orderBy fields are presented the select
     """
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.ABNORMAL.value)
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+    metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
+    metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
 
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -323,8 +313,8 @@ def test_validate_many_order_by_fields_are_in_select():
 
     # This example should pass because both session crash free rate
     # and sum(session) both go to the entity counters
-    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.CRASH_FREE_RATE.value)
-    metric_field_2 = MetricField(op="sum", metric_name=SessionMetricKey.DURATION.value)
+    metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
+    metric_field_2 = MetricField(op="sum", metric_mri=SessionMRI.SESSION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
@@ -346,8 +336,8 @@ def test_validate_functions_from_multiple_entities_in_orderby():
     # `avg` are in OP_TO_SNUBA_FUNCTION["metrics_distributions"].keys()
     # but
     # `count_unique` are in OP_TO_SNUBA_FUNCTION["metrics_sets"].keys()
-    metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
-    metric_field_2 = MetricField(op="count_unique", metric_name=TransactionMetricKey.USER.value)
+    metric_field_1 = MetricField(op="avg", metric_mri=TransactionMRI.DURATION.value)
+    metric_field_2 = MetricField(op="count_unique", metric_mri=TransactionMRI.USER.value)
 
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -372,8 +362,8 @@ def test_validate_functions_from_multiple_entities_in_orderby():
 
 def test_validate_distribution_functions_in_orderby():
     # Validate no exception is raised when all orderBy fields are presented the select
-    metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
-    metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_1 = MetricField(op="avg", metric_mri=TransactionMRI.DURATION.value)
+    metric_field_2 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
 
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -488,3 +478,32 @@ def test_granularity_validation(stats_period, interval, error_message):
     # that is not present in the select
     with pytest.raises(InvalidParams, match=error_message):
         MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_metric_field_mri():
+    with pytest.raises(InvalidParams, match="Invalid Metric MRI: transaction-metric-duration"):
+        MetricField(
+            op="avg",
+            metric_mri="transaction-metric-duration",
+        )
+
+
+@pytest.mark.parametrize(
+    "alias",
+    [
+        pytest.param(
+            None,
+            id="No alias provided",
+        ),
+        pytest.param(
+            "ahmed_alias",
+            id="alias is provided",
+        ),
+    ],
+)
+def test_validate_metric_field_mri_is_public(alias):
+    with pytest.raises(
+        InvalidParams,
+        match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+    ):
+        MetricField(op=None, metric_mri="e:sessions/error.preaggr@none", alias=alias)

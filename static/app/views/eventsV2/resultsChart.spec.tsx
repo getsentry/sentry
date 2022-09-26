@@ -29,16 +29,28 @@ describe('EventsV2 > ResultsChart', function () {
       projects: [],
     });
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
   });
 
   it('only allows default, daily, previous period, and bar display modes when multiple y axis are selected', function () {
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
+        disableProcessedBaselineToggle
+        setShowBaseline={() => undefined}
+        showBaseline
         organization={organization}
         eventView={eventView}
         location={location}
         onAxisChange={() => undefined}
+        onIntervalChange={() => undefined}
         onDisplayChange={() => undefined}
         total={1}
         confirmedQuery
@@ -66,11 +78,15 @@ describe('EventsV2 > ResultsChart', function () {
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
+        disableProcessedBaselineToggle
+        setShowBaseline={() => undefined}
+        showBaseline
         organization={organization}
         eventView={eventView}
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
+        onIntervalChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={[]}
@@ -90,14 +106,19 @@ describe('EventsV2 > ResultsChart', function () {
       {field: 'count_unique(user)'},
       {field: 'equation|count() + 2'},
     ];
+    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
+        disableProcessedBaselineToggle
+        setShowBaseline={() => undefined}
+        showBaseline
         organization={organization}
         eventView={eventView}
         location={location}
         onAxisChange={() => undefined}
         onDisplayChange={() => undefined}
+        onIntervalChange={() => undefined}
         total={1}
         confirmedQuery
         yAxis={['count()']}

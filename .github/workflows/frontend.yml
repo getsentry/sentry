@@ -6,6 +6,12 @@ on:
       - master
   pull_request:
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
@@ -18,7 +24,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       eslint_config: ${{ steps.changes.outputs.eslint_config }}
-      frontend: ${{ steps.changes.outputs.frontend }}
+      frontend: ${{ steps.changes.outputs.frontend_all }}
       frontend_components_modified_lintable: ${{ steps.changes.outputs.frontend_components_modified_lintable }}
       frontend_components_modified_lintable_files: ${{ steps.changes.outputs.frontend_components_modified_lintable_files }}
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
@@ -113,7 +119,7 @@ jobs:
         if: steps.dependencies.outcome == 'success'
         run: |
           set -o pipefail
-          yarn tsc -p config/tsconfig.build.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
+          yarn tsc -p config/tsconfig.ci.json --diagnostics --generateTrace /tmp/trace | tee /tmp/typescript-monitor.log
 
       - name: monitor-tsc
         continue-on-error: true

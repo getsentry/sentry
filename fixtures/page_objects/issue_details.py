@@ -37,9 +37,9 @@ class IssueDetailsPage(BasePage):
     def api_issue_get(self, groupid):
         return self.client.get(f"/api/0/issues/{groupid}/")
 
-    def go_to_subtab(self, name):
-        tabs = self.browser.find_element(by=By.CSS_SELECTOR, value=".group-detail .nav-tabs")
-        tabs.find_element(by=By.PARTIAL_LINK_TEXT, value=name).click()
+    def go_to_subtab(self, key):
+        tabs = self.browser.find_element(by=By.CSS_SELECTOR, value='[role="tablist"]')
+        tabs.find_element(by=By.CSS_SELECTOR, value=f'[role="tab"][data-key="{key}"]').click()
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
     def open_issue_errors(self):
@@ -68,7 +68,9 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="unbookmark"]')
 
     def assign_to(self, user):
-        assignee = self.browser.find_element(by=By.CSS_SELECTOR, value=".assigned-to")
+        assignee = self.browser.find_element(
+            by=By.CSS_SELECTOR, value='[data-test-id="assigned-to"]'
+        )
 
         # Open the assignee picker
         assignee.find_element(by=By.CSS_SELECTOR, value='[role="button"]').click()

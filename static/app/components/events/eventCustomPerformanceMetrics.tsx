@@ -77,7 +77,7 @@ type EventCustomPerformanceMetricProps = Props & {
   name: string;
 };
 
-function getFieldTypeFromUnit(unit) {
+export function getFieldTypeFromUnit(unit) {
   if (unit) {
     if (DURATION_UNITS[unit]) {
       return 'duration';
@@ -132,6 +132,17 @@ function EventCustomPerformanceMetric({
         return eventView.getResultsViewUrlTarget(organization.slug);
     }
   }
+
+  // Some custom perf metrics have units.
+  // These custom perf metrics need to be adjusted to the correct value.
+  let customMetricValue = value;
+  if (typeof value === 'number' && unit && customMetricValue) {
+    if (Object.keys(SIZE_UNITS).includes(unit)) {
+      customMetricValue *= SIZE_UNITS[unit];
+    } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+      customMetricValue *= DURATION_UNITS[unit];
+    }
+  }
   return (
     <StyledPanel>
       <div>
@@ -145,22 +156,22 @@ function EventCustomPerformanceMetric({
           {
             key: 'includeEvents',
             label: t('Show events with this value'),
-            to: generateLinkWithQuery(`measurements.${name}:${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:${customMetricValue}`),
           },
           {
             key: 'excludeEvents',
             label: t('Hide events with this value'),
-            to: generateLinkWithQuery(`!measurements.${name}:${value}`),
+            to: generateLinkWithQuery(`!measurements.${name}:${customMetricValue}`),
           },
           {
             key: 'includeGreaterThanEvents',
             label: t('Show events with values greater than'),
-            to: generateLinkWithQuery(`measurements.${name}:>${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:>${customMetricValue}`),
           },
           {
             key: 'includeLessThanEvents',
             label: t('Show events with values less than'),
-            to: generateLinkWithQuery(`measurements.${name}:<${value}`),
+            to: generateLinkWithQuery(`measurements.${name}:<${customMetricValue}`),
           },
         ]}
         triggerProps={{

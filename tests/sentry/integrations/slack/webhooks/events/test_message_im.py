@@ -55,6 +55,15 @@ class MessageIMEventTest(BaseEventTest):
         return blocks[0]["text"]["text"], blocks[1]["text"]["text"]
 
     @responses.activate
+    def test_identifying_channel_correctly(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        event_data = json.loads(MESSAGE_IM_EVENT)
+        self.post_webhook(event_data=event_data)
+        request = responses.calls[0].request
+        data = json.loads(request.body)
+        assert data.get("channel") == event_data["channel"]
+
+    @responses.activate
     def test_user_message_im_notification_platform(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
         resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
