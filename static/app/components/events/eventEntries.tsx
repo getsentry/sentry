@@ -411,7 +411,9 @@ const EventEntries = ({
         <EventGroupingInfo
           projectId={projectSlug}
           event={event}
-          showGroupingConfig={orgFeatures.includes('set-grouping-config')}
+          showGroupingConfig={
+            orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
+          }
         />
       )}
       {!isShare && (

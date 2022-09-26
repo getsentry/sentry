@@ -447,4 +447,5 @@ def set_sentry_option(request):
 
 @pytest.fixture
 def django_cache():
+    yield cache
     cache.clear()

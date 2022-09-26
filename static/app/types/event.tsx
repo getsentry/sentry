@@ -421,10 +421,6 @@ interface EventBase {
   errors: any[];
   eventID: string;
   fingerprints: string[];
-  groupingConfig: {
-    enhancements: string;
-    id: string;
-  };
   id: string;
   location: string | null;
   message: string;
@@ -446,6 +442,10 @@ interface EventBase {
   device?: Record<string, any>;
   endTimestamp?: number;
   groupID?: string;
+  groupingConfig?: {
+    enhancements: string;
+    id: string;
+  };
   issueCategory?: IssueCategory;
   latestEventID?: string | null;
   measurements?: Record<string, Measurement>;
