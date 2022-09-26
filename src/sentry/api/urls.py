@@ -65,6 +65,9 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.replays.endpoints.organization_replay_events_meta import (
+    OrganizationReplayEventsMetaEndpoint,
+)
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.replays.endpoints.project_replay_details import ProjectReplayDetailsEndpoint
 from sentry.replays.endpoints.project_replay_recording_segment_details import (
@@ -296,11 +299,6 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_member_issues_assigned import OrganizationMemberIssuesAssignedEndpoint
-from .endpoints.organization_member_issues_bookmarked import (
-    OrganizationMemberIssuesBookmarkedEndpoint,
-)
-from .endpoints.organization_member_issues_viewed import OrganizationMemberIssuesViewedEndpoint
 from .endpoints.organization_member_unreleased_commits import (
     OrganizationMemberUnreleasedCommitsEndpoint,
 )
@@ -363,7 +361,6 @@ from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
-from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
@@ -1349,11 +1346,6 @@ urlpatterns = [
                     name="sentry-api-0-organization-issue-search",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/issues/$",
-                    OrganizationUserIssuesEndpoint.as_view(),
-                    name="sentry-api-0-organization-user-issues",
-                ),
-                url(
                     r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$",
                     OrganizationIssuesResolvedInReleaseEndpoint.as_view(),
                     name="sentry-api-0-organization-release-resolved",
@@ -1367,21 +1359,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
                     OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
                     name="sentry-api-0-organization-member-unreleased-commits",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/assigned/$",
-                    OrganizationMemberIssuesAssignedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-assigned",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/bookmarked/$",
-                    OrganizationMemberIssuesBookmarkedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-bookmarked",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/issues/viewed/$",
-                    OrganizationMemberIssuesViewedEndpoint.as_view(),
-                    name="sentry-api-0-organization-member-issues-viewed",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_slug>[^\/]+)/$",
@@ -1588,6 +1565,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/replays/$",
                     OrganizationReplayIndexEndpoint.as_view(),
                     name="sentry-api-0-organization-replay-index",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/replays-events-meta/$",
+                    OrganizationReplayEventsMetaEndpoint.as_view(),
+                    name="sentry-api-0-organization-replay-events-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/functions/$",

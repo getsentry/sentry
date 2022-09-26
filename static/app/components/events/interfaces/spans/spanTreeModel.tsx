@@ -23,6 +23,7 @@ import {
   getSiblingGroupKey,
   getSpanID,
   getSpanOperation,
+  groupShouldBeHidden,
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
   parseTrace,
@@ -481,7 +482,10 @@ class SpanTreeModel {
         // Since we are not recursively traversing elements in this group, need to check
         // if the spans are filtered or out of bounds here
 
-        if (this.isSpanFilteredOut(props, group[0])) {
+        if (
+          this.isSpanFilteredOut(props, group[0]) ||
+          groupShouldBeHidden(group, focusedSpanIds)
+        ) {
           group.forEach(spanModel => {
             acc.descendants.push({
               type: 'filtered_out',
@@ -490,8 +494,6 @@ class SpanTreeModel {
           });
           return acc;
         }
-
-        // TODO: Check within the group if any of the focusedSpanIDs are present
 
         const bounds = generateBounds({
           startTimestamp: group[0].span.start_timestamp,

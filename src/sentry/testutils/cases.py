@@ -26,23 +26,26 @@ __all__ = (
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
     "OrganizationMetricMetaIntegrationTestCase",
+    "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
 )
 
 import hashlib
 import inspect
-import os
 import os.path
 import time
 from contextlib import contextmanager
 from datetime import datetime
+from io import BytesIO
 from typing import Dict, List, Optional, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
+from zlib import compress
 
 import pytest
+import pytz
 import requests
 from click.testing import CliRunner
 from django.conf import settings
@@ -87,6 +90,7 @@ from sentry.models import (
     DashboardWidgetQuery,
     DeletedOrganization,
     Deploy,
+    File,
     GroupMeta,
     Identity,
     IdentityProvider,
@@ -102,6 +106,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
+from sentry.replays.models import ReplayRecordingSegment
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -118,6 +123,7 @@ from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
+from sentry.utils.json import dumps_htmlsafe
 from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
@@ -949,7 +955,7 @@ class SnubaTestCase(BaseTestCase):
     def bulk_store_sessions(self, sessions):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps(sessions)
+                settings.SENTRY_SNUBA + "/tests/entities/sessions/insert", data=json.dumps(sessions)
             ).status_code
             == 200
         )
@@ -988,7 +994,8 @@ class SnubaTestCase(BaseTestCase):
         data = [self.__wrap_group(group)]
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/groupedmessage/insert", data=json.dumps(data)
+                settings.SENTRY_SNUBA + "/tests/entities/groupedmessage/insert",
+                data=json.dumps(data),
             ).status_code
             == 200
         )
@@ -997,7 +1004,7 @@ class SnubaTestCase(BaseTestCase):
         data = [self.__wrap_group(group)]
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(data)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(data)
             ).status_code
             == 200
         )
@@ -1065,7 +1072,7 @@ class SnubaTestCase(BaseTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/events/insert", data=json.dumps(events)
+                settings.SENTRY_SNUBA + "/tests/entities/events/insert", data=json.dumps(events)
             ).status_code
             == 200
         )
@@ -1337,7 +1344,7 @@ class OutcomesSnubaTest(TestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
             ).status_code
             == 200
         )
@@ -1351,8 +1358,49 @@ class ReplaysSnubaTestCase(TestCase):
         assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
 
     def store_replays(self, replay):
-        response = requests.post(settings.SENTRY_SNUBA + "/tests/replays/insert", json=[replay])
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
+        )
         assert response.status_code == 200
+
+
+# AcceptanceTestCase and TestCase are mutually exclusive base classses
+class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
+    def setUp(self):
+        self.now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        super().setUp()
+        self.drop_replays()
+        patcher = patch("django.utils.timezone.now", return_value=self.now)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def drop_replays(self):
+        assert requests.post(settings.SENTRY_SNUBA + "/tests/replays/drop").status_code == 200
+
+    def store_replays(self, replays):
+        assert (
+            len(replays) >= 2
+        ), "You need to store at least 2 replay events for the replay to be considered valid"
+        response = requests.post(
+            settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=replays
+        )
+        assert response.status_code == 200
+
+    def store_replay_segments(
+        self,
+        replay_id: str,
+        project_id: str,
+        segment_id: int,
+        segment,
+    ):
+        f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
+        f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
+        ReplayRecordingSegment.objects.create(
+            replay_id=replay_id,
+            project_id=project_id,
+            segment_id=segment_id,
+            file_id=f.id,
+        )
 
 
 class IntegrationRepositoryTestCase(APITestCase):

@@ -69,7 +69,7 @@ export function RecommendedStepsModal({
   onSetRules,
 }: RecommendedStepsModalProps) {
   const {isProjectIncompatible} = useRecommendedSdkUpgrades({
-    orgSlug: organization.slug,
+    organization,
     projectId,
   });
   const [saving, setSaving] = useState(false);
@@ -144,7 +144,7 @@ export function RecommendedStepsModal({
               <h5>{t('Update the following SDK versions')}</h5>
               <TextBlock>
                 {t(
-                  'To activate server-side sampling rules, it’s a requirement to update the following project SDK(s):'
+                  'To activate sampling rules, it’s a requirement to update the following project SDK(s):'
                 )}
               </TextBlock>
               <UpgradeSDKfromProjects>

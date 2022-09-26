@@ -16,14 +16,15 @@ import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widge
 
 const defaultOrgFeatures = [
   'performance-view',
-  'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
 ];
 
 // Mocking worldMapChart to avoid act warnings
-jest.mock('sentry/components/charts/worldMapChart');
+jest.mock('sentry/components/charts/worldMapChart', () => ({
+  WorldMapChart: () => null,
+}));
 
 function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
   return {
@@ -239,6 +240,28 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility/',
+      method: 'GET',
+      body: {
+        incompatible_projects: [],
+        compatible_projects: [1],
+        dynamic_sampling_projects: [1],
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics-compatibility-sums/',
+      method: 'GET',
+      body: {
+        sum: {
+          metrics: 988803,
+          metrics_null: 0,
+          metrics_unparam: 132,
+        },
+      },
+    });
+
     TagStore.reset();
   });
 
@@ -249,15 +272,11 @@ describe('WidgetBuilder', function () {
   });
 
   describe('Release Widgets', function () {
-    const releaseHealthFeatureFlags = [
-      ...defaultOrgFeatures,
-      'new-widget-builder-experience-design',
-      'dashboards-releases',
-    ];
+    const releaseHealthFeatureFlags = [...defaultOrgFeatures, 'dashboards-releases'];
 
     it('does not show the Release Health dataset if there is no dashboards-releases flag', async function () {
       renderTestComponent({
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       expect(await screen.findByText('Errors and Transactions')).toBeInTheDocument();
@@ -751,7 +770,7 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({
         onSave: handleSave,
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
+        orgFeatures: [...defaultOrgFeatures],
       });
 
       await screen.findByText('Table');
@@ -876,6 +895,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 
@@ -927,6 +948,8 @@ describe('WidgetBuilder', function () {
             ...defaultOrgFeatures,
             'discover-frontend-use-events-endpoint',
             'dashboards-mep',
+            'server-side-sampling',
+            'mep-rollout-flag',
           ],
         });
 

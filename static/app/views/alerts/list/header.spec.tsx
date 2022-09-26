@@ -28,7 +28,6 @@ describe('AlertHeader', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.teardown();
     ProjectsStore.teardown();
   });
 

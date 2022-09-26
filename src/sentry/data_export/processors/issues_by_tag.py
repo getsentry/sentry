@@ -95,8 +95,7 @@ class IssuesByTagProcessor:
         Returns list of GroupTagValues
         """
         return tagstore.get_group_tag_value_iter(
-            project_id=self.group.project_id,
-            group_id=self.group.id,
+            group=self.group,
             environment_ids=[self.environment_id],
             key=self.lookup_key,
             callbacks=self.callbacks,

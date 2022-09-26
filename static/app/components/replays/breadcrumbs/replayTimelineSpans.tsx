@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import {divide, flattenSpans} from 'sentry/components/replays/utils';
@@ -50,11 +50,11 @@ function ReplayTimelineEvents({className, durationMs, spans, startTimestampMs}: 
           <Tooltip
             key={i}
             title={
-              <React.Fragment>
+              <Fragment>
                 {requestsCount}
                 <br />
                 {span.duration.toFixed(2)}ms
-              </React.Fragment>
+              </Fragment>
             }
             skipWrapper
             disableForVisualTest
@@ -97,4 +97,4 @@ const Span = styled('li')<{startPct: number; widthPct: number}>`
   pointer-events: auto;
 `;
 
-export default React.memo(ReplayTimelineEvents);
+export default memo(ReplayTimelineEvents);

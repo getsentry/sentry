@@ -164,6 +164,7 @@ const CopyButton = styled(Button)`
 
 const Pre = styled('pre')`
   margin-bottom: 0;
+  overflow: auto;
 `;
 
 export default FeatureDisabled;

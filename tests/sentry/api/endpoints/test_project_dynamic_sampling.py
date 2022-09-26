@@ -436,7 +436,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "details": "Way too many projects in the distributed trace's project breakdown"
+                "detail": "Way too many projects in the distributed trace's project breakdown"
             }
 
     @freeze_time()
@@ -489,7 +489,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "start": start_time,
                     "end": end_time,
                     "project_id": [self.project.id],
-                    "organization_id": self.project.organization,
+                    "organization_id": self.project.organization.id,
                 },
                 orderby=[],
                 offset=0,
@@ -510,7 +510,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "start": start_time,
                     "end": end_time,
                     "project_id": list(projects_in_org),
-                    "organization_id": self.project.organization,
+                    "organization_id": self.project.organization.id,
                 },
                 equations=[],
                 functions_acl=None,
@@ -539,7 +539,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "start": start_time,
                 "end": end_time,
                 "project_id": [self.project.id],
-                "organization_id": self.project.organization,
+                "organization_id": self.project.organization.id,
             },
             offset=0,
             orderby=None,
@@ -648,7 +648,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "start": start_time,
                     "end": end_time,
                     "project_id": [self.project.id],
-                    "organization_id": self.project.organization,
+                    "organization_id": self.project.organization.id,
                 },
                 orderby=[],
                 offset=0,
@@ -669,7 +669,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "start": start_bound_time,
                     "end": end_bound_time,
                     "project_id": [self.project.id],
-                    "organization_id": self.project.organization,
+                    "organization_id": self.project.organization.id,
                 },
                 orderby=["-timestamp.to_day"],
                 offset=0,
@@ -690,7 +690,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                     "start": updated_start_time,
                     "end": updated_end_time,
                     "project_id": list(projects_in_org),
-                    "organization_id": self.project.organization,
+                    "organization_id": self.project.organization.id,
                 },
                 equations=[],
                 functions_acl=None,
@@ -719,7 +719,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "start": updated_start_time,
                 "end": updated_end_time,
                 "project_id": [self.project.id],
-                "organization_id": self.project.organization,
+                "organization_id": self.project.organization.id,
             },
             offset=0,
             orderby=None,

@@ -366,6 +366,29 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
   };
 };
 
+export const getButtonStyles = ({theme, ...props}: StyledButtonProps) => {
+  return css`
+    display: inline-block;
+    border-radius: ${theme.button.borderRadius};
+    text-transform: none;
+    font-weight: 600;
+    ${getColors({...props, theme})};
+    ${getSizeStyles({...props, theme})};
+    ${getBoxShadow({...props, theme})};
+    cursor: ${props.disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${(props.busy || props.disabled) && '0.65'};
+    transition: background 0.1s, border 0.1s, box-shadow 0.1s;
+
+    ${props.priority === 'link' &&
+    `font-size: inherit; font-weight: inherit; padding: 0;`}
+    ${props.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+
+  &:focus {
+      outline: none;
+    }
+  `;
+};
+
 const StyledButton = styled(
   reactForwardRef<any, ButtonProps>(
     (
@@ -407,23 +430,7 @@ const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  display: inline-block;
-  border-radius: ${p => p.theme.button.borderRadius};
-  text-transform: none;
-  font-weight: 600;
-  ${getColors};
-  ${getSizeStyles}
-  ${getBoxShadow};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition: background 0.1s, border 0.1s, box-shadow 0.1s;
-
-  ${p => p.priority === 'link' && `font-size: inherit; font-weight: inherit; padding: 0;`}
-  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
-
-  &:focus {
-    outline: none;
-  }
+  ${getButtonStyles};
 `;
 
 const buttonLabelPropKeys = ['size', 'borderless', 'align'];

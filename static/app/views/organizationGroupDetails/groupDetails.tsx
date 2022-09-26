@@ -2,6 +2,7 @@ import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import omit from 'lodash/omit';
 import * as PropTypes from 'prop-types';
 
 import {Client} from 'sentry/api';
@@ -10,14 +11,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Item, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, Organization, Project} from 'sentry/types';
+import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -30,7 +31,7 @@ import withApi from 'sentry/utils/withApi';
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
 import SampleEventAlert from './sampleEventAlert';
-import {Tab} from './types';
+import {Tab, TabPaths} from './types';
 import {
   fetchGroupEvent,
   getGroupReprocessingStatus,
@@ -108,7 +109,7 @@ class GroupDetails extends Component<Props, State> {
 
   componentWillUnmount() {
     GroupStore.reset();
-    callIfFunction(this.listener);
+    this.listener?.();
     if (this.refetchInterval) {
       window.clearInterval(this.refetchInterval);
     }
@@ -138,6 +139,7 @@ class GroupDetails extends Component<Props, State> {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
+      issue_category: this.state.group?.issueCategory ?? IssueCategory.ERROR,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -171,7 +173,7 @@ class GroupDetails extends Component<Props, State> {
     const {params, environments, api} = this.props;
     const orgSlug = params.orgId;
     const groupId = params.groupId;
-    const eventId = params?.eventId || 'latest';
+    const eventId = params.eventId ?? 'latest';
     const projectId = group?.project?.slug;
     try {
       const event = await fetchGroupEvent(
@@ -192,21 +194,18 @@ class GroupDetails extends Component<Props, State> {
   }
 
   getCurrentRouteInfo(group: Group): {baseUrl: string; currentTab: Tab} {
-    const {routes, organization} = this.props;
+    const {organization, router, routes} = this.props;
     const {event} = this.state;
 
-    // All the routes under /organizations/:orgId/issues/:groupId have a defined props
-    const {currentTab, isEventRoute} = routes[routes.length - 1].props as {
-      currentTab: Tab;
-      isEventRoute: boolean;
-    };
+    const currentRoute = routes[routes.length - 1];
+    const currentTab =
+      Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS;
 
-    const baseUrl =
-      isEventRoute && event
-        ? `/organizations/${organization.slug}/issues/${group.id}/events/${event.id}/`
-        : `/organizations/${organization.slug}/issues/${group.id}/`;
+    const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
+      router.params.eventId && event ? `events/${event.id}/` : ''
+    }`;
 
-    return {currentTab, baseUrl};
+    return {baseUrl, currentTab};
   }
 
   updateReprocessingProgress() {
@@ -289,7 +288,7 @@ class GroupDetails extends Component<Props, State> {
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
-      expand: 'inbox',
+      expand: ['inbox', 'owners'],
       collapse: 'release',
     };
 
@@ -515,6 +514,23 @@ class GroupDetails extends Component<Props, State> {
     return `${title || message || defaultTitle} - ${eventDetails}`;
   }
 
+  tabClickAnalyticsEvent(tab: Tab) {
+    const {organization} = this.props;
+    const {project, group} = this.state;
+
+    if (!project || !group) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
+      organization,
+      group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
+      project_id: parseInt(project.id, 10),
+      tab,
+    });
+  }
+
   renderError() {
     const {projects, location} = this.props;
     const projectId = location.query.project;
@@ -542,7 +558,7 @@ class GroupDetails extends Component<Props, State> {
   }
 
   renderContent(project: AvatarProject, group: Group) {
-    const {children, environments, organization} = this.props;
+    const {children, environments, organization, location, router} = this.props;
     const {loadingEvent, eventError, event, replayIds} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
@@ -558,7 +574,7 @@ class GroupDetails extends Component<Props, State> {
       if (group.id !== event?.groupID && !eventError) {
         // if user pastes only the event id into the url, but it's from another group, redirect to correct group/event
         const redirectUrl = `/organizations/${organization.slug}/issues/${event?.groupID}/events/${event?.id}/`;
-        this.props.router.push(redirectUrl);
+        router.push(redirectUrl);
       } else {
         childProps = {
           ...childProps,
@@ -578,18 +594,32 @@ class GroupDetails extends Component<Props, State> {
     }
 
     return (
-      <Fragment>
+      <Tabs
+        value={currentTab}
+        onChange={tab => {
+          this.tabClickAnalyticsEvent(tab as Tab);
+
+          router.push({
+            pathname: `${baseUrl}${TabPaths[tab]}`,
+            query: tab === Tab.EVENTS ? omit(location.query, 'query') : location.query,
+          });
+        }}
+      >
         <GroupHeader
+          organization={organization}
           groupReprocessingStatus={groupReprocessingStatus}
-          project={project as Project}
           event={event}
           group={group}
           replaysCount={replayIds?.length}
-          currentTab={currentTab}
           baseUrl={baseUrl}
+          project={project as Project}
         />
-        {isValidElement(children) ? cloneElement(children, childProps) : children}
-      </Fragment>
+        <TabPanels>
+          <Item key={currentTab}>
+            {isValidElement(children) ? cloneElement(children, childProps) : children}
+          </Item>
+        </TabPanels>
+      </Tabs>
     );
   }
 

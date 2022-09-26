@@ -19,6 +19,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
+import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import SystemAlerts from './systemAlerts';
@@ -34,6 +35,8 @@ const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
  * App is the root level container for all uathenticated routes.
  */
 function App({children}: Props) {
+  useColorscheme();
+
   const api = useApi();
   const config = useLegacyStore(ConfigStore);
 
@@ -42,10 +45,8 @@ function App({children}: Props) {
     [
       {
         match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        callback: e => {
-          openCommandPalette();
-          e.preventDefault();
-        },
+        includeInputs: true,
+        callback: () => openCommandPalette(),
       },
     ],
     []
@@ -56,10 +57,9 @@ function App({children}: Props) {
     [
       {
         match: ['command+shift+l', 'ctrl+shift+l'],
-        callback: e => {
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-          e.preventDefault();
-        },
+        includeInputs: true,
+        callback: () =>
+          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
       },
     ],
     [config.theme]
