@@ -28,21 +28,21 @@ class ProjectUserDetailsTest(APITestCase):
                 "tags": {"sentry:user": "user_1"},
             },
             project_id=self.project.id,
-        ).group
+        )
         self.store_event(
             data={
                 "timestamp": iso_format(before_now(minutes=5)),
                 "tags": {"sentry:user": "user_1"},
             },
             project_id=self.project.id,
-        ).group
+        )
         self.store_event(
             data={
                 "timestamp": iso_format(before_now(minutes=5)),
                 "tags": {"sentry:user": "user_2"},
             },
             project_id=self.project.id,
-        ).group
+        )
 
         response = self.client.get(self.path)
 

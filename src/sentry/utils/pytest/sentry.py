@@ -261,10 +261,6 @@ def register_extensions():
 
 
 def pytest_runtest_teardown(item):
-    # if not os.environ.get("USE_SNUBA", False):
-    #     TODO(dcramer): this only works if this is the correct tsdb backend
-    # tsdb.flush()
-
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
 
