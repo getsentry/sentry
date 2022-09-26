@@ -237,6 +237,13 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       return true;
     }
 
+    if (
+      nextProps.reloadingProcessedEventsBaseline ||
+      nextProps.loadingProcessedEventsBaseline
+    ) {
+      return false;
+    }
+
     return !isEqual(restProps, restNextProps);
   }
 

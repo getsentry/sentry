@@ -99,6 +99,8 @@ export function MetricsBaselineContainer({
       return undefined;
     }
 
+    setLoadingTotals(true);
+
     doDiscoverQuery<EventsTableData>(api, `/organizations/${organization.slug}/events/`, {
       ...eventView.generateQueryStringObject(),
       field: ['count()'],
@@ -153,6 +155,7 @@ export function MetricsBaselineContainer({
     }
 
     setLoadingSeries(true);
+    setProcessedLineSeries(undefined);
 
     doEventsRequest(api, {
       organization,

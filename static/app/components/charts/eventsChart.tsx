@@ -591,8 +591,8 @@ class EventsChart extends React.Component<EventsChartProps> {
 
       return (
         <TransitionChart
-          loading={loading || !!loadingAdditionalSeries}
-          reloading={reloading}
+          loading={loading}
+          reloading={reloading || !!reloadingAdditionalSeries}
           height={height ? `${height}px` : undefined}
         >
           <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
