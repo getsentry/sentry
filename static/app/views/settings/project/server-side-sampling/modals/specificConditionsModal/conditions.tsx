@@ -11,7 +11,11 @@ import {SamplingInnerName} from 'sentry/types/sampling';
 
 import {getInnerNameLabel} from '../../utils';
 
-import {TagValueAutocomplete, TagValueAutocompleteProps} from './tagValueAutocomplete';
+import {
+  StyledCount,
+  TagValueAutocomplete,
+  TagValueAutocompleteProps,
+} from './tagValueAutocomplete';
 import {getMatchFieldAriaLabel, getMatchFieldPlaceholder, getTagKey} from './utils';
 
 export type Condition = {
@@ -59,8 +63,36 @@ export function Conditions({conditions, orgSlug, projectId, onDelete, onChange}:
                   ariaLabel={getMatchFieldAriaLabel(category)}
                   prependOptions={
                     category === SamplingInnerName.TRACE_RELEASE
-                      ? [{value: 'latest', label: t('Latest Release(s)')}]
-                      : []
+                      ? [
+                          {value: 'latest', label: t('Latest Release(s)')},
+                          {
+                            value: 'app@1.3',
+                            label: 'app@1.3',
+                            trailingItems: <StyledCount value={162000 * 30} />,
+                          },
+                          {
+                            value: 'app@1.2',
+                            label: 'app@1.2',
+                            trailingItems: <StyledCount value={82} />,
+                          },
+                          {
+                            value: 'app@1.1',
+                            label: 'app@1.1',
+                            trailingItems: <StyledCount value={23} />,
+                          },
+                        ]
+                      : [
+                          {
+                            value: 'prod',
+                            label: 'prod',
+                            trailingItems: <StyledCount value={162000 * 30} />,
+                          },
+                          {
+                            value: 'dev',
+                            label: 'dev',
+                            trailingItems: <StyledCount value={105} />,
+                          },
+                        ]
                   }
                 />
               ) : (

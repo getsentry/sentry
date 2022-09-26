@@ -151,7 +151,7 @@ const StyledSelectField = styled(SelectField)`
   width: 100%;
 `;
 
-const StyledCount = styled(Count)`
+export const StyledCount = styled(Count)`
   color: ${p => p.theme.subText};
 `;
 
