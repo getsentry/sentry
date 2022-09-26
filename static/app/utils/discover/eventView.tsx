@@ -457,6 +457,7 @@ class EventView {
       yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
       display: saved.display,
       topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
+      interval: saved.interval,
       createdBy: saved.createdBy,
       expired: saved.expired,
       additionalConditions: new MutableSearch([]),
@@ -498,7 +499,7 @@ class EventView {
           saved.topEvents ||
           TOP_N
         ).toString(),
-        interval: decodeScalar(location.query.interval),
+        interval: decodeScalar(location.query.interval) || saved.interval,
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new MutableSearch([]),
@@ -528,6 +529,7 @@ class EventView {
       sorts: undefined,
       project: undefined,
       environment: undefined,
+      interval: undefined,
       yAxis: 'count()',
       display: DisplayModes.DEFAULT,
       topEvents: '5',
@@ -582,6 +584,7 @@ class EventView {
       yAxis: this.yAxis ? [this.yAxis] : undefined,
       display: this.display,
       topEvents: this.topEvents,
+      interval: this.interval,
     };
 
     if (!newQuery.query) {
