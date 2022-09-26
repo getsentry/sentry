@@ -667,12 +667,14 @@ class Factories:
 
         else:
             event = manager.save(project_id)
+
         if event.groups:
             for group in event.groups:
                 group.save()
 
         if event.group:
             event.group.save()
+
         return event
 
     @staticmethod
