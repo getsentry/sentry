@@ -169,7 +169,7 @@ jobs:
   backend-test-in-region-mode:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
-    name: backend test in customer mode
+    name: backend test in region mode
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
