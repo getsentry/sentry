@@ -88,6 +88,7 @@ export function MetricsBaselineContainer({
   >(undefined);
   const [processedTotal, setProcessedTotal] = useState<number | undefined>(undefined);
   const [loadingTotals, setLoadingTotals] = useState<boolean>(true);
+  const [loadingSeries, setLoadingSeries] = useState<boolean>(true);
 
   useEffect(() => {
     let shouldCancelRequest = false;
@@ -146,9 +147,12 @@ export function MetricsBaselineContainer({
     let shouldCancelRequest = false;
 
     if (!isRollingOut || disableProcessedBaselineToggle || !showBaseline) {
+      setLoadingSeries(false);
       setProcessedLineSeries(undefined);
       return undefined;
     }
+
+    setLoadingSeries(true);
 
     doEventsRequest(api, {
       organization,
@@ -223,6 +227,7 @@ export function MetricsBaselineContainer({
           );
         }
 
+        setLoadingSeries(false);
         setMetricsCompatible(true);
         setProcessedLineSeries(additionalSeries);
       })
@@ -230,7 +235,9 @@ export function MetricsBaselineContainer({
         if (shouldCancelRequest) {
           return;
         }
+        setLoadingSeries(false);
         setMetricsCompatible(false);
+        setProcessedLineSeries(undefined);
       });
     return () => {
       shouldCancelRequest = true;
@@ -264,6 +271,8 @@ export function MetricsBaselineContainer({
       processedTotal={processedTotal}
       loadingProcessedTotals={loadingTotals}
       showBaseline={showBaseline}
+      loadingProcessedEventsBaseline={loadingSeries}
+      reloadingProcessedEventsBaseline={processedLineSeries !== null && loadingSeries}
       setShowBaseline={(value: boolean) => {
         router.push({
           pathname: location.pathname,

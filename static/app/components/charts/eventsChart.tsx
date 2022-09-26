@@ -422,6 +422,10 @@ export type EventsChartProps = {
    */
   interval?: string;
   /**
+   * Whether or not the request for processed baseline data has been resolved/terminated
+   */
+  loadingAdditionalSeries?: boolean;
+  /**
    * Order condition when showing topEvents
    */
   orderby?: string;
@@ -439,6 +443,7 @@ export type EventsChartProps = {
    */
   referrer?: string;
   releaseQueryExtra?: Query;
+  reloadingAdditionalSeries?: boolean;
   /**
    * Override the interval calculation and show daily results.
    */
@@ -538,6 +543,8 @@ class EventsChart extends React.Component<EventsChartProps> {
       withoutZerofill,
       fromDiscover,
       additionalSeries,
+      loadingAdditionalSeries,
+      reloadingAdditionalSeries,
       ...props
     } = this.props;
 
@@ -584,18 +591,18 @@ class EventsChart extends React.Component<EventsChartProps> {
 
       return (
         <TransitionChart
-          loading={loading}
+          loading={loading || !!loadingAdditionalSeries}
           reloading={reloading}
           height={height ? `${height}px` : undefined}
         >
-          <TransparentLoadingMask visible={reloading} />
+          <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
 
           {React.isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
             zoomRenderProps={zoomRenderProps}
-            loading={loading}
-            reloading={reloading}
+            loading={loading || !!loadingAdditionalSeries}
+            reloading={reloading || !!reloadingAdditionalSeries}
             showLegend={showLegend}
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
             releaseSeries={releaseSeries || []}

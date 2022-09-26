@@ -49,7 +49,9 @@ type ResultsChartProps = {
   router: InjectedRouter;
   yAxisValue: string[];
   customMeasurements?: CustomMeasurementCollection | undefined;
+  loadingProcessedEventsBaseline?: boolean;
   processedLineSeries?: LineSeriesOption[];
+  reloadingProcessedEventsBaseline?: boolean;
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -75,6 +77,8 @@ class ResultsChart extends Component<ResultsChartProps> {
       yAxisValue,
       processedLineSeries,
       customMeasurements,
+      loadingProcessedEventsBaseline,
+      reloadingProcessedEventsBaseline,
     } = this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
@@ -168,6 +172,8 @@ class ResultsChart extends Component<ResultsChartProps> {
               fromDiscover
               disableableSeries={disableableSeries}
               additionalSeries={processedLineSeries}
+              loadingAdditionalSeries={loadingProcessedEventsBaseline}
+              reloadingAdditionalSeries={reloadingProcessedEventsBaseline}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -195,9 +201,11 @@ type ContainerProps = {
   // chart footer props
   total: number | null;
   yAxis: string[];
+  loadingProcessedEventsBaseline?: boolean;
   loadingProcessedTotals?: boolean;
   processedLineSeries?: LineSeriesOption[];
   processedTotal?: number;
+  reloadingProcessedEventsBaseline?: boolean;
 };
 
 type ContainerState = {
@@ -264,6 +272,8 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       setShowBaseline,
       processedTotal,
       loadingProcessedTotals,
+      loadingProcessedEventsBaseline,
+      reloadingProcessedEventsBaseline,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -314,6 +324,8 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
                 confirmedQuery={confirmedQuery}
                 yAxisValue={yAxis}
                 processedLineSeries={processedLineSeries}
+                loadingProcessedEventsBaseline={loadingProcessedEventsBaseline}
+                reloadingProcessedEventsBaseline={reloadingProcessedEventsBaseline}
                 customMeasurements={contextValue?.customMeasurements}
               />
             )}
