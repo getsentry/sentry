@@ -80,7 +80,7 @@ tags.sku_class:enterprise #enterprise`;
 
   getDetail() {
     return tct(
-      `Automatically assign issues and send alerts to the right people based on issue properties. [link:Learn more].`,
+      `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
       {
         link: (
           <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
@@ -290,7 +290,7 @@ tags.sku_class:enterprise #enterprise`;
                         priority="primary"
                         data-test-id="add-codeowner-button"
                       >
-                        {t('Add CODEOWNERS File')}
+                        {t('Add CODEOWNERS')}
                       </CodeOwnerButton>
                     ) : (
                       <CodeOwnerButton
@@ -385,23 +385,20 @@ tags.sku_class:enterprise #enterprise`;
                     {
                       name: 'codeownersAutoSync',
                       type: 'boolean',
-                      label: tct(
-                        `Automatically sync changes from CODEOWNERS file to Code Owners [badge]`,
-                        {
-                          badge: (
-                            <FeatureBadge
-                              type="new"
-                              title={
-                                !(this.state.codeowners || []).length
-                                  ? 'Setup Code Owners to use this feature.'
-                                  : undefined
-                              }
-                            />
-                          ),
-                        }
-                      ),
+                      label: tct(`Sync changes from CODEOWNERS`, {
+                        badge: (
+                          <FeatureBadge
+                            type="new"
+                            title={
+                              !(this.state.codeowners || []).length
+                                ? 'Setup Code Owners to use this feature.'
+                                : undefined
+                            }
+                          />
+                        ),
+                      }),
                       help: t(
-                        'Sentry will watch for CODEOWNERS file changes during a Release and then update Code Owners.'
+                        'We’ll update any changes you make to your CODEOWNERS files during a release.'
                       ),
                       disabled: disabled || !(this.state.codeowners || []).length,
                     },
