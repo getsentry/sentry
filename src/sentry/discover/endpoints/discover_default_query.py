@@ -16,7 +16,7 @@ from sentry.discover.models import DiscoverSavedQuery
 
 def get_default_query(organization, user):
     return DiscoverSavedQuery.objects.get(
-        organization=organization, is_default=True, created_by=user
+        organization=organization, is_homepage=True, created_by=user
     )
 
 
@@ -87,7 +87,7 @@ class DiscoverDefaultQueryEndpoint(OrganizationEndpoint):
             query=data["query"],
             version=data["version"],
             created_by=request.user,
-            is_default=True,
+            is_homepage=True,
         )
 
         model.set_projects(data["project_ids"])

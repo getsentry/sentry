@@ -26,7 +26,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             created_by=self.user,
             name="Test query",
             query=self.query,
-            is_default=True,
+            is_homepage=True,
         )
         with self.feature(FEATURES):
             response = self.client.get(self.url)
@@ -40,7 +40,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             created_by=self.user,
             name="Test query",
             query=self.query,
-            is_default=True,
+            is_homepage=True,
         )
         with self.feature(FEATURES):
             response = self.client.put(
@@ -74,7 +74,7 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
 
         new_query = DiscoverSavedQuery.objects.get(
-            created_by=self.user, organization=self.org, is_default=True
+            created_by=self.user, organization=self.org, is_homepage=True
         )
         assert new_query.name == default_query_payload["name"]
         assert new_query.query["fields"] == default_query_payload["fields"]
@@ -101,12 +101,12 @@ class DiscoverDefaultQueryTest(DiscoverSavedQueryBase):
             created_by=self.user,
             name="Test query",
             query=self.query,
-            is_default=True,
+            is_homepage=True,
         )
         with self.feature(FEATURES):
             response = self.client.delete(self.url)
 
         assert response.status_code == 204
         assert not DiscoverSavedQuery.objects.filter(
-            created_by=self.user, organization=self.org, is_default=True
+            created_by=self.user, organization=self.org, is_homepage=True
         ).exists()
