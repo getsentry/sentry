@@ -621,6 +621,27 @@ class Factories:
         return useremail
 
     @staticmethod
+    def inject_performance_problems(jobs, _):
+        for job in jobs:
+            job["performance_problems"] = []
+            for f in job["data"]["fingerprint"]:
+                f_data = f.split("-")
+                group_type = GroupType(int(f_data[0]))
+                perf_fingerprint = f_data[1]
+
+                job["performance_problems"].append(
+                    PerformanceProblem(
+                        fingerprint=perf_fingerprint,
+                        op="db",
+                        desc="",
+                        type=group_type,
+                        parent_span_ids=None,
+                        cause_span_ids=None,
+                        offender_span_ids=None,
+                    )
+                )
+
+    @staticmethod
     def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
@@ -633,35 +654,14 @@ class Factories:
         normalized_data = manager.get_data()
         event = None
 
+        # When fingerprint is present on transaction, inject performance problems
         if (
             normalized_data.get("type") == "transaction"
             and normalized_data.get("fingerprint") is not None
         ):
-
-            def mock_detect_performance_problems(jobs, _):
-                for job in jobs:
-                    job["performance_problems"] = []
-                    for f in normalized_data.get("fingerprint"):
-                        f_data = f.split("-")
-                        group_type_value = int(f_data[0])
-                        group_type = GroupType(group_type_value)
-                        _fingerprint = f_data[1]
-
-                        job["performance_problems"].append(
-                            PerformanceProblem(
-                                fingerprint=_fingerprint,
-                                op="db",
-                                desc="",
-                                type=group_type,
-                                parent_span_ids=None,
-                                cause_span_ids=None,
-                                offender_span_ids=None,
-                            )
-                        )
-
             with mock.patch(
                 "sentry.event_manager._detect_performance_problems",
-                mock_detect_performance_problems,
+                Factories.inject_performance_problems,
             ):
                 event = manager.save(project_id)
 
