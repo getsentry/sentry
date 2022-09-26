@@ -9,7 +9,19 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from heapq import merge
-from typing import Any, Callable, Iterable, List, Mapping, Protocol, Sequence, Set, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    Protocol,
+    Sequence,
+    Set,
+    Tuple,
+    TypedDict,
+    cast,
+)
 
 import sentry_sdk
 from django.utils import timezone
@@ -50,7 +62,7 @@ from sentry.utils.snuba import (
 )
 
 
-class QueryPartial(Protocol):
+class SearchQueryPartial(Protocol):
     def __call__(
         self, conditions: Sequence[Any], aggregations: Sequence[Any], condition_resolver: Any
     ) -> Mapping[str, Any]:
@@ -61,15 +73,134 @@ GroupSearchStrategy = Callable[
     [
         Set[GroupCategory],
         Sequence[Any],
-        QueryPartial,
+        SearchQueryPartial,
         int,
         Sequence[int],
         Optional[Sequence[Environment]],
-        Sequence[int],
         Sequence[Any],
     ],
     Optional[SnubaQueryParams],
 ]
+
+
+class MergeableRow(TypedDict, total=False):
+    group_id: int
+
+
+class GroupSearchParamsMapper:
+    @staticmethod
+    def search_strategies_for(
+        group_categories: Iterable[GroupCategory],
+    ) -> Sequence[GroupSearchStrategy]:
+        return (
+            list(GroupSearchParamsMapper.search_strategies().values())
+            if not group_categories
+            else [GroupSearchParamsMapper.search_strategies()[gc] for gc in group_categories]
+        )
+
+    @staticmethod
+    def search_strategies() -> Mapping[GroupCategory, GroupSearchStrategy]:
+        return {
+            GroupCategory.ERROR: GroupSearchParamsMapper._query_params_for_error,
+            GroupCategory.PERFORMANCE: GroupSearchParamsMapper._query_params_for_perf,
+        }
+
+    @staticmethod
+    def updated_conditions(
+        key: str,
+        operator: str,
+        value: str,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Sequence[Environment],
+        conditions: Sequence[Any],
+    ) -> Sequence[Any]:
+        search_filter = SearchFilter(
+            key=SearchKey(name=key),
+            operator=operator,
+            value=SearchValue(raw_value=value),
+        )
+        converted_filter = convert_search_filter_to_snuba_query(
+            search_filter,
+            params={
+                "organization_id": organization_id,
+                "project_id": project_ids,
+                "environment": environments,
+            },
+        )
+        new_conditions = deepcopy(list(conditions))
+        new_conditions.append(converted_filter)
+        return new_conditions
+
+    @staticmethod
+    def _query_params_for_error(
+        group_categories: Set[GroupCategory],
+        aggregations: Sequence[Any],
+        query_partial: SearchQueryPartial,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Optional[Sequence[Environment]],
+        conditions: Sequence[Any],
+    ) -> Optional[SnubaQueryParams]:
+        if not group_categories or GroupCategory.ERROR in group_categories:
+            error_conditions = GroupSearchParamsMapper.updated_conditions(
+                "event.type",
+                "!=",
+                "transaction",
+                organization_id,
+                project_ids,
+                environments,
+                conditions,
+            )
+
+            params = query_partial(
+                conditions=error_conditions,
+                aggregations=aggregations,
+                condition_resolver=snuba.get_snuba_column_name,
+            )
+
+            return raw_query_params(**params)
+        return None
+
+    @staticmethod
+    def _query_params_for_perf(
+        group_categories: Set[GroupCategory],
+        aggregations: Sequence[Any],
+        query_partial: SearchQueryPartial,
+        organization_id: int,
+        project_ids: Sequence[int],
+        environments: Optional[Sequence[Environment]],
+        conditions: Sequence[Any],
+    ) -> Optional[SnubaQueryParams]:
+        organization = Organization.objects.filter(id=organization_id).first()
+        if (
+            organization
+            and features.has("organizations:performance-issues", organization)
+            and (not group_categories or GroupCategory.PERFORMANCE in group_categories)
+        ):
+            transaction_conditions = GroupSearchParamsMapper.updated_conditions(
+                "event.type",
+                "=",
+                "transaction",
+                organization_id,
+                project_ids,
+                environments,
+                conditions,
+            )
+
+            mod_agg = list(aggregations).copy() if aggregations else []
+            mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
+
+            params = query_partial(
+                conditions=transaction_conditions,
+                aggregations=mod_agg,
+                condition_resolver=functools.partial(
+                    snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
+                ),
+            )
+
+            return raw_query_params(**params)
+        return None
 
 
 def get_search_filter(search_filters: Sequence[SearchFilter], name: str, operator: str) -> Any:
@@ -97,7 +228,8 @@ def get_search_filter(search_filters: Sequence[SearchFilter], name: str, operato
 
 class AbstractQueryExecutor(metaclass=ABCMeta):
     """This class serves as a template for Query Executors.
-    We subclass it in order to implement query methods (we use it to implement two classes: joined Postgres+Snuba queries, and Snuba only queries)
+    We subclass it in order to implement query methods (we use it to implement two classes: joined
+    Postgres+Snuba queries, and Snuba only queries)
     It's used to keep the query logic out of the actual search backend,
     which can now just build query parameters and use the appropriate query executor to run the query
     """
@@ -161,37 +293,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
         raise NotImplementedError
-
-    @staticmethod
-    def updated_conditions(
-        key: str,
-        operator: str,
-        value: str,
-        organization_id: int,
-        project_ids: Sequence[int],
-        environments: Sequence[Environment],
-        environment_ids: Sequence[int],
-        conditions: Sequence[Any],
-    ) -> Sequence[Any]:
-        search_filter = SearchFilter(
-            key=SearchKey(name=key),
-            operator=operator,
-            value=SearchValue(raw_value=value),
-        )
-        converted_filter = convert_search_filter_to_snuba_query(
-            search_filter,
-            params={
-                "organization_id": organization_id,
-                "project_id": project_ids,
-                "environment": environments,
-            },
-        )
-        converted_filter = AbstractQueryExecutor._transform_converted_filter(
-            search_filter, converted_filter, project_ids, environment_ids
-        )
-        new_conditions = deepcopy(list(conditions))
-        new_conditions.append(converted_filter)
-        return new_conditions
 
     def snuba_search(
         self,
@@ -294,8 +395,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             orderby = [f"-{sort_field}", "group_id"]  # ensure stable sort within the same score
             referrer = "search"
 
-        query_partial: QueryPartial = cast(
-            QueryPartial,
+        query_partial: SearchQueryPartial = cast(
+            SearchQueryPartial,
             functools.partial(
                 aliased_query_params,
                 dataset=snuba.Dataset.Discover,
@@ -315,17 +416,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             ),
         )
 
-        SEARCH_STRATEGIES: Mapping[GroupCategory, GroupSearchStrategy] = {
-            GroupCategory.ERROR: AbstractQueryExecutor._query_params_for_error,
-            GroupCategory.PERFORMANCE: AbstractQueryExecutor._query_params_for_perf,
-        }
-
-        search_strategies_for_categories: Sequence[GroupSearchStrategy] = (
-            list(SEARCH_STRATEGIES.values())
-            if not group_categories
-            else [SEARCH_STRATEGIES[gc] for gc in group_categories]
-        )
-
         bulk_query_results = bulk_raw_query(
             list(
                 filter(
@@ -338,10 +428,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                             organization_id,
                             project_ids,
                             environments,
-                            environment_ids,
                             conditions,
                         )
-                        for fn_query_params in search_strategies_for_categories
+                        for fn_query_params in GroupSearchParamsMapper.search_strategies_for(
+                            group_categories
+                        )
                     ],
                 )
             ),
@@ -349,7 +440,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         # [([row1a, row2a,], totala, row_lengtha), ([row1b, row2b,], totalb, row_lengthb), ...]
-        mapped_res: Sequence[Tuple[Iterable[Any], int, int]] = list(
+        mapped_results: Sequence[Tuple[Iterable[MergeableRow], int, int]] = list(
             map(
                 lambda bulk_result: (
                     bulk_result["data"],
@@ -359,98 +450,25 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 filter(lambda bulk_result: bool(bulk_result), bulk_query_results),
             )
         )
-        merged_res: Tuple[Iterable[Any], int, int] = functools.reduce(
+
+        merged_results: Tuple[Iterable[MergeableRow], int, int] = functools.reduce(
             lambda left, right: (
-                list(merge(left[0], right[0], key=lambda row: row.get("group_id"))),
+                merge(left[0], right[0], key=lambda row: row.get("group_id")),
                 left[1] + right[1],
                 left[2] + right[2],
             ),
-            mapped_res,
-            ([], 0, 0),
+            mapped_results,
+            (cast(Iterable[MergeableRow], []), 0, 0),
         )
 
-        rows: Sequence[Mapping[str, int]] = list(merged_res[0])
-        total: int = merged_res[1]
-        row_length: int = merged_res[2]
+        rows: Sequence[MergeableRow] = list(merged_results[0])
+        total: int = merged_results[1]
+        row_length: int = merged_results[2]
 
         if not get_sample:
             metrics.timing("snuba.search.num_result_groups", row_length)
 
-        return [(row["group_id"], row[sort_field]) for row in rows], total
-
-    @staticmethod
-    def _query_params_for_error(
-        group_categories: Set[GroupCategory],
-        aggregations: Sequence[Any],
-        query_partial: QueryPartial,
-        organization_id: int,
-        project_ids: Sequence[int],
-        environments: Optional[Sequence[Environment]],
-        environment_ids: Sequence[int],
-        conditions: Sequence[Any],
-    ) -> Optional[SnubaQueryParams]:
-        if not group_categories or GroupCategory.ERROR in group_categories:
-            error_conditions = AbstractQueryExecutor.updated_conditions(
-                "event.type",
-                "!=",
-                "transaction",
-                organization_id,
-                project_ids,
-                environments,
-                environment_ids,
-                conditions,
-            )
-
-            params = query_partial(
-                conditions=error_conditions,
-                aggregations=aggregations,
-                condition_resolver=snuba.get_snuba_column_name,
-            )
-
-            return raw_query_params(**params)
-        return None
-
-    @staticmethod
-    def _query_params_for_perf(
-        group_categories: Set[GroupCategory],
-        aggregations: Sequence[Any],
-        query_partial: QueryPartial,
-        organization_id: int,
-        project_ids: Sequence[int],
-        environments: Optional[Sequence[Environment]],
-        environment_ids: Sequence[int],
-        conditions: Sequence[Any],
-    ) -> Optional[SnubaQueryParams]:
-        organization = Organization.objects.filter(id=organization_id).first()
-        if (
-            organization
-            and features.has("organizations:performance-issues", organization)
-            and (not group_categories or GroupCategory.PERFORMANCE in group_categories)
-        ):
-            transaction_conditions = AbstractQueryExecutor.updated_conditions(
-                "event.type",
-                "=",
-                "transaction",
-                organization_id,
-                project_ids,
-                environments,
-                environment_ids,
-                conditions,
-            )
-
-            mod_agg = list(aggregations).copy() if aggregations else []
-            mod_agg.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
-
-            params = query_partial(
-                conditions=transaction_conditions,
-                aggregations=mod_agg,
-                condition_resolver=functools.partial(
-                    snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
-                ),
-            )
-
-            return raw_query_params(**params)
-        return None
+        return [(row["group_id"], row[sort_field]) for row in rows], total  # type: ignore
 
     @staticmethod
     def _transform_converted_filter(
