@@ -43,6 +43,7 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   suffix?: string;
 
+  tooltipShowSeconds?: boolean;
   tooltipTitle?: React.ReactNode;
   tooltipUnderlineColor?: ColorOrAlias;
 }
@@ -51,6 +52,7 @@ function TimeSince({
   date,
   suffix = t('ago'),
   disabledAbsoluteTooltip,
+  tooltipShowSeconds,
   tooltipTitle,
   tooltipUnderlineColor,
   shorten,
@@ -82,7 +84,10 @@ function TimeSince({
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
   const options = user ? user.options : null;
-  const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : 'LLL z';
+  const tooltipFormat = tooltipShowSeconds
+    ? 'MMMM D, YYYY h:mm:ss A z'
+    : 'MMMM D, YYYY h:mm A z';
+  const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
   const tooltip = getDynamicText({
     fixed: options?.clock24Hours
