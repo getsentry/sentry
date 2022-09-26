@@ -39,7 +39,8 @@ ALLOWED_SDK_NAMES = frozenset(
     )
 )
 # We want sentry.java.android, sentry.java.android.timber, and all others to match
-ALLOWED_SDK_NAMES_PREFIXES = frozenset(("sentry.java.android",))
+# Same for sentry.dart, sentry.dart.browser, and sentry.dart.flutter
+ALLOWED_SDK_NAMES_PREFIXES = frozenset(("sentry.java.android", "sentry.dart"))
 
 
 class QueryBoundsException(Exception):
