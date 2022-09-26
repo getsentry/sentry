@@ -22,6 +22,11 @@ def find_commit_context_for_event(
         stacktrace_path = get_stacktrace_path_from_event_frame(frame)
 
         src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
+
+        # src_path can be none if the stacktrace_path is an invalid filepath
+        if not src_path:
+            continue
+
         integration = code_mapping.organization_integration.integration
         install = integration.get_installation(
             code_mapping.organization_integration.organization_id
