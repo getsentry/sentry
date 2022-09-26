@@ -105,7 +105,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         )
 
     def _mark_commit_ready(self, message: Message[KafkaPayload]):
-        self.__ready_to_commit[message.partition] = Position(message.offset, message.timestamp)
+        self.__ready_to_commit[message.partition] = Position(message.next_offset, message.timestamp)
 
     def join(self, timeout: Optional[float] = None) -> None:
         self._bulk_commit()
