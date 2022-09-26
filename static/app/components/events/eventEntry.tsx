@@ -124,6 +124,7 @@ function EventEntry({
           orgSlug={organization.slug}
           projectSlug={projectSlug}
           replayId={replayId}
+          event={event}
         />
       );
 

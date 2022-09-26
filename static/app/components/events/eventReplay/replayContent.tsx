@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
@@ -57,33 +58,35 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   }
 
   return (
-    <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
-      <BadgeContainer>
-        <FeatureText>Replays</FeatureText>
-        <FeatureBadge type="alpha" />
-      </BadgeContainer>
-      <ReplayView
-        toggleFullscreen={toggleFullscreen}
-        showAddressBar={false}
-        controlBarActions={
-          <Button
-            to={{
-              pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
-              query: {
-                t_main: 'console',
-                f_c_search: undefined,
-                ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
-              },
-            }}
-            priority="primary"
-            size="sm"
-            icon={<IconPlay size="sm" />}
-          >
-            {t('View Full Replay')}
-          </Button>
-        }
-      />
-    </PlayerContainer>
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+      <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
+        <BadgeContainer>
+          <FeatureText>Replays</FeatureText>
+          <FeatureBadge type="alpha" />
+        </BadgeContainer>
+        <ReplayView
+          toggleFullscreen={toggleFullscreen}
+          showAddressBar={false}
+          controlBarActions={
+            <Button
+              to={{
+                pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
+                query: {
+                  t_main: 'console',
+                  f_c_search: undefined,
+                  ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
+                },
+              }}
+              priority="primary"
+              size="sm"
+              icon={<IconPlay size="sm" />}
+            >
+              {t('View Full Replay')}
+            </Button>
+          }
+        />
+      </PlayerContainer>
+    </ReplayContextProvider>
   );
 }
 
