@@ -813,7 +813,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     def calculate_start_end(
         self,
         retention_window_start: Optional[datetime],
-        search_filters: Sequence[SearchFilter],
+        search_filters: Optional[Sequence[SearchFilter]],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
     ) -> Tuple[datetime, datetime, datetime]:
@@ -852,10 +852,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
 
-        environments = environments or []
-        paginator_options = paginator_options or {}
-        search_filters = search_filters or []
-
         start, end, retention_date = self.calculate_start_end(
             retention_window_start, search_filters, date_from, date_to
         )
@@ -883,7 +879,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         ]
         # TODO: This is still basically only handling status, handle this better once we introduce
         # more conditions.
-        for search_filter in search_filters:
+        for search_filter in search_filters or ():
             where_conditions.append(
                 Condition(
                     Column(search_filter.key.name, e_group), Op.IN, search_filter.value.raw_value
@@ -932,6 +928,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 0
             ]["count"]
 
+        paginator_options = paginator_options or {}
         paginator_results = SequencePaginator(
             [(row["score"], row["g.id"]) for row in data],
             reverse=True,
