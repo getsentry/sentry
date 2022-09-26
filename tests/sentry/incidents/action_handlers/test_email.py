@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import responses
+from django.conf import settings
 from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
@@ -210,6 +211,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "project_slug": self.project.slug,
             "unsubscribe_link": None,
             "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -382,3 +384,35 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         series_data = chart_data["timeseriesData"][0]["data"]
         assert len(series_data) > 0
         assert mock_generate_chart.call_args[1]["size"] == {"width": 600, "height": 200}
+
+    def test_timezones(self):
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule(
+            query_type=SnubaQuery.Type.PERFORMANCE, dataset=Dataset.PerformanceMetrics
+        )
+        incident = self.create_incident(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+
+        est = "America/New_York"
+        pst = "US/Pacific"
+        UserOption.objects.set_value(user=self.user, key="timezone", value=est)
+        result = generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+            self.user,
+        )
+        assert result["timezone"] == est
+
+        UserOption.objects.set_value(user=self.user, key="timezone", value=pst)
+        result = generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+            self.user,
+        )
+        assert result["timezone"] == pst

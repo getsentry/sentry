@@ -1,5 +1,7 @@
 from unittest import mock
 
+from django.utils import timezone
+
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
 from sentry.incidents.models import (
     AlertRule,
@@ -8,23 +10,25 @@ from sentry.incidents.models import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.models import Organization, Project
+from sentry.models import Organization, Project, User
 from sentry.snuba.models import SnubaQuery
 
 from .mail import MailPreviewView
 
 
 class MockedIncidentTrigger:
-    date_added = "Some date"
+    date_added = timezone.now()
 
 
 class DebugIncidentTriggerEmailView(MailPreviewView):
     @mock.patch(
         "sentry.incidents.models.IncidentTrigger.objects.get", return_value=MockedIncidentTrigger()
     )
-    def get_context(self, request, mock):
+    @mock.patch("sentry.models.UserOption.objects.get_value", return_value="US/Pacific")
+    def get_context(self, request, incident_trigger_mock, user_option_mock):
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
+        user = User()
 
         query = SnubaQuery(
             time_window=60, query="transaction:/some/transaction", aggregate="count()"
@@ -41,7 +45,7 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 
         return generate_incident_trigger_email_context(
-            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status)
+            project, incident, trigger, TriggerStatus.ACTIVE, IncidentStatus(incident.status), user
         )
 
     @property
