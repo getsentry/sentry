@@ -49,7 +49,7 @@ class DiscoverSavedQueryTest(TestCase):
             DiscoverSavedQueryProject.objects.all().values_list("project_id", flat=True)
         ) == [self.project_ids[0]]
 
-    def test_can_only_create_single_default_query_for_user(self):
+    def test_can_only_create_single_homepage_query_for_user(self):
         DiscoverSavedQuery.objects.create(
             organization=self.org,
             name="Test query",
@@ -67,7 +67,7 @@ class DiscoverSavedQueryTest(TestCase):
                 is_homepage=True,
             )
 
-    def test_can_only_have_single_default_query_for_user_on_update(self):
+    def test_can_only_have_single_homepage_query_for_user_on_update(self):
         DiscoverSavedQuery.objects.create(
             organization=self.org,
             name="Test query",
@@ -92,7 +92,7 @@ class DiscoverSavedQueryTest(TestCase):
         with pytest.raises(IntegrityError), transaction.atomic():
             DiscoverSavedQuery.objects.filter(id=new_query.id).update(is_homepage=True)
 
-    def test_user_can_have_default_query_in_multiple_orgs(self):
+    def test_user_can_have_homepage_query_in_multiple_orgs(self):
         other_org = self.create_organization()
         DiscoverSavedQuery.objects.create(
             organization=self.org,
