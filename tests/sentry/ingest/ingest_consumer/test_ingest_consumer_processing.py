@@ -304,7 +304,7 @@ def test_userreport(default_project, monkeypatch):
 
 
 @pytest.mark.django_db
-def test_userreport_reverse_order(default_project, monkeypatch):
+def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     """
     Test that ingesting a userreport before the event works. This is relevant
     for unreal crashes where the userreport is processed immediately in the
