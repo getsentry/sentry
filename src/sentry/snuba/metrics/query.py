@@ -108,6 +108,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def _use_case_id(metric_mri: str) -> UseCaseKey:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
+        assert parsed_mri is not None
+
         if parsed_mri.namespace == "transactions":
             return UseCaseKey.PERFORMANCE
         elif parsed_mri.namespace == "sessions":
