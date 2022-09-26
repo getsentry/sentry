@@ -1020,6 +1020,11 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
+    def _contains_complete_query(self, span: Span) -> bool:
+        # Remove the truncation check from the n_plus_one db detector.
+        query = span.get("description", None)
+        return bool(query)
+
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
