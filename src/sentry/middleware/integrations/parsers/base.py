@@ -1,9 +1,14 @@
 import abc
-from typing import Callable
+from typing import Any, Callable, Sequence
 
 from django.http.request import HttpRequest
 
+from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.models.organization import Organization
 from sentry.silo import SiloLimit, SiloMode
+
+# TODO(Leander): Replace once type is in place
+Region = Any
 
 
 class BaseRequestParser(abc.ABC):
@@ -24,14 +29,15 @@ class BaseRequestParser(abc.ABC):
             raise SiloLimit.AvailabilityError(self.error_message)
         return self.response_handler(self.request)
 
-    def get_response_from_region_silo(self, regions, require_response=True):
+    def get_response_from_region_silo(self, regions):
         """
         Used to process the incoming request from region silos.
+        This shouldn't use the API Gateway to stay performant.
         """
         if self._silo_mode != SiloMode.CONTROL:
             raise SiloLimit.AvailabilityError(self.error_message)
 
-        # TODO(Leander): Implement once region mapping exists
+        # TODO(Leander): Implement once region mapping and cross-silo synchronous requests exist
         # responses = [region.send(self.request) for region in regions]
         # return responses[0] -> Send back the first response
         return self.response_handler(self.request)
@@ -43,17 +49,33 @@ class BaseRequestParser(abc.ABC):
         """
         return self.get_response_from_control_silo()
 
-    def get_organizations(self):
+    def get_integration(self) -> Integration:
         """
         Parse the request to retreive organizations to forward the request to.
         """
         raise NotImplementedError
 
-    def get_regions(self):
+    def get_organizations(self, integration: Integration = None) -> Sequence[Organization]:
+        """
+        Use the get_integration() method to identify organizations associated with
+        the integration request.
+        """
+        if not integration:
+            integration = self.get_integration()
+        if not integration:
+            return []
+        organization_integrations = OrganizationIntegration.objects.filter(
+            integration_id=integration
+        ).select_related("organization")
+        return [integration.organization for integration in organization_integrations]
+
+    def get_regions(self, organizations: Sequence[Organization] = None) -> Sequence[Region]:
         """
         Use the get_organizations() method to identify forwarding regions.
         """
         # TODO(Leander): Implement once region mapping exists
+        if not organizations:
+            organizations = self.get_integration()
         # organizations = self.get_organizations()
         # return [organization.region for organization in organizations]
         return []
