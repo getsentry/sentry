@@ -1010,3 +1010,54 @@ class UnfurlTest(TestCase):
 
         assert "interval" in api_mock.call_args[1]["params"]
         assert api_mock.call_args[1]["params"]["interval"] == "1d"
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
+    def test_saved_query_with_interval(self, mock_generate_chart, api_mock):
+        query = {
+            "fields": ["title", "event.type", "project", "user.display", "timestamp"],
+            "query": "",
+            "yAxis": "count()",
+            "interval": "10m",
+            "statsPeriod": "24h",
+        }
+        saved_query = DiscoverSavedQuery.objects.create(
+            organization=self.organization,
+            created_by=self.user,
+            name="Test query",
+            query=query,
+            version=2,
+        )
+        saved_query.set_projects([self.project.id])
+        api_mock.return_value.data = query
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise Exception("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+            ]
+        ):
+            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title=args["query"].get("name"), chart_url="chart-url"
+            ).build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert len(api_mock.mock_calls) == 2
+
+        assert "interval" in api_mock.call_args[1]["params"]
+        assert api_mock.call_args[1]["params"]["interval"] == "10m"
