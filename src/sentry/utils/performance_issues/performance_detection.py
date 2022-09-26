@@ -26,6 +26,12 @@ TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
+INTEGRATIONS_OF_INTEREST = [
+    "django",
+    "flask",
+    "sqlalchemy",
+    "mongodb",  # This is a third-party integration
+]
 
 
 class DetectorType(Enum):
@@ -1046,6 +1052,11 @@ def report_metrics_for_detectors(
             set_tag("_pi_transaction", event_id)
 
     detected_tags = {"sdk_name": sdk_name}
+    for integration_name in INTEGRATIONS_OF_INTEREST:
+        detected_tags["integration_" + integration_name] = integration_name in event.data.get(
+            "integrations", []
+        )
+
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems
