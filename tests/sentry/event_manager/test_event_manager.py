@@ -2227,6 +2227,62 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert group.message == "/books/"
             assert group.culprit == "/books/"
 
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_error_issue_no_associate_perf_event(self):
+        """Test that you can't associate a performance event with an error issue"""
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            assert len(event.groups) == 1
+
+            # sneakily make the group type wrong
+            group = event.groups[0]
+            group.type = GroupType.ERROR.value
+            group.save()
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            assert len(event.groups) == 0
+
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_perf_issue_no_associate_error_event(self):
+        """Test that you can't associate an error event with a performance issue"""
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
+        ):
+            manager = EventManager(make_event())
+            manager.normalize()
+            event = manager.save(self.project.id)
+            assert len(event.groups) == 1
+
+            # sneakily make the group type wrong
+            group = event.groups[0]
+            group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
+            group.save()
+            manager = EventManager(make_event())
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            assert len(event.groups) == 0
+
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):

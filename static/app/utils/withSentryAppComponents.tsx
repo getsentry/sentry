@@ -13,7 +13,7 @@ type State = {
 };
 
 type Options = {
-  componentType?: 'stacktrace-link';
+  componentType?: SentryAppComponent['type'];
 };
 
 function withSentryAppComponents<P extends InjectedAppComponentsProps>(

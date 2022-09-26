@@ -106,6 +106,7 @@ describe('EventsV2 > ResultsChart', function () {
       {field: 'count_unique(user)'},
       {field: 'equation|count() + 2'},
     ];
+    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <ResultsChart
         router={TestStubs.router()}
