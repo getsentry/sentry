@@ -13,12 +13,12 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         self.url = reverse("sentry-api-0-discover-homepage-query", args=[self.org.slug])
         self.query = {"fields": ["test"], "conditions": [], "limit": 10}
 
-    def test_returns_empty_dict_if_no_homepage_query_for_user(self):
+    def test_returns_no_response_if_no_homepage_query_for_user(self):
         with self.feature(FEATURES):
             response = self.client.get(self.url)
 
-        assert response.status_code == 200, response.content
-        assert response.data == {}
+        assert response.status_code == 204, response.content
+        assert response.data is None
 
     def test_returns_serialized_saved_query_if_homepage_is_set(self):
         saved_query = DiscoverSavedQuery.objects.create(

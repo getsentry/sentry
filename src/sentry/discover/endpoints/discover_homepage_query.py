@@ -44,7 +44,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         try:
             query = get_homepage_query(organization, request.user)
         except DiscoverSavedQuery.DoesNotExist:
-            return Response({}, status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(serialize(query), status=status.HTTP_200_OK)
 
@@ -69,7 +69,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             context={"params": params},
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return ParseError(serializer.errors)
 
         data = serializer.validated_data
         if previous_homepage:
