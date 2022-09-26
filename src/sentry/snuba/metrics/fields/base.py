@@ -67,7 +67,6 @@ from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
-    METRIC_TYPE_TO_ENTITY,
     OP_TO_SNUBA_FUNCTION,
     TS_COL_QUERY,
     UNIT_TO_TYPE,
@@ -182,18 +181,19 @@ def _get_entity_of_metric_mri(
     if metric_id is None:
         raise InvalidParams
 
+    entity_keys_set: frozenset[EntityKey]
     if use_case_id == UseCaseKey.PERFORMANCE:
-        metric_types = (
-            "generic_set",
-            "generic_distribution",
+        entity_keys_set = frozenset(
+            {EntityKey.GenericMetricsSets, EntityKey.GenericMetricsDistributions}
         )
     elif use_case_id == UseCaseKey.RELEASE_HEALTH:
-        metric_types = ("counter", "set", "distribution")
+        entity_keys_set = frozenset(
+            {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
+        )
     else:
         raise InvalidParams
 
-    for metric_type in metric_types:
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+    for entity_key in entity_keys_set:
         data = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id")],
