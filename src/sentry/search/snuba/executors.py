@@ -832,22 +832,6 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         end = max([retention_date, end])
         return start, end, retention_date
 
-    # def query(
-    #         self,
-    #         projects: Sequence[Project],
-    #         retention_window_start: Optional[datetime],
-    #         group_queryset: BaseQuerySet,
-    #         environments: Optional[Sequence[Environment]],
-    #         sort_by: str,
-    #         limit: int,
-    #         cursor: Cursor | None,
-    #         count_hits: bool,
-    #         paginator_options: Optional[Mapping[str, Any]],
-    #         search_filters: Optional[Sequence[SearchFilter]],
-    #         date_from: Optional[datetime],
-    #         date_to: Optional[datetime],
-    #         max_hits: Optional[int] = None,
-    # ) -> CursorResult[Group]:
     def query(
         self,
         projects: Sequence[Project],
