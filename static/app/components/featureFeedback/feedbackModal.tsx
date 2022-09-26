@@ -52,7 +52,7 @@ export type ChildrenProps<T> = {
   Footer: (props: {
     onBack?: () => void;
     onNext?: () => void;
-    primaryDisabled?: boolean;
+    primaryDisabledReason?: string;
     submitEventData?: Event;
   }) => ReturnType<ModalRenderProps['Footer']>;
   Header: (props: {children: React.ReactNode}) => ReturnType<ModalRenderProps['Header']>;
@@ -168,7 +168,7 @@ export function FeedbackModal<T extends Data>({
       onBack,
       onNext,
       submitEventData,
-      primaryDisabled,
+      primaryDisabledReason,
     }: Parameters<ChildrenProps<T>['Footer']>[0]) => {
       return (
         <Footer>
@@ -186,13 +186,13 @@ export function FeedbackModal<T extends Data>({
                   ? !defined(state.subject)
                     ? t('Required fields must be filled out')
                     : undefined
-                  : primaryDisabled
-                  ? t('Required fields must be filled out')
-                  : undefined
+                  : primaryDisabledReason
               }
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
               disabled={
-                props.children === undefined ? !defined(state.subject) : primaryDisabled
+                props.children === undefined
+                  ? !defined(state.subject)
+                  : defined(primaryDisabledReason)
               }
             >
               {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
