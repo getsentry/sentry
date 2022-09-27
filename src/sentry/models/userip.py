@@ -6,10 +6,11 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.models import User
 from sentry.region_to_control.messages import UserIpEvent
+from sentry.db.models import FlexibleForeignKey, Model, all_silo_model, sane_repr
 from sentry.utils.geo import geo_by_addr
 
 
-@region_silo_model
+@all_silo_model
 class UserIP(Model):
     __include_in_export__ = True
 
