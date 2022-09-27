@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -1807,7 +1807,13 @@ function buildRoutes() {
   const appRoutes = (
     <Route>
       {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
+      <Route
+        path="/"
+        onChange={(a, b) => {
+          console.log('onchange', {a, b});
+        }}
+        component={errorHandler(App)}
+      >
         {rootRoutes}
         {organizationRoutes}
         {legacyRedirectRoutes}
