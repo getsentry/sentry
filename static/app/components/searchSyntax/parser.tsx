@@ -661,7 +661,7 @@ export class TokenConverter {
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
-      !Object.keys(this.config.supportedTags).includes(key.text)
+      !this.config.supportedTags[key.text]
     ) {
       return {reason: t(`Invalid key. "${key.text}" is not a supported search key.`)};
     }

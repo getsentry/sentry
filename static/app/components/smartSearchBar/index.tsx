@@ -172,6 +172,10 @@ type Props = WithRouterProps & {
    */
   hasRecentSearches?: boolean;
   /**
+   * Whether or not to highlight unsupported tags red
+   */
+  highlightUnsupportedTags?: boolean;
+  /**
    * Allows additional content to be played before the search bar and icon
    */
   inlineLabel?: React.ReactNode;
@@ -246,10 +250,6 @@ type Props = WithRouterProps & {
    * Indicates the usage of the search bar for analytics
    */
   searchSource?: string;
-  /**
-   * Whether or not to highlight unsupported tags red
-   */
-  showUnsupportedTags?: boolean;
   /**
    * Type of supported tags
    */
@@ -328,7 +328,7 @@ class SmartSearchBar extends Component<Props, State> {
     parsedQuery: parseSearch(this.initialQuery, {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
-      validateKeys: this.props.showUnsupportedTags,
+      validateKeys: this.props.highlightUnsupportedTags,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -381,7 +381,7 @@ class SmartSearchBar extends Component<Props, State> {
     const additionalConfig: Partial<SearchConfig> = {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
-      validateKeys: this.props.showUnsupportedTags,
+      validateKeys: this.props.highlightUnsupportedTags,
     };
     return {
       query,
