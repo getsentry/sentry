@@ -31,7 +31,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend: ${{ steps.changes.outputs.backend }}
+      backend: ${{ steps.changes.outputs.backend_all }}
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
@@ -176,7 +176,6 @@ jobs:
           make run-acceptance
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
-          USE_SNUBA: 1
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
@@ -186,7 +185,7 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -249,7 +248,7 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   visual-diff:
     if: always()

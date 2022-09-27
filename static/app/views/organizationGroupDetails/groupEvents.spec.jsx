@@ -47,6 +47,51 @@ describe('groupEvents', function () {
     });
 
     browserHistory.push = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            timestamp: '2022-09-11T15:01:10+00:00',
+            transaction: '/api',
+            release: 'backend@1.2.3',
+            'transaction.duration': 1803,
+            environment: 'prod',
+            'user.display': 'sentry@sentry.sentry',
+            id: 'id123',
+            trace: 'trace123',
+            'project.name': 'project123',
+          },
+        ],
+        meta: {
+          fields: {
+            timestamp: 'date',
+            transaction: 'string',
+            release: 'string',
+            'transaction.duration': 'duration',
+            environment: 'string',
+            'user.display': 'string',
+            id: 'string',
+            trace: 'string',
+            'project.name': 'string',
+          },
+          units: {
+            timestamp: null,
+            transaction: null,
+            release: null,
+            'transaction.duration': 'millisecond',
+            environment: null,
+            'user.display': null,
+            id: null,
+            trace: null,
+            'project.name': null,
+          },
+          isMetricsData: false,
+          tips: {query: null, columns: null},
+        },
+      },
+    });
   });
 
   afterEach(() => {
@@ -118,5 +163,24 @@ describe('groupEvents', function () {
         query: {limit: 50, query: '', environment: ['prod', 'staging']},
       })
     );
+  });
+
+  it('renders events table if perf issue', function () {
+    const org = initializeOrg();
+    org.features = ['performance-issues-all-events-tab'];
+    const group = TestStubs.Group();
+    group.issueCategory = 'performance';
+    render(
+      <GroupEvents
+        organization={org}
+        api={new MockApiClient()}
+        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+        group={group}
+        location={{query: {environment: ['prod', 'staging']}}}
+      />,
+      {context: routerContext, organization}
+    );
+    const perfEventsColumn = screen.getByText('transaction');
+    expect(perfEventsColumn).toBeInTheDocument();
   });
 });

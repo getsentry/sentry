@@ -58,6 +58,7 @@ import {
   Rule,
 } from './rule';
 import {SamplingBreakdown} from './samplingBreakdown';
+import {SamplingFeedback} from './samplingFeedback';
 import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAlert';
 import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
@@ -132,9 +133,7 @@ export function ServerSideSampling({project}: Props) {
 
   async function handleActivateToggle(rule: SamplingRule) {
     if (isProjectIncompatible) {
-      addErrorMessage(
-        t('Your project is currently incompatible with Server-Side Sampling.')
-      );
+      addErrorMessage(t('Your project is currently incompatible with Dynamic Sampling.'));
       return;
     }
 
@@ -338,9 +337,7 @@ export function ServerSideSampling({project}: Props) {
     rule,
   }: Parameters<UniformModalsSubmit>[0]) {
     if (isProjectIncompatible) {
-      addErrorMessage(
-        t('Your project is currently incompatible with Server-Side Sampling.')
-      );
+      addErrorMessage(t('Your project is currently incompatible with Dynamic Sampling.'));
       return;
     }
 
@@ -421,19 +418,25 @@ export function ServerSideSampling({project}: Props) {
   const uniformRule = rules.find(isUniformRule);
 
   return (
-    <SentryDocumentTitle title={t('Server-Side Sampling')}>
+    <SentryDocumentTitle title={t('Dynamic Sampling')}>
       <Fragment>
         <SettingsPageHeader
           title={
             <Fragment>
-              {t('Server-Side Sampling')} <FeatureBadge type="beta" />
+              {t('Dynamic Sampling')} <FeatureBadge type="beta" />
             </Fragment>
           }
+          action={<SamplingFeedback />}
         />
         <TextBlock>
           {tct(
-            'Enhance the Performance monitoring experience by targeting which transactions are most valuable to your organization. To learn more about our beta program, [faqLink: visit our FAQ], for more general information, [docsLink: read our docs].',
+            'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, with no need to re-deploy your app. To learn more about our beta program, [faqLink: visit our FAQ].',
             {
+              performanceMetrics: (
+                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/" />
+              ),
+              targetTransactions: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
+
               faqLink: (
                 <ExternalLink href="https://help.sentry.io/account/account-settings/dynamic-sampling/" />
               ),

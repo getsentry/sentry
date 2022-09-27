@@ -40,7 +40,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
+export const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -157,7 +157,7 @@ function Search(props: Props) {
         value={eventsDisplayFilterName}
         onChange={opt => onChangeEventsDisplayFilter(opt.value)}
         options={Object.entries(eventsFilterOptions).map(([name, filter]) => ({
-          value: name,
+          value: name as EventsDisplayFilterName,
           label: filter.label,
         }))}
       />

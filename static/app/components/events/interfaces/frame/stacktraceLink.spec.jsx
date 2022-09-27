@@ -79,6 +79,7 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
+    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
@@ -104,6 +105,7 @@ describe('StacktraceLink', function () {
         attemptedUrl: 'https://something.io/blah',
       },
     });
+    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
@@ -131,6 +133,7 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
+    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
@@ -156,6 +159,7 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
+    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}

@@ -61,7 +61,7 @@ export type ReplayRecord = {
    * The **earliest** timestamp received as determined by the SDK.
    */
   startedAt: Date;
-  tags: Record<string, string>;
+  tags: Record<string, string[]>;
   title: string;
   traceIds: string[];
   urls: string[];
@@ -136,20 +136,19 @@ export type MemorySpanType = ReplaySpan<{
   };
 }>;
 
-export type ReplayCrumb = RawCrumb & {
-  /**
-   * Replay crumbs are unprocessed and come in as unix timestamp in seconds
-   */
-  timestamp: number;
-};
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+
+export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
 
 /**
  * This is a result of a custom discover query
  */
 export interface ReplayError {
-  ['error.type']: string;
-  ['error.value']: string;
+  ['error.type']: string[];
+  ['error.value']: string[];
+  ['group.id']: string; // TODO(replay): is this a thing? issue.id seems like all we need
   id: string;
+  issue: string;
   ['issue.id']: number;
   ['project.name']: string;
   timestamp: string;

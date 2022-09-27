@@ -18,7 +18,7 @@ from sentry.utils.dates import to_timestamp
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
 from ...release_health.base import AllowedResolution
-from .naming_layer.mapping import get_mri
+from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (
     MAX_POINTS,
     OPERATIONS,
@@ -31,19 +31,25 @@ from .utils import (
 @dataclass(frozen=True)
 class MetricField:
     op: Optional[MetricOperationType]
-    metric_name: str
+    metric_mri: str
     params: Optional[Dict[str, Union[str, int, float]]] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
-        # ToDo(ahmed): Once we allow MetricField to accept MRI, we should set the alias to the operation and public
-        #  facing name
+        # Validate that it is a valid MRI format
+        parsed_mri = parse_mri(self.metric_mri)
+        if parsed_mri is None:
+            raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
+
+        # Validates that the MRI requested is an MRI the metrics layer exposes
+        metric_name = get_public_name_from_mri(self.metric_mri)
         if not self.alias:
-            key = f"{self.op}({self.metric_name})" if self.op is not None else self.metric_name
+            key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
 
     def __str__(self) -> str:
-        return f"{self.op}({self.metric_name})" if self.op else self.metric_name
+        metric_name = get_public_name_from_mri(self.metric_mri)
+        return f"{self.op}({metric_name})" if self.op else metric_name
 
 
 @dataclass(frozen=True)
@@ -102,27 +108,28 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def _use_case_id(metric_mri: str) -> UseCaseKey:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is not None:
-            if parsed_mri.namespace == "transactions":
-                return UseCaseKey.PERFORMANCE
-            elif parsed_mri.namespace == "sessions":
-                return UseCaseKey.RELEASE_HEALTH
-            raise ValueError("Can't find correct use_case_id based on metric MRI")
-        raise ValueError("Can't parse metric MRI")
+        assert parsed_mri is not None
+
+        if parsed_mri.namespace == "transactions":
+            return UseCaseKey.PERFORMANCE
+        elif parsed_mri.namespace == "sessions":
+            return UseCaseKey.RELEASE_HEALTH
+        raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
         derived_metrics_mri = get_derived_metrics(exclude_private=True)
-        metric_mri = get_mri(field.metric_name)
 
+        # Validate the validity of the expression meaning that if an operation is present, then it needs to be one of
+        # of the supported operations and that the metric mri should be one of the aggregated derived metrics
         if field.op:
             if field.op not in OPERATIONS:
                 raise InvalidParams(
                     f"Invalid operation '{field.op}'. Must be one of {', '.join(OPERATIONS)}"
                 )
-            if metric_mri in derived_metrics_mri:
+            if field.metric_mri in derived_metrics_mri:
                 raise DerivedMetricParseException(
-                    f"Failed to parse {field.op}({field.metric_name}). No operations can be "
+                    f"Failed to parse {field.op}({get_public_name_from_mri(field.metric_mri)}). No operations can be "
                     f"applied on this field as it is already a derived metric with an "
                     f"aggregation applied to it."
                 )
@@ -132,8 +139,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams('Request is missing a "field"')
         use_case_ids = set()
         for field in self.select:
-            metric_mri = get_mri(field.metric_name)
-            use_case_ids.add(self._use_case_id(metric_mri))
+            use_case_ids.add(self._use_case_id(field.metric_mri))
             self._validate_field(field)
         if len(use_case_ids) > 1:
             raise InvalidParams("All select fields should have the same use_case_id")
@@ -161,11 +167,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for f in self.orderby:
             orderby_fields.add(f.field)
 
-            metric_mri = get_mri(f.field.metric_name)
             # Construct a metrics expression
-            metric_field_obj = metric_object_factory(f.field.op, metric_mri)
+            metric_field_obj = metric_object_factory(f.field.op, f.field.metric_mri)
 
-            use_case_id = self._use_case_id(metric_mri)
+            use_case_id = self._use_case_id(f.field.metric_mri)
             entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
 
             if isinstance(entity, Mapping):

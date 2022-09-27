@@ -21,12 +21,14 @@ import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
-import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
+
+import Feature from './components/acl/feature';
 
 type CustomProps = {
   name?: string;
@@ -43,9 +45,6 @@ const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
 const SafeLazyLoad = errorHandler(LazyLoad);
 
-type PromisedImport<C> = Promise<{default: C}>;
-type ComponentType = React.ComponentType<any>;
-
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
 // pirvate routing tree.
 
@@ -53,8 +52,8 @@ type ComponentType = React.ComponentType<any>;
  * Factory function to produce a component that will render the SafeLazyLoad
  * _with_ the required props.
  */
-export function makeLazyloadComponent<C extends ComponentType>(
-  resolve: () => PromisedImport<C>
+export function makeLazyloadComponent<C extends React.ComponentType<any>>(
+  resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
@@ -145,6 +144,7 @@ function buildRoutes() {
   const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
     <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
       <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
     </Route>
   ) : null;
 
@@ -200,9 +200,7 @@ function buildRoutes() {
         <IndexRedirect to="welcome/" />
         <Route
           path=":step/"
-          component={make(
-            () => import('sentry/views/onboarding/targetedOnboarding/onboarding')
-          )}
+          component={make(() => import('sentry/views/onboarding/onboarding'))}
         />
       </Route>
     </Fragment>
@@ -471,12 +469,13 @@ function buildRoutes() {
         <Route path=":filterType/" />
       </Route>
       <Route
-        path="server-side-sampling/"
-        name={t('Server-Side Sampling')}
+        path="dynamic-sampling/"
+        name={t('Dynamic Sampling')}
         component={make(
           () => import('sentry/views/settings/project/server-side-sampling')
         )}
       />
+      <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -679,7 +678,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Route name={t('Teams')} path="teams/">
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}
@@ -777,7 +775,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
       <Route name={t('Developer Settings')} path="developer-settings/">
         <IndexRoute
@@ -1132,7 +1129,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-
       <Redirect from="team/" to="/organizations/:orgId/stats/issues/" />
     </Route>
   );
@@ -1146,6 +1142,9 @@ function buildRoutes() {
       path="/organizations/:orgId/discover/"
       component={make(() => import('sentry/views/eventsV2'))}
     >
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <IndexRedirect to="results/" />
+      </Feature>
       <IndexRedirect to="queries/" />
       <Route
         path="queries/"
@@ -1271,214 +1270,126 @@ function buildRoutes() {
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEventDetails')
         )}
-        props={{
-          currentTab: Tab.DETAILS,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="replays/"
+        path={TabPaths[Tab.REPLAYS]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupReplays')
         )}
-        props={{
-          currentTab: Tab.REPLAYS,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="activity/"
+        path={TabPaths[Tab.ACTIVITY]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupActivity')
         )}
-        props={{
-          currentTab: Tab.ACTIVITY,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="events/"
+        path={TabPaths[Tab.EVENTS]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEvents')
         )}
-        props={{
-          currentTab: Tab.EVENTS,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="tags/"
+        path={TabPaths[Tab.TAGS]}
         component={make(() => import('sentry/views/organizationGroupDetails/groupTags'))}
-        props={{
-          currentTab: Tab.TAGS,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="tags/:tagKey/"
+        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupTagValues')
         )}
-        props={{
-          currentTab: Tab.TAGS,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="feedback/"
+        path={TabPaths[Tab.USER_FEEDBACK]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
         )}
-        props={{
-          currentTab: Tab.USER_FEEDBACK,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="attachments/"
+        path={TabPaths[Tab.ATTACHMENTS]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
         )}
-        props={{
-          currentTab: Tab.ATTACHMENTS,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="similar/"
+        path={TabPaths[Tab.SIMILAR_ISSUES]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
         )}
-        props={{
-          currentTab: Tab.SIMILAR_ISSUES,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="merged/"
+        path={TabPaths[Tab.MERGED]}
         component={make(
           () => import('sentry/views/organizationGroupDetails/groupMerged')
         )}
-        props={{
-          currentTab: Tab.MERGED,
-          isEventRoute: false,
-        }}
       />
       <Route
-        path="grouping/"
+        path={TabPaths[Tab.GROUPING]}
         component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
-        props={{
-          currentTab: Tab.GROUPING,
-          isEventRoute: false,
-        }}
       />
-      <Route path="events/:eventId/">
+      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEventDetails')
           )}
-          props={{
-            currentTab: Tab.DETAILS,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="replays/"
+          path={TabPaths[Tab.REPLAYS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupReplays')
           )}
-          props={{
-            currentTab: Tab.REPLAYS,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="activity/"
+          path={TabPaths[Tab.ACTIVITY]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupActivity')
           )}
-          props={{
-            currentTab: Tab.ACTIVITY,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="events/"
+          path={TabPaths[Tab.EVENTS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEvents')
           )}
-          props={{
-            currentTab: Tab.EVENTS,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="similar/"
+          path={TabPaths[Tab.SIMILAR_ISSUES]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupSimilarIssues')
           )}
-          props={{
-            currentTab: Tab.SIMILAR_ISSUES,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="tags/"
+          path={TabPaths[Tab.TAGS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupTags')
           )}
-          props={{
-            currentTab: Tab.TAGS,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="tags/:tagKey/"
+          path={`${TabPaths[Tab.TAGS]}:tagKey/`}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupTagValues')
           )}
-          props={{
-            currentTab: Tab.TAGS,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="feedback/"
+          path={TabPaths[Tab.USER_FEEDBACK]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupUserFeedback')
           )}
-          props={{
-            currentTab: Tab.USER_FEEDBACK,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="attachments/"
+          path={TabPaths[Tab.ATTACHMENTS]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupEventAttachments')
           )}
-          props={{
-            currentTab: Tab.ATTACHMENTS,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="merged/"
+          path={TabPaths[Tab.MERGED]}
           component={make(
             () => import('sentry/views/organizationGroupDetails/groupMerged')
           )}
-          props={{
-            currentTab: Tab.MERGED,
-            isEventRoute: true,
-          }}
         />
         <Route
-          path="grouping/"
+          path={TabPaths[Tab.GROUPING]}
           component={make(() => import('sentry/views/organizationGroupDetails/grouping'))}
-          props={{
-            currentTab: Tab.GROUPING,
-            isEventRoute: true,
-          }}
         />
       </Route>
     </Route>

@@ -381,7 +381,6 @@ class DetailedEventSerializerTest(TestCase):
         result = serialize(event, None, DetailedEventSerializer())
         assert result["sdkUpdates"] == []
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
@@ -421,7 +420,6 @@ class DetailedEventSerializerTest(TestCase):
             "type": 1006,
         }
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})

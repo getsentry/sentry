@@ -21,14 +21,12 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import StreamGroup from 'sentry/components/stream/group';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -37,7 +35,7 @@ import {PageContent} from 'sentry/styles/organization';
 import {
   BaseGroup,
   Group,
-  Member,
+  IssueCategory,
   Organization,
   PageFilters,
   SavedSearch,
@@ -45,7 +43,6 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -61,8 +58,8 @@ import withSavedSearches from 'sentry/utils/withSavedSearches';
 
 import IssueListActions from './actions';
 import IssueListFilters from './filters';
+import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
-import NoGroupsHandler from './noGroupsHandler';
 import IssueListSidebar from './sidebar';
 import {
   getTabs,
@@ -260,7 +257,7 @@ class IssueListOverview extends Component<Props, State> {
     this._poller.disable();
     GroupStore.reset();
     this.props.api.clear();
-    callIfFunction(this.listener);
+    this.listener?.();
     // Reset store when unmounting because we always fetch on mount
     // This means if you navigate away from stream and then back to stream,
     // this component will go from:
@@ -614,6 +611,20 @@ class IssueListOverview extends Component<Props, State> {
           }
         }
 
+        const numPerfIssues = data.filter(
+          (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
+        ).length;
+
+        const page = parseInt(this.props.location.query.page, 10);
+
+        trackAdvancedAnalyticsEvent('issues_stream.count_perf_issues', {
+          organization,
+          page,
+          query,
+          num_perf_issues: numPerfIssues,
+          num_total_issues: data.length,
+        });
+
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
         const hits = resp.getResponseHeader('X-Hits');
@@ -769,13 +780,13 @@ class IssueListOverview extends Component<Props, State> {
           query.includes('is:ignored') ||
           isForReviewQuery(query))
       ) {
-        this.onIssueAction(resolvedIds, t('Resolved'));
+        this.onIssueAction(resolvedIds, 'Resolved');
       }
       if (
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, t('Ignored'));
+        this.onIssueAction(ignoredIds, 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -783,7 +794,7 @@ class IssueListOverview extends Component<Props, State> {
         reviewedIds.length > 0 &&
         (isForReviewQuery(query) || query.includes('is:ignored'))
       ) {
-        this.onIssueAction(reviewedIds, t('Reviewed'));
+        this.onIssueAction(reviewedIds, 'Reviewed');
       }
     }
 
@@ -932,80 +943,11 @@ class IssueListOverview extends Component<Props, State> {
     return showReprocessingTab && query === Query.REPROCESSING;
   }
 
-  renderGroupNodes = (ids: string[], groupStatsPeriod: string) => {
-    const topIssue = ids[0];
-    const {memberList} = this.state;
-    const query = this.getQuery();
-    const showInboxTime = this.getSort() === IssueSortOptions.INBOX;
-
-    return ids.map((id, index) => {
-      const hasGuideAnchor = id === topIssue;
-      const group = GroupStore.get(id) as Group | undefined;
-      let members: Member['user'][] | undefined;
-      if (group?.project) {
-        members = memberList[group.project.slug];
-      }
-
-      const showReprocessingTab = this.displayReprocessingTab();
-      const displayReprocessingLayout = this.displayReprocessingLayout(
-        showReprocessingTab,
-        query
-      );
-
-      return (
-        <StreamGroup
-          index={index}
-          key={id}
-          id={id}
-          statsPeriod={groupStatsPeriod}
-          query={query}
-          hasGuideAnchor={hasGuideAnchor}
-          memberList={members}
-          displayReprocessingLayout={displayReprocessingLayout}
-          useFilteredStats
-          showInboxTime={showInboxTime}
-        />
-      );
-    });
-  };
-
   renderLoading(): React.ReactNode {
     return (
       <PageContent>
         <LoadingIndicator />
       </PageContent>
-    );
-  }
-
-  renderStreamBody(): React.ReactNode {
-    const {issuesLoading, error, groupIds} = this.state;
-
-    if (issuesLoading) {
-      return <LoadingIndicator hideMessage />;
-    }
-
-    if (error) {
-      return <LoadingError message={error} onRetry={this.fetchData} />;
-    }
-
-    if (groupIds.length > 0) {
-      return (
-        <PanelBody>
-          {this.renderGroupNodes(groupIds, this.getGroupStatsPeriod())}
-        </PanelBody>
-      );
-    }
-
-    const {api, organization, selection} = this.props;
-
-    return (
-      <NoGroupsHandler
-        api={api}
-        organization={organization}
-        query={this.getQuery()}
-        selectedProjectIds={selection.projects}
-        groupIds={groupIds}
-      />
     );
   }
 
@@ -1135,7 +1077,10 @@ class IssueListOverview extends Component<Props, State> {
     });
   };
 
-  onIssueAction = (itemIds: string[], actionType: string) => {
+  onIssueAction = (
+    itemIds: string[],
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+  ) => {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,
@@ -1184,6 +1129,8 @@ class IssueListOverview extends Component<Props, State> {
       groupIds,
       queryMaxCount,
       itemsRemoved,
+      issuesLoading,
+      error,
     } = this.state;
     const {organization, savedSearch, savedSearches, tags, selection, location, router} =
       this.props;
@@ -1288,7 +1235,18 @@ class IssueListOverview extends Component<Props, State> {
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
                 >
-                  {this.renderStreamBody()}
+                  <GroupListBody
+                    memberList={this.state.memberList}
+                    groupStatsPeriod={this.getGroupStatsPeriod()}
+                    groupIds={groupIds}
+                    displayReprocessingLayout={displayReprocessingActions}
+                    query={query}
+                    sort={this.getSort()}
+                    selectedProjectIds={selection.projects}
+                    loading={issuesLoading}
+                    error={error}
+                    refetchGroups={this.fetchData}
+                  />
                 </VisuallyCompleteWithData>
               </PanelBody>
             </Panel>

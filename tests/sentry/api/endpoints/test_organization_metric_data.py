@@ -37,6 +37,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 
 @region_silo_test
+@freeze_time()
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -456,6 +457,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             field=f"count({TransactionMetricKey.MEASUREMENTS_LCP.value})",
             groupBy="transaction",
             per_page=2,
+            useCase="performance",
         )
         assert response.status_code == 200
 
@@ -470,6 +472,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="transaction",
             cursor=Cursor(0, 1),
             statsPeriod="1h",
+            useCase="performance",
         )
         assert response.status_code == 200, response.data
 
@@ -787,6 +790,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
             groupBy=["project_id", "transaction"],
             orderBy=f"p50({TransactionMetricKey.MEASUREMENTS_LCP.value})",
+            useCase="performance",
         )
         groups = response.data["groups"]
         assert len(groups) == 0
@@ -1165,7 +1169,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
-    @pytest.mark.skip(reason="flaky: INGEST-1174")
     def test_one_field_orderby_with_no_groupby_returns_one_row(self):
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
@@ -1381,54 +1384,40 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        tag2 = rh_indexer_record(org_id, "tag2")
-        b1 = rh_indexer_record(org_id, "B1")
-        b2 = rh_indexer_record(org_id, "B2")
-        b3 = rh_indexer_record(org_id, "B3")
-        c1 = rh_indexer_record(org_id, "C1")
-        a1 = rh_indexer_record(org_id, "A1")
+        for tag, tag_value in (
+            ("tag2", "A1"),
+            ("tag2", "B1"),
+            ("tag2", "C1"),
+        ):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={tag: tag_value},
+                timestamp=(user_ts // 60 - 4) * 60,
+                value=10,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {tag: tag_value},
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                }
-                for tag, tag_value in (
-                    (tag2, a1),
-                    (tag2, b1),
-                    (tag2, c1),
+        for tag, tag_value, numbers in (
+            ("tag2", "B2", list(range(3))),
+            ("tag2", "B3", list(range(3, 6))),
+            ("tag2", "C1", list(range(6, 9))),
+            ("tag2", "B1", list(range(18, 21))),
+        ):
+            for value in numbers:
+                self.store_metric(
+                    org_id=org_id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.ERROR.value,
+                    tags={tag: tag_value},
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
-            ],
-            entity="metrics_counters",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_error_metric,
-                    "timestamp": user_ts,
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in [
-                    (tag2, b2, list(range(3))),
-                    (tag2, b3, list(range(3, 6))),
-                    (tag2, c1, list(range(6, 9))),
-                    (tag2, b1, list(range(18, 21))),
-                ]
-            ],
-            entity="metrics_sets",
-        )
+
         response = self.get_success_response(
             self.organization.slug,
             field=[
@@ -1626,11 +1615,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.snuba.metrics.query.parse_mri")
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
-    @patch("sentry.snuba.metrics.query.get_mri")
+    @patch("sentry.snuba.metrics.query.get_public_name_from_mri")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
-        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri, mocked_parse_mri
+        self,
+        mocked_get_public_name_from_mri,
+        mocked_get_mri_query,
+        mocked_reverse_mri,
+        mocked_parse_mri,
     ):
-        mocked_get_mri.return_value = "crash_free_fake"
+        mocked_get_public_name_from_mri.return_value = "crash_free_fake"
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
         mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")
@@ -1779,77 +1772,33 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_errored_sessions(self):
         user_ts = time.time()
         org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored_preaggr"),
-                    },
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
-                    },
-                    "type": "c",
-                    "value": 2,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "abnormal"),
-                    },
-                    "type": "c",
-                    "value": 4,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "init"),
-                    },
-                    "type": "c",
-                    "value": 15,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_error_metric,
-                    "timestamp": user_ts,
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (self.release_tag, rh_indexer_record(org_id, "foo"), list(range(3))),
-                )
-            ],
-            entity="metrics_sets",
-        )
+        for tag_value, value in (
+            ("errored_preaggr", 10),
+            ("crashed", 2),
+            ("abnormal", 4),
+            ("init", 15),
+        ):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={"session.status": tag_value},
+                timestamp=(user_ts // 60 - 4) * 60,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+        for value in range(3):
+            self.store_metric(
+                org_id=org_id,
+                project_id=self.project.id,
+                type="set",
+                name=SessionMRI.ERROR.value,
+                tags={"release": "foo"},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
         response = self.get_success_response(
             self.organization.slug,
             field=[SessionMetricKey.ERRORED.value],
@@ -1885,41 +1834,21 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_abnormal_sessions(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(
-                            self.organization.id, "abnormal"
-                        ),
-                        self.release_tag: rh_indexer_record(self.organization.id, "foo"),
-                    },
-                    "type": "c",
-                    "value": 4,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 2) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(
-                            self.organization.id, "abnormal"
-                        ),
-                        self.release_tag: rh_indexer_record(self.organization.id, "bar"),
-                    },
-                    "type": "c",
-                    "value": 3,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
-        )
+        for tag_value, value, second in (
+            ("foo", 4, 4),
+            ("bar", 3, 2),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={"session.status": "abnormal", "release": tag_value},
+                timestamp=(user_ts // 60 - second) * 60,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.abnormal"],
@@ -1937,39 +1866,24 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert bar_group["series"] == {"session.abnormal": [0, 0, 0, 3, 0, 0]}
 
     def test_crashed_user_sessions(self):
-        org_id = self.organization.id
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
-                        self.release_tag: rh_indexer_record(org_id, "foo"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
-                        self.release_tag: rh_indexer_record(org_id, "bar"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4, 8, 9, 5],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+
+        for tag_value, values in (
+            ("foo", [1, 2, 4]),
+            ("bar", [1, 2, 4, 8, 9, 5]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags={"session.status": "crashed", "release": tag_value},
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.crashed_user"],
@@ -1988,21 +1902,19 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_all_user_sessions(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {},
-                    "type": "s",
-                    "value": [1, 2, 4],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+
+        for value in [1, 2, 4]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=SessionMRI.USER.value,
+                tags={},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.all_user"],
@@ -2015,33 +1927,23 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_abnormal_user_sessions(self):
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "abnormal")
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {},
-                    "type": "s",
-                    "value": [1, 2, 4, 7, 9],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+
+        for tags, values in (
+            ({"session.status": "abnormal"}, [1, 2, 4]),
+            ({}, [1, 2, 4, 7, 9]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.abnormal_user"],
@@ -2054,49 +1956,23 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_crash_free_user_percentage_with_orderby(self):
         user_ts = time.time()
-        org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4, 8],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
-                    },
-                    "type": "s",
-                    "value": [1, 2],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.release_tag: rh_indexer_record(org_id, "foobar@2.0"),
-                    },
-                    "type": "s",
-                    "value": [3, 5],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "crashed", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.crash_free_user_rate"],
@@ -2117,112 +1993,46 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_crash_free_user_rate_orderby_crash_free_rate(self):
         user_ts = time.time()
-        org_id = self.organization.id
         # Users crash free rate
         # foobar@1.0 -> 0.5
         # foobar@2.0 -> 1
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4, 8],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: rh_indexer_record(org_id, "foobar@1.0"),
-                    },
-                    "type": "s",
-                    "value": [1, 2],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.release_tag: rh_indexer_record(org_id, "foobar@2.0"),
-                    },
-                    "type": "s",
-                    "value": [3, 5],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+        for tags, values in (
+            ({"release": "foobar@1.0"}, [1, 2, 4, 8]),
+            ({"session.status": "crashed", "release": "foobar@1.0"}, [1, 2]),
+            ({"release": "foobar@2.0"}, [3, 5]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         # Crash free rate
         # foobar@1.0 -> 0.75
         # foobar@2.0 -> 0.25
-        self._send_buckets(
-            [
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "init"),
-                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@1.0"),
-                    },
-                    "type": "c",
-                    "value": 4,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 2) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@1.0"),
-                    },
-                    "type": "c",
-                    "value": 1,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 4) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "init"),
-                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@2.0"),
-                    },
-                    "type": "c",
-                    "value": 4,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60 - 2) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(self.organization.id, "crashed"),
-                        self.release_tag: rh_indexer_record(self.organization.id, "foobar@2.0"),
-                    },
-                    "type": "c",
-                    "value": 3,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
-        )
+
+        for tag_value, release_tag_value, value, second in (
+            ("init", "foobar@1.0", 4, 4),
+            ("crashed", "foobar@1.0", 1, 2),
+            ("init", "foobar@2.0", 4, 4),
+            ("crashed", "foobar@2.0", 3, 2),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={"session.status": tag_value, "release": release_tag_value},
+                timestamp=(user_ts // 60 - second) * 60,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
 
         response = self.get_success_response(
             self.organization.slug,
@@ -2253,56 +2063,34 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
     def test_healthy_sessions(self):
         user_ts = time.time()
-        org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored_preaggr"),
-                        self.release_tag: rh_indexer_record(org_id, "foo"),
-                    },
-                    "type": "c",
-                    "value": 4,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "init"),
-                        self.release_tag: rh_indexer_record(org_id, "foo"),
-                    },
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
-        )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_error_metric,
-                    "timestamp": user_ts,
-                    "tags": {tag: value},
-                    "type": "s",
-                    "value": numbers,
-                    "retention_days": 90,
-                }
-                for tag, value, numbers in (
-                    (self.release_tag, rh_indexer_record(org_id, "foo"), list(range(3))),
-                )
-            ],
-            entity="metrics_sets",
-        )
+
+        for tags, value, timestamp in (
+            ({"session.status": "errored_preaggr", "release": "foo"}, 4, (user_ts // 60) * 60),
+            ({"session.status": "init", "release": "foo"}, 10, user_ts),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags=tags,
+                timestamp=timestamp,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
+        for value in range(3):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=SessionMRI.ERROR.value,
+                tags={"release": "foo"},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.healthy", "session.errored", "session.all"],
@@ -2316,38 +2104,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_healthy_sessions_preaggr(self):
         """Healthy sessions works also when there are no individual errors"""
         user_ts = time.time()
-        org_id = self.organization.id
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": (user_ts // 60) * 60,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored_preaggr"),
-                        self.release_tag: rh_indexer_record(org_id, "foo"),
-                    },
-                    "type": "c",
-                    "value": 4,
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "init"),
-                        self.release_tag: rh_indexer_record(org_id, "foo"),
-                    },
-                    "type": "c",
-                    "value": 10,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
-        )
+
+        for tag_value, value, timestamp in (
+            ("errored_preaggr", 4, (user_ts // 60) * 60),
+            ("init", 10, user_ts),
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="counter",
+                name=SessionMRI.SESSION.value,
+                tags={"session.status": tag_value, "release": "foo"},
+                timestamp=timestamp,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
         # Can get session healthy even before all components exist
         # (projects that send errored_preaggr usually do not send individual errors)
         response = self.get_success_response(
@@ -2361,77 +2133,31 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.healthy"] == [6]
 
     def test_errored_user_sessions(self):
-        org_id = self.organization.id
         user_ts = time.time()
         # Crashed 3
         # Abnormal 6
         # Errored all 9
         # Errored = 3
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "abnormal"),
-                    },
-                    "type": "s",
-                    "value": [99, 3, 6, 8, 9, 5],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
-                    },
-                    "type": "s",
-                    "value": [99, 3, 6, 8, 9, 5],
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
-                    },
-                    "type": "s",
-                    "value": [22, 33, 44],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+
+        for tag_value, values in (
+            ("crashed", [1, 2, 4]),
+            ("errored", [1, 2, 4]),
+            ("abnormal", [99, 3, 6, 8, 9, 5]),
+            ("errored", [99, 3, 6, 8, 9, 5]),
+            ("errored", [22, 33, 44]),
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags={"session.status": tag_value},
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.errored_user"],
@@ -2443,28 +2169,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.errored_user"] == [3]
 
     def test_errored_user_sessions_clamped_to_zero(self):
-        org_id = self.organization.id
         user_ts = time.time()
         # Crashed 3
         # Errored all 0
         # Errored = -3
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "crashed"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 4],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+        for value in [1, 2, 4]:
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="set",
+                name=SessionMRI.USER.value,
+                tags={"session.status": "crashed"},
+                timestamp=user_ts,
+                value=value,
+                use_case_id=UseCaseKey.RELEASE_HEALTH,
+            )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.errored_user"],
@@ -2476,47 +2196,24 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.errored_user"] == [0]
 
     def test_healthy_user_sessions(self):
-        org_id = self.organization.id
         user_ts = time.time()
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {},
-                    "type": "s",
-                    "value": [1, 2, 4, 5, 7],  # 3 and 6 did not recorded at init
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "ok"),
-                    },
-                    "type": "s",
-                    "value": [3],  # 3 was not in init, but still counts
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": self.organization.id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
-                    },
-                    "type": "s",
-                    "value": [1, 2, 6],  # 6 was not in init, but still counts
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
-        )
+        for tags, values in (
+            ({}, [1, 2, 4, 5, 7]),  # 3 and 6 did not recorded at init
+            ({"session.status": "ok"}, [3]),  # 3 was not in init, but still counts
+            ({"session.status": "errored"}, [1, 2, 6]),  # 6 was not in init, but still counts
+        ):
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="set",
+                    name=SessionMRI.USER.value,
+                    tags=tags,
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.healthy_user"],
@@ -2528,27 +2225,20 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.healthy_user"] == [4]
 
     def test_healthy_user_sessions_clamped_to_zero(self):
-        org_id = self.organization.id
         user_ts = time.time()
         # init = 0
         # errored_all = 1
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_user_metric,
-                    "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: rh_indexer_record(org_id, "errored"),
-                    },
-                    "type": "s",
-                    "value": [1],
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_sets",
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            type="set",
+            name=SessionMRI.USER.value,
+            tags={"session.status": "errored"},
+            timestamp=user_ts,
+            value=1,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["session.healthy_user"],
@@ -2792,31 +2482,22 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         org_id = self.organization.id
         user_ts = time.time()
 
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_duration_metric,
-                    "timestamp": user_ts,
-                    "type": "d",
-                    "value": [2, 6, 8],
-                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "exited")},
-                    "retention_days": 90,
-                },
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": self.session_duration_metric,
-                    "timestamp": user_ts,
-                    "type": "d",
-                    "value": [11, 13, 15],
-                    "tags": {self.session_status_tag: rh_indexer_record(org_id, "crashed")},
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_distributions",
-        )
+        for tag_value, numbers in (
+            ("exited", [2, 6, 8]),
+            ("crashed", [11, 13, 15]),
+        ):
+            for value in numbers:
+                self.store_metric(
+                    org_id=org_id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=SessionMRI.RAW_DURATION.value,
+                    tags={"session.status": tag_value},
+                    timestamp=user_ts,
+                    value=value,
+                    use_case_id=UseCaseKey.RELEASE_HEALTH,
+                )
+
         response = self.get_success_response(
             self.organization.slug,
             field=["p50(session.duration)"],

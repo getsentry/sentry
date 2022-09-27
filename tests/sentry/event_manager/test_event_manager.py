@@ -9,6 +9,7 @@ import responses
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
+from freezegun import freeze_time
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
@@ -61,6 +62,7 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUP
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.issues import GroupCategory, GroupType
@@ -1818,6 +1820,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         tags = dict(event.tags)
         assert tags["server_name"] == "foo.com"
 
+    @freeze_time()
     def test_save_issueless_event(self):
         manager = EventManager(
             make_event(
@@ -1831,8 +1834,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                     }
                 },
                 spans=[],
-                timestamp="2019-06-14T14:01:40Z",
-                start_timestamp="2019-06-14T14:01:40Z",
+                timestamp=iso_format(before_now(minutes=5)),
+                start_timestamp=iso_format(before_now(minutes=5)),
                 type="transaction",
                 platform="python",
             )
@@ -1845,9 +1848,10 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             tsdb.get_sums(tsdb.models.project, [self.project.id], event.datetime, event.datetime)[
                 self.project.id
             ]
-            == 1
+            == 0
         )
 
+    @freeze_time()
     def test_fingerprint_ignored(self):
         manager1 = EventManager(make_event(event_id="a" * 32, fingerprint="fingerprint1"))
         event1 = manager1.save(self.project.id)
@@ -1866,8 +1870,8 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                     }
                 },
                 spans=[],
-                timestamp="2019-06-14T14:01:40Z",
-                start_timestamp="2019-06-14T14:01:40Z",
+                timestamp=iso_format(before_now(minutes=1)),
+                start_timestamp=iso_format(before_now(minutes=1)),
                 type="transaction",
                 platform="python",
             )
@@ -1880,7 +1884,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             tsdb.get_sums(tsdb.models.project, [self.project.id], event1.datetime, event1.datetime)[
                 self.project.id
             ]
-            == 2
+            == 1
         )
 
         assert (
@@ -2078,7 +2082,25 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
         assert event.title == "foo"
 
     def test_auto_update_grouping(self):
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
+            # start out with legacy grouping, this should update us
+            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
+
+            manager = EventManager(
+                make_event(
+                    message="foo",
+                    event_id="c" * 32,
+                ),
+                project=self.project,
+            )
+            manager.normalize()
+            manager.save(self.project.id, auto_upgrade_grouping=True)
+
+            # No update yet
+            project = Project.objects.get(id=self.project.id)
+            assert project.get_option("sentry:grouping_config") == LEGACY_GROUPING_CONFIG
+
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=1.0):
             # start out with legacy grouping, this should update us
             self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
 
@@ -2102,7 +2124,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
@@ -2165,7 +2186,6 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
                 ],
             )
 
-    @override_options({"store.use-ingest-performance-detection-only": 1.0})
     @override_options({"performance.issues.all.problem-creation": 1.0})
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
@@ -2210,6 +2230,62 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             assert group.location() == "/books/"
             assert group.message == "/books/"
             assert group.culprit == "/books/"
+
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_error_issue_no_associate_perf_event(self):
+        """Test that you can't associate a performance event with an error issue"""
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
+        ):
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+            assert len(event.groups) == 1
+
+            # sneakily make the group type wrong
+            group = event.groups[0]
+            group.type = GroupType.ERROR.value
+            group.save()
+            manager = EventManager(make_event(**EVENTS["n-plus-one-in-django-index-view"]))
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            assert len(event.groups) == 0
+
+    @override_options({"performance.issues.all.problem-creation": 1.0})
+    @override_options({"performance.issues.all.problem-detection": 1.0})
+    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    def test_perf_issue_no_associate_error_event(self):
+        """Test that you can't associate an error event with a performance issue"""
+        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
+
+        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"), self.feature(
+            {
+                "projects:performance-suspect-spans-ingestion": True,
+                "organizations:performance-issues-ingest": True,
+            }
+        ):
+            manager = EventManager(make_event())
+            manager.normalize()
+            event = manager.save(self.project.id)
+            assert len(event.groups) == 1
+
+            # sneakily make the group type wrong
+            group = event.groups[0]
+            group.type = GroupType.PERFORMANCE_N_PLUS_ONE.value
+            group.save()
+            manager = EventManager(make_event())
+            manager.normalize()
+            event = manager.save(self.project.id)
+
+            assert len(event.groups) == 0
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

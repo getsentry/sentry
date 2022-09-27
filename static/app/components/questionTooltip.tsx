@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {IconSize} from 'sentry/utils/theme';
+import type {Color, IconSize} from 'sentry/utils/theme';
 
 type ContainerProps = {
   size: IconSize | string;
@@ -16,7 +16,7 @@ const QuestionIconContainer = styled('span')<ContainerProps>`
 
   & svg {
     transition: 120ms opacity;
-    color: ${p => p.theme.gray200};
+    color: ${p => p.theme.subText};
     opacity: 0.6;
 
     &:hover {
@@ -29,6 +29,7 @@ type QuestionProps = {
   size: string;
   title: React.ReactNode;
   className?: string;
+  color?: Color;
 } & Pick<React.ComponentProps<typeof Tooltip>, 'position'> &
   Partial<
     Pick<
@@ -37,11 +38,17 @@ type QuestionProps = {
     >
   >;
 
-function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProps) {
+function QuestionTooltip({
+  title,
+  size,
+  color,
+  className,
+  ...tooltipProps
+}: QuestionProps) {
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
-        <IconQuestion size={size} data-test-id="more-information" />
+        <IconQuestion size={size} color={color} data-test-id="more-information" />
       </Tooltip>
     </QuestionIconContainer>
   );

@@ -1463,6 +1463,16 @@ def is_percentage_measurement(key):
     ]
 
 
+def is_numeric_measurement(key):
+    return key in [
+        "measurements.cls",
+        "measurements.frames_frozen",
+        "measurements.frames_slow",
+        "measurements.frames_total",
+        "measurements.stall_count",
+    ]
+
+
 def is_span_op_breakdown(key):
     return isinstance(key, str) and get_span_op_breakdown_name(key) is not None
 

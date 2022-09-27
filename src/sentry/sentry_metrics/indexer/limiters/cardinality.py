@@ -17,6 +17,7 @@ from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseC
 from sentry.sentry_metrics.consumers.indexer.batch import PartitionIdxOffset
 from sentry.utils import metrics
 from sentry.utils.hashlib import hash_values
+from sentry.utils.options import sample_modulo
 
 OrgId = int
 
@@ -80,6 +81,9 @@ class TimeseriesCardinalityLimiter:
         hash_to_offset = {}
         for key, message in messages.items():
             org_id = message["org_id"]
+            if not sample_modulo("sentry-metrics.cardinality-limiter.orgs-rollout-rate", org_id):
+                continue
+
             message_hash = int(
                 hash_values(
                     [

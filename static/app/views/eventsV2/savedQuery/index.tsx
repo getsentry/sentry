@@ -24,7 +24,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
@@ -108,6 +108,7 @@ type Props = DefaultProps & {
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
 };
@@ -236,11 +237,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView, updateCallback, yAxis} = this.props;
+    const {api, organization, eventView, updateCallback, yAxis, setSavedQuery} =
+      this.props;
 
     handleUpdateQuery(api, organization, eventView, yAxis).then(
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
+        setSavedQuery(savedQuery);
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
         updateCallback();
@@ -256,7 +259,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     handleDeleteQuery(api, organization, eventView).then(() => {
       browserHistory.push({
-        pathname: getDiscoverLandingUrl(organization),
+        pathname: getDiscoverQueriesUrl(organization),
         query: {},
       });
     });

@@ -9,7 +9,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
@@ -25,9 +25,11 @@ function CrumbPlaceholder({number}: {number: number}) {
   );
 }
 
-type Props = {};
+type Props = {
+  showTitle: boolean;
+};
 
-function Breadcrumbs({}: Props) {
+function Breadcrumbs({showTitle = true}: Props) {
   const {currentHoverTime, currentTime, replay} = useReplayContext();
 
   const replayRecord = replay?.getReplay();
@@ -45,16 +47,16 @@ function Breadcrumbs({}: Props) {
   const crumbs =
     allCrumbs?.filter(crumb => !['console'].includes(crumb.category || '')) || [];
 
-  const currentUserAction = getPrevBreadcrumb({
-    crumbs,
+  const currentUserAction = getPrevReplayEvent({
+    items: crumbs,
     targetTimestampMs: startTimestampMs + currentTime,
     allowExact: true,
   });
 
   const closestUserAction =
     currentHoverTime !== undefined
-      ? getPrevBreadcrumb({
-          crumbs,
+      ? getPrevReplayEvent({
+          items: crumbs,
           targetTimestampMs: startTimestampMs + (currentHoverTime ?? 0),
           allowExact: true,
         })
@@ -85,7 +87,7 @@ function Breadcrumbs({}: Props) {
     <Panel>
       <FluidPanel
         bodyRef={crumbListContainerRef}
-        title={<PanelHeader>{t('Breadcrumbs')}</PanelHeader>}
+        title={showTitle ? <PanelHeader>{t('Breadcrumbs')}</PanelHeader> : undefined}
       >
         {content}
       </FluidPanel>

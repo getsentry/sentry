@@ -31,6 +31,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
@@ -192,7 +193,7 @@ def get_oldest_or_latest_event_for_environments(
         features.has("organizations:performance-issues", group.organization)
         and group.issue_category == GroupCategory.PERFORMANCE
     ):
-        conditions.append([["has", ["group_ids", group.id]], "=", 1])
+        apply_performance_conditions(conditions, group)
         _filter = eventstore.Filter(
             conditions=conditions,
             project_ids=[group.project_id],
@@ -448,6 +449,7 @@ class Group(Model):
             ("project", "first_release"),
             ("project", "id"),
             ("project", "status", "last_seen", "id"),
+            ("project", "status", "type", "last_seen", "id"),
         ]
         unique_together = (
             ("project", "short_id"),

@@ -509,12 +509,6 @@ table.table.key-value {
   }
 }
 
-// Sparkline grid
-
-.innerColumn(@columnSpan: 1) {
-  width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
-}
-
 /**
 * Box
 * ============================================================================
@@ -1071,6 +1065,7 @@ header + .alert {
     > a {
       display: flex;
       align-items: center;
+      justify-content: center;
       padding: 0 0 10px;
       margin: 0;
       border: 0;

@@ -6,6 +6,7 @@ import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
@@ -82,7 +83,7 @@ class SpanTree extends Component<PropType> {
       filteredSpansAbove,
     } = input;
 
-    const {focusedSpanIds, waterfallModel} = this.props;
+    const {focusedSpanIds, waterfallModel, organization} = this.props;
 
     const messages: React.ReactNode[] = [];
 
@@ -131,7 +132,13 @@ class SpanTree extends Component<PropType> {
       <MessageRow
         onClick={
           focusedSpanIds
-            ? () => waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0))
+            ? () => {
+                trackAdvancedAnalyticsEvent(
+                  'issue_details.performance.hidden_spans_expanded',
+                  {organization}
+                );
+                waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
+              }
             : undefined
         }
         cursor={focusedSpanIds ? 'pointer' : 'default'}
@@ -202,6 +209,8 @@ class SpanTree extends Component<PropType> {
         }
       }
     }, 0);
+
+    const isEmbeddedSpanTree = waterfallModel.isEmbeddedSpanTree;
 
     const {spanTree, numOfSpansOutOfViewAbove, filteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType) => {
@@ -277,6 +286,7 @@ class SpanTree extends Component<PropType> {
               occurrence={payload.occurrence}
               onWheel={onWheel}
               generateContentSpanBarRef={generateContentSpanBarRef}
+              isEmbeddedSpanTree={isEmbeddedSpanTree}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -349,6 +359,19 @@ class SpanTree extends Component<PropType> {
             storeSpanBar={storeSpanBar}
           />
         );
+
+        // If this is an embedded span tree, we will manually mark these spans as in view.
+        // This is necessary because generally these spans are dependant on intersection observers which will
+        // mark them in view, but these observers are not reliable when the span tree is in a condensed state.
+        // Marking them here will ensure that the horizontally positioning is correctly set when the tree is loaded.
+        if (
+          !('type' in span) &&
+          isEmbeddedSpanTree &&
+          // We only do this for affected spans, since we don't want to always manually add every single span
+          waterfallModel.affectedSpanIds?.includes(span.span_id)
+        ) {
+          markSpanInView(span.span_id, treeDepth);
+        }
 
         acc.spanNumber = spanNumber + 1;
         return acc;
