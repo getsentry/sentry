@@ -198,8 +198,16 @@ class GroupDetails extends Component<Props, State> {
     const {event} = this.state;
 
     const currentRoute = routes[routes.length - 1];
-    const currentTab =
-      Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS;
+
+    let currentTab: Tab;
+    // If we're in the tag details page ("/tags/:tagKey/")
+    if (router.params.tagKey) {
+      currentTab = Tab.TAGS;
+    } else {
+      currentTab =
+        Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ??
+        Tab.DETAILS;
+    }
 
     const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
       router.params.eventId && event ? `events/${event.id}/` : ''
