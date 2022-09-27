@@ -150,7 +150,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
                 project_id=self.project.id,
                 user_id=str(i),
                 groups=[self.perf_group],
-                timestamp=now + timedelta(seconds=i),
+                timestamp=now - timedelta(seconds=i),
             )
         assert not snooze.is_valid(test_rates=True)
 
