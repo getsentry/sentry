@@ -274,7 +274,6 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
-
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
