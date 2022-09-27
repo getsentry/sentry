@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import Anchor from 'sentry/components/links/anchor';
+import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
 
 type Props = {
@@ -16,7 +17,7 @@ export default function EventReplay({replayId, orgSlug, projectSlug, event}: Pro
   return (
     <div id="replay">
       <StyledAnchor href="#replay">
-        <h3 aria-label="Replay">Replay</h3>
+        <h3 aria-label={t('Replay')}>{t('Replay')}</h3>
       </StyledAnchor>
       <ErrorBoundary mini>
         <LazyLoad
