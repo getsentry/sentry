@@ -4,6 +4,7 @@ import {useTab} from '@react-aria/tabs';
 import {mergeProps, useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
+import {motion} from 'framer-motion';
 
 import space from 'sentry/styles/space';
 
@@ -47,7 +48,9 @@ function BaseTab(
       <HoverLayer orientation={orientation} />
       <FocusLayer orientation={orientation} />
       {rendered}
-      <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+      {isSelected && (
+        <TabSelectionIndicator layoutId="indicator" orientation={orientation} />
+      )}
     </TabWrap>
   );
 }
@@ -155,19 +158,13 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   }
 `;
 
-const TabSelectionIndicator = styled('div')<{
+const TabSelectionIndicator = styled(motion.div)<{
   orientation: Orientation;
-  selected: boolean;
 }>`
   position: absolute;
   border-radius: 2px;
   pointer-events: none;
-  background: ${p => (p.selected ? p.theme.active : 'transparent')};
-  transition: background 0.1s ease-out;
-
-  li[aria-disabled='true'] & {
-    background: ${p => (p.selected ? p.theme.subText : 'transparent')};
-  }
+  background: ${p => p.theme.active};
 
   ${p =>
     p.orientation === 'horizontal'
@@ -176,15 +173,11 @@ const TabSelectionIndicator = styled('div')<{
         height: 3px;
 
         bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
       `
       : `
         width: 3px;
         height: 50%;
 
         left: 0;
-        top: 50%;
-        transform: translateY(-50%);
       `};
 `;

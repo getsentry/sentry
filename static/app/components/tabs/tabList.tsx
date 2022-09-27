@@ -5,6 +5,7 @@ import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import {TabListProps as TabListStateProps, useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
+import {LayoutGroup} from 'framer-motion';
 
 import DropdownButton from 'sentry/components/dropdownButton';
 import CompactSelect from 'sentry/components/forms/compactSelect';
@@ -119,16 +120,20 @@ function BaseTabList({className, ...props}: TabListProps) {
         className={className}
         ref={tabListRef}
       >
-        {[...state.collection].map(item => (
-          <Tab
-            key={item.key}
-            item={item}
-            state={state}
-            orientation={orientation}
-            overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            ref={element => (tabItemsRef.current[item.key] = element)}
-          />
-        ))}
+        <LayoutGroup id={tabListProps.id}>
+          {[...state.collection].map(item => (
+            <Tab
+              key={item.key}
+              item={item}
+              state={state}
+              orientation={orientation}
+              overflowing={
+                orientation === 'horizontal' && overflowTabs.includes(item.key)
+              }
+              ref={element => (tabItemsRef.current[item.key] = element)}
+            />
+          ))}
+        </LayoutGroup>
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
