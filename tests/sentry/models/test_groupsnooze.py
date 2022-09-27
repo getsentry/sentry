@@ -144,7 +144,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
         """Test when a performance issue is ignored until it happens 10 times in a day"""
         snooze = GroupSnooze.objects.create(group=self.perf_group, count=10, window=24 * 60)
 
-        for i in range(0, 10):
+        for i in range(0, 15):
             self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
