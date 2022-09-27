@@ -107,7 +107,7 @@ class ProcessorFactory(ProcessingStrategyFactory[KafkaPayload], Generic[Processo
 
     def create_with_partitions(
         self,
-        commit: Callable[[Mapping[Partition, Position]], None],
+        commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return self.constructor(commit)
