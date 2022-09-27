@@ -716,6 +716,10 @@ const ReleaseDetailsPageFilters = styled('div')`
   grid-template-columns: minmax(0, max-content) 1fr;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: auto;
+  }
 `;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
