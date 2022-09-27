@@ -215,7 +215,6 @@ export default function IntervalSelector({
       autoCompleteFilter={(items, filterValue) =>
         intervalAutoComplete(items, filterValue)
       }
-      alignMenu="right"
     >
       {({isOpen}) => (
         <DropdownButton borderless prefix={t('Interval')} isOpen={isOpen}>
