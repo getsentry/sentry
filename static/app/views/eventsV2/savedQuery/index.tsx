@@ -108,6 +108,7 @@ type Props = DefaultProps & {
   router: InjectedRouter;
   savedQuery: SavedQuery | undefined;
   savedQueryLoading: boolean;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
 };
@@ -236,11 +237,13 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     event.preventDefault();
     event.stopPropagation();
 
-    const {api, organization, eventView, updateCallback, yAxis} = this.props;
+    const {api, organization, eventView, updateCallback, yAxis, setSavedQuery} =
+      this.props;
 
     handleUpdateQuery(api, organization, eventView, yAxis).then(
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
+        setSavedQuery(savedQuery);
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewShortUrlTarget(organization.slug));
         updateCallback();
