@@ -3,10 +3,7 @@ import {useEffect, useState} from 'react';
 /**
  * Hook to detect when a specific key is being pressed
  */
-const useKeyPress = (
-  targetKey: string,
-  targetRef?: React.RefObject<HTMLInputElement>
-) => {
+const useKeyPress = (targetKey: string, targetRef?: React.RefObject<HTMLElement>) => {
   const [keyPressed, setKeyPressed] = useState(false);
 
   useEffect(() => {
@@ -22,13 +19,13 @@ const useKeyPress = (
       }
     };
 
-    const current: any = targetRef?.current ?? window;
-    current?.addEventListener('keydown', downHandler);
-    current?.addEventListener('keyup', upHandler);
+    const current = targetRef?.current ?? window;
+    (current as HTMLElement)?.addEventListener('keydown', downHandler);
+    (current as HTMLElement)?.addEventListener('keyup', upHandler);
 
     return () => {
-      current?.removeEventListener('keydown', downHandler);
-      current?.removeEventListener('keyup', upHandler);
+      (current as HTMLElement)?.removeEventListener('keydown', downHandler);
+      (current as HTMLElement)?.removeEventListener('keyup', upHandler);
     };
   }, [targetKey, targetRef]);
 
