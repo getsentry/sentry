@@ -2,6 +2,7 @@ import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -633,16 +634,6 @@ export class TokenConverter {
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value']
   ) => {
-    if (this.config.additionalSearchValidator) {
-      const additionalSearchValidatorResult = this.config.additionalSearchValidator(
-        filter,
-        key,
-        value
-      );
-      if (additionalSearchValidatorResult) {
-        return additionalSearchValidatorResult;
-      }
-    }
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
     if (filter === FilterType.Text) {
@@ -667,6 +658,13 @@ export class TokenConverter {
    * Validates text filters which may have failed predication
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
+    if (
+      this.config.supportedTags &&
+      !Object.keys(this.config.supportedTags).includes(key.text)
+    ) {
+      return {reason: t(`Invalid key. "${key.text}" is not a supported search key.`)};
+    }
+
     // Explicit tag keys will always be treated as text filters
     if (key.type === Token.KeyExplicitTag) {
       return this.checkInvalidTextValue(value);
@@ -832,7 +830,7 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
-  additionalSearchValidator?: SearchValidationFunction;
+  supportedTags?: TagCollection;
 };
 
 const defaultConfig: SearchConfig = {
@@ -894,6 +892,7 @@ export function parseSearch(
   // Merge additionalConfig with defaultConfig
   const config = additionalConfig
     ? {
+        ...additionalConfig,
         ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
           configAccumulator[key] =
             typeof defaultConfig[key] === 'object'
@@ -901,7 +900,6 @@ export function parseSearch(
               : defaultConfig[key];
           return configAccumulator;
         }, {}),
-        additionalSearchValidator: additionalConfig.additionalSearchValidator,
       }
     : defaultConfig;
 

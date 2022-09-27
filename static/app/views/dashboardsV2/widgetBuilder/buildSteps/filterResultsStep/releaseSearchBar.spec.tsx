@@ -47,7 +47,7 @@ describe('Release Search Bar', function () {
     userEvent.keyboard('{arrowleft}');
 
     expect(
-      screen.getByText('Search key must be release, project, or environment.')
+      screen.getByText('Invalid key. "test-key" is not a supported search key.')
     ).toBeInTheDocument();
   });
 });

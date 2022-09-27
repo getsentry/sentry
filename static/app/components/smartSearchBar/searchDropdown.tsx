@@ -16,6 +16,7 @@ import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {TagCollection} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {FieldKind} from 'sentry/utils/fields';
 
@@ -38,6 +39,7 @@ type Props = {
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
   searchValidator?: SearchValidationFunction;
+  supportedTags?: TagCollection;
   visibleShortcuts?: Shortcut[];
 };
 
@@ -52,7 +54,7 @@ const SearchDropdown = ({
   searchSubstring = '',
   onClick = () => {},
   customPerformanceMetrics,
-  searchValidator,
+  supportedTags,
 }: Props) => (
   <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
     {loading ? (
@@ -80,7 +82,7 @@ const SearchDropdown = ({
                       ...getSearchConfigFromCustomPerformanceMetrics(
                         customPerformanceMetrics
                       ),
-                      additionalSearchValidator: searchValidator,
+                      supportedTags,
                     }}
                   />
                 ))}

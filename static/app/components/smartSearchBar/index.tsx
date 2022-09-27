@@ -18,7 +18,6 @@ import {
   ParseResult,
   parseSearch,
   SearchConfig,
-  SearchValidationFunction,
   TermOperator,
   Token,
   TokenResult,
@@ -248,10 +247,6 @@ type Props = WithRouterProps & {
    */
   searchSource?: string;
   /**
-   * Custom SearchValidationFunction for additional search validation needed not provided by default
-   */
-  searchValidator?: SearchValidationFunction;
-  /**
    * Type of supported tags
    */
   supportedTagType?: ItemType;
@@ -328,7 +323,7 @@ class SmartSearchBar extends Component<Props, State> {
     showDropdown: false,
     parsedQuery: parseSearch(this.initialQuery, {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
-      additionalSearchValidator: this.props.searchValidator,
+      supportedTags: this.props.supportedTags,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -380,7 +375,7 @@ class SmartSearchBar extends Component<Props, State> {
   makeQueryState(query: string) {
     const additionalConfig: Partial<SearchConfig> = {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
-      additionalSearchValidator: this.props.searchValidator,
+      supportedTags: this.props.supportedTags,
     };
     return {
       query,
@@ -1731,7 +1726,7 @@ class SmartSearchBar extends Component<Props, State> {
       maxQueryLength,
       maxMenuHeight,
       customPerformanceMetrics,
-      searchValidator,
+      supportedTags,
     } = this.props;
 
     const {
@@ -1869,7 +1864,7 @@ class SmartSearchBar extends Component<Props, State> {
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
             customPerformanceMetrics={customPerformanceMetrics}
-            searchValidator={searchValidator}
+            supportedTags={supportedTags}
           />
         )}
       </Container>
