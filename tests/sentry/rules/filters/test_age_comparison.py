@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
-from unittest import mock
+from datetime import timedelta
 
-import pytz
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import RuleTestCase
@@ -11,10 +10,8 @@ from sentry.testutils.cases import RuleTestCase
 class AgeComparisonFilterTest(RuleTestCase):
     rule_cls = AgeComparisonFilter
 
-    @mock.patch("django.utils.timezone.now")
-    def test_older_applies_correctly(self, now):
-        now.return_value = datetime(2020, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_older_applies_correctly(self):
         event = self.get_event()
         value = 10
         data = {"comparison_type": "older", "value": str(value), "time": "hour"}
@@ -27,10 +24,8 @@ class AgeComparisonFilterTest(RuleTestCase):
         event.group.first_seen = timezone.now() - timedelta(hours=11)
         self.assertPasses(rule, event)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_newer_applies_correctly(self, now):
-        now.return_value = datetime(2020, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_newer_applies_correctly(self):
         event = self.get_event()
         value = 10
         data = {"comparison_type": "newer", "value": str(value), "time": "hour"}
