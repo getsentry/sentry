@@ -44,6 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_users,
     apdex,
     complement,
+    count_transaction_name_snql_factory,
     count_web_vitals_snql_factory,
     crashed_sessions,
     crashed_users,
@@ -66,7 +67,6 @@ from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GENERIC_OP_TO_SNUBA_FUNCTION,
     GRANULARITY,
-    METRIC_TYPE_TO_ENTITY,
     OP_TO_SNUBA_FUNCTION,
     TS_COL_QUERY,
     UNIT_TO_TYPE,
@@ -158,7 +158,6 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
         TransactionMRI(metric_mri)
         entity_prefix = metric_mri.split(":")[0]
         return {
-            "c": EntityKey.GenericMetricsCounters,
             "d": EntityKey.GenericMetricsDistributions,
             "s": EntityKey.GenericMetricsSets,
         }[entity_prefix]
@@ -182,19 +181,19 @@ def _get_entity_of_metric_mri(
     if metric_id is None:
         raise InvalidParams
 
+    entity_keys_set: frozenset[EntityKey]
     if use_case_id == UseCaseKey.PERFORMANCE:
-        metric_types = (
-            "generic_counter",
-            "generic_set",
-            "generic_distribution",
+        entity_keys_set = frozenset(
+            {EntityKey.GenericMetricsSets, EntityKey.GenericMetricsDistributions}
         )
     elif use_case_id == UseCaseKey.RELEASE_HEALTH:
-        metric_types = ("counter", "set", "distribution")
+        entity_keys_set = frozenset(
+            {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
+        )
     else:
         raise InvalidParams
 
-    for metric_type in metric_types:
-        entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
+    for entity_key in entity_keys_set:
         data = run_metrics_query(
             entity_key=entity_key,
             select=[Column("metric_id")],
@@ -1344,6 +1343,11 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="count_web_vitals",
             can_orderby=True,
             snql_func=count_web_vitals_snql_factory,
+        ),
+        DerivedOp(
+            op="count_transaction_name",
+            can_orderby=True,
+            snql_func=count_transaction_name_snql_factory,
         ),
     ]
 }

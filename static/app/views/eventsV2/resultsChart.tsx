@@ -6,6 +6,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
@@ -16,9 +17,15 @@ import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import {valueIsEqual} from 'sentry/utils';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
-import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  getAggregateArg,
+  isEquation,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
@@ -28,6 +35,8 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+
+import {isCustomMeasurement} from '../dashboardsV2/utils';
 
 import ChartFooter from './chartFooter';
 
@@ -39,7 +48,10 @@ type ResultsChartProps = {
   organization: Organization;
   router: InjectedRouter;
   yAxisValue: string[];
+  customMeasurements?: CustomMeasurementCollection | undefined;
+  loadingProcessedEventsBaseline?: boolean;
   processedLineSeries?: LineSeriesOption[];
+  reloadingProcessedEventsBaseline?: boolean;
 };
 
 class ResultsChart extends Component<ResultsChartProps> {
@@ -64,6 +76,9 @@ class ResultsChart extends Component<ResultsChartProps> {
       confirmedQuery,
       yAxisValue,
       processedLineSeries,
+      customMeasurements,
+      loadingProcessedEventsBaseline,
+      reloadingProcessedEventsBaseline,
     } = this.props;
 
     const hasPerformanceChartInterpolation = organization.features.includes(
@@ -89,11 +104,19 @@ class ResultsChart extends Component<ResultsChartProps> {
     const isPrevious = display === DisplayModes.PREVIOUS;
     const referrer = `api.discover.${display}-chart`;
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
+    const aggregateParam = getAggregateArg(yAxisValue[0]) || '';
+    const customPerformanceMetricFieldType = isCustomMeasurement(aggregateParam)
+      ? customMeasurements
+        ? customMeasurements[aggregateParam]?.fieldType
+        : null
+      : null;
     const chartComponent =
       display === DisplayModes.WORLDMAP
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
+        : customPerformanceMetricFieldType === 'size' && isTopEvents
+        ? AreaChart
         : undefined;
     const interval =
       display === DisplayModes.BAR
@@ -149,6 +172,8 @@ class ResultsChart extends Component<ResultsChartProps> {
               fromDiscover
               disableableSeries={disableableSeries}
               additionalSeries={processedLineSeries}
+              loadingAdditionalSeries={loadingProcessedEventsBaseline}
+              reloadingAdditionalSeries={reloadingProcessedEventsBaseline}
             />
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
@@ -176,9 +201,11 @@ type ContainerProps = {
   // chart footer props
   total: number | null;
   yAxis: string[];
+  loadingProcessedEventsBaseline?: boolean;
   loadingProcessedTotals?: boolean;
   processedLineSeries?: LineSeriesOption[];
   processedTotal?: number;
+  reloadingProcessedEventsBaseline?: boolean;
 };
 
 type ContainerState = {
@@ -208,6 +235,13 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       this.props.confirmedQuery !== nextProps.confirmedQuery
     ) {
       return true;
+    }
+
+    if (
+      nextProps.reloadingProcessedEventsBaseline ||
+      nextProps.loadingProcessedEventsBaseline
+    ) {
+      return false;
     }
 
     return !isEqual(restProps, restNextProps);
@@ -245,6 +279,8 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
       setShowBaseline,
       processedTotal,
       loadingProcessedTotals,
+      loadingProcessedEventsBaseline,
+      reloadingProcessedEventsBaseline,
     } = this.props;
 
     const {yAxisOptions} = this.state;
@@ -284,16 +320,23 @@ class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
     return (
       <StyledPanel>
         {(yAxis.length > 0 && (
-          <ResultsChart
-            api={api}
-            eventView={eventView}
-            location={location}
-            organization={organization}
-            router={router}
-            confirmedQuery={confirmedQuery}
-            yAxisValue={yAxis}
-            processedLineSeries={processedLineSeries}
-          />
+          <CustomMeasurementsContext.Consumer>
+            {contextValue => (
+              <ResultsChart
+                api={api}
+                eventView={eventView}
+                location={location}
+                organization={organization}
+                router={router}
+                confirmedQuery={confirmedQuery}
+                yAxisValue={yAxis}
+                processedLineSeries={processedLineSeries}
+                loadingProcessedEventsBaseline={loadingProcessedEventsBaseline}
+                reloadingProcessedEventsBaseline={reloadingProcessedEventsBaseline}
+                customMeasurements={contextValue?.customMeasurements}
+              />
+            )}
+          </CustomMeasurementsContext.Consumer>
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           organization={organization}

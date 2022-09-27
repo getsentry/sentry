@@ -399,14 +399,16 @@ class Results extends Component<Props, State> {
       interval: value,
     };
 
-    router.push({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    if (location.query.interval !== value) {
+      router.push({
+        pathname: location.pathname,
+        query: newQuery,
+      });
 
-    // Treat display changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
+      // Treat display changing like the user already confirmed the query
+      if (!this.state.needConfirmation) {
+        this.handleConfirmed();
+      }
     }
   };
 
@@ -654,7 +656,7 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {location} = this.props;
     if (
       !defined(location.query?.id) &&
@@ -662,6 +664,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     ) {
       this.setState({savedQuery: undefined});
     }
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

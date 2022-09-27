@@ -2,7 +2,6 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import {ControlProps, GeneralSelectValue} from 'sentry/components/forms/selectControl';
 import {IconList} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -19,7 +18,7 @@ interface ThreadSelectorProps {
   threadId: FlamegraphState['profiles']['threadId'];
 }
 
-function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelectValue>({
+function ThreadMenuSelector({
   threadId,
   onThreadIdChange,
   profileGroup,
@@ -42,7 +41,7 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
     });
   }, [profileGroup]);
 
-  const handleChange: NonNullable<ControlProps<OptionType>['onChange']> = useCallback(
+  const handleChange: (opt: SelectValue<number>) => void = useCallback(
     opt => {
       if (defined(opt)) {
         onThreadIdChange(opt.value);

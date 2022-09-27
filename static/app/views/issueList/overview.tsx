@@ -43,7 +43,6 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -258,7 +257,7 @@ class IssueListOverview extends Component<Props, State> {
     this._poller.disable();
     GroupStore.reset();
     this.props.api.clear();
-    callIfFunction(this.listener);
+    this.listener?.();
     // Reset store when unmounting because we always fetch on mount
     // This means if you navigate away from stream and then back to stream,
     // this component will go from:
@@ -781,13 +780,13 @@ class IssueListOverview extends Component<Props, State> {
           query.includes('is:ignored') ||
           isForReviewQuery(query))
       ) {
-        this.onIssueAction(resolvedIds, t('Resolved'));
+        this.onIssueAction(resolvedIds, 'Resolved');
       }
       if (
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        this.onIssueAction(ignoredIds, t('Ignored'));
+        this.onIssueAction(ignoredIds, 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -795,7 +794,7 @@ class IssueListOverview extends Component<Props, State> {
         reviewedIds.length > 0 &&
         (isForReviewQuery(query) || query.includes('is:ignored'))
       ) {
-        this.onIssueAction(reviewedIds, t('Reviewed'));
+        this.onIssueAction(reviewedIds, 'Reviewed');
       }
     }
 
@@ -1078,7 +1077,10 @@ class IssueListOverview extends Component<Props, State> {
     });
   };
 
-  onIssueAction = (itemIds: string[], actionType: string) => {
+  onIssueAction = (
+    itemIds: string[],
+    actionType: 'Reviewed' | 'Resolved' | 'Ignored'
+  ) => {
     if (itemIds.length > 1) {
       addMessage(t(`${actionType} ${itemIds.length} Issues`), 'success', {
         duration: 4000,

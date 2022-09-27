@@ -6,6 +6,7 @@ interface MemberListStoreDefinition extends StoreDefinition {
   getAll(): User[];
   getByEmail(email: string): User | undefined;
   getById(id: string): User | undefined;
+  getState(): User[];
   init(): void;
   isLoaded(): boolean;
   loadInitialData(items: User[]): void;
@@ -62,6 +63,10 @@ const storeConfig: MemberListStoreDefinition = {
   },
 
   getAll() {
+    return this.state;
+  },
+
+  getState() {
     return this.state;
   },
 };

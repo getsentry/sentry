@@ -127,6 +127,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders partial trace with no children', function () {
+      MockApiClient.warnOnMissingMocks();
       const quickTrace = mountWithTheme(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
@@ -169,6 +170,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders partial trace with multiple children', function () {
+      MockApiClient.warnOnMissingMocks();
       const quickTrace = mountWithTheme(
         <QuickTrace
           event={makeTransactionEvent(4) as Event}
@@ -242,6 +244,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with multiple ancestors', function () {
+      MockApiClient.warnOnMissingMocks();
       const quickTrace = mountWithTheme(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
@@ -297,6 +300,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace with multiple descendants', function () {
+      MockApiClient.warnOnMissingMocks();
       const quickTrace = mountWithTheme(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}
@@ -325,6 +329,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders full trace', function () {
+      MockApiClient.warnOnMissingMocks();
       const quickTrace = mountWithTheme(
         <QuickTrace
           event={makeTransactionEvent(5) as Event}
@@ -394,6 +399,7 @@ describe('Quick Trace', function () {
     });
 
     it('renders multiple event targets', function () {
+      MockApiClient.warnOnMissingMocks();
       const quickTrace = mountWithTheme(
         <QuickTrace
           event={makeTransactionEvent(0) as Event}

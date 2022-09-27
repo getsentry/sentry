@@ -21,6 +21,14 @@ export enum DiscoverDatasets {
 
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
 
+// The modes that support the interval selector
+export const INTERVAL_DISPLAY_MODES: string[] = [
+  DisplayModes.DEFAULT,
+  DisplayModes.PREVIOUS,
+  DisplayModes.TOP5,
+  DisplayModes.BAR,
+];
+
 export const DISPLAY_MODE_OPTIONS: SelectValue<string>[] = [
   {value: DisplayModes.DEFAULT, label: t('Total Period')},
   {value: DisplayModes.PREVIOUS, label: t('Previous Period')},

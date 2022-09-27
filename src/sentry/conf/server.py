@@ -283,6 +283,7 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
+    "sentry.middleware.dedupe_cookies.DedupeCookiesMiddleware",
     "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -571,6 +572,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
+    "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -645,6 +647,7 @@ CELERY_QUEUES = [
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
+    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
@@ -1157,6 +1160,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-ingest": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
+    # Enables updated all events tab in a performance issue
+    "organizations:performance-issues-all-events-tab": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -2155,6 +2160,13 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
+if SENTRY_DEV_DSN:
+    # In production, this value is *not* set via an env variable
+    # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
+    # This is used in case you want to report traces of your development set up to a project of your choice
+    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
@@ -2792,6 +2804,7 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
+SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
 SENTRY_FUNCTIONS_PROJECT_NAME = None
 

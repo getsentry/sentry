@@ -240,21 +240,168 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time()
+    @pytest.mark.skip(reason="flaky: TET-423")
+    def test_count_transaction_with_valid_condition(self):
+        for transaction, values in (
+            ("<< unparameterized >>", [1]),
+            ("", [2, 3]),
+            ("/foo", [4, 5, 6]),
+        ):
+            if transaction == "":
+                tags = {}
+            else:
+                tags = {"transaction": transaction}
+
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags=tags,
+                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": "is_unparameterized"},
+                    alias="count_transaction_name_is_unparameterized",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": "is_null"},
+                    alias="count_transaction_name_is_null",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": "has_value"},
+                    alias="count_transaction_name_has_value",
+                ),
+            ],
+            start=self.now - timedelta(hours=1),
+            end=self.now,
+            groupby=[],
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        assert groups[0]["totals"] == {
+            "count_transaction_name_is_unparameterized": 1,
+            "count_transaction_name_is_null": 2,
+            "count_transaction_name_has_value": 3,
+        }
+
+        assert data["meta"] == sorted(
+            [
+                {"name": "count_transaction_name_is_unparameterized", "type": "UInt64"},
+                {"name": "count_transaction_name_is_null", "type": "UInt64"},
+                {"name": "count_transaction_name_has_value", "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_count_transaction_with_invalid_condition(self):
+        for transaction, values in (
+            ("<< unparameterized >>", [1]),
+            ("", [2]),
+            ("/foo", [4]),
+        ):
+            if transaction == "":
+                tags = {}
+            else:
+                tags = {"transaction": transaction}
+
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags=tags,
+                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        invalid_condition = "invalid"
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": invalid_condition},
+                    alias="count_transaction_name_invalid",
+                ),
+            ],
+            start=self.now - timedelta(hours=1),
+            end=self.now,
+            groupby=[],
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=51),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        with pytest.raises(
+            InvalidParams,
+            match=f"The `count_transaction_name` function expects a valid transaction name filter, which must be "
+            f"either is_unparameterized is_null has_value but {invalid_condition} was passed",
+        ):
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    @freeze_time("2022-09-22 11:07:00")
     def test_alias_on_single_entity_derived_metrics(self):
+        """
+        We want to freeze time and self.now don't freezes when we decorate only function
+        it helps to reproduce flakiness. Also it's important to freeze it for :00 second,
+        otherwise you can't catch race condition and test will work.
+        """
+        now = timezone.now()
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
             (2.3, TransactionStatusTagValue.UNKNOWN.value),
             (0.5, TransactionStatusTagValue.ABORTED.value),
         ):
+
             self.store_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
-                timestamp=self.now.timestamp(),
+                # It's important that we store metric between now and now - 1 minute
+                # Note: now is not included
+                timestamp=(now - timedelta(seconds=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -269,8 +416,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=self.now - timedelta(minutes=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
