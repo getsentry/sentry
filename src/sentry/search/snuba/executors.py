@@ -34,7 +34,7 @@ from sentry.api.paginator import DateTimePaginator, Paginator, SequencePaginator
 from sentry.api.serializers.models.group import SKIP_SNUBA_FIELDS
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.search import GroupSearchParamsMapper, MergeableRow, SearchQueryPartial
+from sentry.issues.search import MergeableRow, SearchQueryPartial, search_strategies_for_categories
 from sentry.models import Environment, Group, Project
 from sentry.search.events.fields import DateArg
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -243,7 +243,6 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             SearchQueryPartial,
             functools.partial(
                 aliased_query_params,
-                dataset=snuba.Dataset.Discover,
                 start=start,
                 end=end,
                 selected_columns=selected_columns,
@@ -262,7 +261,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
         query_params_for_categories: Sequence[SnubaQueryParams] = list(
             filter(
-                lambda param_or_none: param_or_none is not None,
+                None,
                 [
                     fn_query_params(
                         group_categories,
@@ -273,9 +272,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                         environments,
                         conditions,
                     )
-                    for fn_query_params in GroupSearchParamsMapper.search_strategies_for(
-                        group_categories
-                    )
+                    for fn_query_params in search_strategies_for_categories(group_categories)
                 ],
             )
         )

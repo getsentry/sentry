@@ -654,32 +654,6 @@ class SnubaQueryParams:
         self.kwargs = kwargs
 
 
-def raw_query_params(
-    dataset=None,
-    start=None,
-    end=None,
-    groupby=None,
-    conditions=None,
-    filter_keys=None,
-    aggregations=None,
-    rollup=None,
-    is_grouprelease=False,
-    **kwargs,
-) -> SnubaQueryParams:
-    return SnubaQueryParams(
-        dataset=dataset,
-        start=start,
-        end=end,
-        groupby=groupby,
-        conditions=conditions,
-        filter_keys=filter_keys,
-        aggregations=aggregations,
-        rollup=rollup,
-        is_grouprelease=is_grouprelease,
-        **kwargs,
-    )
-
-
 def raw_query(
     dataset=None,
     start=None,
@@ -698,7 +672,7 @@ def raw_query(
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
     """
-    snuba_params = raw_query_params(
+    snuba_params = SnubaQueryParams(
         dataset=dataset,
         start=start,
         end=end,

@@ -1283,9 +1283,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert query_mock.called
 
-    @mock.patch("sentry.issues.search.raw_query_params")
+    @mock.patch("sentry.issues.search.SnubaQueryParams")
     @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_optimized_aggregates(self, bulk_raw_query_mock, raw_query_params_mock):
+    def test_optimized_aggregates(self, bulk_raw_query_mock, snuba_query_params_mock):
         # TODO this test is annoyingly fragile and breaks in hard-to-see ways
         # any time anything about the snuba query changes
         bulk_raw_query_mock.return_value = [{"data": [], "totals": {"total": 0}}]
@@ -1319,15 +1319,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         }
 
         self.make_query(search_filter_query="status:unresolved")
-        assert not raw_query_params_mock.called
+        assert not snuba_query_params_mock.called
 
         self.make_query(
             search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
             sort_by="date",
         )
-        assert raw_query_params_mock.called
-        raw_query_params_mock.call_args[1]["aggregations"].sort()
-        assert raw_query_params_mock.call_args == mock.call(
+        assert snuba_query_params_mock.called
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
@@ -1338,8 +1338,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
-        raw_query_params_mock.call_args[1]["aggregations"].sort()
-        assert raw_query_params_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
                 ["count()", "", "times_seen"],
@@ -1352,8 +1352,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
-        raw_query_params_mock.call_args[1]["aggregations"].sort()
-        assert raw_query_params_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
             aggregations=[
                 ["count()", "", "times_seen"],
@@ -1364,8 +1364,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
-        raw_query_params_mock.call_args[1]["aggregations"].sort()
-        assert raw_query_params_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-user_count", "group_id"],
             aggregations=[
                 ["uniq", "group_id", "total"],
