@@ -1,6 +1,5 @@
 from collections import namedtuple
-from unittest import mock
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
 from django.test import Client, RequestFactory
@@ -13,7 +12,6 @@ from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
@@ -38,10 +36,11 @@ class OAuth2CallbackViewTest(TestCase):
             client_secret="secret-value",
         )
 
-    @mock.patch("sentry.identity.oauth2.safe_urlopen")
-    def test_exchange_token_success(self, safe_urlopen):
-        headers = {"Content-Type": "application/json"}
-        safe_urlopen.return_value = MockResponse(headers, json.dumps({"token": "a-fake-token"}))
+    @responses.activate
+    def test_exchange_token_success(self):
+        responses.add(
+            responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
+        )
 
         pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
@@ -49,21 +48,22 @@ class OAuth2CallbackViewTest(TestCase):
         assert "token" in result
         assert "a-fake-token" == result["token"]
 
-        assert safe_urlopen.called
-        data = safe_urlopen.call_args[1]["data"]
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://example.org/oauth/token"
+        data = dict(parse_qsl(responses.calls[0].request.body))
         assert data == {
-            "client_id": 123456,
+            "client_id": "123456",
             "client_secret": "secret-value",
             "code": "auth-code",
             "grant_type": "authorization_code",
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
-    @mock.patch("sentry.identity.oauth2.safe_urlopen")
-    def test_exchange_token_success_customer_domains(self, safe_urlopen):
-        headers = {"Content-Type": "application/json"}
-        safe_urlopen.return_value = MockResponse(headers, json.dumps({"token": "a-fake-token"}))
-
+    @responses.activate
+    def test_exchange_token_success_customer_domains(self):
+        responses.add(
+            responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
+        )
         self.request.subdomain = "albertos-apples"
         pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
@@ -71,10 +71,11 @@ class OAuth2CallbackViewTest(TestCase):
         assert "token" in result
         assert "a-fake-token" == result["token"]
 
-        assert safe_urlopen.called
-        data = safe_urlopen.call_args[1]["data"]
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://example.org/oauth/token"
+        data = dict(parse_qsl(responses.calls[0].request.body))
         assert data == {
-            "client_id": 123456,
+            "client_id": "123456",
             "client_secret": "secret-value",
             "code": "auth-code",
             "grant_type": "authorization_code",
