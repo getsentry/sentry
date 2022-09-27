@@ -7,18 +7,15 @@ import ConfigStore from 'sentry/stores/configStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
-import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider';
 /**
  * Renders our compatability RouteContext.Provider. This will go away with
  * react-router v6.
  */
-function renderRouter(props: any) {
+function RenderRouter(props: any) {
   return (
-    <RouteAnalyticsContextProvider {...props}>
-      <RouteContext.Provider value={props}>
-        <RouterContext {...props} />
-      </RouteContext.Provider>
-    </RouteAnalyticsContextProvider>
+    <RouteContext.Provider value={props}>
+      <RouterContext {...props} />
+    </RouteContext.Provider>
   );
 }
 
@@ -27,7 +24,7 @@ function Main() {
     <ThemeAndStyleProvider>
       <PersistedStoreProvider>
         {ConfigStore.get('demoMode') && <DemoHeader />}
-        <Router history={browserHistory} render={renderRouter}>
+        <Router history={browserHistory} render={RenderRouter}>
           {routes()}
         </Router>
       </PersistedStoreProvider>
