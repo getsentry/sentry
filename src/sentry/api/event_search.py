@@ -1121,7 +1121,7 @@ default_config = SearchConfig(
         "timestamp",
         "timestamp.to_hour",
         "timestamp.to_day",
-        "received",
+        "error.received",
     },
     boolean_keys={
         "error.handled",
