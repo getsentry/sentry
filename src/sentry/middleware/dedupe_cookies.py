@@ -11,8 +11,8 @@ from django.http.request import split_domain_port
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+import sudo.settings as sudo_settings
 from sentry.auth import superuser
-from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
 
 
 def _query_string(request):
@@ -27,7 +27,7 @@ COOKIE_NAMES = [
     settings.SESSION_COOKIE_NAME,
     settings.CSRF_COOKIE_NAME,
     superuser.COOKIE_NAME,
-    SUDO_COOKIE_NAME,
+    sudo_settings.COOKIE_NAME,
 ]
 
 
@@ -67,6 +67,29 @@ class DedupeCookiesMiddleware:
 
     def __init__(self, get_response: Callable[[Request], Response]):
         self.get_response = get_response
+        self.COOKIE_DOMAINS = {
+            settings.SESSION_COOKIE_NAME: getattr(settings, "SESSION_COOKIE_DOMAIN", None),
+            settings.CSRF_COOKIE_NAME: getattr(settings, "CSRF_COOKIE_DOMAIN", None),
+            superuser.COOKIE_NAME: superuser.COOKIE_DOMAIN,
+            sudo_settings.COOKIE_NAME: sudo_settings.COOKIE_DOMAIN,
+        }
+
+    def pick_domain(self, cookie_name: str, request: Request) -> str:
+        # Pick a domain to delete the cookie from.
+        domain = "sentry.io"
+        try:
+            host = request.get_host().lower()
+            domain, port = split_domain_port(host)
+        except DisallowedHost:
+            pass
+        cookie_domain = self.COOKIE_DOMAINS.get(cookie_name, None)
+        if cookie_domain is None:
+            # Cookie's domain is set to the current host by default.
+            # Delete duplicate cookie from any subdomain of the current host.
+            return f".{domain}"
+        # When setting the value of cookie_domain from None to a string value, a cookie may be duplicated on the user's
+        # browser. So, we delete older cookie that was implicitly set on the current host.
+        return domain
 
     def __call__(self, request: Request) -> Response:
         if request.method != "GET":
@@ -86,25 +109,19 @@ class DedupeCookiesMiddleware:
         redirect_url = f"{request.path}{qs}"
         response = HttpResponseRedirect(redirect_url)
 
-        domain = ".sentry.io"
-        try:
-            host = request.get_host().lower()
-            domain, port = split_domain_port(host)
-            domain = f".{domain}"
-        except DisallowedHost:
-            pass
-
+        domains = {}
         for cookie_name in duplicate_cookies:
             # De-dupe cookies with Domain=.sentry.io that will collide with cookies with Domain=sentry.io
             # This change will be reverted once domains are configured for session, csrf, su, and sudo cookies for
             # shipping customer domains.
+            domain = self.pick_domain(cookie_name, request)
             response.delete_cookie(cookie_name, domain=domain)
+            domains[cookie_name] = domain
 
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("has_duplicate_cookies", "yes")
-            scope.set_tag("deleted_cookie_domain", domain)
             scope.set_context(
-                "duplicate_cookies", {"cookies": list(duplicate_cookies), "domain": domain}
+                "duplicate_cookies", {"cookies": list(duplicate_cookies), "domains": domains}
             )
             sentry_sdk.capture_message("Found duplicate cookies.")
 

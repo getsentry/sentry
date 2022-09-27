@@ -5,10 +5,12 @@ from django.urls import reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+import sudo.settings as sudo_settings
 from sentry.api.base import Endpoint
 from sentry.auth import superuser
 from sentry.testutils import APITestCase
-from sudo.settings import COOKIE_NAME as SUDO_COOKIE_NAME
+
+SUDO_COOKIE_NAME = sudo_settings.COOKIE_NAME
 
 
 class OrganizationTestEndpoint(Endpoint):
@@ -109,6 +111,62 @@ class End2EndTest(APITestCase):
                 'Set-Cookie: sudo=""; Domain=.testserver; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
                 in set_cookie
             )
+
+    def test_multiple_relevant_duplicate_cookies_with_cookie_domain(self):
+        # Cannot set these values using override_settings().
+        # So we set them and restore them manually.
+        old_super_cookie_domain = superuser.COOKIE_DOMAIN
+        old_sudo_cookie_domain = sudo_settings.COOKIE_DOMAIN
+        superuser.COOKIE_DOMAIN = ".testserver"
+        sudo_settings.COOKIE_DOMAIN = ".testserver"
+
+        with override_settings(
+            MIDDLEWARE=tuple(self.middleware),
+            SESSION_COOKIE_DOMAIN=".testserver",
+            CSRF_COOKIE_DOMAIN=".testserver",
+        ):
+            HTTP_COOKIE = (
+                f"{settings.SESSION_COOKIE_NAME}=value; "
+                f"{settings.SESSION_COOKIE_NAME}=value2; "
+                f"{settings.CSRF_COOKIE_NAME}=value; "
+                f"{settings.CSRF_COOKIE_NAME}=value2; "
+                f"{superuser.COOKIE_NAME}=value; "
+                f"{superuser.COOKIE_NAME}=value2;"
+                f"{SUDO_COOKIE_NAME}=value; "
+                f"{SUDO_COOKIE_NAME}=value2"
+            )
+            headers = {
+                "HTTP_COOKIE": HTTP_COOKIE,
+            }
+            response = self.client.get(
+                reverse("org-endpoint", kwargs={"organization_slug": "test"}),
+                **headers,
+            )
+
+            assert response.status_code == 302
+            assert response["Location"] == reverse(
+                "org-endpoint", kwargs={"organization_slug": "test"}
+            )
+            set_cookie = response.cookies.output()
+            assert (
+                'Set-Cookie: sc=""; Domain=testserver; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                in set_cookie
+            )
+            assert (
+                'Set-Cookie: sentrysid=""; Domain=testserver; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                in set_cookie
+            )
+            assert (
+                'Set-Cookie: su=""; Domain=testserver; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                in set_cookie
+            )
+            assert (
+                'Set-Cookie: sudo=""; Domain=testserver; expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; Path=/'
+                in set_cookie
+            )
+        # Restore values
+        superuser.COOKIE_DOMAIN = old_super_cookie_domain
+        sudo_settings.COOKIE_DOMAIN = old_sudo_cookie_domain
 
     def test_irrelevant_duplicate_cookies(self):
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
