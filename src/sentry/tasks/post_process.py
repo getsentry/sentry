@@ -447,14 +447,13 @@ def process_snoozes(group):
 
 def process_event(cache_key, data, group_id):
     from sentry.eventstore.models import Event
+    from sentry.models import EventDict
 
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
     )
 
     set_current_event_project(event.project_id)
-
-    from sentry.models import EventDict
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
