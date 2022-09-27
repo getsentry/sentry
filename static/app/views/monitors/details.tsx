@@ -51,11 +51,7 @@ class MonitorDetails extends AsyncView<Props, State> {
 
         <MonitorStats monitor={monitor} />
 
-        <Panel style={{paddingBottom: 0}}>
-          <PanelHeader>{t('Related Issues')}</PanelHeader>
-
-          <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
-        </Panel>
+        <MonitorIssues monitor={monitor} orgId={this.props.params.orgId} />
 
         <Panel>
           <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
