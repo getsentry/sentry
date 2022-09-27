@@ -124,11 +124,11 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
       ...(this.model.getData() as ExternalActorMapping),
     };
     if (updatedMapping) {
-      const endpointDetails = getExternalActorEndpointDetails(
+      const options = getExternalActorEndpointDetails(
         getBaseFormEndpoint(updatedMapping),
         updatedMapping
       );
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions(options);
     }
   }
 
