@@ -13,7 +13,6 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -385,18 +384,7 @@ tags.sku_class:enterprise #enterprise`;
                     {
                       name: 'codeownersAutoSync',
                       type: 'boolean',
-                      label: tct(`Sync changes from CODEOWNERS`, {
-                        badge: (
-                          <FeatureBadge
-                            type="new"
-                            title={
-                              !(this.state.codeowners || []).length
-                                ? 'Setup Code Owners to use this feature.'
-                                : undefined
-                            }
-                          />
-                        ),
-                      }),
+                      label: t(`Sync changes from CODEOWNERS`),
                       help: t(
                         'We’ll update any changes you make to your CODEOWNERS files during a release.'
                       ),
