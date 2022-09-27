@@ -4,9 +4,8 @@ import DemoHeader from 'sentry/components/demo/demoHeader';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import {routes} from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
+import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import {RouteContext} from 'sentry/views/routeContext';
-
-import {PersistedStoreProvider} from './stores/persistedStore';
 
 /**
  * Renders our compatability RouteContext.Provider. This will go away with

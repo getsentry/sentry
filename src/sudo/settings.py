@@ -17,7 +17,7 @@ REDIRECT_FIELD_NAME = getattr(settings, "SUDO_REDIRECT_FIELD_NAME", "next")
 COOKIE_AGE = getattr(settings, "SUDO_COOKIE_AGE", 10800)
 
 # The domain to bind the sudo cookie to. Default to the current domain.
-COOKIE_DOMAIN = getattr(settings, "SUDO_COOKIE_DOMAIN", None)
+COOKIE_DOMAIN = getattr(settings, "SUDO_COOKIE_DOMAIN", settings.SESSION_COOKIE_DOMAIN)
 
 # Should the cookie only be accessible via http requests?
 # Note: If this is set to False, any JavaScript files have the ability to access

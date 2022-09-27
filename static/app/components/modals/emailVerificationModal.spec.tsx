@@ -4,6 +4,7 @@ import EmailVerificationModal from 'sentry/components/modals/emailVerificationMo
 
 describe('Email Verification Modal', function () {
   it('renders', function () {
+    MockApiClient.warnOnMissingMocks();
     render(
       <EmailVerificationModal
         Body={(p => p.children) as any}
@@ -23,6 +24,7 @@ describe('Email Verification Modal', function () {
 
   it('renders with action param', function () {
     const actionMessage = 'accepting the tenet';
+    MockApiClient.warnOnMissingMocks();
     render(
       <EmailVerificationModal
         Body={(p => p.children) as any}

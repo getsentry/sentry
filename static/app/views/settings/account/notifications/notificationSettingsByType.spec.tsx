@@ -38,6 +38,7 @@ const createWrapper = (
   const {routerContext} = initializeOrg();
   const org = TestStubs.Organization();
   addMockResponses(notificationSettings, identities, organizationIntegrations);
+  MockApiClient.warnOnMissingMocks();
   return mountWithTheme(
     <NotificationSettingsByType notificationType="alerts" organizations={[org]} />,
     routerContext
