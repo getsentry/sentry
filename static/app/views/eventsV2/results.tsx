@@ -63,6 +63,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
   savedQuery?: SavedQuery;
 };
 
@@ -399,14 +400,16 @@ class Results extends Component<Props, State> {
       interval: value,
     };
 
-    router.push({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    if (location.query.interval !== value) {
+      router.push({
+        pathname: location.pathname,
+        query: newQuery,
+      });
 
-    // Treat display changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
+      // Treat display changing like the user already confirmed the query
+      if (!this.state.needConfirmation) {
+        this.handleConfirmed();
+      }
     }
   };
 
@@ -511,7 +514,7 @@ class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection, api} = this.props;
+    const {organization, location, router, selection, api, setSavedQuery} = this.props;
     const {
       eventView,
       error,
@@ -533,6 +536,7 @@ class Results extends Component<Props, State> {
         <StyledPageContent>
           <NoProjectMessage organization={organization}>
             <ResultsHeader
+              setSavedQuery={setSavedQuery}
               errorCode={errorCode}
               organization={organization}
               location={location}
@@ -678,6 +682,10 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     return [];
   }
 
+  setSavedQuery = (newSavedQuery: SavedQuery) => {
+    this.setState({savedQuery: newSavedQuery});
+  };
+
   renderLoading() {
     return this.renderBody();
   }
@@ -685,7 +693,12 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
     return (
-      <Results {...this.props} savedQuery={savedQuery ?? undefined} loading={loading} />
+      <Results
+        {...this.props}
+        savedQuery={savedQuery ?? undefined}
+        loading={loading}
+        setSavedQuery={this.setSavedQuery}
+      />
     );
   }
 }

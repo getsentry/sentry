@@ -171,7 +171,7 @@ def test_generate(
 
 @pytest.mark.django_db
 def test_project_update_option(
-    default_projectkey, default_project, emulate_transactions, redis_cache
+    default_projectkey, default_project, emulate_transactions, redis_cache, django_cache
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
@@ -204,7 +204,7 @@ def test_project_update_option(
 
 @pytest.mark.django_db
 def test_project_delete_option(
-    default_projectkey, default_project, emulate_transactions, redis_cache
+    default_projectkey, default_project, emulate_transactions, redis_cache, django_cache
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.

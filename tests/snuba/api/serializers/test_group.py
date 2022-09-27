@@ -20,8 +20,10 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
+from sentry.types.issues import GroupType
 
 
 @region_silo_test
@@ -420,3 +422,55 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             start = GroupSerializerSnuba._get_start_from_seen_stats({"": {"last_seen": last_seen}})
 
             assert iso_format(start) == iso_format(before_now(days=expected))
+
+
+@region_silo_test
+class PerformanceGroupSerializerSnubaTest(
+    APITestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+):
+    def test_perf_seen_stats(self):
+        proj = self.create_project()
+        environment = self.create_environment(project=proj)
+
+        first_group = self.create_group(
+            type=GroupType.PERFORMANCE_SLOW_SPAN.value,
+            project=proj,
+            first_seen=timezone.now() - timedelta(days=5),
+        )
+        times = 5
+        for _ in range(0, times):
+            self.store_transaction(
+                proj.id,
+                "user1",
+                [first_group],
+                environment,
+                timestamp=first_group.first_seen + timedelta(minutes=1),
+            )
+
+        self.store_transaction(
+            proj.id,
+            "user2",
+            [first_group],
+            environment,
+            timestamp=first_group.first_seen + timedelta(minutes=2),
+        )
+
+        result = serialize(
+            first_group,
+            serializer=GroupSerializerSnuba(
+                environment_ids=[environment.id],
+                start=first_group.first_seen - timedelta(hours=1),
+                end=first_group.first_seen + timedelta(hours=1),
+            ),
+        )
+
+        assert result["userCount"] == 2
+        assert iso_format(result["lastSeen"]) == iso_format(
+            first_group.first_seen + timedelta(minutes=2)
+        )
+        assert iso_format(result["firstSeen"]) == iso_format(
+            first_group.first_seen + timedelta(minutes=1)
+        )
+        assert result["count"] == str(times + 1)
