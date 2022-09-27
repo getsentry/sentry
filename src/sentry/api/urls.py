@@ -20,6 +20,7 @@ from sentry.api.endpoints.project_transaction_threshold_override import (
 )
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
+from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
@@ -964,6 +965,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/discover/query/$",
                     DiscoverQueryEndpoint.as_view(),
                     name="sentry-api-0-discover-query",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/discover/homepage/$",
+                    DiscoverHomepageQueryEndpoint.as_view(),
+                    name="sentry-api-0-discover-homepage-query",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/discover/saved/$",

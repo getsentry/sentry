@@ -35,7 +35,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             .select_related("created_by")
             .prefetch_related("projects")
             .extra(select={"lower_name": "lower(name)"})
-        )
+        ).exclude(is_homepage=True)
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)
