@@ -17,9 +17,11 @@ class ProjectOwnershipTestCase(TestCase):
         assert sorted(o1[0]) == sorted(o2[0]) and sorted(o1[1]) == sorted(o2[1])
 
     def test_get_owners_default(self):
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 
     def test_get_owners_no_record(self):
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
         assert ProjectOwnership.get_owners(self.project.id, {}) == (ProjectOwnership.Everyone, None)
 

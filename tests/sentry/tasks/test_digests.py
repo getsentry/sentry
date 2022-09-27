@@ -5,7 +5,7 @@ from django.core import mail
 import sentry
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models.rule import Rule
+from sentry.models import ProjectOwnership, Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -19,6 +19,7 @@ class DeliverDigestTest(TestCase):
         digests.digest = backend.digest
 
         rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         event = self.store_event(
             data={"timestamp": iso_format(before_now(days=1)), "fingerprint": ["group-1"]},
             project_id=self.project.id,

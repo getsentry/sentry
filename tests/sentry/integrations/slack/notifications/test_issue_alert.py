@@ -130,6 +130,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
                 "actions": [action_data],
             },
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = AlertRuleNotification(
             Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
@@ -693,6 +694,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )

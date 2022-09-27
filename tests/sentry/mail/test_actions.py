@@ -3,7 +3,7 @@ from unittest import mock
 from django.core import mail
 
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Rule
+from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
 from sentry.notifications.types import ActionTargetType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
@@ -99,6 +99,7 @@ class NotifyEmailTest(RuleTestCase):
     def test_simple(self):
         event = self.get_event()
         rule = self.get_rule(data={"targetType": "IssueOwners"})
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         results = list(rule.after(event=event, state=self.get_state()))
         assert len(results) == 1
