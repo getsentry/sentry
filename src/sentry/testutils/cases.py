@@ -140,7 +140,6 @@ from .helpers import (
     override_options,
     parse_queries,
 )
-from .silo import exempt_from_silo_limits
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
@@ -240,8 +239,7 @@ class BaseTestCase(Fixtures, Exam):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with exempt_from_silo_limits():
-            login(request, user)
+        login(request, user)
         request.user = user
 
         if organization_ids is None:
