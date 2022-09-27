@@ -696,5 +696,6 @@ const GroupTabs = styled(Tabs)`
 const GroupTabPanels = styled(TabPanels)`
   flex-grow: 1;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  justify-content: stretch;
 `;
