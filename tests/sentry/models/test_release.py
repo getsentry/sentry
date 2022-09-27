@@ -677,6 +677,9 @@ class SetRefsTest(SetRefsTestCase):
 
         assert len(mock_fetch_commit.method_calls) == 0
 
+    def test_invalid_version_none_value(self):
+        assert not Release.is_valid_version(None)
+
     def test_invalid_version(self):
         cases = ["", "latest", ".", "..", "\t", "\n", "  "]
 

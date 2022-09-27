@@ -605,6 +605,9 @@ class Release(Model):
 
     @staticmethod
     def is_valid_version(value):
+        if value is None:
+            return False
+
         if any(c in value for c in BAD_RELEASE_CHARS):
             return False
 
