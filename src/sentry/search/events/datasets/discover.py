@@ -55,9 +55,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.semver_and_stage_aliases import (
-    SemverAndStageFilterConverterMixin,
-)
 from sentry.search.events.fields import (
     ColumnArg,
     ColumnTagArg,
@@ -83,7 +80,7 @@ from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
 
-class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
+class DiscoverDatasetConfig(DatasetConfig):
     custom_threshold_columns = {
         "apdex()",
         "count_miserable(user)",
@@ -1428,6 +1425,18 @@ class DiscoverDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
+
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_stage_filter_converter(self.builder, search_filter)
+
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_filter_converter(self.builder, search_filter)
+
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_package_filter_converter(self.builder, search_filter)
+
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
     def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator

@@ -13,14 +13,11 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.datasets import filter_aliases
 from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.semver_and_stage_aliases import (
-    SemverAndStageFilterConverterMixin,
-)
 from sentry.search.events.fields import SessionColumnArg, SnQLFunction
 from sentry.search.events.types import SelectType, WhereType
 
 
-class SessionsDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
+class SessionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {"project", "project_id", "environment", "release"}
 
     def __init__(self, builder: QueryBuilder):
@@ -75,3 +72,15 @@ class SessionsDatasetConfig(DatasetConfig, SemverAndStageFilterConverterMixin):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
+
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.release_stage_filter_converter(self.builder, search_filter)
+
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_filter_converter(self.builder, search_filter)
+
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_package_filter_converter(self.builder, search_filter)
+
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
