@@ -223,6 +223,8 @@ def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> N
 
     if profile["platform"] == "rust":
         _process_symbolicator_results_for_rust(profile, stacktraces)
+    elif profile["platform"] == "cocoa":
+        _process_symbolicator_results_for_cocoa(profile, stacktraces)
 
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
@@ -265,12 +267,25 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
         stack = profile["profile"]["stacks"][stack_id]
 
         if len(stack) < 2:
+            profile["profile"]["stacks"] = stack
             continue
 
         # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
         profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
             profile["profile"]["frames"], stack
         )
+
+
+def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
+    for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
+        # exclude the top frames of the stack as it's related to the profiler itself and we don't want them.
+        if (
+            len(symbolicated["frames"]) > 1
+            and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
+        ):
+            original["frames"] = symbolicated["frames"][2:]
+        else:
+            original["frames"] = symbolicated["frames"]
 
 
 def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]) -> None:
@@ -280,11 +295,11 @@ def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[A
             frame.pop("context_line", None)
             frame.pop("post_context", None)
 
-        if len(symbolicated["frames"]) < 2:
-            continue
-
         # exclude the top frames of the stack as it's related to the profiler itself and we don't want them.
-        if symbolicated["frames"][0].get("function", "") == "perf_signal_handler":
+        if (
+            len(symbolicated["frames"]) > 1
+            and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
+        ):
             original["frames"] = symbolicated["frames"][2:]
         else:
             original["frames"] = symbolicated["frames"]
