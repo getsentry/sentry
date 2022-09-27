@@ -12,7 +12,7 @@ export function useProjectKeys({
   project: Project | null;
 }) {
   const api = useApi();
-  const [response, setResponse] = useState<RequestState<ProjectKey[] | null>>({
+  const [response, setResponse] = useState<RequestState<ProjectKey[]>>({
     type: 'initial',
   });
   useEffect(() => {

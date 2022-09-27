@@ -259,7 +259,7 @@ function usePublicDSN({
   }
   return {
     ...response,
-    data: response.data?.[0]?.dsn.public ?? null,
+    data: response.data[0]?.dsn.public ?? null,
   };
 }
 
