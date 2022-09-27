@@ -242,7 +242,7 @@ type Props = WithRouterProps & {
    * Called when the user has closed the search dropdown.
    * Occurs on escape, tab, or clicking outside the component.
    */
-  onClose?: (value: string, validSearch: boolean) => void;
+  onClose?: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
   /**
    * Get a list of recent searches for the current query
    */
@@ -697,7 +697,7 @@ class SmartSearchBar extends Component<Props, State> {
 
   close = () => {
     this.setState({showDropdown: false});
-    this.props.onClose?.(this.state.query, this.hasValidSearch);
+    this.props.onClose?.(this.state.query, {validSearch: this.hasValidSearch});
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   };
 

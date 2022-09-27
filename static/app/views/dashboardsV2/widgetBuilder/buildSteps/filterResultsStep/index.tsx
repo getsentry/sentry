@@ -78,7 +78,7 @@ export function FilterResultsStep({
 
   const handleClose = useCallback(
     (queryIndex: number) => {
-      return (field: string, validSearch: boolean) => {
+      return (field: string, {validSearch}: {validSearch: boolean}) => {
         queryConditionValidity[queryIndex] = validSearch;
         setQueryConditionValidity(queryConditionValidity);
         onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
