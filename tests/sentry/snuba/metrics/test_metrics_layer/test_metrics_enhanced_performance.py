@@ -295,52 +295,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    def test_custom_measurement_query_with_invalid_mri(self):
-        CUSTOM_SPEED_MRI = "transactions-measurements.speed/millisecond"
-
-        for value in (100, 200, 300):
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                type="distribution",
-                name=CUSTOM_SPEED_MRI,
-                tags={},
-                timestamp=int(time.time()),
-                value=value,
-                use_case_id=UseCaseKey.PERFORMANCE,
-            )
-
-        with pytest.raises(
-            InvalidParams, match=f"Unable to find a mri reverse mapping for '{CUSTOM_SPEED_MRI}'."
-        ):
-            # We keep the query in order to add more context to the test, even though the actual test
-            # is testing for the '__post_init__' inside 'MetricField'.
-            metrics_query = MetricsQuery(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                select=[
-                    MetricField(
-                        op="count",
-                        metric_mri=CUSTOM_SPEED_MRI,
-                    ),
-                ],
-                start=self.now - timedelta(hours=1),
-                end=self.now,
-                granularity=Granularity(granularity=3600),
-                groupby=[],
-                orderby=[],
-                limit=Limit(limit=2),
-                offset=Offset(offset=0),
-                include_series=False,
-            )
-
-            get_series(
-                [self.project],
-                metrics_query=metrics_query,
-                include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
-            )
-
     def test_count_transaction_with_valid_condition(self):
         for transaction, values in (
             ("<< unparameterized >>", [1]),

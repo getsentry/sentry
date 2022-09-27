@@ -70,11 +70,22 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
 
     if internal_name in MRI_TO_NAME:
         return MRI_TO_NAME[internal_name]
-    elif (match := MRI_SCHEMA_REGEX.match(internal_name)) is not None:
-        # This case is used for custom measurements that have their own MRI which is not hardcoded into an enum.
-        return match.group("name")
+    elif (alias := extract_custom_measurement_alias(internal_name)) is not None:
+        return alias
     else:
         raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
+
+
+def extract_custom_measurement_alias(internal_name: str) -> Optional[str]:
+    match = MRI_SCHEMA_REGEX.match(internal_name)
+    if (
+        match is not None
+        and match.group("entity") == "d"
+        and match.group("namespace") == "transactions"
+    ):
+        return match.group("name")
+    else:
+        return None
 
 
 def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
