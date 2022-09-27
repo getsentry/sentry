@@ -12,12 +12,12 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
-from sentry.utils import json
-from sentry.utils.profiling import (
+from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
     proxy_profiling_service,
 )
+from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
