@@ -62,7 +62,6 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
         """
         Fetches alert rules for a project
         """
-
         if not features.has("organizations:incidents", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
