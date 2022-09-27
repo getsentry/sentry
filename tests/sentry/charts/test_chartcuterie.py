@@ -69,7 +69,7 @@ class ChartcuterieTest(TestCase):
         assert url == absolute_uri(reverse("sentry-serve-media", args=["abc123.png"]))
 
         resp = self.client.get(url)
-        assert next(resp.streaming_content) == image_data
+        assert b"".join(resp.streaming_content) == image_data
 
     @responses.activate
     def test_failed(self):
