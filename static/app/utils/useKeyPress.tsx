@@ -1,37 +1,39 @@
-import {RefObject, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 /**
  * Hook to detect when a specific key is being pressed
  */
-const useKeyPress = (targetKey: string, ref?: RefObject<HTMLInputElement>) => {
+const useKeyPress = (
+  targetKey: string,
+  targetRef?: React.RefObject<HTMLInputElement>
+) => {
   const [keyPressed, setKeyPressed] = useState(false);
 
-  const downHandler = ({key}: KeyboardEvent) => {
-    if (key === targetKey) {
-      setKeyPressed(true);
-    }
-  };
-
-  const upHandler = ({key}: KeyboardEvent) => {
-    if (key === targetKey) {
-      setKeyPressed(false);
-    }
-  };
-
   useEffect(() => {
-    const current = ref?.current || window;
-    // @ts-ignore
-    current?.addEventListener('keydown', downHandler);
-    // @ts-ignore
-    current?.addEventListener('keyup', upHandler);
+    const downHandler = ({key}: KeyboardEvent) => {
+      if (key === targetKey) {
+        setKeyPressed(true);
+      }
+    };
+
+    const upHandler = ({key}: KeyboardEvent) => {
+      if (key === targetKey) {
+        setKeyPressed(false);
+      }
+    };
+
+    let current: any = window;
+    if (targetRef?.current) {
+      current = targetRef?.current;
+    }
+    current.addEventListener('keydown', downHandler);
+    current.addEventListener('keyup', upHandler);
 
     return () => {
-      // @ts-ignore
-      current?.removeEventListener('keydown', downHandler);
-      // @ts-ignore
-      current?.removeEventListener('keyup', upHandler);
+      current.removeEventListener('keydown', downHandler);
+      current.removeEventListener('keyup', upHandler);
     };
-  });
+  })[targetKey];
 
   return keyPressed;
 };
