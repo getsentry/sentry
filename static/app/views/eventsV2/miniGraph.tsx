@@ -66,7 +66,11 @@ class MiniGraph extends Component<Props> {
     const topEvents = isTopEvents ? TOP_N : undefined;
     const orderby = isTopEvents ? decodeScalar(apiPayload.sort) : undefined;
     const intervalFidelity = display === 'bar' ? 'low' : 'high';
-    const interval = isDaily ? '1d' : getInterval({start, end, period}, intervalFidelity);
+    const interval = isDaily
+      ? '1d'
+      : eventView.interval
+      ? eventView.interval
+      : getInterval({start, end, period}, intervalFidelity);
 
     return {
       organization,
@@ -238,7 +242,6 @@ class MiniGraph extends Component<Props> {
             lineStyle: {
               opacity: chartType === 'line' ? 1 : 0,
             },
-            smooth: true,
           }));
 
           const hasOther = topEvents && topEvents + 1 === allSeries.length;
