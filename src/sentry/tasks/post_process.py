@@ -277,9 +277,34 @@ def post_process_group(
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
+        from sentry.eventstore.processing import event_processing_store
+        from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
-        event = process_event(cache_key, group_id)
+        # We use the data being present/missing in the processing store
+        # to ensure that we don't duplicate work should the forwarding consumers
+        # need to rewind history.
+        data = event_processing_store.get(cache_key)
+        if not data:
+            logger.info(
+                "post_process.skipped",
+                extra={"cache_key": cache_key, "reason": "missing_cache"},
+            )
+            return
+
+        event = process_event(cache_key, data, group_id)
+
+        with metrics.timer("tasks.post_process.delete_event_cache"):
+            event_processing_store.delete_by_key(cache_key)
+
+        # Re-bind Project and Org since we're reading the Event object
+        # from cache which may contain stale parent models.
+        with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
+            event.project = Project.objects.get_from_cache(id=event.project_id)
+            event.project.set_cached_field_value(
+                "organization",
+                Organization.objects.get_from_cache(id=event.project.organization_id),
+            )
 
         is_reprocessed = is_reprocessed_event(event.data)
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
@@ -420,43 +445,20 @@ def process_snoozes(group):
     return False
 
 
-def process_event(cache_key, group_id):
+def process_event(cache_key, data, group_id):
     from sentry.eventstore.models import Event
-    from sentry.eventstore.processing import event_processing_store
 
-    # We use the data being present/missing in the processing store
-    # to ensure that we don't duplicate work should the forwarding consumers
-    # need to rewind history.
-    data = event_processing_store.get(cache_key)
-    if not data:
-        logger.info(
-            "post_process.skipped",
-            extra={"cache_key": cache_key, "reason": "missing_cache"},
-        )
-        return
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
     )
 
     set_current_event_project(event.project_id)
 
-    from sentry.models import EventDict, Organization, Project
+    from sentry.models import EventDict
 
     # Re-bind node data to avoid renormalization. We only want to
     # renormalize when loading old data from the database.
     event.data = EventDict(event.data, skip_renormalization=True)
-
-    with metrics.timer("tasks.post_process.delete_event_cache"):
-        event_processing_store.delete_by_key(cache_key)
-
-    # Re-bind Project and Org since we're reading the Event object
-    # from cache which may contain stale parent models.
-    with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
-        event.project = Project.objects.get_from_cache(id=event.project_id)
-        event.project.set_cached_field_value(
-            "organization",
-            Organization.objects.get_from_cache(id=event.project.organization_id),
-        )
 
     return event
 
