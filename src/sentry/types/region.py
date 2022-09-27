@@ -33,10 +33,12 @@ class Region:
     address: str
     """The address of the region's silo.
 
-    In a production environment, this would typically be a subdomain (e.g.,
-    "eu.sentry.io"). In a development environment, it may be useful to define
-    region addresses as a custom hostname or port number (e.g,
-    "localhost:8001").
+    Represent a region's hostname or subdomain in a production environment
+    (e.g., "eu.sentry.io"), and addresses such as "localhost:8001" in a dev
+    environment.
+
+    (This attribute is a placeholder. Please update this docstring when its
+    contract becomes more stable.)
     """
 
     category: RegionCategory
@@ -50,6 +52,10 @@ class Region:
             raise ValueError(f"Region ID {NULL_REGION_ID} is reserved for non-multi-region systems")
 
     def to_url(self, path: str) -> str:
+        """Resolve a path into a URL on this region's silo.
+
+        (This method is a placeholder. See the `address` attribute.)
+        """
         return self.address + path
 
 
