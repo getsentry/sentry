@@ -9,6 +9,7 @@ import {ItemProps, Orientation} from '@react-types/shared';
 
 import {TabList} from './tabList';
 import {TabPanels} from './tabPanels';
+import {tabsShouldForwardProp} from './utils';
 
 const _Item = Item as (
   props: ItemProps<any> & {disabled?: boolean; hidden?: boolean}
@@ -67,7 +68,9 @@ export function Tabs({orientation = 'horizontal', className, ...props}: TabsProp
   );
 }
 
-const TabsWrap = styled('div')<{orientation: Orientation}>`
+const TabsWrap = styled('div', {shouldForwardProp: tabsShouldForwardProp})<{
+  orientation: Orientation;
+}>`
   display: flex;
   flex-direction: ${p => (p.orientation === 'horizontal' ? 'column' : 'row')};
 

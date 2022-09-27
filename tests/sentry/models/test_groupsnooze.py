@@ -1,11 +1,10 @@
 import itertools
-from datetime import datetime, timedelta
-from unittest import mock
+from datetime import timedelta
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
-from sentry import tsdb
 from sentry.models import Group, GroupSnooze
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -77,56 +76,50 @@ class GroupSnoozeTest(TestCase, SnubaTestCase):
         snooze = GroupSnooze.objects.create(group=group, user_count=100, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_user_rate_reached(self, mock_now):
-        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+    @freeze_time()
+    def test_user_rate_reached(self):
+        for i in range(5):
+            group = self.store_event(
+                data={
+                    "fingerprint": ["group1"],
+                    "timestamp": iso_format(before_now(minutes=5 + i)),
+                    "tags": {"sentry:user": i},
+                },
+                project_id=self.project.id,
+            ).group
 
-        snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
-        tsdb.record(
-            tsdb.models.users_affected_by_group,
-            self.group.id,
-            [next(self.sequence) for _ in range(0, 101)],
-        )
+        snooze = GroupSnooze.objects.create(group=group, user_count=5, user_window=60)
         assert not snooze.is_valid(test_rates=True)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_user_rate_not_reached(self, mock_now):
-        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
-
+    @freeze_time()
+    def test_user_rate_not_reached(self):
         snooze = GroupSnooze.objects.create(group=self.group, user_count=100, user_window=60)
         assert snooze.is_valid(test_rates=True)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_user_rate_without_test(self, mock_now):
-        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
-
+    @freeze_time()
+    def test_user_rate_without_test(self):
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
         assert snooze.is_valid(test_rates=False)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_rate_not_reached(self, mock_now):
-        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
-
+    @freeze_time()
+    def test_rate_not_reached(self):
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
         assert snooze.is_valid(test_rates=True)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_rate_reached(self, mock_now):
-        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
-
-        snooze = GroupSnooze.objects.create(group=self.group, count=100, window=24 * 60)
-        for n in range(6):
-            tsdb.incr(
-                tsdb.models.group,
-                self.group.id,
-                count=20,
-                timestamp=mock_now() - timedelta(minutes=n),
-            )
+    @freeze_time()
+    def test_rate_reached(self):
+        for i in range(5):
+            group = self.store_event(
+                data={
+                    "fingerprint": ["group1"],
+                    "timestamp": iso_format(before_now(minutes=5 + i)),
+                },
+                project_id=self.project.id,
+            ).group
+        snooze = GroupSnooze.objects.create(group=group, count=5, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_rate_without_test(self, mock_now):
-        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
-
+    @freeze_time()
+    def test_rate_without_test(self):
         snooze = GroupSnooze.objects.create(group=self.group, count=100, window=60)
         assert snooze.is_valid(test_rates=False)
