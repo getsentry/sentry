@@ -247,6 +247,10 @@ type Props = WithRouterProps & {
    */
   searchSource?: string;
   /**
+   * Whether or not to highlight unsupported tags red
+   */
+  showUnsupportedTags?: boolean;
+  /**
    * Type of supported tags
    */
   supportedTagType?: ItemType;
@@ -324,6 +328,7 @@ class SmartSearchBar extends Component<Props, State> {
     parsedQuery: parseSearch(this.initialQuery, {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
+      validateKeys: this.props.showUnsupportedTags,
     }),
     searchTerm: '',
     searchGroups: [],
@@ -376,6 +381,7 @@ class SmartSearchBar extends Component<Props, State> {
     const additionalConfig: Partial<SearchConfig> = {
       ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
       supportedTags: this.props.supportedTags,
+      validateKeys: this.props.showUnsupportedTags,
     };
     return {
       query,

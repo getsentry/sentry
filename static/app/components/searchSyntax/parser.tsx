@@ -659,6 +659,7 @@ export class TokenConverter {
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
     if (
+      this.config.validateKeys &&
       this.config.supportedTags &&
       !Object.keys(this.config.supportedTags).includes(key.text)
     ) {
@@ -824,7 +825,14 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
+   */
   supportedTags?: TagCollection;
+  /**
+   * If set to true, tag keys that don't exist in supportedTags will be consider invalid
+   */
+  validateKeys?: boolean;
 };
 
 const defaultConfig: SearchConfig = {
