@@ -240,8 +240,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @pytest.mark.skip(reason="flaky: TET-423")
+    @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_valid_condition(self):
+        now = timezone.now()
+
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2, 3]),
@@ -259,7 +261,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    timestamp=(now - timedelta(seconds=1)).timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -287,11 +289,11 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_has_value",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             groupby=[],
-            granularity=Granularity(granularity=3600),
-            limit=Limit(limit=51),
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
         )
@@ -357,11 +359,11 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_invalid",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
+            start=self.now - timedelta(minutes=1),
             end=self.now,
             groupby=[],
-            granularity=Granularity(granularity=3600),
-            limit=Limit(limit=51),
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
         )
