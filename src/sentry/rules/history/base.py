@@ -16,7 +16,7 @@ class RuleGroupHistory:
     group: Group
     count: int
     last_triggered: datetime
-    event_id: str
+    event_id: str = None
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,7 @@ class RuleHistoryBackend(Service):
 
     __all__ = ("record", "fetch_rule_groups_paginated", "fetch_rule_hourly_stats")
 
-    def record(self, rule: Rule, group: Group, event_id=None) -> None:
+    def record(self, rule: Rule, group: Group, event_id: str = None) -> None:
         """
         Records an instance of an issue alert being fired for a given group.
         """

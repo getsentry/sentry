@@ -33,7 +33,7 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
-    def record(self, rule: Rule, group: Group, event_id=None) -> None:
+    def record(self, rule: Rule, group: Group, event_id: str = None) -> None:
         RuleFireHistory.objects.create(
             project=rule.project, rule=rule, group=group, event_id=event_id
         )
