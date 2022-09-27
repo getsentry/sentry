@@ -10,17 +10,17 @@ type Props = {
   orgId: string;
 };
 
-const MonitorIssues = ({orgId, monitor}: Props) => {
-  const renderEmptyMessage = () => (
-    <Panel>
-      <PanelBody>
-        <EmptyStateWarning>
-          <p>{t('No issues founds relating to this monitor')}</p>
-        </EmptyStateWarning>
-      </PanelBody>
-    </Panel>
-  );
+const MonitorIssuesEmptyMessage = () => (
+  <Panel>
+    <PanelBody>
+      <EmptyStateWarning>
+        <p>{t('No issues founds relating to this monitor')}</p>
+      </EmptyStateWarning>
+    </PanelBody>
+  </Panel>
+);
 
+const MonitorIssues = ({orgId, monitor}: Props) => {
   return (
     <GroupList
       orgId={orgId}
@@ -31,7 +31,7 @@ const MonitorIssues = ({orgId, monitor}: Props) => {
         limit: 5,
       }}
       query=""
-      renderEmptyMessage={renderEmptyMessage}
+      renderEmptyMessage={MonitorIssuesEmptyMessage}
       canSelectGroups={false}
       withPagination={false}
       withChart={false}
