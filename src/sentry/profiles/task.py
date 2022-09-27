@@ -408,7 +408,10 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
         return
 
     try:
-        event = _get_event_instance(profile)
+        if "version" in profile:
+            event = _get_event_instance_for_sample(profile)
+        else:
+            event = _get_event_instance_for_legacy(profile)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return
@@ -430,19 +433,36 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
 
 
 @metrics.wraps("process_profile.get_event_instance")
-def _get_event_instance(profile: Profile) -> Any:
+def _get_event_instance_for_sample(profile: Profile) -> Any:
     return {
-        "profile_id": profile["profile_id"],
-        "project_id": profile["project_id"],
-        "transaction_name": profile["transaction_name"],
-        "timestamp": profile["received"],
-        "platform": profile["platform"],
+        "call_trees": profile["call_trees"],
         "environment": profile.get("environment"),
-        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "os_name": profile["os"]["name"],
+        "os_version": profile["os"]["version"],
+        "platform": profile["platform"],
+        "profile_id": profile["event_id"],
+        "project_id": profile["project_id"],
+        "release": profile["release"],
+        "retention_days": profile["retention_days"],
+        "timestamp": profile["received"],
+        "transaction_name": profile["transactions"][0]["name"],
+    }
+
+
+@metrics.wraps("process_profile.get_event_instance")
+def _get_event_instance_for_legacy(profile: Profile) -> Any:
+    return {
+        "call_trees": profile["call_trees"],
+        "environment": profile.get("environment"),
         "os_name": profile["device_os_name"],
         "os_version": profile["device_os_version"],
+        "platform": profile["platform"],
+        "profile_id": profile["profile_id"],
+        "project_id": profile["project_id"],
+        "release": f"{profile['version_name']} ({profile['version_code']})",
         "retention_days": profile["retention_days"],
-        "call_trees": profile["call_trees"],
+        "timestamp": profile["received"],
+        "transaction_name": profile["transaction_name"],
     }
 
 
@@ -473,7 +493,9 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             {
                 "organization_id": profile["organization_id"],
                 "project_id": profile["project_id"],
-                "profile_id": profile["profile_id"],
+                "profile_id": profile["event_id"]
+                if "event_id" in profile
+                else profile["profile_id"],
                 "platform": profile["platform"],
             },
         )
