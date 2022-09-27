@@ -44,4 +44,9 @@ def create_span(op, duration=100.0, desc="SELECT count() FROM table WHERE id = %
 
 
 def create_event(spans, event_id="a" * 16):
-    return {"event_id": event_id, "project": PROJECT_ID, "spans": spans}
+    return {
+        "event_id": event_id,
+        "project": PROJECT_ID,
+        "spans": spans,
+        "sdk": {"name": "sentry.python"},
+    }
