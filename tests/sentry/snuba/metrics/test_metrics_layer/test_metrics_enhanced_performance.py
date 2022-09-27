@@ -324,6 +324,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         )
 
     def test_count_transaction_with_invalid_condition(self):
+        now = timezone.now()
+
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2]),
@@ -341,7 +343,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    timestamp=(now - timedelta(minutes=2)).timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -359,8 +361,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_invalid",
                 ),
             ],
-            start=self.now - timedelta(minutes=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             groupby=[],
             granularity=Granularity(granularity=60),
             limit=Limit(limit=3),
