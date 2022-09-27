@@ -251,6 +251,12 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
+      method: 'GET',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -1657,6 +1663,24 @@ describe('WidgetBuilder', function () {
         2,
         '/organizations/org-slug/events-stats/',
         expectedArgs
+      );
+    });
+
+    it('disables add widget button if widget query condition is invalid', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures],
+      });
+
+      userEvent.type(
+        screen.getByTestId('smart-search-input'),
+        'transaction.duration:123a'
+      );
+
+      // Unfocus input
+      userEvent.click(screen.getByText('Filter your results'));
+
+      await waitFor(() =>
+        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled()
       );
     });
 

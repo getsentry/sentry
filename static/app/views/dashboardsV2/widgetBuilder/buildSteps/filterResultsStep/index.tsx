@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -60,6 +60,8 @@ export function FilterResultsStep({
   selection,
   onQueryConditionChange,
 }: Props) {
+  const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>([]);
+
   const handleSearch = useCallback(
     (queryIndex: number) => {
       return (field: string) => {
@@ -77,7 +79,9 @@ export function FilterResultsStep({
   const handleClose = useCallback(
     (queryIndex: number) => {
       return (field: string, validSearch: boolean) => {
-        onQueryConditionChange(validSearch);
+        queryConditionValidity[queryIndex] = validSearch;
+        setQueryConditionValidity(queryConditionValidity);
+        onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -85,8 +89,15 @@ export function FilterResultsStep({
         onQueryChange(queryIndex, newQuery);
       };
     },
-    [onQueryChange, onQueryConditionChange, queries]
+    [onQueryChange, onQueryConditionChange, queryConditionValidity, queries]
   );
+
+  const handleRemove = (queryIndex: number) => () => {
+    queryConditionValidity.splice(queryIndex, 1);
+    setQueryConditionValidity(queryConditionValidity);
+    onQueryConditionChange(!queryConditionValidity.some(validity => !validity));
+    onQueryRemove(queryIndex);
+  };
 
   const datasetConfig = getDatasetConfig(widgetType);
 
@@ -158,7 +169,7 @@ export function FilterResultsStep({
                   <Button
                     size="zero"
                     borderless
-                    onClick={() => onQueryRemove(queryIndex)}
+                    onClick={handleRemove(queryIndex)}
                     icon={<IconDelete />}
                     title={t('Remove query')}
                     aria-label={t('Remove query')}
