@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from sentry.models import File, ProjectDebugFile, Release, ReleaseFile
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.response import close_streaming_response
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -216,6 +217,7 @@ class DebugFilesUploadTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url + "?id=" + download_id)
         assert response.get("Content-Type") == "application/octet-stream"
+        close_streaming_response(response)
 
         # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
