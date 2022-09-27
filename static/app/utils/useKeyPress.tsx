@@ -19,13 +19,13 @@ const useKeyPress = (targetKey: string, targetRef?: React.RefObject<HTMLElement>
       }
     };
 
-    const current = targetRef?.current ?? window;
-    (current as HTMLElement)?.addEventListener('keydown', downHandler);
-    (current as HTMLElement)?.addEventListener('keyup', upHandler);
+    const current = targetRef?.current ?? document.body;
+    current?.addEventListener('keydown', downHandler);
+    current?.addEventListener('keyup', upHandler);
 
     return () => {
-      (current as HTMLElement)?.removeEventListener('keydown', downHandler);
-      (current as HTMLElement)?.removeEventListener('keyup', upHandler);
+      current?.removeEventListener('keydown', downHandler);
+      current?.removeEventListener('keyup', upHandler);
     };
   }, [targetKey, targetRef]);
 
