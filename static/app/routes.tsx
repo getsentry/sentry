@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect} from 'react';
+import {Fragment} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -15,18 +15,17 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
+import useRouteAnalytics from 'sentry/utils/useRouteAnalytics';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
 import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
-import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
@@ -59,12 +58,7 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
-    // pass the organization to the RouteAnalyticsContext
-    const organization = useContext(OrganizationContext);
-    const {setOrganization, ...routeAnalytics} = useContext(RouteAnalyticsContext);
-    useEffect(() => {
-      organization && setOrganization(organization);
-    }, [organization, setOrganization]);
+    const routeAnalytics = useRouteAnalytics();
     return <SafeLazyLoad {...props} {...routeAnalytics} component={resolve} />;
   };
 
