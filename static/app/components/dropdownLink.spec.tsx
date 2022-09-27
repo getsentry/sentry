@@ -1,5 +1,4 @@
 import {
-  fireEvent,
   render,
   screen,
   userEvent,
@@ -234,18 +233,18 @@ describe('DropdownLink', function () {
       // Open menu
       userEvent.click(screen.getByText('parent'));
 
-      fireEvent.mouseEnter(screen.getByText('nested'));
+      userEvent.hover(screen.getByText('nested'));
 
       await screen.findByText('nested #2');
 
       // Leaving Nested Menu
-      fireEvent.mouseLeave(screen.getByText('nested'));
+      userEvent.unhover(screen.getByText('nested'));
 
       // Nested menus have close delay
       jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
 
       // Re-entering nested menu will cancel close
-      fireEvent.mouseEnter(screen.getByText('nested'));
+      userEvent.hover(screen.getByText('nested'));
       jest.advanceTimersByTime(2);
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
@@ -253,11 +252,11 @@ describe('DropdownLink', function () {
       jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
 
       jest.advanceTimersByTime(2);
-      fireEvent.mouseEnter(screen.getByText('parent'));
+      userEvent.hover(screen.getByText('parent'));
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
       // Leave menu
-      fireEvent.mouseLeave(screen.getByText('nested'));
+      userEvent.unhover(screen.getByText('nested'));
       jest.runAllTimers();
       expect(screen.queryByText('nested #2')).not.toBeInTheDocument();
     });
@@ -272,7 +271,7 @@ describe('DropdownLink', function () {
 
       expect(screen.getByTestId('dropdown-link-menu')).toBeInTheDocument();
 
-      fireEvent.mouseEnter(screen.getByText('nested'));
+      userEvent.hover(screen.getByText('nested'));
 
       userEvent.click(await screen.findByText('nested #2'));
 
@@ -285,9 +284,9 @@ describe('DropdownLink', function () {
       // Open menu
       userEvent.click(screen.getByText('parent'));
 
-      fireEvent.mouseEnter(screen.getByText('nested'));
+      userEvent.hover(screen.getByText('nested'));
 
-      fireEvent.mouseEnter(await screen.findByText('nested #2'));
+      userEvent.hover(await screen.findByText('nested #2'));
 
       userEvent.click(await screen.findByText('Hello'));
 
