@@ -8,7 +8,7 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import Tag from 'sentry/components/tagDeprecated';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import space, {ValidSize} from 'sentry/styles/space';
 
 type BadgeProps = {
   type: 'alpha' | 'beta' | 'new';
@@ -72,12 +72,10 @@ const StyledTag = styled(Tag)`
   padding: 3px ${space(0.75)};
 `;
 
-const FeatureBadge = styled(BaseFeatureBadge)`
+const FeatureBadge = styled(BaseFeatureBadge)<{space?: ValidSize}>`
   display: inline-flex;
   align-items: center;
-  margin-left: ${space(0.75)};
-  position: relative;
-  top: -1px;
+  margin-left: ${p => space(p.space ?? 0.75)};
 `;
 
 export default FeatureBadge;
