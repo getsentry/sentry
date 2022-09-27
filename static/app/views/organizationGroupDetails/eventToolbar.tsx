@@ -119,7 +119,7 @@ class GroupEventToolbar extends Component<Props> {
       <Wrapper>
         <div>
           <Heading>
-            {t('Event')}{' '}
+            {t('Event ID')}{' '}
             <EventIdLink to={`${baseEventsPath}${evt.id}/`}>{evt.eventID}</EventIdLink>
             <LinkContainer>
               <ExternalLink
