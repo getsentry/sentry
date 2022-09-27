@@ -224,7 +224,7 @@ describe('DropdownLink', function () {
       // Close menu
       userEvent.click(screen.getByText('parent'));
 
-      expect(screen.queryByTestId('dropdown-link-menu')).not.toBeInTheDocument();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
     it('Opens / closes on mouse enter and leave', async function () {
@@ -269,13 +269,13 @@ describe('DropdownLink', function () {
 
       userEvent.click(screen.getByText('nested'));
 
-      expect(screen.getByTestId('dropdown-link-menu')).toBeInTheDocument();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
 
       userEvent.hover(screen.getByText('nested'));
 
       userEvent.click(await screen.findByText('nested #2'));
 
-      expect(screen.getAllByTestId('dropdown-link-menu')).toHaveLength(2);
+      expect(screen.getAllByRole('listbox')).toHaveLength(2);
     });
 
     it('closes when terminal nested actor is clicked', async function () {
@@ -290,7 +290,7 @@ describe('DropdownLink', function () {
 
       userEvent.click(await screen.findByText('Hello'));
 
-      expect(screen.queryByTestId('dropdown-link-menu')).not.toBeInTheDocument();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
   });
 });
