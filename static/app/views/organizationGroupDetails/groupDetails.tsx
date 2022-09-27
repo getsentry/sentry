@@ -602,7 +602,7 @@ class GroupDetails extends Component<Props, State> {
     }
 
     return (
-      <Tabs
+      <GroupTabs
         value={currentTab}
         onChange={tab => {
           this.tabClickAnalyticsEvent(tab as Tab);
@@ -622,12 +622,12 @@ class GroupDetails extends Component<Props, State> {
           baseUrl={baseUrl}
           project={project as Project}
         />
-        <TabPanels>
+        <GroupTabPanels>
           <Item key={currentTab}>
             {isValidElement(children) ? cloneElement(children, childProps) : children}
           </Item>
-        </TabPanels>
-      </Tabs>
+        </GroupTabPanels>
+      </GroupTabs>
     );
   }
 
@@ -695,4 +695,15 @@ export default withApi(Sentry.withProfiler(GroupDetails));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
+`;
+
+const GroupTabs = styled(Tabs)`
+  flex-grow: 1;
+`;
+
+const GroupTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
 `;
