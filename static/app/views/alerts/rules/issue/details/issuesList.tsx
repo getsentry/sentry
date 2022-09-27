@@ -113,7 +113,7 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                     to={{
                       pathname:
                         `/organizations/${organization.slug}/issues/${issue.id}/` +
-                        (eventId === null ? '' : `events/${eventId}`),
+                        (eventId ? `events/${eventId}` : ''),
                       query: rule.environment ? {environment: rule.environment} : {},
                     }}
                   >
