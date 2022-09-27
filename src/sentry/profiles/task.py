@@ -278,12 +278,12 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
 
 def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
     for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
-        # exclude the top frames of the stack as it's related to the profiler itself and we don't want them.
+        # remove bottom frames we can't symbolicate
         if (
             len(symbolicated["frames"]) > 1
-            and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
+            and symbolicated["frames"][-1].get("instruction_addr", "") == "0xffffffffc"
         ):
-            original["frames"] = symbolicated["frames"][2:]
+            original["frames"] = symbolicated["frames"][:-2]
         else:
             original["frames"] = symbolicated["frames"]
 
