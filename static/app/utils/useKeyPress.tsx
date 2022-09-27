@@ -3,7 +3,7 @@ import {RefObject, useEffect, useState} from 'react';
 /**
  * Hook to detect when a specific key is being pressed
  */
-const useKeyPress = function (targetKey: string, ref?: RefObject<HTMLInputElement>) {
+const useKeyPress = (targetKey: string, ref?: RefObject<HTMLInputElement>) => {
   const [keyPressed, setKeyPressed] = useState(false);
 
   const downHandler = ({key}: KeyboardEvent) => {
