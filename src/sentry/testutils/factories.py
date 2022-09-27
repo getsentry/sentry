@@ -625,7 +625,12 @@ class Factories:
         for job in jobs:
             job["performance_problems"] = []
             for f in job["data"]["fingerprint"]:
-                f_data = f.split("-")
+                f_data = f.split("-", 1)
+                if len(f_data) < 2:
+                    raise ValueError(
+                        "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
+                    )
+
                 group_type = GroupType(int(f_data[0]))
                 perf_fingerprint = f_data[1]
 

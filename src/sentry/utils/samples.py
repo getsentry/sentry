@@ -6,7 +6,6 @@ from uuid import uuid4
 
 import pytz
 from django.core.exceptions import SuspiciousFileOperation
-from rest_framework.serializers import ValidationError
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager, set_tag
@@ -241,10 +240,10 @@ def load_data(
 
         if fingerprint is not None:
             for f in fingerprint:
-                f_data = f.split("-")
+                f_data = f.split("-", 1)
                 if len(f_data) < 2:
-                    raise ValidationError(
-                        "Invalid performance fingerprint data. The format is: 'group_type-fingerprint'"
+                    raise ValueError(
+                        "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
                     )
 
             data["fingerprint"] = fingerprint
