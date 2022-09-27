@@ -10,6 +10,13 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
 
 describe('DropdownLink', function () {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   const INPUT_1 = {
     title: 'test',
     onOpen: () => {},
@@ -63,8 +70,6 @@ describe('DropdownLink', function () {
 
     describe('While Opened', function () {
       it('closes when clicked outside', async function () {
-        jest.useFakeTimers();
-
         render(
           <div data-test-id="outside-element">
             <DropdownLink title="test" alwaysRenderMenu={false}>
@@ -78,8 +83,6 @@ describe('DropdownLink', function () {
 
         // Click outside
         userEvent.click(screen.getByTestId('outside-element'));
-
-        jest.runAllTimers();
 
         await waitForElementToBeRemoved(() => screen.getByText('hi'));
       });
@@ -150,8 +153,6 @@ describe('DropdownLink', function () {
       });
 
       it('does not close when document is clicked', function () {
-        jest.useFakeTimers();
-
         render(
           <div data-test-id="outside-element">
             <DropdownLink title="test" alwaysRenderMenu={false} isOpen>
@@ -162,8 +163,6 @@ describe('DropdownLink', function () {
 
         // Click outside
         userEvent.click(screen.getByTestId('outside-element'));
-
-        jest.runAllTimers();
 
         // Should still be open
         expect(screen.getByText('hi')).toBeInTheDocument();
@@ -230,17 +229,12 @@ describe('DropdownLink', function () {
     });
 
     it('Opens / closes on mouse enter and leave', async function () {
-      jest.useFakeTimers();
-
       render(<NestedDropdown />);
 
       // Open menu
       userEvent.click(screen.getByText('parent'));
 
       fireEvent.mouseEnter(screen.getByText('nested'));
-
-      // Nested menus have delay on open
-      jest.runAllTimers();
 
       await screen.findByText('nested #2');
 
@@ -268,7 +262,7 @@ describe('DropdownLink', function () {
       expect(screen.queryByText('nested #2')).not.toBeInTheDocument();
     });
 
-    it('does not close when nested actors are clicked', function () {
+    it('does not close when nested actors are clicked', async function () {
       render(<NestedDropdown />);
 
       // Open menu
@@ -280,17 +274,12 @@ describe('DropdownLink', function () {
 
       fireEvent.mouseEnter(screen.getByText('nested'));
 
-      // Nested menus have delay on open
-      jest.runAllTimers();
-
-      userEvent.click(screen.getByText('nested #2'));
+      userEvent.click(await screen.findByText('nested #2'));
 
       expect(screen.getAllByTestId('dropdown-link-menu')).toHaveLength(2);
     });
 
-    it('closes when terminal nested actor is clicked', function () {
-      jest.useFakeTimers();
-
+    it('closes when terminal nested actor is clicked', async function () {
       render(<NestedDropdown />);
 
       // Open menu
@@ -298,15 +287,9 @@ describe('DropdownLink', function () {
 
       fireEvent.mouseEnter(screen.getByText('nested'));
 
-      // Nested menus have delay on open
-      jest.runAllTimers();
+      fireEvent.mouseEnter(await screen.findByText('nested #2'));
 
-      fireEvent.mouseEnter(screen.getByText('nested #2'));
-
-      // Nested menus have delay on open
-      jest.runAllTimers();
-
-      userEvent.click(screen.getByText('Hello'));
+      userEvent.click(await screen.findByText('Hello'));
 
       expect(screen.queryByTestId('dropdown-link-menu')).not.toBeInTheDocument();
     });
