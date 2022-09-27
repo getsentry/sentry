@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import abc
+import logging
 from typing import Any, Callable, Sequence
 
 from django.http.request import HttpRequest
@@ -9,12 +12,11 @@ from sentry.silo import SiloLimit, SiloMode
 
 # TODO(Leander): Replace once type is in place
 Region = Any
+logger = logging.getLogger(__name__)
 
 
 class BaseRequestParser(abc.ABC):
     """Base Class for Integration Request Parsers"""
-
-    _silo_mode = SiloMode.get_current_mode()
 
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
@@ -25,7 +27,11 @@ class BaseRequestParser(abc.ABC):
         """
         Used to synchronously process the incoming request directly on the control silo.
         """
-        if self._silo_mode != SiloMode.CONTROL:
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            logger.error(
+                "integration_control.base.silo_error",
+                extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
+            )
             raise SiloLimit.AvailabilityError(self.error_message)
         return self.response_handler(self.request)
 
@@ -34,7 +40,11 @@ class BaseRequestParser(abc.ABC):
         Used to process the incoming request from region silos.
         This shouldn't use the API Gateway to stay performant.
         """
-        if self._silo_mode != SiloMode.CONTROL:
+        if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            logger.error(
+                "integration_control.base.silo_error",
+                extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
+            )
             raise SiloLimit.AvailabilityError(self.error_message)
 
         # TODO(Leander): Implement once region mapping and cross-silo synchronous requests exist
@@ -49,11 +59,11 @@ class BaseRequestParser(abc.ABC):
         """
         return self.get_response_from_control_silo()
 
-    def get_integration(self) -> Integration:
+    def get_integration(self) -> Integration | None:
         """
         Parse the request to retreive organizations to forward the request to.
         """
-        raise NotImplementedError
+        return None
 
     def get_organizations(self, integration: Integration = None) -> Sequence[Organization]:
         """
@@ -63,6 +73,10 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             integration = self.get_integration()
         if not integration:
+            logger.error(
+                "integration_control.base.no_integration",
+                extra={"path": self.request.path},
+            )
             return []
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration
@@ -76,6 +90,12 @@ class BaseRequestParser(abc.ABC):
         # TODO(Leander): Implement once region mapping exists
         if not organizations:
             organizations = self.get_integration()
+        if not organizations:
+            logger.error(
+                "integration_control.base.no_organizations",
+                extra={"path": self.request.path},
+            )
+            return []
         # organizations = self.get_organizations()
         # return [organization.region for organization in organizations]
         return []

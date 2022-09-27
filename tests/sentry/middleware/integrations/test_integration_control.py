@@ -4,6 +4,7 @@ from django.test import RequestFactory, override_settings
 from exam import fixture
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
+from sentry.middleware.integrations.parsers.slack import SlackRequestParser
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 
@@ -12,8 +13,17 @@ class IntegrationControlMiddlewareTest(TestCase):
     get_response = MagicMock()
     middleware = IntegrationControlMiddleware(get_response)
     factory = fixture(RequestFactory)
+    prefix = IntegrationControlMiddleware.webhook_prefix
 
-    path = f"{IntegrationControlMiddleware.webhook_prefix}acme/webhook/"
+    def validate_mock_ran_with_noop(self, mock):
+        if not getattr(self, "request", None):
+            raise AttributeError("Must set self.request to run validate mocks")
+        # Ensure mock runs when middleware is called
+        mock.reset_mock()
+        response = self.middleware(self.request)
+        assert mock.called
+        # Ensure noop response
+        assert response == self.get_response()
 
     @override_settings(SILO_MODE=SiloMode.MONOLITH)
     @patch.object(
@@ -22,18 +32,9 @@ class IntegrationControlMiddlewareTest(TestCase):
         wraps=middleware._should_operate,
     )
     def test_inactive_on_monolith(self, mock_should_operate):
-        request = self.factory.get(self.path)
-
-        # Ensure the MONOLITH prevents operation
-        assert mock_should_operate(request) is False
-
-        # Ensure method runs when middleware is called
-        mock_should_operate.reset_mock()
-        response = self.middleware(request)
-        assert mock_should_operate.called
-
-        # Ensure noop response
-        assert response == self.get_response()
+        self.request = self.factory.get(f"{self.prefix}slack/webhook/")
+        assert mock_should_operate(self.request) is False
+        self.validate_mock_ran_with_noop(mock_should_operate)
 
     @override_settings(SILO_MODE=SiloMode.REGION)
     @patch.object(
@@ -42,35 +43,60 @@ class IntegrationControlMiddlewareTest(TestCase):
         wraps=middleware._should_operate,
     )
     def test_inactive_on_region_silo(self, mock_should_operate):
-        request = self.factory.get(self.path)
-
-        # Ensure the REGION prevents operation
-        assert mock_should_operate(request) is False
-
-        # Ensure method runs when middleware is called
-        mock_should_operate.reset_mock()
-        response = self.middleware(request)
-        assert mock_should_operate.called
-
-        # Ensure noop response
-        assert response == self.get_response()
+        self.request = self.factory.get(f"{self.prefix}slack/webhook/")
+        assert mock_should_operate(self.request) is False
+        self.validate_mock_ran_with_noop(mock_should_operate)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_malformed_provider_path(self):
-        # path = f"{IntegrationControlMiddleware.webhook_prefix}🔥🔥🔥/webhook/"
-        # request = self.factory.get(path)
-        # response = self.middleware(request)
-        # Catch Regex error here
-        pass
+    @patch.object(
+        IntegrationControlMiddleware,
+        "_should_operate",
+        wraps=middleware._should_operate,
+    )
+    def test_inactive_on_non_prefix(self, mock_should_operate):
+        self.request = self.factory.get("/settings/")
+        assert mock_should_operate(self.request) is False
+        self.validate_mock_ran_with_noop(mock_should_operate)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_empty_provider_path(self):
-        pass
+    @patch.object(
+        IntegrationControlMiddleware,
+        "_identify_provider",
+        wraps=middleware._identify_provider,
+    )
+    def test_invalid_provider(self, mock_identify_provider):
+        self.request = self.factory.get(f"{self.prefix}🔥🔥🔥/webhook/")
+        assert mock_identify_provider(self.request) is None
+        self.validate_mock_ran_with_noop(mock_identify_provider)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_no_prefix_path(self):
-        pass
+    @patch.object(
+        IntegrationControlMiddleware,
+        "_identify_provider",
+        wraps=middleware._identify_provider,
+    )
+    def test_empty_provider(self, mock_identify_provider):
+        self.request = self.factory.get(f"{self.prefix}/webhook/")
+        assert mock_identify_provider(self.request) is None
+        self.validate_mock_ran_with_noop(mock_identify_provider)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_no_provider_parser(self):
-        pass
+    @patch.object(
+        IntegrationControlMiddleware,
+        "_identify_provider",
+        wraps=middleware._identify_provider,
+    )
+    def test_unknown_provider(self, mock_identify_provider):
+        provider = "acme"
+        self.request = self.factory.get(f"{self.prefix}{provider}/webhook/")
+        assert mock_identify_provider(self.request) == provider
+        assert IntegrationControlMiddleware.integration_parsers.get(provider) is None
+        self.validate_mock_ran_with_noop(mock_identify_provider)
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @patch.object(SlackRequestParser, "get_response")
+    def test_returns_parser_get_response(self, mock_parser_get_response):
+        result = {"ok": True}
+        mock_parser_get_response.return_value = result
+        response = self.middleware(self.factory.get(f"{self.prefix}slack/webhook/"))
+        assert result == response

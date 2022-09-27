@@ -1,13 +1,19 @@
+from __future__ import annotations
+
+import logging
+
 from django.urls import ResolverMatch, resolve
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
-from sentry.models.integrations import OrganizationIntegration
+from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.utils.signing import unsign
 
 from .base import BaseRequestParser
+
+logger = logging.getLogger(__name__)
 
 
 class SlackRequestParser(BaseRequestParser):
@@ -33,7 +39,7 @@ class SlackRequestParser(BaseRequestParser):
     Django views which will not map to an existing integration
     """
 
-    def get_integration(self):
+    def get_integration(self) -> Integration | None:
         view_class_name = self.match.func.view_class.__name__
         if view_class_name in self.endpoint_classes:
             # We need convert the raw Django request to a Django Rest Framework request
@@ -45,6 +51,10 @@ class SlackRequestParser(BaseRequestParser):
                 slack_request._validate_integration()
             except SlackRequestError as error:
                 capture_exception(error)
+                logger.error(
+                    "integration_control.slack.validation_error",
+                    extra={"path": self.request.path},
+                )
                 return
             return slack_request.integration
         elif view_class_name in self.django_view_classes:
