@@ -1,3 +1,5 @@
+from freezegun import freeze_time
+
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -5,6 +7,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class ProjectGroupStatsTest(APITestCase):
+    @freeze_time(before_now(days=1).replace(minute=10))
     def test_simple(self):
         self.login_as(user=self.user)
 
