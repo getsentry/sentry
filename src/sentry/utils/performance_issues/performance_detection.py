@@ -1062,7 +1062,9 @@ def report_metrics_for_detectors(
     event_integrations = event.get("sdk", {}).get("integrations", []) or []
 
     for integration_name in INTEGRATIONS_OF_INTEREST:
-        detected_tags["integration_" + integration_name] = integration_name in event_integrations
+        detected_tags["integration_" + integration_name.lower()] = (
+            integration_name in event_integrations
+        )
 
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
