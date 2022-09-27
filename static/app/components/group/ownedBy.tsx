@@ -57,7 +57,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
         <QuestionTooltip
           position="top"
           title={t(
-            'Set rules on which user or team owns an issue based on path, module, tag or URL'
+            'Set rules on which user or team owns an issue based on path, module, tag, or URL'
           )}
           size="sm"
           color="gray200"
