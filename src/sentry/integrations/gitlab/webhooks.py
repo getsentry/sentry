@@ -196,7 +196,9 @@ class GitlabWebhookEndpoint(View):
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
             "user-agent": request.META.get("HTTP_USER_AGENT"),
-            "event-type": request.META["HTTP_X_GITLAB_EVENT"],
+            # Gitlab does not seem to be the only host sending events
+            # AppPlatformEvents also hit this API
+            "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
         }
         token = "<unknown>"
         try:
