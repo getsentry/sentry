@@ -81,7 +81,18 @@ def process_profile(
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    _normalize(profile=profile, organization=organization)
+    try:
+        _normalize(profile=profile, organization=organization)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            key_id=key_id,
+            reason="failed-normalization",
+        )
+        return
 
     if not _insert_vroom_profile(profile=profile):
         _track_outcome(
@@ -116,6 +127,8 @@ def _should_deobfuscate(profile: Profile) -> bool:
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
+    profile["retention_days"] = quotas.get_event_retention(organization=organization)
+
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
 
@@ -139,15 +152,14 @@ def _normalize(profile: Profile, organization: Organization) -> None:
                 "os_name": profile["device_os_name"],
                 "is_emulator": profile["device_is_emulator"],
             }
-        classification_options.update(device_options)
-        profile.update({"device_classification": str(classify_device(**classification_options))})
 
-    profile.update(
-        {
-            "profile": json.dumps(profile["profile"]),
-            "retention_days": quotas.get_event_retention(organization=organization),
-        }
-    )
+        classification_options.update(device_options)
+        classification = classify_device(**classification_options)
+
+        if "version" in profile:
+            profile["device"]["classification"] = classification
+        else:
+            profile["device_classification"] = classification
 
 
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
@@ -457,7 +469,13 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return True
     except RecursionError as e:
         sentry_sdk.set_context(
-            "profile", {"profile_id": profile["profile_id"], "platform": profile["platform"]}
+            "profile",
+            {
+                "organization_id": profile["organization_id"],
+                "project_id": profile["project_id"],
+                "profile_id": profile["profile_id"],
+                "platform": profile["platform"],
+            },
         )
         sentry_sdk.capture_exception(e)
         return True
@@ -470,7 +488,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return False
     finally:
         profile["received"] = original_timestamp
-        profile["profile"] = ""
 
-        # remove debug information we don't need anymore
-        profile.pop("debug_meta", None)
+        # remove keys we don't need anymore for snuba
+        for k in {"profile", "debug_meta"}:
+            profile.pop(k, None)
