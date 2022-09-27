@@ -6,11 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {
-  parseSearch,
-  SearchConfig,
-  SearchValidationFunction,
-} from 'sentry/components/searchSyntax/parser';
+import {parseSearch, SearchConfig} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
@@ -38,7 +34,6 @@ type Props = {
   maxMenuHeight?: number;
   onIconClick?: (value: string) => void;
   runShortcut?: (shortcut: Shortcut) => void;
-  searchValidator?: SearchValidationFunction;
   supportedTags?: TagCollection;
   visibleShortcuts?: Shortcut[];
 };
