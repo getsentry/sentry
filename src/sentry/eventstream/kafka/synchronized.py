@@ -5,8 +5,8 @@ from threading import Event, Lock
 from time import time
 from typing import (
     Callable,
+    Generator,
     Generic,
-    Iterator,
     Mapping,
     MutableMapping,
     Optional,
@@ -52,7 +52,7 @@ class Synchronized(Generic[T]):
     # arguments on `get` and `set`, such as `timeout`, `block`, etc.
 
     @contextmanager
-    def get(self) -> Iterator[T]:
+    def get(self) -> Generator[T, None, None]:
         """
         Get the synchronized value.
         """
