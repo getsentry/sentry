@@ -16,7 +16,7 @@ class RuleGroupHistory:
     group: Group
     count: int
     last_triggered: datetime
-    event_id: str = None
+    event_id: str | None = None
 
 
 @dataclass(frozen=True)

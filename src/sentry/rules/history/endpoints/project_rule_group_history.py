@@ -24,7 +24,7 @@ class RuleGroupHistoryResponse(TypedDict):
     group: BaseGroupSerializerResponse
     count: int
     lastTriggered: datetime
-    eventId: str
+    eventId: str | None
 
 
 class RuleGroupHistorySerializer(Serializer):  # type: ignore
