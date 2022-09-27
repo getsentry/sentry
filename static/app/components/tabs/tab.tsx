@@ -7,6 +7,8 @@ import {Node, Orientation} from '@react-types/shared';
 
 import space from 'sentry/styles/space';
 
+import {tabsShouldForwardProp} from './utils';
+
 interface TabProps {
   item: Node<any>;
   orientation: Orientation;
@@ -52,7 +54,7 @@ function BaseTab(
 
 export const Tab = forwardRef(BaseTab);
 
-const TabWrap = styled('li')<{
+const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   disabled: boolean;
   orientation: Orientation;
   overflowing: boolean;

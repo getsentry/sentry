@@ -14,6 +14,7 @@ import space from 'sentry/styles/space';
 
 import {TabsContext} from './index';
 import {Tab} from './tab';
+import {tabsShouldForwardProp} from './utils';
 
 /**
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
@@ -200,7 +201,9 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = styled('ul')<{orientation: Orientation}>`
+const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+  orientation: Orientation;
+}>`
   position: relative;
   display: grid;
   padding: 0;
