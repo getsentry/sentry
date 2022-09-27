@@ -22,18 +22,15 @@ const useKeyPress = (
       }
     };
 
-    let current: any = window;
-    if (targetRef?.current) {
-      current = targetRef?.current;
-    }
-    current.addEventListener('keydown', downHandler);
-    current.addEventListener('keyup', upHandler);
+    const current: any = targetRef?.current ?? window;
+    current?.addEventListener('keydown', downHandler);
+    current?.addEventListener('keyup', upHandler);
 
     return () => {
-      current.removeEventListener('keydown', downHandler);
-      current.removeEventListener('keyup', upHandler);
+      current?.removeEventListener('keydown', downHandler);
+      current?.removeEventListener('keyup', upHandler);
     };
-  })[targetKey];
+  }, [targetKey, targetRef]);
 
   return keyPressed;
 };
