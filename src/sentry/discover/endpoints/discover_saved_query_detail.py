@@ -31,7 +31,9 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            query = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            query = DiscoverSavedQuery.objects.get(
+                id=query_id, organization=organization, is_homepage=False
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -45,7 +47,9 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            model = DiscoverSavedQuery.objects.get(
+                id=query_id, organization=organization, is_homepage=False
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -83,7 +87,9 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            model = DiscoverSavedQuery.objects.get(
+                id=query_id, organization=organization, is_homepage=False
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
