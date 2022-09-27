@@ -127,7 +127,7 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
 
     @freeze_time()
     def test_rate_reached(self):
-        """Test when an error issue is ignored until it happens 10 times in a day"""
+        """Test when an error issue is ignored until it happens 5 times in a day"""
         for i in range(5):
             group = self.store_event(
                 data={
@@ -141,10 +141,10 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
 
     @freeze_time()
     def test_rate_reached_perf_issue(self):
-        """Test when a performance issue is ignored until it happens 10 times in a day"""
-        snooze = GroupSnooze.objects.create(group=self.perf_group, count=10, window=24 * 60)
+        """Test when a performance issue is ignored until it happens 5 times in a day"""
+        snooze = GroupSnooze.objects.create(group=self.perf_group, count=5, window=24 * 60)
         now = datetime.now(timezone.utc)
-        for i in range(0, 10):
+        for i in range(0, 5):
             self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
