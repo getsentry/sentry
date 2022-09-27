@@ -102,27 +102,40 @@ function SummarySegment({
 }) {
   const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
 
-  const summaryItems = crumbs.map((crumb, i) => (
-    <BreadcrumbItem
-      key={crumb.id || i}
-      crumb={crumb}
-      startTimestampMs={startTimestampMs}
-      isHovered={false}
-      isSelected={false}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleOnClick}
-    />
-  ));
+  const summaryItems = (
+    <ScrollingList>
+      {crumbs.map((crumb, i) => (
+        <li key={crumb.id || i}>
+          <BreadcrumbItem
+            crumb={crumb}
+            startTimestampMs={startTimestampMs}
+            isHovered={false}
+            isSelected={false}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onClick={handleOnClick}
+          />
+        </li>
+      ))}
+    </ScrollingList>
+  );
 
   return (
     <Span>
       <HalfPaddingHovercard body={summaryItems} position="right">
-        <TextOverflow>{tn('%s Page', '%s Pages', summaryItems.length)}</TextOverflow>
+        <TextOverflow>{tn('%s Page', '%s Pages', crumbs.length)}</TextOverflow>
       </HalfPaddingHovercard>
     </Span>
   );
 }
+
+const ScrollingList = styled('ul')`
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  max-height: calc(100vh - 32px);
+  overflow: scroll;
+`;
 
 const Span = styled('span')`
   color: ${p => p.theme.subText};
