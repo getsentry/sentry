@@ -80,6 +80,7 @@ export enum FieldKey {
   STACK_PACKAGE = 'stack.package',
   STACK_RESOURCE = 'stack.resource',
   STACK_STACK_LEVEL = 'stack.stack_level',
+  EMPTY_STACKTRACE_JS_CONSOLE = 'empty_stacktrace.js_console',
   TIMESTAMP = 'timestamp',
   TIMESTAMP_TO_DAY = 'timestamp.to_day',
   TIMESTAMP_TO_HOUR = 'timestamp.to_hour',
@@ -786,6 +787,11 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
+  [FieldKey.EMPTY_STACKTRACE_JS_CONSOLE]: {
+    desc: t('Errors from Javascript browser console'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [FieldKey.TIMES_SEEN]: {
     desc: t('Total number of events'),
     kind: FieldKind.FIELD,
@@ -932,6 +938,7 @@ export const ISSUE_FIELDS = [
   FieldKey.STACK_MODULE,
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
+  FieldKey.EMPTY_STACKTRACE_JS_CONSOLE,
   FieldKey.TIMESTAMP,
   FieldKey.TIMES_SEEN,
   FieldKey.TITLE,
