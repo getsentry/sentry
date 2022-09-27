@@ -154,7 +154,7 @@ def _normalize(profile: Profile, organization: Organization) -> None:
             }
 
         classification_options.update(device_options)
-        classification = classify_device(**classification_options)
+        classification = str(classify_device(**classification_options))
 
         if "version" in profile:
             profile["device"]["classification"] = classification
