@@ -130,6 +130,7 @@ test-python-ci:
 		--ignore tests/sentry/snuba \
 		--ignore tests/sentry/search/events \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
@@ -170,6 +171,13 @@ test-acceptance: node-version-check
 test-plugins:
 	@echo "--> Running plugin tests"
 	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml"
+	@echo ""
+
+test-region-to-control-integration:
+	@echo "--> Running Region to Control consumer integration tests"
+	pytest \
+		tests/sentry/region_to_control/test_region_to_control_kafka.py \
+		-vv --cov . --cov-report="xml:.artifacts/region-to-control.coverage.xml"
 	@echo ""
 
 test-relay-integration:

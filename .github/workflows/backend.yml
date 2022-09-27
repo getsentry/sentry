@@ -322,6 +322,32 @@ jobs:
         run: |
           make test-plugins
 
+  region-to-control:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: region-to-control test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          kafka: true
+
+      - name: Run test
+        run: |
+          make test-region-to-control-integration
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   relay:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -470,6 +496,7 @@ jobs:
         migration,
         plugins,
         relay,
+        region-to-control,
         snuba,
         symbolicator,
         typing,
