@@ -1,5 +1,5 @@
 import itertools
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.utils import timezone
@@ -22,7 +22,9 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
         self.project = self.create_project()
         self.group.times_seen_pending = 0
         self.perf_group = self.create_group(
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value, project=self.project
+            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
+            project=self.project,
+            first_seen=before_now(days=7),
         )
 
     def test_until_not_reached(self):
@@ -141,16 +143,14 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
 
     @freeze_time()
     def test_rate_reached_perf_issue(self):
-        """Test when a performance issue is ignored until it happens 5 times in a day"""
-        snooze = GroupSnooze.objects.create(group=self.perf_group, count=5, window=24 * 60)
-        now = datetime.now(timezone.utc)
-        for i in range(1, 6):
+        """Test when a performance issue is ignored until it happens 10 times in a day"""
+        snooze = GroupSnooze.objects.create(group=self.perf_group, count=10, window=24 * 60)
+        for i in range(0, 10):
             self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
                 groups=[self.perf_group],
-                timestamp=now - timedelta(seconds=i),
             )
         assert not snooze.is_valid(test_rates=True)
 
