@@ -21,17 +21,18 @@ import {useDistribution} from './utils/useDistribution';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
-  orgSlug: Organization['slug'];
+  organizationSlug: Organization['slug'];
+  projectSlug: Project['slug'];
 };
 
-export function SamplingBreakdown({orgSlug}: Props) {
+export function SamplingBreakdown({organizationSlug, projectSlug}: Props) {
   const theme = useTheme();
-  const {distribution, loading} = useDistribution();
-  const projectBreakdown = distribution?.project_breakdown;
+  const distribution = useDistribution({projectSlug, organizationSlug});
+  const projectBreakdown = distribution?.data?.project_breakdown;
 
   const {projects} = useProjects({
     slugs: projectBreakdown?.map(project => project.project) ?? [],
-    orgId: orgSlug,
+    orgId: organizationSlug,
   });
   const totalCount = projectBreakdown?.reduce(
     (acc, project) => acc + project['count()'],
@@ -77,7 +78,7 @@ export function SamplingBreakdown({orgSlug}: Props) {
           />
         </TitleWrapper>
 
-        {loading ? (
+        {distribution.loading ? (
           <Fragment>
             <Placeholder height="16px" bottomGutter={1.5} />
             <Placeholder height="21px" width="250px" />

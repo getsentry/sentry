@@ -2,7 +2,6 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {fetchProjectStats} from 'sentry/actionCreators/serverSideSampling';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -26,7 +25,6 @@ import {SamplingRule, UniformModalsSubmit} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage} from 'sentry/utils/formatters';
-import useApi from 'sentry/utils/useApi';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {
@@ -61,7 +59,11 @@ enum Step {
 
 type Props = Omit<
   RecommendedStepsModalProps,
-  'onSubmit' | 'recommendedSdkUpgrades' | 'projectId' | 'recommendedSampleRate'
+  | 'onSubmit'
+  | 'recommendedSdkUpgrades'
+  | 'projectId'
+  | 'recommendedSampleRate'
+  | 'projectSlug'
 > & {
   onSubmit: UniformModalsSubmit;
   project: Project;
@@ -80,7 +82,6 @@ export function UniformRateModal({
   onReadDocs,
   ...props
 }: Props) {
-  const api = useApi();
   const [rules, setRules] = useState(props.rules);
   const [specifiedClientRate, setSpecifiedClientRate] = useState<undefined | number>(
     undefined
@@ -90,7 +91,10 @@ export function UniformRateModal({
 
   const modalStore = useLegacyStore(ModalStore);
 
-  const {projectStats30d, projectStats48h} = useProjectStats();
+  const {projectStats30d, projectStats48h, onRefetch} = useProjectStats({
+    organizationSlug: organization.slug,
+    projectId: project.id,
+  });
 
   const {
     recommendedSdkUpgrades,
@@ -101,6 +105,7 @@ export function UniformRateModal({
   } = useRecommendedSdkUpgrades({
     organization,
     projectId: project.id,
+    projectSlug: project.slug,
   });
 
   const loading =
@@ -263,10 +268,6 @@ export function UniformRateModal({
     });
   }
 
-  async function handleRefetchProjectStats() {
-    await fetchProjectStats({api, orgSlug: organization.slug, projId: project.id});
-  }
-
   if (activeStep === undefined || loading || error) {
     return (
       <Fragment>
@@ -277,13 +278,7 @@ export function UniformRateModal({
             <Placeholder height="22px" />
           )}
         </Header>
-        <Body>
-          {error ? (
-            <LoadingError onRetry={handleRefetchProjectStats} />
-          ) : (
-            <LoadingIndicator />
-          )}
-        </Body>
+        <Body>{error ? <LoadingError onRetry={onRefetch} /> : <LoadingIndicator />}</Body>
         <Footer>
           <FooterActions>
             <Button
@@ -351,6 +346,7 @@ export function UniformRateModal({
         recommendedSampleRate={!isEdited}
         onSetRules={setRules}
         specifiedClientRate={specifiedClientRate}
+        projectSlug={project.slug}
       />
     );
   }

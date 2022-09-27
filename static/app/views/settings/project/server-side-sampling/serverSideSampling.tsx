@@ -9,11 +9,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {
-  fetchProjectStats,
-  fetchSamplingDistribution,
-  fetchSamplingSdkVersions,
-} from 'sentry/actionCreators/serverSideSampling';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -92,35 +87,10 @@ export function ServerSideSampling({project}: Props) {
     }
   }, [currentRules, previousRules]);
 
-  useEffect(() => {
-    if (!hasAccess) {
-      return;
-    }
-
-    async function fetchData() {
-      fetchProjectStats({
-        orgSlug: organization.slug,
-        api,
-        projId: project.id,
-      });
-
-      await fetchSamplingDistribution({
-        orgSlug: organization.slug,
-        projSlug: project.slug,
-        api,
-      });
-
-      await fetchSamplingSdkVersions({
-        orgSlug: organization.slug,
-        api,
-        projectID: project.id,
-      });
-    }
-
-    fetchData();
-  }, [api, organization.slug, project.slug, project.id, hasAccess]);
-
-  const {projectStats48h} = useProjectStats();
+  const {projectStats48h} = useProjectStats({
+    projectId: project.id,
+    organizationSlug: organization.slug,
+  });
 
   const {
     recommendedSdkUpgrades,
@@ -129,6 +99,7 @@ export function ServerSideSampling({project}: Props) {
   } = useRecommendedSdkUpgrades({
     organization,
     projectId: project.id,
+    projectSlug: project.slug,
   });
 
   async function handleActivateToggle(rule: SamplingRule) {
@@ -463,6 +434,7 @@ export function ServerSideSampling({project}: Props) {
             projectId={project.id}
             recommendedSdkUpgrades={recommendedSdkUpgrades}
             onReadDocs={handleReadDocs}
+            projectSlug={project.slug}
           />
         )}
 
@@ -475,7 +447,12 @@ export function ServerSideSampling({project}: Props) {
           />
         )}
 
-        {hasAccess && <SamplingBreakdown orgSlug={organization.slug} />}
+        {hasAccess && (
+          <SamplingBreakdown
+            organizationSlug={organization.slug}
+            projectSlug={project.slug}
+          />
+        )}
         {!rules.length ? (
           <SamplingPromo
             onGetStarted={handleGetStarted}

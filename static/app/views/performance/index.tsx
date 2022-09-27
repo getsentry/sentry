@@ -1,4 +1,3 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -16,8 +15,6 @@ type Props = {
   organization: Organization;
 };
 
-const queryClient = new QueryClient();
-
 function PerformanceContainer({organization, location, children}: Props) {
   function renderNoAccess() {
     return (
@@ -34,11 +31,9 @@ function PerformanceContainer({organization, location, children}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <QueryClientProvider client={queryClient}>
-        <MetricsCardinalityProvider location={location} organization={organization}>
-          <MEPSettingProvider>{children}</MEPSettingProvider>
-        </MetricsCardinalityProvider>
-      </QueryClientProvider>
+      <MetricsCardinalityProvider location={location} organization={organization}>
+        <MEPSettingProvider>{children}</MEPSettingProvider>
+      </MetricsCardinalityProvider>
     </Feature>
   );
 }

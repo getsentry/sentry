@@ -1,4 +1,6 @@
 import {browserHistory, Router, RouterContext} from 'react-router';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
@@ -20,15 +22,21 @@ function renderRouter(props: any) {
   );
 }
 
+// Create a client to our app
+const queryClient = new QueryClient();
+
 function Main() {
   return (
     <ThemeAndStyleProvider>
-      <PersistedStoreProvider>
-        {ConfigStore.get('demoMode') && <DemoHeader />}
-        <Router history={browserHistory} render={renderRouter}>
-          {routes()}
-        </Router>
-      </PersistedStoreProvider>
+      <QueryClientProvider client={queryClient}>
+        <PersistedStoreProvider>
+          {ConfigStore.get('demoMode') && <DemoHeader />}
+          <Router history={browserHistory} render={renderRouter}>
+            {routes()}
+          </Router>
+        </PersistedStoreProvider>
+        <ReactQueryDevtools />
+      </QueryClientProvider>
     </ThemeAndStyleProvider>
   );
 }

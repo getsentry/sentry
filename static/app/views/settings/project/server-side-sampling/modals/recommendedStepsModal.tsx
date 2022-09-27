@@ -39,6 +39,7 @@ export type RecommendedStepsModalProps = ModalRenderProps & {
   onReadDocs: () => void;
   organization: Organization;
   projectId: Project['id'];
+  projectSlug: Project['slug'];
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
   clientSampleRate?: number;
   onGoBack?: () => void;
@@ -67,13 +68,18 @@ export function RecommendedStepsModal({
   specifiedClientRate,
   recommendedSampleRate,
   onSetRules,
+  projectSlug,
 }: RecommendedStepsModalProps) {
   const {isProjectIncompatible} = useRecommendedSdkUpgrades({
     organization,
     projectId,
+    projectSlug,
   });
   const [saving, setSaving] = useState(false);
-  const {projectStats48h} = useProjectStats();
+  const {projectStats48h} = useProjectStats({
+    organizationSlug: organization.slug,
+    projectId,
+  });
   const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats48h.data);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;
 

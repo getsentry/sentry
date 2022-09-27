@@ -1,30 +1,43 @@
-import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
 
+import {useDistribution} from './useDistribution';
+import {useSdkVersions} from './useSdkVersions';
+
 type Props = {
   organization: Organization;
   projectId: Project['id'];
+  projectSlug: Project['slug'];
 };
 
-export function useRecommendedSdkUpgrades({organization, projectId}: Props) {
-  const {sdkVersions, distribution} = useLegacyStore(ServerSideSamplingStore);
-  const {data = []} = sdkVersions;
+export function useRecommendedSdkUpgrades({organization, projectId, projectSlug}: Props) {
+  const distribution = useDistribution({
+    projectSlug,
+    organizationSlug: organization.slug,
+  });
 
-  const sdksToUpdate = data.filter(
-    ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) => {
-      return (!isSendingSource || !isSendingSampleRate) && isSupportedPlatform;
-    }
-  );
+  const sdkVersions = useSdkVersions({
+    distribution: distribution.data,
+    projectId,
+    organizationSlug: organization.slug,
+  });
 
-  const incompatibleSDKs = data.filter(({isSupportedPlatform}) => !isSupportedPlatform);
+  const sdksToUpdate =
+    sdkVersions.data?.filter(
+      ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) => {
+        return (!isSendingSource || !isSendingSampleRate) && isSupportedPlatform;
+      }
+    ) ?? [];
 
-  const compatibleUpdatedSDKs = data.filter(
-    ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) =>
-      isSendingSource && isSendingSampleRate && isSupportedPlatform
-  );
+  const incompatibleSDKs =
+    sdkVersions.data?.filter(({isSupportedPlatform}) => !isSupportedPlatform) ?? [];
+
+  const compatibleUpdatedSDKs =
+    sdkVersions.data?.filter(
+      ({isSendingSource, isSendingSampleRate, isSupportedPlatform}) =>
+        isSendingSource && isSendingSampleRate && isSupportedPlatform
+    ) ?? [];
 
   const {projects} = useProjects({
     slugs: [...sdksToUpdate, ...incompatibleSDKs, ...compatibleUpdatedSDKs].map(
