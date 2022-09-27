@@ -17,7 +17,9 @@ def produce_user_ip(event: UserIpEvent):
             json.dumps(dataclasses.asdict(RegionToControlMessage(user_ip_event=event))),
         )
     else:
-        UserIP.objects.create_or_update(values=dataclasses.asdict(event))
+        UserIP.objects.create_or_update(
+            user_id=event.user_id, ip_address=event.ip_address, values=dataclasses.asdict(event)
+        )
 
 
 _user_ip_publisher: Optional[KafkaPublisher] = None
