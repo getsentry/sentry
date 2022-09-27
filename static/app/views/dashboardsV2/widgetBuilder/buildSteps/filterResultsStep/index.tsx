@@ -34,6 +34,7 @@ interface Props {
   location: Location;
   onAddSearchConditions: () => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
+  onQueryConditionChange: (isQueryConditionValid: boolean) => void;
   onQueryRemove: (queryIndex: number) => void;
   organization: Organization;
   queries: WidgetQuery[];
@@ -57,6 +58,7 @@ export function FilterResultsStep({
   queryErrors,
   widgetType,
   selection,
+  onQueryConditionChange,
 }: Props) {
   const handleSearch = useCallback(
     (queryIndex: number) => {
@@ -74,7 +76,8 @@ export function FilterResultsStep({
 
   const handleClose = useCallback(
     (queryIndex: number) => {
-      return (field: string) => {
+      return (field: string, validSearch: boolean) => {
+        onQueryConditionChange(validSearch);
         const newQuery: WidgetQuery = {
           ...queries[queryIndex],
           conditions: field,
@@ -82,7 +85,7 @@ export function FilterResultsStep({
         onQueryChange(queryIndex, newQuery);
       };
     },
-    [onQueryChange, queries]
+    [onQueryChange, onQueryConditionChange, queries]
   );
 
   const datasetConfig = getDatasetConfig(widgetType);
