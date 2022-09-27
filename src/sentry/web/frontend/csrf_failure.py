@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.middleware.csrf import REASON_NO_REFERER
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -12,7 +13,22 @@ class CsrfFailureView(View):
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, reason="") -> Response:
         context = {"no_referer": reason == REASON_NO_REFERER}
-
+        with sentry_sdk.configure_scope() as scope:
+            # Emit a sentry request that the incoming request is rejected by the CSRF protection.
+            scope.set_tag("csrf_failure", "yes")
+            if hasattr(request, "user") and request.user.is_authenticated:
+                is_staff = request.user.is_staff
+                is_superuser = request.user.is_superuser
+                if is_staff:
+                    scope.set_tag("is_staff", "yes")
+                if is_superuser:
+                    scope.set_tag("is_superuser", "yes")
+                if is_staff or is_superuser:
+                    sentry_sdk.capture_exception("CSRF failure for staff or superuser")
+                else:
+                    sentry_sdk.capture_message("CSRF failure")
+            else:
+                sentry_sdk.capture_message("CSRF failure")
         return render_to_response("sentry/403-csrf-failure.html", context, request, status=403)
 
 

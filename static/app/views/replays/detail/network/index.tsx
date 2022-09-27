@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import DateTime from 'sentry/components/dateTime';
 import FileSize from 'sentry/components/fileSize';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels';
@@ -216,9 +217,11 @@ function NetworkList({replayRecord, networkSpans}: Props) {
           {`${(networkEndTimestamp - networkStartTimestamp).toFixed(2)}ms`}
         </Item>
         <Item {...columnHandlers} {...columnProps} numeric>
-          <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
-            {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
-          </UnstyledButton>
+          <Tooltip title={<DateTime date={networkStartTimestamp} seconds />}>
+            <UnstyledButton onClick={() => handleClick(networkStartTimestamp)}>
+              {showPlayerTime(networkStartTimestamp, startTimestampMs, true)}
+            </UnstyledButton>
+          </Tooltip>
         </Item>
       </Fragment>
     );

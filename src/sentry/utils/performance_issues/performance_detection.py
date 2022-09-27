@@ -26,6 +26,13 @@ TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
+INTEGRATIONS_OF_INTEREST = [
+    "django",
+    "flask",
+    "sqlalchemy",
+    "Mongo",  # Node
+    "Postgres",  # Node
+]
 
 
 class DetectorType(Enum):
@@ -1020,6 +1027,11 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
+    def _contains_complete_query(self, span: Span) -> bool:
+        # Remove the truncation check from the n_plus_one db detector.
+        query = span.get("description", None)
+        return bool(query)
+
 
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
@@ -1037,6 +1049,7 @@ def report_metrics_for_detectors(
 
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
+        set_tag("_pi_sdk_name", sdk_name or "")
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
@@ -1046,6 +1059,13 @@ def report_metrics_for_detectors(
             set_tag("_pi_transaction", event_id)
 
     detected_tags = {"sdk_name": sdk_name}
+    event_integrations = event.get("sdk", {}).get("integrations", []) or []
+
+    for integration_name in INTEGRATIONS_OF_INTEREST:
+        detected_tags["integration_" + integration_name.lower()] = (
+            integration_name in event_integrations
+        )
+
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems
