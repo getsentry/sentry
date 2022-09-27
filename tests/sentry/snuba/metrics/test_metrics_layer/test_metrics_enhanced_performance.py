@@ -261,7 +261,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=(now - timedelta(seconds=1)).timestamp(),
+                    timestamp=now.timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
