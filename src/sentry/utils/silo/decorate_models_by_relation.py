@@ -12,8 +12,21 @@ from django.db.models.fields.related_descriptors import (
     ReverseOneToOneDescriptor,
 )
 
+import sentry.models
 from sentry.db.models import BaseModel
 from sentry.utils.silo.common import apply_decorators
+
+ALL_SILO_SPECIAL_CASES = frozenset(
+    {
+        sentry.models.Actor,
+        sentry.models.AuditLogEntry,
+        sentry.models.File,
+        sentry.models.FileBlob,
+        sentry.models.FileBlobIndex,
+        sentry.models.ScheduledDeletion,
+        sentry.models.UserIP,
+    }
+)
 
 
 @dataclass
@@ -26,11 +39,13 @@ class TargetRelations:
 
 
 def decorate_models_by_relation(
-    target_relations: TargetRelations,
+    target_relations: TargetRelations | Iterable[TargetRelations],
     app_label: Optional[str] = "sentry",
     path_name: Optional[str] = "./src/sentry",
 ):
     model_classes = frozenset(_get_sentry_model_classes(app_label))
+    model_classes = model_classes.difference(ALL_SILO_SPECIAL_CASES)
+
     search = RelationGraphSearch(
         model_classes=model_classes,
         target_classes=target_relations.models,
@@ -39,19 +54,25 @@ def decorate_models_by_relation(
     region_classes = search.sweep_for_relations()
     control_classes = model_classes.difference(region_classes)
 
-    def filtered_names(classes):
-        return ((c.__module__, c.__name__) for c in classes if not hasattr(c._meta, "silo_limit"))
+    def to_name_pairs(classes):
+        return ((c.__module__, c.__name__) for c in classes)
 
     apply_decorators(
         "control_silo_model",
         "from sentry.db.models import control_silo_model",
-        filtered_names(control_classes),
+        to_name_pairs(control_classes),
         path_name,
     )
     apply_decorators(
         "region_silo_model",
         "from sentry.db.models import region_silo_model",
-        filtered_names(region_classes),
+        to_name_pairs(region_classes),
+        path_name,
+    )
+    apply_decorators(
+        "all_silo_model",
+        "from sentry.db.models import all_silo_model",
+        to_name_pairs(ALL_SILO_SPECIAL_CASES),
         path_name,
     )
 

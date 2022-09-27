@@ -21,6 +21,7 @@ __all__ = (
     "get_model_if_available",
     "control_silo_model",
     "region_silo_model",
+    "all_silo_model",
 )
 
 
@@ -225,3 +226,9 @@ class ModelSiloLimit(SiloLimit):
 
 control_silo_model = ModelSiloLimit(SiloMode.CONTROL, read_only=SiloMode.REGION)
 region_silo_model = ModelSiloLimit(SiloMode.REGION)
+
+# Tags a model that is readable and writable in all silos. This should be used only
+# for data that is private to this particular Django stack and is not of concern to
+# the rest of the platform. This is experimental and may be reverted as we proceed
+# with work on the multi-region architecture.
+all_silo_model = ModelSiloLimit(*SiloMode)
