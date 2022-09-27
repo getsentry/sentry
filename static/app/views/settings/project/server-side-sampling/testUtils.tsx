@@ -155,7 +155,7 @@ export const mockedSamplingDistribution: SamplingDistribution = {
   endTimestamp: '2017-08-05T07:52:11Z',
 };
 
-export function getMockData({
+export function getMockInitializeOrg({
   projects,
   access,
 }: {access?: string[]; projects?: Project[]} = {}) {

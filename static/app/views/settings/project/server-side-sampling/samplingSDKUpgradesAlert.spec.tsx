@@ -1,23 +1,43 @@
-import {Fragment} from 'react';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {SamplingSDKUpgradesAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKUpgradesAlert';
 
-import {getMockData, mockedProjects, recommendedSdkUpgrades} from './testUtils';
+import {getMockInitializeOrg, mockedProjects, recommendedSdkUpgrades} from './testUtils';
+
+function ComponentProviders({children}: {children: React.ReactNode}) {
+  const client = new QueryClient();
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   it('does not render content', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
+      method: 'GET',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      method: 'GET',
+      body: TestStubs.Outcomes(),
+    });
 
     render(
-      <SamplingSDKUpgradesAlert
-        organization={organization}
-        projectId={project.id}
-        onReadDocs={jest.fn()}
-        recommendedSdkUpgrades={[]}
-      />
+      <ComponentProviders>
+        <SamplingSDKUpgradesAlert
+          organization={organization}
+          projectId={project.id}
+          onReadDocs={jest.fn()}
+          recommendedSdkUpgrades={[]}
+          projectSlug={project.slug}
+        />
+      </ComponentProviders>
     );
 
     expect(
@@ -26,18 +46,31 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
   });
 
   it('renders content with update sdks info', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
+      method: 'GET',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      method: 'GET',
+      body: TestStubs.Outcomes(),
+    });
 
     render(
-      <Fragment>
+      <ComponentProviders>
         <GlobalModal />
         <SamplingSDKUpgradesAlert
           organization={organization}
           projectId={project.id}
           onReadDocs={jest.fn()}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
+          projectSlug={project.slug}
         />
-      </Fragment>
+      </ComponentProviders>
     );
 
     expect(screen.getByTestId('recommended-sdk-upgrades-alert')).toBeInTheDocument();

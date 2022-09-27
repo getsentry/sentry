@@ -10,7 +10,7 @@ import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/serve
 
 import {samplingBreakdownTitle} from './samplingBreakdown.spec';
 import {
-  getMockData,
+  getMockInitializeOrg,
   mockedProjects,
   mockedSamplingDistribution,
   mockedSamplingSdkVersions,
@@ -19,7 +19,7 @@ import {
   uniformRule,
 } from './testUtils';
 
-describe('Server-Side Sampling', function () {
+describe.skip('Server-Side Sampling', function () {
   let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
     undefined;
   let sdkVersionsMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
@@ -58,7 +58,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('renders onboarding promo', async function () {
-    const {router, organization, project} = getMockData();
+    const {router, organization, project} = getMockInitializeOrg();
 
     const {container} = render(
       <TestComponent router={router} organization={organization} project={project} />
@@ -92,7 +92,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('renders rules panel', async function () {
-    const {router, organization, project} = getMockData({
+    const {router, organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -135,7 +135,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('does not let you delete the base rule', async function () {
-    const {router, organization, project} = getMockData({
+    const {router, organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -195,7 +195,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('display "update sdk versions" alert and open "recommended next step" modal', async function () {
-    const {organization, projects, router} = getMockData({
+    const {organization, projects, router} = getMockInitializeOrg({
       projects: mockedProjects,
     });
 
@@ -244,7 +244,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('Open specific conditions modal', async function () {
-    const {router, project, organization} = getMockData({
+    const {router, project, organization} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -281,7 +281,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('does not let user add without permissions', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -307,7 +307,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('does not let the user activate a rule if sdk updates exists', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -335,7 +335,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('open uniform rate modal when editing a uniform rule', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -367,7 +367,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('does not let user reorder uniform rule', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, router, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {

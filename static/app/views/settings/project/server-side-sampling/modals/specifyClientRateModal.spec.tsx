@@ -1,3 +1,5 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
 import {
   render,
   screen,
@@ -10,13 +12,18 @@ import GlobalModal from 'sentry/components/globalModal';
 import {SpecifyClientRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/specifyClientRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData} from '../testUtils';
+import {getMockInitializeOrg} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
+function ComponentProviders({children}: {children: React.ReactNode}) {
+  const client = new QueryClient();
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
 describe('Server-Side Sampling - Specify Client Rate Modal', function () {
   it('renders', async function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
     const handleReadDocs = jest.fn();
     const handleGoNext = jest.fn();
     const handleChange = jest.fn();
@@ -24,15 +31,17 @@ describe('Server-Side Sampling - Specify Client Rate Modal', function () {
     const {container} = render(<GlobalModal />);
 
     openModal(modalProps => (
-      <SpecifyClientRateModal
-        {...modalProps}
-        organization={organization}
-        onReadDocs={handleReadDocs}
-        projectId={project.id}
-        onGoNext={handleGoNext}
-        value={undefined}
-        onChange={handleChange}
-      />
+      <ComponentProviders>
+        <SpecifyClientRateModal
+          {...modalProps}
+          organization={organization}
+          onReadDocs={handleReadDocs}
+          projectId={project.id}
+          onGoNext={handleGoNext}
+          value={undefined}
+          onChange={handleChange}
+        />
+      </ComponentProviders>
     ));
 
     // Header

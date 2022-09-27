@@ -14,7 +14,7 @@ import {SpecificConditionsModal} from 'sentry/views/settings/project/server-side
 import {distributedTracesConditions} from 'sentry/views/settings/project/server-side-sampling/modals/specificConditionsModal/utils';
 import {getInnerNameLabel} from 'sentry/views/settings/project/server-side-sampling/utils';
 
-import {getMockData, specificRule, uniformRule} from '../../testUtils';
+import {getMockInitializeOrg, specificRule, uniformRule} from '../../testUtils';
 
 describe('Server-Side Sampling - Specific Conditions Modal', function () {
   afterEach(function () {
@@ -28,7 +28,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       body: [{value: '1.2.3', count: 97}],
     });
 
-    const {organization, project} = getMockData({
+    const {organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -166,7 +166,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       body: [{value: '1.2.3'}],
     });
 
-    const {organization, project} = getMockData({
+    const {organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -280,7 +280,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       active: false,
     };
 
-    const {organization, project} = getMockData({
+    const {organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -358,7 +358,7 @@ describe('Server-Side Sampling - Specific Conditions Modal', function () {
       body: [{value: 'staging', count: 97}],
     });
 
-    const {organization, project} = getMockData({
+    const {organization, project} = getMockInitializeOrg({
       projects: [
         TestStubs.Project({
           dynamicSampling: {

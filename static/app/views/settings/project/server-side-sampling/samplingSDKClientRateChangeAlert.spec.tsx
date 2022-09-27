@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SamplingSDKClientRateChangeAlert} from 'sentry/views/settings/project/server-side-sampling/samplingSDKClientRateChangeAlert';
 
-import {getMockData} from './testUtils';
+import {getMockInitializeOrg} from './testUtils';
 
 const otherOutcomesGroups = TestStubs.Outcomes().groups.filter(
   group => group.by.outcome !== 'accepted' && group.by.outcome !== 'client_discard'
@@ -41,7 +41,7 @@ const stats = {
 
 describe('Server-Side Sampling - Client Rate Change Alert', function () {
   it('does not render content', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
 
     render(
       <SamplingSDKClientRateChangeAlert
@@ -60,7 +60,7 @@ describe('Server-Side Sampling - Client Rate Change Alert', function () {
   });
 
   it('renders content with change sdk sample rate info', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
 
     render(
       <SamplingSDKClientRateChangeAlert

@@ -1,3 +1,5 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -7,12 +9,18 @@ import {RecommendedStepsModal} from 'sentry/views/settings/project/server-side-s
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 import {
-  getMockData,
+  getMockInitializeOrg,
   mockedProjects,
+  mockedSamplingDistribution,
   mockedSamplingSdkVersions,
   recommendedSdkUpgrades,
   uniformRule,
 } from '../testUtils';
+
+function ComponentProviders({children}: {children: React.ReactNode}) {
+  const client = new QueryClient();
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
 
 describe('Server-Side Sampling - Recommended Steps Modal', function () {
   beforeEach(function () {
@@ -21,23 +29,38 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
       method: 'GET',
       body: [{value: '1.2.3'}],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      method: 'GET',
+      body: TestStubs.Outcomes(),
+    });
   });
 
   it('render all recommended steps', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
+      method: 'GET',
+      body: mockedSamplingDistribution,
+    });
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={recommendedSdkUpgrades}
-        onReadDocs={jest.fn()}
-        onSubmit={jest.fn()}
-        clientSampleRate={0.5}
-      />
+      <ComponentProviders>
+        <RecommendedStepsModal
+          {...modalProps}
+          organization={organization}
+          projectId={project.id}
+          recommendedSdkUpgrades={recommendedSdkUpgrades}
+          onReadDocs={jest.fn()}
+          onSubmit={jest.fn()}
+          clientSampleRate={0.5}
+          projectSlug={project.slug}
+        />
+      </ComponentProviders>
     ));
 
     expect(screen.getByText('Next steps')).toBeInTheDocument();
@@ -103,20 +126,29 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   });
 
   it('render only the last recommended step', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
+      method: 'GET',
+      body: mockedSamplingDistribution,
+    });
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={[]}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
-      />
+      <ComponentProviders>
+        <RecommendedStepsModal
+          {...modalProps}
+          organization={organization}
+          projectId={project.id}
+          recommendedSdkUpgrades={[]}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          clientSampleRate={uniformRule.sampleRate}
+          projectSlug={project.slug}
+        />
+      </ComponentProviders>
     ));
 
     expect(
@@ -133,23 +165,32 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   });
 
   it('render as a second step of a wizard', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
+      method: 'GET',
+      body: mockedSamplingDistribution,
+    });
 
     const onGoBack = jest.fn();
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={[]}
-        onGoBack={onGoBack}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
-      />
+      <ComponentProviders>
+        <RecommendedStepsModal
+          {...modalProps}
+          organization={organization}
+          projectId={project.id}
+          recommendedSdkUpgrades={[]}
+          onGoBack={onGoBack}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          clientSampleRate={uniformRule.sampleRate}
+          projectSlug={project.slug}
+        />
+      </ComponentProviders>
     ));
 
     expect(screen.getByText('Step 2 of 2')).toBeInTheDocument();
@@ -158,22 +199,31 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
   });
 
   it('renders 3/3 footer', function () {
-    const {organization, project} = getMockData();
+    const {organization, project} = getMockInitializeOrg();
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
+      method: 'GET',
+      body: mockedSamplingDistribution,
+    });
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <RecommendedStepsModal
-        {...modalProps}
-        organization={organization}
-        projectId={project.id}
-        recommendedSdkUpgrades={[]}
-        onGoBack={jest.fn()}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-        clientSampleRate={uniformRule.sampleRate}
-        specifiedClientRate={0.1}
-      />
+      <ComponentProviders>
+        <RecommendedStepsModal
+          {...modalProps}
+          organization={organization}
+          projectId={project.id}
+          recommendedSdkUpgrades={[]}
+          onGoBack={jest.fn()}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          clientSampleRate={uniformRule.sampleRate}
+          specifiedClientRate={0.1}
+          projectSlug={project.slug}
+        />
+      </ComponentProviders>
     ));
 
     expect(screen.getByText('Step 3 of 3')).toBeInTheDocument();
