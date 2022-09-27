@@ -787,12 +787,6 @@ export type ParseResult = Array<
   | TokenResult<Token.Spaces>
 >;
 
-export type SearchValidationFunction = <T extends FilterType>(
-  filter: T,
-  key: FilterMap[T]['key'],
-  value: FilterMap[T]['value']
-) => InvalidFilter | null;
-
 /**
  * Configures behavior of search parsing
  */
