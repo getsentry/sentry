@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Sequence, TypedDict, cast
 
 import pytz
-from django.db.models import Count, Max
+from django.db.models import Count, OuterRef, Subquery
 from django.db.models.functions import TruncHour
 
 from sentry.api.paginator import OffsetPaginator
@@ -21,18 +21,22 @@ class _Result(TypedDict):
     group: int
     count: int
     last_triggered: datetime
+    event_id: str
 
 
 def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
     group_lookup = {g.id: g for g in Group.objects.filter(id__in=[r["group"] for r in results])}
     return [
-        RuleGroupHistory(group_lookup[r["group"]], r["count"], r["last_triggered"]) for r in results
+        RuleGroupHistory(group_lookup[r["group"]], r["count"], r["last_triggered"], r["event_id"])
+        for r in results
     ]
 
 
 class PostgresRuleHistoryBackend(RuleHistoryBackend):
-    def record(self, rule: Rule, group: Group) -> None:
-        RuleFireHistory.objects.create(project=rule.project, rule=rule, group=group)
+    def record(self, rule: Rule, group: Group, event_id=None) -> None:
+        RuleFireHistory.objects.create(
+            project=rule.project, rule=rule, group=group, event_id=event_id
+        )
 
     def fetch_rule_groups_paginated(
         self,
@@ -42,15 +46,20 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         cursor: Cursor | None = None,
         per_page: int = 25,
     ) -> CursorResult[Group]:
+        filtered_history = RuleFireHistory.objects.filter(
+            rule=rule,
+            date_added__gte=start,
+            date_added__lt=end,
+        )
+
+        group_max_dates = filtered_history.filter(group=OuterRef("group")).order_by("-date_added")[
+            :1
+        ]
         qs = (
-            RuleFireHistory.objects.filter(
-                rule=rule,
-                date_added__gte=start,
-                date_added__lt=end,
-            )
-            .select_related("group")
-            .values("group")
-            .annotate(count=Count("id"), last_triggered=Max("date_added"))
+            filtered_history.values("group")
+            .annotate(count=Count("group"))
+            .annotate(event_id=Subquery(group_max_dates.values("event_id")))
+            .annotate(last_triggered=Subquery(group_max_dates.values("date_added")))
         )
         # TODO: Add types to paginators and remove this
         return cast(

@@ -167,7 +167,6 @@ class RuleProcessor:
         filter_match = rule.data.get("filter_match") or Rule.DEFAULT_FILTER_MATCH
         rule_condition_list = rule.data.get("conditions", ())
         frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
-
         if (
             rule.environment_id is not None
             and self.event.get_environment().id != rule.environment_id
@@ -231,7 +230,7 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        history.record(rule, self.group)
+        history.record(rule, self.group, self.event.event_id)
 
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
