@@ -33,6 +33,8 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.javascript.node",  # Node, Express, koa
         "sentry.javascript.react-native",  # React Native
         "sentry.javascript.serverless",  # AWS Lambda Node
+        "sentry.javascript.gatsby",  # Gatsby
+        "sentry.javascript.svelte",  # Svelte
         "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
         "sentry.python.serverless",  # AWS Lambda
         "sentry.cocoa",  # iOS
