@@ -685,6 +685,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
+      organization.features.includes('discover-query') &&
       location.query.id &&
       location.query.id === 'homepage'
     ) {
