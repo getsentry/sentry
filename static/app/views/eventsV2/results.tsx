@@ -293,10 +293,7 @@ class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
-    if (homepageQuery) {
-      homepageQuery.id = 'homepage';
-    }
-    const query = homepageQuery ?? DEFAULT_EVENT_VIEW;
+    const query = homepageQuery ? omit(homepageQuery, 'id') : DEFAULT_EVENT_VIEW;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -675,7 +672,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     const {organization, location} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
-    if (location.query.id && location.query.id !== 'homepage') {
+    if (location.query.id) {
       endpoints.push([
         'savedQuery',
         `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
@@ -685,9 +682,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
-      organization.features.includes('discover-query') &&
-      location.query.id &&
-      location.query.id === 'homepage'
+      organization.features.includes('discover-query')
     ) {
       endpoints.push([
         'homepageQuery',
