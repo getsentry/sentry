@@ -1,10 +1,11 @@
-import type {Route, RouteComponentProps} from 'react-router';
+import type {Route, RouteComponentProps, RouteContextInterface} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -90,15 +91,10 @@ type AlertsHeaderProps = {
   organization: Organization;
 };
 
-type AdjacentRoutComponentProps = any;
-
-type RouteActivatedHook = any;
-
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:adjacent-route-component': () => React.ComponentType<AdjacentRoutComponentProps>;
   'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
@@ -216,7 +212,9 @@ export type SettingsHooks = {
 };
 
 export type ReactHooks = {
-  'react-hook:route-activated': RouteActivatedHook;
+  'react-hook:route-activated': (
+    props: RouteContextInterface
+  ) => React.ContextType<typeof RouteAnalyticsContext>;
 };
 
 /**

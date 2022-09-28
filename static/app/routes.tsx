@@ -53,7 +53,7 @@ export const SafeLazyLoad = errorHandler(LazyLoad);
  * Factory function to produce a component that will render the SafeLazyLoad
  * _with_ the required props.
  */
-export function makeLazyloadComponent<C extends React.ComponentType<any>>(
+function makeLazyloadComponent<C extends React.ComponentType<any>>(
   resolve: () => Promise<{default: C}>
 ) {
   // XXX: Assign the component to a variable so it has a displayname
@@ -66,6 +66,7 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 
   return RouteLazyLoad;
 }
+
 // Shorthand to avoid extra line wrapping
 const make = makeLazyloadComponent;
 
