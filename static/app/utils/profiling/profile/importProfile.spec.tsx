@@ -193,12 +193,12 @@ describe('importProfile', () => {
           {
             stack_id: 0,
             thread_id: '0',
-            relative_timestamp_ns: '0',
+            elapsed_since_start_ns: '0',
           },
           {
             stack_id: 1,
             thread_id: '0',
-            relative_timestamp_ns: '1000',
+            elapsed_since_start_ns: '1000',
           },
         ],
         frames: [
@@ -214,9 +214,8 @@ describe('importProfile', () => {
         stacks: [[0], [0, 1]],
         thread_metadata: {},
         queue_metadata: {},
-
-        debug_meta: {images: []},
       },
+      debug_meta: {images: []},
       transactions: [],
     };
 

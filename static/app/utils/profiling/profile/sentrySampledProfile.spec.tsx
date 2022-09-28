@@ -9,27 +9,30 @@ describe('SentrySampledProfile', () => {
         {
           stack_id: 0,
           thread_id: '0',
-          relative_timestamp_ns: '0',
+          elapsed_since_start_ns: '0',
         },
         {
           stack_id: 1,
           thread_id: '0',
-          relative_timestamp_ns: '1000',
+          elapsed_since_start_ns: '1000',
         },
       ],
       frames: [
         {
           name: 'main',
           instruction_addr: '',
+          line: 1,
+          file: 'main.c',
         },
         {
           name: 'foo',
           instruction_addr: '',
+          line: 2,
+          file: 'main.c',
         },
       ],
       stacks: [[0], [0, 1]],
       thread_metadata: {},
-      debug_meta: {images: []},
       queue_metadata: {},
     };
 

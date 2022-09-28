@@ -15,8 +15,8 @@ export class SentrySampledProfile extends Profile {
     stacks: Profiling.SentrySampledProfile['profile']['stacks'],
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>
   ): Profile {
-    const startedAt = parseInt(samples[0].relative_timestamp_ns, 10);
-    const endedAt = parseInt(samples[samples.length - 1].relative_timestamp_ns, 10);
+    const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
+    const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
     const threadId = parseInt(samples[0].thread_id, 10);
 
     const profile = new SentrySampledProfile({
@@ -33,7 +33,7 @@ export class SentrySampledProfile extends Profile {
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
       const stack = stacks[sample.stack_id];
-      const sampleWeight = parseInt(sample.relative_timestamp_ns, 10);
+      const sampleWeight = parseInt(sample.elapsed_since_start_ns, 10);
 
       profile.appendSampleWithWeight(
         stack.map(n => {

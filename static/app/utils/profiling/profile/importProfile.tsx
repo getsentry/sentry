@@ -165,7 +165,7 @@ function importSentrySampledProfile(
   for (const key in samplesByThread) {
     samplesByThread[key].sort(
       (a, b) =>
-        parseInt(a.relative_timestamp_ns, 10) - parseInt(b.relative_timestamp_ns, 10)
+        parseInt(a.elapsed_since_start_ns, 10) - parseInt(b.elapsed_since_start_ns, 10)
     );
   }
 

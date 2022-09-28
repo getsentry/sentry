@@ -1,15 +1,36 @@
 declare namespace Profiling {
-  interface SentryProfileSample {
+  type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
-    relative_timestamp_ns: string;
-  }
+    elapsed_since_start_ns: string;
+    queue_address?: string;
+  };
 
-  type SentryProfileStack = number[];
+  type SentrySampledProfileStack = number[];
 
-  type SentryProfileFrame = {
+  type SentrySampledProfileFrame = {
+    name?: string;
+    instruction_addr?: string;
+    line?: number;
+    file?: string;
+  };
+
+  type SentrySampledProfileDebugMetaImage = {
+    debug_id: string;
+    image_addr: string;
+    code_file: string;
+    type: string;
+    image_size: number;
+    image_vmaddr: string;
+  };
+
+  type SentrySampledProfileTransaction = {
     name: string;
-    instruction_addr: string;
+    trace_id: string;
+    id: string;
+    active_thread_id: string;
+    relative_start_ns: string;
+    relative_end_ns: string;
   };
 
   type SentrySampledProfile = {
@@ -22,39 +43,30 @@ declare namespace Profiling {
     };
     device: {
       architecture: string;
-      is_emulator: boolean;
-      locale: string;
-      manufacturer: string;
-      model: string;
+      is_emulator?: boolean;
+      locale?: string;
+      manufacturer?: string;
+      model?: string;
+    };
+    runtime?: {
+      name: string;
+      version: string;
     };
     timestamp: string;
     release: string;
     platform: string;
-    profile: {
-      samples: SentryProfileSample[];
-      stacks: SentryProfileStack[];
-      frames: SentryProfileFrame[];
-      thread_metadata: Record<string, {priority?: number}>;
-      queue_metadata: Record<string, {label: string}>;
-      debug_meta: {
-        images: {
-          debug_id: string;
-          image_addr: string;
-          code_file: string;
-          type: string;
-          image_size: number;
-          image_vmaddr: string;
-        }[];
-      };
+    environment?: string;
+    debug_meta?: {
+      images: SentryProfileDebugMetaImage[];
     };
-    transactions: {
-      name: string;
-      trace_id: string;
-      id: string;
-      active_thread_id: string;
-      relative_start_ns: string;
-      relative_end_ns: string;
-    }[];
+    profile: {
+      samples: SentrySampledProfileSample[];
+      stacks: SentrySampledProfileStack[];
+      frames: SentrySampledProfileFrame[];
+      thread_metadata?: Record<string, {name?: string; priority?: number}>;
+      queue_metadata?: Record<string, {label: string}>;
+    };
+    transactions?: SentrySampledProfileTransaction[];
   };
 
   ////////////////
