@@ -2,6 +2,7 @@ import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,
@@ -657,6 +658,14 @@ export class TokenConverter {
    * Validates text filters which may have failed predication
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
+    if (
+      this.config.validateKeys &&
+      this.config.supportedTags &&
+      !this.config.supportedTags[key.text]
+    ) {
+      return {reason: t(`Invalid key. "${key.text}" is not a supported search key.`)};
+    }
+
     // Explicit tag keys will always be treated as text filters
     if (key.type === Token.KeyExplicitTag) {
       return this.checkInvalidTextValue(value);
@@ -816,6 +825,14 @@ export type SearchConfig = {
    * Text filter keys we allow to have operators
    */
   textOperatorKeys: Set<string>;
+  /**
+   * If validateKeys is set to true, tag keys that don't exist in supportedTags will be consider invalid
+   */
+  supportedTags?: TagCollection;
+  /**
+   * If set to true, tag keys that don't exist in supportedTags will be consider invalid
+   */
+  validateKeys?: boolean;
 };
 
 const defaultConfig: SearchConfig = {
@@ -876,13 +893,16 @@ export function parseSearch(
 ): ParseResult | null {
   // Merge additionalConfig with defaultConfig
   const config = additionalConfig
-    ? Object.keys(defaultConfig).reduce((configAccumulator, key) => {
-        configAccumulator[key] =
-          typeof defaultConfig[key] === 'object'
-            ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
-            : defaultConfig[key];
-        return configAccumulator;
-      }, {})
+    ? {
+        ...additionalConfig,
+        ...Object.keys(defaultConfig).reduce((configAccumulator, key) => {
+          configAccumulator[key] =
+            typeof defaultConfig[key] === 'object'
+              ? new Set([...defaultConfig[key], ...(additionalConfig[key] ?? [])])
+              : defaultConfig[key];
+          return configAccumulator;
+        }, {}),
+      }
     : defaultConfig;
 
   try {
