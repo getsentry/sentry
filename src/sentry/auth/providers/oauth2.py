@@ -8,7 +8,6 @@ from uuid import uuid4
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.utils import generate_url_prefix
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
@@ -53,15 +52,14 @@ class OAuth2Login(AuthView):
 
         state = uuid4().hex
 
-        url_prefix = generate_url_prefix(request)
-        params = self.get_authorize_params(
-            state=state, redirect_uri=helper.get_redirect_url(url_prefix)
-        )
-        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
+        params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
+        authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         helper.bind_state("state", state)
+        if request.subdomain:
+            helper.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(redirect_uri)
+        return self.redirect(authorization_url)
 
 
 class OAuth2Callback(AuthView):
@@ -88,9 +86,8 @@ class OAuth2Callback(AuthView):
         }
 
     def exchange_token(self, request: Request, helper, code):
-        url_prefix = generate_url_prefix(request)
         # TODO: this needs the auth yet
-        data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url(url_prefix))
+        data = self.get_token_params(code=code, redirect_uri=helper.get_redirect_url())
         req = safe_urlopen(self.access_token_url, data=data)
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
