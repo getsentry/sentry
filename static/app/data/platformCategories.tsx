@@ -191,7 +191,7 @@ export const performance = [
   'node-express',
   'node-koa',
   'node-connect',
-] as const;
+];
 
 // List of platforms that have performance onboarding checklist content
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
