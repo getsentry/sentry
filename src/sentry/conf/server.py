@@ -1394,6 +1394,7 @@ SENTRY_BUFFER_OPTIONS = {
         },
         "memorystore": {
             "path": "sentry.buffer.redis.RedisNoopProcess",
+            # "executor": {"path": "sentry.utils.concurrent.SynchronousExecutor"},
             "options": {"cluster": "buffer-memorystore"},
         },
     },
