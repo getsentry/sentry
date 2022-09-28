@@ -28,9 +28,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="projectownership",
-            name="suspect_committer_auto_assignment",
-            field=models.BooleanField(default=False),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_projectownership" ADD COLUMN "suspect_committer_auto_assignment" integer NOT NULL DEFAULT false;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_projectownership" DROP COLUMN "suspect_committer_auto_assignment";
+                    """,
+                    hints={"tables": ["sentry_projectownership"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="projectownership",
+                    name="suspect_committer_auto_assignment",
+                    field=models.BooleanField(default=False),
+                ),
+            ],
+        )
     ]
