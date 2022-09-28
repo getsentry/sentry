@@ -151,7 +151,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_file.return_value.encoding = None
         mock_fetch_file.return_value.headers = {}
 
-        event = self.post_and_retrieve_event(data)
+        # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
+        # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
+        # Note its been called twice, as there as two processors when run with the feature.
+        with self.feature({"projects:sourcemapcache-processor": False}):
+            event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/foo.js",
@@ -209,7 +213,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_file.return_value.body = force_bytes("\n".join("<generated source>"))
         mock_fetch_file.return_value.encoding = None
 
-        event = self.post_and_retrieve_event(data)
+        # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
+        # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
+        # Note its been called twice, as there as two processors when run with the feature.
+        with self.feature({"projects:sourcemapcache-processor": False}):
+            event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/test.min.js",
@@ -476,6 +484,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 1
         frame = frame_list[0]
+        assert frame.abs_path == "app:///nofiles.js.map"
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -485,6 +494,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
+        # TODO(smcache): Assertions below are the one that're correct. Use it when migrating from legacy processor.
+        # assert frame.abs_path == "app:///nofiles.js"
+        # assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        # assert frame.context_line == "\treturn a + b; // fôo"
+        # assert frame.post_context == ["}", ""]
 
     @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
@@ -1330,15 +1344,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 6
 
-        import pprint
-
-        pprint.pprint(frame_list[0].__dict__)
-        pprint.pprint(frame_list[1].__dict__)
-        pprint.pprint(frame_list[2].__dict__)
-        pprint.pprint(frame_list[3].__dict__)
-        pprint.pprint(frame_list[4].__dict__)
-        pprint.pprint(frame_list[5].__dict__)
-
         assert frame_list[0].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
         assert frame_list[0].function == "bar"
         assert frame_list[0].lineno == 8
@@ -1352,6 +1357,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame_list[2].lineno == 2
 
         assert frame_list[3].abs_path == "app:///dist.bundle.js"
+        # TODO(smcache): Assertion below is the one that's correct. Use it when migrating from legacy processor.
+        # assert frame_list[3].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
 

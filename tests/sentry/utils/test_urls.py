@@ -11,6 +11,8 @@ from sentry.utils.urls import add_params_to_url, non_standard_url_join, parse_li
         ("http://example.com/foo", "bar", "http://example.com/bar"),
         ("http://example.com/foo", "/bar", "http://example.com/bar"),
         ("https://example.com/foo", "/bar", "https://example.com/bar"),
+        ("http://example.com/foo/baz", "bar", "http://example.com/foo/bar"),
+        ("http://example.com/foo/baz", "/bar", "http://example.com/bar"),
         ("aps://example.com/foo", "/bar", "aps://example.com/bar"),
         ("apsunknown://example.com/foo", "/bar", "apsunknown://example.com/bar"),
         ("apsunknown://example.com/foo", "//aha/uhu", "apsunknown://aha/uhu"),
