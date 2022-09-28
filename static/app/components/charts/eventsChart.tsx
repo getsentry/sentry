@@ -305,7 +305,11 @@ class Chart extends React.Component<ChartProps, State> {
         trigger: 'axis' as const,
         truncate: 80,
         valueFormatter: (value: number, label?: string) => {
-          const aggregateName = label?.split(':').pop()?.trim();
+          const aggregateName = label
+            ?.replace(/^previous /, '')
+            .split(':')
+            .pop()
+            ?.trim();
           if (aggregateName) {
             return timeseriesResultsTypes
               ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
