@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import {IssueType, PlatformType} from 'sentry/types';
 
-import {PYTHON_RESOURCE_LINKS} from './constants';
 import {ResourceLink} from './resources';
 
 const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
@@ -13,20 +12,35 @@ const RESOURCES_DESCRIPTIONS: Record<IssueType, string> = {
 
 type PlatformSpecificResources = Partial<Record<PlatformType, ResourceLink[]>>;
 
+// TODO: When the Sentry blogpost for N+1s and documentation has been released, add them as resources for all platforms
 const RESOURCE_LINKS: Record<IssueType, PlatformSpecificResources> = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: {
-    python: PYTHON_RESOURCE_LINKS,
-    'python-django': PYTHON_RESOURCE_LINKS,
-    'python-flask': PYTHON_RESOURCE_LINKS,
-    'python-fastapi': PYTHON_RESOURCE_LINKS,
-    'python-starlette': PYTHON_RESOURCE_LINKS,
-    'python-sanic': PYTHON_RESOURCE_LINKS,
-    'python-celery': PYTHON_RESOURCE_LINKS,
-    'python-bottle': PYTHON_RESOURCE_LINKS,
-    'python-pylons': PYTHON_RESOURCE_LINKS,
-    'python-pyramid': PYTHON_RESOURCE_LINKS,
-    'python-tornado': PYTHON_RESOURCE_LINKS,
-    'python-rq': PYTHON_RESOURCE_LINKS,
+    python: [
+      {
+        text: t('Finding and Fixing Django N+1 Problems'),
+        link: 'https://blog.sentry.io/2020/09/14/finding-and-fixing-django-n-1-problems',
+      },
+      {
+        text: t('Django select_related and prefetch_related'),
+        link: 'https://betterprogramming.pub/django-select-related-and-prefetch-related-f23043fd635d',
+      },
+    ],
+    'python-django': [
+      {
+        text: t('Finding and Fixing Django N+1 Problems'),
+        link: 'https://blog.sentry.io/2020/09/14/finding-and-fixing-django-n-1-problems',
+      },
+      {
+        text: t('Django select_related and prefetch_related'),
+        link: 'https://betterprogramming.pub/django-select-related-and-prefetch-related-f23043fd635d',
+      },
+    ],
+    'ruby-rails': [
+      {
+        text: t('Rails Guide: Active Record Query Interface'),
+        link: 'https://guides.rubyonrails.org/active_record_querying.html#eager-loading-associations',
+      },
+    ],
   },
   [IssueType.ERROR]: {},
 };
