@@ -382,6 +382,19 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
+  renderSaveAsHomepage() {
+    const {organization, eventView, savedQuery, yAxis, router, location} = this.props;
+    return (
+      <Button
+        key="save-query-as-homepage"
+        data-test-id="save-query-as-homepage"
+        onClick={() => console.log('saving duuuuude')}
+      >
+        {t('Add to Dashboard')}
+      </Button>
+    );
+  }
+
   render() {
     const {organization} = this.props;
 
@@ -415,6 +428,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
+        <Feature
+          organization={organization}
+          features={['discover-query-builder-as-landing-page']}
+        >
+          {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
+        </Feature>
         {renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
