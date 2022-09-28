@@ -18,6 +18,11 @@ declare namespace Profiling {
     event_id: string;
     version: string;
     os: {
+      name: string;
+      version: string;
+      build_number: string;
+    };
+    device: {
       architecture: string;
       is_emulator: boolean;
       locale: string;
@@ -31,20 +36,20 @@ declare namespace Profiling {
       samples: SentryProfileSample[];
       stacks: SentryProfileStack[];
       frames: SentryProfileFrame[];
+      thread_metadata: Record<string, {priority?: number}>;
+      queue_metadata: Record<string, {label: string}>;
+      debug_meta: {
+        images: {
+          debug_id: string;
+          image_addr: string;
+          code_file: string;
+          type: string;
+          image_size: number;
+          image_vmaddr: string;
+        }[];
+      };
     };
-    thread_metadata: Record<string, {priority?: number}>;
-    queue_metadata: Record<string, {label: string}>;
-    debug_meta: {
-      images: {
-        debug_id: string;
-        image_addr: string;
-        code_file: string;
-        type: string;
-        image_size: number;
-        image_vmaddr: string;
-      }[];
-    };
-    transaction: {
+    transactions: {
       name: string;
       trace_id: string;
       id: string;
