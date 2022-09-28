@@ -1,5 +1,15 @@
 from datetime import datetime
-from typing import Callable, Dict, Mapping, Optional, Sequence, Union
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -21,7 +31,7 @@ def get_metrics_billing_consumer(
     auto_offset_reset: str,
     force_topic: Union[str, None],
     force_cluster: Union[str, None],
-    **options,
+    **options: Any,
 ) -> StreamProcessor[KafkaPayload]:
     bootstrap_servers = _get_bootstrap_servers(topic, force_topic, force_cluster)
 
@@ -61,6 +71,19 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         return BillingTxCountMetricConsumerStrategy(commit)
 
 
+class MetricsBucket(TypedDict):
+    """
+    Metrics bucket as decoded from kafka.
+
+    Only defines the fields that are relevant for this consumer."""
+
+    org_id: int
+    project_id: int
+    metric_id: int
+    timestamp: int
+    value: Sequence[float]
+
+
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     """A metrics consumer that generates a billing outcome for each processed
     transaction, processing a bucket at a time. The transaction count is
@@ -68,10 +91,11 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     buckets.
     """
 
+    counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+
     def __init__(self, commit: Callable[[Mapping[Partition, Position]], None]) -> None:
-        self.counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
         self.__commit = commit
-        self.__ready_to_commit: Mapping[Partition, Position] = {}
+        self.__ready_to_commit: MutableMapping[Partition, Position] = {}
         self.__closed = False
 
     def poll(self) -> None:
@@ -87,35 +111,37 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         assert not self.__closed
 
         payload = self._get_payload(message)
-        num_processed_transactions = self._count_processed_transactions(payload)
-        self._produce_billing_outcomes(payload, num_processed_transactions)
+        self._produce_billing_outcomes(payload)
         self._mark_commit_ready(message)
 
-    def _get_payload(self, message: Message[KafkaPayload]) -> Dict:
-        return json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
+    def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
+        # TODO: Should we even deserialize on submit?
+        payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
+        return cast(MetricsBucket, payload)
 
-    def _count_processed_transactions(self, bucket_payload: Dict) -> int:
+    def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
         if bucket_payload["metric_id"] != self.counter_metric_id:
             return 0
         return len(bucket_payload["value"])
 
-    def _produce_billing_outcomes(self, payload: Dict, amount: int) -> None:
-        if amount < 1:
+    def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
+        quantity = self._count_processed_transactions(payload)
+        if quantity < 1:
             return
 
         track_outcome(
-            org_id=payload.get("org_id"),
-            project_id=payload.get("project_id"),
+            org_id=payload["org_id"],
+            project_id=payload["project_id"],
             key_id=None,
             outcome=Outcome.ACCEPTED,
             reason=None,
-            timestamp=datetime.fromtimestamp(payload.get("timestamp")),
+            timestamp=datetime.fromtimestamp(payload["timestamp"]),
             event_id=None,
             category=DataCategory.TRANSACTION_PROCESSED,
-            quantity=amount,
+            quantity=quantity,
         )
 
-    def _mark_commit_ready(self, message: Message[KafkaPayload]):
+    def _mark_commit_ready(self, message: Message[KafkaPayload]) -> None:
         self.__ready_to_commit[message.partition] = Position(message.next_offset, message.timestamp)
 
     def join(self, timeout: Optional[float] = None) -> None:
