@@ -172,15 +172,17 @@ function importSentrySampledProfile(
   const profiles: Profile[] = [];
 
   for (const key in samplesByThread) {
+    const profile: Profiling.SentrySampledProfile = {
+      ...input,
+      profile: {
+        ...input.profile,
+        samples: samplesByThread[key],
+      },
+    };
     profiles.push(
       wrapWithSpan(
         options.transaction,
-        () =>
-          SentrySampledProfile.FromProfile(
-            samplesByThread[key],
-            input.profile.stacks,
-            frameIndex
-          ),
+        () => SentrySampledProfile.FromProfile(profile, frameIndex),
         {
           op: 'profile.import',
           description: 'evented',
@@ -189,11 +191,37 @@ function importSentrySampledProfile(
     );
   }
 
+  const firstTransaction = input.transactions?.[0];
   return {
     traceID: '',
     name: '',
     activeProfileIndex: 0,
-    metadata: {},
+    metadata: {
+      // androidAPILevel: number;
+      // deviceClassification: string;
+      // organizationID: number;
+      // projectID: number;
+      // received: string;
+
+      deviceLocale: input.device.locale,
+      deviceManufacturer: input.device.manufacturer,
+      deviceModel: input.device.model,
+      deviceOSName: input.os.name,
+      deviceOSVersion: input.os.version,
+      durationNS: parseInt(
+        input.profile.samples[input.profile.samples.length - 1].elapsed_since_start_ns,
+        10
+      ),
+      environment: input.environment,
+      platform: input.platform,
+      version: input.version,
+      profileID: input.event_id,
+
+      // these don't really work for multiple transactions
+      transactionID: firstTransaction?.id,
+      transactionName: firstTransaction?.name,
+      traceID: firstTransaction?.trace_id,
+    },
     profiles,
   };
 }

@@ -8,6 +8,7 @@ import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
 import {SentrySampledProfile} from './sentrySampledProfile';
+import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
 
 describe('importProfile', () => {
   it('imports evented profile', () => {
@@ -170,54 +171,7 @@ describe('importProfile', () => {
   });
 
   it('imports sentry sampled profile', () => {
-    const sentrySampledProfile: Profiling.SentrySampledProfile = {
-      event_id: '41fed0925670468bb0457f61a74688ec',
-      version: '1',
-      os: {
-        name: 'iOS',
-        version: '16.0',
-        build_number: '19H253',
-      },
-      device: {
-        architecture: 'arm64e',
-        is_emulator: false,
-        locale: 'en_US',
-        manufacturer: 'Apple',
-        model: 'iPhone14,3',
-      },
-      timestamp: '2022-09-01T09:45:00.000Z',
-      release: '0.1 (199)',
-      platform: 'cocoa',
-      profile: {
-        samples: [
-          {
-            stack_id: 0,
-            thread_id: '0',
-            elapsed_since_start_ns: '0',
-          },
-          {
-            stack_id: 1,
-            thread_id: '0',
-            elapsed_since_start_ns: '1000',
-          },
-        ],
-        frames: [
-          {
-            name: 'main',
-            instruction_addr: '',
-          },
-          {
-            name: 'foo',
-            instruction_addr: '',
-          },
-        ],
-        stacks: [[0], [0, 1]],
-        thread_metadata: {},
-        queue_metadata: {},
-      },
-      debug_meta: {images: []},
-      transactions: [],
-    };
+    const sentrySampledProfile = makeSentrySampledProfile();
 
     const imported = importProfile(sentrySampledProfile, 'profile');
 

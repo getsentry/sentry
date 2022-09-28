@@ -11,20 +11,25 @@ import {createSentrySampleProfileFrameIndex} from './utils';
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SentrySampledProfile extends Profile {
   static FromProfile(
-    samples: Profiling.SentrySampledProfile['profile']['samples'],
-    stacks: Profiling.SentrySampledProfile['profile']['stacks'],
+    sampledProfile: Profiling.SentrySampledProfile,
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>
   ): Profile {
+    const {samples, stacks, thread_metadata = {}} = sampledProfile.profile;
     const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
     const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
     const threadId = parseInt(samples[0].thread_id, 10);
-
+    const threadName = `thread: ${
+      thread_metadata[samples[0].thread_id]?.name || threadId
+    }`;
+    const profileTransactionName = sampledProfile.transactions?.[0]?.name;
     const profile = new SentrySampledProfile({
       duration: endedAt - startedAt,
       startedAt,
       endedAt,
       unit: 'nanoseconds',
-      name: threadId.toString(),
+      name: profileTransactionName
+        ? `${profileTransactionName} (${threadName})`
+        : threadName,
       threadId,
     });
 
