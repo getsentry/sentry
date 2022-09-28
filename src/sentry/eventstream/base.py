@@ -38,8 +38,7 @@ class GroupState(TypedDict):
     is_new_group_environment: bool
 
 
-class GroupsState(TypedDict):
-    groups: Mapping[int, GroupState]
+GroupStates = Mapping[int, GroupState]
 
 
 class EventStream(Service):
@@ -70,7 +69,7 @@ class EventStream(Service):
         is_new_group_environment: bool,
         primary_hash: Optional[str],
         skip_consume: bool = False,
-        groups_state: Optional[GroupsState] = None,
+        group_states: Optional[GroupStates] = None,
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -95,7 +94,7 @@ class EventStream(Service):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
-        groups_state: GroupsState | None = None,
+        group_states: GroupStates | None = None,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,
@@ -106,7 +105,7 @@ class EventStream(Service):
             is_new_group_environment,
             primary_hash,
             skip_consume,
-            groups_state,
+            group_states,
         )
 
     def start_delete_groups(

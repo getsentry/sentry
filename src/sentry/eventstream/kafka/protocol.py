@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Callable, FrozenSet, Mapping, Optional, Sequence, Tuple, cast
 
-from sentry.eventstream.base import GroupsState
+from sentry.eventstream.base import GroupStates
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def basic_protocol_handler(
         operation: str,
         event_data: Mapping[str, Any],
         task_state: Mapping[str, Any],
-        groups_state: Optional[GroupsState] = None,
+        group_states: Optional[GroupStates] = None,
     ) -> Optional[Mapping[str, Any]]:
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
@@ -36,8 +36,8 @@ def basic_protocol_handler(
         for name in ("is_new", "is_regression", "is_new_group_environment"):
             kwargs[name] = task_state[name]
 
-        if groups_state is not None:
-            kwargs["groups_state"] = groups_state
+        if group_states is not None:
+            kwargs["group_states"] = group_states
 
         return kwargs
 
@@ -180,14 +180,14 @@ def get_task_kwargs_for_message_from_headers(
                 "is_new_group_environment": is_new_group_environment,
             }
 
-            if "groups_state" not in header_data:
-                header_data["groups_state"] = None
-            groups_state_str = decode_optional_str(header_data["groups_state"])
-            groups_state = json.loads(groups_state_str) if groups_state_str else None
+            if "group_states" not in header_data:
+                header_data["group_states"] = None
+            group_states_str = decode_optional_str(header_data["group_states"])
+            group_states = json.loads(group_states_str) if group_states_str else None
         else:
             event_data = {}
             task_state = {}
-            groups_state = None
+            group_states = None
 
     except Exception:
         raise InvalidPayload("Received event payload with unexpected structure")
@@ -199,4 +199,4 @@ def get_task_kwargs_for_message_from_headers(
             f"Received event payload with unexpected version identifier: {version}"
         )
 
-    return handler(operation, event_data, task_state, groups_state)
+    return handler(operation, event_data, task_state, group_states)

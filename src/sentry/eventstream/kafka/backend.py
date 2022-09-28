@@ -6,7 +6,7 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
-from sentry.eventstream.base import GroupsState
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
     ErrorsPostProcessForwarderWorker,
@@ -58,7 +58,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp: float,
         skip_consume,
-        groups_state: Optional[GroupsState] = None,
+        group_states: Optional[GroupStates] = None,
     ) -> Mapping[str, str]:
 
         # HACK: We are putting all this extra information that is required by the
@@ -98,7 +98,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "transaction_forwarder": encode_bool(transaction_forwarder),
-                    "groups_state": encode_dict(groups_state) if groups_state is not None else None,
+                    "group_states": encode_dict(group_states) if group_states is not None else None,
                 }
             )
         else:
@@ -123,7 +123,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp: float,
         skip_consume=False,
-        groups_state: Optional[GroupsState] = None,
+        group_states: Optional[GroupStates] = None,
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
@@ -147,7 +147,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
-            groups_state,
+            group_states,
             **kwargs,
         )
 
