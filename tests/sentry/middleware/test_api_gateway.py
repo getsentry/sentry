@@ -60,7 +60,7 @@ def verify_file_body(file_body, headers):
 
 
 @override_settings(SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG, ROOT_URLCONF=__name__)
-class ApiGatewayTestMixin(TestCase):
+class ApiGatewayTestCase(TestCase):
     def setUp(self):
         responses.add(responses.GET, "http://region1.sentry.io/get", body={"ok": True})
         responses.add(
@@ -86,7 +86,7 @@ class ApiGatewayTestMixin(TestCase):
         responses.add_callback(responses.POST, "http://region1.sentry.io/echo", return_request_body)
 
 
-class VerifyRequestBodyTest(TestCase, ApiGatewayTestMixin):
+class VerifyRequestBodyTest(ApiGatewayTestCase):
     @responses.activate
     def test_verify_request_body(self):
         body = {"ab": "cd"}
