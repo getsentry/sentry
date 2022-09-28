@@ -25,6 +25,15 @@ from sentry.utils.performance_issues.performance_detection import (
 )
 from sentry.utils.performance_issues.performance_span_issue import PerformanceSpanProblem
 
+BASE_DETECTOR_OPTIONS = {
+    "performance.issues.n_plus_one_db.problem-creation": 1.0,
+    "performance.issues.n_plus_one_db_ext.problem-creation": 1.0,
+}
+BASE_DETECTOR_OPTIONS_OFF = {
+    "performance.issues.n_plus_one_db.problem-creation": 0.0,
+    "performance.issues.n_plus_one_db_ext.problem-creation": 0.0,
+}
+
 
 def assert_n_plus_one_db_problem(perf_problems):
     assert perf_problems == [
@@ -89,7 +98,7 @@ class PerformanceDetectionTest(unittest.TestCase):
             detect_performance_problems(event)
         assert mock.call_count == 1
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    @override_options(BASE_DETECTOR_OPTIONS)
     def test_project_option_overrides_default(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
@@ -104,13 +113,8 @@ class PerformanceDetectionTest(unittest.TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert perf_problems == []
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @patch(
-        "sentry.utils.performance_issues.performance_detection.get_allowed_issue_creation_detectors"
-    )
-    def test_n_plus_one_extended_detection_no_parent_span(self, mock):
-        allowed_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED}
-        mock.return_value = allowed_detectors
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_n_plus_one_extended_detection_no_parent_span(self):
         n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
         sdk_span_mock = Mock()
 
@@ -138,27 +142,33 @@ class PerformanceDetectionTest(unittest.TestCase):
             )
         ]
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    @patch(
-        "sentry.utils.performance_issues.performance_detection.get_allowed_issue_creation_detectors"
-    )
-    def test_n_plus_one_extended_detection_matches_previous_group(self, mock):
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_n_plus_one_extended_detection_matches_previous_group(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
 
-        allowed_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED}
-        mock.return_value = allowed_detectors
+        with override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0}):
+            n_plus_one_extended_problems = _detect_performance_problems(
+                n_plus_one_event, sdk_span_mock
+            )
 
-        n_plus_one_extended_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
-
-        allowed_detectors = {DetectorType.N_PLUS_ONE_DB_QUERIES}
-        mock.return_value = allowed_detectors
-
-        n_plus_one_original_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+        with override_options({"performance.issues.n_plus_one_db_ext.problem-creation": 0.0}):
+            n_plus_one_original_problems = _detect_performance_problems(
+                n_plus_one_event, sdk_span_mock
+            )
 
         assert n_plus_one_original_problems == n_plus_one_extended_problems
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    @override_options(BASE_DETECTOR_OPTIONS)
+    def test_overlap_detector_problems(self):
+        n_plus_one_event = EVENTS["n-plus-one-db-root-parent-span"]
+        sdk_span_mock = Mock()
+
+        n_plus_one_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
+
+        assert len(n_plus_one_problems)
+
+    @override_options(BASE_DETECTOR_OPTIONS)
     def test_no_feature_flag_disables_creation(self):
         self.features = []
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
@@ -167,7 +177,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert perf_problems == []
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 0.0})
+    @override_options(BASE_DETECTOR_OPTIONS_OFF)
     def test_system_option_disables_detector_issue_creation(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()
@@ -175,7 +185,7 @@ class PerformanceDetectionTest(unittest.TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock)
         assert perf_problems == []
 
-    @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
+    @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self):
         n_plus_one_event = EVENTS["n-plus-one-in-django-index-view"]
         sdk_span_mock = Mock()

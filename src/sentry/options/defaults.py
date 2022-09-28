@@ -529,6 +529,7 @@ register(
 # Individual system-wide options in case we need to turn off specific detectors for load concerns, ignoring the set project options.
 register("performance.issues.n_plus_one_db.problem-detection", default=0.0)
 register("performance.issues.n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.n_plus_one_db_ext.problem-creation", default=0.0)
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
 register("performance.issues.n_plus_one_db.count_threshold", default=5)
