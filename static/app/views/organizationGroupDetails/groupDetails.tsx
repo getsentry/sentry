@@ -175,6 +175,7 @@ class GroupDetails extends Component<Props, State> {
       event_id: event?.eventID,
       num_commits: event?.release?.commitCount || 0,
       event_platform: event?.platform,
+      event_type: event?.type,
       has_release: !!event?.release,
       has_source_maps: event ? eventHasSourceMaps(event) : false,
       event_errors: event ? getEventErrorString(event) : '',

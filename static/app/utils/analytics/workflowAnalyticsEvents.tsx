@@ -58,6 +58,7 @@ export type TeamInsightsEventParameters = {
     event_errors?: string;
     event_id?: string;
     event_platform?: string;
+    event_type?: string;
     has_release?: boolean;
     has_source_maps?: boolean;
     is_assigned?: boolean;
