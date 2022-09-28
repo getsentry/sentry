@@ -8,6 +8,7 @@ import Button from 'sentry/components/button';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {PinnedPageFilter} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -17,13 +18,13 @@ type Props = {
   message?: string;
 };
 
-const filterNameMap = {
-  projects: 'project',
-  environments: 'environment',
-  date: 'date',
+const filterNameMap: Record<PinnedPageFilter, string> = {
+  projects: t('project'),
+  environments: t('environment'),
+  datetime: t('date'),
 };
 
-function getReadableDesyncedFilterList(desyncedFilters) {
+function getReadableDesyncedFilterList(desyncedFilters: Set<PinnedPageFilter>) {
   const filters = [...desyncedFilters];
 
   if (filters.length === 1) {
