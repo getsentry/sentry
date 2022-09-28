@@ -129,6 +129,7 @@ const StyledHeaderItem = styled('div', {
 const Content = styled('div')`
   display: flex;
   flex: 1;
+  width: 0;
   white-space: nowrap;
   overflow: hidden;
   margin-right: ${space(1.5)};

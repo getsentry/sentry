@@ -138,7 +138,7 @@ export default function ChartFooter({
             eventView={eventView}
             onIntervalChange={onIntervalChange}
           />
-          <IntervalBadge type="beta" />
+          <FeatureBadge type="new" space={0} />
         </Feature>
         <OptionSelector
           title={t('Display')}
@@ -182,8 +182,4 @@ export default function ChartFooter({
 const SwitchLabel = styled('div')`
   padding-right: 4px;
   font-weight: bold;
-`;
-
-const IntervalBadge = styled(FeatureBadge)`
-  margin-left: 0px;
 `;
