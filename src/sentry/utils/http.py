@@ -9,12 +9,11 @@ from sentry import options
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
 
-def absolute_uri(url: Optional[str] = None, url_prefix=None) -> str:
-    if url_prefix is None:
-        url_prefix = options.get("system.url-prefix")
+def absolute_uri(url: Optional[str] = None) -> str:
+    prefix = options.get("system.url-prefix")
     if not url:
-        return url_prefix
-    return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
+        return prefix
+    return urljoin(prefix.rstrip("/") + "/", url.lstrip("/"))
 
 
 def origin_from_url(url):
