@@ -36,6 +36,7 @@ class GroupState(TypedDict):
     is_new: bool
     is_regression: bool
     is_new_group_environment: bool
+    primary_hash: Optional[str]
 
 
 GroupStates = Mapping[int, GroupState]
