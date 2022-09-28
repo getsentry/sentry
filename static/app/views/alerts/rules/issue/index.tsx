@@ -1043,7 +1043,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
                           <StepContent>
                             <StepLead>
-                              {tct('[if:If] [selector] of these filters match', {
+                              {tct('[if:If][selector] of these filters match', {
                                 if: <Badge />,
                                 selector: (
                                   <EmbeddedWrapper>
@@ -1219,6 +1219,11 @@ const StepConnector = styled('div')`
 
 const StepLead = styled('div')`
   margin-bottom: ${space(0.5)};
+  & > span {
+    display: flex;
+    align-items: center;
+    gap: ${space(0.5)};
+  }
 `;
 
 const ChevronContainer = styled('div')`
@@ -1228,7 +1233,6 @@ const ChevronContainer = styled('div')`
 `;
 
 const Badge = styled('span')`
-  display: inline-block;
   min-width: 56px;
   background-color: ${p => p.theme.purple300};
   padding: 0 ${space(0.75)};
@@ -1242,8 +1246,6 @@ const Badge = styled('span')`
 `;
 
 const EmbeddedWrapper = styled('div')`
-  display: inline-block;
-  margin: 0 ${space(0.5)};
   width: 80px;
 `;
 
