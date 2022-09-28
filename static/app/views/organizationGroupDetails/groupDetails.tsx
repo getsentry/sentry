@@ -24,6 +24,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
@@ -38,6 +39,27 @@ import {
   markEventSeen,
   ReprocessingStatus,
 } from './utils';
+
+/**
+ * Function to determine if an event has source maps
+ */
+function eventHasSourceMaps(event: Event) {
+  return event.entries?.some(entry => {
+    if (entry.type === 'exception') {
+      if (entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+/**
+ * Returns a comma delineated list of errors
+ */
+function getEventErrorString(event: Event) {
+  return event.errors?.map(error => error.type).join(',') || '';
+}
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -133,13 +155,31 @@ class GroupDetails extends Component<Props, State> {
   }
 
   trackView(project: Project) {
+    const {group, event} = this.state;
     const {organization, params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAdvancedAnalyticsEvent('issue_details.viewed', {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
-      issue_category: this.state.group?.issueCategory ?? IssueCategory.ERROR,
+      // group properties
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+      issue_status: group?.status,
+      issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
+      issue_level: group?.level,
+      is_assigned: !!group?.assignedTo,
+      error_count: Number(group?.count || -1),
+      num_comments: group ? group.numComments : -1,
+      project_platform: group?.project.platform,
+      // event properties
+      event_id: event?.eventID,
+      num_commits: event?.release?.commitCount || 0,
+      event_platform: event?.platform,
+      has_release: !!event?.release,
+      has_source_maps: event ? eventHasSourceMaps(event) : false,
+      event_errors: event ? getEventErrorString(event) : '',
+      sdk_name: event?.sdk?.name,
+      sdk_version: event?.sdk?.version,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -424,7 +464,7 @@ class GroupDetails extends Component<Props, State> {
       });
 
       const [data] = await Promise.all([groupPromise, eventPromise]);
-      this.fetchGroupReleases();
+      const groupReleasePromise = this.fetchGroupReleases();
 
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
@@ -473,6 +513,8 @@ class GroupDetails extends Component<Props, State> {
       GroupStore.loadInitialData([data]);
 
       if (trackView) {
+        // make sure releases have loaded before we track the view
+        await groupReleasePromise;
         this.trackView(project);
       }
     } catch (error) {
