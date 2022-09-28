@@ -971,9 +971,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         # Track how many N+1-looking problems we found but dropped because we
         # couldn't be sure (maybe the truncated part of the query differs).
-        if not self._contains_complete_query(self.source_span, is_source=True) or not self._contains_complete_query(
-            self.n_spans[0]
-        ):
+        if not self._contains_complete_query(
+            self.source_span, is_source=True
+        ) or not self._contains_complete_query(self.n_spans[0]):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
