@@ -16,7 +16,15 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  AvatarProject,
+  Group,
+  GroupActivityAssigned,
+  GroupActivityType,
+  IssueCategory,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -59,6 +67,22 @@ function eventHasSourceMaps(event: Event) {
  */
 function getEventErrorString(event: Event) {
   return event.errors?.map(error => error.type).join(',') || '';
+}
+
+/**
+ * Return the integration type for the first assignment via integration
+ */
+function getAssignmentIntegration(group: Group) {
+  if (!group.activity) {
+    return '';
+  }
+  const assignmentAcitivies = group.activity.filter(
+    activity => activity.type === GroupActivityType.ASSIGNED
+  ) as GroupActivityAssigned[];
+  const integrationAssignments = assignmentAcitivies.find(
+    activity => !!activity.data.integration
+  );
+  return integrationAssignments?.data.integration || '';
 }
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
@@ -176,6 +200,8 @@ class GroupDetails extends Component<Props, State> {
       num_comments: group ? group.numComments : -1,
       project_platform: group?.project.platform,
       has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
+      has_owner: group?.owners ? group?.owners.length > 0 : false,
+      integration_assignment_source: group ? getAssignmentIntegration(group) : '',
       // event properties
       event_id: event?.eventID,
       num_commits: event?.release?.commitCount || 0,
