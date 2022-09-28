@@ -4,8 +4,8 @@ import {User} from 'sentry/types';
 
 interface MemberListStoreDefinition extends StoreDefinition {
   getAll(): User[];
-  getByEmail(email: string): User | undefined;
   getById(id: string): User | undefined;
+  getState(): User[];
   init(): void;
   isLoaded(): boolean;
   loadInitialData(items: User[]): void;
@@ -47,21 +47,11 @@ const storeConfig: MemberListStoreDefinition = {
     return undefined;
   },
 
-  getByEmail(email) {
-    if (!this.state) {
-      return undefined;
-    }
-
-    email = email.toLowerCase();
-    for (let i = 0; i < this.state.length; i++) {
-      if (this.state[i].email.toLowerCase() === email) {
-        return this.state[i];
-      }
-    }
-    return undefined;
+  getAll() {
+    return this.state;
   },
 
-  getAll() {
+  getState() {
     return this.state;
   },
 };

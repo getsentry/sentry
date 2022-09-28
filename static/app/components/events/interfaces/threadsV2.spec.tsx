@@ -1,4 +1,3 @@
-import React from 'react';
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -1080,6 +1079,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on raw stack trace option
+        MockApiClient.warnOnMissingMocks();
         userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
 
         // Download button is displayed

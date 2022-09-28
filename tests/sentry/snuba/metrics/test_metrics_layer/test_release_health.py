@@ -7,6 +7,7 @@ import pytest
 from django.utils.datastructures import MultiValueDict
 from snuba_sdk import Granularity, Limit, Offset
 
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import MetricField, MetricsQuery
 from sentry.snuba.metrics.datasource import get_series
@@ -244,3 +245,41 @@ class ReleaseHealthMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 "totals": {"histogram_duration": hist},
             }
         ]
+
+    def test_query_private_metrics_raise_exception(self):
+        self.store_metric(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            type="counter",
+            name=str(SessionMRI.SESSION.value),
+            tags={"session.status": "errored_preaggr"},
+            timestamp=time.time(),
+            value=2,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+        )
+        start, end, rollup = get_date_range(
+            {
+                "statsPeriod": "1h",
+                "interval": "1h",
+            }
+        )
+        with pytest.raises(
+            InvalidParams,
+            match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+        ):
+            MetricsQuery(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                select=[
+                    MetricField(
+                        op=None,
+                        metric_mri=str(SessionMRI.ERRORED_PREAGGREGATED.value),
+                        alias="errored_preaggregated_sessions_alias",
+                    ),
+                ],
+                start=start,
+                end=end,
+                granularity=Granularity(granularity=rollup),
+                limit=Limit(limit=51),
+                offset=Offset(offset=0),
+            )

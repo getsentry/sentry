@@ -35,7 +35,6 @@ describe('groupDetails', () => {
     {
       componentPromise: null,
       component: null,
-      props: {currentTab: 'details', isEventRoute: false},
     },
   ];
 
@@ -77,7 +76,7 @@ describe('groupDetails', () => {
         }}
       >
         <OrganizationContext.Provider value={organization}>
-          <GroupDetails {...router} selection={props.selection}>
+          <GroupDetails {...router} router={router} selection={props.selection}>
             <MockComponent />
           </GroupDetails>
         </OrganizationContext.Provider>

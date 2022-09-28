@@ -59,6 +59,10 @@ export type FormOptions = {
    * Should the form save on blur?
    */
   saveOnBlur?: boolean;
+  /**
+   * Custom transformer function used before the API request
+   */
+  transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
 };
 
 class FormModel {
@@ -214,7 +218,7 @@ class FormModel {
    * Set form options
    */
   setFormOptions(options: FormOptions) {
-    this.options = options || {};
+    this.options = {...this.options, ...options} || {};
   }
 
   /**
@@ -310,12 +314,14 @@ class FormModel {
   getTransformedData() {
     const form = this.getData();
 
-    return Object.keys(form)
+    const data = Object.keys(form)
       .map(id => [id, this.getTransformedValue(id)])
-      .reduce((acc, [id, value]) => {
+      .reduce<Record<string, any>>((acc, [id, value]) => {
         acc[id] = value;
         return acc;
       }, {});
+
+    return this.options.transformData ? this.options.transformData(data, this) : data;
   }
 
   getError(id: string) {

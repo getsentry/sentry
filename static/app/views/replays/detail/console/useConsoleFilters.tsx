@@ -1,7 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
-import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import type {
+  BreadcrumbLevelType,
+  BreadcrumbTypeDefault,
+  Crumb,
+} from 'sentry/types/breadcrumbs';
+import {isBreadcrumbLogLevel, isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
@@ -19,7 +23,7 @@ type Options = {
 
 type Return = {
   items: Item[];
-  logLevel: string[];
+  logLevel: BreadcrumbLevelType[];
   searchTerm: string;
   setLogLevel: (logLevel: string[]) => void;
   setSearchTerm: (searchTerm: string) => void;
@@ -30,7 +34,9 @@ const FILTERS = {
     logLevel.length === 0 || logLevel.includes(item.level),
 
   searchTerm: (item: Item, searchTerm: string) =>
-    JSON.stringify(item.data).toLowerCase().includes(searchTerm),
+    JSON.stringify(item.data?.arguments || item.message)
+      .toLowerCase()
+      .includes(searchTerm),
 };
 
 function useConsoleFilters({breadcrumbs}: Options): Return {
@@ -41,7 +47,7 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
     [breadcrumbs]
   );
 
-  const logLevel = decodeList(query.f_c_logLevel);
+  const logLevel = decodeList(query.f_c_logLevel).filter(isBreadcrumbLogLevel);
   const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
 
   const items = useMemo(

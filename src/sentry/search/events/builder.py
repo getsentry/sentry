@@ -508,6 +508,7 @@ class QueryBuilder:
                 equations,
                 stripped_columns,
                 **self.equation_config,
+                custom_measurements=self.get_custom_measurement_names_set(),
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
@@ -868,6 +869,9 @@ class QueryBuilder:
             return []
         return result
 
+    def get_custom_measurement_names_set(self) -> Set[str]:
+        return {measurement["name"] for measurement in self.custom_measurement_map}
+
     def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
         if not is_measurement(name):
@@ -1097,9 +1101,10 @@ class QueryBuilder:
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
         name = search_filter.key.name
-        if measurement_meta := self.get_measument_by_name(name):
+        value = search_filter.value.value
+        if value and (measurement_meta := self.get_measument_by_name(name)):
             unit = measurement_meta.get("unit")
-            value = self.resolve_measurement_value(unit, search_filter.value.value)
+            value = self.resolve_measurement_value(unit, value)
             search_filter = SearchFilter(
                 search_filter.key, search_filter.operator, SearchValue(value)
             )

@@ -1,5 +1,5 @@
-import getCookie from 'sentry/utils/getCookie';
+import Cookies from 'js-cookie';
 
 export default function getCsrfToken() {
-  return getCookie(window.csrfCookieName ?? 'sc') ?? '';
+  return Cookies.get(window.csrfCookieName ?? 'sc') ?? '';
 }

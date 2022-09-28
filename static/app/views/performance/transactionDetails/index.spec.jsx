@@ -29,6 +29,7 @@ describe('EventDetails', () => {
       },
     });
 
+    MockApiClient.warnOnMissingMocks();
     render(
       <OrganizationContext.Provider value={organization}>
         <EventDetails
@@ -59,6 +60,7 @@ describe('EventDetails', () => {
       },
     });
 
+    MockApiClient.warnOnMissingMocks();
     render(
       <OrganizationContext.Provider value={organization}>
         <EventDetails

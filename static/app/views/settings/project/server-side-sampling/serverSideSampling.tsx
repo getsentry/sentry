@@ -58,6 +58,7 @@ import {
   Rule,
 } from './rule';
 import {SamplingBreakdown} from './samplingBreakdown';
+import {SamplingFeedback} from './samplingFeedback';
 import {SamplingProjectIncompatibleAlert} from './samplingProjectIncompatibleAlert';
 import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
@@ -425,6 +426,7 @@ export function ServerSideSampling({project}: Props) {
               {t('Dynamic Sampling')} <FeatureBadge type="beta" />
             </Fragment>
           }
+          action={<SamplingFeedback />}
         />
         <TextBlock>
           {tct(

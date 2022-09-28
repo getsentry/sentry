@@ -180,15 +180,9 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
   onFieldChange = (fieldName: string) => {
     if (SELF_NOTIFICATION_SETTINGS_TYPES.includes(fieldName)) {
-      const endpointDetails = {
-        apiEndpoint: '/users/me/notifications/',
-      };
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions({apiEndpoint: '/users/me/notifications/'});
     } else {
-      const endpointDetails = {
-        apiEndpoint: '/users/me/notification-settings/',
-      };
-      this.model.setFormOptions({...this.model.options, ...endpointDetails});
+      this.model.setFormOptions({apiEndpoint: '/users/me/notification-settings/'});
     }
   };
 

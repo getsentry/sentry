@@ -114,8 +114,6 @@ function Event({
           setActiveTab('dom');
           break;
         case 'error':
-          setActiveTab('issues');
-          break;
         default:
           setActiveTab('console');
           break;

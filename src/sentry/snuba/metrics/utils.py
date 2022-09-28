@@ -76,6 +76,9 @@ MetricOperationType = Literal[
     "p95",
     "p99",
     "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -167,7 +170,6 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
-    "generic_counter": EntityKey.GenericMetricsCounters,
     "generic_set": EntityKey.GenericMetricsSets,
     "generic_distribution": EntityKey.GenericMetricsDistributions,
 }
@@ -203,11 +205,7 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = (
-    "histogram",
-    "rate",
-    "count_web_vitals",
-)
+DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
 OPERATIONS = (
     (
         "avg",
@@ -237,6 +235,7 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "histogram": [],
     "rate": 0,
     "count_web_vitals": 0,
+    "count_transaction_name": 0,
 }
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}
