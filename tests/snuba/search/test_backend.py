@@ -33,7 +33,7 @@ from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.faux import Any
 from sentry.types.issues import GroupType
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError
+from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset, SnubaError, get_snuba_column_name
 
 
 def date_to_query_format(date):
@@ -1269,7 +1269,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == set()
 
-    @mock.patch("sentry.utils.snuba.raw_query")
+    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
     def test_snuba_not_called_optimization(self, query_mock):
         assert self.make_query(search_filter_query="status:unresolved").results == [self.group1]
         assert not query_mock.called
@@ -1283,11 +1283,12 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert query_mock.called
 
-    @mock.patch("sentry.utils.snuba.raw_query")
-    def test_optimized_aggregates(self, query_mock):
+    @mock.patch("sentry.issues.search.SnubaQueryParams")
+    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
+    def test_optimized_aggregates(self, bulk_raw_query_mock, snuba_query_params_mock):
         # TODO this test is annoyingly fragile and breaks in hard-to-see ways
         # any time anything about the snuba query changes
-        query_mock.return_value = {"data": [], "totals": {"total": 0}}
+        bulk_raw_query_mock.return_value = [{"data": [], "totals": {"total": 0}}]
 
         DEFAULT_LIMIT = 100
         chunk_growth = options.get("snuba.search.chunk-growth-rate")
@@ -1314,17 +1315,19 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             "totals": True,
             "turbo": False,
             "sample": 1,
+            "condition_resolver": get_snuba_column_name,
         }
 
         self.make_query(search_filter_query="status:unresolved")
-        assert not query_mock.called
+        assert not snuba_query_params_mock.called
 
         self.make_query(
             search_filter_query="last_seen:>=%s foo" % date_to_query_format(timezone.now()),
             sort_by="date",
         )
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        assert snuba_query_params_mock.called
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-last_seen", "group_id"],
             aggregations=[
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
@@ -1335,8 +1338,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="foo", sort_by="priority")
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-priority", "group_id"],
             aggregations=[
                 ["count()", "", "times_seen"],
@@ -1349,8 +1352,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="times_seen:5 foo", sort_by="freq")
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-times_seen", "group_id"],
             aggregations=[
                 ["count()", "", "times_seen"],
@@ -1361,8 +1364,8 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
 
         self.make_query(search_filter_query="foo", sort_by="user")
-        query_mock.call_args[1]["aggregations"].sort()
-        assert query_mock.call_args == mock.call(
+        snuba_query_params_mock.call_args[1]["aggregations"].sort()
+        assert snuba_query_params_mock.call_args == mock.call(
             orderby=["-user_count", "group_id"],
             aggregations=[
                 ["uniq", "group_id", "total"],
