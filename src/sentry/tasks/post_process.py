@@ -292,7 +292,7 @@ def post_process_group(
             )
             return
 
-        event = process_event(cache_key, data, group_id)
+        event = process_event(data, group_id)
 
         with metrics.timer("tasks.post_process.delete_event_cache"):
             event_processing_store.delete_by_key(cache_key)
