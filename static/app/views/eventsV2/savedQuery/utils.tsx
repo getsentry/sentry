@@ -1,3 +1,4 @@
+import {updateHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {
   createSavedQuery,
   deleteSavedQuery,
@@ -209,6 +210,22 @@ export function handleDeleteQuery(
     });
 
   return promise;
+}
+
+export function handleUpdateHomepageQuery(
+  api: Client,
+  organization: Organization,
+  query: NewQuery
+) {
+  const promise = updateHomepageQuery(api, organization.slug, query);
+
+  return promise
+    .then(() => {
+      addSuccessMessage(t('Saved as Default Discover Query'));
+    })
+    .catch(() => {
+      addErrorMessage(t('Unable to set query as Default Discover Query'));
+    });
 }
 
 export function getAnalyticsCreateEventKeyName(

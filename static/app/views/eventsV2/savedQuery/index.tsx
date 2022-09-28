@@ -30,7 +30,12 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateHomepageQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type SaveAsDropdownProps = {
   disabled: boolean;
@@ -383,14 +388,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderSaveAsHomepage() {
-    const {organization, eventView, savedQuery, yAxis, router, location} = this.props;
+    const {api, organization, eventView} = this.props;
     return (
       <Button
         key="save-query-as-homepage"
         data-test-id="save-query-as-homepage"
-        onClick={() => console.log('saving duuuuude')}
+        onClick={() => {
+          handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+        }}
       >
-        {t('Add to Dashboard')}
+        {t('Use as Default')}
       </Button>
     );
   }
@@ -430,7 +437,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <ResponsiveButtonBar gap={1}>
         <Feature
           organization={organization}
-          features={['discover-query-builder-as-landing-page']}
+          features={['discover-query', 'discover-query-builder-as-landing-page']}
         >
           {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
         </Feature>
