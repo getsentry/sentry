@@ -60,7 +60,7 @@ export function getDiscoverLandingUrl(organization: OrganizationSummary): string
   ) {
     return getDiscoverQueriesUrl(organization);
   }
-  return `/organizations/${organization.slug}/discover/results/`;
+  return `/organizations/${organization.slug}/discover/results/id=homepage`;
 }
 
 export function getDiscoverQueriesUrl(organization: OrganizationSummary): string {

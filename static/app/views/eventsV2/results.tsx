@@ -3,7 +3,6 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -294,7 +293,10 @@ class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
-    const query = homepageQuery ? omit(homepageQuery, 'id') : DEFAULT_EVENT_VIEW;
+    if (homepageQuery) {
+      homepageQuery.id = 'homepage';
+    }
+    const query = homepageQuery ?? DEFAULT_EVENT_VIEW;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
@@ -673,7 +675,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     const {organization, location} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
-    if (location.query.id) {
+    if (location.query.id && location.query.id !== 'homepage') {
       endpoints.push([
         'savedQuery',
         `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
@@ -683,7 +685,8 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
-      isEmpty(location.query)
+      location.query.id &&
+      location.query.id === 'homepage'
     ) {
       endpoints.push([
         'homepageQuery',
