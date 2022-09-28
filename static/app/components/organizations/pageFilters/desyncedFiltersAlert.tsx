@@ -6,16 +6,42 @@ import {revertToPinnedFilters} from 'sentry/actionCreators/pageFilters';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {PinnedPageFilter} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   router: InjectedRouter;
+  hideRevertButton?: boolean;
+  message?: string;
 };
 
-export default function DesyncedFilterAlert({router}: Props) {
+const filterNameMap: Record<PinnedPageFilter, string> = {
+  projects: t('project'),
+  environments: t('environment'),
+  datetime: t('date'),
+};
+
+function getReadableDesyncedFilterList(desyncedFilters: Set<PinnedPageFilter>) {
+  const filters = [...desyncedFilters];
+
+  if (filters.length === 1) {
+    return `${filterNameMap[filters[0]]} filter`;
+  }
+
+  return `${filters
+    .slice(0, -1)
+    .map(value => filterNameMap[value])
+    .join(', ')} and ${filterNameMap[filters[filters.length - 1]]} filters`;
+}
+
+export default function DesyncedFilterAlert({
+  router,
+  message,
+  hideRevertButton = false,
+}: Props) {
   const {desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const [hideAlert, setHideAlert] = useState(false);
@@ -29,15 +55,17 @@ export default function DesyncedFilterAlert({router}: Props) {
   }
 
   return (
-    <Alert
+    <DesyncedAlert
       type="info"
       showIcon
       system
       trailingItems={
         <Fragment>
-          <RevertButton priority="link" size="zero" onClick={onRevertClick} borderless>
-            {t('Revert')}
-          </RevertButton>
+          {!hideRevertButton && (
+            <RevertButton priority="link" size="zero" onClick={onRevertClick} borderless>
+              {t('Restore old values')}
+            </RevertButton>
+          )}
           <Button
             priority="link"
             size="zero"
@@ -48,12 +76,21 @@ export default function DesyncedFilterAlert({router}: Props) {
         </Fragment>
       }
     >
-      {t(
-        "You're viewing a shared link. Certain queries and filters have been automatically filled from URL parameters."
+      {tct(
+        message ??
+          'The [filter] [has] been overwritten. This can happen when you open sentry.io links with filter parameters that are different from your current filter values.',
+        {
+          filter: getReadableDesyncedFilterList(desyncedFilters),
+          has: desyncedFilters.size > 1 ? t('have') : t('has'),
+        }
       )}
-    </Alert>
+    </DesyncedAlert>
   );
 }
+
+const DesyncedAlert = styled(Alert)`
+  margin-bottom: 0;
+`;
 
 const RevertButton = styled(Button)`
   display: flex;
