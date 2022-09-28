@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
@@ -33,7 +33,12 @@ describe('Results', function () {
   enforceActOnUseLegacyStoreHook();
 
   const eventTitle = 'Oh no something bad';
-  let eventsResultsMock, eventsv2ResultsMock, mockSaved, eventsStatsMock, mockVisit;
+  let eventsResultsMock,
+    eventsv2ResultsMock,
+    mockSaved,
+    eventsStatsMock,
+    mockVisit,
+    mockHomepage;
 
   const mountWithThemeAndOrg = (component, opts, organization) =>
     mountWithTheme(component, {
@@ -192,9 +197,33 @@ describe('Results', function () {
         orderby: '-user.display',
       },
     });
+
+    mockHomepage = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        id: '2',
+        name: 'homepage query',
+        projects: [],
+        version: 2,
+        expired: false,
+        dateCreated: '2021-04-08T17:53:25.195782Z',
+        dateUpdated: '2021-04-09T12:13:18.567264Z',
+        createdBy: {
+          id: '2',
+        },
+        environment: [],
+        fields: ['environment'],
+        widths: ['-1'],
+        range: '24h',
+        orderby: '-environment',
+      },
+    });
   });
 
   afterEach(function () {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
   });
@@ -1702,5 +1731,75 @@ describe('Results', function () {
     expect(wrapper.find('Alert').find('Message').text()).toEqual(
       'These are unparameterized transactions. To better organize your transactions, set transaction names manually.'
     );
+  });
+
+  it('redirects with homepage query if no id in query', () => {
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: TestStubs.location(),
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+        requiresHomepage
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/discover/results/',
+        query: expect.objectContaining({
+          name: 'homepage query',
+          field: ['environment'],
+        }),
+      })
+    );
+  });
+
+  it('does not fetch homepage if id is in query', () => {
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    expect(mockSaved).toHaveBeenCalled();
+    expect(mockHomepage).not.toHaveBeenCalled();
   });
 });

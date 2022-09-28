@@ -186,7 +186,6 @@ export type SavedQueryVersions = 1 | 2;
 
 export interface NewQuery {
   fields: Readonly<string[]>;
-  id: string | undefined;
   name: string;
   projects: Readonly<number[]>;
   version: SavedQueryVersions;
@@ -195,6 +194,7 @@ export interface NewQuery {
   end?: string;
   environment?: Readonly<string[]>;
   expired?: boolean;
+  id?: string;
   interval?: string;
   orderby?: string;
   query?: string;
