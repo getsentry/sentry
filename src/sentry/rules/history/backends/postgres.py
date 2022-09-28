@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Sequence, TypedDict, cast
+from typing import TYPE_CHECKING, List, Sequence, TypedDict, cast
 
 import pytz
 from django.db.models import Count, Max, OuterRef, Subquery
@@ -34,8 +34,8 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
 
 # temporary hack for removing unnecessary subqueries from group by list
 # TODO: remove when upgrade to django 3.0
-class NoGroupBySubquery(Subquery):
-    def get_group_by_cols(self):
+class NoGroupBySubquery(Subquery):  # type: ignore
+    def get_group_by_cols(self) -> List[str]:
         return []
 
 
