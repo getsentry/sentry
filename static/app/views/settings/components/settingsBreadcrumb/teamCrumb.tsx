@@ -8,13 +8,9 @@ import useTeams from 'sentry/utils/useTeams';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
-import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{teamId: string}, {}> & {
-  routes: RouteWithName[];
-  route?: RouteWithName;
-};
+type Props = RouteComponentProps<{teamId: string}, {}>;
 
 const TeamCrumb = ({params, routes, route, ...props}: Props) => {
   const {teams, onSearch, fetching} = useTeams();

@@ -9,14 +9,11 @@ import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcr
 import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
 import MenuItem from 'sentry/views/settings/components/settingsBreadcrumb/menuItem';
 
-import {RouteWithName} from './types';
 import {CrumbLink} from '.';
 
 type Props = RouteComponentProps<{projectId?: string}, {}> & {
   organization: Organization;
   organizations: Organization[];
-  route: RouteWithName;
-  routes: RouteWithName[];
 };
 
 const OrganizationCrumb = ({
