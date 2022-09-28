@@ -10,7 +10,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Mapping
+from typing import Iterable
 from urllib.parse import urlparse
 
 import sentry
@@ -283,6 +283,7 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
+    "sentry.middleware.dedupe_cookies.DedupeCookiesMiddleware",
     "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -571,6 +572,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.codeowners.update_code_owners_schema",
     "sentry.tasks.collect_project_platforms",
     "sentry.tasks.commits",
+    "sentry.tasks.commit_context",
     "sentry.tasks.deletion",
     "sentry.tasks.digests",
     "sentry.tasks.email",
@@ -645,6 +647,7 @@ CELERY_QUEUES = [
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
+    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
     Queue(
         "releasemonitor",
         routing_key="releasemonitor",
@@ -1157,6 +1160,8 @@ SENTRY_FEATURES = {
     "organizations:performance-issues-ingest": False,
     # Enable performance issues dev options, includes changing detection thresholds and other parts of issues that we're using for development.
     "organizations:performance-issues-dev": False,
+    # Enables updated all events tab in a performance issue
+    "organizations:performance-issues-all-events-tab": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable the UI for the overage alert settings
@@ -1209,6 +1214,8 @@ SENTRY_FEATURES = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable use of symbolic-sourcemapcache for JavaScript Source Maps processing
+    "projects:sourcemapcache-processor": False,
     # Enable suspect resolutions feature
     "projects:suspect-resolutions": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
@@ -2155,6 +2162,13 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
+if SENTRY_DEV_DSN:
+    # In production, this value is *not* set via an env variable
+    # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
+    # This is used in case you want to report traces of your development set up to a project of your choice
+    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
 # Callable to bind additional context for the Sentry SDK
 #
 # def get_org_context(scope, organization, **kwargs):
@@ -2445,6 +2459,7 @@ KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
+KAFKA_REGION_TO_CONTROL = "region-to-control"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2492,6 +2507,8 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
+    # Region to Control Silo messaging - eg UserIp and AuditLog
+    KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
 }
 
 
@@ -2775,7 +2792,6 @@ MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
-SNOWFLAKE_REGION_ID = 0
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
@@ -2792,6 +2808,7 @@ ORGANIZATION_VITALS_OVERVIEW_PROJECT_LIMIT = 300
 SENTRY_STRING_INDEXER_CACHE_OPTIONS = {
     "cache_name": "default",
 }
+SENTRY_POSTGRES_INDEXER_RETRY_COUNT = 2
 
 SENTRY_FUNCTIONS_PROJECT_NAME = None
 
@@ -2806,4 +2823,5 @@ DISALLOWED_CUSTOMER_DOMAINS = []
 
 SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 
-SENTRY_REGION_CONFIG: Mapping[str, Region] = {}
+SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
+SENTRY_REGION_CONFIG: Iterable[Region] = ()

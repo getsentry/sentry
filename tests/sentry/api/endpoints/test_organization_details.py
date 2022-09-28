@@ -127,6 +127,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
 
+        # sentry_option query related to userip.
+        expected_queries += 1
+
         # Symbolication Low Priority Queue stats reads two killswitches
         expected_queries += 8
 

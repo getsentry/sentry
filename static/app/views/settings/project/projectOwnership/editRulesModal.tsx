@@ -15,13 +15,7 @@ class EditOwnershipRulesModal extends Component<Props, State> {
     return (
       <Fragment>
         <Block>
-          {t('Rules follow the pattern: ')} <code>type:glob owner owner</code>
-        </Block>
-        <Block>
-          {t('Owners can be team identifiers starting with #, or user emails')}
-        </Block>
-        <Block>
-          {t('Globbing Syntax:')}
+          {t('Globbing Syntax')}
           <CodeBlock>{'* matches everything\n? matches any single character'}</CodeBlock>
         </Block>
         <Block>
@@ -31,7 +25,7 @@ class EditOwnershipRulesModal extends Component<Props, State> {
             {'\n'}
             module:com.module.name.example #sdks
             {'\n'}
-            url:http://example.com/settings/* #product
+            url:http://example.com/settings/* #product #infra
             {'\n'}
             tags.sku_class:enterprise #enterprise
           </CodeBlock>

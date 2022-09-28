@@ -118,6 +118,7 @@ default_manager.add("organizations:performance-frontend-use-events-endpoint", Or
 default_manager.add("organizations:performance-issues", OrganizationFeature, True)
 default_manager.add("organizations:performance-issues-ingest", OrganizationFeature)
 default_manager.add("organizations:performance-issues-dev", OrganizationFeature, True)
+default_manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, True)
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-histogram-view", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
@@ -208,6 +209,7 @@ default_manager.add("projects:similarity-indexing", ProjectFeature)
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)
 default_manager.add("projects:similarity-view", ProjectFeature)
 default_manager.add("projects:similarity-view-v2", ProjectFeature)
+default_manager.add("projects:sourcemapcache-processor", ProjectFeature, True)
 default_manager.add("projects:suspect-resolutions", ProjectFeature, True)
 
 # Project plugin features

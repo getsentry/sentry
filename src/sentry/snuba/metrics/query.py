@@ -36,10 +36,14 @@ class MetricField:
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
-        # ToDo(ahmed): Once we allow MetricField to accept MRI, we should set the alias to the operation and public
-        #  facing name
+        # Validate that it is a valid MRI format
+        parsed_mri = parse_mri(self.metric_mri)
+        if parsed_mri is None:
+            raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
+
+        # Validates that the MRI requested is an MRI the metrics layer exposes
+        metric_name = get_public_name_from_mri(self.metric_mri)
         if not self.alias:
-            metric_name = get_public_name_from_mri(self.metric_mri)
             key = f"{self.op}({metric_name})" if self.op is not None else metric_name
             object.__setattr__(self, "alias", key)
 
@@ -104,18 +108,20 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def _use_case_id(metric_mri: str) -> UseCaseKey:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is not None:
-            if parsed_mri.namespace == "transactions":
-                return UseCaseKey.PERFORMANCE
-            elif parsed_mri.namespace == "sessions":
-                return UseCaseKey.RELEASE_HEALTH
-            raise ValueError("Can't find correct use_case_id based on metric MRI")
-        raise ValueError("Can't parse metric MRI")
+        assert parsed_mri is not None
+
+        if parsed_mri.namespace == "transactions":
+            return UseCaseKey.PERFORMANCE
+        elif parsed_mri.namespace == "sessions":
+            return UseCaseKey.RELEASE_HEALTH
+        raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
         derived_metrics_mri = get_derived_metrics(exclude_private=True)
 
+        # Validate the validity of the expression meaning that if an operation is present, then it needs to be one of
+        # of the supported operations and that the metric mri should be one of the aggregated derived metrics
         if field.op:
             if field.op not in OPERATIONS:
                 raise InvalidParams(

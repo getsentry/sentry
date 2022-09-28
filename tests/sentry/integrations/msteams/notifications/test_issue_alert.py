@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, Mock, patch
 
-from sentry.models import Rule
+from sentry.models import ProjectOwnership, Rule
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base import Notification
@@ -81,6 +81,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
                 "actions": [action_data],
             },
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = AlertRuleNotification(
             Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id

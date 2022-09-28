@@ -94,6 +94,7 @@ export function ReleaseSearchBar({
           query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}
           hasRecentSearches
+          highlightUnsupportedTags
         />
       )}
     </ClassNames>

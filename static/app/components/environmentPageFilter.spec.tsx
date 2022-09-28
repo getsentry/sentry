@@ -45,7 +45,6 @@ describe('EnvironmentPageFilter', function () {
   });
 
   afterEach(() => {
-    OrganizationStore.teardown();
     ProjectsStore.teardown();
   });
 
