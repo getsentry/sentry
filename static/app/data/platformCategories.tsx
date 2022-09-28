@@ -168,7 +168,7 @@ export const tracing = [
   'react-native-tracing',
 ] as const;
 
-export const performance: PlatformKey[] = [
+export const performance = [
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -191,7 +191,7 @@ export const performance: PlatformKey[] = [
   'node-express',
   'node-koa',
   'node-connect',
-];
+] as const;
 
 // List of platforms that have performance onboarding checklist content
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
