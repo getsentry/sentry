@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {IconDocs} from 'sentry/icons';
@@ -21,13 +22,23 @@ export function Resources(props: Props) {
   return (
     <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
       {props.description}
-      <LinkSection>
-        {props.links.map(({link, text}) => (
-          <a key={link} href={link} target="_blank" rel="noreferrer">
-            <IconDocs /> {text}
-          </a>
-        ))}
-      </LinkSection>
+      {props.links.length === 0 ? (
+        <Fragment>
+          <br />
+          <br />
+          {t(
+            "Well this is awkward. We don't appear to have any resources available for your project platform :("
+          )}
+        </Fragment>
+      ) : (
+        <LinkSection>
+          {props.links.map(({link, text}) => (
+            <a key={link} href={link} target="_blank" rel="noreferrer">
+              <IconDocs /> {text}
+            </a>
+          ))}
+        </LinkSection>
+      )}
     </EventDataSection>
   );
 }
