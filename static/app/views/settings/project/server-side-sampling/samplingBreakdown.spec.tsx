@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {Organization, Project} from 'sentry/types';
 import {SamplingDistribution} from 'sentry/types/sampling';
 import {SamplingBreakdown} from 'sentry/views/settings/project/server-side-sampling/samplingBreakdown';
+import * as useDistributionImport from 'sentry/views/settings/project/server-side-sampling/utils/useDistribution';
 
 import {
   getMockInitializeOrg,
@@ -21,8 +22,6 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
 
 function renderMockRequests({
   organizationSlug,
-  projectSlug,
-  distributionRequestBody,
 }: {
   organizationSlug: Organization['slug'];
   projectSlug: Project['slug'];
@@ -34,13 +33,7 @@ function renderMockRequests({
     body: mockedProjects,
   });
 
-  const distribution = MockApiClient.addMockResponse({
-    url: `/projects/${organizationSlug}/${projectSlug}/dynamic-sampling/distribution/`,
-    method: 'GET',
-    body: distributionRequestBody ?? {},
-  });
-
-  return {projects, distribution};
+  return {projects};
 }
 
 describe('Server-Side Sampling - SamplingBreakdown', function () {
@@ -48,6 +41,12 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
     const {organization, project} = getMockInitializeOrg();
 
     renderMockRequests({organizationSlug: organization.slug, projectSlug: project.slug});
+
+    jest.spyOn(useDistributionImport, 'useDistribution').mockImplementation(() => ({
+      loading: false,
+      error: false,
+      data: undefined,
+    }));
 
     render(
       <ComponentProviders>
@@ -74,6 +73,12 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
       projectSlug: project.slug,
       distributionRequestBody: mockedSamplingDistribution,
     });
+
+    jest.spyOn(useDistributionImport, 'useDistribution').mockImplementation(() => ({
+      loading: false,
+      error: false,
+      data: mockedSamplingDistribution,
+    }));
 
     render(
       <ComponentProviders>
