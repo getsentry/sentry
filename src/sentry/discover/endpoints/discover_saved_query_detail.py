@@ -1,4 +1,4 @@
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -31,7 +31,11 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            query = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            query = DiscoverSavedQuery.objects.get(
+                Q(is_homepage=False) | Q(is_homepage__isnull=True),
+                id=query_id,
+                organization=organization,
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -45,7 +49,11 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            model = DiscoverSavedQuery.objects.get(
+                Q(is_homepage=False) | Q(is_homepage__isnull=True),
+                id=query_id,
+                organization=organization,
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -83,7 +91,11 @@ class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            model = DiscoverSavedQuery.objects.get(
+                Q(is_homepage=False) | Q(is_homepage__isnull=True),
+                id=query_id,
+                organization=organization,
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -111,7 +123,11 @@ class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
             return self.respond(status=404)
 
         try:
-            model = DiscoverSavedQuery.objects.get(id=query_id, organization=organization)
+            model = DiscoverSavedQuery.objects.get(
+                Q(is_homepage=False) | Q(is_homepage__isnull=True),
+                id=query_id,
+                organization=organization,
+            )
         except DiscoverSavedQuery.DoesNotExist:
             raise ResourceDoesNotExist
 
