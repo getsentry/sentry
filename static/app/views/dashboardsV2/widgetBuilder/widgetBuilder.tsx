@@ -139,6 +139,7 @@ interface State {
   loading: boolean;
   prebuiltWidgetId: null | string;
   queries: Widget['queries'];
+  queryConditionsValid: boolean;
   title: string;
   userHasModified: boolean;
   errors?: Record<string, any>;
@@ -226,6 +227,7 @@ function WidgetBuilder({
       userHasModified: false,
       prebuiltWidgetId: null,
       dataSet: DataSet.EVENTS,
+      queryConditionsValid: true,
     };
 
     if (defaultWidgetQuery) {
@@ -322,6 +324,7 @@ function WidgetBuilder({
           : DataSet.EVENTS,
         limit: newLimit,
         prebuiltWidgetId: null,
+        queryConditionsValid: true,
       });
       setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
@@ -957,11 +960,18 @@ function WidgetBuilder({
   }
 
   function isFormInvalid() {
-    if (notDashboardsOrigin && !state.selectedDashboard) {
+    if (
+      (notDashboardsOrigin && !state.selectedDashboard) ||
+      !state.queryConditionsValid
+    ) {
       return true;
     }
 
     return false;
+  }
+
+  function setQueryConditionsValid(validSearch: boolean) {
+    setState({...state, queryConditionsValid: validSearch});
   }
 
   const canAddSearchConditions =
@@ -1072,6 +1082,7 @@ function WidgetBuilder({
                                   );
                                 }}
                                 noDashboardsMEPProvider
+                                isWidgetInvalid={!state.queryConditionsValid}
                               />
                               <DataSetStep
                                 dataSet={state.dataSet}
@@ -1126,6 +1137,7 @@ function WidgetBuilder({
                                 widgetType={widgetType}
                                 dashboardFilters={dashboard.filters}
                                 location={location}
+                                onQueryConditionChange={setQueryConditionsValid}
                               />
                               {isTimeseriesChart && (
                                 <GroupByStep

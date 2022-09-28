@@ -16,13 +16,13 @@ from sentry.api.serializers.snuba import calculate_time_frame
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
-from sentry.utils import json
-from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
-from sentry.utils.profiling import (
+from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
     proxy_profiling_service,
 )
+from sentry.utils import json
+from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore

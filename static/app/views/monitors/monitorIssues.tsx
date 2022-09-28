@@ -1,4 +1,6 @@
-import IssueList from 'sentry/components/issueList';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import GroupList from 'sentry/components/issues/groupList';
+import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 
 import {Monitor} from './types';
@@ -8,19 +10,34 @@ type Props = {
   orgId: string;
 };
 
-const MonitorIssues = ({orgId, monitor}: Props) => (
-  <IssueList
-    endpoint={`/organizations/${orgId}/issues/`}
-    query={{
-      query: 'monitor.id:"' + monitor.id + '"',
-      project: monitor.project.id,
-      limit: 5,
-    }}
-    pagination={false}
-    emptyText={t('No issues found')}
-    noBorder
-    noMargin
-  />
+const MonitorIssuesEmptyMessage = () => (
+  <Panel>
+    <PanelBody>
+      <EmptyStateWarning>
+        <p>{t('No issues founds relating to this monitor')}</p>
+      </EmptyStateWarning>
+    </PanelBody>
+  </Panel>
 );
+
+const MonitorIssues = ({orgId, monitor}: Props) => {
+  return (
+    <GroupList
+      orgId={orgId}
+      endpointPath={`/organizations/${orgId}/issues/`}
+      queryParams={{
+        query: `monitor.id:"${monitor.id}"`,
+        project: monitor.project.id,
+        limit: 5,
+      }}
+      query=""
+      renderEmptyMessage={MonitorIssuesEmptyMessage}
+      canSelectGroups={false}
+      withPagination={false}
+      withChart={false}
+      useTintRow={false}
+    />
+  );
+};
 
 export default MonitorIssues;

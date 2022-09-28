@@ -138,6 +138,7 @@ export default function ChartFooter({
             eventView={eventView}
             onIntervalChange={onIntervalChange}
           />
+          <FeatureBadge type="new" space={0} />
         </Feature>
         <OptionSelector
           title={t('Display')}

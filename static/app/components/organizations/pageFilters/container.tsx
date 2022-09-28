@@ -30,6 +30,14 @@ type Props = WithRouterProps &
   InitializeUrlStateProps & {
     children?: React.ReactNode;
     /**
+     * Custom alert message for the desynced filter state.
+     */
+    desyncedAlertMessage?: string;
+    /**
+     * Whether to hide the revert button in the desynced filter alert.
+     */
+    hideDesyncRevertButton?: boolean;
+    /**
      * Slugs of projects to display in project selector
      */
     specificProjectSlugs?: string[];
@@ -50,6 +58,8 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     shouldForceProject,
     specificProjectSlugs,
     skipInitializeUrlParams,
+    desyncedAlertMessage,
+    hideDesyncRevertButton,
   } = props;
 
   const {isReady} = usePageFilters();
@@ -163,7 +173,11 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   return (
     <Fragment>
-      <DesyncedFilterAlert router={router} />
+      <DesyncedFilterAlert
+        router={router}
+        message={desyncedAlertMessage}
+        hideRevertButton={hideDesyncRevertButton}
+      />
       {children}
     </Fragment>
   );
