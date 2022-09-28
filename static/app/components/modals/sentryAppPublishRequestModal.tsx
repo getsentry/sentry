@@ -41,19 +41,16 @@ const getPermissionSelectionsFromScopes = (scopes: Scope[]) => {
   return permissions;
 };
 
-class PublishRequestFormModel extends FormModel {
-  getTransformedData() {
-    const data = this.getData();
-    // map object to list of questions
-    const questionnaire = Array.from(this.fieldDescriptor.values()).map(field =>
-      // we read the meta for the question that has a react node for the label
-      ({
-        question: field.meta || field.label,
-        answer: data[field.name],
-      })
-    );
-    return {questionnaire};
-  }
+function transformData(data: Record<string, any>, model: FormModel) {
+  // map object to list of questions
+  const questionnaire = Array.from(model.fieldDescriptor.values()).map(field =>
+    // we read the meta for the question that has a react node for the label
+    ({
+      question: field.meta || field.label,
+      answer: data[field.name],
+    })
+  );
+  return {questionnaire};
 }
 
 type Props = ModalRenderProps & {
@@ -61,7 +58,7 @@ type Props = ModalRenderProps & {
 };
 
 export default class SentryAppPublishRequestModal extends Component<Props> {
-  form = new PublishRequestFormModel();
+  form = new FormModel({transformData});
 
   get formFields() {
     const {app} = this.props;

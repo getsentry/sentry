@@ -198,8 +198,16 @@ class GroupDetails extends Component<Props, State> {
     const {event} = this.state;
 
     const currentRoute = routes[routes.length - 1];
-    const currentTab =
-      Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS;
+
+    let currentTab: Tab;
+    // If we're in the tag details page ("/tags/:tagKey/")
+    if (router.params.tagKey) {
+      currentTab = Tab.TAGS;
+    } else {
+      currentTab =
+        Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ??
+        Tab.DETAILS;
+    }
 
     const baseUrl = `/organizations/${organization.slug}/issues/${group.id}/${
       router.params.eventId && event ? `events/${event.id}/` : ''
@@ -594,7 +602,7 @@ class GroupDetails extends Component<Props, State> {
     }
 
     return (
-      <Tabs
+      <GroupTabs
         value={currentTab}
         onChange={tab => {
           this.tabClickAnalyticsEvent(tab as Tab);
@@ -614,12 +622,12 @@ class GroupDetails extends Component<Props, State> {
           baseUrl={baseUrl}
           project={project as Project}
         />
-        <TabPanels>
+        <GroupTabPanels>
           <Item key={currentTab}>
             {isValidElement(children) ? cloneElement(children, childProps) : children}
           </Item>
-        </TabPanels>
-      </Tabs>
+        </GroupTabPanels>
+      </GroupTabs>
     );
   }
 
@@ -687,4 +695,15 @@ export default withApi(Sentry.withProfiler(GroupDetails));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};
+`;
+
+const GroupTabs = styled(Tabs)`
+  flex-grow: 1;
+`;
+
+const GroupTabPanels = styled(TabPanels)`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
 `;
