@@ -147,7 +147,7 @@ def decode_optional_dict_str(value: Optional[bytes]) -> Optional[Mapping[Any, An
     if not isinstance(parsed, dict):
         raise ValueError(f"'{dict_str}' could not be parsed into an instance of dict.")
 
-    return json.loads(dict_str)
+    return cast(Mapping[Any, Any], json.loads(dict_str))
 
 
 def get_task_kwargs_for_message_from_headers(
