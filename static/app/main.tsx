@@ -13,7 +13,6 @@ import RouteAnalyticsContextProvider from './views/routeAnalyticsContextProvider
  * react-router v6.
  */
 function renderRouter(props: any) {
-  console.log('renderRouter', props);
   return (
     <RouteAnalyticsContextProvider {...props}>
       <RouteContext.Provider value={props}>
