@@ -979,6 +979,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         className={classNames({
                                           error: this.hasError('actionMatch'),
                                         })}
+                                        styles={{
+                                          control: provided => ({
+                                            ...provided,
+                                            minHeight: '21px',
+                                            height: '21px',
+                                          }),
+                                        }}
                                         inline={false}
                                         isSearchable={false}
                                         isClearable={false}
@@ -1044,6 +1051,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       className={classNames({
                                         error: this.hasError('filterMatch'),
                                       })}
+                                      styles={{
+                                        control: provided => ({
+                                          ...provided,
+                                          minHeight: '21px',
+                                          height: '21px',
+                                        }),
+                                      }}
                                       inline={false}
                                       isSearchable={false}
                                       isClearable={false}
