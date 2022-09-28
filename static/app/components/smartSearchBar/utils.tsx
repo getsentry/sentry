@@ -2,6 +2,7 @@
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
+  SearchConfig,
   TermOperator,
   Token,
   TokenResult,
@@ -28,6 +29,7 @@ import {
 } from './types';
 import {TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -586,4 +588,40 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
       type: ItemType.TAG_VALUE,
     },
   ];
+};
+
+export const getSearchConfigFromCustomPerformanceMetrics = (
+  customPerformanceMetrics?: CustomMeasurementCollection
+): Partial<SearchConfig> => {
+  const searchConfigMap: Record<string, string[]> = {
+    sizeKeys: [],
+    durationKeys: [],
+    percentageKeys: [],
+    numericKeys: [],
+  };
+  if (customPerformanceMetrics) {
+    Object.keys(customPerformanceMetrics).forEach(metricName => {
+      const {fieldType} = customPerformanceMetrics[metricName];
+      switch (fieldType) {
+        case 'size':
+          searchConfigMap.sizeKeys.push(metricName);
+          break;
+        case 'duration':
+          searchConfigMap.durationKeys.push(metricName);
+          break;
+        case 'percentage':
+          searchConfigMap.percentageKeys.push(metricName);
+          break;
+        default:
+          searchConfigMap.numericKeys.push(metricName);
+      }
+    });
+  }
+  const searchConfig = {
+    sizeKeys: new Set(searchConfigMap.sizeKeys),
+    durationKeys: new Set(searchConfigMap.durationKeys),
+    percentageKeys: new Set(searchConfigMap.percentageKeys),
+    numericKeys: new Set(searchConfigMap.numericKeys),
+  };
+  return searchConfig;
 };

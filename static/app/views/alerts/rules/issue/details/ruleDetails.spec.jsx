@@ -58,6 +58,7 @@ describe('AlertRuleDetails', () => {
           count: 1,
           group: TestStubs.Group(),
           lastTriggered: moment('Apr 11, 2019 1:08:59 AM UTC').format(),
+          eventId: 'eventId',
         },
       ],
       headers: {
@@ -92,6 +93,16 @@ describe('AlertRuleDetails', () => {
     expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
     expect(screen.getByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
+    expect(screen.getByText('RequestError:')).toHaveAttribute(
+      'href',
+      expect.stringMatching(
+        RegExp(
+          `/organizations/${organization.slug}/issues/${
+            TestStubs.Group().id
+          }/events/eventId.*`
+        )
+      )
+    );
   });
 
   it('should allow paginating results', async () => {
