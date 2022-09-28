@@ -45,6 +45,8 @@ class TSDBModel(Enum):
     users_affected_by_group = 300
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
+    # distinct count of users that have been affected by an event in a performance group
+    users_affected_by_perf_group = 302
 
     # frequent_organization_received_by_system = 400
     # frequent_organization_rejected_by_system = 401

@@ -21,6 +21,7 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer, is_plugin_deprecated
+from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS
 from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, UserReport
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
@@ -122,11 +123,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
         get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
         # choose the model based off the group.category
-        model = (
-            tsdb.models.group_performance
-            if group.issue_category == GroupCategory.PERFORMANCE
-            else tsdb.models.group
-        )
+        model = ISSUE_TSDB_GROUP_MODELS[group.issue_category]
 
         now = timezone.now()
         hourly_stats = tsdb.rollup(
