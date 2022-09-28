@@ -4,6 +4,7 @@ import {Observer} from 'mobx-react';
 import Access from 'sentry/components/acl/access';
 import Field from 'sentry/components/forms/field';
 import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
 import NumberField from 'sentry/components/forms/numberField';
 import SelectField from 'sentry/components/forms/selectField';
 import TextCopyInput from 'sentry/components/forms/textCopyInput';
@@ -14,7 +15,6 @@ import {PageFilters, Project, SelectValue} from 'sentry/types';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import MonitorModel from './monitorModel';
 import {Monitor, MonitorConfig, MonitorTypes, ScheduleType} from './types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
@@ -44,8 +44,40 @@ type Props = {
   monitor?: Monitor;
 };
 
+type TransformedData = {
+  config?: Partial<MonitorConfig>;
+};
+
+function transformData(_data: Record<string, any>, model: FormModel) {
+  return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
+    if (k.indexOf('config.') !== 0) {
+      data[k] = v;
+      return data;
+    }
+
+    if (!data.config) {
+      data.config = {};
+    }
+    if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
+      if (!Array.isArray(data.config.schedule)) {
+        data.config.schedule = [null, null];
+      }
+    }
+
+    if (k === 'config.schedule.frequency') {
+      data.config!.schedule![0] = parseInt(v as string, 10);
+    } else if (k === 'config.schedule.interval') {
+      data.config!.schedule![1] = v;
+    } else {
+      data.config[k.substr(7)] = v;
+    }
+
+    return data;
+  }, {});
+}
+
 class MonitorForm extends Component<Props> {
-  form = new MonitorModel();
+  form = new FormModel({transformData});
 
   formDataFromConfig(type: MonitorTypes, config: MonitorConfig) {
     const rv = {};
