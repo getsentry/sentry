@@ -6,6 +6,16 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupReplays from 'sentry/views/organizationGroupDetails/groupReplays';
 import {RouteContext} from 'sentry/views/routeContext';
 
+type InitializeOrgProps = {
+  location?: {
+    pathname?: string;
+    query?: {[key: string]: string};
+  };
+  organizationProps?: {
+    features?: string[];
+  };
+};
+
 const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
@@ -13,21 +23,18 @@ const mockProps = {
   replayIds: ['346789a703f6454384f1de473b8b9fcc', 'b05dae9b6be54d21a4d5ad9f8f02b780'],
 };
 
-let mockRouterContext: any = {};
+let mockRouterContext: {
+  childContextTypes?: any;
+  context?: any;
+} = {};
 
 const getComponent = ({
   location,
-  features = ['session-replay-ui'],
-}: {
-  features?: string[];
-  location?: {
-    pathname?: string;
-    query?: {[key: string]: string};
-  };
-}) => {
+  organizationProps = {features: ['session-replay-ui']},
+}: InitializeOrgProps) => {
   const {router, organization, routerContext} = initializeOrg({
     organization: {
-      features,
+      ...organizationProps,
     },
     project: TestStubs.Project(),
     projects: [TestStubs.Project()],
@@ -61,8 +68,8 @@ const getComponent = ({
   );
 };
 
-const renderComponent = () => {
-  return render(getComponent({}), {context: mockRouterContext});
+const renderComponent = (componentProps: InitializeOrgProps = {}) => {
+  return render(getComponent(componentProps), {context: mockRouterContext});
 };
 
 describe('GroupReplays', () => {
@@ -230,6 +237,7 @@ describe('GroupReplays', () => {
       },
     });
 
+    // Mock the system date to be 2022-09-28
     jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
     renderComponent();
@@ -438,5 +446,15 @@ describe('GroupReplays', () => {
         })
       );
     });
+  });
+
+  it("Should access message when the organization doesn't have access to the replay feature", () => {
+    renderComponent({
+      organizationProps: {
+        features: [],
+      },
+    });
+
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 });
