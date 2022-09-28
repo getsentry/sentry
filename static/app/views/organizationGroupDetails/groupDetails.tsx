@@ -27,6 +27,9 @@ import {getMessage, getTitle} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/withRouteAnalytics';
 
 import {ERROR_TYPES} from './constants';
 import GroupHeader from './header';
@@ -48,7 +51,8 @@ type Props = {
   isGlobalSelectionReady: boolean;
   organization: Organization;
   projects: Project[];
-} & RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
+} & WithRouteAnalyticsProps &
+  RouteComponentProps<{groupId: string; orgId: string; eventId?: string}, {}>;
 
 type State = {
   error: boolean;
@@ -80,6 +84,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
+    // prevent duplicate analytics
+    this.props.setDisableRouteAnalytics(true);
     this.fetchData(true);
     if (this.props.organization.features.includes('session-replay-ui')) {
       this.fetchReplayIds();
@@ -691,7 +697,7 @@ class GroupDetails extends Component<Props, State> {
   }
 }
 
-export default withApi(Sentry.withProfiler(GroupDetails));
+export default withRouteAnalytics(withApi(Sentry.withProfiler(GroupDetails)));
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${space(2)};

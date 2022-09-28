@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {
   IndexRedirect,
   IndexRoute as BaseIndexRoute,
@@ -15,7 +15,6 @@ import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
-import useRouteAnalytics from 'sentry/utils/useRouteAnalytics';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import IssueListContainer from 'sentry/views/issueList/container';
@@ -30,6 +29,7 @@ import RouteNotFound from 'sentry/views/routeNotFound';
 import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
 
 import Feature from './components/acl/feature';
+import useRouteAnalyticsOrgSetter from './utils/useRouteAnalyticsOrgSetter';
 
 type CustomProps = {
   name?: string;
@@ -58,8 +58,10 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 ) {
   // XXX: Assign the component to a variable so it has a displayname
   const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
-    const routeAnalytics = useRouteAnalytics();
-    return <SafeLazyLoad {...props} {...routeAnalytics} component={resolve} />;
+    // we can use this hook to set the organization as it's
+    // a child of the organization context container
+    useRouteAnalyticsOrgSetter();
+    return <SafeLazyLoad {...props} component={resolve} />;
   };
 
   return RouteLazyLoad;
@@ -1807,13 +1809,7 @@ function buildRoutes() {
   const appRoutes = (
     <Route>
       {experimentalSpaRoutes}
-      <Route
-        path="/"
-        onChange={(a, b) => {
-          console.log('onchange', {a, b});
-        }}
-        component={errorHandler(App)}
-      >
+      <Route path="/" component={errorHandler(App)}>
         {rootRoutes}
         {organizationRoutes}
         {legacyRedirectRoutes}

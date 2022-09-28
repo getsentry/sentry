@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -32,6 +32,9 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import withRouteAnalytics, {
+  WithRouteAnalyticsProps,
+} from 'sentry/utils/withRouteAnalytics';
 import AsyncView from 'sentry/views/asyncView';
 
 import {getReleaseBounds, ReleaseBounds} from '../utils';
@@ -54,11 +57,12 @@ type RouteParams = {
   release: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
-  releaseMeta: ReleaseMeta;
-  selection: PageFilters;
-};
+type Props = RouteComponentProps<RouteParams, {}> &
+  WithRouteAnalyticsProps & {
+    organization: Organization;
+    releaseMeta: ReleaseMeta;
+    selection: PageFilters;
+  };
 
 type State = {
   deploys: Deploy[];
@@ -253,7 +257,7 @@ class ReleasesDetailContainer extends AsyncComponent<
 
   componentDidMount() {
     this.removeGlobalDateTimeFromUrl();
-    this.props.setRouteAnalyticsParams?.({release: this.props.params.release});
+    this.props.setRouteAnalyticsParams({release: this.props.params.release});
   }
 
   componentDidUpdate(
@@ -376,4 +380,6 @@ const ProjectsFooterMessage = styled('div')`
 `;
 
 export {ReleaseContext, ReleasesDetailContainer};
-export default withPageFilters(withOrganization(ReleasesDetailContainer));
+export default withRouteAnalytics(
+  withPageFilters(withOrganization(ReleasesDetailContainer))
+);
