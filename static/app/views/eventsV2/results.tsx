@@ -3,6 +3,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
+import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -64,6 +65,7 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery: SavedQuery) => void;
+  homepageQuery?: SavedQuery;
   savedQuery?: SavedQuery;
 };
 
@@ -285,17 +287,15 @@ class Results extends Component<Props, State> {
 
   checkEventView() {
     const {eventView} = this.state;
-    const {loading} = this.props;
+    const {loading, homepageQuery} = this.props;
     if (eventView.isValid() || loading) {
       return;
     }
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
-    const nextEventView = EventView.fromNewQueryWithLocation(
-      DEFAULT_EVENT_VIEW,
-      location
-    );
+    const query = homepageQuery ? omit(homepageQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
     }
@@ -671,15 +671,26 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
+
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (location.query.id) {
-      return [
-        [
-          'savedQuery',
-          `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-        ],
-      ];
+      endpoints.push([
+        'savedQuery',
+        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      ]);
+      return endpoints;
     }
-    return [];
+
+    if (
+      organization.features.includes('discover-query-builder-as-landing-page') &&
+      isEmpty(location.query)
+    ) {
+      endpoints.push([
+        'homepageQuery',
+        `/organizations/${organization.slug}/discover/homepage/`,
+      ]);
+    }
+    return endpoints;
   }
 
   setSavedQuery = (newSavedQuery: SavedQuery) => {
@@ -691,13 +702,14 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   }
 
   renderBody(): React.ReactNode {
-    const {savedQuery, loading} = this.state;
+    const {homepageQuery, savedQuery, loading} = this.state;
     return (
       <Results
         {...this.props}
         savedQuery={savedQuery ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
+        homepageQuery={homepageQuery}
       />
     );
   }
