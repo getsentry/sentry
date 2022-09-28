@@ -153,7 +153,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
         # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
-        # Not its been called twice, as there as two processors when run with the feature.
+        # Note its been called twice, as there as two processors when run with the feature.
         with self.feature({"projects:sourcemapcache-processor": False}):
             event = self.post_and_retrieve_event(data)
 
@@ -215,7 +215,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
         # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
-        # Not its been called twice, as there as two processors when run with the feature.
+        # Note its been called twice, as there as two processors when run with the feature.
         with self.feature({"projects:sourcemapcache-processor": False}):
             event = self.post_and_retrieve_event(data)
 
