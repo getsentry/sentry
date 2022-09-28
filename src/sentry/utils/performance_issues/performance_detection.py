@@ -63,6 +63,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
 
 
@@ -100,6 +101,20 @@ class PerformanceProblem:
             data["cause_span_ids"],
             data["offender_span_ids"],
         )
+
+    def __eq__(self, other):
+        if not isinstance(other, PerformanceProblem):
+            return NotImplemented
+        return (
+            self.fingerprint == other.fingerprint
+            and self.offender_span_ids == other.offender_span_ids
+            and self.type == other.type
+        )
+
+    def __hash__(self):
+        # This will de-duplicate on fingerprint and type and only for offending span ids.
+        # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
+        return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))
 
 
 class EventPerformanceProblem:
@@ -312,14 +327,18 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         for problem, detector_type in truncated_problems
     ]
 
-    if len(performance_problems) > 0:
+    # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
+    unique_performance_problems = set(performance_problems)
+
+    if len(unique_performance_problems) > 0:
         metrics.incr(
             "performance.performance_issue.performance_problem_emitted",
-            len(performance_problems),
+            len(unique_performance_problems),
             sample_rate=1.0,
         )
 
-    return performance_problems
+    # TODO: Make sure upstream is all compatible with set before switching output type.
+    return list(unique_performance_problems)
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
