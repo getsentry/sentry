@@ -367,6 +367,7 @@ def post_process_group(
             has_alert = process_rules(
                 event, is_new, is_regression, is_new_group_environment, has_reappeared
             )
+            process_commits(event)
             process_service_hooks(event, has_alert)
             process_resource_change_bounds(event, is_new)
             process_plugins(event, is_new, is_regression)
@@ -445,7 +446,7 @@ def process_snoozes(group):
     return False
 
 
-def process_event(cache_key, data, group_id):
+def process_event(data, group_id):
     from sentry.eventstore.models import Event
     from sentry.models import EventDict
 
