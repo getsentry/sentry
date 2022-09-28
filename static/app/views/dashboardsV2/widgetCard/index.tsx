@@ -287,7 +287,27 @@ class WidgetCard extends Component<Props, State> {
                 {this.renderContextMenu()}
               </WidgetHeader>
               {isWidgetInvalid ? (
-                noLazyLoad ? (
+                <Fragment>
+                  {renderErrorMessage?.('Widget query condition is invalid.')}
+                  <StyledErrorPanel>
+                    <IconWarning color="gray500" size="lg" />
+                  </StyledErrorPanel>
+                </Fragment>
+              ) : noLazyLoad ? (
+                <WidgetCardChartContainer
+                  api={api}
+                  organization={organization}
+                  selection={selection}
+                  widget={widget}
+                  isMobile={isMobile}
+                  renderErrorMessage={renderErrorMessage}
+                  tableItemLimit={tableItemLimit}
+                  windowWidth={windowWidth}
+                  onDataFetched={this.setData}
+                  dashboardFilters={dashboardFilters}
+                />
+              ) : (
+                <LazyLoad once resize height={200}>
                   <WidgetCardChartContainer
                     api={api}
                     organization={organization}
@@ -300,29 +320,7 @@ class WidgetCard extends Component<Props, State> {
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
                   />
-                ) : (
-                  <LazyLoad once resize height={200}>
-                    <WidgetCardChartContainer
-                      api={api}
-                      organization={organization}
-                      selection={selection}
-                      widget={widget}
-                      isMobile={isMobile}
-                      renderErrorMessage={renderErrorMessage}
-                      tableItemLimit={tableItemLimit}
-                      windowWidth={windowWidth}
-                      onDataFetched={this.setData}
-                      dashboardFilters={dashboardFilters}
-                    />
-                  </LazyLoad>
-                )
-              ) : (
-                <Fragment>
-                  {renderErrorMessage?.('Widget query condition is invalid.')}
-                  <StyledErrorPanel>
-                    <IconWarning color="gray500" size="lg" />
-                  </StyledErrorPanel>
-                </Fragment>
+                </LazyLoad>
               )}
               {this.renderToolbar()}
             </WidgetCardPanel>
