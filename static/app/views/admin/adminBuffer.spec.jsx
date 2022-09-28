@@ -7,6 +7,7 @@ import AdminBuffer from 'sentry/views/admin/adminBuffer';
 describe('AdminBuffer', function () {
   describe('render()', function () {
     it('renders', function () {
+      MockApiClient.warnOnMissingMocks();
       const wrapper = render(<AdminBuffer params={{}} />);
 
       expect(screen.getAllByTestId('loading-indicator')).toHaveLength(2);

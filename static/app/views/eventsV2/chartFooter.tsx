@@ -129,7 +129,7 @@ export default function ChartFooter({
                 }
               )}
             />
-            <FeatureBadge type="alpha" />
+            <FeatureBadge type="beta" />
           </Fragment>
         </Feature>
         <Feature organization={organization} features={['discover-interval-selector']}>
@@ -138,6 +138,7 @@ export default function ChartFooter({
             eventView={eventView}
             onIntervalChange={onIntervalChange}
           />
+          <IntervalBadge type="beta" />
         </Feature>
         <OptionSelector
           title={t('Display')}
@@ -181,4 +182,8 @@ export default function ChartFooter({
 const SwitchLabel = styled('div')`
   padding-right: 4px;
   font-weight: bold;
+`;
+
+const IntervalBadge = styled(FeatureBadge)`
+  margin-left: 0px;
 `;

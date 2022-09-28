@@ -102,8 +102,6 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
-          unset USE_SNUBA
           make test-python-ci
 
       - name: Handle artifacts
@@ -324,6 +322,32 @@ jobs:
         run: |
           make test-plugins
 
+  region-to-control:
+    if: needs.files-changed.outputs.backend == 'true'
+    needs: files-changed
+    name: region-to-control test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          kafka: true
+
+      - name: Run test
+        run: |
+          make test-region-to-control-integration
+
+      - name: Handle artifacts
+        uses: ./.github/actions/artifacts
+
   relay:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -373,7 +397,6 @@ jobs:
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 2
-      USE_SNUBA: 1
       MIGRATIONS_TEST_MIGRATE: 1
 
     steps:
@@ -473,6 +496,7 @@ jobs:
         migration,
         plugins,
         relay,
+        region-to-control,
         snuba,
         symbolicator,
         typing,
