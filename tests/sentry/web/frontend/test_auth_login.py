@@ -396,6 +396,9 @@ def provision_middleware():
 
 
 @control_silo_test
+@override_settings(
+    SENTRY_USE_CUSTOMER_DOMAINS=True,
+)
 class AuthLoginCustomerDomainTest(TestCase):
     @fixture
     def path(self):

@@ -11,6 +11,9 @@ from sentry.testutils import APITestCase, TestCase
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
+@override_settings(
+    SENTRY_USE_CUSTOMER_DOMAINS=True,
+)
 class CustomerDomainMiddlewareTest(TestCase):
     def test_sets_active_organization_if_exists(self):
         self.create_organization(name="test")
@@ -22,6 +25,19 @@ class CustomerDomainMiddlewareTest(TestCase):
 
         assert request.session == {"activeorg": "test"}
         assert response == request
+
+    def test_noop_if_customer_domain_is_off(self):
+
+        with self.settings(SENTRY_USE_CUSTOMER_DOMAINS=False):
+            self.create_organization(name="test")
+
+            request = RequestFactory().get("/")
+            request.subdomain = "test"
+            request.session = {"activeorg": "albertos-apples"}
+            response = CustomerDomainMiddleware(lambda request: request)(request)
+
+            assert request.session == {"activeorg": "albertos-apples"}
+            assert response == request
 
     def test_recycles_last_active_org(self):
         self.create_organization(name="test")
@@ -166,6 +182,7 @@ def provision_middleware():
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
+    SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
 class End2EndTest(APITestCase):
     def setUp(self):
