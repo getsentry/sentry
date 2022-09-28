@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
-from sentry.event_manager import _pull_out_data
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
@@ -2078,43 +2077,31 @@ class EventsTransactionsSnubaSearchTest(SharedSnubaTest):
             "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         }
 
-        injected_group = None
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [injected_group]
-            return jobs, projects
-
-        injected_group = self.perf_group_1 = self.create_group(
-            type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        transaction_event_1 = self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1)),
+                "tags": {"my_tag": 1},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+            },
+            project_id=self.project.id,
         )
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=1)),
-                    "start_timestamp": iso_format(before_now(minutes=1)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
+        self.perf_group_1 = transaction_event_1.groups[0]
 
-        injected_group = self.perf_group_2 = self.create_group(
-            type=GroupType.PERFORMANCE_SLOW_SPAN.value
+        transaction_event_2 = self.store_event(
+            data={
+                **transaction_event_data,
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=2)),
+                "start_timestamp": iso_format(before_now(minutes=2)),
+                "tags": {"my_tag": 1},
+                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group2"],
+            },
+            project_id=self.project.id,
         )
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(
-                data={
-                    **transaction_event_data,
-                    "event_id": "a" * 32,
-                    "timestamp": iso_format(before_now(minutes=2)),
-                    "start_timestamp": iso_format(before_now(minutes=2)),
-                    "tags": {"my_tag": 1},
-                },
-                project_id=self.project.id,
-            )
+        self.perf_group_2 = transaction_event_2.groups[0]
 
         error_event_data = {
             "timestamp": iso_format(self.base_datetime - timedelta(days=20)),
