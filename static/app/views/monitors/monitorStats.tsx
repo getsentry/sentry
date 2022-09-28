@@ -15,7 +15,7 @@ type State = AsyncComponent['state'] & {
   stats: MonitorStat[] | null;
 };
 
-type Stat = {name: string; value: number};
+type Stat = {name: number; value: number};
 
 export default class MonitorStats extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -52,8 +52,8 @@ export default class MonitorStats extends AsyncComponent<Props, State> {
         emptyStats = false;
       }
       const timestamp = p.ts * 1000;
-      success.data.push({name: timestamp.toString(), value: p.ok});
-      failed.data.push({name: timestamp.toString(), value: p.error});
+      success.data.push({name: timestamp, value: p.ok});
+      failed.data.push({name: timestamp, value: p.error});
     });
     const colors = [theme.green300, theme.red300];
 
