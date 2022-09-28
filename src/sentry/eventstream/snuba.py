@@ -20,7 +20,7 @@ import urllib3
 
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream
+from sentry.eventstream.base import EventStream, GroupsState
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -101,6 +101,7 @@ class SnubaProtocolEventStream(EventStream):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool,
+        groups_state: Optional[GroupsState] = None,
     ) -> Mapping[str, str]:
         return {"Received-Timestamp": str(received_timestamp)}
 
@@ -117,6 +118,7 @@ class SnubaProtocolEventStream(EventStream):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
+        groups_state: Optional[GroupsState] = None,
         **kwargs: Any,
     ) -> None:
         if isinstance(event, GroupEvent):
@@ -147,6 +149,7 @@ class SnubaProtocolEventStream(EventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            groups_state,
         )
 
         skip_semantic_partitioning = (
@@ -157,32 +160,37 @@ class SnubaProtocolEventStream(EventStream):
 
         is_transaction_event = self._is_transaction_event(event)
 
+        extra_data = [
+            {
+                "group_id": event.group_id,
+                "group_ids": [group.id for group in event.groups],
+                "event_id": event.event_id,
+                "organization_id": project.organization_id,
+                "project_id": event.project_id,
+                # TODO(mitsuhiko): We do not want to send this incorrect
+                # message but this is what snuba needs at the moment.
+                "message": event.search_message,
+                "platform": event.platform,
+                "datetime": event.datetime,
+                "data": event_data,
+                "primary_hash": primary_hash,
+                "retention_days": retention_days,
+            },
+            {
+                "is_new": is_new,
+                "is_regression": is_regression,
+                "is_new_group_environment": is_new_group_environment,
+                "skip_consume": skip_consume,
+            },
+        ]
+
+        if groups_state is not None:
+            extra_data.append(groups_state)
+
         self._send(
             project.id,
             "insert",
-            extra_data=(
-                {
-                    "group_id": event.group_id,
-                    "group_ids": [group.id for group in event.groups],
-                    "event_id": event.event_id,
-                    "organization_id": project.organization_id,
-                    "project_id": event.project_id,
-                    # TODO(mitsuhiko): We do not want to send this incorrect
-                    # message but this is what snuba needs at the moment.
-                    "message": event.search_message,
-                    "platform": event.platform,
-                    "datetime": event.datetime,
-                    "data": event_data,
-                    "primary_hash": primary_hash,
-                    "retention_days": retention_days,
-                },
-                {
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                    "skip_consume": skip_consume,
-                },
-            ),
+            extra_data=tuple(extra_data),
             headers=headers,
             skip_semantic_partitioning=skip_semantic_partitioning,
             is_transaction_event=is_transaction_event,
@@ -420,6 +428,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
+        groups_state: Optional[GroupsState] = None,
         **kwargs: Any,
     ) -> None:
         super().insert(
@@ -430,6 +439,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            groups_state,
             **kwargs,
         )
         self._dispatch_post_process_group_task(
@@ -441,4 +451,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_new_group_environment,
             primary_hash,
             skip_consume,
+            groups_state,
         )
