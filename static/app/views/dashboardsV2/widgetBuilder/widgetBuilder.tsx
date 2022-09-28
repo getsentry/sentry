@@ -1082,6 +1082,7 @@ function WidgetBuilder({
                                   );
                                 }}
                                 noDashboardsMEPProvider
+                                isWidgetValid={state.queryConditionsValid}
                               />
                               <DataSetStep
                                 dataSet={state.dataSet}
