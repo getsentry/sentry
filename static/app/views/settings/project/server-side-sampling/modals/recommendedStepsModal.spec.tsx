@@ -59,6 +59,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
           onSubmit={jest.fn()}
           clientSampleRate={0.5}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     ));
@@ -147,6 +148,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
           onReadDocs={jest.fn()}
           clientSampleRate={uniformRule.sampleRate}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     ));
@@ -189,6 +191,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
           onReadDocs={jest.fn()}
           clientSampleRate={uniformRule.sampleRate}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     ));
@@ -222,6 +225,7 @@ describe('Server-Side Sampling - Recommended Steps Modal', function () {
           clientSampleRate={uniformRule.sampleRate}
           specifiedClientRate={0.1}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     ));

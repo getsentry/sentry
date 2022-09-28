@@ -65,7 +65,6 @@ type Props = Omit<
   | 'recommendedSampleRate'
   | 'projectSlug'
 > & {
-  hasAccess: boolean;
   onSubmit: UniformModalsSubmit;
   project: Project;
   rules: SamplingRule[];
