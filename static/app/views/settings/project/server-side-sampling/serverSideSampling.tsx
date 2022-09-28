@@ -433,7 +433,7 @@ export function ServerSideSampling({project}: Props) {
             'Improve the accuracy of your [performanceMetrics: performance metrics] and [targetTransactions: target those transactions] which are most valuable for your organization. Server-side rules are applied immediately, with no need to re-deploy your app. To learn more about our beta program, [faqLink: visit our FAQ].',
             {
               performanceMetrics: (
-                <ExternalLink href="https://docs.sentry.io/product/sentry-basics/sampling/" />
+                <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#metrics-and-sampling" />
               ),
               targetTransactions: <ExternalLink href={SERVER_SIDE_SAMPLING_DOC_LINK} />,
 
