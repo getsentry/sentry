@@ -1,10 +1,16 @@
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
+
+type Options = {
+  theme: Theme;
+  minHeight?: number;
+};
 
 /**
  * Note this is an object for `react-mentions` component and
  * not a styled component/emotion style
  */
-export default function mentionStyle({theme, minHeight}) {
+export default function mentionStyle({theme, minHeight}: Options) {
   return {
     control: {
       backgroundColor: `${theme.background}`,
