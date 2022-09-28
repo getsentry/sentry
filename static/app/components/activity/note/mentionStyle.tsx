@@ -20,6 +20,7 @@ export default function mentionStyle({theme, minHeight}: Options) {
 
     input: {
       margin: 0,
+      fontFamily: theme.text.familyMono,
     },
 
     '&singleLine': {
