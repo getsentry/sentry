@@ -59,10 +59,12 @@ export type TeamInsightsEventParameters = {
     event_id?: string;
     event_platform?: string;
     event_type?: string;
+    has_commit?: boolean;
     has_external_issue?: boolean;
     has_owner?: boolean;
     has_release?: boolean;
     has_source_maps?: boolean;
+    has_trace?: boolean;
     integration_assignment_source?: string;
     is_assigned?: boolean;
     issue_age?: number;

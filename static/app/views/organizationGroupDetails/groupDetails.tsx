@@ -69,6 +69,13 @@ function getEventErrorString(event: Event) {
   return event.errors?.map(error => error.type).join(',') || '';
 }
 
+function hasTrace(event: Event) {
+  if (event.type !== 'error') {
+    return false;
+  }
+  return !!event.contexts?.trace;
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -209,6 +216,8 @@ class GroupDetails extends Component<Props, State> {
       event_type: event?.type,
       has_release: !!event?.release,
       has_source_maps: event ? eventHasSourceMaps(event) : false,
+      has_trace: event ? hasTrace(event) : false,
+      has_commit: !!event?.release?.lastCommit,
       event_errors: event ? getEventErrorString(event) : '',
       sdk_name: event?.sdk?.name,
       sdk_version: event?.sdk?.version,
