@@ -626,13 +626,13 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.one_alert_rule = self.create_alert_rule(
             projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
         )
-        self.three_alert_rule = self.create_alert_rule(projects=self.projects)
         self.two_alert_rule = self.create_alert_rule(
             projects=self.projects, date_added=date_added.replace(tzinfo=pytz.UTC)
         )
+        self.three_alert_rule = self.create_alert_rule(projects=self.projects)
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "2"}
+            request_data = {"per_page": "2", "sort": ["date_added", "id"]}
             response = self.client.get(
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
