@@ -21,7 +21,8 @@ describe('EventsV2 > QueryList', function () {
     deleteMock,
     duplicateMock,
     queryChangeMock,
-    updateHomepageMock;
+    updateHomepageMock,
+    wrapper;
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -78,10 +79,12 @@ describe('EventsV2 > QueryList', function () {
 
   afterEach(() => {
     jest.clearAllMocks();
+    wrapper && wrapper.unmount();
+    wrapper = null;
   });
 
   it('renders an empty list', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={[]}
@@ -98,7 +101,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('renders pre-built queries and saved ones', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -115,7 +118,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can duplicate and trigger change callback', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -138,7 +141,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can delete and trigger change callback', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -161,7 +164,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('returns short url location for saved query', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries}
@@ -180,7 +183,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('can redirect on last query deletion', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -210,7 +213,7 @@ describe('EventsV2 > QueryList', function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
@@ -238,7 +241,7 @@ describe('EventsV2 > QueryList', function () {
   });
 
   it('only renders Delete Query and Duplicate Query in context menu', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={organization}
         savedQueries={savedQueries.slice(1)}
@@ -274,7 +277,7 @@ describe('EventsV2 > QueryList', function () {
       ...savedQueries.slice(1)[0],
       yAxis,
     };
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <QueryList
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
@@ -314,7 +317,7 @@ describe('EventsV2 > QueryList', function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
@@ -384,7 +387,7 @@ describe('EventsV2 > QueryList', function () {
       const featuredOrganization = TestStubs.Organization({
         features: ['dashboards-edit'],
       });
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <QueryList
           organization={featuredOrganization}
           savedQueries={[
