@@ -3,6 +3,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
+import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -680,8 +681,10 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
       return endpoints;
     }
 
-    if (organization.features.includes('discover-query-builder-as-landing-page')) {
-      // TODO: This should only be called when redirecting, not for built-in queries
+    if (
+      organization.features.includes('discover-query-builder-as-landing-page') &&
+      isEmpty(location.query)
+    ) {
       endpoints.push([
         'homepageQuery',
         `/organizations/${organization.slug}/discover/homepage/`,
