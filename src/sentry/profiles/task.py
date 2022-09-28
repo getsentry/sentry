@@ -28,6 +28,8 @@ CallTrees = Mapping[str, List[Any]]
 
 processed_profiles_publisher = None
 
+ONE_SECOND_AS_NANOSECONDS = 100000000000
+
 
 @instrumented_task(  # type: ignore
     name="profiles.process",
@@ -104,8 +106,13 @@ def process_profile(
         )
         return
 
+    duration_ns = _profile_duration_ns(profile)
+
     _initialize_publisher()
-    _insert_eventstream_call_tree(profile=profile)
+
+    if duration_ns <= 5 * ONE_SECOND_AS_NANOSECONDS:
+        _insert_eventstream_call_tree(profile=profile)
+
     _insert_eventstream_profile(profile=profile)
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED, key_id=key_id)
@@ -123,6 +130,13 @@ def _should_symbolicate(profile: Profile) -> bool:
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
     return platform in SHOULD_DEOBFUSCATE
+
+
+def _profile_duration_ns(profile: Profile) -> int:
+    if "duration_ns" in profile:
+        return profile["duration_ns"]
+    elif "transactions" in profile and len(profile["transactions"]) > 1:
+        return profile["transactions"][0]["relative_end_ns"]
 
 
 @metrics.wraps("process_profile.normalize")
