@@ -18,7 +18,7 @@ export function updateHomepageQuery(
   );
 
   promise.catch(() => {
-    addErrorMessage(t('Unable to set query as Default Discover Query'));
+    addErrorMessage(t('Unable to set query as Discover home'));
   });
   return promise;
 }

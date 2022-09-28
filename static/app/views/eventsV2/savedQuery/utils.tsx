@@ -221,10 +221,10 @@ export function handleUpdateHomepageQuery(
 
   return promise
     .then(() => {
-      addSuccessMessage(t('Saved as Default Discover Query'));
+      addSuccessMessage(t('Saved as Discover home'));
     })
     .catch(() => {
-      addErrorMessage(t('Unable to set query as Default Discover Query'));
+      addErrorMessage(t('Unable to set query as Discover home'));
     });
 }
 
