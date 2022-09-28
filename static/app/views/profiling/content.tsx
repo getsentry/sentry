@@ -168,7 +168,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 </ActionBar>
                 {shouldShowProfilingOnboardingPanel ? (
                   <ProfilingOnboardingPanel>
-                    <Button href="https://docs.sentry.io/" external>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
                       {t('Read Docs')}
                     </Button>
                     <Button onClick={onSetupProfilingClick} priority="primary">
