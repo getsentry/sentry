@@ -326,7 +326,7 @@ def post_process_group(
 
             return
 
-        process_event_group(event)
+        update_event_group(event)
         bind_organization_context(event.project.organization)
 
         _capture_stats(event, is_new)
@@ -407,7 +407,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
     return event
 
 
-def process_event_group(event: Event) -> None:
+def update_event_group(event: Event) -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
