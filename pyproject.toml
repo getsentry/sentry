@@ -15,6 +15,7 @@ known_first_party = "sentry"
 skip = "migrations"
 
 [tool.pytest.ini_options]
+python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
 addopts = "-ra --tb=short --strict-markers -p no:celery"
