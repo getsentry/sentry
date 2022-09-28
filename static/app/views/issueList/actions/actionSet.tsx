@@ -243,9 +243,7 @@ function ActionSet({
       <IgnoreActions
         onUpdate={onUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={statusDetails =>
-          confirm({action: ConfirmAction.IGNORE, canBeUndone: true, statusDetails})
-        }
+        confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
         confirmLabel={label('ignore')}
         issueCategory={issueCategory}
         disabled={ignoreDisabled}
