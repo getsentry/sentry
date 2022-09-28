@@ -8,6 +8,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import QueryCount from 'sentry/components/queryCount';
 import Tooltip from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -109,7 +110,7 @@ function IssueListHeader({
                     title={tooltipTitle}
                     position="bottom"
                     isHoverable={tooltipHoverable}
-                    delay={1000}
+                    delay={SLOW_TOOLTIP_DELAY}
                   >
                     {queryName}{' '}
                     {queryCounts[tabQuery]?.count > 0 && (

@@ -22,8 +22,6 @@ import getThreadStacktrace from './events/interfaces/threads/threadSelector/getT
 const REQUEST_DELAY = 100;
 const HOVERCARD_CONTENT_DELAY = 400;
 
-export const STACKTRACE_PREVIEW_TOOLTIP_DELAY = 1000;
-
 function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
     event.entries
