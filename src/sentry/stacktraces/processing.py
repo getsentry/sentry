@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry.models import Project, Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
-from sentry.stacktraces.platform import JAVASCRIPT_PLATFORMS
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import get_path, safe_execute
@@ -490,35 +489,6 @@ def dedup_errors(errors):
     return rv
 
 
-def suspected_console_errors(mechanism, error_type, frames):
-    def is_suspicious_frame(frame) -> bool:
-        function = frame.get("function", None)
-        filename = frame.get("filename", None)
-        return function == "?" and filename == "<anonymous>"
-
-    def has_suspicious_frames(frames) -> bool:
-        if len(frames) == 2 and is_suspicious_frame(frames[0]):
-            return True
-        return all(is_suspicious_frame(frame) for frame in frames)
-
-    if (
-        not frames
-        or not mechanism
-        or mechanism.get("type") != "onerror"
-        or mechanism.get("handled")
-    ):
-        return False
-
-    has_short_stacktrace = len(frames) <= 2
-    is_suspicious_error = error_type.lower() in [
-        "syntaxerror",
-        "referenceerror",
-        "typeerror",
-    ]
-
-    return has_short_stacktrace and is_suspicious_error and has_suspicious_frames(frames)
-
-
 def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     infos = find_stacktraces_in_data(data, with_exceptions=True)
     if make_processors is None:
@@ -575,14 +545,6 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                     changed = True
                     span.set_data("data_changed", True)
 
-                mechanism = stacktrace_info.container.get("mechanism") if is_exception else None
-                error_type = stacktrace_info.container.get("type") if is_exception else None
-                with sentry_sdk.configure_scope() as scope:
-                    if JAVASCRIPT_PLATFORMS in stacktrace_info.platforms:
-                        scope.set_tag(
-                            "empty_stacktrace.js_console",
-                            suspected_console_errors(mechanism, error_type, new_frames),
-                        )
             if (
                 set_raw_stacktrace
                 and new_raw_frames is not None
