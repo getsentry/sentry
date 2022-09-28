@@ -7,6 +7,8 @@ import {
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
+import {SentrySampledProfile} from './sentrySampledProfile';
+
 describe('importProfile', () => {
   it('imports evented profile', () => {
     const eventedProfile: Profiling.EventedProfile = {
@@ -165,6 +167,66 @@ describe('importProfile', () => {
     const imported = importProfile(jsSelfProfile, 'profile');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
+  });
+
+  it('imports sentry sampled profile', () => {
+    const sentrySampledProfile: Profiling.SentrySampledProfile = {
+      event_id: '41fed0925670468bb0457f61a74688ec',
+      version: '1',
+      os: {
+        name: 'iOS',
+        version: '16.0',
+        build_number: '19H253',
+      },
+      device: {
+        architecture: 'arm64e',
+        is_emulator: false,
+        locale: 'en_US',
+        manufacturer: 'Apple',
+        model: 'iPhone14,3',
+      },
+      timestamp: '2022-09-01T09:45:00.000Z',
+      release: '0.1 (199)',
+      platform: 'cocoa',
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            relative_timestamp_ns: '0',
+          },
+          {
+            stack_id: 1,
+            thread_id: '0',
+            relative_timestamp_ns: '1000',
+          },
+        ],
+        frames: [
+          {
+            name: 'main',
+            file: 'main.c',
+            line: 0,
+            column: 0,
+          },
+          {
+            name: 'foo',
+            file: 'main.c',
+            line: 0,
+            column: 0,
+          },
+        ],
+        stacks: [[0], [0, 1]],
+        thread_metadata: {},
+        queue_metadata: {},
+
+        debug_meta: {images: []},
+      },
+      transactions: [],
+    };
+
+    const imported = importProfile(sentrySampledProfile, 'profile');
+
+    expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
   });
 
   it('throws on unrecognized profile type', () => {
