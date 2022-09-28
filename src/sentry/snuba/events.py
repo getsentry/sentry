@@ -373,6 +373,13 @@ class Columns(Enum):
         discover_name="exception_stacks.mechanism_handled",
         alias="error.handled",
     )
+    ERROR_RECEIVED = Column(
+        group_name=None,
+        event_name="received",
+        transaction_name=None,
+        discover_name="received",
+        alias="error.received",
+    )
     STACK_ABS_PATH = Column(
         group_name="events.exception_frames.abs_path",
         event_name="exception_frames.abs_path",

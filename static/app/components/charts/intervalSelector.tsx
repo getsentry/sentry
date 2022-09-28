@@ -178,7 +178,8 @@ export default function IntervalSelector({
     const results = _timeRangeAutoCompleteFilter(items, filterValue, {
       supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,
       supportedUnits: SUPPORTED_RELATIVE_UNITS_LIST,
-    }).filter(item => {
+    });
+    const filteredResults = results.filter(item => {
       const itemHours = parsePeriodToHours(item.value);
       if (itemHours < intervalOption.min) {
         newItem = intervalOption.min;
@@ -191,7 +192,7 @@ export default function IntervalSelector({
     });
     if (newItem) {
       const [amount, unit] = formatHoursToInterval(newItem);
-      results.push(
+      filteredResults.push(
         makeItem(
           amount,
           unit,
@@ -200,7 +201,7 @@ export default function IntervalSelector({
         )
       );
     }
-    return results;
+    return filteredResults;
   };
 
   return (
@@ -215,7 +216,6 @@ export default function IntervalSelector({
       autoCompleteFilter={(items, filterValue) =>
         intervalAutoComplete(items, filterValue)
       }
-      alignMenu="right"
     >
       {({isOpen}) => (
         <DropdownButton borderless prefix={t('Interval')} isOpen={isOpen}>

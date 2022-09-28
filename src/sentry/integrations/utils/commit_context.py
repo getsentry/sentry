@@ -6,7 +6,7 @@ from sentry.utils.committers import get_stacktrace_path_from_event_frame
 
 
 def find_commit_context_for_event(
-    code_mappings: Sequence[RepositoryProjectPathConfig], frame: Mapping[str, Any]
+    code_mappings: Sequence[RepositoryProjectPathConfig], frame: Mapping[str, Any], logger: Any
 ):
     """
     Returns the Commit Context for an event frame using a source code integration, if it exists.
@@ -33,6 +33,16 @@ def find_commit_context_for_event(
         )
         commit_context = install.get_commit_context(
             code_mapping.repository, src_path, code_mapping.default_branch, frame
+        )
+
+        logger.info(
+            "find_commit_context_for_event.integration_fetch",
+            extra={
+                "src_path": src_path,
+                "stacktrace_path": stacktrace_path,
+                "code_mapping_id": code_mapping.id,
+                "found": True if commit_context else False,
+            },
         )
 
         if commit_context:

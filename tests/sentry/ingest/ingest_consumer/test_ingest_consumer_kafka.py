@@ -78,6 +78,7 @@ def random_group_id():
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 
+@pytest.mark.skip(reason="flakey")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize(
     "executor",
@@ -90,7 +91,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     kafka_admin,
     default_project,
     get_test_message,
-    random_group_id,
 ):
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
@@ -108,7 +108,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         consumer = get_ingest_consumer(
             max_batch_size=2,
             max_batch_time=5000,
-            group_id=random_group_id,
+            group_id="some-group-id",
             consumer_types={ConsumerType.Events},
             auto_offset_reset="earliest",
             executor=executor,
