@@ -283,7 +283,6 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
-    "sentry.middleware.dedupe_cookies.DedupeCookiesMiddleware",
     "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
