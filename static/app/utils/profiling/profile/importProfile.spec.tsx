@@ -204,15 +204,11 @@ describe('importProfile', () => {
         frames: [
           {
             name: 'main',
-            file: 'main.c',
-            line: 0,
-            column: 0,
+            instruction_addr: '',
           },
           {
             name: 'foo',
-            file: 'main.c',
-            line: 0,
-            column: 0,
+            instruction_addr: '',
           },
         ],
         stacks: [[0], [0, 1]],

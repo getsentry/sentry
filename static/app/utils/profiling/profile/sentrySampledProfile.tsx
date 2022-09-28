@@ -15,13 +15,17 @@ export class SentrySampledProfile extends Profile {
     stacks: Profiling.SentrySampledProfile['profile']['stacks'],
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>
   ): Profile {
+    const startedAt = parseInt(samples[0].relative_timestamp_ns, 10);
+    const endedAt = parseInt(samples[samples.length - 1].relative_timestamp_ns, 10);
+    const threadId = parseInt(samples[0].thread_id, 10);
+
     const profile = new SentrySampledProfile({
-      duration: 0,
-      startedAt: 0,
-      endedAt: 0,
+      duration: endedAt - startedAt,
+      startedAt,
+      endedAt,
       unit: 'nanoseconds',
-      name: "Sentry's Sampled Profile",
-      threadId: 0,
+      name: threadId.toString(),
+      threadId,
     });
 
     let previousSampleWeight = 0;

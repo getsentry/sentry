@@ -19,19 +19,18 @@ describe('SentrySampledProfile', () => {
       ],
       frames: [
         {
-          function: 'main',
-          file: 'main.c',
-          line: 0,
-          column: 0,
+          name: 'main',
+          instruction_addr: '',
         },
         {
-          function: 'foo',
-          file: 'main.c',
-          line: 0,
-          column: 0,
+          name: 'foo',
+          instruction_addr: '',
         },
       ],
       stacks: [[0], [0, 1]],
+      thread_metadata: {},
+      debug_meta: {images: []},
+      queue_metadata: {},
     };
 
     const profile = SentrySampledProfile.FromProfile(
@@ -50,5 +49,7 @@ describe('SentrySampledProfile', () => {
       ['foo', 'close'],
       ['main', 'close'],
     ]);
+    expect(profile.startedAt).toEqual(0);
+    expect(profile.endedAt).toEqual(1000);
   });
 });

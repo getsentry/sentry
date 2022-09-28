@@ -9,9 +9,7 @@ declare namespace Profiling {
 
   type SentryProfileFrame = {
     name: string;
-    file: string;
-    line: number;
-    column: number;
+    instruction_addr: string;
   };
 
   type SentrySampledProfile = {
