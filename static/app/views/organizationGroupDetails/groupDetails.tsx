@@ -102,7 +102,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData(true);
+    // only track the view if we are loading the event early
+    this.fetchData(this.canLoadEventEarly(this.props));
     if (this.props.organization.features.includes('session-replay-ui')) {
       this.fetchReplayIds();
     }
@@ -118,14 +119,16 @@ class GroupDetails extends Component<Props, State> {
       prevProps.location.pathname !== this.props.location.pathname
     ) {
       // Skip tracking for other navigation events like switching events
-      this.fetchData(globalSelectionReadyChanged);
+      this.fetchData(globalSelectionReadyChanged && this.canLoadEventEarly(this.props));
     }
 
     if (
       (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
-      this.getEvent(this.state.group);
+      this.getEvent(this.state.group).then(
+        () => this.state.group?.project && this.trackView(this.state.group?.project)
+      );
     }
   }
 
@@ -171,6 +174,7 @@ class GroupDetails extends Component<Props, State> {
       error_count: Number(group?.count || -1),
       num_comments: group ? group.numComments : -1,
       project_platform: group?.project.platform,
+      has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
       // event properties
       event_id: event?.eventID,
       num_commits: event?.release?.commitCount || 0,
