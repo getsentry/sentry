@@ -66,6 +66,7 @@ import {
   filterKeysFromQuery,
   generateOperatorEntryMap,
   getDateTagAutocompleteGroups,
+  getSearchConfigFromCustomPerformanceMetrics,
   getSearchGroupWithItemMarkedActive,
   getTagItemsFromKeys,
   getValidOps,
@@ -83,42 +84,6 @@ const ACTION_OVERFLOW_WIDTH = 400;
  * Actions are moved to the overflow dropdown after each pixel step is reached.
  */
 const ACTION_OVERFLOW_STEPS = 75;
-
-const getSearchConfigFromCustomPerformanceMetrics = (
-  customPerformanceMetrics?: CustomMeasurementCollection
-): Partial<SearchConfig> => {
-  const searchConfigMap: Record<string, string[]> = {
-    sizeKeys: [],
-    durationKeys: [],
-    percentageKeys: [],
-    numericKeys: [],
-  };
-  if (customPerformanceMetrics) {
-    Object.keys(customPerformanceMetrics).forEach(metricName => {
-      const {fieldType} = customPerformanceMetrics[metricName];
-      switch (fieldType) {
-        case 'size':
-          searchConfigMap.sizeKeys.push(metricName);
-          break;
-        case 'duration':
-          searchConfigMap.durationKeys.push(metricName);
-          break;
-        case 'percentage':
-          searchConfigMap.percentageKeys.push(metricName);
-          break;
-        default:
-          searchConfigMap.numericKeys.push(metricName);
-      }
-    });
-  }
-  const searchConfig = {
-    sizeKeys: new Set(searchConfigMap.sizeKeys),
-    durationKeys: new Set(searchConfigMap.durationKeys),
-    percentageKeys: new Set(searchConfigMap.percentageKeys),
-    numericKeys: new Set(searchConfigMap.numericKeys),
-  };
-  return searchConfig;
-};
 
 const generateOpAutocompleteGroup = (
   validOps: readonly TermOperator[],
@@ -207,6 +172,10 @@ type Props = WithRouterProps & {
    */
   hasRecentSearches?: boolean;
   /**
+   * Whether or not to highlight unsupported tags red
+   */
+  highlightUnsupportedTags?: boolean;
+  /**
    * Allows additional content to be played before the search bar and icon
    */
   inlineLabel?: React.ReactNode;
@@ -242,7 +211,7 @@ type Props = WithRouterProps & {
    * Called when the user has closed the search dropdown.
    * Occurs on escape, tab, or clicking outside the component.
    */
-  onClose?: (value: string) => void;
+  onClose?: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
   /**
    * Get a list of recent searches for the current query
    */
@@ -356,7 +325,11 @@ class SmartSearchBar extends Component<Props, State> {
   state: State = {
     query: this.initialQuery,
     showDropdown: false,
-    parsedQuery: parseSearch(this.initialQuery),
+    parsedQuery: parseSearch(this.initialQuery, {
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      supportedTags: this.props.supportedTags,
+      validateKeys: this.props.highlightUnsupportedTags,
+    }),
     searchTerm: '',
     searchGroups: [],
     flatSearchItems: [],
@@ -405,8 +378,11 @@ class SmartSearchBar extends Component<Props, State> {
   }
 
   makeQueryState(query: string) {
-    const additionalConfig: Partial<SearchConfig> =
-      getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics);
+    const additionalConfig: Partial<SearchConfig> = {
+      ...getSearchConfigFromCustomPerformanceMetrics(this.props.customPerformanceMetrics),
+      supportedTags: this.props.supportedTags,
+      validateKeys: this.props.highlightUnsupportedTags,
+    };
     return {
       query,
       parsedQuery: parseSearch(query, additionalConfig),
@@ -697,7 +673,7 @@ class SmartSearchBar extends Component<Props, State> {
 
   close = () => {
     this.setState({showDropdown: false});
-    this.props.onClose?.(this.state.query);
+    this.props.onClose?.(this.state.query, {validSearch: this.hasValidSearch});
     document.removeEventListener('pointerup', this.onBackgroundPointerUp);
   };
 
@@ -1755,6 +1731,8 @@ class SmartSearchBar extends Component<Props, State> {
       inlineLabel,
       maxQueryLength,
       maxMenuHeight,
+      customPerformanceMetrics,
+      supportedTags,
     } = this.props;
 
     const {
@@ -1891,6 +1869,8 @@ class SmartSearchBar extends Component<Props, State> {
             runShortcut={this.runShortcutOnClick}
             visibleShortcuts={visibleShortcuts}
             maxMenuHeight={maxMenuHeight}
+            customPerformanceMetrics={customPerformanceMetrics}
+            supportedTags={supportedTags}
           />
         )}
       </Container>

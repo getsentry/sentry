@@ -26,6 +26,13 @@ TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
+INTEGRATIONS_OF_INTEREST = [
+    "django",
+    "flask",
+    "sqlalchemy",
+    "Mongo",  # Node
+    "Postgres",  # Node
+]
 
 
 class DetectorType(Enum):
@@ -891,7 +898,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._maybe_store_problem()
 
-    def _contains_complete_query(self, span: Span) -> bool:
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # When SDKs truncate span description, they add a "..." suffix (three
         # full stops, not an ellipsis).
         query = span.get("description", None)
@@ -964,9 +971,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         # Track how many N+1-looking problems we found but dropped because we
         # couldn't be sure (maybe the truncated part of the query differs).
-        if not self._contains_complete_query(self.source_span) or not self._contains_complete_query(
-            self.n_spans[0]
-        ):
+        if not self._contains_complete_query(
+            self.source_span, is_source=True
+        ) or not self._contains_complete_query(self.n_spans[0]):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
@@ -1020,10 +1027,13 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def _contains_complete_query(self, span: Span) -> bool:
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # Remove the truncation check from the n_plus_one db detector.
         query = span.get("description", None)
-        return bool(query)
+        if is_source:
+            return bool(query)
+        else:
+            return query and not query.endswith("...")
 
 
 # Reports metrics and creates spans for detection
@@ -1042,6 +1052,7 @@ def report_metrics_for_detectors(
 
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
+        set_tag("_pi_sdk_name", sdk_name or "")
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
@@ -1051,6 +1062,13 @@ def report_metrics_for_detectors(
             set_tag("_pi_transaction", event_id)
 
     detected_tags = {"sdk_name": sdk_name}
+    event_integrations = event.get("sdk", {}).get("integrations", []) or []
+
+    for integration_name in INTEGRATIONS_OF_INTEREST:
+        detected_tags["integration_" + integration_name.lower()] = (
+            integration_name in event_integrations
+        )
+
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems

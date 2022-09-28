@@ -240,8 +240,119 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @pytest.mark.skip(reason="flaky: TET-423")
+    @freeze_time("2022-09-28 13:00:00")
+    def test_custom_measurement_query_with_valid_mri(self):
+        now = timezone.now()
+        transactions_speed_mri = "d:transactions/measurements.speed@millisecond"
+
+        for value in (100, 200, 300):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=transactions_speed_mri,
+                tags={},
+                timestamp=(now - timedelta(hours=1)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=transactions_speed_mri,
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            groupby=[],
+            orderby=[],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 3
+        expected_alias = "count(measurements.speed)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    @freeze_time("2022-09-28 13:00:00")
+    def test_custom_measurement_query_with_invalid_mri(self):
+        now = timezone.now()
+        invalid_mris = [
+            "d:sessions/measurements.speed@millisecond",
+            "s:transactions/measurements.speed@millisecond",
+        ]
+
+        for value, invalid_mri in zip([100, 200], invalid_mris):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=invalid_mri,
+                tags={},
+                timestamp=(now - timedelta(hours=1)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        for invalid_mri in invalid_mris:
+            with pytest.raises(
+                InvalidParams, match=f"Unable to find a mri reverse mapping for '{invalid_mri}'."
+            ):
+                # We keep the query in order to add more context to the test, even though the actual test
+                # is testing for the '__post_init__' inside 'MetricField'.
+                metrics_query = MetricsQuery(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    select=[
+                        MetricField(
+                            op="count",
+                            metric_mri=invalid_mri,
+                        ),
+                    ],
+                    start=self.now - timedelta(hours=1),
+                    end=self.now,
+                    granularity=Granularity(granularity=3600),
+                    groupby=[],
+                    orderby=[],
+                    limit=Limit(limit=2),
+                    offset=Offset(offset=0),
+                    include_series=False,
+                )
+
+                get_series(
+                    [self.project],
+                    metrics_query=metrics_query,
+                    include_meta=True,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+    @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_valid_condition(self):
+        now = timezone.now()
+
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2, 3]),
@@ -259,7 +370,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    timestamp=now.timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -287,11 +398,11 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_has_value",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             groupby=[],
-            granularity=Granularity(granularity=3600),
-            limit=Limit(limit=51),
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
         )
@@ -321,7 +432,10 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
+    @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_invalid_condition(self):
+        now = timezone.now()
+
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2]),
@@ -339,7 +453,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=(self.now - timedelta(minutes=2)).timestamp(),
+                    timestamp=now.timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -357,11 +471,11 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_invalid",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             groupby=[],
-            granularity=Granularity(granularity=3600),
-            limit=Limit(limit=51),
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
         )
@@ -392,7 +506,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             (2.3, TransactionStatusTagValue.UNKNOWN.value),
             (0.5, TransactionStatusTagValue.ABORTED.value),
         ):
-
             self.store_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
