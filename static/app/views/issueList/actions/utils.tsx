@@ -78,12 +78,10 @@ export function getConfirm({
     action,
     canBeUndone,
     append = '',
-    statusDetails,
   }: {
     action: ConfirmAction | string;
     canBeUndone: boolean;
     append?: string;
-    statusDetails?: ResolutionStatusDetails;
   }) {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
@@ -123,17 +121,6 @@ export function getConfirm({
             </PerformanceIssueAlert>
           </Fragment>
         );
-        break;
-      case ConfirmAction.IGNORE:
-        if (statusDetails && !performanceIssuesSupportsIgnoreAction(statusDetails)) {
-          message = (
-            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
-              {t(
-                'Ignoring performance issues by time window is not yet supported. Any encountered in this query will be skipped.'
-              )}
-            </PerformanceIssueAlert>
-          );
-        }
         break;
       default:
         message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
