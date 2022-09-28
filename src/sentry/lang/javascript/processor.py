@@ -87,7 +87,7 @@ class UnparseableSourcemap(http.BadSource):
 
 # TODO(smcache): Remove this function and all its usages.
 def should_run_smcache(cls):
-    return features.has("projects:sourcemapcache-processor", cls.project) and not isinstance(
+    return cls.has_smcache_feature is True and not isinstance(
         cls, JavaScriptSmCacheStacktraceProcessor
     )
 
@@ -917,6 +917,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         self.release = None
         self.dist = None
+
+        # We only want to check the feature flag for this specific class, and not for
+        # `JavaScriptSmCacheStacktraceProcessor`., as it's asking remote Flagr for that data.
+        if not isinstance(self, JavaScriptSmCacheStacktraceProcessor):
+            self.has_smcache_feature = features.has(
+                "projects:sourcemapcache-processor", self.project
+            )
+        else:
+            self.has_smcache_feature = False
 
         if should_run_smcache(self):
             self.smcache_processor = JavaScriptSmCacheStacktraceProcessor(*args, **kwargs)
