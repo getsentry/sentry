@@ -3,6 +3,7 @@ import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
+import {SeriesDataUnit} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
 
 import {Monitor, MonitorStat} from './types';
@@ -14,8 +15,6 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   stats: MonitorStat[] | null;
 };
-
-type Stat = {name: string; value: number};
 
 export default class MonitorStats extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -41,19 +40,19 @@ export default class MonitorStats extends AsyncComponent<Props, State> {
     let emptyStats = true;
     const success = {
       seriesName: t('Successful'),
-      data: [] as Stat[],
+      data: [] as SeriesDataUnit[],
     };
     const failed = {
       seriesName: t('Failed'),
-      data: [] as Stat[],
+      data: [] as SeriesDataUnit[],
     };
     this.state.stats?.forEach(p => {
       if (p.ok || p.error) {
         emptyStats = false;
       }
       const timestamp = p.ts * 1000;
-      success.data.push({name: timestamp.toString(), value: p.ok});
-      failed.data.push({name: timestamp.toString(), value: p.error});
+      success.data.push({name: timestamp, value: p.ok});
+      failed.data.push({name: timestamp, value: p.error});
     });
     const colors = [theme.green300, theme.red300];
 
