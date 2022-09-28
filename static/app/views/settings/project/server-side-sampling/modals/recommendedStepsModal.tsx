@@ -36,6 +36,7 @@ import {useRecommendedSdkUpgrades} from '../utils/useRecommendedSdkUpgrades';
 import {FooterActions, Stepper} from './uniformRateModal';
 
 export type RecommendedStepsModalProps = ModalRenderProps & {
+  hasAccess: boolean;
   onReadDocs: () => void;
   organization: Organization;
   projectId: Project['id'];
@@ -69,16 +70,19 @@ export function RecommendedStepsModal({
   recommendedSampleRate,
   onSetRules,
   projectSlug,
+  hasAccess,
 }: RecommendedStepsModalProps) {
   const {isProjectIncompatible} = useRecommendedSdkUpgrades({
     organization,
     projectId,
     projectSlug,
+    hasAccess,
   });
   const [saving, setSaving] = useState(false);
   const {projectStats48h} = useProjectStats({
     organizationSlug: organization.slug,
     projectId,
+    hasAccess,
   });
   const {maxSafeSampleRate} = projectStatsToSampleRates(projectStats48h.data);
   const suggestedClientSampleRate = clientSampleRate ?? maxSafeSampleRate;

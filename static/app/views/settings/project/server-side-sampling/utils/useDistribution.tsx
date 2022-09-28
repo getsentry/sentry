@@ -8,11 +8,12 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
+  hasAccess: boolean;
   organizationSlug: Organization['slug'];
   projectSlug: Project['slug'];
 };
 
-export function useDistribution({projectSlug, organizationSlug}: Props) {
+export function useDistribution({hasAccess, projectSlug, organizationSlug}: Props) {
   const api = useApi();
 
   const samplingDistribution = useQuery(
@@ -27,6 +28,7 @@ export function useDistribution({projectSlug, organizationSlug}: Props) {
         const errorMessage = t('Unable to fetch sampling distribution');
         handleXhrErrorResponse(errorMessage)(error as ResponseMeta);
       },
+      enabled: hasAccess,
     }
   );
 

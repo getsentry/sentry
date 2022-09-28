@@ -90,6 +90,7 @@ export function ServerSideSampling({project}: Props) {
   const {projectStats48h} = useProjectStats({
     projectId: project.id,
     organizationSlug: organization.slug,
+    hasAccess,
   });
 
   const {
@@ -100,6 +101,7 @@ export function ServerSideSampling({project}: Props) {
     organization,
     projectId: project.id,
     projectSlug: project.slug,
+    hasAccess,
   });
 
   async function handleActivateToggle(rule: SamplingRule) {
@@ -181,6 +183,7 @@ export function ServerSideSampling({project}: Props) {
           rules={rules}
           onSubmit={saveUniformRule}
           onReadDocs={handleReadDocs}
+          hasAccess={hasAccess}
         />
       ),
       {
@@ -245,6 +248,7 @@ export function ServerSideSampling({project}: Props) {
             rules={rules}
             onSubmit={saveUniformRule}
             onReadDocs={handleReadDocs}
+            hasAccess={hasAccess}
           />
         ),
         {
@@ -451,6 +455,7 @@ export function ServerSideSampling({project}: Props) {
           <SamplingBreakdown
             organizationSlug={organization.slug}
             projectSlug={project.slug}
+            hasAccess
           />
         )}
         {!rules.length ? (

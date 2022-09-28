@@ -21,13 +21,14 @@ import {useDistribution} from './utils/useDistribution';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
 type Props = {
+  hasAccess: boolean;
   organizationSlug: Organization['slug'];
   projectSlug: Project['slug'];
 };
 
-export function SamplingBreakdown({organizationSlug, projectSlug}: Props) {
+export function SamplingBreakdown({organizationSlug, projectSlug, hasAccess}: Props) {
   const theme = useTheme();
-  const distribution = useDistribution({projectSlug, organizationSlug});
+  const distribution = useDistribution({projectSlug, organizationSlug, hasAccess});
   const projectBreakdown = distribution?.data?.project_breakdown;
 
   const {projects} = useProjects({

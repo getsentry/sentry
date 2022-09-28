@@ -2,6 +2,8 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {Organization, Project} from 'sentry/types';
+import {SamplingDistribution} from 'sentry/types/sampling';
 import {SamplingBreakdown} from 'sentry/views/settings/project/server-side-sampling/samplingBreakdown';
 
 import {
@@ -17,21 +19,42 @@ function ComponentProviders({children}: {children: React.ReactNode}) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
+function renderMockRequests({
+  organizationSlug,
+  projectSlug,
+  distributionRequestBody,
+}: {
+  organizationSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+  distributionRequestBody?: SamplingDistribution;
+}) {
+  const projects = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: mockedProjects,
+  });
+
+  const distribution = MockApiClient.addMockResponse({
+    url: `/projects/${organizationSlug}/${projectSlug}/dynamic-sampling/distribution/`,
+    method: 'GET',
+    body: distributionRequestBody ?? {},
+  });
+
+  return {projects, distribution};
+}
+
 describe('Server-Side Sampling - SamplingBreakdown', function () {
   it('renders empty', async function () {
     const {organization, project} = getMockInitializeOrg();
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
-      method: 'GET',
-      body: {},
-    });
+    renderMockRequests({organizationSlug: organization.slug, projectSlug: project.slug});
 
     render(
       <ComponentProviders>
         <SamplingBreakdown
           organizationSlug={organization.slug}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     );
@@ -46,15 +69,10 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
   it('renders project breakdown', async function () {
     const {organization, project} = getMockInitializeOrg();
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/dynamic-sampling/distribution/`,
-      method: 'GET',
-      body: mockedSamplingDistribution,
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: mockedProjects,
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+      distributionRequestBody: mockedSamplingDistribution,
     });
 
     render(
@@ -62,6 +80,7 @@ describe('Server-Side Sampling - SamplingBreakdown', function () {
         <SamplingBreakdown
           organizationSlug={organization.slug}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     );

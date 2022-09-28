@@ -1,9 +1,6 @@
-import {InjectedRouter} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import GlobalModal from 'sentry/components/globalModal';
-import {Organization, Outcome, Project} from 'sentry/types';
+import {Outcome, Project} from 'sentry/types';
 import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
@@ -14,9 +11,6 @@ import {
   SamplingRuleType,
   SamplingSdkVersion,
 } from 'sentry/types/sampling';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
-import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 
 export const outcomesWithoutClientDiscarded = {
   ...TestStubs.OutcomesWithReason(),
@@ -169,35 +163,4 @@ export function getMockInitializeOrg({
     },
     projects,
   });
-}
-
-export function TestComponent({
-  router,
-  project,
-  organization,
-  withModal,
-}: {
-  organization: Organization;
-  project: Project;
-  router: InjectedRouter;
-  withModal?: boolean;
-}) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {
-          orgId: organization.slug,
-          projectId: project.slug,
-        },
-        routes: [],
-      }}
-    >
-      {withModal && <GlobalModal />}
-      <OrganizationContext.Provider value={organization}>
-        <ServerSideSampling project={project} />
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>
-  );
 }

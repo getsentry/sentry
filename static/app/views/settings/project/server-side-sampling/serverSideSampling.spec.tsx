@@ -1,12 +1,17 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {InjectedRouter} from 'react-router';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+
+import GlobalModal from 'sentry/components/globalModal';
+import {Organization, Project} from 'sentry/types';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
+import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import * as useDistributionImport from 'sentry/views/settings/project/server-side-sampling/utils/useDistribution';
+import * as useProjectStatsImport from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
+import * as useSdkVersionsImport from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
 
 import {samplingBreakdownTitle} from './samplingBreakdown.spec';
 import {
@@ -15,53 +20,110 @@ import {
   mockedSamplingDistribution,
   mockedSamplingSdkVersions,
   specificRule,
-  TestComponent,
   uniformRule,
 } from './testUtils';
 
-describe.skip('Server-Side Sampling', function () {
-  let distributionMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
-    undefined;
-  let sdkVersionsMock: ReturnType<typeof MockApiClient.addMockResponse> | undefined =
-    undefined;
+jest.spyOn(useDistributionImport, 'useDistribution').mockImplementation(() => ({
+  loading: false,
+  error: false,
+  data: mockedSamplingDistribution,
+}));
 
-  beforeEach(function () {
-    distributionMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/dynamic-sampling/distribution/',
-      method: 'GET',
-      body: mockedSamplingDistribution,
-    });
+jest.spyOn(useSdkVersionsImport, 'useSdkVersions').mockImplementation(() => ({
+  loading: false,
+  error: false,
+  data: mockedSamplingSdkVersions,
+}));
 
-    sdkVersionsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dynamic-sampling/sdk-versions/',
-      method: 'GET',
-      body: mockedSamplingSdkVersions,
-    });
+jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+  projectStats30d: {loading: false, error: false, data: TestStubs.Outcomes()},
+  projectStats48h: {loading: false, error: false, data: TestStubs.Outcomes()},
+  onRefetch: jest.fn(),
+}));
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      method: 'GET',
-      body: mockedSamplingDistribution.project_breakdown!.map(p =>
-        TestStubs.Project({id: p.project_id, slug: p.project})
-      ),
-    });
+function ComponentProviders({
+  router,
+  project,
+  organization,
+  withModal,
+  children,
+}: {
+  children: React.ReactNode;
+  organization: Organization;
+  project: Project;
+  router: InjectedRouter;
+  withModal?: boolean;
+}) {
+  const client = new QueryClient();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats_v2/',
-      method: 'GET',
-      body: TestStubs.Outcomes(),
-    });
+  return (
+    <QueryClientProvider client={client}>
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        {withModal && <GlobalModal />}
+        <OrganizationContext.Provider value={organization}>
+          {children}
+        </OrganizationContext.Provider>
+      </RouteContext.Provider>
+    </QueryClientProvider>
+  );
+}
+
+function renderMockRequests({
+  organizationSlug,
+  projectSlug,
+}: {
+  organizationSlug: Organization['slug'];
+  projectSlug: Project['slug'];
+}) {
+  const projects = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: mockedSamplingDistribution.project_breakdown!.map(p =>
+      TestStubs.Project({id: p.project_id, slug: p.project})
+    ),
   });
 
-  afterEach(() => {
-    MockApiClient.clearMockResponses();
+  const statsV2 = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/stats_v2/`,
+    method: 'GET',
+    body: TestStubs.Outcomes(),
   });
 
+  const distribution = MockApiClient.addMockResponse({
+    url: `/projects/${organizationSlug}/${projectSlug}/dynamic-sampling/distribution/`,
+    method: 'GET',
+    body: mockedSamplingDistribution,
+  });
+
+  const sdkVersions = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/dynamic-sampling/sdk-versions/`,
+    method: 'GET',
+    body: mockedSamplingSdkVersions,
+  });
+
+  return {projects, statsV2, distribution, sdkVersions};
+}
+
+describe('Server-Side Sampling', function () {
   it('renders onboarding promo', async function () {
     const {router, organization, project} = getMockInitializeOrg();
 
+    renderMockRequests({organizationSlug: organization.slug, projectSlug: project.slug});
+
     const {container} = render(
-      <TestComponent router={router} organization={organization} project={project} />
+      <ComponentProviders router={router} organization={organization} project={project}>
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
@@ -102,8 +164,12 @@ describe.skip('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({organizationSlug: organization.slug, projectSlug: project.slug});
+
     const {container} = render(
-      <TestComponent router={router} organization={organization} project={project} />
+      <ComponentProviders router={router} organization={organization} project={project}>
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     // Assert that project breakdown is there
@@ -173,8 +239,12 @@ describe.skip('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({organizationSlug: organization.slug, projectSlug: project.slug});
+
     render(
-      <TestComponent router={router} organization={organization} project={project} />
+      <ComponentProviders router={router} organization={organization} project={project}>
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     // Assert that project breakdown is there (avoids 'act' warnings)
@@ -199,20 +269,21 @@ describe.skip('Server-Side Sampling', function () {
       projects: mockedProjects,
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: projects[2].slug,
+    });
+
     render(
-      <TestComponent
+      <ComponentProviders
+        router={router}
         organization={organization}
         project={projects[2]}
-        router={router}
         withModal
-      />
+      >
+        <ServerSideSampling project={projects[2]} />
+      </ComponentProviders>
     );
-
-    expect(distributionMock).toHaveBeenCalled();
-
-    await waitFor(() => {
-      expect(sdkVersionsMock).toHaveBeenCalled();
-    });
 
     const recommendedSdkUpgradesAlert = await screen.findByTestId(
       'recommended-sdk-upgrades-alert'
@@ -265,13 +336,20 @@ describe.skip('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
-      <TestComponent
+      <ComponentProviders
+        router={router}
         organization={organization}
         project={project}
-        router={router}
         withModal
-      />
+      >
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     // Open Modal
@@ -292,8 +370,15 @@ describe.skip('Server-Side Sampling', function () {
       access: [],
     });
 
+    const mockRequests = renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
-      <TestComponent organization={organization} project={project} router={router} />
+      <ComponentProviders router={router} organization={organization} project={project}>
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
@@ -302,8 +387,8 @@ describe.skip('Server-Side Sampling', function () {
       await screen.findByText("You don't have permission to add a rule")
     ).toBeInTheDocument();
 
-    expect(distributionMock).not.toHaveBeenCalled();
-    expect(sdkVersionsMock).not.toHaveBeenCalled();
+    expect(mockRequests.distribution).not.toHaveBeenCalled();
+    expect(mockRequests.sdkVersions).not.toHaveBeenCalled();
   });
 
   it('does not let the user activate a rule if sdk updates exists', async function () {
@@ -317,8 +402,15 @@ describe.skip('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
-      <TestComponent organization={organization} project={project} router={router} />
+      <ComponentProviders router={router} organization={organization} project={project}>
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     await screen.findByTestId('recommended-sdk-upgrades-alert');
@@ -345,13 +437,20 @@ describe.skip('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
-      <TestComponent
+      <ComponentProviders
+        router={router}
         organization={organization}
         project={project}
-        router={router}
         withModal
-      />
+      >
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     userEvent.click(screen.getByLabelText('Actions'));
@@ -377,13 +476,20 @@ describe.skip('Server-Side Sampling', function () {
       ],
     });
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectSlug: project.slug,
+    });
+
     render(
-      <TestComponent
+      <ComponentProviders
+        router={router}
         organization={organization}
         project={project}
-        router={router}
         withModal
-      />
+      >
+        <ServerSideSampling project={project} />
+      </ComponentProviders>
     );
 
     const samplingUniformRule = screen.getAllByTestId('sampling-rule')[1];

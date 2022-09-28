@@ -8,12 +8,18 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
+  hasAccess: boolean;
   organizationSlug: Organization['slug'];
   projectId: Project['id'];
   distribution?: SamplingDistribution;
 };
 
-export function useSdkVersions({distribution, organizationSlug, projectId}: Props) {
+export function useSdkVersions({
+  hasAccess,
+  distribution,
+  organizationSlug,
+  projectId,
+}: Props) {
   const api = useApi();
 
   const projectIds = [
@@ -44,7 +50,7 @@ export function useSdkVersions({distribution, organizationSlug, projectId}: Prop
       ),
     {
       refetchOnMount: false, // This hook is being used on different components on the same page and we don't want to refetch the data on every component mount.
-      enabled: !!distribution, // only fetches if distribution is available,
+      enabled: !!distribution && hasAccess, // only fetches if distribution is available and user has access.
       onError: error => {
         const errorMessage = t('Unable to fetch sampling SDK versions');
         handleXhrErrorResponse(errorMessage)(error as ResponseMeta);

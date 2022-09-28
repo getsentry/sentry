@@ -1,3 +1,5 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
 import {
   render,
   screen,
@@ -8,34 +10,82 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GlobalModal from 'sentry/components/globalModal';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {UniformRateModal} from 'sentry/views/settings/project/server-side-sampling/modals/uniformRateModal';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
+import * as useDistributionImport from 'sentry/views/settings/project/server-side-sampling/utils/useDistribution';
+import * as useProjectStatsImport from 'sentry/views/settings/project/server-side-sampling/utils/useProjectStats';
+import * as useSdkVersionsImport from 'sentry/views/settings/project/server-side-sampling/utils/useSdkVersions';
 
 import {getMockInitializeOrg, outcomesWithoutClientDiscarded} from '../testUtils';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
-describe.skip('Server-Side Sampling - Uniform Rate Modal', function () {
+jest.spyOn(useDistributionImport, 'useDistribution').mockImplementation(() => ({
+  loading: false,
+  error: false,
+  data: undefined,
+}));
+
+jest.spyOn(useSdkVersionsImport, 'useSdkVersions').mockImplementation(() => ({
+  loading: false,
+  error: false,
+  data: undefined,
+}));
+
+function renderMockRequests({
+  organizationSlug,
+  projectsRequestBody,
+}: {
+  organizationSlug: Organization['slug'];
+  projectsRequestBody?: Project[];
+}) {
+  const projects = MockApiClient.addMockResponse({
+    url: `/organizations/${organizationSlug}/projects/`,
+    method: 'GET',
+    body: projectsRequestBody ?? [],
+  });
+
+  return {projects};
+}
+
+function ComponentProviders({children}: {children: React.ReactNode}) {
+  const client = new QueryClient();
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+describe('Server-Side Sampling - Uniform Rate Modal', function () {
   it('render next button', async function () {
     const {organization, project} = getMockInitializeOrg();
     const handleSubmit = jest.fn();
     const handleReadDocs = jest.fn();
 
-    // ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
-    // ServerSideSamplingStore.projectStats48hRequestSuccess(TestStubs.Outcomes());
+    jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+      projectStats30d: {loading: false, error: false, data: TestStubs.Outcomes()},
+      projectStats48h: {loading: false, error: false, data: TestStubs.Outcomes()},
+      onRefetch: jest.fn(),
+    }));
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectsRequestBody: [project],
+    });
 
     const {container} = render(<GlobalModal />);
 
     openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={[]}
-        onSubmit={handleSubmit}
-        onReadDocs={handleReadDocs}
-      />
+      <ComponentProviders>
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          rules={[]}
+          onSubmit={handleSubmit}
+          onReadDocs={handleReadDocs}
+          hasAccess
+        />
+      </ComponentProviders>
     ));
 
     // Header
@@ -146,26 +196,41 @@ describe.skip('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('render done button', async function () {
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.projectStats48hRequestSuccess({
-      ...TestStubs.Outcomes(),
-      groups: [],
-    });
+    jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+      projectStats30d: {loading: false, error: false, data: TestStubs.Outcomes()},
+      projectStats48h: {
+        loading: false,
+        error: false,
+        data: {
+          ...TestStubs.Outcomes(),
+          groups: [],
+        },
+      },
+      onRefetch: jest.fn(),
+    }));
 
     const {organization, project} = getMockInitializeOrg();
     const handleSubmit = jest.fn();
 
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectsRequestBody: [project],
+    });
+
     const {container} = render(<GlobalModal />);
 
     openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={[]}
-        onSubmit={handleSubmit}
-        onReadDocs={jest.fn()}
-      />
+      <ComponentProviders>
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          rules={[]}
+          onSubmit={handleSubmit}
+          onReadDocs={jest.fn()}
+          hasAccess
+        />
+      </ComponentProviders>
     ));
 
     // Content
@@ -221,25 +286,40 @@ describe.skip('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('cancel flow', async function () {
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.projectStats48hRequestSuccess({
-      ...TestStubs.Outcomes(),
-      groups: [],
-    });
+    jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+      projectStats30d: {loading: false, error: false, data: TestStubs.Outcomes()},
+      projectStats48h: {
+        loading: false,
+        error: false,
+        data: {
+          ...TestStubs.Outcomes(),
+          groups: [],
+        },
+      },
+      onRefetch: jest.fn(),
+    }));
 
     const {organization, project} = getMockInitializeOrg();
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectsRequestBody: [project],
+    });
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={[]}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-      />
+      <ComponentProviders>
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          rules={[]}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          hasAccess
+        />
+      </ComponentProviders>
     ));
 
     await screen.findByRole('heading', {name: 'Set a global sample rate'});
@@ -260,36 +340,54 @@ describe.skip('Server-Side Sampling - Uniform Rate Modal', function () {
   it('display "Specify client rate modal" content as a first step', async function () {
     const {organization, project} = getMockInitializeOrg();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      method: 'GET',
-      body: [TestStubs.Project({id: project.id, slug: project.slug})],
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectsRequestBody: [project],
     });
 
-    ServerSideSamplingStore.projectStats30dRequestSuccess(outcomesWithoutClientDiscarded);
-    ServerSideSamplingStore.projectStats48hRequestSuccess(outcomesWithoutClientDiscarded);
-    ServerSideSamplingStore.sdkVersionsRequestSuccess([
-      {
-        isSendingSampleRate: false,
-        isSendingSource: false,
-        isSupportedPlatform: true,
-        latestSDKName: 'abc',
-        latestSDKVersion: '999',
-        project: project.slug,
+    jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+      projectStats30d: {
+        loading: false,
+        error: false,
+        data: outcomesWithoutClientDiscarded,
       },
-    ]);
+      projectStats48h: {
+        loading: false,
+        error: false,
+        data: outcomesWithoutClientDiscarded,
+      },
+      onRefetch: jest.fn(),
+    }));
+
+    jest.spyOn(useSdkVersionsImport, 'useSdkVersions').mockImplementation(() => ({
+      loading: false,
+      error: false,
+      data: [
+        {
+          isSendingSampleRate: false,
+          isSendingSource: false,
+          isSupportedPlatform: true,
+          latestSDKName: 'abc',
+          latestSDKVersion: '999',
+          project: project.slug,
+        },
+      ],
+    }));
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={[]}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-      />
+      <ComponentProviders>
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          rules={[]}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          hasAccess
+        />
+      </ComponentProviders>
     ));
 
     expect(
@@ -325,25 +423,40 @@ describe.skip('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('does not display "Specify client rate modal" if no groups', async function () {
-    ServerSideSamplingStore.projectStats30dRequestSuccess(TestStubs.Outcomes());
-    ServerSideSamplingStore.projectStats48hRequestSuccess({
-      ...outcomesWithoutClientDiscarded,
-      groups: [],
-    });
+    jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+      projectStats30d: {loading: false, error: true, data: undefined},
+      projectStats48h: {
+        loading: false,
+        error: true,
+        data: {
+          ...outcomesWithoutClientDiscarded,
+          groups: [],
+        },
+      },
+      onRefetch: jest.fn(),
+    }));
 
     const {organization, project} = getMockInitializeOrg();
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectsRequestBody: [project],
+    });
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={[]}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-      />
+      <ComponentProviders>
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          rules={[]}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          hasAccess
+        />
+      </ComponentProviders>
     ));
 
     expect(
@@ -356,23 +469,33 @@ describe.skip('Server-Side Sampling - Uniform Rate Modal', function () {
   });
 
   it('display request error message', async function () {
-    ServerSideSamplingStore.projectStats30dRequestError('some error');
-
-    ServerSideSamplingStore.projectStats48hRequestError('some error');
+    jest.spyOn(useProjectStatsImport, 'useProjectStats').mockImplementation(() => ({
+      projectStats30d: {loading: false, error: true, data: undefined},
+      projectStats48h: {loading: false, error: true, data: undefined},
+      onRefetch: jest.fn(),
+    }));
 
     const {organization, project} = getMockInitializeOrg();
+
+    renderMockRequests({
+      organizationSlug: organization.slug,
+      projectsRequestBody: [project],
+    });
 
     render(<GlobalModal />);
 
     openModal(modalProps => (
-      <UniformRateModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={[]}
-        onSubmit={jest.fn()}
-        onReadDocs={jest.fn()}
-      />
+      <ComponentProviders>
+        <UniformRateModal
+          {...modalProps}
+          organization={organization}
+          project={project}
+          rules={[]}
+          onSubmit={jest.fn()}
+          onReadDocs={jest.fn()}
+          hasAccess
+        />
+      </ComponentProviders>
     ));
 
     expect(

@@ -47,6 +47,7 @@ describe('useRecommendedSdkUpgrades', function () {
           organization: TestStubs.Organization(),
           projectId: projects[2].id,
           projectSlug: projects[2].slug,
+          hasAccess: true,
         }),
       {
         wrapper: ({children}) => <ComponentProviders>{children}</ComponentProviders>,

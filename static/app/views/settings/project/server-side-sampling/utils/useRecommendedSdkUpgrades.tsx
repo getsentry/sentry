@@ -6,21 +6,29 @@ import {useDistribution} from './useDistribution';
 import {useSdkVersions} from './useSdkVersions';
 
 type Props = {
+  hasAccess: boolean;
   organization: Organization;
   projectId: Project['id'];
   projectSlug: Project['slug'];
 };
 
-export function useRecommendedSdkUpgrades({organization, projectId, projectSlug}: Props) {
+export function useRecommendedSdkUpgrades({
+  hasAccess,
+  organization,
+  projectId,
+  projectSlug,
+}: Props) {
   const distribution = useDistribution({
     projectSlug,
     organizationSlug: organization.slug,
+    hasAccess,
   });
 
   const sdkVersions = useSdkVersions({
     distribution: distribution.data,
     projectId,
     organizationSlug: organization.slug,
+    hasAccess,
   });
 
   const sdksToUpdate =

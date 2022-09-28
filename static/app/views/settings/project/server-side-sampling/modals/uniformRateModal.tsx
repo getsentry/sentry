@@ -65,6 +65,7 @@ type Props = Omit<
   | 'recommendedSampleRate'
   | 'projectSlug'
 > & {
+  hasAccess: boolean;
   onSubmit: UniformModalsSubmit;
   project: Project;
   rules: SamplingRule[];
@@ -80,6 +81,7 @@ export function UniformRateModal({
   uniformRule,
   onSubmit,
   onReadDocs,
+  hasAccess,
   ...props
 }: Props) {
   const [rules, setRules] = useState(props.rules);
@@ -94,6 +96,7 @@ export function UniformRateModal({
   const {projectStats30d, projectStats48h, onRefetch} = useProjectStats({
     organizationSlug: organization.slug,
     projectId: project.id,
+    hasAccess,
   });
 
   const {
@@ -106,6 +109,7 @@ export function UniformRateModal({
     organization,
     projectId: project.id,
     projectSlug: project.slug,
+    hasAccess,
   });
 
   const loading =
@@ -347,6 +351,7 @@ export function UniformRateModal({
         onSetRules={setRules}
         specifiedClientRate={specifiedClientRate}
         projectSlug={project.slug}
+        hasAccess={hasAccess}
       />
     );
   }

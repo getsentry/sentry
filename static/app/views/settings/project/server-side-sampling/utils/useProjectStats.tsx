@@ -7,11 +7,12 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
+  hasAccess: boolean;
   organizationSlug: Organization['slug'];
   projectId: Project['id'];
 };
 
-export function useProjectStats({organizationSlug, projectId}: Props) {
+export function useProjectStats({organizationSlug, projectId, hasAccess}: Props) {
   const api = useApi();
 
   const [projectStats48h, projectStats30d] = useQueries({
@@ -38,6 +39,7 @@ export function useProjectStats({organizationSlug, projectId}: Props) {
           handleXhrErrorResponse(errorMessage)(error as ResponseMeta);
         },
         refetchOnMount: false, // This hook is being used on different components on the same page and we don't want to refetch the data on every component mount.
+        enabled: hasAccess,
       },
       {
         queryKey: ['projectStats30d', organizationSlug, projectId],
@@ -61,6 +63,7 @@ export function useProjectStats({organizationSlug, projectId}: Props) {
           handleXhrErrorResponse(errorMessage)(error as ResponseMeta);
         },
         refetchOnMount: false, // This hook is being used on different components on the same page and we don't want to refetch the data on every component mount.
+        enabled: hasAccess,
       },
     ],
   });
