@@ -1,9 +1,6 @@
 import logging
 from typing import TYPE_CHECKING, Optional
 
-if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
-
 import sentry_sdk
 from django.conf import settings
 
@@ -21,6 +18,9 @@ from sentry.utils.locking.manager import LockManager
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.services import build_instance_from_options
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry")
 
