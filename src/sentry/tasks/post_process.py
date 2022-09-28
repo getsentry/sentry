@@ -1,9 +1,11 @@
 import logging
+from typing import Optional
 
 import sentry_sdk
 from django.conf import settings
 
 from sentry import analytics, features
+from sentry.eventstore.models import Event
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -389,6 +391,43 @@ def post_process_group(
             )
 
 
+def process_event(data: dict, group_id: Optional[int]) -> Event:
+    from sentry.models import EventDict
+
+    event = Event(
+        project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
+    )
+
+    set_current_event_project(event.project_id)
+
+    # Re-bind node data to avoid renormalization. We only want to
+    # renormalize when loading old data from the database.
+    event.data = EventDict(event.data, skip_renormalization=True)
+
+    return event
+
+
+def process_event_group(event: Event) -> None:
+    # NOTE: we must pass through the full Event object, and not an
+    # event_id since the Event object may not actually have been stored
+    # in the database due to sampling.
+    from sentry.models.group import get_group_with_redirect
+
+    # Re-bind Group since we're reading the Event object
+    # from cache, which may contain a stale group and project
+    event.group, _ = get_group_with_redirect(event.group_id)
+    event.group_id = event.group.id
+
+    # We fetch buffered updates to group aggregates here and populate them on the Group. This
+    # helps us avoid problems with processing group ignores and alert rules that rely on these
+    # stats.
+    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+        fetch_buffered_group_stats(event.group)
+
+    event.group.project = event.project
+    event.group.project.set_cached_field_value("organization", event.project.organization)
+
+
 def process_snoozes(group):
     """
     Return True if the group is transitioning from "resolved" to "unresolved",
@@ -446,45 +485,13 @@ def process_snoozes(group):
     return False
 
 
-def process_event(data, group_id):
-    from sentry.eventstore.models import Event
-    from sentry.models import EventDict
-
-    event = Event(
-        project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
-    )
-
-    set_current_event_project(event.project_id)
-
-    # Re-bind node data to avoid renormalization. We only want to
-    # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
-
-    return event
-
-
-def process_event_group(event):
-    # NOTE: we must pass through the full Event object, and not an
-    # event_id since the Event object may not actually have been stored
-    # in the database due to sampling.
-    from sentry.models.group import get_group_with_redirect
-
-    # Re-bind Group since we're reading the Event object
-    # from cache, which may contain a stale group and project
-    event.group, _ = get_group_with_redirect(event.group_id)
-    event.group_id = event.group.id
-
-    # We fetch buffered updates to group aggregates here and populate them on the Group. This
-    # helps us avoid problems with processing group ignores and alert rules that rely on these
-    # stats.
-    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
-        fetch_buffered_group_stats(event.group)
-
-    event.group.project = event.project
-    event.group.project.set_cached_field_value("organization", event.project.organization)
-
-
-def process_rules(event, is_new, is_regression, is_new_group_environment, has_reappeared):
+def process_rules(
+    event: Event,
+    is_new: bool,
+    is_regression: bool,
+    is_new_group_environment: bool,
+    has_reappeared: bool,
+) -> bool:
     from sentry.rules.processor import RuleProcessor
 
     rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
@@ -500,7 +507,7 @@ def process_rules(event, is_new, is_regression, is_new_group_environment, has_re
     return has_alert
 
 
-def process_commits(event):
+def process_commits(event: Event) -> None:
     from sentry.models import Commit
     from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import process_suspect_commits
@@ -557,7 +564,7 @@ def process_commits(event):
         logger.exception("Failed to process suspect commits")
 
 
-def process_service_hooks(event, has_alert):
+def process_service_hooks(event: Event, has_alert: bool) -> None:
     from sentry.tasks.servicehooks import process_service_hook
 
     if features.has("projects:servicehooks", project=event.project):
@@ -571,7 +578,7 @@ def process_service_hooks(event, has_alert):
                     process_service_hook.delay(servicehook_id=servicehook_id, event=event)
 
 
-def process_resource_change_bounds(event, is_new):
+def process_resource_change_bounds(event: Event, is_new: bool) -> None:
     from sentry.tasks.sentry_apps import process_resource_change_bound
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
@@ -584,7 +591,7 @@ def process_resource_change_bounds(event, is_new):
         )
 
 
-def process_plugins(event, is_new, is_regression):
+def process_plugins(event: Event, is_new: bool, is_regression: bool) -> None:
     from sentry.plugins.base import plugins
 
     for plugin in plugins.for_project(event.project):
@@ -593,7 +600,7 @@ def process_plugins(event, is_new, is_regression):
         )
 
 
-def process_similarity(event):
+def process_similarity(event: Event) -> None:
     from sentry import similarity
 
     with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
