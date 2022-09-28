@@ -32,7 +32,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_projectownership" ADD COLUMN "suspect_committer_auto_assignment" integer NOT NULL DEFAULT false;
+                    ALTER TABLE "sentry_projectownership" ADD COLUMN "suspect_committer_auto_assignment" BOOLEAN NOT NULL DEFAULT false;
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_projectownership" DROP COLUMN "suspect_committer_auto_assignment";
