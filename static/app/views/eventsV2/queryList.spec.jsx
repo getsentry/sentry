@@ -260,7 +260,7 @@ describe('EventsV2 > QueryList', function () {
     const menuItems = card.find('MenuItemWrap');
 
     expect(menuItems.length).toEqual(3);
-    expect(menuItems.at(0).text()).toEqual('Use as Discover home');
+    expect(menuItems.at(0).text()).toEqual('Use as Discover Home');
     expect(menuItems.at(1).text()).toEqual('Duplicate Query');
     expect(menuItems.at(2).text()).toEqual('Delete Query');
   });
