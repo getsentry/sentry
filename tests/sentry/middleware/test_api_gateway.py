@@ -36,8 +36,31 @@ def verify_request_body(body, headers):
     return request_callback
 
 
+def verify_request_params(params, headers):
+    """Wrapper for a callback function for responses.add_callback"""
+
+    def request_callback(request):
+        request_params = parse_qs(request.url.split("?")[1])
+        assert request_params == params
+        assert (request.headers[key] == headers[key] for key in headers)
+        return 200, {}, b"{}"
+
+    return request_callback
+
+
+def verify_file_body(file_body, headers):
+    """Wrapper for a callback function for responses.add_callback"""
+
+    def request_callback(request):
+        assert request.body == file_body
+        assert (request.headers[key] == headers[key] for key in headers)
+        return 200, {}, b"{}"
+
+    return request_callback
+
+
 @override_settings(SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG, ROOT_URLCONF=__name__)
-class TestApiGateway(TestCase):
+class ApiGatewayTestMixin(TestCase):
     def setUp(self):
         responses.add(responses.GET, "http://region1.sentry.io/get", body={"ok": True})
         responses.add(
@@ -49,12 +72,12 @@ class TestApiGateway(TestCase):
 
         # Echos the request body and header back for verification
         def return_request_body(request):
-            return (200, request.body, request.headers)
+            return (200, request.headers, request.body)
 
         # Echos the query params and header back for verification
         def return_request_params(request):
             params = parse_qs(request.url.split("?")[1])
-            return (200, params, request.headers)
+            return (200, request.headers, json.dumps(params).encode())
 
         responses.add_callback(
             responses.GET, "http://region1.sentry.io/echo", return_request_params
@@ -62,6 +85,8 @@ class TestApiGateway(TestCase):
 
         responses.add_callback(responses.POST, "http://region1.sentry.io/echo", return_request_body)
 
+
+class VerifyRequestBodyTest(TestCase, ApiGatewayTestMixin):
     @responses.activate
     def test_verify_request_body(self):
         body = {"ab": "cd"}
