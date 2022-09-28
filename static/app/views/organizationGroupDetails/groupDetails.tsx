@@ -520,8 +520,7 @@ class GroupDetails extends Component<Props, State> {
 
       if (trackView) {
         // make sure releases have loaded before we track the view
-        await groupReleasePromise;
-        this.trackView(project);
+        groupReleasePromise.then(() => this.trackView(project));
       }
     } catch (error) {
       this.handleRequestError(error);
