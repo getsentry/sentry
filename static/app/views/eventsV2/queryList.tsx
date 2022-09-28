@@ -177,13 +177,17 @@ class QueryList extends Component<Props> {
             }),
         },
 
-        {
-          key: 'set-as-default',
-          label: t('Use as Discover Home'),
-          onAction: () => {
-            handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
-          },
-        },
+        ...(organization.features.includes('discover-query-builder-as-landing-page')
+          ? [
+              {
+                key: 'set-as-default',
+                label: t('Use as Discover Home'),
+                onAction: () => {
+                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                },
+              },
+            ]
+          : []),
       ];
 
       return (
