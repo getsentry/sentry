@@ -119,6 +119,14 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.n_plus_one_db_ext.problem-creation',
+    label: t('N+1 (DB) (Extended) creation rate'),
+    help: t(
+      'Controls the rate at which performance issues are created specifically for N+1 detection (extended). Value of 0 will disable creation, a value of 1.0 fully enables it.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.n_plus_one_db.count_threshold',
     label: t('N+1 (DB) count threshold'),
     help: t(
