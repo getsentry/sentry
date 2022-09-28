@@ -1294,8 +1294,7 @@ def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwar
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"
         ) as span, metrics.timer(
-            "event_manager.create_group_transaction",
-            tags={"platform": event.platform or "unknown"}
+            "event_manager.create_group_transaction", tags={"platform": event.platform or "unknown"}
         ) as metric_tags, transaction.atomic():
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
