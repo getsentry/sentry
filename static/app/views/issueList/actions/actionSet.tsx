@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {
   BaseGroup,
-  IssueCategory,
   IssueCategoryCapabilities,
   Project,
   ResolutionStatus,
@@ -105,13 +104,6 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
-
-  // If at least one Performance Issue is selected, some of the ignore dropdown options must be disabled.
-  const issueCategory: IssueCategory = selectedIssues.some(
-    issue => issue?.issueCategory === IssueCategory.PERFORMANCE
-  )
-    ? IssueCategory.PERFORMANCE
-    : IssueCategory.ERROR;
 
   const menuItems: MenuItemProps[] = [
     {
@@ -245,7 +237,6 @@ function ActionSet({
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
         confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
         confirmLabel={label('ignore')}
-        issueCategory={issueCategory}
         disabled={ignoreDisabled}
       />
       {!nestMergeAndReview && (
