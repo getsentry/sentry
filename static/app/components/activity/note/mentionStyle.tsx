@@ -41,7 +41,7 @@ export default function mentionStyle({theme, minHeight}: Options) {
 
     '&multiLine': {
       control: {
-        fontFamily: 'Rubik, Avenir Next, Helvetica Neue, sans-serif',
+        fontFamily: theme.text.family,
         minHeight,
       },
 
@@ -65,15 +65,16 @@ export default function mentionStyle({theme, minHeight}: Options) {
         overflow: 'auto',
         backgroundColor: `${theme.background}`,
         border: '1px solid rgba(0,0,0,0.15)',
-        fontSize: 12,
+        borderRadius: theme.borderRadius,
+        fontSize: theme.fontSizeSmall,
+        padding: space(0.5),
       },
 
       item: {
         padding: '5px 15px',
-        borderBottom: '1px solid rgba(0,0,0,0.15)',
-
+        borderRadius: theme.borderRadius,
         '&focused': {
-          backgroundColor: `${theme.backgroundSecondary}`,
+          backgroundColor: theme.hover,
         },
       },
     },
