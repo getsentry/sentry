@@ -185,7 +185,7 @@ class SnubaProtocolEventStream(EventStream):
         ]
 
         if groups_state is not None:
-            extra_data.append(groups_state)
+            extra_data.append({**groups_state})
 
         self._send(
             project.id,
