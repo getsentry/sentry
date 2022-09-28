@@ -61,7 +61,6 @@ type Props = {
   loading: boolean;
   location: Location;
   organization: Organization;
-  requiresHomepage: boolean;
   router: InjectedRouter;
   selection: PageFilters;
   setSavedQuery: (savedQuery: SavedQuery) => void;
@@ -701,10 +700,6 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
   renderBody(): React.ReactNode {
     const {homepageQuery, savedQuery, loading} = this.state;
-    const requiresHomepage = this.getEndpoints()
-      .map(([stateKey]) => stateKey)
-      .includes('homepageQuery');
-
     return (
       <Results
         {...this.props}
@@ -712,7 +707,6 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         homepageQuery={homepageQuery}
-        requiresHomepage={requiresHomepage}
       />
     );
   }
@@ -733,8 +727,7 @@ function ResultsContainer(props: Props) {
   return (
     <PageFiltersContainer
       skipLoadLastUsed={
-        props.organization.features.includes('global-views') &&
-        (!!props.savedQuery || (props.requiresHomepage && !!props.homepageQuery))
+        props.organization.features.includes('global-views') && !!props.savedQuery
       }
     >
       <SavedQueryAPI {...props} />
