@@ -108,7 +108,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
         consumer = get_ingest_consumer(
             max_batch_size=2,
             max_batch_time=5000,
-            group_id="some-group-id",
+            group_id=random_group_id,
             consumer_types={ConsumerType.Events},
             auto_offset_reset="earliest",
             executor=executor,
