@@ -126,6 +126,7 @@ class GroupDetails extends Component<Props, State> {
       (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
+      // if we are loading events we should record analytics after it's loaded
       this.getEvent(this.state.group).then(
         () => this.state.group?.project && this.trackView(this.state.group?.project)
       );
