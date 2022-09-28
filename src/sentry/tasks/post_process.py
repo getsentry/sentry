@@ -1,11 +1,13 @@
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 import sentry_sdk
 from django.conf import settings
 
 from sentry import analytics, features
-from sentry.eventstore.models import Event
 from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -391,7 +393,8 @@ def post_process_group(
             )
 
 
-def process_event(data: dict, group_id: Optional[int]) -> Event:
+def process_event(data: dict, group_id: Optional[int]) -> "Event":
+    from sentry.eventstore.models import Event
     from sentry.models import EventDict
 
     event = Event(
@@ -407,7 +410,7 @@ def process_event(data: dict, group_id: Optional[int]) -> Event:
     return event
 
 
-def update_event_group(event: Event) -> None:
+def update_event_group(event: "Event") -> None:
     # NOTE: we must pass through the full Event object, and not an
     # event_id since the Event object may not actually have been stored
     # in the database due to sampling.
@@ -486,7 +489,7 @@ def process_snoozes(group):
 
 
 def process_rules(
-    event: Event,
+    event: "Event",
     is_new: bool,
     is_regression: bool,
     is_new_group_environment: bool,
@@ -507,7 +510,7 @@ def process_rules(
     return has_alert
 
 
-def process_commits(event: Event) -> None:
+def process_commits(event: "Event") -> None:
     from sentry.models import Commit
     from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import process_suspect_commits
@@ -564,7 +567,7 @@ def process_commits(event: Event) -> None:
         logger.exception("Failed to process suspect commits")
 
 
-def process_service_hooks(event: Event, has_alert: bool) -> None:
+def process_service_hooks(event: "Event", has_alert: bool) -> None:
     from sentry.tasks.servicehooks import process_service_hook
 
     if features.has("projects:servicehooks", project=event.project):
@@ -578,7 +581,7 @@ def process_service_hooks(event: Event, has_alert: bool) -> None:
                     process_service_hook.delay(servicehook_id=servicehook_id, event=event)
 
 
-def process_resource_change_bounds(event: Event, is_new: bool) -> None:
+def process_resource_change_bounds(event: "Event", is_new: bool) -> None:
     from sentry.tasks.sentry_apps import process_resource_change_bound
 
     if event.get_event_type() == "error" and _should_send_error_created_hooks(event.project):
@@ -591,7 +594,7 @@ def process_resource_change_bounds(event: Event, is_new: bool) -> None:
         )
 
 
-def process_plugins(event: Event, is_new: bool, is_regression: bool) -> None:
+def process_plugins(event: "Event", is_new: bool, is_regression: bool) -> None:
     from sentry.plugins.base import plugins
 
     for plugin in plugins.for_project(event.project):
@@ -600,7 +603,7 @@ def process_plugins(event: Event, is_new: bool, is_regression: bool) -> None:
         )
 
 
-def process_similarity(event: Event) -> None:
+def process_similarity(event: "Event") -> None:
     from sentry import similarity
 
     with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
