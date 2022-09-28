@@ -1803,7 +1803,7 @@ describe('Results', function () {
     expect(mockHomepage).not.toHaveBeenCalled();
   });
 
-  it('updates the homepage query with up to date eventView when Use as Default is clicked', () => {
+  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', () => {
     const mockHomepageUpdate = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'PUT',
@@ -1836,7 +1836,7 @@ describe('Results', function () {
       {context: initialData.routerContext, organization}
     );
 
-    userEvent.click(screen.getByText('Use as Default'));
+    userEvent.click(screen.getByText('Use as Discover Home'));
 
     expect(mockHomepageUpdate).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/homepage/',

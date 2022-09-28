@@ -397,7 +397,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
           handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
         }}
       >
-        {t('Use as Default')}
+        {t('Use as Discover Home')}
       </Button>
     );
   }

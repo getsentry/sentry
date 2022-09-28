@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
@@ -14,14 +15,26 @@ jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/components/charts/eventsRequest');
 
 describe('EventsV2 > QueryList', function () {
-  let location, savedQueries, organization, deleteMock, duplicateMock, queryChangeMock;
+  let location,
+    savedQueries,
+    organization,
+    deleteMock,
+    duplicateMock,
+    queryChangeMock,
+    updateHomepageMock;
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   });
 
   beforeEach(function () {
-    organization = TestStubs.Organization();
+    organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
     savedQueries = [
       TestStubs.DiscoverSavedQuery(),
       TestStubs.DiscoverSavedQuery({name: 'saved query 2', id: '2'}),
@@ -48,6 +61,12 @@ describe('EventsV2 > QueryList', function () {
         id: '3',
         name: 'Saved query copy',
       },
+    });
+
+    updateHomepageMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 204,
     });
 
     location = {
@@ -240,9 +259,10 @@ describe('EventsV2 > QueryList', function () {
     card = wrapper.find('QueryCard').last();
     const menuItems = card.find('MenuItemWrap');
 
-    expect(menuItems.length).toEqual(2);
-    expect(menuItems.at(0).text()).toEqual('Duplicate Query');
-    expect(menuItems.at(1).text()).toEqual('Delete Query');
+    expect(menuItems.length).toEqual(3);
+    expect(menuItems.at(0).text()).toEqual('Use as Discover home');
+    expect(menuItems.at(1).text()).toEqual('Duplicate Query');
+    expect(menuItems.at(2).text()).toEqual('Delete Query');
   });
 
   it('passes yAxis from the savedQuery to MiniGraph', function () {
@@ -266,6 +286,27 @@ describe('EventsV2 > QueryList', function () {
 
     const miniGraph = wrapper.find('MiniGraph');
     expect(miniGraph.props().yAxis).toEqual(['count()', 'failure_count()']);
+  });
+
+  it('Use as Discover Home updates the homepage query', function () {
+    render(
+      <QueryList
+        organization={organization}
+        savedQueries={savedQueries.slice(1)}
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />
+    );
+
+    userEvent.click(screen.getByTestId('menu-trigger'));
+    userEvent.click(screen.getByText('Use as Discover Home'));
+    expect(updateHomepageMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/homepage/',
+      expect.objectContaining({
+        data: expect.objectContaining({fields: ['test'], range: '14d'}),
+      })
+    );
   });
 
   describe('Add to Dashboard modal', () => {
