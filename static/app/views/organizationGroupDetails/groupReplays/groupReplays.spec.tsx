@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import GroupReplays from 'sentry/views/organizationGroupDetails/groupReplays';
 import {RouteContext} from 'sentry/views/routeContext';
@@ -9,20 +10,7 @@ const mockUrl = '/organizations/org-slug/replays/';
 
 const mockProps = {
   group: TestStubs.Group(),
-  replayIds: [
-    'af38152f74bc45b69e0df72ab5ca361c',
-    '270398ab217c417083efba783af4ed89',
-    '9f72f2ace52b4b0391e5fe1cd5c0cf7e',
-    '50e686b7c30b43599055a642bf025d44',
-    '21a580952fe84cf3a114dcaec790208d',
-    '43cdb7d6c7444bb49e5ea4ccc5b928c4',
-    '79b5aa62ce4c488f917ee4de46295f7f',
-    '2cf3c5e24e3547ae9e32901d38a572bb',
-    'e921fda7f9fd4cd99d1af6e74bbb78c8',
-    '8074687b4aee4af5ac8e3ff57bee5b75',
-    '4c17f20b228a454eaf594a14c26d6b94',
-    '237c63507f46411aaa9becf444c1d30c',
-  ],
+  replayIds: ['346789a703f6454384f1de473b8b9fcc', 'b05dae9b6be54d21a4d5ad9f8f02b780'],
 };
 
 let mockRouterContext: any = {};
@@ -41,8 +29,8 @@ const getComponent = ({
     organization: {
       features,
     },
-    project: undefined,
-    projects: undefined,
+    project: TestStubs.Project(),
+    projects: [TestStubs.Project()],
     router: {
       location: {
         pathname: '/organizations/org-slug/replays/',
@@ -51,6 +39,9 @@ const getComponent = ({
       },
     },
   });
+
+  ProjectsStore.init();
+  ProjectsStore.loadInitialData(organization.projects);
 
   mockRouterContext = routerContext;
 
@@ -81,17 +72,20 @@ describe('GroupReplays', () => {
 
   // Assert that query to the events endpoint is correct
   it('Should have correct queries in the events endpoint', async () => {
-    const mockApiCall = MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
-      body: [],
+      body: {
+        data: [],
+      },
+      statusCode: 200,
     });
 
     renderComponent();
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledTimes(1);
+      expect(mockApi).toHaveBeenCalledTimes(1);
       // Expect api path to have the correct query params
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -111,17 +105,20 @@ describe('GroupReplays', () => {
             sort: '-startedAt',
             per_page: 50,
             query:
-              'id:[af38152f74bc45b69e0df72ab5ca361c,270398ab217c417083efba783af4ed89,9f72f2ace52b4b0391e5fe1cd5c0cf7e,50e686b7c30b43599055a642bf025d44,21a580952fe84cf3a114dcaec790208d,43cdb7d6c7444bb49e5ea4ccc5b928c4,79b5aa62ce4c488f917ee4de46295f7f,2cf3c5e24e3547ae9e32901d38a572bb,e921fda7f9fd4cd99d1af6e74bbb78c8,8074687b4aee4af5ac8e3ff57bee5b75,4c17f20b228a454eaf594a14c26d6b94,237c63507f46411aaa9becf444c1d30c]',
+              'id:[346789a703f6454384f1de473b8b9fcc,b05dae9b6be54d21a4d5ad9f8f02b780]',
           }),
         })
       );
     });
   });
 
-  it('Should snapshot empty state correctly', async () => {
+  it('Should snapshot empty state', async () => {
     MockApiClient.addMockResponse({
       url: mockUrl,
-      body: [],
+      body: {
+        data: [],
+      },
+      statusCode: 200,
     });
 
     const {container} = renderComponent();
@@ -131,16 +128,163 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should sort by start time correctly', async () => {
-    const mockApiCall = MockApiClient.addMockResponse({
+  it('Should show empty message when no replays are found', async () => {
+    const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
-      body: [],
+      body: {
+        data: [],
+      },
+      statusCode: 200,
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('There are no items to display')).toBeInTheDocument();
+    });
+  });
+
+  it('Should display error message when api call fails', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      statusCode: 500,
+      body: {},
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByText(
+          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('Should show loading indicator when loading replays', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      statusCode: 200,
+      body: {
+        data: [],
+      },
+    });
+
+    renderComponent();
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('Should show a list of replays and have the correct values', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      statusCode: 200,
+      body: {
+        data: [
+          {
+            countErrors: 1,
+            duration: 52346,
+            finishedAt: '2022-09-15T06:54:00+00:00',
+            id: '346789a703f6454384f1de473b8b9fcc',
+            projectId: '2',
+            startedAt: '2022-09-15T06:50:03+00:00',
+            urls: [
+              'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
+              '/organizations/sentry-emerging-tech/replays/?project=2',
+            ],
+            user: {
+              id: '147086',
+              name: '',
+              email: '',
+              ip_address: '127.0.0.1',
+              displayName: 'testDisplayName',
+            },
+          },
+          {
+            countErrors: 4,
+            duration: 400,
+            finishedAt: '2022-09-21T21:40:38+00:00',
+            id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+            projectId: '2',
+            startedAt: '2022-09-21T21:30:44+00:00',
+            urls: [
+              'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
+              '/organizations/sentry-emerging-tech/issues/',
+              '/organizations/sentry-emerging-tech/issues/?project=2',
+            ],
+            user: {
+              id: '147086',
+              name: '',
+              email: '',
+              ip_address: '127.0.0.1',
+              displayName: 'testDisplayName',
+            },
+          },
+        ],
+      },
+    });
+
+    jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(1);
+    });
+
+    // Expect the table to have 2 rows
+    expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
+
+    // Expect the first row to have the correct href
+    expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?referrer='
+    );
+
+    // Expect the second row to have the correct href
+    expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?referrer='
+    );
+
+    // Expect the first row to have the correct duration
+    expect(screen.getByText('14hr 32min 26s')).toBeInTheDocument();
+
+    // Expect the second row to have the correct duration
+    expect(screen.getByText('6min 40s')).toBeInTheDocument();
+
+    // Expect the first row to have the correct errors
+    expect(screen.getByText('1')).toBeInTheDocument();
+
+    // Expect the second row to have the correct errors
+    expect(screen.getByText('4')).toBeInTheDocument();
+
+    // Expect the first row to have the correct date
+    expect(screen.getByText('14 days ago')).toBeInTheDocument();
+
+    // Expect the second row to have the correct date
+    expect(screen.getByText('7 days ago')).toBeInTheDocument();
+  });
+
+  it('Should sort by start time correctly', async () => {
+    const mockApi = MockApiClient.addMockResponse({
+      url: mockUrl,
+      body: {
+        data: [],
+      },
+      statusCode: 200,
     });
 
     const {rerender} = renderComponent();
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -172,8 +316,8 @@ describe('GroupReplays', () => {
     );
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledTimes(2);
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledTimes(2);
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -185,15 +329,18 @@ describe('GroupReplays', () => {
   });
 
   it('Should sort by duration correctly', async () => {
-    const mockApiCall = MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
-      body: [],
+      body: {
+        data: [],
+      },
+      statusCode: 200,
     });
 
     const {rerender} = renderComponent();
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -225,8 +372,8 @@ describe('GroupReplays', () => {
     );
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledTimes(2);
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledTimes(2);
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -238,15 +385,18 @@ describe('GroupReplays', () => {
   });
 
   it('Should sort by errors correctly', async () => {
-    const mockApiCall = MockApiClient.addMockResponse({
+    const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
-      body: [],
+      body: {
+        data: [],
+      },
+      statusCode: 200,
     });
 
     const {rerender} = renderComponent();
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -278,8 +428,8 @@ describe('GroupReplays', () => {
     );
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledTimes(2);
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApi).toHaveBeenCalledTimes(2);
+      expect(mockApi).toHaveBeenCalledWith(
         mockUrl,
         expect.objectContaining({
           query: expect.objectContaining({
@@ -287,28 +437,6 @@ describe('GroupReplays', () => {
           }),
         })
       );
-    });
-
-    userEvent.click(screen.getByRole('columnheader', {name: 'Errors'}));
-    // TODO: Check why it fails to call the api
-    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/replays/',
-      query: {
-        sort: '-countErrors',
-      },
-    });
-  });
-
-  it('Should show empty message when no replays are found', async () => {
-    MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: [],
-    });
-
-    renderComponent();
-
-    await waitFor(() => {
-      expect(screen.getByText('There are no items to display')).toBeInTheDocument();
     });
   });
 });
