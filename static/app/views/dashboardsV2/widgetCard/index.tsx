@@ -59,7 +59,7 @@ type Props = WithRouterProps & {
   index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
-  isWidgetValid?: boolean;
+  isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDelete?: () => void;
@@ -235,7 +235,7 @@ class WidgetCard extends Component<Props, State> {
       showStoredAlert,
       noDashboardsMEPProvider,
       dashboardFilters,
-      isWidgetValid,
+      isWidgetInvalid,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -286,7 +286,7 @@ class WidgetCard extends Component<Props, State> {
                 </Tooltip>
                 {this.renderContextMenu()}
               </WidgetHeader>
-              {isWidgetValid ? (
+              {isWidgetInvalid ? (
                 noLazyLoad ? (
                   <WidgetCardChartContainer
                     api={api}

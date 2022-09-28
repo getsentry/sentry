@@ -24,7 +24,7 @@ import {BuildStep} from './buildStep';
 
 interface Props {
   displayType: DisplayType;
-  isWidgetValid: boolean;
+  isWidgetInvalid: boolean;
   location: Location;
   onChange: (displayType: DisplayType) => void;
   organization: Organization;
@@ -45,7 +45,7 @@ export function VisualizationStep({
   noDashboardsMEPProvider,
   dashboardFilters,
   location,
-  isWidgetValid,
+  isWidgetInvalid,
 }: Props) {
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
@@ -123,7 +123,7 @@ export function VisualizationStep({
           noLazyLoad
           showStoredAlert
           noDashboardsMEPProvider={noDashboardsMEPProvider}
-          isWidgetValid={isWidgetValid}
+          isWidgetInvalid={isWidgetInvalid}
         />
       </VisualizationWrapper>
     </BuildStep>
