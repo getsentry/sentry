@@ -18,7 +18,7 @@ import {
 
 type Props = Pick<
   RecommendedStepsModalProps,
-  'projectId' | 'onReadDocs' | 'projectSlug'
+  'projectId' | 'onReadDocs' | 'projectSlug' | 'hasAccess'
 > & {
   organization: Organization;
   recommendedSdkUpgrades: RecommendedSdkUpgrade[];
@@ -30,6 +30,7 @@ export function SamplingSDKUpgradesAlert({
   recommendedSdkUpgrades,
   onReadDocs,
   projectSlug,
+  hasAccess,
 }: Props) {
   useEffect(() => {
     if (recommendedSdkUpgrades.length > 0) {
@@ -49,6 +50,7 @@ export function SamplingSDKUpgradesAlert({
         projectId={projectId}
         projectSlug={projectSlug}
         recommendedSdkUpgrades={recommendedSdkUpgrades}
+        hasAccess={hasAccess}
       />
     ));
   }

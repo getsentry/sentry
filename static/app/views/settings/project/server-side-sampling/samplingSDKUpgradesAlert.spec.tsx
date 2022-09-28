@@ -36,6 +36,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
           onReadDocs={jest.fn()}
           recommendedSdkUpgrades={[]}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     );
@@ -69,6 +70,7 @@ describe('Server-Side Sampling - Sdk Upgrades Alert', function () {
           onReadDocs={jest.fn()}
           recommendedSdkUpgrades={recommendedSdkUpgrades}
           projectSlug={project.slug}
+          hasAccess
         />
       </ComponentProviders>
     );

@@ -439,6 +439,7 @@ export function ServerSideSampling({project}: Props) {
             recommendedSdkUpgrades={recommendedSdkUpgrades}
             onReadDocs={handleReadDocs}
             projectSlug={project.slug}
+            hasAccess={hasAccess}
           />
         )}
 
