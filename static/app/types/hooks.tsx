@@ -315,6 +315,11 @@ type AnalyticsTrackEventV2 = (
      * If no org, pass in null.
      */
     organization: Organization | string | null;
+
+    /**
+     * Optional timstamp (currently only used for Amplitude)
+     */
+    timestamp?: number;
   },
   options?: {
     /**
