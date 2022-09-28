@@ -980,13 +980,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                           error: this.hasError('actionMatch'),
                                         })}
                                         inline={false}
-                                        styles={{
-                                          control: provided => ({
-                                            ...provided,
-                                            minHeight: '20px',
-                                            height: '20px',
-                                          }),
-                                        }}
                                         isSearchable={false}
                                         isClearable={false}
                                         name="actionMatch"
@@ -996,6 +989,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         onChange={val =>
                                           this.handleChange('actionMatch', val)
                                         }
+                                        size="xs"
                                         disabled={disabled}
                                       />
                                     </EmbeddedWrapper>
@@ -1051,13 +1045,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                         error: this.hasError('filterMatch'),
                                       })}
                                       inline={false}
-                                      styles={{
-                                        control: provided => ({
-                                          ...provided,
-                                          minHeight: '20px',
-                                          height: '20px',
-                                        }),
-                                      }}
                                       isSearchable={false}
                                       isClearable={false}
                                       name="filterMatch"
@@ -1067,6 +1054,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                                       onChange={val =>
                                         this.handleChange('filterMatch', val)
                                       }
+                                      size="xs"
                                       disabled={disabled}
                                     />
                                   </EmbeddedWrapper>
