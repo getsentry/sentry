@@ -323,6 +323,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
+    @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_invalid_condition(self):
         now = timezone.now()
 
