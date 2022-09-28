@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
+    List,
     Mapping,
     MutableMapping,
     Optional,
@@ -160,7 +161,7 @@ class SnubaProtocolEventStream(EventStream):
 
         is_transaction_event = self._is_transaction_event(event)
 
-        extra_data = [
+        extra_data: List[Mapping[Any, Any]] = [
             {
                 "group_id": event.group_id,
                 "group_ids": [group.id for group in event.groups],
