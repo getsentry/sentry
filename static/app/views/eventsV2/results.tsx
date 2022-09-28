@@ -683,6 +683,7 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
+      organization.features.includes('discover-query') &&
       isEmpty(location.query)
     ) {
       endpoints.push([
