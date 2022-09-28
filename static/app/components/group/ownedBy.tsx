@@ -1,10 +1,13 @@
 import styled from '@emotion/styled';
 
+import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import Button from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconSettings, IconUser} from 'sentry/icons';
+import {IconAdd, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -53,17 +56,40 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
   return (
     <SidebarSection.Wrap>
       <StyledSidebarTitle>
-        {t('Owned By')}
-        <QuestionTooltip
-          position="top"
-          title={t(
-            'Set rules on which user or team owns an issue based on path, module, tag, or URL'
-          )}
-          size="sm"
-          color="gray200"
-        />
+        <TitleWrapper>
+          {t('Owned By')}
+          <QuestionTooltip
+            position="top"
+            title={t(
+              'Set rules on which user or team owns an issue based on path, module, tag, or URL'
+            )}
+            size="sm"
+            color="gray200"
+          />
+        </TitleWrapper>
+
+        <ActionsWrapper>
+          <Access access={['project:write']}>
+            <Button
+              type="button"
+              onClick={() => {
+                openCreateOwnershipRule({project, organization, issueId: group.id});
+              }}
+              aria-label={t('Create Ownership Rule')}
+              icon={<IconAdd />}
+              size="zero"
+              borderless
+            />
+          </Access>
+          <StyledLink
+            to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+            aria-label={t('Issue Owners Settings')}
+          >
+            <IconSettings />
+          </StyledLink>
+        </ActionsWrapper>
       </StyledSidebarTitle>
-      <StyledSidebarContent>
+      <SidebarSection.Content>
         <ActorWrapper>
           {currentOwner ? (
             <ActorAvatar
@@ -81,13 +107,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
               : currentOwner?.name ?? t('No-one')}
           </ActorName>
         </ActorWrapper>
-
-        <StyledLink
-          to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-        >
-          <IconSettings aria-label={t('Issue Owners Settings')} />
-        </StyledLink>
-      </StyledSidebarContent>
+      </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
@@ -105,12 +125,6 @@ const ActorName = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const StyledSidebarContent = styled(SidebarSection.Content)`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
@@ -119,6 +133,18 @@ const StyledLink = styled(Link)`
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TitleWrapper = styled('div')`
+  display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const ActionsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
