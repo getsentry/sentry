@@ -1,3 +1,4 @@
+import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -5,13 +6,12 @@ import Breadcrumbs, {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 interface Props {
   location: Location;
   organization: Organization;
   projectSlug: string;
-  routes: RouteWithName[];
+  routes: PlainRoute[];
   title: string;
   alertName?: string;
   alertType?: string;
