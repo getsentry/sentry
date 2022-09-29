@@ -21,7 +21,7 @@ class ProjectOwnership(Model):
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
     schema = JSONField(null=True)
-    fallthrough = models.BooleanField(default=False)
+    fallthrough = models.BooleanField(default=True)
     # Auto Assignment through Ownership Rules & Code Owners
     auto_assignment = models.BooleanField(default=False)
     date_created = models.DateTimeField(default=timezone.now)
