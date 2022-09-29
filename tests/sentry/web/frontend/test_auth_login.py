@@ -107,7 +107,7 @@ class AuthLoginTest(TestCase):
             resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"}, follow=True)
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (reverse("sentry-2fa-dialog"), 302),
+                (reverse("sentry-login"), 302),
                 ("/organizations/baz/issues/", 302),
             ]
 
