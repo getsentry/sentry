@@ -118,7 +118,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
     <Header key="activity">
       {t('Activity')}{' '}
       <QuestionTooltip
-        size="sm"
+        size="xs"
         position="top"
         title={t(
           'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
