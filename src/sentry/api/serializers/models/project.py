@@ -40,6 +40,7 @@ from sentry.models import (
     User,
     UserReport,
 )
+from sentry.models.options.project_option import OPTION_KEYS
 from sentry.notifications.helpers import (
     get_most_specific_notification_setting_value,
     transform_to_notification_settings_by_scope,
@@ -705,51 +706,6 @@ def bulk_fetch_project_latest_releases(projects):
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
-    OPTION_KEYS = frozenset(
-        [
-            # we need the epoch to fill in the defaults correctly
-            "sentry:option-epoch",
-            "sentry:origins",
-            "sentry:resolve_age",
-            "sentry:scrub_data",
-            "sentry:scrub_defaults",
-            "sentry:safe_fields",
-            "sentry:store_crash_reports",
-            "sentry:builtin_symbol_sources",
-            "sentry:symbol_sources",
-            "sentry:sensitive_fields",
-            "sentry:csp_ignored_sources_defaults",
-            "sentry:csp_ignored_sources",
-            "sentry:default_environment",
-            "sentry:reprocessing_active",
-            "sentry:blacklisted_ips",
-            "sentry:releases",
-            "sentry:error_messages",
-            "sentry:scrape_javascript",
-            "sentry:token",
-            "sentry:token_header",
-            "sentry:verify_ssl",
-            "sentry:scrub_ip_address",
-            "sentry:grouping_config",
-            "sentry:grouping_enhancements",
-            "sentry:grouping_enhancements_base",
-            "sentry:secondary_grouping_config",
-            "sentry:secondary_grouping_expiry",
-            "sentry:grouping_auto_update",
-            "sentry:fingerprinting_rules",
-            "sentry:relay_pii_config",
-            "sentry:dynamic_sampling",
-            "sentry:breakdowns",
-            "sentry:span_attributes",
-            "sentry:performance_issue_creation_rate",
-            "feedback:branding",
-            "digests:mail:minimum_delay",
-            "digests:mail:maximum_delay",
-            "mail:subject_prefix",
-            "mail:subject_template",
-        ]
-    )
-
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
     ) -> MutableMapping[Project, MutableMapping[str, Any]]:
@@ -767,7 +723,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for project_id, num_issues in num_issues_projects:
             processing_issues_by_project[project_id] = num_issues
 
-        queryset = ProjectOption.objects.filter(project__in=item_list, key__in=self.OPTION_KEYS)
+        queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
         options_by_project = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
@@ -807,6 +763,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             {
                 "latestRelease": attrs["latest_release"],
                 "options": {
+                    "sentry:spike_projection_config": bool(
+                        attrs["options"].get("sentry:spike_projection_config", False)
+                    ),
                     "sentry:csp_ignored_sources_defaults": bool(
                         attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
                     ),
