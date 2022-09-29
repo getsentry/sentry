@@ -10,7 +10,7 @@ import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
-from snuba_sdk import Direction, Granularity, Limit, Offset
+from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -348,6 +348,79 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     include_meta=True,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
+
+    @freeze_time("2022-09-29 11:30:00")
+    def test_query_with_tuple_condition(self):
+        now = timezone.now()
+
+        for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                timestamp=(now - timedelta(seconds=1)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            start=now - timedelta(minutes=1),
+            end=now,
+            groupby=[],
+            where=[
+                Condition(
+                    lhs=Function(
+                        function="tuple",
+                        parameters=[
+                            Column(
+                                name="tags[transaction]",
+                            )
+                        ],
+                    ),
+                    op=Op.IN,
+                    rhs=Function(
+                        function="tuple",
+                        parameters=[("/foo",), ("/bar",)],
+                    ),
+                )
+            ],
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 2
+        expected_alias = "count(transaction.duration)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
 
     @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_valid_condition(self):

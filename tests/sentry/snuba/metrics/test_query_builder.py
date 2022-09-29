@@ -1036,3 +1036,109 @@ class QueryDefinitionTestCase(TestCase):
                 rhs=["bar"],
             )
         ]
+
+
+class ResolveTagsTestCase(TestCase):
+    def setUp(self):
+        self.org_id = ORG_ID
+        self.use_case_id = UseCaseKey.PERFORMANCE
+
+    def test_resolve_tags_with_unary_tuple(self):
+        transactions = ["/foo", "/bar"]
+
+        for transaction in ["transaction"] + transactions:
+            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="tuple",
+                    parameters=[
+                        Column(
+                            name="tags[transaction]",
+                        )
+                    ],
+                ),
+                op=Op.IN,
+                rhs=Function(
+                    function="tuple",
+                    parameters=[(transaction,) for transaction in transactions],
+                ),
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="tuple",
+                parameters=[
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    )
+                ],
+            ),
+            op=Op.IN,
+            rhs=Function(
+                function="tuple",
+                parameters=[
+                    (resolve_tag_value(self.use_case_id, self.org_id, transaction),)
+                    for transaction in transactions
+                ],
+            ),
+        )
+
+    def test_resolve_tags_with_binary_tuple(self):
+        tags = [("/foo", "ios"), ("/bar", "android")]
+
+        for transaction, platform in [("transaction", "platform")] + tags:
+            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
+            indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=platform)
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="tuple",
+                    parameters=[
+                        Column(
+                            name="tags[transaction]",
+                        ),
+                        Column(
+                            name="tags[platform]",
+                        ),
+                    ],
+                ),
+                op=Op.IN,
+                rhs=Function(
+                    function="tuple",
+                    parameters=[(transaction, platform) for transaction, platform in tags],
+                ),
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="tuple",
+                parameters=[
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "transaction"),
+                    ),
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "platform"),
+                    ),
+                ],
+            ),
+            op=Op.IN,
+            rhs=Function(
+                function="tuple",
+                parameters=[
+                    (
+                        resolve_tag_value(self.use_case_id, self.org_id, transaction),
+                        resolve_tag_value(self.use_case_id, self.org_id, platform),
+                    )
+                    for transaction, platform in tags
+                ],
+            ),
+        )
