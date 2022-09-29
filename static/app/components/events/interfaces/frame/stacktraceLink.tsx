@@ -302,7 +302,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           </HovercardBody>
         }
       >
-        <StyledIconInfo size="xs" />
+        <StyledIconInfo size="xs" aria-label={t('More Info')} />
       </StyledHovercard>
     );
   }
