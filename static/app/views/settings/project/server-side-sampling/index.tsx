@@ -1,7 +1,4 @@
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {PanelAlert} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -16,18 +13,11 @@ export default function ServerSideSamplingContainer({project}: Props) {
 
   return (
     <Feature
-      features={['server-side-sampling', 'server-side-sampling-ui']}
+      requireAll={false}
+      features={['dynamic-sampling-basic', 'server-side-sampling-ui']} // <-- the "server-side-sampling-ui" feature will be removed in the future
+      hookName="feature-disabled:dynamic-sampling-basic"
       organization={organization}
-      renderDisabled={() => (
-        <FeatureDisabled
-          alert={PanelAlert}
-          features={[
-            'organization:server-side-sampling',
-            'organization:server-side-sampling-ui',
-          ]}
-          featureName={t('Dynamic Sampling')}
-        />
-      )}
+      project={project}
     >
       <ServerSideSampling project={project} />
     </Feature>
