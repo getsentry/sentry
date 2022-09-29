@@ -41,7 +41,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
   const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
     return entry.type === EntryType.SPANS;
   });
-  const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | TraceContextSpanProxy> = [...spanEntry?.data] ?? [];
 
   if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
     // TODO: Fix this conditional and check if span_id is ever actually undefined.
