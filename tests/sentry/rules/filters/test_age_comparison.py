@@ -1,6 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from django.utils import timezone
+import pytz
 from freezegun import freeze_time
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
@@ -10,7 +10,7 @@ from sentry.testutils.cases import RuleTestCase
 class AgeComparisonFilterTest(RuleTestCase):
     rule_cls = AgeComparisonFilter
 
-    @freeze_time()
+    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.utc))
     def test_older_applies_correctly(self):
         event = self.get_event()
         value = 10
@@ -18,13 +18,14 @@ class AgeComparisonFilterTest(RuleTestCase):
 
         rule = self.get_rule(data=data)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=3)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=3)
         self.assertDoesNotPass(rule, event)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=11)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=10, microseconds=1)
+        # this needs to be offset by 1ms otherwise it's exactly the same time as "now" and won't pass
         self.assertPasses(rule, event)
 
-    @freeze_time()
+    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.utc))
     def test_newer_applies_correctly(self):
         event = self.get_event()
         value = 10
@@ -32,10 +33,10 @@ class AgeComparisonFilterTest(RuleTestCase):
 
         rule = self.get_rule(data=data)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=3)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=3)
         self.assertPasses(rule, event)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=11)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=10)
         self.assertDoesNotPass(rule, event)
 
     def test_fails_on_insufficient_data(self):
