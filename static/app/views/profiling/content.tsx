@@ -146,6 +146,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 <HeadingActions>
                   <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
                   <FeatureFeedback
+                    buttonProps={{
+                      priority: 'primary',
+                    }}
                     featureName="profiling"
                     secondaryAction={
                       <DiscordLink href="https://discord.gg/zrMjKA4Vnz">
