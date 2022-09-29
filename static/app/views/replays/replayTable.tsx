@@ -266,7 +266,6 @@ const Header = styled('div')`
   grid-template-columns: repeat(2, max-content);
   gap: ${space(0.5)};
   align-items: center;
-  padding: ${space(0.75)} 0;
 `;
 
 export default ReplayTable;
