@@ -1046,9 +1046,7 @@ class ResolveTagsTestCase(TestCase):
     def test_resolve_tags_with_unary_tuple(self):
         transactions = ["/foo", "/bar"]
 
-        indexer.record(self.use_case_id, self.org_id, string="transaction")
-
-        for transaction in transactions:
+        for transaction in ["transaction"] + transactions:
             indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
 
         resolved_query = resolve_tags(
@@ -1093,10 +1091,7 @@ class ResolveTagsTestCase(TestCase):
     def test_resolve_tags_with_binary_tuple(self):
         tags = [("/foo", "ios"), ("/bar", "android")]
 
-        indexer.record(self.use_case_id, self.org_id, string="transaction")
-        indexer.record(self.use_case_id, self.org_id, string="platform")
-
-        for transaction, platform in tags:
+        for transaction, platform in [("transaction", "platform")] + tags:
             indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=transaction)
             indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string=platform)
 
