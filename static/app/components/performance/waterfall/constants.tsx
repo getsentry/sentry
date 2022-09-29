@@ -2,8 +2,8 @@ export const ROW_HEIGHT = 24;
 export const ROW_PADDING = 4;
 
 export enum SpanBarHatch {
-  'gap',
-  'affected',
+  gap = 'gap',
+  affected = 'affected',
 }
 
 export const SPAN_HATCH_TYPE_COLOURS: Record<
