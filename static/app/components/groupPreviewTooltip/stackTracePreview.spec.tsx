@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {StackTracePreview} from 'sentry/components/groupPreviewTooltip/stacktracePreview';
+import {StackTracePreview} from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {EventError, Organization} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
