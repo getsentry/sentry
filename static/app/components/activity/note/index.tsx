@@ -142,7 +142,7 @@ const ActivityItemNote = styled(ActivityItem)`
     margin-bottom: ${space(2)};
   }
 
-  ul:not(.nav),
+  ul,
   ol {
     padding-left: 20px;
   }
