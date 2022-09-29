@@ -18,7 +18,7 @@ from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
-from sentry import http, options
+from sentry import features, http, options
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
@@ -832,6 +832,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not organization:
             organization = Organization.objects.get_from_cache(id=self.project.organization_id)
 
+        self.organization = organization
         self.max_fetches = MAX_RESOURCE_FETCHES
         self.allow_scraping = organization.get_option(
             "sentry:scrape_javascript", True
@@ -1115,24 +1116,25 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
 
-            suspected_console_errors = None
-            try:
-                suspected_console_errors = self.suspected_console_errors(new_frames)
-            except Exception as exc:
-                logger.error(
-                    "Failed to evaluate event for suspected JavaScript browser console error",
-                    exc_info=exc,
-                )
+            if features.has("javascript-console-error-tag", self.organization.id, actor=None):
+                suspected_console_errors = None
+                try:
+                    suspected_console_errors = self.suspected_console_errors(new_frames)
+                except Exception as exc:
+                    logger.error(
+                        "Failed to evaluate event for suspected JavaScript browser console error",
+                        exc_info=exc,
+                    )
 
-            try:
-                with sentry_sdk.configure_scope() as scope:
-                    scope.set_tag("empty_stacktrace.js_console", suspected_console_errors)
-            except Exception as exc:
-                logger.error(
-                    "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
-                    suspected_console_errors,
-                    exc_info=exc,
-                )
+                try:
+                    with sentry_sdk.configure_scope() as scope:
+                        scope.set_tag("empty_stacktrace.js_console", suspected_console_errors)
+                except Exception as exc:
+                    logger.error(
+                        "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
+                        suspected_console_errors,
+                        exc_info=exc,
+                    )
 
             return new_frames, raw_frames, all_errors
 
