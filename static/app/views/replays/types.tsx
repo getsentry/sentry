@@ -145,11 +145,11 @@ export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
  */
 export interface ReplayError {
   ['error.type']: string[];
-  ['error.value']: string[];
-  ['group.id']: string; // TODO(replay): is this a thing? issue.id seems like all we need
+  ['error.value']: string[]; // deprecated, use title instead
   id: string;
   issue: string;
   ['issue.id']: number;
   ['project.name']: string;
   timestamp: string;
+  title: string;
 }
