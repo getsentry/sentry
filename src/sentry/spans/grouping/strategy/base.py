@@ -104,7 +104,7 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
 
 
-@span_op(["db", "db.query", "db.sql.query"])
+@span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
 def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
     """For a `db` query span, the `IN` condition contains the same number of
     elements on the right hand side as the raw query. This results in identical
