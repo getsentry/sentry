@@ -456,7 +456,7 @@ def query_facet_performance(
         )
 
         results = tag_query.run_query(f"{referrer}.tag_values".format(referrer, "tag_values"))
-        results = discover.transform_results(results, tag_query, {}, None)
+        results = discover.transform_results(results, tag_query, {})
 
         return results
 

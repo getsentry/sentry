@@ -126,8 +126,8 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(results, query_builder, translated_columns, snuba_filter) -> EventsResponse:
-    results = transform_data(results, translated_columns, snuba_filter)
+def transform_results(results, query_builder, translated_columns) -> EventsResponse:
+    results = transform_data(results, translated_columns, query_builder)
     results["meta"] = transform_meta(results, query_builder)
     return results
 
@@ -145,7 +145,7 @@ def transform_meta(results: EventsResponse, query_builder: QueryBuilder) -> Dict
     return meta
 
 
-def transform_data(result, translated_columns, snuba_filter) -> EventsResponse:
+def transform_data(result, translated_columns, query_builder) -> EventsResponse:
     """
     Transform internal names back to the public schema ones.
 
@@ -160,6 +160,8 @@ def transform_data(result, translated_columns, snuba_filter) -> EventsResponse:
     def get_row(row):
         transformed = {}
         for key, value in row.items():
+            new_key = translated_columns.get(key, key)
+
             if isinstance(value, float):
                 # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
                 # so needed to pick something valid to use instead
@@ -167,25 +169,16 @@ def transform_data(result, translated_columns, snuba_filter) -> EventsResponse:
                     value = 0
                 elif math.isinf(value):
                     value = None
-            transformed[translated_columns.get(key, key)] = value
+            if new_key in query_builder.value_resolver_map:
+                new_value = query_builder.value_resolver_map[new_key](value)
+            else:
+                new_value = value
+
+            transformed[new_key] = new_value
 
         return transformed
 
     final_result["data"] = [get_row(row) for row in final_result["data"]]
-
-    if snuba_filter and snuba_filter.rollup and snuba_filter.rollup > 0:
-        rollup = snuba_filter.rollup
-        with sentry_sdk.start_span(
-            op="discover.discover", description="transform_results.zerofill"
-        ) as span:
-            span.set_data("result_count", len(final_result.get("data", [])))
-            final_result["data"] = zerofill(
-                final_result["data"],
-                snuba_filter.start,
-                snuba_filter.end,
-                rollup,
-                snuba_filter.orderby,
-            )
 
     return final_result
 
@@ -291,7 +284,6 @@ def query(
             result,
             builder,
             translated_columns,
-            None,
         )
         result["tips"] = transform_tips(builder.tips)
     return result
@@ -535,7 +527,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, top_events_builder, {}, None)
+        result = transform_results(result, top_events_builder, {})
 
         issues = {}
         if "issue" in selected_columns:

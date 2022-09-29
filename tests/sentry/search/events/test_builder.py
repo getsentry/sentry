@@ -253,14 +253,8 @@ class QueryBuilderTest(TestCase):
         self.assertCountEqual(
             query.columns,
             [
-                Function(
-                    "transform",
-                    [
-                        Column("project_id"),
-                        [project1.id, project2.id],
-                        [project1.slug, project2.slug],
-                        "",
-                    ],
+                AliasedExpression(
+                    Column("project_id"),
                     "project",
                 )
             ],
@@ -298,6 +292,32 @@ class QueryBuilderTest(TestCase):
                         "",
                     ],
                     "project",
+                )
+            ],
+        )
+
+    def test_orderby_project_alias(self):
+        project1 = self.create_project(name="zzz")
+        project2 = self.create_project(name="aaa")
+        self.params["project_id"] = [project1.id, project2.id]
+        query = QueryBuilder(
+            Dataset.Discover, self.params, selected_columns=["project"], orderby=["project"]
+        )
+
+        self.assertCountEqual(
+            query.orderby,
+            [
+                OrderBy(
+                    Function(
+                        "transform",
+                        [
+                            Column("project_id"),
+                            [project1.id, project2.id],
+                            [project1.slug, project2.slug],
+                            "",
+                        ],
+                    ),
+                    Direction.ASC,
                 )
             ],
         )
