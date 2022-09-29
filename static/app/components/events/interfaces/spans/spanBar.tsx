@@ -4,18 +4,17 @@ import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
-import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
+import {
+  ROW_HEIGHT,
+  SpanBarHatch,
+} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   Row,
   RowCell,
   RowCellContainer,
 } from 'sentry/components/performance/waterfall/row';
-import {
-  DurationPill,
-  RowRectangle,
-  SpanBarHatch,
-} from 'sentry/components/performance/waterfall/rowBar';
+import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
   DividerContainer,
   DividerLine,
