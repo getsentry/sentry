@@ -191,18 +191,13 @@ def get_task_kwargs_for_message_from_headers(
                 "is_new_group_environment": is_new_group_environment,
             }
 
-            if "group_states" not in header_data:
-                header_data["group_states"] = None
-
-            group_states_str = None
+            group_states_str = decode_optional_str(header_data.get("group_states"))
+            group_states = None
             try:
-                group_states_str = decode_optional_str(header_data["group_states"])
                 group_states = decode_optional_dict_str(group_states_str)
             except ValueError:
-                group_states = None
                 logger.error(f"Received event with malformed group_states: '{group_states_str}'")
             except Exception:
-                group_states = None
                 logger.error(
                     f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
                 )
