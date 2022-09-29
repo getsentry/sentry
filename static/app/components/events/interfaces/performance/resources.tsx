@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {IconDocs} from 'sentry/icons';
@@ -23,13 +22,11 @@ export function Resources(props: Props) {
     <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
       {props.description}
       {props.links.length === 0 ? (
-        <Fragment>
-          <br />
-          <br />
+        <NoResourcesMessage>
           {t(
             "Well this is awkward. We don't appear to have any resources available for your project platform :("
           )}
-        </Fragment>
+        </NoResourcesMessage>
       ) : (
         <LinkSection>
           {props.links.map(({link, text}) => (
@@ -62,4 +59,8 @@ const LinkSection = styled('div')`
   svg {
     margin-right: ${space(1)};
   }
+`;
+
+const NoResourcesMessage = styled('p')`
+  margin-top: ${space(1)};
 `;
