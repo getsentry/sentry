@@ -231,6 +231,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                                                 email
                                             }}
                                             message
+                                            committedDate
                                         }}
                                     startingLine
                                     endingLine

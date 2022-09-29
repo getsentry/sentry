@@ -24,6 +24,7 @@ _DEFAULT_DAEMONS = {
         "--commit-batch-timeout-ms=1000",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
+    "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
     "server": ["sentry", "run", "web"],
     "storybook": ["yarn", "storybook"],
     "subscription-consumer": [
@@ -119,7 +120,6 @@ def devserver(
     bind: str | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
-
     if ingest:
         # Ingest requires kakfa+zookeeper to be running.
         # They're too heavyweight to startup on-demand with devserver.
@@ -234,9 +234,6 @@ and run `sentry devservices up kafka zookeeper`.
                 "uwsgi-socket": None,
             }
         )
-
-    if ingest:
-        settings.SENTRY_USE_RELAY = True
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 

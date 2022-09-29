@@ -15,6 +15,7 @@ known_first_party = "sentry"
 skip = "migrations"
 
 [tool.pytest.ini_options]
+python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
 # We don't use the celery pytest plugin.
 addopts = "-ra --tb=short --strict-markers -p no:celery"
@@ -25,7 +26,6 @@ markers = [
     "itunes: test requires iTunes interaction, skipped unless --itunes is provided",
     "getsentryllc: test requires credentials for the GetSentry LLC organisation in Apple App Store Connect",
     "sentry_metrics: test requires access to sentry metrics",
-    "broken_under_tags_values_as_strings: tests that currently fail if tags values are strings in clickhouse. this is mainly because they are not going to the right dataset",
 ]
 selenium_driver = "chrome"
 filterwarnings = [

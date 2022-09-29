@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import capitalize from 'lodash/capitalize';
 
 import Alert from 'sentry/components/alert';
@@ -78,12 +78,10 @@ export function getConfirm({
     action,
     canBeUndone,
     append = '',
-    statusDetails,
   }: {
     action: ConfirmAction | string;
     canBeUndone: boolean;
     append?: string;
-    statusDetails?: ResolutionStatusDetails;
   }) {
     const question = allInQuerySelected
       ? getBulkConfirmMessage(`${action}${append}`, queryCount)
@@ -97,7 +95,7 @@ export function getConfirm({
     switch (action) {
       case ConfirmAction.DELETE:
         message = (
-          <React.Fragment>
+          <Fragment>
             <p>
               {tct(
                 'Bulk deletion is only recommended for junk data. To clear your stream, consider resolving or ignoring. [link:When should I delete events?]',
@@ -111,29 +109,18 @@ export function getConfirm({
             <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
               {t('Deleting performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
-          </React.Fragment>
+          </Fragment>
         );
         break;
       case ConfirmAction.MERGE:
         message = (
-          <React.Fragment>
+          <Fragment>
             <p>{t('Note that unmerging is currently an experimental feature.')}</p>
             <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
               {t('Merging performance issues is not yet supported and will be skipped.')}
             </PerformanceIssueAlert>
-          </React.Fragment>
+          </Fragment>
         );
-        break;
-      case ConfirmAction.IGNORE:
-        if (statusDetails && !performanceIssuesSupportsIgnoreAction(statusDetails)) {
-          message = (
-            <PerformanceIssueAlert {...{organization, allInQuerySelected}}>
-              {t(
-                'Ignoring performance issues by time window is not yet supported. Any encountered in this query will be skipped.'
-              )}
-            </PerformanceIssueAlert>
-          );
-        }
         break;
       default:
         message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;

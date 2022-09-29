@@ -29,6 +29,12 @@
     "editor.formatOnSave": true,
     "editor.tabSize": 2
   },
+  // Exclude Specific Files from Auto-Imports
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "**/node_modules/@storybook/theming/*",
+    "**/node_modules/@storybook/addons/*",
+    "**/node_modules/@testing-library/*"
+  ],
 
   "[typescriptreact]": {
     "editor.formatOnSave": true,

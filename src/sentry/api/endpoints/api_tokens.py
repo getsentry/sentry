@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -20,6 +21,7 @@ class ApiTokensEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
+    @never_cache
     def get(self, request: Request) -> Response:
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user=request.user).select_related(
@@ -29,6 +31,7 @@ class ApiTokensEndpoint(Endpoint):
 
         return Response(serialize(token_list, request.user))
 
+    @never_cache
     def post(self, request: Request) -> Response:
         serializer = ApiTokenSerializer(data=request.data)
 
@@ -51,6 +54,7 @@ class ApiTokensEndpoint(Endpoint):
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
 
+    @never_cache
     def delete(self, request: Request):
         token = request.data.get("token")
         if not token:
