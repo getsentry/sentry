@@ -159,7 +159,17 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                     }}
                     featureName="profiling"
                     secondaryAction={
-                      <ExternalLink href="https://discord.gg/zrMjKA4Vnz">
+                      <ExternalLink
+                        href="https://discord.gg/zrMjKA4Vnz"
+                        onClick={() => {
+                          trackAdvancedAnalyticsEvent(
+                            'profiling_views.visit_discord_channel',
+                            {
+                              organization,
+                            }
+                          );
+                        }}
+                      >
                         {t('Visit Discord Channel')}
                       </ExternalLink>
                     }

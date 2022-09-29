@@ -10,6 +10,7 @@ export type ProfilingEventParameters = {
   'profiling_views.profile_details': {};
   'profiling_views.profile_flamegraph': {};
   'profiling_views.profile_summary': {};
+  'profiling_views.visit_discord_channel': {};
 };
 
 type EventKey = keyof ProfilingEventParameters;
@@ -24,4 +25,5 @@ export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.go_to_transaction': 'Profiling Views: Go to Transaction',
   'profiling_views.onboarding_action': 'Profiling Actions: Onboarding Action',
   'profiling_views.give_feedback_action': 'Profiling Actions: Feedback Action',
+  'profiling_views.visit_discord_channel': 'Profiling Actions: Visit Discord Channel',
 };
