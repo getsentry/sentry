@@ -107,10 +107,7 @@ def resolve_tags(
         filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
         # We check whether it is a list or tuple in order to know which type to return. This is needed
         # because in the "tuple" function the parameters must be a list of tuples and not a list of lists.
-        if isinstance(input_, list):
-            return filtered_elements
-        elif isinstance(input_, tuple):
-            return tuple(filtered_elements)
+        return filtered_elements if isinstance(input_, list) else tuple(filtered_elements)
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
