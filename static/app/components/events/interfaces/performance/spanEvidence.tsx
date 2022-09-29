@@ -23,7 +23,7 @@ interface Props {
 }
 
 export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
-  span_id: string;
+  span_id: string; // TODO: Remove this temporary type.
 };
 
 export function SpanEvidenceSection({event, organization}: Props) {
@@ -42,7 +42,9 @@ export function SpanEvidenceSection({event, organization}: Props) {
     return entry.type === EntryType.SPANS;
   });
   const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data ?? [];
-  if (event.contexts.trace && event.contexts.trace?.span_id) {
+
+  if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
+    // TODO: Fix this conditional and check if span_id is ever actually undefined.
     spans.push(event.contexts.trace as TraceContextSpanProxy);
   }
   const spansById = keyBy(spans, 'span_id');
