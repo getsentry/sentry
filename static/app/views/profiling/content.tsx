@@ -151,9 +151,9 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                     }}
                     featureName="profiling"
                     secondaryAction={
-                      <DiscordLink href="https://discord.gg/zrMjKA4Vnz">
+                      <ExternalLink href="https://discord.gg/zrMjKA4Vnz">
                         {t('Visit Discord Channel')}
-                      </DiscordLink>
+                      </ExternalLink>
                     }
                   />
                 </HeadingActions>
@@ -249,13 +249,6 @@ const ActionBar = styled('div')`
   gap: ${space(2)};
   grid-template-columns: min-content auto;
   margin-bottom: ${space(2)};
-`;
-
-const DiscordLink = styled(ExternalLink)`
-  color: ${p => p.theme.red400};
-  &:hover {
-    color: ${p => p.theme.red400};
-  }
 `;
 
 export default ProfilingContent;
