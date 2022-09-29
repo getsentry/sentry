@@ -98,9 +98,18 @@ class AuthLoginTest(TestCase):
         resp = self.client.post(
             self.path,
             {"username": user.username, "password": "admin", "op": "login"},
+            follow=True,
         )
-        assert resp.url == "/auth/2fa/"
-        assert resp.status_code == 302
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [(reverse("sentry-2fa-dialog"), 302)]
+
+        with mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True):
+            resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"}, follow=True)
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                (reverse("sentry-login"), 302),
+                ("/organizations/baz/issues/", 302),
+            ]
 
     def test_registration_disabled(self):
         options.set("auth.allow-registration", True)
