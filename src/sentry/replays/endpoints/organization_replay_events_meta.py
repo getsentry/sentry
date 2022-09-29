@@ -29,11 +29,11 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         return [
             "error.type",
             "error.value",
-            "group.id",
             "id",
             "issue.id",
             "issue",
             "timestamp",
+            "title",
         ]
 
     def get(self, request: Request, organization) -> Response:
