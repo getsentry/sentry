@@ -165,34 +165,60 @@ describe('groupEvents', function () {
     );
   });
 
-  it('renders new events table for performance', function () {
-    const org = initializeOrg();
-    org.features = ['performance-issues-all-events-tab'];
-    const group = TestStubs.Group();
-    group.issueCategory = 'performance';
-    render(
-      <GroupEvents
-        organization={org}
-        api={new MockApiClient()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        group={group}
-        location={{query: {environment: ['prod', 'staging']}}}
-      />,
-      {context: routerContext, organization}
-    );
-    const perfEventsColumn = screen.getByText('transaction');
-    expect(discoverRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'performance.issue_ids:1 '}),
-      })
-    );
-    expect(perfEventsColumn).toBeInTheDocument();
+  describe('When the performance flag is enabled', () => {
+    it('renders new events table for performance', function () {
+      const org = initializeOrg({
+        organization: {features: ['performance-issues-all-events-tab']},
+      });
+      const group = TestStubs.Group();
+      group.issueCategory = 'performance';
+      render(
+        <GroupEvents
+          organization={org}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({query: 'performance.issue_ids:1 '}),
+        })
+      );
+      const perfEventsColumn = screen.getByText('transaction');
+      expect(perfEventsColumn).toBeInTheDocument();
+    });
+
+    it('renders new events table if error', function () {
+      const org = initializeOrg({
+        organization: {features: ['performance-issues-all-events-tab']},
+      });
+      const group = TestStubs.Group();
+      render(
+        <GroupEvents
+          organization={org}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      expect(discoverRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.objectContaining({query: 'issue.id:1 '})})
+      );
+
+      const perfEventsColumn = screen.getByText('transaction');
+      expect(perfEventsColumn).toBeInTheDocument();
+    });
   });
 
-  it('renders new events table if error', function () {
+  it('does not renders new events table if error', function () {
     const org = initializeOrg();
-    org.features = ['performance-issues-all-events-tab'];
     const group = TestStubs.Group();
     render(
       <GroupEvents
@@ -204,9 +230,8 @@ describe('groupEvents', function () {
       />,
       {context: routerContext, organization}
     );
-    expect(discoverRequest).toHaveBeenCalledWith(
-      '/organizations/org-slug/events/',
-      expect.objectContaining({query: expect.objectContaining({query: 'issue.id:1 '})})
-    );
+
+    const perfEventsColumn = screen.queryByText('transaction');
+    expect(perfEventsColumn).not.toBeInTheDocument();
   });
 });

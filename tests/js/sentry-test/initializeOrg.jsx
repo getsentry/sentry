@@ -41,6 +41,7 @@ export function initializeOrg({
 
   return {
     org: organization,
+    features: additionalOrg?.features || [],
     organization,
     project,
     projects,
