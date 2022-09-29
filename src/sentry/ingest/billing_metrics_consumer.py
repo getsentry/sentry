@@ -81,7 +81,7 @@ class MetricsBucket(TypedDict):
     project_id: int
     metric_id: int
     timestamp: int
-    value: Sequence[float]
+    value: Sequence[float]  # only true for distribution buckets
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):

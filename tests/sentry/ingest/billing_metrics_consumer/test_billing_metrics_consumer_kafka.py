@@ -1,9 +1,3 @@
-"""
-Things to test:
-- read metric bucket, calculate correct outcomes (1+), write outcomes
-- read metric bucket, calculate correct outcomes (0, list was empty for whatever reason), writes nothing
-- read metric bucket, calculate correct outcomes (0, due to another metric), doesnt write anything
-"""
 from datetime import datetime
 from unittest import mock
 
@@ -11,7 +5,7 @@ from django.conf import settings
 from django.test import override_settings
 
 from sentry.constants import DataCategory
-from sentry.ingest.billing_metrics_consumer import MetricsBucket, get_metrics_billing_consumer
+from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
@@ -31,16 +25,45 @@ def test_outcomes_consumed(track_outcome, kafka_producer, kafka_admin):
         KAFKA_CONSUMER_AUTO_CREATE_TOPICS=True,
     ):
 
-        bucket: MetricsBucket = {
-            "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
-            "org_id": 1,
-            "project_id": 2,
-            "timestamp": 123456,
-            "value": [1.0, 2.0, 3.0],
-        }
+        buckets = [
+            {  # Counter metric with wrong ID will not generate an outcome
+                "metric_id": 123,
+                "type": "c",
+                "org_id": 1,
+                "project_id": 2,
+                "timestamp": 123,
+                "value": 123.4,
+            },
+            {  # Distribution metric with wrong ID will not generate an outcome
+                "metric_id": 123,
+                "type": "d",
+                "org_id": 1,
+                "project_id": 2,
+                "timestamp": 123,
+                "value": [1.0, 2.0],
+            },
+            {  # Empty distribution will not generate an outcome
+                # NOTE: Should not be emitted by Relay anyway
+                "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+                "type": "d",
+                "org_id": 1,
+                "project_id": 2,
+                "timestamp": 123,
+                "value": [],
+            },
+            {  # Valid distribution bucket emits an outcome
+                "metric_id": TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"],
+                "type": "d",
+                "org_id": 1,
+                "project_id": 2,
+                "timestamp": 123456,
+                "value": [1.0, 2.0, 3.0],
+            },
+        ]
 
         producer = kafka_producer(settings)
-        producer.produce(metrics_topic, json.dumps(bucket))
+        for bucket in buckets:
+            producer.produce(metrics_topic, json.dumps(bucket))
         producer.flush()
 
         metrics_consumer = get_metrics_billing_consumer(
@@ -52,7 +75,7 @@ def test_outcomes_consumed(track_outcome, kafka_producer, kafka_admin):
         )
 
         calls = track_outcome.mock_calls
-        for _ in range(100):
+        for i in range(100):
             metrics_consumer._run_once()
             if calls:
                 assert calls == [
