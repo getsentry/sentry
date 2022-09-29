@@ -9,7 +9,6 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -159,8 +158,10 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                     }}
                     featureName="profiling"
                     secondaryAction={
-                      <ExternalLink
+                      <Button
+                        priority="link"
                         href="https://discord.gg/zrMjKA4Vnz"
+                        external
                         onClick={() => {
                           trackAdvancedAnalyticsEvent(
                             'profiling_views.visit_discord_channel',
@@ -171,7 +172,7 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                         }}
                       >
                         {t('Visit Discord Channel')}
-                      </ExternalLink>
+                      </Button>
                     }
                   />
                 </HeadingActions>
