@@ -11,7 +11,11 @@ import {
   RowCell,
   RowCellContainer,
 } from 'sentry/components/performance/waterfall/row';
-import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
+import {
+  DurationPill,
+  RowRectangle,
+  SpanBarHatch,
+} from 'sentry/components/performance/waterfall/rowBar';
 import {
   DividerContainer,
   DividerLine,
@@ -134,7 +138,7 @@ type SpanBarProps = {
   isLast?: boolean;
   isRoot?: boolean;
   spanBarColor?: string;
-  spanBarHatch?: boolean;
+  spanBarHatch?: SpanBarHatch;
   toggleSiblingSpanGroup?: ((span: SpanType, occurrence: number) => void) | undefined;
 };
 
@@ -936,7 +940,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
         >
           {displaySpanBar && (
             <RowRectangle
-              spanBarHatch={!!spanBarHatch}
+              spanBarHatch={spanBarHatch}
               style={{
                 backgroundColor: spanBarColor,
                 left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,

@@ -134,7 +134,6 @@ export function SpanDescendantGroupBar(props: Props) {
 
     return (
       <RowRectangle
-        spanBarHatch={false}
         style={{
           backgroundColor: theme.blue300,
           left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,

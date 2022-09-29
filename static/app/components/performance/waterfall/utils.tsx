@@ -3,6 +3,8 @@ import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
+import {SPAN_HATCH_TYPE_COLOURS, SpanBarHatch} from './constants';
+
 export const getBackgroundColor = ({
   showStriping,
   showDetail,
@@ -23,16 +25,10 @@ export const getBackgroundColor = ({
   return theme.background;
 };
 
-type HatchProps = {
-  spanBarHatch: boolean;
-};
+export function getHatchPattern(spanBarHatch: SpanBarHatch | undefined) {
+  if (spanBarHatch) {
+    const {primary, alternate} = SPAN_HATCH_TYPE_COLOURS[spanBarHatch];
 
-export function getHatchPattern(
-  {spanBarHatch}: HatchProps,
-  primary: string,
-  alternate: string
-) {
-  if (spanBarHatch === true) {
     return `
       background-image: linear-gradient(135deg,
         ${alternate},

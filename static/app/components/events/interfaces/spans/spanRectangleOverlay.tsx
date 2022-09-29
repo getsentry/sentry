@@ -22,7 +22,6 @@ export function SpanRectangleOverlay({
 
   return (
     <RowRectangle
-      spanBarHatch={false}
       style={{
         left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
         width: toPercent(bounds.width || 0),
