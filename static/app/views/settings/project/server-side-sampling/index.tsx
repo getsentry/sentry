@@ -21,7 +21,6 @@ export default function ServerSideSamplingContainer({project}: Props) {
       ]}
       hookName="feature-disabled:dynamic-sampling-basic"
       organization={organization}
-      project={project}
     >
       <ServerSideSampling project={project} />
     </Feature>

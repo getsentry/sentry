@@ -290,9 +290,13 @@ export function SpecificConditionsModal({
       <CloseButton />
       <Feature
         requireAll={false}
-        features={['dynamic-sampling-advanced', 'server-side-sampling-ui']} // <-- the "server-side-sampling-ui" feature will be removed in the future
+        features={[
+          'server-side-sampling',
+          project.dynamicSampling?.rules.length
+            ? 'server-side-sampling-ui'
+            : 'dynamic-sampling-advanced',
+        ]}
         organization={organization}
-        project={project}
         hookName="feature-disabled:dynamic-sampling-advanced"
       >
         <Header>
