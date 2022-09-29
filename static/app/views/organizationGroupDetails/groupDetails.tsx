@@ -16,7 +16,17 @@ import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
-import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
+import {
+  AvatarProject,
+  EntryException,
+  EntryThreads,
+  Group,
+  GroupActivityAssigned,
+  GroupActivityType,
+  IssueCategory,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -24,6 +34,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
@@ -38,6 +49,99 @@ import {
   markEventSeen,
   ReprocessingStatus,
 } from './utils';
+
+/**
+ * Function to determine if an event has source maps
+ */
+function eventHasSourceMaps(event: Event) {
+  return event.entries?.some(entry => {
+    if (entry.type === 'exception') {
+      if (entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
+/**
+ * Returns a comma delineated list of errors
+ */
+function getEventErrorString(event: Event) {
+  return event.errors?.map(error => error.type).join(',') || '';
+}
+
+function hasTrace(event: Event) {
+  if (event.type !== 'error') {
+    return false;
+  }
+  return !!event.contexts?.trace;
+}
+
+/**
+ * Return the integration type for the first assignment via integration
+ */
+function getAssignmentIntegration(group: Group) {
+  if (!group.activity) {
+    return '';
+  }
+  const assignmentAcitivies = group.activity.filter(
+    activity => activity.type === GroupActivityType.ASSIGNED
+  ) as GroupActivityAssigned[];
+  const integrationAssignments = assignmentAcitivies.find(
+    activity => !!activity.data.integration
+  );
+  return integrationAssignments?.data.integration || '';
+}
+
+function getExceptionEntries(event: Event) {
+  return event.entries?.filter(entry => entry.type === 'exception') as EntryException[];
+}
+
+function getNumberOfStackFrames(event: Event) {
+  const entries = getExceptionEntries(event);
+  // for each entry, go through each frame and get the max
+  const frameLengths =
+    entries?.map(entry =>
+      (entry.data.values || []).reduce((best, exception) => {
+        // find the max number of frames in this entry
+        const frameCount = exception.stacktrace?.frames?.length || 0;
+        return Math.max(best, frameCount);
+      }, 0)
+    ) || [];
+  if (!frameLengths.length) {
+    return 0;
+  }
+  return Math.max(...frameLengths);
+}
+
+function getNumberOfInAppStackFrames(event: Event) {
+  const entries = getExceptionEntries(event);
+  // for each entry, go through each frame
+  const frameLengths =
+    entries?.map(entry =>
+      (entry.data.values || []).reduce((best, exception) => {
+        // find the max number of frames in this entry
+        const frames = exception.stacktrace?.frames?.filter(f => f.inApp) || [];
+        return Math.max(best, frames.length);
+      }, 0)
+    ) || [];
+  if (!frameLengths.length) {
+    return 0;
+  }
+  return Math.max(...frameLengths);
+}
+
+function getNumberOfThreadsWithNames(event: Event) {
+  const threadLengths =
+    (
+      (event.entries?.filter(entry => entry.type === 'threads') || []) as EntryThreads[]
+    ).map(entry => entry.data?.values?.filter(thread => !!thread.name).length || 0) || [];
+  if (!threadLengths.length) {
+    return 0;
+  }
+  return Math.max(...threadLengths);
+}
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
 
@@ -80,7 +184,8 @@ class GroupDetails extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.fetchData(true);
+    // only track the view if we are loading the event early
+    this.fetchData(this.canLoadEventEarly(this.props));
     if (this.props.organization.features.includes('session-replay-ui')) {
       this.fetchReplayIds();
     }
@@ -96,14 +201,17 @@ class GroupDetails extends Component<Props, State> {
       prevProps.location.pathname !== this.props.location.pathname
     ) {
       // Skip tracking for other navigation events like switching events
-      this.fetchData(globalSelectionReadyChanged);
+      this.fetchData(globalSelectionReadyChanged && this.canLoadEventEarly(this.props));
     }
 
     if (
       (!this.canLoadEventEarly(prevProps) && !prevState?.group && this.state.group) ||
       (prevProps.params?.eventId !== this.props.params?.eventId && this.state.group)
     ) {
-      this.getEvent(this.state.group);
+      // if we are loading events we should record analytics after it's loaded
+      this.getEvent(this.state.group).then(
+        () => this.state.group?.project && this.trackView(this.state.group?.project)
+      );
     }
   }
 
@@ -133,13 +241,40 @@ class GroupDetails extends Component<Props, State> {
   }
 
   trackView(project: Project) {
+    const {group, event} = this.state;
     const {organization, params, location} = this.props;
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAdvancedAnalyticsEvent('issue_details.viewed', {
       organization,
       project_id: parseInt(project.id, 10),
       group_id: parseInt(params.groupId, 10),
-      issue_category: this.state.group?.issueCategory ?? IssueCategory.ERROR,
+      // group properties
+      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
+      issue_status: group?.status,
+      issue_age: group?.firstSeen ? getDaysSinceDate(group.firstSeen) : -1,
+      issue_level: group?.level,
+      is_assigned: !!group?.assignedTo,
+      error_count: Number(group?.count || -1),
+      num_comments: group ? group.numComments : -1,
+      project_platform: group?.project.platform,
+      has_external_issue: group?.annotations ? group?.annotations.length > 0 : false,
+      has_owner: group?.owners ? group?.owners.length > 0 : false,
+      integration_assignment_source: group ? getAssignmentIntegration(group) : '',
+      // event properties
+      event_id: event?.eventID || '-1',
+      num_commits: event?.release?.commitCount || 0,
+      num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
+      num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
+      num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
+      event_platform: event?.platform,
+      event_type: event?.type,
+      has_release: !!event?.release,
+      has_source_maps: event ? eventHasSourceMaps(event) : false,
+      has_trace: event ? hasTrace(event) : false,
+      has_commit: !!event?.release?.lastCommit,
+      event_errors: event ? getEventErrorString(event) : '',
+      sdk_name: event?.sdk?.name,
+      sdk_version: event?.sdk?.version,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -424,7 +559,7 @@ class GroupDetails extends Component<Props, State> {
       });
 
       const [data] = await Promise.all([groupPromise, eventPromise]);
-      this.fetchGroupReleases();
+      const groupReleasePromise = this.fetchGroupReleases();
 
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 
@@ -473,7 +608,8 @@ class GroupDetails extends Component<Props, State> {
       GroupStore.loadInitialData([data]);
 
       if (trackView) {
-        this.trackView(project);
+        // make sure releases have loaded before we track the view
+        groupReleasePromise.then(() => this.trackView(project));
       }
     } catch (error) {
       this.handleRequestError(error);
