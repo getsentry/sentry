@@ -180,7 +180,7 @@ function EventEntry({
       return (
         <Resources
           description={getResourceDescription(group.issueType)}
-          links={getResourceLinks(group.issueType)}
+          links={getResourceLinks(group.issueType, event.platform)}
         />
       );
     default:
