@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.event_manager import EventManager
@@ -64,19 +66,45 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
         assert content == {}
 
     def test_transaction_event_with_problem(self):
-        data = load_data(platform="transaction-n-plus-one")
-
+        data = load_data(
+            platform="transaction-n-plus-one",
+        )
         fingerprint = data["hashes"][0]
+        data["fingerprint"] = [fingerprint]
 
         manager = EventManager(data)
         manager.normalize()
-        manager._data["hashes"] = [fingerprint]  # Normalization strips the hashes
 
-        event = manager.save(self.project.id)
+        def inject_performance_problems(jobs, _):
+            for job in jobs:
+                job["performance_problems"] = []
+                for f in job["data"]["fingerprint"]:
+                    job["performance_problems"].append(
+                        PerformanceProblem(
+                            fingerprint=fingerprint,
+                            op="db",
+                            desc="N+1",
+                            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                            parent_span_ids=["892612d95b7e094a"],
+                            cause_span_ids=None,
+                            offender_span_ids=[
+                                "af0b6c143281fdee",
+                                "a693d2937451761e",
+                                "98b5f935ab2ce5ad",
+                            ],
+                        )
+                    )
+
+        with mock.patch(
+            "sentry.event_manager._detect_performance_problems", inject_performance_problems
+        ):
+            event = manager.save(self.project.id)
+            for group in event.groups:
+                group.save()
 
         problem = PerformanceProblem.from_dict(
             {
-                "fingerprint": fingerprint,
+                "fingerprint": "group1",
                 "op": "db",
                 "desc": "N+1",
                 "type": GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
