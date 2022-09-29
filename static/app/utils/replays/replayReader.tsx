@@ -1,6 +1,8 @@
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
+  isMemorySpan,
+  isNetworkSpan,
   replayTimestamps,
   rrwebEventListFactory,
   spansFactory,
@@ -69,8 +71,10 @@ export default class ReplayReader {
     replayRecord.startedAt = new Date(startTimestampMs);
     replayRecord.finishedAt = new Date(endTimestampMs);
 
-    this.spans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(replayRecord, errors, breadcrumbs, this.spans);
+    const sortedSpans = spansFactory(spans);
+    this.networkSpans = sortedSpans.filter(isNetworkSpan);
+    this.memorySpans = sortedSpans.filter(isMemorySpan);
+    this.breadcrumbs = breadcrumbFactory(replayRecord, errors, breadcrumbs, sortedSpans);
 
     this.rrwebEvents = rrwebEventListFactory(replayRecord, rrwebEvents);
 
@@ -80,7 +84,8 @@ export default class ReplayReader {
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
-  private spans: ReplaySpan[];
+  private networkSpans: ReplaySpan[];
+  private memorySpans: MemorySpanType[];
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -101,15 +106,11 @@ export default class ReplayReader {
     return this.breadcrumbs;
   };
 
-  getRawSpans = () => {
-    return this.spans;
+  getNetworkSpans = () => {
+    return this.networkSpans;
   };
 
-  isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
-    return span.op === 'memory';
-  };
-
-  isNetworkSpan = (span: ReplaySpan) => {
-    return !this.isMemorySpan(span) && !span.op.includes('paint');
+  getMemorySpans = () => {
+    return this.memorySpans;
   };
 }

@@ -10,12 +10,21 @@ import type {
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {
+  MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
+
+export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
+  return span.op === 'memory';
+};
+
+export const isNetworkSpan = (span: ReplaySpan) => {
+  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
+};
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   return {
