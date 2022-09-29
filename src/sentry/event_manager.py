@@ -1078,14 +1078,20 @@ def _eventstream_insert_many(jobs):
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
+            group_states = None
             is_new = False
             is_regression = False
             is_new_group_environment = False
         else:
-            group_info = job["groups"][0]
-            is_new = group_info.is_new
-            is_regression = group_info.is_regression
-            is_new_group_environment = group_info.is_new_group_environment
+            group_states = {
+                g.id: {
+                    "is_new": g.is_new,
+                    "is_regression": g.is_regression,
+                    "is_new_group_environment": g.is_new_group_environment,
+                }
+                for g in job["groups"]
+                if g is not None
+            }
 
         eventstream.insert(
             event=job["event"],
@@ -1100,6 +1106,7 @@ def _eventstream_insert_many(jobs):
             # through the event stream, but we don't care
             # about post processing and handling the commit.
             skip_consume=job.get("raw", False),
+            group_states=group_states,
         )
 
 

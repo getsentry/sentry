@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
-    List,
     Mapping,
     MutableMapping,
     Optional,
@@ -161,37 +160,32 @@ class SnubaProtocolEventStream(EventStream):
 
         is_transaction_event = self._is_transaction_event(event)
 
-        extra_data: List[Mapping[Any, Any]] = [
-            {
-                "group_id": event.group_id,
-                "group_ids": [group.id for group in event.groups],
-                "event_id": event.event_id,
-                "organization_id": project.organization_id,
-                "project_id": event.project_id,
-                # TODO(mitsuhiko): We do not want to send this incorrect
-                # message but this is what snuba needs at the moment.
-                "message": event.search_message,
-                "platform": event.platform,
-                "datetime": event.datetime,
-                "data": event_data,
-                "primary_hash": primary_hash,
-                "retention_days": retention_days,
-            },
-            {
-                "is_new": is_new,
-                "is_regression": is_regression,
-                "is_new_group_environment": is_new_group_environment,
-                "skip_consume": skip_consume,
-            },
-        ]
-
-        if group_states is not None:
-            extra_data.append({**group_states})
-
         self._send(
             project.id,
             "insert",
-            extra_data=tuple(extra_data),
+            extra_data=(
+                {
+                    "group_id": event.group_id,
+                    "group_ids": [group.id for group in event.groups],
+                    "event_id": event.event_id,
+                    "organization_id": project.organization_id,
+                    "project_id": event.project_id,
+                    # TODO(mitsuhiko): We do not want to send this incorrect
+                    # message but this is what snuba needs at the moment.
+                    "message": event.search_message,
+                    "platform": event.platform,
+                    "datetime": event.datetime,
+                    "data": event_data,
+                    "primary_hash": primary_hash,
+                    "retention_days": retention_days,
+                },
+                {
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                    "skip_consume": skip_consume,
+                },
+            ),
             headers=headers,
             skip_semantic_partitioning=skip_semantic_partitioning,
             is_transaction_event=is_transaction_event,

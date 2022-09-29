@@ -136,18 +136,15 @@ def decode_bool(value: bytes) -> bool:
     return bool(int(decode_str(value)))
 
 
-def decode_optional_dict_str(value: Optional[bytes]) -> Optional[Mapping[Any, Any]]:
+def decode_optional_dict_str(value: Optional[str]) -> Optional[Mapping[Any, Any]]:
     if value is None:
         return None
-    dict_str = decode_optional_str(value)
-    if dict_str is None:
-        return None
 
-    parsed = json.loads(dict_str)
+    parsed = json.loads(value)
     if not isinstance(parsed, dict):
-        raise ValueError(f"'{dict_str}' could not be parsed into an instance of dict.")
+        raise ValueError(f"'{value}' could not be parsed into an instance of dict.")
 
-    return cast(Mapping[Any, Any], json.loads(dict_str))
+    return cast(Mapping[Any, Any], json.loads(value))
 
 
 def get_task_kwargs_for_message_from_headers(
@@ -196,10 +193,19 @@ def get_task_kwargs_for_message_from_headers(
 
             if "group_states" not in header_data:
                 header_data["group_states"] = None
+
+            group_states_str = None
             try:
-                group_states = decode_optional_dict_str(header_data["group_states"])
+                group_states_str = decode_optional_str(header_data["group_states"])
+                group_states = decode_optional_dict_str(group_states_str)
             except ValueError:
                 group_states = None
+                logger.error(f"Received event with malformed group_states: '{group_states_str}'")
+            except Exception:
+                group_states = None
+                logger.error(
+                    f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
+                )
 
         else:
             event_data = {}

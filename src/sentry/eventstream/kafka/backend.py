@@ -71,7 +71,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        def encode_dict(value: Mapping) -> str:
+        def encode_dict(value: Mapping[Any, Any]) -> str:
             return json.dumps(value)
 
         # we strip `None` values here so later in the pipeline they can be
