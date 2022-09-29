@@ -1083,14 +1083,21 @@ def _eventstream_insert_many(jobs):
             is_regression = False
             is_new_group_environment = False
         else:
+            # error issues
+            group_info = job["groups"][0]
+            is_new = group_info.is_new
+            is_regression = group_info.is_regression
+            is_new_group_environment = group_info.is_new_group_environment
+
+            # performance issues with potentially multiple groups to a transaction
             group_states = {
-                g.id: {
-                    "is_new": g.is_new,
-                    "is_regression": g.is_regression,
-                    "is_new_group_environment": g.is_new_group_environment,
+                gi.group.id: {
+                    "is_new": gi.is_new,
+                    "is_regression": gi.is_regression,
+                    "is_new_group_environment": gi.is_new_group_environment,
                 }
-                for g in job["groups"]
-                if g is not None
+                for gi in job["groups"]
+                if gi is not None
             }
 
         eventstream.insert(
