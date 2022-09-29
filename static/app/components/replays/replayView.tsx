@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
@@ -11,10 +11,11 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type Props = {
   toggleFullscreen: () => void;
+  controlBarActions?: ReactNode;
   showAddressBar?: boolean;
 };
 
-function ReplayView({toggleFullscreen, showAddressBar = true}: Props) {
+function ReplayView({toggleFullscreen, showAddressBar = true, controlBarActions}: Props) {
   return (
     <Fragment>
       {showAddressBar && <ReplayCurrentUrl />}
@@ -26,7 +27,10 @@ function ReplayView({toggleFullscreen, showAddressBar = true}: Props) {
           <PlayerScrubber />
         </ScrubberMouseTracking>
       </PlayerContainer>
-      <ReplayController toggleFullscreen={toggleFullscreen} />
+      <ReplayController
+        toggleFullscreen={toggleFullscreen}
+        additionalActions={controlBarActions}
+      />
     </Fragment>
   );
 }
