@@ -57,5 +57,5 @@ export function getResourceLinks(
     return [];
   }
 
-  return RESOURCE_LINKS[issueType][platform] as ResourceLink[];
+  return RESOURCE_LINKS[issueType][platform] ?? [];
 }
