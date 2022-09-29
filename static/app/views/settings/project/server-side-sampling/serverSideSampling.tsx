@@ -18,6 +18,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -64,6 +65,10 @@ import {SamplingPromo} from './samplingPromo';
 import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAlert';
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
+
+const LimitedAvailabilityProgramEndingAlert = HookOrDefault({
+  hookName: 'component:dynamic-sampling-limited-availability-program-ending',
+});
 
 type Props = {
   project: Project;
@@ -450,6 +455,8 @@ export function ServerSideSampling({project}: Props) {
             'These settings can only be edited by users with the organization owner, manager, or admin role.'
           )}
         />
+
+        <LimitedAvailabilityProgramEndingAlert organization={organization} />
 
         <SamplingProjectIncompatibleAlert
           organization={organization}
