@@ -10,7 +10,7 @@ from sentry.testutils.cases import RuleTestCase
 class AgeComparisonFilterTest(RuleTestCase):
     rule_cls = AgeComparisonFilter
 
-    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.utc))
+    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
     def test_older_applies_correctly(self):
         event = self.get_event()
         value = 10
@@ -25,7 +25,7 @@ class AgeComparisonFilterTest(RuleTestCase):
         # this needs to be offset by 1ms otherwise it's exactly the same time as "now" and won't pass
         self.assertPasses(rule, event)
 
-    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=pytz.utc))
+    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
     def test_newer_applies_correctly(self):
         event = self.get_event()
         value = 10
