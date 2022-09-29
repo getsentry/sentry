@@ -406,7 +406,9 @@ def update_event_group(event: "Event") -> None:
     event.group.project.set_cached_field_value("organization", event.project.organization)
 
 
-def process_inbox_adds(event, is_reprocessed, is_new, is_regression):
+def process_inbox_adds(
+    event: "Event", is_reprocessed: bool, is_new: bool, is_regression: bool
+) -> bool:
     from sentry.models import GroupInboxReason
     from sentry.models.groupinbox import add_group_to_inbox
 
