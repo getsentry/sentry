@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from django.urls import reverse
 from exam import fixture
 
+from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
@@ -91,7 +92,14 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
     @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
     def initiate_callback(
-        self, state, auth_data, urlopen, expect_success=True, customer_domain="", **kwargs
+        self,
+        state,
+        auth_data,
+        urlopen,
+        expect_success=True,
+        customer_domain="",
+        has_2fa=False,
+        **kwargs,
     ):
         headers = {"Content-Type": "application/json"}
         urlopen.return_value = MockResponse(headers, json.dumps(auth_data))
@@ -100,8 +108,25 @@ class AuthOAuth2Test(AuthProviderTestCase):
         resp = self.client.get(f"{self.sso_path}?{query}", **kwargs)
 
         if expect_success:
+
+            if has_2fa:
+                assert resp["Location"] == "/auth/2fa/"
+                with mock.patch(
+                    "sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True
+                ):
+                    assert resp.status_code == 302
+                    resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"})
+                    assert resp.status_code == 302
+                    assert resp["Location"].startswith("http://testserver/auth/sso/?")
+                    resp = self.client.get(resp["Location"])
+
             assert resp.status_code == 302
             assert resp["Location"] == f"{customer_domain}/auth/login/"
+            resp = self.client.get(resp["Location"], follow=True)
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [("/organizations/baz/issues/", 302)]
+            assert resp.context["user"] == self.user
+
             assert urlopen.called
             data = urlopen.call_args[1]["data"]
 
@@ -112,11 +137,6 @@ class AuthOAuth2Test(AuthProviderTestCase):
                 "client_id": "my_client_id",
                 "client_secret": "my_client_secret",
             }
-
-            resp = self.client.get(resp["Location"], follow=True)
-            assert resp.status_code == 200
-            assert resp.redirect_chain == [("/organizations/baz/issues/", 302)]
-            assert resp.context["user"] == self.user
         return resp
 
     def test_oauth2_flow(self):
@@ -158,6 +178,15 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.status_code == 200
         assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
         assert response.context["user"] != self.user
+
+    def test_oauth2_flow_with_2fa(self):
+        RecoveryCodeInterface().enroll(self.user)
+        TotpInterface().enroll(self.user)
+
+        auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
+
+        state = self.initiate_oauth_flow()
+        self.initiate_callback(state, auth_data, has_2fa=True)
 
     def test_state_mismatch(self):
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
