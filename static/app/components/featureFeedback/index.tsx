@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 
 export type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   buttonProps?: Partial<ButtonProps>;
+  secondaryAction?: React.ReactNode;
 };
 
 // Provides a button that, when clicked, opens a modal with a form that,

@@ -9,6 +9,7 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -144,7 +145,14 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 <StyledHeading>{t('Profiling')}</StyledHeading>
                 <HeadingActions>
                   <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
-                  <FeatureFeedback featureName="profiling" />
+                  <FeatureFeedback
+                    featureName="profiling"
+                    secondaryAction={
+                      <DiscordLink href="https://discord.gg/zrMjKA4Vnz">
+                        {t('Visit Discord Channel')}
+                      </DiscordLink>
+                    }
+                  />
                 </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>
@@ -238,6 +246,13 @@ const ActionBar = styled('div')`
   gap: ${space(2)};
   grid-template-columns: min-content auto;
   margin-bottom: ${space(2)};
+`;
+
+const DiscordLink = styled(ExternalLink)`
+  color: ${p => p.theme.red400};
+  &:hover {
+    color: ${p => p.theme.red400};
+  }
 `;
 
 export default ProfilingContent;
