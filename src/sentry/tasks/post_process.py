@@ -341,32 +341,33 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        has_reappeared = not is_new
-        if not is_reprocessed and has_reappeared:
+        if not is_reprocessed or is_new:
+            has_reappeared = not is_new
+
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
-            try:
-                has_reappeared = process_snoozes(event.group)
-            except Exception:
-                logger.exception("Failed to process snoozes for group")
-
-        if not is_reprocessed or is_new:
-            process_inbox_adds(event, is_reprocessed, is_new, is_regression, has_reappeared)
-
-            if not is_reprocessed:
+            if has_reappeared:
                 try:
-                    handle_owner_assignment(event.project, event.group, event)
+                    has_reappeared = process_snoozes(event.group)
                 except Exception:
-                    logger.exception("Failed to handle owner assignments")
+                    logger.exception("Failed to process snoozes for group")
 
-                has_alert = process_rules(
-                    event, is_new, is_regression, is_new_group_environment, has_reappeared
-                )
-                process_commits(event)
-                process_service_hooks(event, has_alert)
-                process_resource_change_bounds(event, is_new)
-                process_plugins(event, is_new, is_regression)
-                process_similarity(event)
+            if is_new:
+                process_inbox_adds(event, is_reprocessed, is_new, is_regression, has_reappeared)
+
+            try:
+                handle_owner_assignment(event.project, event.group, event)
+            except Exception:
+                logger.exception("Failed to handle owner assignments")
+
+            has_alert = process_rules(
+                event, is_new, is_regression, is_new_group_environment, has_reappeared
+            )
+            process_commits(event)
+            process_service_hooks(event, has_alert)
+            process_resource_change_bounds(event, is_new)
+            process_plugins(event, is_new, is_regression)
+            process_similarity(event)
 
         # Patch attachments that were ingested on the standalone path.
         with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
@@ -430,21 +431,19 @@ def process_inbox_adds(
         from sentry.models import GroupInboxReason
         from sentry.models.groupinbox import add_group_to_inbox
 
-        has_reappeared = not is_new
-
-        if is_reprocessed:
+        if is_reprocessed and is_new:
             try:
-                if is_new:  # Safety check, should always be true
-                    add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+                add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
             except Exception:
                 logger.exception("Failed to add group to inbox for reprocessed groups")
-        else:
+        elif (
+            not is_reprocessed and not has_reappeared
+        ):  # If true, we added the .UNIGNORED reason already
             try:
-                if not has_reappeared:  # If true, we added the .UNIGNORED reason already
-                    if is_new:
-                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
-                    elif is_regression:
-                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+                if is_new:
+                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                elif is_regression:
+                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
             except Exception:
                 logger.exception("Failed to add group to inbox for non-reprocessed groups")
 
