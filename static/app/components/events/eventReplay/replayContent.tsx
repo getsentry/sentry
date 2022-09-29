@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import EventDataSection from 'sentry/components/events/eventDataSection';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
+import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import ReplayView from 'sentry/components/replays/replayView';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
@@ -60,8 +60,8 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
         <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
           <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
             <BadgeContainer>
-              <FeatureText>Replays</FeatureText>
-              <FeatureBadge type="alpha" />
+              <FeatureText>{t('Replays')}</FeatureText>
+              <ReplaysFeatureBadge />
             </BadgeContainer>
             <ReplayView
               toggleFullscreen={toggleFullscreen}
