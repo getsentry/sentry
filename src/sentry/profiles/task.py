@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from time import sleep, time
-from typing import Any, List, Mapping, MutableMapping, Optional
+from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -15,12 +15,12 @@ from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
+from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.profiling import get_from_profiling_service
 from sentry.utils.pubsub import KafkaPublisher
 
 Profile = MutableMapping[str, Any]
@@ -42,10 +42,18 @@ def process_profile(
     **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
+    event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     try:
         if _should_symbolicate(profile):
-            _symbolicate(profile=profile, project=project)
+            modules, stacktraces = _prepare_frames_from_profile(profile)
+            stacktraces = _symbolicate(
+                project=project,
+                profile_id=event_id,
+                modules=modules,
+                stacktraces=stacktraces,
+            )
+            _process_symbolicator_results(profile=profile, stacktraces=stacktraces)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         _track_outcome(
@@ -73,7 +81,18 @@ def process_profile(
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    _normalize(profile=profile, organization=organization)
+    try:
+        _normalize(profile=profile, organization=organization)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.INVALID,
+            key_id=key_id,
+            reason="failed-normalization",
+        )
+        return
 
     if not _insert_vroom_profile(profile=profile):
         _track_outcome(
@@ -108,6 +127,8 @@ def _should_deobfuscate(profile: Profile) -> bool:
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
+    profile["retention_days"] = quotas.get_event_retention(organization=organization)
+
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
 
@@ -119,75 +140,60 @@ def _normalize(profile: Profile, organization: Organization) -> None:
                 }
             )
 
-        classification_options.update(
-            {
+        if "version" in profile:
+            device_options = {
+                "model": profile["device"]["model"],
+                "os_name": profile["os"]["name"],
+                "is_emulator": profile["device"]["is_emulator"],
+            }
+        else:
+            device_options = {
                 "model": profile["device_model"],
                 "os_name": profile["device_os_name"],
                 "is_emulator": profile["device_is_emulator"],
             }
-        )
 
-        profile.update({"device_classification": str(classify_device(**classification_options))})
-    else:
-        profile.update(
-            {
-                attr: ""
-                for attr in (
-                    "device_classification",
-                    "device_locale",
-                    "device_manufacturer",
-                    "device_model",
-                )
-                if attr not in profile
-            }
-        )
+        classification_options.update(device_options)
+        classification = str(classify_device(**classification_options))
 
-    profile.update(
-        {
-            "profile": json.dumps(profile["profile"]),
-            "retention_days": quotas.get_event_retention(organization=organization),
-        }
-    )
+        if "version" in profile:
+            profile["device"]["classification"] = classification
+        else:
+            profile["device_classification"] = classification
 
 
-@metrics.wraps("process_profile.symbolicate")
-def _symbolicate(profile: Profile, project: Project) -> None:
-    symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
+def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
     modules = profile["debug_meta"]["images"]
-    stacktraces = [
-        {
-            "registers": {},
-            "frames": s["frames"],
-        }
-        for s in profile["sampled_profile"]["samples"]
-    ]
 
+    # in the sample format, we have a frames key containing all the frames
+    if "version" in profile:
+        stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
+    # in the original format, we need to gather frames from all samples
+    else:
+        stacktraces = [
+            {
+                "registers": {},
+                "frames": s["frames"],
+            }
+            for s in profile["sampled_profile"]["samples"]
+        ]
+    return (modules, stacktraces)
+
+
+@metrics.wraps("process_profile.symbolicate.request")
+def _symbolicate(
+    project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
+) -> List[Any]:
+    symbolicator = Symbolicator(project=project, event_id=profile_id)
     symbolication_start_time = time()
 
     while True:
         try:
-            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-
-            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
-
-            for original, symbolicated in zip(
-                profile["sampled_profile"]["samples"], response["stacktraces"]
-            ):
-                for frame in symbolicated["frames"]:
-                    frame.pop("pre_context", None)
-                    frame.pop("context_line", None)
-                    frame.pop("post_context", None)
-
-                # here we exclude the frames related to the profiler itself as we don't care to profile the profiler.
-                if (
-                    profile["platform"] == "rust"
-                    and len(symbolicated["frames"]) >= 2
-                    and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
-                ):
-                    original["frames"] = symbolicated["frames"][2:]
-                else:
-                    original["frames"] = symbolicated["frames"]
-            break
+            return list(
+                symbolicator.process_payload(stacktraces=stacktraces, modules=modules).get(
+                    "stacktraces", stacktraces
+                )
+            )
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -204,9 +210,99 @@ def _symbolicate(profile: Profile, project: Project) -> None:
         except Exception as e:
             sentry_sdk.capture_exception(e)
             break
+    # returns the unsymbolicated stacktraces to avoid errors later
+    return stacktraces
+
+
+@metrics.wraps("process_profile.symbolicate.process")
+def _process_symbolicator_results(profile: Profile, stacktraces: List[Any]) -> None:
+    if "version" in profile:
+        profile["profile"]["frames"] = stacktraces[0]["frames"]
+        _process_symbolicator_results_for_sample(profile, stacktraces)
+        return
+
+    if profile["platform"] == "rust":
+        _process_symbolicator_results_for_rust(profile, stacktraces)
+    elif profile["platform"] == "cocoa":
+        _process_symbolicator_results_for_cocoa(profile, stacktraces)
 
     # rename the profile key to suggest it has been processed
     profile["profile"] = profile.pop("sampled_profile")
+
+
+def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
+    if profile["platform"] == "rust":
+        for frame in stacktraces[0]["frames"]:
+            frame.pop("pre_context", None)
+            frame.pop("context_line", None)
+            frame.pop("post_context", None)
+
+        def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
+            # remove top frames related to the profiler
+            if frames[0].get("function", "") == "perf_signal_handler":
+                return stack[2:]
+            return stack
+
+    elif profile["platform"] == "cocoa":
+
+        def truncate_stack_needed(
+            frames: List[dict[str, Any]],
+            stack: List[Any],
+        ) -> List[Any]:
+            # remove bottom frames we can't symbolicate
+            if frames[-1].get("instruction_addr", "") == "0xffffffffc":
+                return stack[:-2]
+            return stack
+
+    else:
+
+        def truncate_stack_needed(
+            frames: List[dict[str, Any]],
+            stack: List[Any],
+        ) -> List[Any]:
+            return stack
+
+    for sample in profile["profile"]["samples"]:
+        stack_id = sample["stack_id"]
+        stack = profile["profile"]["stacks"][stack_id]
+
+        if len(stack) < 2:
+            profile["profile"]["stacks"] = stack
+            continue
+
+        # truncate some unneeded frames in the stack (related to the profiler itself or impossible to symbolicate)
+        profile["profile"]["stacks"][stack_id] = truncate_stack_needed(
+            profile["profile"]["frames"], stack
+        )
+
+
+def _process_symbolicator_results_for_cocoa(profile: Profile, stacktraces: List[Any]) -> None:
+    for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
+        # remove bottom frames we can't symbolicate
+        if (
+            len(symbolicated["frames"]) > 1
+            and symbolicated["frames"][-1].get("instruction_addr", "") == "0xffffffffc"
+        ):
+            original["frames"] = symbolicated["frames"][:-2]
+        else:
+            original["frames"] = symbolicated["frames"]
+
+
+def _process_symbolicator_results_for_rust(profile: Profile, stacktraces: List[Any]) -> None:
+    for original, symbolicated in zip(profile["sampled_profile"]["samples"], stacktraces):
+        for frame in symbolicated["frames"]:
+            frame.pop("pre_context", None)
+            frame.pop("context_line", None)
+            frame.pop("post_context", None)
+
+        # exclude the top frames of the stack as it's related to the profiler itself and we don't want them.
+        if (
+            len(symbolicated["frames"]) > 1
+            and symbolicated["frames"][0].get("function", "") == "perf_signal_handler"
+        ):
+            original["frames"] = symbolicated["frames"][2:]
+        else:
+            original["frames"] = symbolicated["frames"]
 
 
 @metrics.wraps("process_profile.deobfuscate")
@@ -268,6 +364,11 @@ def _track_outcome(
     if not project.flags.has_profiles:
         first_profile_received.send_robust(project=project, sender=Project)
 
+    if "transaction_id" in profile:
+        event_id = profile["transaction_id"]
+    else:
+        event_id = profile["event_id"]
+
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
@@ -275,7 +376,7 @@ def _track_outcome(
         outcome=outcome,
         reason=reason,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
-        event_id=profile["transaction_id"],
+        event_id=event_id,
         category=DataCategory.PROFILE,
         quantity=1,
     )
@@ -322,7 +423,10 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
         return
 
     try:
-        event = _get_event_instance(profile)
+        if "version" in profile:
+            event = _get_event_instance_for_sample(profile)
+        else:
+            event = _get_event_instance_for_legacy(profile)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return
@@ -344,19 +448,36 @@ def _insert_eventstream_call_tree(profile: Profile) -> None:
 
 
 @metrics.wraps("process_profile.get_event_instance")
-def _get_event_instance(profile: Profile) -> Any:
+def _get_event_instance_for_sample(profile: Profile) -> Any:
     return {
-        "profile_id": profile["profile_id"],
-        "project_id": profile["project_id"],
-        "transaction_name": profile["transaction_name"],
-        "timestamp": profile["received"],
-        "platform": profile["platform"],
+        "call_trees": profile["call_trees"],
         "environment": profile.get("environment"),
-        "release": f"{profile['version_name']} ({profile['version_code']})",
+        "os_name": profile["os"]["name"],
+        "os_version": profile["os"]["version"],
+        "platform": profile["platform"],
+        "profile_id": profile["event_id"],
+        "project_id": profile["project_id"],
+        "release": profile["release"],
+        "retention_days": profile["retention_days"],
+        "timestamp": profile["received"],
+        "transaction_name": profile["transactions"][0]["name"],
+    }
+
+
+@metrics.wraps("process_profile.get_event_instance")
+def _get_event_instance_for_legacy(profile: Profile) -> Any:
+    return {
+        "call_trees": profile["call_trees"],
+        "environment": profile.get("environment"),
         "os_name": profile["device_os_name"],
         "os_version": profile["device_os_version"],
+        "platform": profile["platform"],
+        "profile_id": profile["profile_id"],
+        "project_id": profile["project_id"],
+        "release": f"{profile['version_name']} ({profile['version_code']})",
         "retention_days": profile["retention_days"],
-        "call_trees": profile["call_trees"],
+        "timestamp": profile["received"],
+        "transaction_name": profile["transaction_name"],
     }
 
 
@@ -383,7 +504,15 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return True
     except RecursionError as e:
         sentry_sdk.set_context(
-            "profile", {"profile_id": profile["profile_id"], "platform": profile["platform"]}
+            "profile",
+            {
+                "organization_id": profile["organization_id"],
+                "project_id": profile["project_id"],
+                "profile_id": profile["event_id"]
+                if "event_id" in profile
+                else profile["profile_id"],
+                "platform": profile["platform"],
+            },
         )
         sentry_sdk.capture_exception(e)
         return True
@@ -396,7 +525,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         return False
     finally:
         profile["received"] = original_timestamp
-        profile["profile"] = ""
 
-        # remove debug information we don't need anymore
-        profile.pop("debug_meta", None)
+        # remove keys we don't need anymore for snuba
+        for k in {"profile", "debug_meta"}:
+            profile.pop(k, None)

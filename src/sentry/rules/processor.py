@@ -231,7 +231,7 @@ class RuleProcessor:
                 rule_id=rule.id,
             )
 
-        history.record(rule, self.group)
+        history.record(rule, self.group, self.event.event_id)
 
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
