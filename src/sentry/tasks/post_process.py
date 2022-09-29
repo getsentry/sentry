@@ -91,82 +91,90 @@ def _capture_stats(event, is_new):
 
 
 def handle_owner_assignment(project, group, event):
-    from sentry.models import GroupAssignee, ProjectOwnership
+    with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
 
-    with metrics.timer("post_process.handle_owner_assignment"):
-        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_owner"):
-            owner_key = "owner_exists:1:%s" % group.id
-            owners_exists = cache.get(owner_key)
-            if owners_exists is None:
-                owners_exists = group.groupowner_set.exists()
-                # Cache for an hour if it's assigned. We don't need to move that fast.
-                cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
+        from sentry.models import GroupAssignee, ProjectOwnership
 
-        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_assignee"):
-            # Is the issue already assigned to a team or user?
-            assignee_key = "assignee_exists:1:%s" % group.id
-            assignees_exists = cache.get(assignee_key)
-            if assignees_exists is None:
-                assignees_exists = group.assignee_set.exists()
-                # Cache for an hour if it's assigned. We don't need to move that fast.
-                cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
+        with metrics.timer("post_process.handle_owner_assignment"):
+            with sentry_sdk.start_span(op="post_process.handle_owner_assignment.cache_set_owner"):
+                owner_key = "owner_exists:1:%s" % group.id
+                owners_exists = cache.get(owner_key)
+                if owners_exists is None:
+                    owners_exists = group.groupowner_set.exists()
+                    # Cache for an hour if it's assigned. We don't need to move that fast.
+                    cache.set(owner_key, owners_exists, 3600 if owners_exists else 60)
 
-        if owners_exists and assignees_exists:
-            return
-
-        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_autoassign_owners"):
-            if killswitch_matches_context(
-                "post_process.get-autoassign-owners",
-                {
-                    "project_id": project.id,
-                },
+            with sentry_sdk.start_span(
+                op="post_process.handle_owner_assignment.cache_set_assignee"
             ):
-                # see ProjectOwnership.get_autoassign_owners
-                auto_assignment = False
-                owners = []
-                assigned_by_codeowners = False
-                auto_assignment_rule = None
-                owner_source = []
-            else:
-                (
-                    auto_assignment,
-                    owners,
-                    assigned_by_codeowners,
-                    auto_assignment_rule,
-                    owner_source,
-                ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
+                # Is the issue already assigned to a team or user?
+                assignee_key = "assignee_exists:1:%s" % group.id
+                assignees_exists = cache.get(assignee_key)
+                if assignees_exists is None:
+                    assignees_exists = group.assignee_set.exists()
+                    # Cache for an hour if it's assigned. We don't need to move that fast.
+                    cache.set(assignee_key, assignees_exists, 3600 if assignees_exists else 60)
 
-        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
-            if auto_assignment and owners and not assignees_exists:
-                from sentry.models.activity import ActivityIntegration
+            if owners_exists and assignees_exists:
+                return
 
-                assignment = GroupAssignee.objects.assign(
-                    group,
-                    owners[0],
-                    create_only=True,
-                    extra={
-                        "integration": ActivityIntegration.CODEOWNERS.value
-                        if assigned_by_codeowners
-                        else ActivityIntegration.PROJECT_OWNERSHIP.value,
-                        "rule": str(auto_assignment_rule),
+            with sentry_sdk.start_span(
+                op="post_process.handle_owner_assignment.get_autoassign_owners"
+            ):
+                if killswitch_matches_context(
+                    "post_process.get-autoassign-owners",
+                    {
+                        "project_id": project.id,
                     },
-                )
-                if assignment["new_assignment"] or assignment["updated_assignment"]:
-                    analytics.record(
-                        "codeowners.assignment"
-                        if assigned_by_codeowners
-                        else "issueowners.assignment",
-                        organization_id=project.organization_id,
-                        project_id=project.id,
-                        group_id=group.id,
-                    )
+                ):
+                    # see ProjectOwnership.get_autoassign_owners
+                    auto_assignment = False
+                    owners = []
+                    assigned_by_codeowners = False
+                    auto_assignment_rule = None
+                    owner_source = []
+                else:
+                    (
+                        auto_assignment,
+                        owners,
+                        assigned_by_codeowners,
+                        auto_assignment_rule,
+                        owner_source,
+                    ) = ProjectOwnership.get_autoassign_owners(group.project_id, event.data)
 
-        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
-            if owners and not owners_exists:
-                try:
-                    handle_group_owners(project, group, owners, owner_source)
-                except Exception:
-                    logger.exception("Failed to store group owners")
+            with sentry_sdk.start_span(op="post_process.handle_owner_assignment.analytics_record"):
+                if auto_assignment and owners and not assignees_exists:
+                    from sentry.models.activity import ActivityIntegration
+
+                    assignment = GroupAssignee.objects.assign(
+                        group,
+                        owners[0],
+                        create_only=True,
+                        extra={
+                            "integration": ActivityIntegration.CODEOWNERS.value
+                            if assigned_by_codeowners
+                            else ActivityIntegration.PROJECT_OWNERSHIP.value,
+                            "rule": str(auto_assignment_rule),
+                        },
+                    )
+                    if assignment["new_assignment"] or assignment["updated_assignment"]:
+                        analytics.record(
+                            "codeowners.assignment"
+                            if assigned_by_codeowners
+                            else "issueowners.assignment",
+                            organization_id=project.organization_id,
+                            project_id=project.id,
+                            group_id=group.id,
+                        )
+
+            with sentry_sdk.start_span(
+                op="post_process.handle_owner_assignment.handle_group_owners"
+            ):
+                if owners and not owners_exists:
+                    try:
+                        handle_group_owners(project, group, owners, owner_source)
+                    except Exception:
+                        logger.exception("Failed to store group owners")
 
 
 def handle_group_owners(project, group, owners, owner_source):
@@ -333,27 +341,32 @@ def post_process_group(
 
         _capture_stats(event, is_new)
 
-        with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
-            if not is_reprocessed or is_new:
-                has_reappeared = process_inbox_adds(event, is_reprocessed, is_new, is_regression)
+        has_reappeared = not is_new
+        if not is_reprocessed and has_reappeared:
+            # we process snoozes before rules as it might create a regression
+            # but not if it's new because you can't immediately snooze a new group
+            try:
+                has_reappeared = process_snoozes(event.group)
+            except Exception:
+                logger.exception("Failed to process snoozes for group")
 
-                if not is_reprocessed:
-                    with sentry_sdk.start_span(
-                        op="tasks.post_process_group.handle_owner_assignment"
-                    ):
-                        try:
-                            handle_owner_assignment(event.project, event.group, event)
-                        except Exception:
-                            logger.exception("Failed to handle owner assignments")
+        if not is_reprocessed or is_new:
+            process_inbox_adds(event, is_reprocessed, is_new, is_regression, has_reappeared)
 
-                    has_alert = process_rules(
-                        event, is_new, is_regression, is_new_group_environment, has_reappeared
-                    )
-                    process_commits(event)
-                    process_service_hooks(event, has_alert)
-                    process_resource_change_bounds(event, is_new)
-                    process_plugins(event, is_new, is_regression)
-                    process_similarity(event)
+            if not is_reprocessed:
+                try:
+                    handle_owner_assignment(event.project, event.group, event)
+                except Exception:
+                    logger.exception("Failed to handle owner assignments")
+
+                has_alert = process_rules(
+                    event, is_new, is_regression, is_new_group_environment, has_reappeared
+                )
+                process_commits(event)
+                process_service_hooks(event, has_alert)
+                process_resource_change_bounds(event, is_new)
+                process_plugins(event, is_new, is_regression)
+                process_similarity(event)
 
         # Patch attachments that were ingested on the standalone path.
         with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
@@ -410,38 +423,30 @@ def update_event_group(event: "Event") -> None:
 
 
 def process_inbox_adds(
-    event: "Event", is_reprocessed: bool, is_new: bool, is_regression: bool
-) -> bool:
-    from sentry.models import GroupInboxReason
-    from sentry.models.groupinbox import add_group_to_inbox
+    event: "Event", is_reprocessed: bool, is_new: bool, is_regression: bool, has_reappeared: bool
+) -> None:
+    with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
 
-    has_reappeared = not is_new
+        from sentry.models import GroupInboxReason
+        from sentry.models.groupinbox import add_group_to_inbox
 
-    if is_reprocessed:
-        try:
-            if is_new:  # Safety check, should always be true
-                add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
-        except Exception:
-            logger.exception("Failed to add group to inbox for reprocessed groups")
-    else:
-        # we process snoozes before rules as it might create a regression
-        # but not if it's new because you can't immediately snooze a new group
-        try:
-            if has_reappeared:
-                has_reappeared = process_snoozes(event.group)
-        except Exception:
-            logger.exception("Failed to process snoozes for group")
+        has_reappeared = not is_new
 
-        try:
-            if not has_reappeared:  # If true, we added the .UNIGNORED reason already
-                if is_new:
-                    add_group_to_inbox(event.group, GroupInboxReason.NEW)
-                elif is_regression:
-                    add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
-        except Exception:
-            logger.exception("Failed to add group to inbox for non-reprocessed groups")
-
-    return has_reappeared
+        if is_reprocessed:
+            try:
+                if is_new:  # Safety check, should always be true
+                    add_group_to_inbox(event.group, GroupInboxReason.REPROCESSED)
+            except Exception:
+                logger.exception("Failed to add group to inbox for reprocessed groups")
+        else:
+            try:
+                if not has_reappeared:  # If true, we added the .UNIGNORED reason already
+                    if is_new:
+                        add_group_to_inbox(event.group, GroupInboxReason.NEW)
+                    elif is_regression:
+                        add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+            except Exception:
+                logger.exception("Failed to add group to inbox for non-reprocessed groups")
 
 
 def process_snoozes(group):
