@@ -15,35 +15,11 @@ describe('StacktraceLink', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-  });
-
-  it('does not render setup CTA for members', async function () {
-    const memberOrg = TestStubs.Organization({
-      slug: 'hello-org',
-      access: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${memberOrg.slug}/${project.slug}/stacktrace-link/`,
-      query: {file: frame.filename, commitId: 'master', platform},
-      body: {config: null, sourceUrl: null, integrations: [integration]},
-    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/prompts-activity/',
       body: {},
     });
-    const wrapper = mountWithTheme(
-      <StacktraceLink
-        frame={frame}
-        event={event}
-        projects={[project]}
-        organization={memberOrg}
-        lineNo={frame.lineNo}
-      />
-    );
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('CodeMappingButtonContainer').exists()).toBe(false);
   });
 
   it('renders setup CTA with integration but no configs', async function () {
@@ -51,11 +27,6 @@ describe('StacktraceLink', function () {
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config: null, sourceUrl: null, integrations: [integration]},
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/prompts-activity/',
-      body: {},
     });
     const wrapper = mountWithTheme(
       <StacktraceLink
@@ -79,7 +50,6 @@ describe('StacktraceLink', function () {
       query: {file: frame.filename, commitId: 'master', platform},
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
-    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
@@ -105,7 +75,6 @@ describe('StacktraceLink', function () {
         attemptedUrl: 'https://something.io/blah',
       },
     });
-    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
@@ -133,7 +102,6 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
@@ -159,7 +127,6 @@ describe('StacktraceLink', function () {
         integrations: [integration],
       },
     });
-    MockApiClient.warnOnMissingMocks();
     const wrapper = mountWithTheme(
       <StacktraceLink
         frame={frame}
