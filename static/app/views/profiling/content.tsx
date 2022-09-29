@@ -144,7 +144,37 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                 <StyledHeading>{t('Profiling')}</StyledHeading>
                 <HeadingActions>
                   <Button onClick={onSetupProfilingClick}>{t('Set Up Profiling')}</Button>
-                  <FeatureFeedback featureName="profiling" />
+                  <FeatureFeedback
+                    buttonProps={{
+                      priority: 'primary',
+                      onClick: () => {
+                        trackAdvancedAnalyticsEvent(
+                          'profiling_views.give_feedback_action',
+                          {
+                            organization,
+                          }
+                        );
+                      },
+                    }}
+                    featureName="profiling"
+                    secondaryAction={
+                      <Button
+                        priority="link"
+                        href="https://discord.gg/zrMjKA4Vnz"
+                        external
+                        onClick={() => {
+                          trackAdvancedAnalyticsEvent(
+                            'profiling_views.visit_discord_channel',
+                            {
+                              organization,
+                            }
+                          );
+                        }}
+                      >
+                        {t('Visit Discord Channel')}
+                      </Button>
+                    }
+                  />
                 </HeadingActions>
               </StyledLayoutHeaderContent>
             </Layout.Header>

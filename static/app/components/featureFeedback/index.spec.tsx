@@ -44,6 +44,26 @@ describe('FeatureFeedback', function () {
     expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeInTheDocument();
   });
 
+  it('shows the modal on click with custom "onClick" handler', async function () {
+    const mockOnClick = jest.fn();
+    render(
+      <ComponentProviders>
+        <FeatureFeedback
+          featureName="test"
+          buttonProps={{
+            onClick: mockOnClick,
+          }}
+        />
+      </ComponentProviders>
+    );
+
+    userEvent.click(screen.getByText('Give Feedback'));
+
+    expect(await screen.findByText('Select type of feedback')).toBeInTheDocument();
+
+    expect(mockOnClick).toHaveBeenCalled();
+  });
+
   it('Close modal on click', async function () {
     render(
       <ComponentProviders>

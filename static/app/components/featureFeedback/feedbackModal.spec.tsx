@@ -102,6 +102,28 @@ describe('FeatureFeedback', function () {
       // Close modal
       userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     });
+
+    it('renders an arbitrary secondary action', function () {
+      render(<GlobalModal />);
+
+      openModal(modalProps => (
+        <ComponentProviders>
+          <FeedbackModal
+            {...modalProps}
+            featureName="test"
+            secondaryAction={<a href="#">Test Secondary Action Link</a>}
+          />
+        </ComponentProviders>
+      ));
+
+      userEvent.click(screen.getByText('Select type of feedback'));
+
+      // Available feedback types
+      expect(screen.getByText('Test Secondary Action Link')).toBeInTheDocument();
+
+      // Close modal
+      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    });
   });
 
   describe('custom', function () {
