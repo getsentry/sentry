@@ -238,6 +238,54 @@ def test_parse_query(query_string, expected):
     assert parsed == expected()
 
 
+def test_resolve_tags_with_tuple():
+    org_id = ORG_ID
+    use_case_id = UseCaseKey.PERFORMANCE
+
+    transactions = ["/foo", "/bar"]
+    for transaction in transactions:
+        indexer.record(use_case_id=use_case_id, org_id=org_id, string=transaction)
+
+    resolved_query = resolve_tags(
+        use_case_id,
+        org_id,
+        Condition(
+            lhs=Function(
+                function="tuple",
+                parameters=[
+                    Column(
+                        name="tags[transaction]",
+                    )
+                ],
+            ),
+            op=Op.IN,
+            rhs=Function(
+                function="tuple",
+                parameters=[(transaction,) for transaction in transactions],
+            ),
+        ),
+    )
+
+    assert resolved_query == Condition(
+        lhs=Function(
+            function="tuple",
+            parameters=[
+                Column(
+                    name=resolve_tag_key(use_case_id, org_id, "transaction"),
+                )
+            ],
+        ),
+        op=Op.IN,
+        rhs=Function(
+            function="tuple",
+            parameters=[
+                (resolve_tag_value(use_case_id, org_id, transaction),)
+                for transaction in transactions
+            ],
+        ),
+    )
+
+
 @freeze_time("2018-12-11 03:21:00")
 def test_round_range():
     start, end, interval = get_date_range({"statsPeriod": "2d"})

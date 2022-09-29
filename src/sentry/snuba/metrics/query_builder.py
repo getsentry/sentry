@@ -103,7 +103,7 @@ def resolve_tags(
     if isinstance(input_, (list, tuple)):
         elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
-        # drop unknown strings:
+        # drop unknown strings.
         filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
         # We check whether it is a list or tuple in order to know which type to return. This is needed
         # because in the "tuple" function the parameters must be a list of tuples and not a list of lists.
