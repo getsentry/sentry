@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import Button, {ButtonProps} from 'sentry/components/button';
 import {
@@ -20,14 +22,18 @@ export function FeatureFeedback<T extends Data>({
   buttonProps = {},
   ...props
 }: FeatureFeedbackProps<T>) {
-  function handleClick() {
+  const {onClick, ..._buttonProps} = buttonProps;
+  function handleClick(e: React.MouseEvent) {
     openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
       modalCss,
     });
+    if (onClick) {
+      onClick(e);
+    }
   }
 
   return (
-    <Button icon={<IconMegaphone />} onClick={handleClick} {...buttonProps}>
+    <Button icon={<IconMegaphone />} onClick={handleClick} {..._buttonProps}>
       {t('Give Feedback')}
     </Button>
   );

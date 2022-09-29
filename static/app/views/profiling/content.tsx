@@ -148,6 +148,14 @@ function ProfilingContent({location, router}: ProfilingContentProps) {
                   <FeatureFeedback
                     buttonProps={{
                       priority: 'primary',
+                      onClick: () => {
+                        trackAdvancedAnalyticsEvent(
+                          'profiling_views.give_feedback_action',
+                          {
+                            organization,
+                          }
+                        );
+                      },
                     }}
                     featureName="profiling"
                     secondaryAction={
