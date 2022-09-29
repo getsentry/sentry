@@ -145,7 +145,7 @@ export type ReplayCrumb = Overwrite<RawCrumb, {timestamp: number}>;
  */
 export interface ReplayError {
   ['error.type']: string[];
-  ['error.value']: string[]; // deprecated, use title instead
+  ['error.value']: string[]; // deprecated, use title instead. See organization_replay_events_meta.py
   id: string;
   issue: string;
   ['issue.id']: number;
