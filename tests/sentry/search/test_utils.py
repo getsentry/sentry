@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from unittest import mock
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.models import EventUser, GroupStatus, Release, Team, User
 from sentry.search.base import ANY
@@ -163,58 +163,51 @@ class ParseQueryTest(TestCase):
         assert result == {"tags": {"foo-bar": "foobar"}, "query": ""}
 
     # TODO: update docs to include minutes, days, and weeks suffixes
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_negative_value(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_negative_value(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:-12h")
         assert result == {"tags": {}, "query": "", "age_from": expected, "age_from_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_positive_value(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_positive_value(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(hours=12)
         result = self.parse_query("age:+12h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_weeks(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_weeks(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(days=35)
         result = self.parse_query("age:+5w")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_days(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_days(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(days=10)
         result = self.parse_query("age:+10d")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_hours(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_hours(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(hours=10)
         result = self.parse_query("age:+10h")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_age_tag_minutes(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_age_tag_minutes(self):
+        start = datetime.now(timezone.utc)
         expected = start - timedelta(minutes=30)
         result = self.parse_query("age:+30m")
         assert result == {"tags": {}, "query": "", "age_to": expected, "age_to_inclusive": True}
 
-    @mock.patch("django.utils.timezone.now")
-    def test_two_age_tags(self, now):
-        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
-        now.return_value = start
+    @freeze_time("2016-01-01")
+    def test_two_age_tags(self):
+        start = datetime.now(timezone.utc)
         expected_to = start - timedelta(hours=12)
         expected_from = start - timedelta(hours=24)
         result = self.parse_query("age:+12h age:-24h")
