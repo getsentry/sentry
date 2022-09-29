@@ -1372,7 +1372,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
-            
+
     def suspected_console_errors(self, frames):
         def is_suspicious_frame(frame) -> bool:
             function = frame.get("function", None)
@@ -1406,6 +1406,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             return has_short_stacktrace and is_suspicious_error and has_suspicious_frames(frames)
         return False
+
 
 class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
     """
@@ -1610,7 +1611,7 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
 
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
-            
+
             if features.has("javascript-console-error-tag", self.organization.id, actor=None):
                 suspected_console_errors = None
                 try:
