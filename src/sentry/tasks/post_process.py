@@ -346,28 +346,28 @@ def post_process_group(
 
             # we process snoozes before rules as it might create a regression
             # but not if it's new because you can't immediately snooze a new group
-            if has_reappeared:
+            if not is_reprocessed and has_reappeared:
                 try:
                     has_reappeared = process_snoozes(event.group)
                 except Exception:
                     logger.exception("Failed to process snoozes for group")
 
-            if is_new:
-                process_inbox_adds(event, is_reprocessed, is_new, is_regression, has_reappeared)
+            process_inbox_adds(event, is_reprocessed, is_new, is_regression, has_reappeared)
 
-            try:
-                handle_owner_assignment(event.project, event.group, event)
-            except Exception:
-                logger.exception("Failed to handle owner assignments")
+            if not is_reprocessed:
+                try:
+                    handle_owner_assignment(event.project, event.group, event)
+                except Exception:
+                    logger.exception("Failed to handle owner assignments")
 
-            has_alert = process_rules(
-                event, is_new, is_regression, is_new_group_environment, has_reappeared
-            )
-            process_commits(event)
-            process_service_hooks(event, has_alert)
-            process_resource_change_bounds(event, is_new)
-            process_plugins(event, is_new, is_regression)
-            process_similarity(event)
+                has_alert = process_rules(
+                    event, is_new, is_regression, is_new_group_environment, has_reappeared
+                )
+                process_commits(event)
+                process_service_hooks(event, has_alert)
+                process_resource_change_bounds(event, is_new)
+                process_plugins(event, is_new, is_regression)
+                process_similarity(event)
 
         # Patch attachments that were ingested on the standalone path.
         with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
