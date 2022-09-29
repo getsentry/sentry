@@ -126,6 +126,8 @@ def query_replays_dataset(
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
                 # Discard short replays (5 seconds by arbitrary decision).
                 Condition(Column("duration"), Op.GTE, 5),
+                # Require non-archived replays.
+                Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
             ],
@@ -233,6 +235,11 @@ def make_select_statement() -> List[Union[Column, Function]]:
             "uniqArray",
             parameters=[Column("error_ids")],
             alias="countErrors",
+        ),
+        Function(
+            "notEmpty",
+            parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+            alias="isArchived",
         ),
     ]
 
