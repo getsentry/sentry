@@ -2084,6 +2084,7 @@ def _save_aggregate_performance(jobs: Sequence[Performance_Job], projects):
                         op="event_manager.create_performance_group_transaction"
                     ) as span, metrics.timer(
                         "event_manager.create_performance_group_transaction",
+                        tags={"platform": event.platform or "unknown"},
                         sample_rate=1.0,
                     ) as metric_tags, transaction.atomic():
                         span.set_tag("create_group_transaction.outcome", "no_group")

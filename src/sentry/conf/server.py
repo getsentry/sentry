@@ -1179,6 +1179,10 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-ui": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
+    # Enable the creation of a uniform sampling rule.
+    "organizations:dynamic-sampling-basic": False,
+    # Enable the creation of uniform and conditional sampling rules.
+    "organizations:dynamic-sampling-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
@@ -1882,6 +1886,9 @@ SENTRY_USE_CDC_DEV = False
 
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
+
+# This flag activates code paths that are specific for customer domains
+SENTRY_USE_CUSTOMER_DOMAINS = False
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
