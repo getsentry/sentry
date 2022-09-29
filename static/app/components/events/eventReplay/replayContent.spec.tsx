@@ -205,8 +205,8 @@ describe('ReplayContent', () => {
       />
     );
 
-    const detailButton = screen.getByTestId('replay-details-button');
-    expect(detailButton).toBeInTheDocument();
+    const detailButton = screen.getByTestId('view-replay-button');
+    expect(detailButton).toBeVisible();
 
     // Expect the details button to have the correct href
     expect(detailButton).toHaveAttribute('href', mockButtonHref);
@@ -222,27 +222,7 @@ describe('ReplayContent', () => {
     );
 
     // Expect replay view to be rendered
-    expect(screen.getAllByText('Replay')).toHaveLength(2);
+    expect(screen.getByText('Replays')).toBeVisible();
     expect(screen.getByTestId('player-container')).toBeInTheDocument();
-
-    // Expect Id to be correct
-    expect(screen.getByText('Id')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-id')).toHaveTextContent(
-      mockReplay?.getReplay?.().id ?? ''
-    );
-
-    // Expect Duration value to be correct
-    expect(screen.getByText('URL')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-duration')).toHaveTextContent('1 minute');
-
-    // Expect Timestamp value to be correct
-    expect(screen.getByText('Timestamp')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-timestamp')).toHaveTextContent(mockStartedAt);
-
-    // Expect the URL value to be correct
-    expect(screen.getByText('Duration')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-url')).toHaveTextContent(
-      mockReplay?.getReplay?.().urls[0] ?? ''
-    );
   });
 });
