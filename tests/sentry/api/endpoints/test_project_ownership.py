@@ -45,7 +45,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
     def test_update(self):
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         assert resp.status_code == 200
-        assert resp.data["fallthrough"] is False
+        assert resp.data["fallthrough"] is True
         assert resp.data["autoAssignment"] is False
         assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
         assert resp.data["dateCreated"] is not None
