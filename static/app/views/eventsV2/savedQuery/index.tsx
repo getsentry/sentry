@@ -15,6 +15,7 @@ import Banner from 'sentry/components/banner';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -30,7 +31,12 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
-import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
+import {
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateHomepageQuery,
+  handleUpdateQuery,
+} from './utils';
 
 type SaveAsDropdownProps = {
   disabled: boolean;
@@ -382,6 +388,22 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   }
 
+  renderSaveAsHomepage() {
+    const {api, organization, eventView} = this.props;
+    return (
+      <Button
+        key="save-query-as-homepage"
+        data-test-id="save-query-as-homepage"
+        onClick={() => {
+          handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+        }}
+      >
+        {t('Use as Discover Home')}
+        <FeatureBadge type="alpha" />
+      </Button>
+    );
+  }
+
   render() {
     const {organization} = this.props;
 
@@ -415,6 +437,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
+        <Feature
+          organization={organization}
+          features={['discover-query', 'discover-query-builder-as-landing-page']}
+        >
+          {({hasFeature}) => hasFeature && this.renderSaveAsHomepage()}
+        </Feature>
         {renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features={['incidents']}>
           {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
