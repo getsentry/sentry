@@ -283,10 +283,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         mapped_results: Sequence[Tuple[Iterable[MergeableRow], int, int]] = list(
             map(
                 lambda bulk_result: (
-                    bulk_result["data"] if bulk_result["data"] is not None else [],
-                    bulk_result["totals"]["total"]
-                    if bulk_result["totals"]["total"] is not None
-                    else 0,
+                    bulk_result["data"],
+                    bulk_result["totals"]["total"],
                     len(bulk_result),
                 ),
                 filter(lambda bulk_result: bool(bulk_result), bulk_query_results),

@@ -1374,38 +1374,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             **common_args,
         )
 
-    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_reduce_bulk_results_none_total(self, bulk_raw_query_mock):
-        bulk_raw_query_mock.return_value = [
-            {"data": [], "totals": {"total": None}},
-            {"data": [], "totals": {"total": None}},
-        ]
-
-        assert (
-            self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
-                sort_by="date",
-            ).results
-            == []
-        )
-        assert bulk_raw_query_mock.called
-
-    @mock.patch("sentry.search.snuba.executors.bulk_raw_query")
-    def test_reduce_bulk_results_none_data(self, bulk_raw_query_mock):
-        bulk_raw_query_mock.return_value = [
-            {"data": None, "totals": {"total": 0}},
-            {"data": None, "totals": {"total": 0}},
-        ]
-
-        assert (
-            self.make_query(
-                search_filter_query="last_seen:>%s" % date_to_query_format(timezone.now()),
-                sort_by="date",
-            ).results
-            == []
-        )
-        assert bulk_raw_query_mock.called
-
     def test_pre_and_post_filtering(self):
         prev_max_pre = options.get("snuba.search.max-pre-snuba-candidates")
         options.set("snuba.search.max-pre-snuba-candidates", 1)
