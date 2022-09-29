@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence, TypedDict
+from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
 from urllib.parse import urlparse
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
@@ -84,9 +84,11 @@ class SpanGroupingStrategy:
         return span_group
 
 
-def span_op(op_name: str) -> Callable[[CallableStrategy], CallableStrategy]:
+def span_op(op_name: Union[str, Sequence[str]]) -> Callable[[CallableStrategy], CallableStrategy]:
+    permitted_ops = [op_name] if isinstance(op_name, str) else op_name
+
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
-        return lambda span: fn(span) if span.get("op") == op_name else None
+        return lambda span: fn(span) if span.get("op") in permitted_ops else None
 
     return wrapped
 
