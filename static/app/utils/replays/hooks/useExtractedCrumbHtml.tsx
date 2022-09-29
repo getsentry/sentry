@@ -52,7 +52,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
         let isMounted = true;
 
         const domRoot = document.createElement('div');
-        domRoot.className = 'sr-block';
+        domRoot.className = 'sentry-block';
         const {style} = domRoot;
         style.position = 'fixed';
         style.inset = '0';
@@ -80,7 +80,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
           root: domRoot,
           loadTimeout: 1,
           showWarning: false,
-          blockClass: 'sr-block',
+          blockClass: 'sentry-block',
           speed: 99999,
           skipInactive: true,
           triggerFocus: false,

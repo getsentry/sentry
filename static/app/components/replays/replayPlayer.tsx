@@ -68,7 +68,7 @@ function BasePlayerRoot({className}: Props) {
   }, [windowDimensions, videoDimensions]);
 
   return (
-    <SizingWindow ref={windowEl} className="sr-block">
+    <SizingWindow ref={windowEl} className="sentry-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
