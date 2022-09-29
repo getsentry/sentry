@@ -1,6 +1,5 @@
 from unittest import mock
 
-from sentry.event_manager import _pull_out_data
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
@@ -8,6 +7,7 @@ from sentry.issues.query import apply_performance_conditions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 
 
@@ -61,33 +61,24 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         self.transaction_event = self.store_event(data=event_data, project_id=self.project1.id)
 
-        self.group = self.create_group(project=self.project2)
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [self.group]
-            return jobs, projects
-
-        event_data_2 = load_data("transaction")
+        event_data_2 = load_data(
+            platform="transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group3"],
+        )
         event_data_2["timestamp"] = iso_format(before_now(seconds=30))
         event_data_2["start_timestamp"] = iso_format(before_now(seconds=31))
         event_data_2["event_id"] = "e" * 32
 
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.transaction_event_2 = self.store_event(
-                data=event_data_2, project_id=self.project2.id
-            )
+        self.transaction_event_2 = self.store_event(data=event_data_2, project_id=self.project2.id)
 
-        event_data_3 = load_data("transaction")
+        event_data_3 = load_data(
+            "transaction", fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group3"]
+        )
         event_data_3["timestamp"] = iso_format(before_now(seconds=30))
         event_data_3["start_timestamp"] = iso_format(before_now(seconds=31))
         event_data_3["event_id"] = "f" * 32
 
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.transaction_event_3 = self.store_event(
-                data=event_data_3, project_id=self.project2.id
-            )
+        self.transaction_event_3 = self.store_event(data=event_data_3, project_id=self.project2.id)
 
         """
         event_data_4 = load_data("transaction")
@@ -283,9 +274,10 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert next_event is None
 
     def test_transaction_get_next_prev_event_id(self):
+        group = self.transaction_event_2.groups[0]
         _filter = Filter(
             project_ids=[self.project2.id],
-            conditions=apply_performance_conditions([], self.group),
+            conditions=apply_performance_conditions([], group),
         )
         with self.feature("organizations:performance-issues"):
             event = self.eventstore.get_event_by_id(self.project2.id, "f" * 32)

@@ -13,7 +13,6 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.event_manager import _pull_out_data
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -496,48 +495,29 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     def test_performance_issue_ids_filter(self):
-        project = self.create_project(name="hello")
-        _perf_group = self.create_group(
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-            project=project,
-            short_id=project.next_short_id(),
-        )
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [_perf_group]
-            return jobs, projects
-
         data = load_data(
             platform="transaction",
             timestamp=before_now(minutes=10),
             start_timestamp=before_now(minutes=11),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(data=data, project_id=project.id)
+        event = self.store_event(data=data, project_id=self.project.id)
 
         query = {
             "field": ["count()"],
             "statsPeriod": "2h",
-            "query": f"project:{project.slug} performance.issue_ids:{_perf_group.id}",
+            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
     def test_has_performance_issue_ids(self):
-        perf_group = self.create_group(type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value)
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group]
-            return jobs, projects
-
-        data = load_data("transaction")
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(data=data, project_id=self.project.id)
+        data = load_data(
+            platform="transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        self.store_event(data=data, project_id=self.project.id)
 
         query = {
             "field": ["count()"],
@@ -579,111 +559,39 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
     def test_performance_short_group_id(self):
         project = self.create_project(name="foo bar")
-        perf_group = self.create_group(
-            project=project,
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-            short_id=project.next_short_id(),
+        data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
-        short_id = perf_group.qualified_short_id
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group]
-            return jobs, projects
-
-        data = load_data("transaction")
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(data=data, project_id=project.id)
+        event = self.store_event(data=data, project_id=project.id)
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:{short_id}",
+            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
-
-    @pytest.mark.skip("Need to enable has:issue for performance issues")
-    def test_has_performance_issue(self):
-        project = self.create_project(name="foo bar")
-        perf_group = self.create_group(
-            project=project,
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-        )
-
-        def hack_pull_out_data(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group]
-            return jobs, projects
-
-        data = load_data("transaction")
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data):
-            self.store_event(data=data, project_id=project.id)
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": f"project:{project.slug} has:issue",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 1
-
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "1h",
-            "query": f"project:{project.slug} !has:issue",
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
 
     def test_multiple_performance_short_group_ids_filter(self):
         project = self.create_project(name="foo bar")
-
-        # first performance group
-        perf_group1 = self.create_group(
-            project=project,
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-            short_id=project.next_short_id(),
+        data1 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
         )
-        short_id1 = perf_group1.qualified_short_id
+        event1 = self.store_event(data=data1, project_id=project.id)
 
-        def hack_pull_out_data_for_group_1(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group1]
-            return jobs, projects
-
-        data1 = load_data("transaction")
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data_for_group_1):
-            self.store_event(data=data1, project_id=project.id)
-
-        # second performance group
-        perf_group2 = self.create_group(
-            project=project,
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-            short_id=project.next_short_id(),
+        data2 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"],
         )
-        short_id2 = perf_group2.qualified_short_id
-
-        def hack_pull_out_data_for_group_2(jobs, projects):
-            _pull_out_data(jobs, projects)
-            for job in jobs:
-                job["event"].groups = [perf_group2]
-            return jobs, projects
-
-        data2 = load_data("transaction")
-        with mock.patch("sentry.event_manager._pull_out_data", hack_pull_out_data_for_group_2):
-            self.store_event(data=data2, project_id=project.id)
+        event2 = self.store_event(data=data2, project_id=project.id)
 
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": f"project:{project.slug} issue:[{short_id1},{short_id2}]",
+            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content

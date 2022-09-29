@@ -21,11 +21,6 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
         super().setUp()
         self.project = self.create_project()
         self.group.times_seen_pending = 0
-        self.perf_group = self.create_group(
-            type=GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value,
-            project=self.project,
-            first_seen=before_now(days=7),
-        )
 
     def test_until_not_reached(self):
         snooze = GroupSnooze.objects.create(
@@ -101,15 +96,15 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
     @freeze_time()
     def test_user_rate_reached_perf_issues(self):
         """Test that ignoring a performance issue until it's hit by 10 users in an hour works."""
-        snooze = GroupSnooze.objects.create(group=self.perf_group, user_count=10, user_window=60)
-
         for i in range(0, 10):
-            self.store_transaction(
+            event = self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
-                groups=[self.perf_group],
+                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
             )
+        perf_group = event.groups[0]
+        snooze = GroupSnooze.objects.create(group=perf_group, user_count=10, user_window=60)
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
@@ -144,14 +139,15 @@ class GroupSnoozeTest(TestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
     @freeze_time()
     def test_rate_reached_perf_issue(self):
         """Test when a performance issue is ignored until it happens 10 times in a day"""
-        snooze = GroupSnooze.objects.create(group=self.perf_group, count=10, window=24 * 60)
         for i in range(0, 10):
-            self.store_transaction(
+            event = self.store_transaction(
                 environment=None,
                 project_id=self.project.id,
                 user_id=str(i),
-                groups=[self.perf_group],
+                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
             )
+        perf_group = event.groups[0]
+        snooze = GroupSnooze.objects.create(group=perf_group, count=10, window=24 * 60)
         assert not snooze.is_valid(test_rates=True)
 
     @freeze_time()
