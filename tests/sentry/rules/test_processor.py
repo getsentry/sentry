@@ -13,6 +13,7 @@ from sentry.models import (
     GroupRuleStatus,
     GroupStatus,
     NotificationSetting,
+    ProjectOwnership,
     Release,
     Rule,
     RuleFireHistory,
@@ -51,6 +52,7 @@ class RuleProcessorTest(TestCase):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
@@ -251,6 +253,7 @@ class RuleProcessorTestFilters(TestCase):
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={
@@ -306,6 +309,7 @@ class RuleProcessorTestFilters(TestCase):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={
@@ -334,6 +338,7 @@ class RuleProcessorTestFilters(TestCase):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
@@ -362,6 +367,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={
@@ -408,6 +414,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             environment_id=self.environment.id,
             project=self.event.project,
@@ -545,6 +552,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
                 ],
             },
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
