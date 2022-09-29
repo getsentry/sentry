@@ -27,10 +27,7 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
       disabledReason: t('Not yet supported for performance issues'),
     },
     ignore: {enabled: true},
-    share: {
-      enabled: false,
-      disabledReason: t('Sharing is not yet supported for performance issues'),
-    },
+    share: {enabled: true},
     codeowners: {
       enabled: false,
       disabledReason: t('Codeowners do not apply to performance issues'),
