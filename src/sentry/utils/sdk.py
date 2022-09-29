@@ -119,6 +119,7 @@ if settings.ADDITIONAL_SAMPLED_TASKS:
 
 UNSAFE_TAG = "_unsafe"
 EXPERIMENT_TAG = "_experimental_event"
+HYBRID_CLOUD_TEST_BED_TARGET_TAG = "_hybrid_cloud_test_bed"
 
 
 def is_current_event_safe():
@@ -143,6 +144,16 @@ def is_current_event_safe():
             return False
 
     return True
+
+
+def is_current_event_hc_test_bed_target() -> bool:
+    with configure_scope() as scope:
+        return bool(scope._tags.get(HYBRID_CLOUD_TEST_BED_TARGET_TAG))
+
+
+def mark_scope_as_hc_test_bed_target():
+    with configure_scope() as scope:
+        scope.set_tag(HYBRID_CLOUD_TEST_BED_TARGET_TAG, True)
 
 
 def is_current_event_experimental():
@@ -281,6 +292,7 @@ def configure_sdk():
     internal_project_key = get_project_key()
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     upstream_dsn = sdk_options.pop("dsn", None)
+
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
@@ -303,6 +315,19 @@ def configure_sdk():
         relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
+
+    # Used as part of region silo testing internally.
+    hc_test_bed_target_transport = None
+    hc_test_bed_target_dsn = sdk_options.pop("hc_test_bed_target_dsn", None)
+    if hc_test_bed_target_dsn:
+        hc_test_bed_target_transport = make_transport(
+            get_options(dsn=hc_test_bed_target_dsn, **sdk_options)
+        )
+        if hc_test_bed_target_transport:
+            hc_test_bed_target_transport = patch_transport_for_instrumentation(
+                hc_test_bed_target_transport,
+                "hc_test_bed",
+            )
 
     if experimental_dsn:
         transport = make_transport(get_options(dsn=experimental_dsn, **sdk_options))
@@ -334,6 +359,18 @@ def configure_sdk():
 
             self._capture_anything("capture_event", event)
 
+        def _find_upstream_transport(self):
+            if not hc_test_bed_target_transport:
+                return upstream_transport
+
+            if not is_current_event_hc_test_bed_target():
+                return upstream_transport
+
+            if options.get("store.use-hc-test-bed-dsn-sample-rate") != 1:
+                return upstream_transport
+
+            return hc_test_bed_target_transport
+
         def _capture_anything(self, method_name, *args, **kwargs):
             # Experimental events will be sent to the experimental transport.
             if experimental_transport:
@@ -344,16 +381,19 @@ def configure_sdk():
                     # Experimental events should not be sent to other transports even if they are not sampled.
                     return
 
+            if hc_test_bed_target_transport and is_current_event_hc_test_bed_target():
+                pass
+
             # Upstream should get the event first because it is most isolated from
             # the this sentry installation.
-            if upstream_transport:
+            if up := self._find_upstream_transport():
                 metrics.incr("internal.captured.events.upstream")
                 # TODO(mattrobenolt): Bring this back safely.
                 # from sentry import options
                 # install_id = options.get('sentry:install-id')
                 # if install_id:
                 #     event.setdefault('tags', {})['install-id'] = install_id
-                getattr(upstream_transport, method_name)(*args, **kwargs)
+                getattr(up, method_name)(*args, **kwargs)
 
             if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is a envelope ensure envelope and it's items are distinct references

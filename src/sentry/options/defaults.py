@@ -538,3 +538,7 @@ register("performance.issues.n_plus_one_db.duration_threshold", default=100.0)
 # region to control silo multi region mode controls
 # It is safe to switch this off or on freely, it is purely for testing features ahead of hybrid cloud rollout.
 register("hc.region-to-control.monolith-publish", default=False)
+
+# Killswitch for sending tagged internal errors to the hybrid cloud test bed dsn
+# Note: A value that is neither 0 nor 1 is regarded as 0
+register("store.use-hc-test-bed-dsn-sample-rate", default=0)

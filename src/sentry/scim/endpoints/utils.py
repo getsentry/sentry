@@ -10,6 +10,7 @@ from typing_extensions import TypedDict
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import AuthProvider
 
+from ...utils.sdk import mark_scope_as_hc_test_bed_target
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_LIST
 
 SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
@@ -136,6 +137,13 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 class SCIMEndpoint(OrganizationEndpoint):
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
+
+    def dispatch(self, request: Request, *args, **kwargs):
+        # All SCIM endpoints belong to the enterprise team, mark them as valid for hybrid cloud test bed dsn
+        # When store.use-hc-test-bed-dsn-sample-rate is set to 1, this will result in the exceptions sent from this
+        # scope to that silo deployment instead of the traditional dsn endpoint.
+        mark_scope_as_hc_test_bed_target()
+        return super().dispatch(request, *args, **kwargs)
 
     def add_cursor_headers(self, request: Request, response, cursor_result):
         pass
