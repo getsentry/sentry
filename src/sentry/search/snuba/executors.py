@@ -277,7 +277,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             )
         )
 
-        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer=referrer)
+        bulk_query_results = bulk_raw_query(query_params_for_categories, referrer="search")
 
         # [([row1a, row2a,], totala, row_lengtha), ([row1b, row2b,], totalb, row_lengthb), ...]
         mapped_results: Sequence[Tuple[Iterable[MergeableRow], int, int]] = list(
