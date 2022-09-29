@@ -1,6 +1,8 @@
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {
   breadcrumbFactory,
+  isMemorySpan,
+  isNetworkSpan,
   replayTimestamps,
   rrwebEventListFactory,
   spansFactory,
@@ -34,14 +36,6 @@ export interface ReplayReaderParams {
 
 type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
-};
-
-const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
-  return span.op === 'memory';
-};
-
-const isNetworkSpan = (span: ReplaySpan) => {
-  return !isMemorySpan(span) && !span.op.includes('paint');
 };
 
 export default class ReplayReader {
