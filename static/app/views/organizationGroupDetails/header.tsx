@@ -187,7 +187,7 @@ function GroupHeader({
           {t('Tags')}
         </Item>
         <Item key={Tab.EVENTS} disabled={disabledTabs.includes(Tab.EVENTS)}>
-          {t('Events')}
+          {t('All Events')}
         </Item>
         <Item key={Tab.MERGED} disabled={disabledTabs.includes(Tab.MERGED)}>
           {t('Merged Issues')}
