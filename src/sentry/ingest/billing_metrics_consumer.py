@@ -28,6 +28,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 def get_metrics_billing_consumer(
     topic: str,
     group_id: str,
+    auto_offset_reset: str,
     force_topic: Union[str, None],
     force_cluster: Union[str, None],
     **options: Any,
@@ -39,7 +40,7 @@ def get_metrics_billing_consumer(
             build_kafka_consumer_configuration(
                 default_config={},
                 group_id=group_id,
-                auto_offset_reset=None,
+                auto_offset_reset=auto_offset_reset,
                 bootstrap_servers=bootstrap_servers,
             ),
         ),
@@ -98,7 +99,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__closed = False
 
     def poll(self) -> None:
-        pass
+        self._bulk_commit()
 
     def terminate(self) -> None:
         self.close()
@@ -107,7 +108,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__closed = True
 
     def submit(self, message: Message[KafkaPayload]) -> None:
-        print("Received message")
         assert not self.__closed
 
         payload = self._get_payload(message)
@@ -115,7 +115,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self._mark_commit_ready(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> MetricsBucket:
-        # TODO: Should we even deserialize on submit?
         payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
         return cast(MetricsBucket, payload)
 
@@ -125,9 +124,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return len(bucket_payload["value"])
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
-        print("Produce billing outcome for ", payload)
         quantity = self._count_processed_transactions(payload)
-        print(f"quantity = {quantity}")
         if quantity < 1:
             return
 
@@ -147,11 +144,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__ready_to_commit[message.partition] = Position(message.next_offset, message.timestamp)
 
     def join(self, timeout: Optional[float] = None) -> None:
-        print("JOIN")
         self._bulk_commit()
 
     def _bulk_commit(self) -> None:
-        print("self.commit: ", self.__commit)
-        print("ready to commit: ", self.__ready_to_commit)
         self.__commit(self.__ready_to_commit)
         self.__ready_to_commit = {}
