@@ -174,7 +174,7 @@ describe('groupEvents', function () {
       group.issueCategory = 'performance';
       render(
         <GroupEvents
-          organization={org}
+          organization={org.organization}
           api={new MockApiClient()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
           group={group}
@@ -199,7 +199,7 @@ describe('groupEvents', function () {
       const group = TestStubs.Group();
       render(
         <GroupEvents
-          organization={org}
+          organization={org.organization}
           api={new MockApiClient()}
           params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
           group={group}
@@ -222,7 +222,7 @@ describe('groupEvents', function () {
     const group = TestStubs.Group();
     render(
       <GroupEvents
-        organization={org}
+        organization={org.organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={group}
