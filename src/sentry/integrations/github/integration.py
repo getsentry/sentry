@@ -182,7 +182,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                     if blame.get("startingLine", 0) <= lineno <= blame.get("endingLine", 0)
                 ),
                 key=lambda blame: datetime.strptime(
-                    blame.get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
+                    blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
             )[-1]
         except IndexError:
