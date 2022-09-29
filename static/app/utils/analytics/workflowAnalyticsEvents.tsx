@@ -53,32 +53,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
-  'issue_details.viewed': IssueDetailsWithAlert & {
-    error_count: number;
-    event_errors: string;
-    event_id: string;
-    has_commit: boolean;
-    has_owner: boolean;
-    has_release: boolean;
-    has_source_maps: boolean;
-    has_trace: boolean;
-    is_assigned: boolean;
-    issue_age: number;
-    num_comments: number;
-    num_commits: number;
-    num_in_app_stack_frames: number;
-    num_stack_frames: number;
-    num_threads_with_names: number;
-    event_platform?: string;
-    event_type?: string;
-    has_external_issue?: boolean;
-    integration_assignment_source?: string;
-    issue_level?: string;
-    issue_status?: string;
-    project_platform?: string;
-    sdk_name?: string;
-    sdk_version?: string;
-  };
+  'issue_details.viewed': IssueDetailsWithAlert;
   'new_alert_rule.viewed': RuleViewed & {
     duplicate_rule: string;
     session_id: string;
