@@ -395,7 +395,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 )
             ],
             granularity=Granularity(granularity=60),
-            limit=Limit(limit=3),
+            limit=Limit(limit=1),
             offset=Offset(offset=0),
             include_series=False,
         )
