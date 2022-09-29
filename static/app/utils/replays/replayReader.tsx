@@ -14,7 +14,7 @@ import type {
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
-export interface ReplayReaderParams {
+interface ReplayReaderParams {
   breadcrumbs: ReplayCrumb[] | undefined;
   errors: ReplayError[] | undefined;
 
