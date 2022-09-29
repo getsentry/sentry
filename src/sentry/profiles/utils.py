@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
+import brotli
 import urllib3
 from django.conf import settings
 from django.http import StreamingHttpResponse
@@ -73,8 +74,13 @@ def get_from_profiling_service(
     if headers:
         kwargs["headers"].update(headers)
     if json_data:
-        kwargs["headers"]["Content-Type"] = "application/json"
-        kwargs["body"] = json.dumps(json_data)
+        kwargs["headers"].update(
+            {
+                "Content-Encoding": "br",
+                "Content-Type": "application/json",
+            }
+        )
+        kwargs["body"] = brotli.compress(json.dumps(json_data).encode("ascii"))
     return _profiling_pool.urlopen(  # type: ignore
         method,
         path,
