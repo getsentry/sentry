@@ -49,8 +49,7 @@ const LinkSection = styled('div')`
   grid-row-gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: flex;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   margin-top: ${space(2)};

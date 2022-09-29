@@ -53,7 +53,7 @@ export function getResourceLinks(
   issueType: IssueType,
   platform: PlatformType | undefined
 ): ResourceLink[] {
-  if (!platform || !(platform in RESOURCE_LINKS[issueType])) {
+  if (!platform || !RESOURCE_LINKS[issueType][platform]) {
     return [];
   }
 
