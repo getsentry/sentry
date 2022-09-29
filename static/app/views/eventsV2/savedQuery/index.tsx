@@ -19,7 +19,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {IconDelete, IconHome, IconStar} from 'sentry/icons';
+import {IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQuery} from 'sentry/types';
@@ -394,7 +394,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       <Button
         key="save-query-as-homepage"
         data-test-id="save-query-as-homepage"
-        icon={<IconHome />}
         onClick={() => {
           handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
         }}

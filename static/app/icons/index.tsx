@@ -42,7 +42,6 @@ export {IconGrabbable} from './iconGrabbable';
 export {IconGraph} from './iconGraph';
 export {IconGroup} from './iconGroup';
 export {IconHappy} from './iconHappy';
-export {IconHome} from './iconHome';
 export {IconInfo} from './iconInfo';
 export {IconInput} from './iconInput';
 export {IconIssues} from './iconIssues';
