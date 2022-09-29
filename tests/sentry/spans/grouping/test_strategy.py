@@ -74,7 +74,7 @@ def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) 
             .build(),
             ["SELECT count() FROM table WHERE id IN (%s)"],
         ),
-        # op has db prefix
+        # op is a db query
         (
             SpanBuilder()
             .with_op("db.sql.query")
