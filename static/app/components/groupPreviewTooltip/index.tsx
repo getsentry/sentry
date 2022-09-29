@@ -3,7 +3,7 @@ import {Fragment, ReactChild} from 'react';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types';
 
-import {StackTracePreview} from './stacktracePreview';
+import {StackTracePreview} from './stackTracePreview';
 
 type GroupPreviewTooltipProps = {
   children: ReactChild;

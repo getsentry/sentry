@@ -1,12 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {StackTracePreview} from 'sentry/components/groupPreviewTooltip/stackTracePreview';
 import {EventError, Organization} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+
+import {StackTracePreview} from './stackTracePreview';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
   const evt: Event = {
@@ -17,7 +18,7 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
-function TestComponent({org, children}: {children: React.ReactNode; org: Organization}) {
+function TestComponent({org, children}: {children: React.ReactNode; org?: Organization}) {
   const {organization, router} = initializeOrg();
 
   return (
