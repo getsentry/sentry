@@ -520,8 +520,7 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
         # Process all stacktraces
         for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
             # Let the stacktrace processors touch the exception
-            is_exception = stacktrace_info.is_exception and stacktrace_info.container
-            if is_exception:
+            if stacktrace_info.is_exception and stacktrace_info.container:
                 for processor in processing_task.iter_processors():
                     with sentry_sdk.start_span(
                         op="stacktraces.processing.process_stacktraces.process_exception"
@@ -544,7 +543,6 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
                     stacktrace_info.stacktrace["frames"] = new_frames
                     changed = True
                     span.set_data("data_changed", True)
-
             if (
                 set_raw_stacktrace
                 and new_raw_frames is not None
