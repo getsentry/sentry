@@ -88,7 +88,7 @@ def parse_field(field: str) -> MetricField:
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple")
 
 
 def resolve_tags(
@@ -103,8 +103,11 @@ def resolve_tags(
     if isinstance(input_, (list, tuple)):
         elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
-        # drop unknown strings:
-        return [x for x in elements if x != STRING_NOT_FOUND]
+        # drop unknown strings.
+        filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
+        # We check whether it is a list or tuple in order to know which type to return. This is needed
+        # because in the "tuple" function the parameters must be a list of tuples and not a list of lists.
+        return filtered_elements if isinstance(input_, list) else tuple(filtered_elements)
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
