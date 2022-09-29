@@ -18,6 +18,8 @@ import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
 import {
   AvatarProject,
+  EntryException,
+  EntryThreads,
   Group,
   GroupActivityAssigned,
   GroupActivityType,
@@ -90,6 +92,55 @@ function getAssignmentIntegration(group: Group) {
     activity => !!activity.data.integration
   );
   return integrationAssignments?.data.integration || '';
+}
+
+function getExceptionEntries(event: Event) {
+  return event.entries?.filter(entry => entry.type === 'exception') as EntryException[];
+}
+
+function getNumberOfStackFrames(event: Event) {
+  const entries = getExceptionEntries(event);
+  // for each entry, go through each frame and get the max
+  const frameLengths =
+    entries?.map(entry =>
+      (entry.data.values || []).reduce((best, exception) => {
+        // find the max number of frames in this entry
+        const frameCount = exception.stacktrace?.frames?.length || 0;
+        return Math.max(best, frameCount);
+      }, 0)
+    ) || [];
+  if (!frameLengths.length) {
+    return 0;
+  }
+  return Math.max(...frameLengths);
+}
+
+function getNumberOfInAppStackFrames(event: Event) {
+  const entries = getExceptionEntries(event);
+  // for each entry, go through each frame
+  const frameLengths =
+    entries?.map(entry =>
+      (entry.data.values || []).reduce((best, exception) => {
+        // find the max number of frames in this entry
+        const frames = exception.stacktrace?.frames?.filter(f => f.inApp) || [];
+        return Math.max(best, frames.length);
+      }, 0)
+    ) || [];
+  if (!frameLengths.length) {
+    return 0;
+  }
+  return Math.max(...frameLengths);
+}
+
+function getNumberOfThreadsWithNames(event: Event) {
+  const threadLengths =
+    (
+      (event.entries?.filter(entry => entry.type === 'threads') || []) as EntryThreads[]
+    ).map(entry => entry.data?.values?.filter(thread => !!thread.name).length || 0) || [];
+  if (!threadLengths.length) {
+    return 0;
+  }
+  return Math.max(...threadLengths);
 }
 
 type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
@@ -210,8 +261,11 @@ class GroupDetails extends Component<Props, State> {
       has_owner: group?.owners ? group?.owners.length > 0 : false,
       integration_assignment_source: group ? getAssignmentIntegration(group) : '',
       // event properties
-      event_id: event?.eventID,
+      event_id: event?.eventID || '-1',
       num_commits: event?.release?.commitCount || 0,
+      num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
+      num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
+      num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,
       event_platform: event?.platform,
       event_type: event?.type,
       has_release: !!event?.release,
