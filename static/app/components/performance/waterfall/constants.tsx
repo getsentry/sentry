@@ -11,5 +11,5 @@ export const SPAN_HATCH_TYPE_COLOURS: Record<
   {alternate: string; primary: string}
 > = {
   [SpanBarHatch.gap]: {primary: '#dedae3', alternate: '#f4f2f7'},
-  [SpanBarHatch.affected]: {primary: '#dedae3', alternate: '#f4f2f7'},
+  [SpanBarHatch.affected]: {primary: '#f92c2c', alternate: '#fc9797'},
 };
