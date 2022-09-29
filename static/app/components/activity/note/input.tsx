@@ -21,9 +21,18 @@ import mentionStyle from './mentionStyle';
 import {CreateError, MentionChangeEvent, Mentioned} from './types';
 
 type Props = {
+  /**
+   * Is the note saving?
+   */
   busy?: boolean;
+  /**
+   * Display an error message
+   */
   error?: boolean;
   errorJSON?: CreateError | null;
+  /**
+   * Minimum height of the edit area
+   */
   minHeight?: number;
   /**
    * This is the id of the server's note object and is meant to indicate that
