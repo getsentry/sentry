@@ -16,13 +16,13 @@ from sentry.api.serializers.snuba import calculate_time_frame
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
-from sentry.utils import json
-from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
-from sentry.utils.profiling import (
+from sentry.profiles.utils import (
     get_from_profiling_service,
     parse_profile_filters,
     proxy_profiling_service,
 )
+from sentry.utils import json
+from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
@@ -56,7 +56,9 @@ class OrganizationProfilingPaginatedBaseEndpoint(OrganizationProfilingBaseEndpoi
     profiling_feature = "organizations:profiling"
 
     @abstractmethod
-    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
+    def get_data_fn(
+        self, request: Request, organization: Organization, kwargs: Dict[str, Any]
+    ) -> Any:
         raise NotImplementedError
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -74,7 +76,9 @@ class OrganizationProfilingPaginatedBaseEndpoint(OrganizationProfilingBaseEndpoi
 
         return self.paginate(
             request,
-            paginator=GenericOffsetPaginator(data_fn=self.get_data_fn(organization, kwargs)),
+            paginator=GenericOffsetPaginator(
+                data_fn=self.get_data_fn(request, organization, kwargs)
+            ),
             default_per_page=50,
             max_per_page=500,
         )
@@ -82,8 +86,15 @@ class OrganizationProfilingPaginatedBaseEndpoint(OrganizationProfilingBaseEndpoi
 
 @region_silo_endpoint
 class OrganizationProfilingTransactionsEndpoint(OrganizationProfilingPaginatedBaseEndpoint):
-    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
+    def get_data_fn(
+        self, request: Request, organization: Organization, kwargs: Dict[str, Any]
+    ) -> Any:
         def data_fn(offset: int, limit: int) -> Any:
+            sort = request.query_params.get("sort", None)
+            if sort is None:
+                raise ParseError(detail="Invalid query: Missing value for sort")
+            kwargs["params"]["sort"] = sort
+
             kwargs["params"]["offset"] = offset
             kwargs["params"]["limit"] = limit
 
@@ -101,7 +112,9 @@ class OrganizationProfilingTransactionsEndpoint(OrganizationProfilingPaginatedBa
 
 @region_silo_endpoint
 class OrganizationProfilingProfilesEndpoint(OrganizationProfilingPaginatedBaseEndpoint):
-    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
+    def get_data_fn(
+        self, request: Request, organization: Organization, kwargs: Dict[str, Any]
+    ) -> Any:
         def data_fn(offset: int, limit: int) -> Any:
             kwargs["params"]["offset"] = offset
             kwargs["params"]["limit"] = limit

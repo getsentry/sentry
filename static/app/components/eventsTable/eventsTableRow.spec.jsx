@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {EventsTableRow} from 'sentry/components/eventsTable/eventsTableRow';
+import EventsTableRow from 'sentry/components/eventsTable/eventsTableRow';
 
 describe('EventsTableRow', function () {
   it('renders', function () {

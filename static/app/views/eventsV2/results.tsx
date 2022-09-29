@@ -3,6 +3,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
+import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -50,7 +51,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {addRoutePerformanceContext} from '../performance/utils';
 
 import {DEFAULT_EVENT_VIEW} from './data';
-import ResultsChart from './resultsChart';
+import {MetricsBaselineContainer} from './metricsBaselineContainer';
 import ResultsHeader from './resultsHeader';
 import Table from './table';
 import Tags from './tags';
@@ -63,6 +64,8 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
+  homepageQuery?: SavedQuery;
   savedQuery?: SavedQuery;
 };
 
@@ -284,17 +287,15 @@ class Results extends Component<Props, State> {
 
   checkEventView() {
     const {eventView} = this.state;
-    const {loading} = this.props;
+    const {loading, homepageQuery} = this.props;
     if (eventView.isValid() || loading) {
       return;
     }
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection} = this.props;
-    const nextEventView = EventView.fromNewQueryWithLocation(
-      DEFAULT_EVENT_VIEW,
-      location
-    );
+    const query = homepageQuery ? omit(homepageQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
     }
@@ -391,7 +392,7 @@ class Results extends Component<Props, State> {
     }
   };
 
-  handleIntervalChange = (value: string) => {
+  handleIntervalChange = (value: string | undefined) => {
     const {router, location} = this.props;
 
     const newQuery = {
@@ -399,14 +400,16 @@ class Results extends Component<Props, State> {
       interval: value,
     };
 
-    router.push({
-      pathname: location.pathname,
-      query: newQuery,
-    });
+    if (location.query.interval !== value) {
+      router.push({
+        pathname: location.pathname,
+        query: newQuery,
+      });
 
-    // Treat display changing like the user already confirmed the query
-    if (!this.state.needConfirmation) {
-      this.handleConfirmed();
+      // Treat display changing like the user already confirmed the query
+      if (!this.state.needConfirmation) {
+        this.handleConfirmed();
+      }
     }
   };
 
@@ -511,7 +514,7 @@ class Results extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, router, selection} = this.props;
+    const {organization, location, router, selection, api, setSavedQuery} = this.props;
     const {
       eventView,
       error,
@@ -533,6 +536,7 @@ class Results extends Component<Props, State> {
         <StyledPageContent>
           <NoProjectMessage organization={organization}>
             <ResultsHeader
+              setSavedQuery={setSavedQuery}
               errorCode={errorCode}
               organization={organization}
               location={location}
@@ -571,7 +575,8 @@ class Results extends Component<Props, State> {
                     organization={organization}
                     location={location}
                   >
-                    <ResultsChart
+                    <MetricsBaselineContainer
+                      api={api}
                       router={router}
                       organization={organization}
                       eventView={eventView}
@@ -653,7 +658,7 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {location} = this.props;
     if (
       !defined(location.query?.id) &&
@@ -661,29 +666,52 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     ) {
       this.setState({savedQuery: undefined});
     }
+    super.componentDidUpdate(prevProps, prevState);
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
+
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (location.query.id) {
-      return [
-        [
-          'savedQuery',
-          `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-        ],
-      ];
+      endpoints.push([
+        'savedQuery',
+        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+      ]);
+      return endpoints;
     }
-    return [];
+
+    if (
+      organization.features.includes('discover-query-builder-as-landing-page') &&
+      organization.features.includes('discover-query') &&
+      isEmpty(location.query)
+    ) {
+      endpoints.push([
+        'homepageQuery',
+        `/organizations/${organization.slug}/discover/homepage/`,
+      ]);
+    }
+    return endpoints;
   }
+
+  setSavedQuery = (newSavedQuery: SavedQuery) => {
+    this.setState({savedQuery: newSavedQuery});
+  };
 
   renderLoading() {
     return this.renderBody();
   }
 
   renderBody(): React.ReactNode {
-    const {savedQuery, loading} = this.state;
+    const {homepageQuery, savedQuery, loading} = this.state;
     return (
-      <Results {...this.props} savedQuery={savedQuery ?? undefined} loading={loading} />
+      <Results
+        {...this.props}
+        savedQuery={savedQuery ?? undefined}
+        loading={loading}
+        setSavedQuery={this.setSavedQuery}
+        homepageQuery={homepageQuery}
+      />
     );
   }
 }

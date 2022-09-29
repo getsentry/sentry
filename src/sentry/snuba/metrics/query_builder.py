@@ -81,14 +81,14 @@ def parse_field(field: str) -> MetricField:
     except (IndexError, TypeError):
         operation = None
         metric_name = field
-    return MetricField(operation, metric_name)
+    return MetricField(operation, get_mri(metric_name))
 
 
 # Allow these snuba functions.
 # These are only allowed because the parser in metrics_sessions_v2
 # generates them. Long term we should not allow any functions, but rather
 # a limited expression language with only AND, OR, IN and NOT IN
-FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in", "tuple")
 
 
 def resolve_tags(
@@ -103,8 +103,11 @@ def resolve_tags(
     if isinstance(input_, (list, tuple)):
         elements = [resolve_tags(use_case_id, org_id, item, is_tag_value=True) for item in input_]
         # Lists are either arguments to IN or NOT IN. In both cases, we can
-        # drop unknown strings:
-        return [x for x in elements if x != STRING_NOT_FOUND]
+        # drop unknown strings.
+        filtered_elements = [x for x in elements if x != STRING_NOT_FOUND]
+        # We check whether it is a list or tuple in order to know which type to return. This is needed
+        # because in the "tuple" function the parameters must be a list of tuples and not a list of lists.
+        return filtered_elements if isinstance(input_, list) else tuple(filtered_elements)
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
@@ -469,8 +472,7 @@ class SnubaQueryBuilder:
         orderby_fields = []
         for orderby in self._metrics_query.orderby:
             op = orderby.field.op
-            metric_mri = get_mri(orderby.field.metric_name)
-            metric_field_obj = metric_object_factory(op, metric_mri)
+            metric_field_obj = metric_object_factory(op, orderby.field.metric_mri)
             orderby_fields.extend(
                 metric_field_obj.generate_orderby_clause(
                     projects=self._projects,
@@ -539,8 +541,7 @@ class SnubaQueryBuilder:
         fields_in_entities = {}
 
         for field in self._metrics_query.select:
-            metric_mri = get_mri(field.metric_name)
-            metric_field_obj = metric_object_factory(field.op, metric_mri)
+            metric_field_obj = metric_object_factory(field.op, field.metric_mri)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
             # and validate especially in the case of SingularEntityDerivedMetric that it is
             # actually composed of metrics that belong to the same entity
@@ -581,8 +582,10 @@ class SnubaQueryBuilder:
             if entity not in self._implemented_datasets:
                 raise NotImplementedError(f"Dataset not yet implemented: {entity}")
 
-            metric_mri_to_obj_dict[(field.op, metric_mri, field.alias)] = metric_field_obj
-            fields_in_entities.setdefault(entity, []).append((field.op, metric_mri, field.alias))
+            metric_mri_to_obj_dict[(field.op, field.metric_mri, field.alias)] = metric_field_obj
+            fields_in_entities.setdefault(entity, []).append(
+                (field.op, field.metric_mri, field.alias)
+            )
 
         where = self._build_where()
         groupby = self._build_groupby()
@@ -663,7 +666,7 @@ class SnubaResultConverter:
 
         # This is a set of all the `(op, metric_mri, alias)` combinations passed in the metrics_query
         self._metrics_query_fields_set = {
-            (field.op, get_mri(field.metric_name), field.alias) for field in metrics_query.select
+            (field.op, field.metric_mri, field.alias) for field in metrics_query.select
         }
         # This is a set of all queryable `(op, metric_mri)` combinations. Queryable can mean it
         # includes one of the following: AggregatedRawMetric (op, metric_mri), instance of

@@ -78,15 +78,13 @@ class AvatarChooser extends Component<Props, State> {
     hasError: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    // Update local state if defined in props
-    if (typeof nextProps.model !== 'undefined') {
-      this.setState({model: nextProps.model});
-    }
-  }
+  componentDidUpdate(prevProps: Props) {
+    const {model} = this.props;
 
-  updateState(model: Model) {
-    this.setState({model});
+    // Update local state if defined in props
+    if (model !== undefined && model !== prevProps.model) {
+      this.setState({model});
+    }
   }
 
   getModelFromResponse(resp: any): Model {
@@ -151,10 +149,12 @@ class AvatarChooser extends Component<Props, State> {
   };
 
   handleChange = (id: AvatarType) =>
-    this.updateState({
-      ...this.state.model,
-      avatar: {avatarUuid: this.state.model.avatar?.avatarUuid ?? '', avatarType: id},
-    });
+    this.setState(state => ({
+      model: {
+        ...state.model,
+        avatar: {avatarUuid: state.model.avatar?.avatarUuid ?? '', avatarType: id},
+      },
+    }));
 
   render() {
     const {
@@ -169,7 +169,7 @@ class AvatarChooser extends Component<Props, State> {
       help,
       defaultChoice,
     } = this.props;
-    const {hasError, model} = this.state;
+    const {hasError, model, dataUrl} = this.state;
 
     if (hasError) {
       return <LoadingError />;
@@ -249,7 +249,7 @@ class AvatarChooser extends Component<Props, State> {
                   type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
-                  disabled={disabled}
+                  disabled={disabled || (avatarType === 'upload' && !dataUrl)}
                 >
                   {t('Save Avatar')}
                 </Button>

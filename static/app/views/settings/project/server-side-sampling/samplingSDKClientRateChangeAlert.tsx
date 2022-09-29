@@ -59,7 +59,7 @@ export function SamplingSDKClientRateChangeAlert({
       }
     >
       {t(
-        'To allow more metrics to be processed, we suggest changing your client(SDK) sample rate.'
+        'To allow more transactions to be processed, we suggest changing your client(SDK) sample rate.'
       )}
     </Alert>
   );

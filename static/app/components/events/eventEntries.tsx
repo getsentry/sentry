@@ -407,15 +407,15 @@ const EventEntries = ({
       {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
         <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
       )}
-      {!isShare &&
-        event.groupID &&
-        group?.issueCategory !== IssueCategory.PERFORMANCE && (
-          <EventGroupingInfo
-            projectId={projectSlug}
-            event={event}
-            showGroupingConfig={orgFeatures.includes('set-grouping-config')}
-          />
-        )}
+      {!isShare && event.groupID && (
+        <EventGroupingInfo
+          projectId={projectSlug}
+          event={event}
+          showGroupingConfig={
+            orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
+          }
+        />
+      )}
       {!isShare && (
         <MiniReplayView
           event={event}
@@ -429,6 +429,42 @@ const EventEntries = ({
   );
 };
 
+function injectResourcesEntry(definedEvent: Event) {
+  const entries = definedEvent.entries;
+  let adjustedEntries: Entry[] = [];
+
+  // This check is to ensure we are not injecting multiple Resources entries
+  const resourcesIndex = entries.findIndex(entry => entry.type === EntryType.RESOURCES);
+  if (resourcesIndex === -1) {
+    const spansIndex = entries.findIndex(entry => entry.type === EntryType.SPANS);
+    const breadcrumbsIndex = entries.findIndex(
+      entry => entry.type === EntryType.BREADCRUMBS
+    );
+
+    // We want the Resources section to appear after Breadcrumbs.
+    // If Breadcrumbs are included on this event, we will inject this entry right after it.
+    // Otherwise, we inject it after the Spans entry.
+    const resourcesEntry: Entry = {type: EntryType.RESOURCES, data: null};
+    if (breadcrumbsIndex > -1) {
+      adjustedEntries = [
+        ...entries.slice(0, breadcrumbsIndex + 1),
+        resourcesEntry,
+        ...entries.slice(breadcrumbsIndex + 1, entries.length),
+      ];
+    } else if (spansIndex > -1) {
+      adjustedEntries = [
+        ...entries.slice(0, spansIndex + 1),
+        resourcesEntry,
+        ...entries.slice(spansIndex + 1, entries.length),
+      ];
+    }
+  }
+
+  if (adjustedEntries.length > 0) {
+    definedEvent.entries = adjustedEntries;
+  }
+}
+
 function Entries({
   definedEvent,
   projectSlug,
@@ -440,15 +476,20 @@ function Entries({
   definedEvent: Event;
   projectSlug: string;
 } & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
-  const entries = definedEvent.entries;
-
-  if (!Array.isArray(entries)) {
+  if (!Array.isArray(definedEvent.entries)) {
     return null;
+  }
+
+  if (
+    group?.issueCategory === IssueCategory.PERFORMANCE &&
+    organization.features?.includes('performance-issues')
+  ) {
+    injectResourcesEntry(definedEvent);
   }
 
   return (
     <Fragment>
-      {(entries as Array<Entry>).map((entry, entryIdx) => (
+      {(definedEvent.entries as Array<Entry>).map((entry, entryIdx) => (
         <ErrorBoundary
           key={`entry-${entryIdx}`}
           customComponent={
@@ -492,7 +533,12 @@ function MiniReplayView({
 
   if (replayId && hasSessionReplayFeature) {
     return (
-      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
+      <EventReplay
+        replayId={replayId}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        event={event}
+      />
     );
   }
   if (hasEventAttachmentsFeature) {
@@ -525,28 +571,15 @@ const LatestEventNotAvailable = styled('div')`
   padding: ${space(2)} ${space(4)};
 `;
 
-const ErrorContainer = styled('div')`
-  /*
-  Remove border on adjacent context summary box.
-  Once that component uses emotion this will be harder.
-  */
-  & + .context-summary {
-    border-top: none;
-  }
-`;
-
 const BorderlessEventEntries = styled(EventEntries)`
-  & ${/* sc-selector */ DataSection} {
+  & ${DataSection} {
     margin-left: 0 !important;
     margin-right: 0 !important;
     padding: ${space(3)} 0 0 0;
   }
-  & ${/* sc-selector */ DataSection}:first-child {
+  & ${DataSection}:first-child {
     padding-top: 0;
     border-top: 0;
-  }
-  & ${/* sc-selector */ ErrorContainer} {
-    margin-bottom: ${space(2)};
   }
 `;
 

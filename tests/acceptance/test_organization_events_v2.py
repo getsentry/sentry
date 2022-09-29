@@ -72,7 +72,7 @@ def transactions_sorted_query(**kwargs):
 
 
 def generate_transaction(trace=None, span=None):
-    end_datetime = before_now(minutes=1)
+    end_datetime = before_now(minutes=10)
     start_datetime = end_datetime - timedelta(milliseconds=500)
     event_data = load_data(
         "transaction",
@@ -186,13 +186,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_all_events_query(self, mock_now):
         now = before_now().replace(tzinfo=pytz.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
-        two_min_ago = iso_format(now - timedelta(minutes=2))
+        five_mins_ago = iso_format(now - timedelta(minutes=5))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": min_ago,
+                "timestamp": five_mins_ago,
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -202,7 +202,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "this is bad.",
-                "timestamp": two_min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-2"],
                 "user": {
                     "id": "123",
@@ -247,12 +247,12 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_errors_query(self, mock_now):
         now = before_now().replace(tzinfo=pytz.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-1"],
                 "type": "error",
             },
@@ -263,7 +263,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh no",
-                "timestamp": min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-1"],
                 "type": "error",
             },
@@ -274,7 +274,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "c" * 32,
                 "message": "this is bad.",
-                "timestamp": min_ago,
+                "timestamp": ten_mins_ago,
                 "fingerprint": ["group-2"],
                 "type": "error",
             },
@@ -319,14 +319,14 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_event_detail_view_from_all_events(self, mock_now):
         now = before_now().replace(tzinfo=pytz.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
 
         event_data = load_data("python")
         event_data.update(
             {
                 "event_id": "a" * 32,
-                "timestamp": min_ago,
-                "received": min_ago,
+                "timestamp": ten_mins_ago,
+                "received": ten_mins_ago,
                 "fingerprint": ["group-1"],
             }
         )
@@ -680,7 +680,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
     def test_drilldown_result(self, mock_now):
         now = before_now().replace(tzinfo=pytz.utc)
         mock_now.return_value = now
-        min_ago = iso_format(now - timedelta(minutes=1))
+        ten_mins_ago = iso_format(now - timedelta(minutes=10))
         events = (
             ("a" * 32, "oh no", "group-1"),
             ("b" * 32, "oh no", "group-1"),
@@ -691,7 +691,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 data={
                     "event_id": event[0],
                     "message": event[1],
-                    "timestamp": min_ago,
+                    "timestamp": ten_mins_ago,
                     "fingerprint": [event[2]],
                     "type": "error",
                 },

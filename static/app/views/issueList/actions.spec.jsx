@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {
   fireEvent,
   render,
@@ -263,7 +261,7 @@ describe('IssueListActions', function () {
           },
         });
       });
-
+      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
@@ -278,6 +276,7 @@ describe('IssueListActions', function () {
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
 
+      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent {...defaultProps} />);
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
@@ -315,6 +314,7 @@ describe('IssueListActions', function () {
         }
       });
 
+      MockApiClient.warnOnMissingMocks();
       render(<WrappedComponent />);
 
       // Resolve and ignore are supported
@@ -402,6 +402,7 @@ describe('IssueListActions', function () {
           </OrganizationContext.Provider>
         );
 
+        MockApiClient.warnOnMissingMocks();
         userEvent.click(screen.getByRole('checkbox'));
 
         userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
@@ -415,48 +416,6 @@ describe('IssueListActions', function () {
         ).toBeInTheDocument();
 
         userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
-
-        expect(bulkMergeMock).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            query: expect.objectContaining({
-              query: 'is:unresolved !issue.category:performance',
-            }),
-          })
-        );
-      });
-
-      it('silently filters out performance issues when bulk ignoring by time window', function () {
-        const bulkMergeMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/issues/',
-          method: 'PUT',
-        });
-
-        render(
-          <OrganizationContext.Provider value={orgWithPerformanceIssues}>
-            <GlobalModal />
-            <IssueListActions {...defaultProps} query="is:unresolved" queryCount={100} />
-          </OrganizationContext.Provider>
-        );
-
-        userEvent.click(screen.getByRole('checkbox'));
-
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
-        userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
-        fireEvent.click(screen.getByTestId('until-affect'));
-        fireEvent.click(screen.getByTestId('until-affect-10-users'));
-        userEvent.click(screen.getByTestId('until-affect-10-users-from-per hour'));
-
-        const modal = screen.getByRole('dialog');
-
-        expect(
-          within(modal).getByText(
-            /ignoring performance issues by time window is not yet supported/i
-          )
-        ).toBeInTheDocument();
-
-        userEvent.click(within(modal).getByRole('button', {name: 'Bulk ignore issues'}));
 
         expect(bulkMergeMock).toHaveBeenCalledWith(
           expect.anything(),

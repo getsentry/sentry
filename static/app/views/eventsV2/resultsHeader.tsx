@@ -24,6 +24,7 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
   yAxis: string[];
 };
 
@@ -85,7 +86,8 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, errorCode, eventView, yAxis, router} = this.props;
+    const {organization, location, errorCode, eventView, yAxis, router, setSavedQuery} =
+      this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -105,6 +107,7 @@ class ResultsHeader extends Component<Props, State> {
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <SavedQueryButtonGroup
+            setSavedQuery={setSavedQuery}
             location={location}
             organization={organization}
             eventView={eventView}

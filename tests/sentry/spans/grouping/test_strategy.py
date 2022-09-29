@@ -16,7 +16,7 @@ from sentry.spans.grouping.strategy.config import (
     register_configuration,
 )
 from sentry.spans.grouping.utils import hash_values
-from sentry.testutils.perfomance_issues.span_builder import SpanBuilder
+from sentry.testutils.performance_issues.span_builder import SpanBuilder
 
 
 def test_register_duplicate_confiig() -> None:
@@ -59,6 +59,7 @@ def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) 
             SpanBuilder().with_description("SELECT count() FROM table WHERE id IN (%s)").build(),
             None,
         ),
+        # op is db
         (
             SpanBuilder()
             .with_op("db")
@@ -69,6 +70,14 @@ def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) 
         (
             SpanBuilder()
             .with_op("db")
+            .with_description("SELECT count() FROM table WHERE id IN (%s, %s)")
+            .build(),
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
+        # op is a db query
+        (
+            SpanBuilder()
+            .with_op("db.sql.query")
             .with_description("SELECT count() FROM table WHERE id IN (%s, %s)")
             .build(),
             ["SELECT count() FROM table WHERE id IN (%s)"],

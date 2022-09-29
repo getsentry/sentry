@@ -14,7 +14,7 @@ import type {
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
-interface ReplayReaderParams {
+export interface ReplayReaderParams {
   breadcrumbs: ReplayCrumb[] | undefined;
   errors: ReplayError[] | undefined;
 
@@ -61,6 +61,7 @@ export default class ReplayReader {
     // TODO(replays): We should get correct timestamps from the backend instead
     // of having to fix them up here.
     const {startTimestampMs, endTimestampMs} = replayTimestamps(
+      replayRecord,
       rrwebEvents,
       breadcrumbs,
       spans

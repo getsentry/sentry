@@ -210,11 +210,11 @@ class GitHubAppsClientTest(TestCase):
         path = "src/sentry/integrations/github/client.py"
         ref = "master"
         query = f"""query {{
-            repository(name: foo, owner: Test-Organization) {{
-                ref(qualifiedName: {ref}) {{
+            repository(name: "foo", owner: "Test-Organization") {{
+                ref(qualifiedName: "{ref}") {{
                     target {{
                         ... on Commit {{
-                            blame(path: {path}) {{
+                            blame(path: "{path}") {{
                                 ranges {{
                                         commit {{
                                             oid
@@ -223,6 +223,7 @@ class GitHubAppsClientTest(TestCase):
                                                 email
                                             }}
                                             message
+                                            committedDate
                                         }}
                                     startingLine
                                     endingLine
@@ -243,7 +244,7 @@ class GitHubAppsClientTest(TestCase):
         resp = self.client.get_blame_for_file(self.repo, path, ref)
         assert (
             responses.calls[1].request.body
-            == b'{"query": "query {\\n            repository(name: foo, owner: Test-Organization) {\\n                ref(qualifiedName: master) {\\n                    target {\\n                        ... on Commit {\\n                            blame(path: src/sentry/integrations/github/client.py) {\\n                                ranges {\\n                                        commit {\\n                                            oid\\n                                            author {\\n                                                name\\n                                                email\\n                                            }\\n                                            message\\n                                        }\\n                                    startingLine\\n                                    endingLine\\n                                    age\\n                                }\\n                            }\\n                        }\\n                    }\\n                }\\n            }\\n        }"}'
+            == b'{"query": "query {\\n            repository(name: \\"foo\\", owner: \\"Test-Organization\\") {\\n                ref(qualifiedName: \\"master\\") {\\n                    target {\\n                        ... on Commit {\\n                            blame(path: \\"src/sentry/integrations/github/client.py\\") {\\n                                ranges {\\n                                        commit {\\n                                            oid\\n                                            author {\\n                                                name\\n                                                email\\n                                            }\\n                                            message\\n                                            committedDate\\n                                        }\\n                                    startingLine\\n                                    endingLine\\n                                    age\\n                                }\\n                            }\\n                        }\\n                    }\\n                }\\n            }\\n        }"}'
         )
 
         assert resp == []

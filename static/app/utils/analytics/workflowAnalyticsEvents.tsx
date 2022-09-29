@@ -45,13 +45,40 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | 'assign'
       | ResolutionStatus;
+    assigned_suggestion_reason?: string;
   };
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
+  'issue_details.suspect_commits': IssueDetailsWithAlert & {count: number};
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
-  'issue_details.viewed': IssueDetailsWithAlert;
+  'issue_details.viewed': IssueDetailsWithAlert & {
+    error_count: number;
+    event_errors: string;
+    event_id: string;
+    has_commit: boolean;
+    has_owner: boolean;
+    has_release: boolean;
+    has_source_maps: boolean;
+    has_trace: boolean;
+    is_assigned: boolean;
+    issue_age: number;
+    num_comments: number;
+    num_commits: number;
+    num_in_app_stack_frames: number;
+    num_stack_frames: number;
+    num_threads_with_names: number;
+    event_platform?: string;
+    event_type?: string;
+    has_external_issue?: boolean;
+    integration_assignment_source?: string;
+    issue_level?: string;
+    issue_status?: string;
+    project_platform?: string;
+    sdk_name?: string;
+    sdk_version?: string;
+  };
   'new_alert_rule.viewed': RuleViewed & {
     duplicate_rule: string;
     session_id: string;
@@ -85,6 +112,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'issue_details.event_json_clicked': 'Issue Details: Event JSON Clicked',
   'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
   'issue_details.viewed': 'Issue Details: Viewed',
+  'issue_details.suspect_commits': 'Issue Details: Suspect Commits',
   'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',

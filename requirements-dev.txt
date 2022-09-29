@@ -5,10 +5,10 @@ exam>=0.10.6
 freezegun>=1.1.0
 honcho>=1.1.0
 openapi-core>=0.14.2
-pytest>=6.1.0
+pytest>=7
 pytest-cov>=3.0.0
 pytest-django>=4.4.0
-pytest-rerunfailures>=9.1.1
+pytest-rerunfailures>=10
 pytest-sentry>=0.1.9
 pytest-xdist
 responses>=0.21.0
@@ -35,3 +35,4 @@ types-python-dateutil
 types-pytz
 types-redis
 types-requests
+types-psycopg2
