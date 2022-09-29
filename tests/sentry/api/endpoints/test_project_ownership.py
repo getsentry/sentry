@@ -34,7 +34,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
         assert resp.data == {
             "raw": None,
-            "fallthrough": False,
+            "fallthrough": True,
             "autoAssignment": False,
             "isActive": True,
             "dateCreated": None,
