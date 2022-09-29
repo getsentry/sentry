@@ -63,13 +63,13 @@ class GroupActivity extends Component<Props, State> {
     inputId: uniqueId(),
   };
 
-  handleNoteDelete = async ({modelId, text: oldText}) => {
+  handleNoteDelete = async ({noteId, text: oldText}) => {
     const {api, group} = this.props;
 
     addLoadingMessage(t('Removing comment...'));
 
     try {
-      await deleteNote(api, group, modelId, oldText);
+      await deleteNote(api, group, noteId, oldText);
       clearIndicators();
     } catch (_err) {
       addErrorMessage(t('Failed to delete comment'));
@@ -110,13 +110,13 @@ class GroupActivity extends Component<Props, State> {
     }
   };
 
-  handleNoteUpdate = async (note, {modelId, text: oldText}) => {
+  handleNoteUpdate = async (note, {noteId, text: oldText}) => {
     const {api, group} = this.props;
 
     addLoadingMessage(t('Updating comment...'));
 
     try {
-      await updateNote(api, group, note, modelId, oldText);
+      await updateNote(api, group, note, noteId, oldText);
       clearIndicators();
     } catch (error) {
       this.setState({
@@ -197,7 +197,7 @@ class GroupActivity extends Component<Props, State> {
                           <Note
                             showTime={false}
                             text={item.data.text}
-                            modelId={item.id}
+                            noteId={item.id}
                             user={item.user as User}
                             dateCreated={item.dateCreated}
                             authorName={authorName}

@@ -62,7 +62,7 @@ describe('NoteInput', function () {
   describe('Existing Item', function () {
     const props = {
       group: {project: {}, id: 'groupId'},
-      modelId: 'item-id',
+      noteId: 'item-id',
       text: 'an existing item',
     };
 
