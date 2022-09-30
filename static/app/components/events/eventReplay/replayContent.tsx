@@ -48,7 +48,13 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   }, [eventTimestamp, startTimestampMs]);
 
   if (fetching || !replayRecord) {
-    <StyledPlaceholder testId="replay-loading-placeholder" height="400px" width="100%" />;
+    return (
+      <StyledPlaceholder
+        testId="replay-loading-placeholder"
+        height="400px"
+        width="100%"
+      />
+    );
   }
 
   return (
