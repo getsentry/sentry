@@ -1184,7 +1184,7 @@ SENTRY_FEATURES = {
     # Enable the creation of uniform and conditional sampling rules.
     "organizations:dynamic-sampling-advanced": False,
     # Enable dynamic sampling call to action in the performance product
-    "organizations:dynamic-sampling-performance": False,
+    "organizations:dynamic-sampling-performance-cta": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
