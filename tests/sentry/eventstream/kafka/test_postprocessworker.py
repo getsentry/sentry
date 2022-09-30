@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+import sentry
 from sentry import options
 from sentry.eventstream.kafka.postprocessworker import (
     ErrorsPostProcessForwarderWorker,
@@ -72,7 +73,10 @@ def kafka_message_with_transaction_header_true(kafka_message_payload):
     return mock_message
 
 
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task",
+    wraps=sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task,
+)
 def test_post_process_forwarder(
     dispatch_post_process_group_task, kafka_message_without_transaction_header
 ):
@@ -101,7 +105,10 @@ def test_post_process_forwarder(
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task",
+    wraps=sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task,
+)
 def test_post_process_forwarder_bad_message_headers(
     dispatch_post_process_group_task, kafka_message_payload
 ):
@@ -157,7 +164,10 @@ def test_post_process_forwarder_bad_message(kafka_message_payload):
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task",
+    wraps=sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task,
+)
 def test_errors_post_process_forwarder_missing_headers(
     dispatch_post_process_group_task, kafka_message_without_transaction_header
 ):
@@ -188,7 +198,10 @@ def test_errors_post_process_forwarder_missing_headers(
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task",
+    wraps=sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task,
+)
 def test_errors_post_process_forwarder_false_headers(
     dispatch_post_process_group_task, kafka_message_with_transaction_header_false
 ):
@@ -263,7 +276,10 @@ def test_transactions_post_process_forwarder_false_headers(
 
 
 @pytest.mark.django_db
-@patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task",
+    wraps=sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task,
+)
 def test_transactions_post_process_forwarder_true_headers(
     dispatch_post_process_group_task, kafka_message_with_transaction_header_true
 ):
