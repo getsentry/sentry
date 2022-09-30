@@ -1,26 +1,154 @@
-import 'prism-sentry/index.css';
-
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';
 
-import Tooltip from 'sentry/components/tooltip';
+import Button from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
+
+/**
+ * Prism styles with support for light/dark mode, to be used as an alternative
+ * to 'prism-sentry' and 'prism.css'.
+ */
+export const prismStyles = ({theme}: {theme: Theme}) => css`
+  pre[class*='language-'] {
+    overflow-x: scroll;
+    padding: ${space(1)} ${space(2)};
+    margin: 0;
+    background: ${theme.backgroundSecondary};
+    border-radius: ${theme.borderRadius};
+  }
+
+  pre[class*='language-'],
+  code[class*='language-'] {
+    color: ${theme.prism.baseColor};
+    font-size: ${theme.codeFontSize};
+    text-shadow: none;
+    font-family: ${theme.text.familyMono};
+    direction: ltr;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
+  }
+  pre[class*='language-']::selection,
+  code[class*='language-']::selection,
+  pre[class*='language-']::mozselection,
+  code[class*='language-']::mozselection {
+    text-shadow: none;
+    background: ${theme.prism.selectedColor};
+  }
+  @media print {
+    pre[class*='language-'],
+    code[class*='language-'] {
+      text-shadow: none;
+    }
+  }
+
+  .namespace {
+    opacity: 0.7;
+  }
+  .token.comment,
+  .token.prolog,
+  .token.doctype,
+  .token.cdata {
+    color: ${theme.prism.commentColor};
+  }
+  .token.punctuation {
+    color: ${theme.prism.punctuationColor};
+  }
+  .token.property,
+  .token.tag,
+  .token.boolean,
+  .token.number,
+  .token.constant,
+  .token.symbol,
+  .token.deleted {
+    color: ${theme.prism.propertyColor};
+  }
+  .token.selector,
+  .token.attr-name,
+  .token.string,
+  .token.char,
+  .token.builtin,
+  .token.inserted {
+    color: ${theme.prism.selectorColor};
+  }
+  .token.operator,
+  .token.entity,
+  .token.url,
+  .language-css .token.string,
+  .style .token.string {
+    color: ${theme.prism.operatorColor};
+    background: none;
+  }
+  .token.atrule,
+  .token.attr-value,
+  .token.keyword {
+    color: ${theme.prism.keywordColor};
+  }
+  .token.function {
+    color: ${theme.prism.functionColor};
+  }
+  .token.regex,
+  .token.important,
+  .token.variable {
+    color: ${theme.prism.variableColor};
+  }
+  .token.important,
+  .token.bold {
+    font-weight: bold;
+  }
+  .token.italic {
+    font-style: italic;
+  }
+  .token.entity {
+    cursor: help;
+  }
+  pre[data-line] {
+    position: relative;
+  }
+  pre[class*='language-'] > code[class*='language-'] {
+    position: relative;
+    z-index: 1;
+  }
+  .line-highlight {
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding: inherit 0;
+    margin-top: 1em;
+    background: ${theme.prism.highlightBackground};
+    box-shadow: inset 5px 0 0 ${theme.prism.highlightAccent};
+    z-index: 0;
+    pointer-events: none;
+    line-height: inherit;
+    white-space: pre;
+  }
+`;
 
 interface CodeSnippetProps {
   children: string;
-  language: string;
+  language: keyof typeof Prism.languages;
   filename?: string;
-  hideActionBar?: boolean;
+  hideCopyButton?: boolean;
 }
 
 export function CodeSnippet({
   children,
   language,
   filename,
-  hideActionBar,
+  hideCopyButton,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -48,71 +176,86 @@ export function CodeSnippet({
       : t('Unable to copy');
 
   return (
-    <Fragment>
-      {!hideActionBar && (
-        <CodeContainerActionBar>
-          {filename && <span>{filename}</span>}
-          <Tooltip delay={0} isHoverable={false} title={tooltipTitle} position="bottom">
-            <UnstyledButton
+    <Wrapper>
+      {filename && (
+        <Header>
+          {filename}
+          {!hideCopyButton && (
+            <CopyButton
               type="button"
+              size="xs"
+              borderless
+              isInHeader
               onClick={handleCopy}
+              title={tooltipTitle}
+              tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
               onMouseLeave={() => setTooltipState('copy')}
             >
-              <IconCopy />
-            </UnstyledButton>
-          </Tooltip>
-        </CodeContainerActionBar>
+              <IconCopy size="xs" />
+            </CopyButton>
+          )}
+        </Header>
       )}
 
-      <PreContainer unsetBorderRadiusTop={!hideActionBar}>
-        <code ref={ref} className={`language-${language}`}>
+      {!hideCopyButton && !filename && (
+        <CopyButton
+          type="button"
+          size="xs"
+          onClick={handleCopy}
+          title={tooltipTitle}
+          tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
+          onMouseLeave={() => setTooltipState('copy')}
+        >
+          <IconCopy size="xs" />
+        </CopyButton>
+      )}
+
+      <pre className={`language-${String(language)}`}>
+        <code ref={ref} className={`language-${String(language)}`}>
           {children}
         </code>
-      </PreContainer>
-    </Fragment>
+      </pre>
+    </Wrapper>
   );
 }
 
-const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
-  overflow-x: scroll;
+const Wrapper = styled('div')`
+  position: relative;
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
+  ${prismStyles}
+`;
+
+const Header = styled('div')`
+  position: relative;
+  padding: ${space(1)} ${space(2)} ${space(1)} 0;
+  margin-left: ${space(2)};
+  border-bottom: solid 1px ${p => p.theme.translucentInnerBorder};
+
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  color: ${p => p.theme.headingColor};
+  font-weight: 600;
+`;
+
+const CopyButton = styled(Button)<{isInHeader?: boolean}>`
+  position: absolute;
+
   ${p =>
-    p.unsetBorderRadiusTop
+    p.isInHeader
       ? `
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  `
-      : null}
+        top: 50%;
+        right: ${space(0.5)};
+        transform: translateY(-50%);
+        `
+      : `
+        top: ${space(1)};
+        right: ${space(1)};
 
-  word-break: break-all;
-  white-space: pre-wrap;
-
-  code {
-    white-space: pre;
-  }
-`;
-
-const UnstyledButton = styled('button')`
-  all: unset;
-  cursor: pointer;
-`;
-
-// code blocks are globally styled by `prism-sentry`
-// its design tokens are slightly different than the app
-// so we've left it in charge of colors while overriding
-// css that breaks the experience
-const CodeContainerActionBar = styled(({children, ...props}) => (
-  <div {...props}>
-    <pre className="language-">{children}</pre>
-  </div>
-))`
-  pre.language- {
-    display: flex;
-    justify-content: end;
-    gap: ${space(1)};
-    padding: ${space(1.5)};
-    margin-bottom: 0px;
-    border-bottom: 1px solid ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadiusTop};
-    font-size: ${p => p.theme.fontSizeSmall};
-  }
+        opacity: 0;
+        transition: opacity 0.1s ease-out;
+        div:hover > & {
+          opacity: 1;
+        }
+        `}
 `;

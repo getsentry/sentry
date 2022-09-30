@@ -118,6 +118,42 @@ export const darkColors = {
   pink100: 'rgba(209, 71, 140, 0.13)',
 };
 
+const prismLight = {
+  inlineCodeColor: '#D25F7C',
+  inlineCodeBackground: '#F8F9FB',
+  blockBackground: '#F8F9FB',
+  baseColor: '#332B3B',
+  selectedColor: '#E9E0EB',
+  highlightBackground: '#E8ECF2',
+  highlightAccent: '#C7CBD1',
+  commentColor: '#72697C',
+  punctuationColor: '#70697C',
+  propertyColor: '#7A6229',
+  selectorColor: '#3C774A',
+  operatorColor: '#635D6F',
+  variableColor: '#A8491A',
+  functionColor: '#106A9E',
+  keywordColor: '#A7114A',
+};
+
+const prismDark = {
+  inlineCodeColor: '#D25F7C',
+  inlineCodeBackground: '#F8F9FB',
+  blockBackground: '#251F3D',
+  baseColor: '#F2EDF6',
+  selectedColor: '#865891',
+  highlightBackground: '#382F5C',
+  highlightAccent: '#D25F7C',
+  commentColor: '#8B7A9E',
+  punctuationColor: '#B3ACC1',
+  propertyColor: '#EAB944',
+  selectorColor: '#7EBE8E',
+  operatorColor: '#A470A7',
+  variableColor: '#E58759',
+  functionColor: '#6CC5F9',
+  keywordColor: '#E386AAv',
+};
+
 const lightShadows = {
   dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
   dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
@@ -689,6 +725,7 @@ const commonTheme = {
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
   headerFontSize: '22px',
+  codeFontSize: '13px',
 
   settings: {
     // Max-width for settings breadcrumbs
@@ -854,6 +891,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
+  prism: prismLight,
   ...generateUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
@@ -877,6 +915,7 @@ export const darkTheme: Theme = {
     ...lightColors,
     ...lightAliases,
   },
+  prism: prismDark,
   ...generateUtils(darkColors, lightAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
