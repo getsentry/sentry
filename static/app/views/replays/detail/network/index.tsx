@@ -254,7 +254,7 @@ function NetworkList({replayRecord, networkSpans}: Props) {
         disablePadding
         stickyHeaders
       >
-        {networkData.map(renderTableRow) || null}
+        {networkData.map(renderTableRow)}
       </StyledPanelTable>
     </NetworkContainer>
   );
