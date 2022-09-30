@@ -7,11 +7,12 @@ import {
   ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
+import beautify from 'js-beautify';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import HTMLCode from 'sentry/components/htmlCode';
 import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
@@ -112,7 +113,9 @@ function DomMutations({replay}: Props) {
               </UnstyledButton>
             </MutationDetailsContainer>
             <CodeContainer>
-              <HTMLCode code={html} />
+              <CodeSnippet language="html">
+                {beautify.html(html, {indent_size: 2})}
+              </CodeSnippet>
             </CodeContainer>
           </MutationContent>
         </MutationListItem>
