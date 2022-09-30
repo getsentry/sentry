@@ -468,13 +468,19 @@ function buildRoutes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
-      <Route
-        path="dynamic-sampling/"
-        name={t('Dynamic Sampling')}
-        component={make(
-          () => import('sentry/views/settings/project/server-side-sampling')
-        )}
-      />
+      <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/project/server-side-sampling')
+          )}
+        />
+        <Route
+          path="set-global-sample-rate/"
+          component={make(
+            () => import('sentry/views/settings/project/server-side-sampling')
+          )}
+        />
+      </Route>
       <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
