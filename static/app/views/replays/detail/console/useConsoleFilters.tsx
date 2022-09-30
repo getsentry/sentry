@@ -41,8 +41,8 @@ const FILTERS = {
   logLevel: (item: Item, logLevel: string[]) => {
     return (
       logLevel.length === 0 ||
-      (logLevel.includes(item.level) && item.category !== ISSUE_CATEGORY) ||
-      (logLevel.includes(ISSUE_CATEGORY) && item.category === ISSUE_CATEGORY)
+      (item.category !== ISSUE_CATEGORY && logLevel.includes(item.level)) ||
+      (item.category === ISSUE_CATEGORY && logLevel.includes(ISSUE_CATEGORY))
     );
   },
 
