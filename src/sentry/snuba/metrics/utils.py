@@ -9,6 +9,7 @@ __all__ = (
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
+    "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
     "FIELD_ALIAS_MAPPINGS",
@@ -175,6 +176,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
+NON_RESOLVABLE_VALUE_OP = {"team_key_transaction"}
 
 
 class Tag(TypedDict):
@@ -205,7 +207,13 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
+DERIVED_OPERATIONS = (
+    "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
+)
 OPERATIONS = (
     (
         "avg",
@@ -232,12 +240,18 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
+    # ToDo(ahmed): These are probably better off defined on derived ops themselves rather than adding them here.
     "histogram": [],
     "rate": 0,
     "count_web_vitals": 0,
     "count_transaction_name": 0,
+    "team_key_transaction": 0,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNIT_TO_TYPE = {
+    "sessions": "count",
+    "percentage": "percentage",
+    "users": "count",
+}
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
 

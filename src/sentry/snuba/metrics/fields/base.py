@@ -58,6 +58,7 @@ from sentry.snuba.metrics.fields.snql import (
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
+    team_key_transaction_snql,
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
 )
@@ -292,6 +293,10 @@ class MetricOperation(MetricOperationDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def validate_can_groupby(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def run_post_query_function(
         self,
         data: SnubaDataType,
@@ -318,6 +323,7 @@ class MetricOperation(MetricOperationDefinition, ABC):
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
+    can_groupby: bool = False
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
     snql_func: Callable[..., Optional[Function]] = lambda _: None
 
@@ -325,6 +331,9 @@ class DerivedOpDefinition(MetricOperationDefinition):
 class RawOp(MetricOperation):
     def validate_can_orderby(self) -> None:
         return
+
+    def validate_can_groupby(self) -> bool:
+        return False
 
     def run_post_query_function(
         self,
@@ -362,6 +371,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             raise DerivedMetricParseException(
                 f"Operation {self.op} cannot be used to order a query"
             )
+
+    def validate_can_groupby(self) -> bool:
+        return self.can_groupby
 
     def run_post_query_function(
         self,
@@ -556,6 +568,20 @@ class MetricExpressionBase(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        """
+        Method that generates a list of SnQL groupby statements based on whether an instance of MetricsFieldBase
+        supports it
+        """
+        raise NotImplementedError
+
 
 @dataclass
 class MetricExpressionDefinition:
@@ -665,6 +691,24 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
             entity=entity,
             params=params,
             org_id=org_id,
+        )
+
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        if not self.metric_operation.validate_can_groupby():
+            raise InvalidParams(
+                f"Operation {self.metric_operation.op} does not support being grouped by"
+            )
+        return self.generate_select_statements(
+            projects=projects,
+            use_case_id=use_case_id,
+            alias=alias,
+            params=params,
         )
 
 
@@ -887,6 +931,17 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     ) -> Iterable[Tuple[Optional[MetricOperationType], str, str]]:
         return [(None, self.metric_mri, alias)]
 
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(
+            f"Metric {get_public_name_from_mri(self.metric_mri)} does not support being grouped by"
+        )
+
 
 class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -1054,6 +1109,17 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         # ToDo(ahmed): This won't work if there is not post_query_func because there is an assumption that this function
         #  will aggregate the result somehow
         return self.post_query_func(*compute_func_args)
+
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(
+            f"Metric {get_public_name_from_mri(self.metric_mri)} does not support being grouped by"
+        )
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
@@ -1362,6 +1428,12 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="count_transaction_name",
             can_orderby=True,
             snql_func=count_transaction_name_snql_factory,
+        ),
+        DerivedOp(
+            op="team_key_transaction",
+            can_orderby=True,
+            can_groupby=True,
+            snql_func=team_key_transaction_snql,
         ),
     ]
 }
