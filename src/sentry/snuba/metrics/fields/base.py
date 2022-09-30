@@ -319,6 +319,10 @@ class MetricOperation(MetricOperationDefinition, ABC):
     ) -> Function:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
+        raise NotImplementedError
+
 
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
@@ -326,6 +330,7 @@ class DerivedOpDefinition(MetricOperationDefinition):
     can_groupby: bool = False
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
     snql_func: Callable[..., Optional[Function]] = lambda _: None
+    default_null_value: Optional[Union[int, List[Tuple[float]]]] = None
 
 
 class RawOp(MetricOperation):
@@ -362,6 +367,12 @@ class RawOp(MetricOperation):
             snuba_function,
             [Column("value"), aggregate_filter],
             alias=alias,
+        )
+
+    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
+        return cast(
+            Optional[Union[int, List[Tuple[float]]]],
+            copy.copy(DEFAULT_AGGREGATES[self.op]),
         )
 
 
@@ -445,6 +456,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             return self.snql_func(**kwargs)
         except TypeError as e:
             raise InvalidParams(e)
+
+    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
+        return self.default_null_value
 
 
 class MetricExpressionBase(ABC):
@@ -642,10 +656,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         return []
 
     def generate_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
-        return cast(
-            Optional[Union[int, List[Tuple[float]]]],
-            copy.copy(DEFAULT_AGGREGATES[self.metric_operation.op]),
-        )
+        return self.metric_operation.get_default_null_values()
 
     def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
         return self.metric_object.generate_metric_ids(projects, use_case_id)
@@ -1413,27 +1424,32 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             can_orderby=False,
             post_query_func=rebucket_histogram,
             snql_func=histogram_snql_factory,
+            default_null_value=[],
         ),
         DerivedOp(
             op="rate",
             can_orderby=False,
             snql_func=rate_snql_factory,
+            default_null_value=0,
         ),
         DerivedOp(
             op="count_web_vitals",
             can_orderby=True,
             snql_func=count_web_vitals_snql_factory,
+            default_null_value=0,
         ),
         DerivedOp(
             op="count_transaction_name",
             can_orderby=True,
             snql_func=count_transaction_name_snql_factory,
+            default_null_value=0,
         ),
         DerivedOp(
             op="team_key_transaction",
             can_orderby=True,
             can_groupby=True,
             snql_func=team_key_transaction_snql,
+            default_null_value=0,
         ),
     ]
 }

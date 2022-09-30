@@ -80,6 +80,7 @@ MetricOperationType = Literal[
     "rate",
     "count_web_vitals",
     "count_transaction_name",
+    "team_key_transaction",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -240,12 +241,6 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
-    # ToDo(ahmed): These are probably better off defined on derived ops themselves rather than adding them here.
-    "histogram": [],
-    "rate": 0,
-    "count_web_vitals": 0,
-    "count_transaction_name": 0,
-    "team_key_transaction": 0,
 }
 UNIT_TO_TYPE = {
     "sessions": "count",
