@@ -25,7 +25,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {IconEllipsis} from 'sentry/icons';
+import {IconCheckmark, IconEllipsis, IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import space from 'sentry/styles/space';
@@ -367,6 +367,8 @@ class Actions extends Component<Props, State> {
     const hasRelease = !!project.features?.includes('releases');
 
     const isResolved = status === 'resolved';
+    const isAutoResolved =
+      group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
     const isIgnored = status === 'ignored';
 
     const deleteCap = getIssueCapability(group.issueCategory, 'delete');
@@ -458,28 +460,50 @@ class Actions extends Component<Props, State> {
               <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
             </ActionButton>
           </Feature>
-          <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
-            <IgnoreActions
-              isIgnored={isIgnored}
-              onUpdate={this.onUpdate}
-              disabled={disabled}
-            />
-          </GuideAnchor>
-          <GuideAnchor target="resolve" position="bottom" offset={20}>
-            <ResolveActions
-              disabled={disabled}
-              disableDropdown={disabled}
-              hasRelease={hasRelease}
-              latestRelease={project.latestRelease}
-              onUpdate={this.onUpdate}
-              orgSlug={organization.slug}
-              projectSlug={project.slug}
-              isResolved={isResolved}
-              isAutoResolved={
-                group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
+          {isResolved || isIgnored ? (
+            <ActionButton
+              type="button"
+              priority="primary"
+              title={
+                isAutoResolved
+                  ? t(
+                      'This event is resolved due to the Auto Resolve configuration for this project'
+                    )
+                  : t('Change status to unresolved')
               }
-            />
-          </GuideAnchor>
+              size="sm"
+              icon={isResolved ? <IconCheckmark /> : <IconMute />}
+              disabled={disabled || isAutoResolved}
+              onClick={() =>
+                this.onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+              }
+            >
+              {isIgnored ? t('Ignored') : t('Resolved')}
+            </ActionButton>
+          ) : (
+            <Fragment>
+              <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
+                <IgnoreActions
+                  isIgnored={isIgnored}
+                  onUpdate={this.onUpdate}
+                  disabled={disabled}
+                />
+              </GuideAnchor>
+              <GuideAnchor target="resolve" position="bottom" offset={20}>
+                <ResolveActions
+                  disabled={disabled}
+                  disableDropdown={disabled}
+                  hasRelease={hasRelease}
+                  latestRelease={project.latestRelease}
+                  onUpdate={this.onUpdate}
+                  orgSlug={organization.slug}
+                  projectSlug={project.slug}
+                  isResolved={isResolved}
+                  isAutoResolved={isAutoResolved}
+                />
+              </GuideAnchor>
+            </Fragment>
+          )}
         </Wrapper>
       );
     }
