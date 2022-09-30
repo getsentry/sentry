@@ -253,7 +253,7 @@ const StyledIconCalendarWrapper = styled(IconCalendar)`
 `;
 
 const StyledAlert = styled(Alert)`
-  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-radius: 0;
   border-width: 1px 0 0 0;
   grid-column: 1/-1;
   margin-bottom: 0;
