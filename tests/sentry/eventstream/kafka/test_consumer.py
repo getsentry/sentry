@@ -631,7 +631,6 @@ def kafka_message_payload():
             "is_regression": None,
             "is_new_group_environment": False,
             "skip_consume": False,
-            "group_states": None,
         },
     ]
 
@@ -720,5 +719,4 @@ class BatchedConsumerTest(TestCase):
             is_new=False,
             is_regression=None,
             is_new_group_environment=False,
-            group_states=None,
         )
