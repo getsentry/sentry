@@ -289,7 +289,6 @@ export function SpecificConditionsModal({
     <Fragment>
       <CloseButton />
       <Feature
-        requireAll={false}
         features={[
           'server-side-sampling',
           project.dynamicSampling?.rules.length
