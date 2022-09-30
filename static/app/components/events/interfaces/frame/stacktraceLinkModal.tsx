@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -49,7 +49,7 @@ function StacktraceLinkModal({
     });
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
@@ -94,7 +94,7 @@ function StacktraceLinkModal({
       const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
       addErrorMessage(t('Something went wrong%s', apiErrors));
     }
-  };
+  }, [closeModal, onSubmit, organization, project, api, filename, sourceCodeInput]);
 
   return (
     <Fragment>
