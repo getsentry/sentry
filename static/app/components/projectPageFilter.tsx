@@ -210,8 +210,6 @@ function ProjectPageFilter({
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
       disabled={disabled}
-      detached
-      showPin
       {...otherProps}
     />
   );

@@ -39,6 +39,12 @@ describe('EnvironmentSelector', function () {
     onUpdate.mockReset();
   });
 
+  const customDropdownButton = ({value}) => {
+    const summary = value.length ? value.join(', ') : 'All Environments';
+
+    return <div>{summary}</div>;
+  };
+
   const selectorProps = {
     organization,
     projects,
@@ -46,6 +52,8 @@ describe('EnvironmentSelector', function () {
     loadingProjects: false,
     selectedProjects,
     onUpdate,
+    customDropdownButton,
+    customLoadingIndicator: null,
   };
 
   function renderSelector(
