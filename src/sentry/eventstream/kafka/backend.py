@@ -1,6 +1,6 @@
 import logging
 import signal
-from typing import Any, Literal, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 from confluent_kafka import Producer
 from django.conf import settings
@@ -71,7 +71,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                 value = False
             return str(int(value))
 
-        def encode_dict(value: Mapping[Any, Any]) -> str:
+        def encode_list(value: Sequence[Any]) -> str:
             return json.dumps(value)
 
         # we strip `None` values here so later in the pipeline they can be
@@ -98,7 +98,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "transaction_forwarder": encode_bool(transaction_forwarder),
-                    "group_states": encode_dict(group_states) if group_states is not None else None,
+                    "group_states": encode_list(group_states) if group_states is not None else None,
                 }
             )
         else:
