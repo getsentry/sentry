@@ -5,7 +5,6 @@ from typing import Any, Literal, Mapping, MutableMapping, Optional, Tuple, Union
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry import options
 from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
@@ -79,40 +78,21 @@ class KafkaEventStream(SnubaProtocolEventStream):
         def strip_none_values(value: Mapping[str, Optional[str]]) -> Mapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
-        # transaction_forwarder header is not sent if option "eventstream:kafka-headers"
-        # is not set to avoid increasing consumer lag on shared events topic.
-        transaction_forwarder = self._is_transaction_event(event)
-
-        send_new_headers = options.get("eventstream:kafka-headers")
-
-        if send_new_headers is True:
-            return strip_none_values(
-                {
-                    "Received-Timestamp": str(received_timestamp),
-                    "event_id": str(event.event_id),
-                    "project_id": str(event.project_id),
-                    "group_id": str(event.group_id) if event.group_id is not None else None,
-                    "primary_hash": str(primary_hash) if primary_hash is not None else None,
-                    "is_new": encode_bool(is_new),
-                    "is_new_group_environment": encode_bool(is_new_group_environment),
-                    "is_regression": encode_bool(is_regression),
-                    "skip_consume": encode_bool(skip_consume),
-                    "transaction_forwarder": encode_bool(transaction_forwarder),
-                    "group_states": encode_dict(group_states) if group_states is not None else None,
-                }
-            )
-        else:
-            return {
-                **super()._get_headers_for_insert(
-                    event,
-                    is_new,
-                    is_regression,
-                    is_new_group_environment,
-                    primary_hash,
-                    received_timestamp,
-                    skip_consume,
-                ),
+        return strip_none_values(
+            {
+                "Received-Timestamp": str(received_timestamp),
+                "event_id": str(event.event_id),
+                "project_id": str(event.project_id),
+                "group_id": str(event.group_id) if event.group_id is not None else None,
+                "primary_hash": str(primary_hash) if primary_hash is not None else None,
+                "is_new": encode_bool(is_new),
+                "is_new_group_environment": encode_bool(is_new_group_environment),
+                "is_regression": encode_bool(is_regression),
+                "skip_consume": encode_bool(skip_consume),
+                "transaction_forwarder": encode_bool(self._is_transaction_event(event)),
+                "group_states": encode_dict(group_states) if group_states is not None else None,
             }
+        )
 
     def insert(
         self,
