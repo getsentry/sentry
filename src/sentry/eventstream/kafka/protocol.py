@@ -1,5 +1,15 @@
 import logging
-from typing import Any, Callable, FrozenSet, Mapping, Optional, Sequence, Tuple, cast
+from typing import (
+    Any,
+    Callable,
+    FrozenSet,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    cast,
+)
 
 from sentry.utils import json, metrics
 
@@ -182,7 +192,7 @@ def get_task_kwargs_for_message_from_headers(
                 cast(bytes, header_data["is_new_group_environment"])
             )
 
-            task_state = {
+            task_state: MutableMapping[str, Any] = {
                 "skip_consume": skip_consume,
                 "is_new": is_new,
                 "is_regression": is_regression,
