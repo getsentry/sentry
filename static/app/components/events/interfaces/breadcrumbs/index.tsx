@@ -321,7 +321,8 @@ function BreadcrumbsContainer({
     };
   }
 
-  const showReplay = !isShare && Boolean(replayId);
+  const showReplay =
+    !isShare && Boolean(replayId) && organization.features.includes('session-replay-ui');
 
   const searchBar = (
     <StyledSearchBarAction

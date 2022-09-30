@@ -236,7 +236,13 @@ describe('Breadcrumbs', () => {
     it('should render a replay when there is a replayId', async function () {
       render(
         <TestComponent organization={organization} router={router}>
-          <Breadcrumbs {...props} replayId="761104e184c64d439ee1014b72b4d83b" />
+          <Breadcrumbs
+            {...props}
+            organization={TestStubs.Organization({
+              features: ['session-replay-ui'],
+            })}
+            replayId="761104e184c64d439ee1014b72b4d83b"
+          />
         </TestComponent>
       );
 
