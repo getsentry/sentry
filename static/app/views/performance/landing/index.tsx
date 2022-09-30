@@ -46,6 +46,7 @@ import {BackendView} from './views/backendView';
 import {FrontendOtherView} from './views/frontendOtherView';
 import {FrontendPageloadView} from './views/frontendPageloadView';
 import {MobileView} from './views/mobileView';
+import {DynamicSamplingAlert} from './dynamicSamplingAlert';
 import {MetricsDataSwitcher} from './metricsDataSwitcher';
 import {MetricsDataSwitcherAlert} from './metricsDataSwitcherAlert';
 import {
@@ -211,6 +212,10 @@ export function PerformanceLanding(props: Props) {
                       location={location}
                       router={props.router}
                       {...metricsDataSide}
+                    />
+                    <DynamicSamplingAlert
+                      organization={organization}
+                      projects={projects}
                     />
                     <PageErrorAlert />
                     {showOnboarding ? (
