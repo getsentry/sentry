@@ -1309,30 +1309,39 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
 
         assert Release.objects.get(id=instance.first_release_id).version == release_version
 
+        group_states1 = {
+            "is_new": True,
+            "is_regression": False,
+            "is_new_group_environment": True,
+        }
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
             event=event,
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
+            **group_states1,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
+            group_states=[{"id": event.groups[0].id, **group_states1}],
         )
 
         event = save_event()
+
+        group_states2 = {
+            "is_new": False,
+            "is_regression": None,  # XXX: wut
+            "is_new_group_environment": False,
+        }
 
         # Ensure that the next event in the (group, environment) pair is *not*
         # marked as being part of a new environment.
         eventstream_insert.assert_called_with(
             event=event,
-            is_new=False,
-            is_regression=None,  # XXX: wut
-            is_new_group_environment=False,
+            **group_states2,
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
+            group_states=[{"id": event.groups[0].id, **group_states2}],
         )
 
     def test_default_fingerprint(self):
