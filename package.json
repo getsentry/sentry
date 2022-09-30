@@ -60,6 +60,7 @@
     "@types/mini-css-extract-plugin": "^2.5.1",
     "@types/papaparse": "^5.3.2",
     "@types/pegjs": "^0.10.3",
+    "@types/prismjs": "^1.26.0",
     "@types/react": "~17.0.14",
     "@types/react-date-range": "^1.4.4",
     "@types/react-document-title": "^2.0.5",

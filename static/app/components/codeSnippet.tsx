@@ -24,7 +24,11 @@ export function CodeSnippet({
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
-  useEffect(() => Prism.highlightElement(ref.current, false), [children]);
+  useEffect(
+    () => void (ref.current && Prism.highlightElement(ref.current, false)),
+    [children]
+  );
+
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
   const handleCopy = async () => {
