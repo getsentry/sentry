@@ -33,12 +33,13 @@ class ForwarderNotRequired(NotImplementedError):
 
 
 class GroupState(TypedDict):
+    id: int
     is_new: bool
     is_regression: bool
     is_new_group_environment: bool
 
 
-GroupStates = Mapping[int, GroupState]
+GroupStates = Sequence[GroupState]
 
 
 class EventStream(Service):
@@ -94,7 +95,7 @@ class EventStream(Service):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
-        group_states: GroupStates | None = None,
+        group_states: Optional[GroupStates] = None,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,

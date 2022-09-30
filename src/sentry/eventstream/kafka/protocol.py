@@ -136,15 +136,15 @@ def decode_bool(value: bytes) -> bool:
     return bool(int(decode_str(value)))
 
 
-def decode_optional_dict_str(value: Optional[str]) -> Optional[Mapping[Any, Any]]:
+def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
     if value is None:
         return None
 
     parsed = json.loads(value)
-    if not isinstance(parsed, dict):
-        raise ValueError(f"'{value}' could not be parsed into an instance of dict.")
+    if not isinstance(parsed, list):
+        raise ValueError(f"'{value}' could not be parsed into an instance of list.")
 
-    return cast(Mapping[Any, Any], json.loads(value))
+    return cast(Sequence[Any], json.loads(value))
 
 
 def get_task_kwargs_for_message_from_headers(
@@ -193,8 +193,9 @@ def get_task_kwargs_for_message_from_headers(
 
             group_states_str = decode_optional_str(header_data.get("group_states"))
             group_states = None
+            # TODO: remove this try/except once rollout is complete and don't observe any errors in logs
             try:
-                group_states = decode_optional_dict_str(group_states_str)
+                group_states = decode_optional_list_str(group_states_str)
             except ValueError:
                 logger.error(f"Received event with malformed group_states: '{group_states_str}'")
             except Exception:
