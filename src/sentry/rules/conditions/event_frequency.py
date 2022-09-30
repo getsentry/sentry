@@ -186,7 +186,6 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
-        # CEO here we are
         group = event.group if event.group is not None else event.groups[0]
         sums: Mapping[int, int] = self.tsdb.get_sums(
             model=ISSUE_TSDB_GROUP_MODELS[group.issue_category],
@@ -308,15 +307,17 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 percent_intervals[self.get_option("interval")][1].total_seconds() // 60
             )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+
+            group = event.group if event.group is not None else event.groups[0]
             issue_count = self.tsdb.get_sums(
-                model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
-                keys=[event.group_id],
+                model=ISSUE_TSDB_GROUP_MODELS[group.issue_category],
+                keys=[group.id],
                 start=start,
                 end=end,
                 environment_id=environment_id,
                 use_cache=True,
-                jitter_value=event.group_id,
-            )[event.group_id]
+                jitter_value=group.id,
+            )[group.id]
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now
                 self.logger.info(
