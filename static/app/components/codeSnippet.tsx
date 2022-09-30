@@ -42,9 +42,7 @@ export const prismStyles = ({theme}: {theme: Theme}) => css`
     hyphens: none;
   }
   pre[class*='language-']::selection,
-  code[class*='language-']::selection,
-  pre[class*='language-']::mozselection,
-  code[class*='language-']::mozselection {
+  code[class*='language-']::selection {
     text-shadow: none;
     background: ${theme.prism.selectedColor};
   }
