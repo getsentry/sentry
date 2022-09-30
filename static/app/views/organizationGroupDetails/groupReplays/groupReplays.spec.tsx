@@ -39,6 +39,11 @@ const getComponent = ({
     project: TestStubs.Project(),
     projects: [TestStubs.Project()],
     router: {
+      routes: [
+        {path: '/'},
+        {path: '/organizations/:orgId/issues/:groupId/'},
+        {path: 'replays/'},
+      ],
       location: {
         pathname: '/organizations/org-slug/replays/',
         query: {},
@@ -59,7 +64,7 @@ const getComponent = ({
           router,
           location: router.location,
           params: router.params,
-          routes: [],
+          routes: router.routes,
         }}
       >
         <GroupReplays {...mockProps} />
@@ -77,8 +82,7 @@ describe('GroupReplays', () => {
     MockApiClient.clearMockResponses();
   });
 
-  // Assert that query to the events endpoint is correct
-  it('Should have correct queries in the events endpoint', async () => {
+  it('should query the events endpoint with the passed in replayIds', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -119,7 +123,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should snapshot empty state', async () => {
+  it('should snapshot empty state', async () => {
     MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -135,7 +139,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should show empty message when no replays are found', async () => {
+  it('should show empty message when no replays are found', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -152,7 +156,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should display error message when api call fails', async () => {
+  it('should display error message when api call fails', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       statusCode: 500,
@@ -171,7 +175,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should show loading indicator when loading replays', async () => {
+  it('should show loading indicator when loading replays', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       statusCode: 200,
@@ -188,7 +192,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should show a list of replays and have the correct values', async () => {
+  it('should show a list of replays and have the correct values', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       statusCode: 200,
@@ -252,13 +256,13 @@ describe('GroupReplays', () => {
     // Expect the first row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[0]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?referrer='
+      '/organizations/org-slug/replays/project-slug:346789a703f6454384f1de473b8b9fcc/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F'
     );
 
     // Expect the second row to have the correct href
     expect(screen.getAllByRole('link', {name: 'testDisplayName'})[1]).toHaveAttribute(
       'href',
-      '/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?referrer='
+      '/organizations/org-slug/replays/project-slug:b05dae9b6be54d21a4d5ad9f8f02b780/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F'
     );
 
     // Expect the first row to have the correct duration
@@ -268,10 +272,10 @@ describe('GroupReplays', () => {
     expect(screen.getByText('6min 40s')).toBeInTheDocument();
 
     // Expect the first row to have the correct errors
-    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getAllByTestId('replay-table-count-errors')[0]).toHaveTextContent('1');
 
     // Expect the second row to have the correct errors
-    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getAllByTestId('replay-table-count-errors')[1]).toHaveTextContent('4');
 
     // Expect the first row to have the correct date
     expect(screen.getByText('14 days ago')).toBeInTheDocument();
@@ -280,7 +284,7 @@ describe('GroupReplays', () => {
     expect(screen.getByText('7 days ago')).toBeInTheDocument();
   });
 
-  it('Should sort by start time correctly', async () => {
+  it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -336,7 +340,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should sort by duration correctly', async () => {
+  it('should be able to click the `Duration` column and request data sorted by duration query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -392,7 +396,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it('Should sort by errors correctly', async () => {
+  it('should be able to click the `Errors` column and request data sorted by countErrors query', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
       body: {
@@ -448,7 +452,7 @@ describe('GroupReplays', () => {
     });
   });
 
-  it("Should access message when the organization doesn't have access to the replay feature", () => {
+  it("should show a message when the organization doesn't have access to the replay feature", () => {
     renderComponent({
       organizationProps: {
         features: [],
