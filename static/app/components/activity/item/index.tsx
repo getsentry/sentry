@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {prismStyles} from 'sentry/components/codeSnippet';
 import DateTime from 'sentry/components/dateTime';
 import TimeSince from 'sentry/components/timeSince';
 import space from 'sentry/styles/space';
@@ -132,6 +133,7 @@ function ActivityItem({
 const ActivityItemWrapper = styled('div')`
   display: flex;
   margin-bottom: ${space(2)};
+  ${prismStyles}
 `;
 
 const HeaderAndFooter = styled('div')`
