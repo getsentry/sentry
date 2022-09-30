@@ -78,7 +78,7 @@ export function breadcrumbFactory(
   const errorCrumbs: RawCrumb[] = errors.map(error => ({
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
-    category: 'exception',
+    category: 'issue',
     message: error['error.value'].join(''),
     data: {
       label: error['error.type'].join(''),

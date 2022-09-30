@@ -39,7 +39,7 @@ function FocusArea({}: Props) {
     case 'console':
       const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
         'console',
-        'exception',
+        'issue',
       ]);
       return (
         <Console
