@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Callable, FrozenSet, Mapping, Optional, Sequence, Tuple, cast
 
-from sentry.eventstream.base import GroupStates
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -13,7 +12,7 @@ class UnexpectedOperation(Exception):
 
 def basic_protocol_handler(
     unsupported_operations: FrozenSet[str],
-) -> Callable[[str, Any, Any, Any], Optional[Mapping[str, Any]]]:
+) -> Callable[[str, Any, Any], Optional[Mapping[str, Any]]]:
     # The insert message formats for Version 1 and 2 are essentially unchanged,
     # so this function builds a handler function that can deal with both.
 
@@ -21,7 +20,6 @@ def basic_protocol_handler(
         operation: str,
         event_data: Mapping[str, Any],
         task_state: Mapping[str, Any],
-        group_states: Optional[GroupStates] = None,
     ) -> Optional[Mapping[str, Any]]:
         if task_state and task_state.get("skip_consume", False):
             return None  # nothing to do
@@ -36,8 +34,8 @@ def basic_protocol_handler(
         for name in ("is_new", "is_regression", "is_new_group_environment"):
             kwargs[name] = task_state[name]
 
-        if group_states is not None:
-            kwargs["group_states"] = group_states
+        if task_state and task_state.get("group_states"):
+            kwargs["group_states"] = task_state.get("group_states")
 
         return kwargs
 
@@ -193,7 +191,6 @@ def get_task_kwargs_for_message_from_headers(
 
             group_states_str = decode_optional_str(header_data.get("group_states"))
             group_states = None
-            # TODO: remove this try/except once rollout is complete and don't observe any errors in logs
             try:
                 group_states = decode_optional_list_str(group_states_str)
             except ValueError:
@@ -202,11 +199,11 @@ def get_task_kwargs_for_message_from_headers(
                 logger.error(
                     f"Uncaught exception thrown when trying to parse group_states: '{group_states_str}'"
                 )
+            task_state["group_states"] = group_states
 
         else:
             event_data = {}
             task_state = {}
-            group_states = None
 
     except Exception:
         raise InvalidPayload("Received event payload with unexpected structure")
@@ -218,4 +215,4 @@ def get_task_kwargs_for_message_from_headers(
             f"Received event payload with unexpected version identifier: {version}"
         )
 
-    return handler(operation, event_data, task_state, group_states)
+    return handler(operation, event_data, task_state)

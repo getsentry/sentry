@@ -1322,7 +1322,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
-            group_states={"id": event.groups[0].id, **group_states1},
+            group_states=[{"id": event.groups[0].id, **group_states1}],
         )
 
         event = save_event()
@@ -1341,7 +1341,7 @@ class EventManagerTest(TestCase, EventManagerTestMixin):
             primary_hash="acbd18db4cc2f85cedef654fccc4a4d8",
             skip_consume=False,
             received_timestamp=event.data["received"],
-            group_states={"id": event.groups[0].id, **group_states2},
+            group_states=[{"id": event.groups[0].id, **group_states2}],
         )
 
     def test_default_fingerprint(self):

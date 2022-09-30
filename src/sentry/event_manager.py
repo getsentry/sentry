@@ -1090,15 +1090,16 @@ def _eventstream_insert_many(jobs):
             is_new_group_environment = group_info.is_new_group_environment
 
             # performance issues with potentially multiple groups to a transaction
-            group_states = {
-                gi.group.id: {
+            group_states = [
+                {
+                    "id": gi.group.id,
                     "is_new": gi.is_new,
                     "is_regression": gi.is_regression,
                     "is_new_group_environment": gi.is_new_group_environment,
                 }
                 for gi in job["groups"]
                 if gi is not None
-            }
+            ]
 
         eventstream.insert(
             event=job["event"],

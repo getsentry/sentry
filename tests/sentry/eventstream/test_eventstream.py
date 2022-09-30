@@ -91,7 +91,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
             "received_timestamp": event.data["received"],
-            "group_states": {"id": event.groups[0].id, **group_state},
+            "group_states": [{"id": event.groups[0].id, **group_state}],
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)
@@ -150,7 +150,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
             "received_timestamp": event.data["received"],
-            "group_states": {"id": event.groups[0].id, **group_state},
+            "group_states": [{"id": event.groups[0].id, **group_state}],
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)
