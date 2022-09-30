@@ -416,6 +416,8 @@ register("relay.transaction-metrics-org-sample-rate", default=0.0)
 # new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
 register("relay.transaction-names-client-based", default=0.0)
 
+# Write new kafka headers in eventstream
+register("eventstream:kafka-headers", default=True)
 
 # Post process forwarder options
 # Gets data from Kafka headers
