@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from sentry import release_health, tsdb
 from sentry.eventstore.models import Event
+from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GROUP_MODELS
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
@@ -138,7 +139,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate(self, event: Event, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
-
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
         option_override_cm = contextlib.nullcontext()
@@ -186,16 +186,18 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
+        # CEO here we are
+        group = event.group if event.group is not None else event.groups[0]
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=self.tsdb.models.group,
-            keys=[event.group_id],
+            model=ISSUE_TSDB_GROUP_MODELS[group.issue_category],
+            keys=[group.id],
             start=start,
             end=end,
             environment_id=environment_id,
             use_cache=True,
-            jitter_value=event.group_id,
+            jitter_value=group.id,
         )
-        return sums[event.group_id]
+        return sums[group.id]
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
@@ -203,16 +205,18 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
+        # CEO: maybe pass group to query_hook instead
+        group = event.group if event.group is not None else event.groups[0]
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=self.tsdb.models.users_affected_by_group,
-            keys=[event.group_id],
+            model=ISSUE_TSDB_USER_GROUP_MODELS[group.issue_category],
+            keys=[group.id],
             start=start,
             end=end,
             environment_id=environment_id,
             use_cache=True,
-            jitter_value=event.group_id,
+            jitter_value=group.id,
         )
-        return totals[event.group_id]
+        return totals[group.id]
 
 
 percent_intervals = {
@@ -305,7 +309,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
             issue_count = self.tsdb.get_sums(
-                model=self.tsdb.models.group,
+                model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
                 keys=[event.group_id],
                 start=start,
                 end=end,
