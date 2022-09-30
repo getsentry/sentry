@@ -249,6 +249,7 @@ const CopyButton = styled(Button)<{isInHeader?: boolean}>`
       : `
         top: ${space(1)};
         right: ${space(1)};
+        z-index: 2;
 
         opacity: 0;
         transition: opacity 0.1s ease-out;
