@@ -24,6 +24,7 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -371,6 +372,117 @@ class Actions extends Component<Props, State> {
     const deleteCap = getIssueCapability(group.issueCategory, 'delete');
     const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
     const shareCap = getIssueCapability(group.issueCategory, 'share');
+
+    // TODO: add feature flag
+    if (organization.features.includes('shared-issues')) {
+      return (
+        <Wrapper>
+          {/* <ReviewAction
+            onUpdate={this.onUpdate}
+            disabled={!group.inbox || disabled}
+            tooltip={t('Issue has been reviewed')}
+            tooltipProps={{disabled: !!group.inbox || disabled, delay: 300}}
+          /> */}
+          {/* {orgFeatures.has('shared-issues') && (
+            <ShareIssue
+              disabled={disabled || !shareCap.enabled}
+              disabledReason={shareCap.disabledReason}
+              loading={this.state.shareBusy}
+              isShared={group.isPublic}
+              shareUrl={this.getShareUrl(group.shareId)}
+              onToggle={this.onToggleShare}
+              onReshare={() => this.onShare(true)}
+            />
+          )} */}
+          <Access organization={organization} access={['event:admin']}>
+            {({hasAccess}) => (
+              <DropdownMenuControl
+                triggerProps={{
+                  'aria-label': t('More Actions'),
+                  icon: <IconEllipsis size="xs" />,
+                  showChevron: false,
+                  size: 'md',
+                }}
+                items={[
+                  {
+                    key: bookmarkKey,
+                    label: bookmarkTitle,
+                    hidden: false,
+                    onAction: this.onToggleBookmark,
+                  },
+                  {
+                    key: 'reprocess',
+                    label: t('Reprocess events'),
+                    hidden: !displayReprocessEventAction(organization.features, event),
+                    onAction: this.onReprocessEvent,
+                  },
+                  {
+                    key: 'delete-issue',
+                    priority: 'danger',
+                    label: t('Delete'),
+                    hidden: !hasAccess,
+                    disabled: !deleteCap.enabled,
+                    details: deleteCap.disabledReason,
+                    onAction: this.openDeleteModal,
+                  },
+                  {
+                    key: 'delete-and-discard',
+                    priority: 'danger',
+                    label: t('Delete and discard future events'),
+                    hidden: !hasAccess,
+                    disabled: !deleteDiscardCap.enabled,
+                    details: deleteDiscardCap.disabledReason,
+                    onAction: this.openDiscardModal,
+                  },
+                ]}
+              />
+            )}
+          </Access>
+          <SubscribeAction
+            disabled={disabled}
+            group={group}
+            onClick={this.handleClick(disabled, this.onToggleSubscribe)}
+          />
+          <EnvironmentPageFilter alignDropdown="right" />
+          <Feature
+            hookName="feature-disabled:open-in-discover"
+            features={['discover-basic']}
+            organization={organization}
+          >
+            <ActionButton
+              disabled={disabled}
+              to={disabled ? '' : this.getDiscoverUrl()}
+              onClick={() => this.trackIssueAction('open_in_discover')}
+              size="md"
+            >
+              <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
+            </ActionButton>
+          </Feature>
+          <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
+            <IgnoreActions
+              isIgnored={isIgnored}
+              onUpdate={this.onUpdate}
+              disabled={disabled}
+            />
+          </GuideAnchor>
+          <GuideAnchor target="resolve" position="bottom" offset={20}>
+            <ResolveActions
+              disabled={disabled}
+              disableDropdown={disabled}
+              hasRelease={hasRelease}
+              latestRelease={project.latestRelease}
+              onUpdate={this.onUpdate}
+              orgSlug={organization.slug}
+              projectSlug={project.slug}
+              isResolved={isResolved}
+              isAutoResolved={
+                group.status === 'resolved' ? group.statusDetails.autoResolved : undefined
+              }
+            />
+          </GuideAnchor>
+        </Wrapper>
+      );
+    }
 
     return (
       <Wrapper>

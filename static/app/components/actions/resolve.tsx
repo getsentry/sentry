@@ -187,14 +187,18 @@ class ResolveActions extends Component<Props> {
 
     return (
       <DropdownMenuControl
-        size="sm"
+        size="md"
         items={items}
+        direction="right"
+        placement="bottom end"
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
+            type="button"
+            priority="primary"
             aria-label={t('More resolve options')}
-            size="xs"
+            size="md"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -267,12 +271,13 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            size="xs"
+            type="button"
+            priority="primary"
+            size="md"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
             tooltipProps={{delay: 300, disabled}}
-            icon={<IconCheckmark size="xs" />}
             onClick={onResolve}
             disabled={disabled}
           >

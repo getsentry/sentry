@@ -304,15 +304,24 @@ function GroupHeader({
   return (
     <Layout.Header>
       <div className={className}>
-        <Breadcrumbs
-          crumbs={[
-            {
-              label: 'Issues',
-              to: `/organizations/${organization.slug}/issues/${location.search}`,
-            },
-            {label: shortIdBreadCrumb},
-          ]}
-        />
+        <BreadcrumbActionWrapper>
+          <Breadcrumbs
+            crumbs={[
+              {
+                label: 'Issues',
+                to: `/organizations/${organization.slug}/issues/${location.search}`,
+              },
+              {label: shortIdBreadCrumb},
+            ]}
+          />
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={event}
+            query={location.query}
+          />
+        </BreadcrumbActionWrapper>
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
@@ -377,13 +386,13 @@ function GroupHeader({
           </StatsWrapper>
         </HeaderRow>
         <HeaderRow>
-          <GroupActions
+          {/* <GroupActions
             group={group}
             project={project}
             disabled={disableActions}
             event={event}
             query={location.query}
-          />
+          /> */}
           <StyledSeenByList
             seenBy={group.seenBy}
             iconTooltip={t('People who have viewed this issue')}
@@ -398,6 +407,13 @@ function GroupHeader({
 }
 
 export default GroupHeader;
+
+const BreadcrumbActionWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+  justify-content: space-between;
+`;
 
 const ShortIdBreadrcumb = styled('div')`
   display: flex;

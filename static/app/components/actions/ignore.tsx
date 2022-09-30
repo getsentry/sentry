@@ -220,7 +220,7 @@ const IgnoreActions = ({
   return (
     <ButtonBar merged>
       <IgnoreButton
-        size="xs"
+        size="md"
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
@@ -232,13 +232,14 @@ const IgnoreActions = ({
         {t('Ignore')}
       </IgnoreButton>
       <DropdownMenuControl
-        size="sm"
+        size="md"
+        placement="bottom right"
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="xs"
+            size="md"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={disabled}
           />
