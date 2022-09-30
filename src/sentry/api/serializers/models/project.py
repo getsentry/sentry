@@ -165,6 +165,29 @@ def get_features_for_projects(
     return features_by_project
 
 
+def format_options(attrs: defaultdict(dict)):
+    return {
+        "sentry:csp_ignored_sources_defaults": bool(
+            attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
+        ),
+        "sentry:csp_ignored_sources": "\n".join(
+            attrs["options"].get("sentry:csp_ignored_sources", []) or []
+        ),
+        "sentry:reprocessing_active": bool(attrs.get("sentry:reprocessing_active", False)),
+        "sentry:performance_issue_creation_rate": attrs["options"].get(
+            "sentry:performance_issue_creation_rate"
+        ),
+        "filters:blacklisted_ips": "\n".join(attrs["options"].get("sentry:blacklisted_ips", [])),
+        f"filters:{FilterTypes.RELEASES}": "\n".join(
+            attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
+        ),
+        f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
+            attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
+        ),
+        "feedback:branding": attrs.get("feedback:branding", "1") == "1",
+    }
+
+
 class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
     stats: Any
     transactionStats: Any
@@ -759,36 +782,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data = super().serialize(obj, attrs, user)
+        attrs["options"].update(format_options(attrs))
+
         data.update(
             {
                 "latestRelease": attrs["latest_release"],
-                "options": {
-                    "sentry:spike_projection_config": bool(
-                        attrs["options"].get("sentry:spike_projection_config", False)
-                    ),
-                    "sentry:csp_ignored_sources_defaults": bool(
-                        attrs["options"].get("sentry:csp_ignored_sources_defaults", True)
-                    ),
-                    "sentry:csp_ignored_sources": "\n".join(
-                        attrs["options"].get("sentry:csp_ignored_sources", []) or []
-                    ),
-                    "sentry:reprocessing_active": bool(
-                        attrs["options"].get("sentry:reprocessing_active", False)
-                    ),
-                    "sentry:performance_issue_creation_rate": attrs["options"].get(
-                        "sentry:performance_issue_creation_rate"
-                    ),
-                    "filters:blacklisted_ips": "\n".join(
-                        attrs["options"].get("sentry:blacklisted_ips", [])
-                    ),
-                    f"filters:{FilterTypes.RELEASES}": "\n".join(
-                        attrs["options"].get(f"sentry:{FilterTypes.RELEASES}", [])
-                    ),
-                    f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
-                        attrs["options"].get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
-                    ),
-                    "feedback:branding": attrs["options"].get("feedback:branding", "1") == "1",
-                },
+                "options": attrs["options"],
                 "digestsMinDelay": attrs["options"].get(
                     "digests:mail:minimum_delay", digests.minimum_delay
                 ),
@@ -896,4 +895,34 @@ class SharedProjectSerializer(Serializer):
             "color": obj.color,
             "features": feature_list,
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
+        }
+
+
+class ProjectOptionsSerializer(Serializer):
+    def __init__(self, option: str | None = None) -> None:
+        self.option = option
+
+    def get_attrs(self, item_list: Sequence[Project], user):
+        attrs = defaultdict(dict)
+        queryset = ProjectOption.objects.filter(
+            project__in=item_list, key__in=[self.option] if self.option else OPTION_KEYS
+        )
+        options_by_project = defaultdict(dict)
+        for option in queryset.iterator():
+            options_by_project[option.project_id][option.key] = option.value
+
+        for item in item_list:
+            attrs[item]["options"] = options_by_project[item.id]
+
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        if not self.option:
+            attrs["options"].update(format_options(attrs))
+
+        return {
+            "id": str(obj.id),
+            "slug": obj.slug,
+            "name": obj.name,
+            "options": attrs["options"],
         }

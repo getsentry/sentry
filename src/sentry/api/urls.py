@@ -321,6 +321,7 @@ from .endpoints.organization_onboarding_continuation_email import (
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
+from .endpoints.organization_projectoptions import OrganizationProjectOptionsEndpoint
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -1385,6 +1386,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/projects/$",
                     OrganizationProjectsEndpoint.as_view(),
                     name="sentry-api-0-organization-projects",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/project-options/$",
+                    OrganizationProjectOptionsEndpoint.as_view(),
+                    name="sentry-api-0-organization-project-options",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/projects-count/$",
