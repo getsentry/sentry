@@ -52,7 +52,6 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
-import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -128,7 +127,6 @@ const EventEntries = ({
   const orgFeatures = organization?.features ?? [];
 
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
   const recordIssueError = useCallback(() => {
     if (!event || !event.errors || !(event.errors.length > 0)) {
