@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -49,7 +49,7 @@ function StacktraceLinkModal({
     });
   }
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     trackIntegrationAnalytics('integrations.stacktrace_submit_config', {
       setup_type: 'automatic',
       view: 'stacktrace_issue_details',
@@ -94,7 +94,7 @@ function StacktraceLinkModal({
       const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
       addErrorMessage(t('Something went wrong%s', apiErrors));
     }
-  }, [closeModal, onSubmit, organization, project, api, filename, sourceCodeInput]);
+  };
 
   return (
     <Fragment>
@@ -121,9 +121,7 @@ function StacktraceLinkModal({
               type="text"
               value={sourceCodeInput}
               onChange={onHandleChange}
-              placeholder={t(
-                `https://github.com/helloworld/Hello-World/blob/master/${filename}`
-              )}
+              placeholder={`https://github.com/helloworld/Hello-World/blob/master/${filename}`}
             />
             <Button type="button" onClick={handleSubmit}>
               {t('Submit')}
