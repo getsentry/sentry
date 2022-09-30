@@ -186,17 +186,16 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen more than {value} times in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
-        group = event.group if event.group is not None else event.groups[0]
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=ISSUE_TSDB_GROUP_MODELS[group.issue_category],
-            keys=[group.id],
+            model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
+            keys=[event.group_id],
             start=start,
             end=end,
             environment_id=environment_id,
             use_cache=True,
-            jitter_value=group.id,
+            jitter_value=event.group_id,
         )
-        return sums[group.id]
+        return sums[event.group_id]
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
@@ -204,17 +203,16 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
-        group = event.group if event.group is not None else event.groups[0]
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=ISSUE_TSDB_USER_GROUP_MODELS[group.issue_category],
-            keys=[group.id],
+            model=ISSUE_TSDB_USER_GROUP_MODELS[event.group.issue_category],
+            keys=[event.group_id],
             start=start,
             end=end,
             environment_id=environment_id,
             use_cache=True,
-            jitter_value=group.id,
+            jitter_value=event.group_id,
         )
-        return totals[group.id]
+        return totals[event.group_id]
 
 
 percent_intervals = {
@@ -307,16 +305,15 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
 
-            group = event.group if event.group is not None else event.groups[0]
             issue_count = self.tsdb.get_sums(
-                model=ISSUE_TSDB_GROUP_MODELS[group.issue_category],
-                keys=[group.id],
+                model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
+                keys=[event.group_id],
                 start=start,
                 end=end,
                 environment_id=environment_id,
                 use_cache=True,
-                jitter_value=group.id,
-            )[group.id]
+                jitter_value=event.group_id,
+            )[event.group_id]
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now
                 self.logger.info(

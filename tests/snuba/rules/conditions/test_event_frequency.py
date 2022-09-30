@@ -62,13 +62,14 @@ class FrequencyConditionMixin:
                 timestamp=now() - timedelta(minutes=minutes),
                 perf=perf,
             )
+        group = event.group if event.group is not None else event.groups[0]
 
         if passes:
-            self.assertPasses(rule, event)
-            self.assertPasses(environment_rule, event)
+            self.assertPasses(rule, event.for_group(group))
+            self.assertPasses(environment_rule, event.for_group(group))
         else:
-            self.assertDoesNotPass(rule, event)
-            self.assertDoesNotPass(environment_rule, event)
+            self.assertDoesNotPass(rule, event.for_group(group))
+            self.assertDoesNotPass(environment_rule, event.for_group(group))
 
 
 class StandardIntervalMixin:
@@ -152,11 +153,12 @@ class StandardIntervalMixin:
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertPasses(rule, event)
+        group = event.group if event.group is not None else event.groups[0]
+        self.assertPasses(rule, event.for_group(group))
 
         data["value"] = 101
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event.for_group(group))
 
     def test_comparison_txn_events(self):
         # Test data is 4 events in the current period and 2 events in the comparison period, so
@@ -188,11 +190,12 @@ class StandardIntervalMixin:
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertPasses(rule, event)
+        group = event.group if event.group is not None else event.groups[0]
+        self.assertPasses(rule, event.for_group(group))
 
         data["value"] = 101
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event.for_group(group))
 
     def test_comparison_empty_comparison_period(self):
         # Test data is 1 event in the current period and 0 events in the comparison period. This
@@ -233,12 +236,13 @@ class StandardIntervalMixin:
             "comparisonType": "percent",
             "comparisonInterval": "1d",
         }
+        group = event.group if event.group is not None else event.groups[0]
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event.for_group(group))
 
         data["value"] = 100
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event.for_group(group))
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
@@ -558,9 +562,10 @@ class EventFrequencyPercentConditionTestCase(
             "comparisonType": "percent",
             "comparisonInterval": "1d",
         }
+        group = event.group if event.group is not None else event.groups[0]
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertPasses(rule, event)
+        self.assertPasses(rule, event.for_group(group))
 
         data["value"] = 101
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertDoesNotPass(rule, event.for_group(group))
