@@ -204,7 +204,6 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     label = "The issue is seen by more than {value} users in {interval}"
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
-        # CEO: maybe pass group to query_hook instead
         group = event.group if event.group is not None else event.groups[0]
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
             model=ISSUE_TSDB_USER_GROUP_MODELS[group.issue_category],
