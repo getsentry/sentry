@@ -59,7 +59,7 @@ from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
-    NON_RESOLVABLE_VALUE_OP,
+    NON_RESOLVABLE_TAG_VALUES,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
@@ -778,6 +778,12 @@ class SnubaResultConverter:
                     for data in subresults[k]["data"]:
                         self._extract_data(data, groups)
 
+        # Creating this dictionary serves the purpose of having a mapping from the alias of a groupBy column to the
+        # original groupBy column, and we need this to determine for which tag values we don't need to reverse resolve
+        # in the indexer. As an example, we do not want to reverse resolve tag values for project_ids.
+        # Another exception is `team_key_transaction` derived op since we don't want to reverse resolve its value as
+        # it is just a boolean. Therefore we rely on creating a mapping from the alias to the operation in this case
+        # to determine whether we need to reverse the tag value or not.
         groupby_alias_to_groupby_column = (
             {
                 metric_groupby_obj.alias: metric_groupby_obj.field
@@ -798,9 +804,7 @@ class SnubaResultConverter:
                             self._use_case_id, self._organization_id, value, weak=True
                         ),
                     )
-                    if groupby_alias_to_groupby_column.get(key)
-                    not in set(FIELD_ALIAS_MAPPINGS.values()) | set(FIELD_ALIAS_MAPPINGS.keys())
-                    and groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_VALUE_OP
+                    if groupby_alias_to_groupby_column.get(key) not in NON_RESOLVABLE_TAG_VALUES
                     else (key, value)
                     for key, value in tags
                 ),

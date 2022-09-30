@@ -34,6 +34,7 @@ __all__ = (
     "OP_REGEX",
     "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
+    "NON_RESOLVABLE_TAG_VALUES",
 )
 
 
@@ -177,7 +178,9 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
-NON_RESOLVABLE_VALUE_OP = {"team_key_transaction"}
+NON_RESOLVABLE_TAG_VALUES = (
+    {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
+)
 
 
 class Tag(TypedDict):
