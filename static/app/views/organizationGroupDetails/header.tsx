@@ -413,7 +413,7 @@ const BreadcrumbActionWrapper = styled('div')`
   gap: ${space(1)};
   flex-direction: column;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     justify-content: space-between;
     flex-direction: row;
     align-items: center;

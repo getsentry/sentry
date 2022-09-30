@@ -401,7 +401,7 @@ class Actions extends Component<Props, State> {
                   'aria-label': t('More Actions'),
                   icon: <IconEllipsis size="xs" />,
                   showChevron: false,
-                  size: 'md',
+                  size: 'sm',
                 }}
                 items={[
                   {
@@ -443,7 +443,7 @@ class Actions extends Component<Props, State> {
             group={group}
             onClick={this.handleClick(disabled, this.onToggleSubscribe)}
           />
-          <EnvironmentPageFilter alignDropdown="right" />
+          <EnvironmentPageFilter alignDropdown="right" size="sm" />
           <Feature
             hookName="feature-disabled:open-in-discover"
             features={['discover-basic']}
@@ -453,7 +453,7 @@ class Actions extends Component<Props, State> {
               disabled={disabled}
               to={disabled ? '' : this.getDiscoverUrl()}
               onClick={() => this.trackIssueAction('open_in_discover')}
-              size="md"
+              size="sm"
             >
               <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
             </ActionButton>

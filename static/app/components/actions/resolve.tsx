@@ -187,7 +187,7 @@ class ResolveActions extends Component<Props> {
 
     return (
       <DropdownMenuControl
-        size="md"
+        size="sm"
         items={items}
         direction="right"
         placement="bottom end"
@@ -198,7 +198,7 @@ class ResolveActions extends Component<Props> {
             type="button"
             priority="primary"
             aria-label={t('More resolve options')}
-            size="md"
+            size="sm"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -273,7 +273,7 @@ class ResolveActions extends Component<Props> {
           <ResolveButton
             type="button"
             priority="primary"
-            size="md"
+            size="sm"
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
