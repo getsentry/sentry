@@ -20,7 +20,7 @@ import urllib3
 
 from sentry import quotas
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.base import EventStream
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -101,7 +101,6 @@ class SnubaProtocolEventStream(EventStream):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool,
-        group_states: Optional[GroupStates] = None,
     ) -> Mapping[str, str]:
         return {"Received-Timestamp": str(received_timestamp)}
 
@@ -118,7 +117,6 @@ class SnubaProtocolEventStream(EventStream):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
         **kwargs: Any,
     ) -> None:
         if isinstance(event, GroupEvent):
@@ -149,7 +147,6 @@ class SnubaProtocolEventStream(EventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
-            group_states,
         )
 
         skip_semantic_partitioning = (
@@ -184,7 +181,6 @@ class SnubaProtocolEventStream(EventStream):
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
                     "skip_consume": skip_consume,
-                    "group_states": group_states,
                 },
             ),
             headers=headers,
@@ -424,7 +420,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
         **kwargs: Any,
     ) -> None:
         super().insert(
@@ -435,7 +430,6 @@ class SnubaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
-            group_states,
             **kwargs,
         )
         self._dispatch_post_process_group_task(
@@ -447,5 +441,4 @@ class SnubaEventStream(SnubaProtocolEventStream):
             is_new_group_environment,
             primary_hash,
             skip_consume,
-            group_states,
         )

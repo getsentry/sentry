@@ -29,14 +29,6 @@ def kafka_message_payload():
             "is_regression": None,
             "is_new_group_environment": False,
             "skip_consume": False,
-            "group_states": [
-                {
-                    "id": 43,
-                    "is_new": False,
-                    "is_regression": None,
-                    "is_new_group_environment": False,
-                }
-            ],
         },
     ]
 
@@ -92,9 +84,6 @@ def test_post_process_forwarder(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
     )
 
     forwarder.shutdown()
@@ -128,9 +117,6 @@ def test_post_process_forwarder_bad_message_headers(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
     )
 
     forwarder.shutdown()
@@ -179,9 +165,6 @@ def test_errors_post_process_forwarder_missing_headers(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
     )
 
     forwarder.shutdown()
@@ -210,9 +193,6 @@ def test_errors_post_process_forwarder_false_headers(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
     )
 
     forwarder.shutdown()
@@ -285,9 +265,6 @@ def test_transactions_post_process_forwarder_true_headers(
         is_new=False,
         is_regression=None,
         is_new_group_environment=False,
-        group_states=[
-            {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
-        ],
     )
 
     forwarder.shutdown()
