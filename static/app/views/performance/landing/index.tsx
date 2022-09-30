@@ -149,6 +149,8 @@ export function PerformanceLanding(props: Props) {
 
   const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
 
+  const selectedProjects = eventView.project.map(String);
+
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -215,7 +217,11 @@ export function PerformanceLanding(props: Props) {
                     />
                     <DynamicSamplingAlert
                       organization={organization}
-                      projects={projects}
+                      selectProject={
+                        selectedProjects.length === 1
+                          ? projects.find(project => project.slug === selectedProjects[0])
+                          : undefined
+                      }
                     />
                     <PageErrorAlert />
                     {showOnboarding ? (
@@ -276,7 +282,7 @@ export function PerformanceLanding(props: Props) {
                             organization={organization}
                             teams={teams}
                             selectedTeams={['myteams']}
-                            selectedProjects={eventView.project.map(String)}
+                            selectedProjects={selectedProjects}
                           >
                             <GenericQueryBatcher>
                               <ViewComponent {...props} />
