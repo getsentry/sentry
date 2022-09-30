@@ -69,9 +69,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             is_transaction_event=is_transaction_event,
         )
 
-    @patch("sentry.eventstream.insert")
+    @patch("sentry.eventstream.insert", autospec=True)
     def test(self, mock_eventstream_insert):
-        mock_eventstream_insert.wraps = self.kafka_eventstream.insert
         now = datetime.utcnow()
 
         event = self.__build_event(now)
@@ -106,9 +105,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             == 1
         )
 
-    @patch("sentry.eventstream.insert")
+    @patch("sentry.eventstream.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
-        mock_eventstream_insert.wraps = self.kafka_eventstream.insert
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = None
@@ -134,9 +132,8 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         )
         assert len(result["data"]) == 1
 
-    @patch("sentry.eventstream.insert")
+    @patch("sentry.eventstream.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
-        mock_eventstream_insert.wraps = self.kafka_eventstream.insert
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = None
