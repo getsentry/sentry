@@ -16,6 +16,7 @@ export function DynamicSamplingAlert({organization, selectProject}: Props) {
   const showAlert =
     organization.features.includes('server-side-sampling') &&
     organization.features.includes('server-side-sampling-ui') &&
+    organization.features.includes('dynamic-sampling-performance-cta') &&
     selectProject !== undefined;
 
   if (!showAlert) {
