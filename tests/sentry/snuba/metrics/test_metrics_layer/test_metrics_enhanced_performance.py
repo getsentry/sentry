@@ -1,6 +1,7 @@
 """
 Metrics Service Layer Tests for Performance
 """
+import inspect
 import re
 import time
 from datetime import timedelta
@@ -32,12 +33,74 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
+# TODO: put this utils in the proper file. Here only for demonstration and prototyping.
+
+
+@freeze_time()
+class FrozenTimeTestCase(TestCase):
+    def now(self):
+        return timezone.now()
+
+    def now_minus(self, **kwargs):
+        return self.now() - timedelta(**kwargs)
+
+    def now_plus(self, **kwargs):
+        return self.now() + timedelta(**kwargs)
+
+
+class FrozenTestCase1(FrozenTimeTestCase):
+    def test_case(self):
+        self.now()
+        self.now_minus(seconds=10)
+        self.now_plus(hours=10)
+
+
+class TimeObject:
+    def now(self):
+        return timezone.now()
+
+    def now_minus(self, **kwargs):
+        return self.now() - timedelta(**kwargs)
+
+    def now_plus(self, **kwargs):
+        return self.now() + timedelta(**kwargs)
+
+
+def freeze(frozen_time, func):
+    def wrapped(*args, **kwargs):
+        with freeze_time(frozen_time):
+            kwargs["frozen_time"] = TimeObject()
+            return func(*args, **kwargs)
+
+    return wrapped
+
+
+def frozen_test_case(frozen_time=None):
+    def inner(cls):
+        for name, m in inspect.getmembers(
+            cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)
+        ):
+            # We inject automatically the frozen time into the methods that start with "test_frozen_*"
+            if name.startswith("test_frozen_"):
+                setattr(cls, name, freeze(frozen_time, m))
+
+        return cls
+
+    return inner
+
+
+@frozen_test_case(frozen_time="2022-09-28 13:00:00")
+class FrozenTestCase2(TestCase):
+    def test_frozen_case(self, frozen_time):
+        frozen_time.now()
+        frozen_time.now_minus(seconds=10)
+        frozen_time.now_plus(hours=10)
+
+    def test_case(self):
+        timezone.now()
+
 
 class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
-    def setUp(self):
-        super().setUp()
-        self.now = timezone.now()
-
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
             {
