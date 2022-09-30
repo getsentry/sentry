@@ -20,6 +20,7 @@ from symbolic import SourceMapCache as SmCache
 from symbolic import SourceMapView
 
 from sentry import features, http, options
+from sentry.event_manager import set_tag
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -33,7 +34,7 @@ from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import get_path, set_path
+from sentry.utils.safe import get_path, set_path, setdefault_path
 from sentry.utils.urls import non_standard_url_join
 
 from .cache import SourceCache, SourceMapCache
@@ -1196,7 +1197,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
 
-            if features.has("javascript-console-error-tag", self.organization.id, actor=None):
+            if features.has(
+                "organization:javascript-console-error-tag", self.organization.id, actor=None
+            ):
                 suspected_console_errors = None
                 try:
                     suspected_console_errors = self.suspected_console_errors(new_frames)
@@ -1207,8 +1210,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     )
 
                 try:
-                    with sentry_sdk.configure_scope() as scope:
-                        scope.set_tag("empty_stacktrace.js_console", suspected_console_errors)
+                    setdefault_path(self.data, "tags", value=[])
+                    set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
                 except Exception as exc:
                     logger.error(
                         "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
