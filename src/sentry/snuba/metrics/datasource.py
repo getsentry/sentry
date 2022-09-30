@@ -541,9 +541,7 @@ def _get_group_limit_filters(
     if not metrics_query.groupby or not results:
         return None
 
-    # Translate the groupby fields of the query into their tag keys because these fields
-    # will be used to filter down and order the results of the 2nd query.
-    # For example, (project_id, transaction) is translated to (project_id, tags[3])
+    # Creates a mapping of groupBy fields to their equivalent SnQL
     key_to_condition_dict: Dict[Groupable, Any] = OrderedDict()
     for metric_groupby_obj in metrics_query.groupby:
         key_to_condition_dict[
