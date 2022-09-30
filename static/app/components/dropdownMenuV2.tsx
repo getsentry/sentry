@@ -188,7 +188,7 @@ function Menu({
         items={node.value.children as MenuItemProps[]}
         trigger={trigger}
         menuTitle={node.value.submenuTitle}
-        placement="right top"
+        placement={node.value.placement ?? 'right top'}
         offset={-4}
         crossOffset={-8}
         closeOnSelect={closeOnSelect}

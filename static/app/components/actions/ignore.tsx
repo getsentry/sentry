@@ -7,6 +7,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
@@ -127,7 +128,7 @@ const IgnoreActions = ({
       />
     ));
 
-  const dropdownItems = [
+  const dropdownItems: MenuItemProps[] = [
     {
       key: 'for',
       label: t('For\u2026'),
@@ -149,6 +150,7 @@ const IgnoreActions = ({
       key: 'until-reoccur',
       label: t('Until this occurs again\u2026'),
       isSubmenu: true,
+      placement: 'top left',
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-reoccur-${count}-times`,
@@ -185,6 +187,7 @@ const IgnoreActions = ({
       key: 'until-affect',
       label: t('Until this affects an additional\u2026'),
       isSubmenu: true,
+      placement: 'top left',
       children: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-affect-${count}-users`,
