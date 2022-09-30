@@ -662,7 +662,6 @@ def metrics_parallel_consumer(**options):
 @log_options()
 @batching_kafka_options("billing-metrics-consumer")
 @configuration
-@click.option("--processes", default=1, type=int)
 @click.option("--topic", default="snuba-generic-metrics", help="Topic to get metrics from.")
 def metrics_billing_consumer(**options):
     from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer

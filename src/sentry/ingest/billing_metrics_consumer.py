@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import (
     Any,
@@ -24,6 +25,8 @@ from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
+logger = logging.getLogger(__name__)
+
 
 def get_metrics_billing_consumer(
     topic: str,
@@ -34,6 +37,8 @@ def get_metrics_billing_consumer(
     **options: Any,
 ) -> StreamProcessor[KafkaPayload]:
     bootstrap_servers = _get_bootstrap_servers(topic, force_topic, force_cluster)
+
+    logger.warning("Unused options: %s", options)
 
     return StreamProcessor(
         consumer=KafkaConsumer(
