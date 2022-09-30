@@ -1,8 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import type {AriaPositionProps} from '@react-aria/overlays';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import Button, {ButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
@@ -36,10 +37,13 @@ type Props = {
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
   disabled?: boolean;
+  dropdownPlacement?: AriaPositionProps['placement'];
   latestRelease?: Release;
+  priority?: ButtonProps['priority'];
   projectFetchError?: boolean;
   projectSlug?: string;
   shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
 } & Partial<typeof defaultProps>;
 
 class ResolveActions extends Component<Props> {
@@ -133,6 +137,9 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       disableDropdown,
+      dropdownPlacement,
+      size = 'xs',
+      priority,
     } = this.props;
 
     if (isResolved) {
@@ -187,18 +194,17 @@ class ResolveActions extends Component<Props> {
 
     return (
       <DropdownMenuControl
-        size="sm"
+        size={size}
         items={items}
-        direction="right"
-        placement="bottom end"
+        placement={dropdownPlacement}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             type="button"
-            priority="primary"
+            size={size}
+            priority={priority}
             aria-label={t('More resolve options')}
-            size="sm"
             icon={<IconChevron direction="down" size="xs" />}
             disabled={isDisabled}
           />
@@ -253,6 +259,8 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       projectFetchError,
+      size = 'xs',
+      priority,
     } = this.props;
 
     if (isResolved) {
@@ -272,12 +280,13 @@ class ResolveActions extends Component<Props> {
         <ButtonBar merged>
           <ResolveButton
             type="button"
-            priority="primary"
-            size="sm"
+            priority={priority}
+            size={size}
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
             tooltipProps={{delay: 300, disabled}}
+            icon={<IconCheckmark size={size} />}
             onClick={onResolve}
             disabled={disabled}
           >

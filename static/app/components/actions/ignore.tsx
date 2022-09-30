@@ -48,6 +48,7 @@ type Props = {
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
 };
 
 const IgnoreActions = ({
@@ -57,6 +58,7 @@ const IgnoreActions = ({
   confirmMessage,
   confirmLabel = t('Ignore'),
   isIgnored = false,
+  size = 'xs',
 }: Props) => {
   const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
     openConfirmModal({
@@ -80,12 +82,12 @@ const IgnoreActions = ({
       <Tooltip title={t('Change status to unresolved')}>
         <Button
           priority="primary"
-          size="xs"
+          size={size}
           onClick={() =>
             onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
           }
           aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
+          icon={<IconMute size={size} />}
         />
       </Tooltip>
     );
@@ -220,27 +222,27 @@ const IgnoreActions = ({
   return (
     <ButtonBar merged>
       <IgnoreButton
-        size="sm"
+        size={size}
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={<IconMute size="xs" />}
+        icon={<IconMute size={size} />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >
         {t('Ignore')}
       </IgnoreButton>
       <DropdownMenuControl
-        size="sm"
+        size={size}
         placement="bottom right"
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="sm"
-            icon={<IconChevron direction="down" size="xs" />}
+            size={size}
+            icon={<IconChevron direction="down" size={size} />}
             disabled={disabled}
           />
         )}

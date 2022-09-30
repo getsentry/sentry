@@ -9,9 +9,10 @@ type Props = {
   group: Group;
   onClick: (event: React.MouseEvent) => void;
   disabled?: boolean;
+  size?: 'xs' | 'sm';
 };
 
-function SubscribeAction({disabled, group, onClick}: Props) {
+function SubscribeAction({disabled, group, onClick, size = 'xs'}: Props) {
   const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
 
   return (
@@ -20,10 +21,10 @@ function SubscribeAction({disabled, group, onClick}: Props) {
       title={getSubscriptionReason(group, true)}
       tooltipProps={{delay: 300}}
       priority={group.isSubscribed ? 'primary' : 'default'}
-      size="sm"
+      size={size}
       aria-label={t('Subscribe')}
       onClick={onClick}
-      icon={<IconBell size="xs" />}
+      icon={<IconBell size={size} />}
     />
   );
 }

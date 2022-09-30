@@ -444,6 +444,7 @@ class Actions extends Component<Props, State> {
             disabled={disabled}
             group={group}
             onClick={this.handleClick(disabled, this.onToggleSubscribe)}
+            size="sm"
           />
           <EnvironmentPageFilter alignDropdown="right" size="sm" />
           <Feature
@@ -487,6 +488,7 @@ class Actions extends Component<Props, State> {
                   isIgnored={isIgnored}
                   onUpdate={this.onUpdate}
                   disabled={disabled}
+                  size="sm"
                 />
               </GuideAnchor>
               <GuideAnchor target="resolve" position="bottom" offset={20}>
@@ -500,6 +502,9 @@ class Actions extends Component<Props, State> {
                   projectSlug={project.slug}
                   isResolved={isResolved}
                   isAutoResolved={isAutoResolved}
+                  size="sm"
+                  priority="primary"
+                  dropdownPlacement="bottom right"
                 />
               </GuideAnchor>
             </Fragment>
