@@ -44,7 +44,7 @@ def basic_protocol_handler(
         for name in ("is_new", "is_regression", "is_new_group_environment"):
             kwargs[name] = task_state[name]
 
-        if task_state and task_state.get("group_states"):
+        if task_state:
             kwargs["group_states"] = task_state.get("group_states")
 
         return kwargs
