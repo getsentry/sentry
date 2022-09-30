@@ -719,4 +719,5 @@ class BatchedConsumerTest(TestCase):
             is_new=False,
             is_regression=None,
             is_new_group_environment=False,
+            group_states=None,
         )
