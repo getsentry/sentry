@@ -393,21 +393,27 @@ function ProjectSelector({
               onApply={() => handleUpdate(actions)}
               onShowAllProjects={() => {
                 handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
-                actions.close();
                 trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
                   button_type: 'all',
                   path: getRouteStringFromRoutes(router.routes),
                   organization,
                 });
+
+                // Close action triggers onClose which needs to run on next render
+                // with updated state to work correctly
+                setTimeout(actions.close);
               }}
               onShowMyProjects={() => {
                 handleClear();
-                actions.close();
                 trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
                   button_type: 'my',
                   path: getRouteStringFromRoutes(router.routes),
                   organization,
                 });
+
+                // Close action triggers onClose which needs to run on next render
+                // with updated state to work correctly
+                setTimeout(actions.close);
               }}
               message={footerMessage}
             />
