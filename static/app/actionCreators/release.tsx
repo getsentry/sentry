@@ -7,8 +7,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import {Deploy, Release, ReleaseStatus} from 'sentry/types';
+import ReleaseStore, {
+  getReleaseStoreKey,
+  ReleaseDeploysResponse,
+} from 'sentry/stores/releaseStore';
+import {Release, ReleaseStatus} from 'sentry/types';
 
 type ParamsGet = {
   orgSlug: string;
@@ -67,7 +70,7 @@ export function getReleaseDeploys(api: Client, params: ParamsGet) {
     .requestPromise(path, {
       method: 'GET',
     })
-    .then((res: Deploy[]) => {
+    .then((res: ReleaseDeploysResponse) => {
       ReleaseStore.loadDeploysSuccess(projectSlug, releaseVersion, res);
     })
     .catch(err => {

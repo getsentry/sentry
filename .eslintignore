@@ -7,3 +7,4 @@
 !.github/workflows/scripts/*
 !.storybook
 *.d.ts
+static/app/openapi.ts

@@ -1,6 +1,14 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import {Deploy, Organization, Release} from 'sentry/types';
+import {Organization, Release} from 'sentry/types';
+import {ExtractPathResponseData} from 'sentry/types/api';
+
+export type ReleaseDeploysResponse = ExtractPathResponseData<
+  '/api/0/organizations/{organization_slug}/releases/{version}/deploys/',
+  'get'
+>;
+
+type Deploy = ReleaseDeploysResponse[number];
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;
