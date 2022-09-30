@@ -411,8 +411,13 @@ export default GroupHeader;
 const BreadcrumbActionWrapper = styled('div')`
   display: flex;
   gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+  }
 `;
 
 const ShortIdBreadrcumb = styled('div')`
