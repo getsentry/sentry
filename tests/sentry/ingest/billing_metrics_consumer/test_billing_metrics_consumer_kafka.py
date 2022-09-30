@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from unittest import mock
 
@@ -68,14 +69,14 @@ def test_outcomes_consumed(track_outcome, kafka_producer, kafka_admin):
 
         metrics_consumer = get_metrics_billing_consumer(
             topic=metrics_topic,
-            group_id="some_group_id",
+            group_id=uuid.uuid4().hex,
             auto_offset_reset="earliest",
             force_topic=None,
             force_cluster=None,
         )
 
         calls = track_outcome.mock_calls
-        for i in range(100):
+        for _ in range(100):
             metrics_consumer._run_once()
             if calls:
                 assert calls == [
