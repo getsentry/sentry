@@ -135,9 +135,7 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
         isLoading={false}
       >
         <StyledAlert type="error" showIcon>
-          {t(
-            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-          )}
+          {fetchError}
         </StyledAlert>
       </StyledPanelTable>
     );
@@ -255,9 +253,9 @@ const StyledIconCalendarWrapper = styled(IconCalendar)`
 `;
 
 const StyledAlert = styled(Alert)`
-  position: relative;
-  bottom: 0.5px;
-  grid-column-start: span 99;
+  border-radius: ${p => p.theme.borderRadiusBottom};
+  border-width: 1px 0 0 0;
+  grid-column: 1/-1;
   margin-bottom: 0;
 `;
 
