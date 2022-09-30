@@ -51,7 +51,7 @@ class MetricField:
         metric_name = get_public_name_from_mri(self.metric_mri)
         return f"{self.op}({metric_name})" if self.op else metric_name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         hashable_list = []
         if self.op is not None:
             hashable_list.append(self.op)
@@ -79,7 +79,12 @@ class MetricGroupByField:
 
     @property
     def name(self) -> str:
-        return self.field if isinstance(self.field, str) else self.field.alias
+        if isinstance(self.field, str):
+            return self.field
+        if isinstance(self.field, MetricField):
+            assert self.field.alias is not None
+            return self.field.alias
+        raise InvalidParams(f"Invalid groupBy field type: {self.field}")
 
 
 Tag = str
