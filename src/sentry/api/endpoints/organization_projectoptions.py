@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import pending_silo_endpoint
-from sentry.api.bases.organization import Organization, OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import Organization, OrganizationEndpoint
 from sentry.api.bases.project import Project
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import ProjectOptionsSerializer
@@ -10,7 +10,7 @@ from sentry.api.serializers.models import ProjectOptionsSerializer
 
 @pending_silo_endpoint
 class OrganizationProjectOptionsEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationPermission,)
+    private = True
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
