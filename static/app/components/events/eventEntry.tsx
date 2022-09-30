@@ -31,6 +31,7 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
   group?: Group;
+  isShare?: boolean;
 };
 
 function EventEntry({
@@ -39,6 +40,7 @@ function EventEntry({
   event,
   organization,
   group,
+  isShare,
   route,
   router,
 }: Props) {
@@ -51,6 +53,8 @@ function EventEntry({
   );
 
   const groupingCurrentLevel = group?.metadata?.current_level;
+
+  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
 
   switch (entry.type) {
     case EntryType.EXCEPTION: {
@@ -121,6 +125,9 @@ function EventEntry({
           event={event}
           router={router}
           route={route}
+          isShare={isShare}
+          projectSlug={projectSlug}
+          replayId={replayId}
         />
       );
     }

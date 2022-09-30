@@ -416,13 +416,16 @@ const EventEntries = ({
           }
         />
       )}
-      {!isShare && (
-        <MiniReplayView
+      {!isShare && hasEventAttachmentsFeature && (
+        <RRWebIntegration
           event={event}
-          orgFeatures={orgFeatures}
-          orgSlug={orgSlug}
-          projectSlug={projectSlug}
-          replayId={replayId}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          renderer={children => (
+            <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+              {children}
+            </StyledReplayEventDataSection>
+          )}
         />
       )}
     </div>
@@ -468,6 +471,7 @@ function injectResourcesEntry(definedEvent: Event) {
 function Entries({
   definedEvent,
   projectSlug,
+  isShare,
   group,
   organization,
   route,
@@ -475,6 +479,7 @@ function Entries({
 }: {
   definedEvent: Event;
   projectSlug: string;
+  isShare?: boolean;
 } & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
   if (!Array.isArray(definedEvent.entries)) {
     return null;
@@ -506,56 +511,12 @@ function Entries({
             entry={entry}
             route={route}
             router={router}
+            isShare={isShare}
           />
         </ErrorBoundary>
       ))}
     </Fragment>
   );
-}
-
-type MiniReplayViewProps = {
-  event: Event;
-  orgFeatures: string[];
-  orgSlug: string;
-  projectSlug: string;
-  replayId: undefined | string;
-};
-
-function MiniReplayView({
-  event,
-  orgFeatures,
-  orgSlug,
-  projectSlug,
-  replayId,
-}: MiniReplayViewProps) {
-  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const hasSessionReplayFeature = orgFeatures.includes('session-replay-ui');
-
-  if (replayId && hasSessionReplayFeature) {
-    return (
-      <EventReplay
-        replayId={replayId}
-        orgSlug={orgSlug}
-        projectSlug={projectSlug}
-        event={event}
-      />
-    );
-  }
-  if (hasEventAttachmentsFeature) {
-    return (
-      <RRWebIntegration
-        event={event}
-        orgId={orgSlug}
-        projectId={projectSlug}
-        renderer={children => (
-          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
-            {children}
-          </StyledReplayEventDataSection>
-        )}
-      />
-    );
-  }
-  return null;
 }
 
 const StyledEventDataSection = styled(EventDataSection)`
