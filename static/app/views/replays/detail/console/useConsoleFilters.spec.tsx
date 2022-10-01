@@ -168,7 +168,9 @@ describe('useConsoleFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(5);
   });
 
@@ -180,7 +182,9 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -192,7 +196,9 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(2);
   });
 
@@ -205,7 +211,9 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(() => useConsoleFilters({breadcrumbs}));
+    const {result} = reactHooks.renderHook(useConsoleFilters, {
+      initialProps: {breadcrumbs},
+    });
     expect(result.current.items.length).toEqual(1);
   });
 });

@@ -12,7 +12,7 @@ describe('useProjects', function () {
   it('provides projects from the team store', function () {
     reactHooks.act(() => void ProjectsStore.loadInitialData(mockProjects));
 
-    const {result} = reactHooks.renderHook(() => useProjects());
+    const {result} = reactHooks.renderHook(useProjects);
     const {projects} = result.current;
 
     expect(projects).toEqual(mockProjects);
@@ -31,7 +31,7 @@ describe('useProjects', function () {
       body: [newProject3, newProject4],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(() => useProjects());
+    const {result, waitFor} = reactHooks.renderHook(useProjects);
     const {onSearch} = result.current;
 
     // Works with append

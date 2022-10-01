@@ -70,7 +70,7 @@ describe('usePerformanceOnboardingDocs', function () {
         push: jest.fn(),
       },
     } as any);
-    const wrapper = ({children}) => (
+    const wrapper = ({children}: {children?: React.ReactNode}) => (
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
@@ -98,8 +98,9 @@ describe('usePerformanceOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(() => usePerformanceOnboardingDocs(project), {
+    const {result} = reactHooks.renderHook(usePerformanceOnboardingDocs, {
       wrapper,
+      initialProps: project,
     });
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 
@@ -118,7 +119,7 @@ describe('usePerformanceOnboardingDocs', function () {
         push: jest.fn(),
       },
     } as any);
-    const wrapper = ({children}) => (
+    const wrapper = ({children}: {children?: React.ReactNode}) => (
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>
@@ -146,8 +147,9 @@ describe('usePerformanceOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(() => usePerformanceOnboardingDocs(project), {
+    const {result} = reactHooks.renderHook(usePerformanceOnboardingDocs, {
       wrapper,
+      initialProps: project,
     });
     const {docContents, isLoading, hasOnboardingContents} = result.current;
 

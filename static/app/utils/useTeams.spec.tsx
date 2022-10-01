@@ -16,7 +16,7 @@ describe('useTeams', function () {
   it('provides teams from the team store', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(() => useTeams());
+    const {result} = reactHooks.renderHook(useTeams);
     const {teams} = result.current;
 
     expect(teams).toEqual(mockTeams);
@@ -34,7 +34,7 @@ describe('useTeams', function () {
       body: [newTeam2, newTeam3],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(() => useTeams());
+    const {result, waitFor} = reactHooks.renderHook(useTeams);
     const {onSearch} = result.current;
 
     // Works with append
@@ -64,7 +64,7 @@ describe('useTeams', function () {
     const nonUserTeams = [TestStubs.Team({id: '2', isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
-    const {result} = reactHooks.renderHook(props => useTeams(props), {
+    const {result} = reactHooks.renderHook(useTeams, {
       initialProps: {provideUserTeams: true},
     });
     const {teams} = result.current;
@@ -143,7 +143,7 @@ describe('useTeams', function () {
   });
 
   it('correctly returns hasMore before and after store update', async function () {
-    const {result, waitFor} = reactHooks.renderHook(() => useTeams());
+    const {result, waitFor} = reactHooks.renderHook(useTeams);
 
     const {teams, hasMore} = result.current;
     expect(hasMore).toBe(null);
