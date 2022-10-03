@@ -168,6 +168,12 @@ type Props = WithRouterProps & {
    */
   excludeEnvironment?: boolean;
   /**
+   * If true, excludes the environment tag from the autocompletion list. This
+   * is because we don't want to treat environment as a tag in some places such
+   * as the stream view where it is a top level concept
+   */
+  excludeTags?: string[];
+  /**
    * List user's recent searches
    */
   hasRecentSearches?: boolean;
@@ -1086,6 +1092,10 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
+    if (this.props.excludeTags) {
+      tagKeys = tagKeys.filter(key => !this.props.excludeTags?.includes(key));
+    }
+
     const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
 
     // Filter out search items that are behind feature flags
@@ -1299,6 +1309,7 @@ class SmartSearchBar extends Component<Props, State> {
       organization,
       savedSearchType,
       searchSource,
+      excludeTags,
     } = this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -1348,6 +1359,10 @@ class SmartSearchBar extends Component<Props, State> {
     // Ignore the environment tag if the feature is active and
     // excludeEnvironment = true
     if (excludeEnvironment && tagName === 'environment') {
+      return null;
+    }
+
+    if (excludeTags && excludeTags.includes(tagName)) {
       return null;
     }
 

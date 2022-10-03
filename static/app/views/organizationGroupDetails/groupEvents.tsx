@@ -157,6 +157,7 @@ class GroupEvents extends Component<Props, State> {
           excludeEnvironment
           query={this.state.query}
           hasRecentSearches={false}
+          excludeTags={['issue']}
         />
       );
     }
