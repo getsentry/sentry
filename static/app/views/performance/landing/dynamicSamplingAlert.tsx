@@ -9,15 +9,15 @@ type Props = {
    * The project that the user is currently viewing.
    * If there are more projects selected, this shall be undefined.
    */
-  selectProject?: Project;
+  selectedProject?: Project;
 };
 
-export function DynamicSamplingAlert({organization, selectProject}: Props) {
+export function DynamicSamplingAlert({organization, selectedProject}: Props) {
   const showAlert =
     organization.features.includes('server-side-sampling') &&
     organization.features.includes('server-side-sampling-ui') &&
     organization.features.includes('dynamic-sampling-performance-cta') &&
-    selectProject !== undefined;
+    selectedProject !== undefined;
 
   if (!showAlert) {
     return null;
@@ -31,7 +31,7 @@ export function DynamicSamplingAlert({organization, selectProject}: Props) {
         <Button
           priority="link"
           borderless
-          href={`/settings/${organization.slug}/projects/${selectProject.slug}/server-side-sampling/set-global-sample-rate/?referrer=performance.rate-alert`}
+          href={`/settings/${organization.slug}/projects/${selectedProject.slug}/server-side-sampling/set-global-sample-rate/?referrer=performance.rate-alert`}
         >
           {t('Adjust Sample Rates')}
         </Button>

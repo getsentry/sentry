@@ -1,4 +1,10 @@
-__all__ = ("create_name_mapping_layers", "get_mri", "get_public_name_from_mri")
+__all__ = (
+    "create_name_mapping_layers",
+    "get_mri",
+    "get_public_name_from_mri",
+    "parse_expression",
+    "get_operation_with_public_name",
+)
 
 
 from enum import Enum

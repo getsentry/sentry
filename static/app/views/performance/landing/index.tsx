@@ -217,9 +217,9 @@ export function PerformanceLanding(props: Props) {
                     />
                     <DynamicSamplingAlert
                       organization={organization}
-                      selectProject={
+                      selectedProject={
                         selectedProjects.length === 1
-                          ? projects.find(project => project.slug === selectedProjects[0])
+                          ? projects.find(project => project.id === selectedProjects[0])
                           : undefined
                       }
                     />
