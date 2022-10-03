@@ -63,6 +63,7 @@ type Props = {
   organization: Organization;
   router: InjectedRouter;
   selection: PageFilters;
+  setHomepageQuery: (homepageQuery: SavedQuery) => void;
   setSavedQuery: (savedQuery: SavedQuery) => void;
   homepageQuery?: SavedQuery;
   savedQuery?: SavedQuery;
@@ -76,7 +77,9 @@ type State = {
   needConfirmation: boolean;
   showTags: boolean;
   totalValues: null | number;
+  homepageQuery?: SavedQuery;
   savedQuery?: SavedQuery;
+  showHomepage?: boolean;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
 };
@@ -109,14 +112,18 @@ class Results extends Component<Props, State> {
       );
       return {...prevState, eventView, savedQuery: nextProps.savedQuery};
     }
+    if (nextProps.homepageQuery || !nextProps.loading) {
+      return {...prevState, homepageQuery: nextProps.homepageQuery};
+    }
     return prevState;
   }
 
   state: State = {
     eventView: EventView.fromSavedQueryOrLocation(
-      this.props.savedQuery,
+      this.props.savedQuery ?? this.props.homepageQuery,
       this.props.location
     ),
+    homepageQuery: this.props.homepageQuery,
     error: '',
     errorCode: 200,
     totalValues: null,
@@ -154,7 +161,21 @@ class Results extends Component<Props, State> {
     const {api, location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
-    this.checkEventView();
+    if (location.query.homepage && prevState.homepageQuery) {
+      const query = omit(prevState.homepageQuery, 'id');
+      const nextEventView = EventView.fromNewQueryWithLocation(query, location);
+      if (nextEventView.project.length === 0 && selection.projects) {
+        nextEventView.project = selection.projects;
+      }
+      if (location.query?.query) {
+        nextEventView.query = decodeScalar(location.query.query, '');
+      }
+
+      browserHistory.replace(nextEventView.getResultsViewUrlTarget(organization.slug));
+    } else {
+      this.checkEventView();
+    }
+
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     const yAxisArray = getYAxis(location, eventView, savedQuery);
@@ -653,6 +674,7 @@ const Top = styled(Layout.Main)`
 `;
 
 type SavedQueryState = AsyncComponent['state'] & {
+  homepageQuery?: SavedQuery | null;
   savedQuery?: SavedQuery | null;
 };
 
@@ -682,7 +704,8 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
-      organization.features.includes('discover-query')
+      organization.features.includes('discover-query') &&
+      location.query.homepage === 'true'
     ) {
       endpoints.push([
         'homepageQuery',
@@ -694,6 +717,10 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
 
   setSavedQuery = (newSavedQuery: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
+  };
+
+  setHomepageQuery = (homepageQuery: SavedQuery) => {
+    this.setState({homepageQuery});
   };
 
   renderLoading() {
@@ -708,7 +735,8 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
         savedQuery={savedQuery ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
-        homepageQuery={homepageQuery}
+        setHomepageQuery={this.setHomepageQuery}
+        homepageQuery={homepageQuery ?? undefined}
       />
     );
   }
