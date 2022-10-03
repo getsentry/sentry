@@ -153,6 +153,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
       view: 'stacktrace_issue_details',
       organization: this.props.organization,
+      platform: this.project?.platform,
       state:
         // Should follow the same logic in render
         config && sourceUrl
