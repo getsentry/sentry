@@ -389,7 +389,7 @@ def test_validate_where():
 
 def test_validate_groupby():
     with pytest.raises(
-        InvalidParams, match="Tag name session.status cannot be used to groupBy query"
+        InvalidParams, match="Tag name session.status cannot be used in groupBy query"
     ):
         MetricsQuery(
             **MetricsQueryBuilder()

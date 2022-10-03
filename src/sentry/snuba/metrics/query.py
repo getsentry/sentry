@@ -3,7 +3,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Literal, Optional, Sequence, Set, Union
+from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
@@ -32,7 +32,7 @@ from .utils import (
 class MetricField:
     op: Optional[MetricOperationType]
     metric_mri: str
-    params: Optional[Dict[str, Union[str, int, float]]] = None
+    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -51,15 +51,40 @@ class MetricField:
         metric_name = get_public_name_from_mri(self.metric_mri)
         return f"{self.op}({metric_name})" if self.op else metric_name
 
+    def __hash__(self) -> int:
+        hashable_list = []
+        if self.op is not None:
+            hashable_list.append(self.op)
+        hashable_list.append(self.metric_mri)
+        if self.params is not None:
+            hashable_list.append(
+                ",".join(sorted(":".join((x, str(y))) for x, y in self.params.items()))
+            )
+        return hash(tuple(hashable_list))
+
 
 @dataclass(frozen=True)
 class MetricGroupByField:
-    name: str
+    field: Union[str, MetricField]
     alias: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not self.alias:
-            object.__setattr__(self, "alias", self.name)
+            if isinstance(self.field, str):
+                alias = self.field
+            else:
+                assert self.field.alias is not None
+                alias = self.field.alias
+            object.__setattr__(self, "alias", alias)
+
+    @property
+    def name(self) -> str:
+        if isinstance(self.field, str):
+            return self.field
+        if isinstance(self.field, MetricField):
+            assert self.field.alias is not None
+            return self.field.alias
+        raise InvalidParams(f"Invalid groupBy field type: {self.field}")
 
 
 Tag = str
@@ -96,7 +121,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: datetime
     end: datetime
     granularity: Granularity
-    where: Optional[ConditionGroup] = None  # TODO: Should restrict
+    where: Optional[ConditionGroup] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[OrderBy]] = None
     limit: Optional[Limit] = None
@@ -218,9 +243,12 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if not self.groupby:
             return
         for metric_groupby_obj in self.groupby:
-            if metric_groupby_obj.name in UNALLOWED_TAGS:
+            if (
+                isinstance(metric_groupby_obj.field, str)
+                and metric_groupby_obj.field in UNALLOWED_TAGS
+            ):
                 raise InvalidParams(
-                    f"Tag name {metric_groupby_obj.name} cannot be used to groupBy query"
+                    f"Tag name {metric_groupby_obj.field} cannot be used in groupBy query"
                 )
 
     def validate_include_totals(self) -> None:

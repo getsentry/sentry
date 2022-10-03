@@ -105,7 +105,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
         )
         assert response.data["detail"] == (
-            "Tag name session.status cannot be used to groupBy query"
+            "Tag name session.status cannot be used in groupBy query"
         )
 
     def test_filter_session_status(self):
