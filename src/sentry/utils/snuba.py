@@ -1127,7 +1127,11 @@ def aliased_query(**kwargs):
         return _aliased_query_impl(**kwargs)
 
 
-def _aliased_query_impl(
+def _aliased_query_impl(**kwargs):
+    return raw_query(**aliased_query_params(**kwargs))
+
+
+def aliased_query_params(
     start=None,
     end=None,
     groupby=None,
@@ -1141,7 +1145,7 @@ def _aliased_query_impl(
     orderby=None,
     condition_resolver=None,
     **kwargs,
-):
+) -> Mapping[str, Any]:
     if dataset is None:
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
@@ -1180,7 +1184,7 @@ def _aliased_query_impl(
             updated_order.append("{}{}".format("-" if order.startswith("-") else "", order_field))
         orderby = updated_order
 
-    return raw_query(
+    return dict(
         start=start,
         end=end,
         groupby=groupby,
@@ -1192,6 +1196,7 @@ def _aliased_query_impl(
         having=having,
         dataset=dataset,
         orderby=orderby,
+        condition_resolver=condition_resolver,
         **kwargs,
     )
 

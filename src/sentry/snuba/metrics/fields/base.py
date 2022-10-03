@@ -58,6 +58,7 @@ from sentry.snuba.metrics.fields.snql import (
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
+    team_key_transaction_snql,
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
 )
@@ -292,6 +293,14 @@ class MetricOperation(MetricOperationDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def validate_can_groupby(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def validate_can_filter(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def run_post_query_function(
         self,
         data: SnubaDataType,
@@ -314,17 +323,30 @@ class MetricOperation(MetricOperationDefinition, ABC):
     ) -> Function:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
+        raise NotImplementedError
+
 
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
+    can_groupby: bool = False
+    can_filter: bool = False
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
     snql_func: Callable[..., Optional[Function]] = lambda _: None
+    default_null_value: Optional[Union[int, List[Tuple[float]]]] = None
 
 
 class RawOp(MetricOperation):
     def validate_can_orderby(self) -> None:
         return
+
+    def validate_can_groupby(self) -> bool:
+        return False
+
+    def validate_can_filter(self) -> bool:
+        return False
 
     def run_post_query_function(
         self,
@@ -355,6 +377,12 @@ class RawOp(MetricOperation):
             alias=alias,
         )
 
+    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
+        return cast(
+            Optional[Union[int, List[Tuple[float]]]],
+            copy.copy(DEFAULT_AGGREGATES[self.op]),
+        )
+
 
 class DerivedOp(DerivedOpDefinition, MetricOperation):
     def validate_can_orderby(self) -> None:
@@ -362,6 +390,12 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             raise DerivedMetricParseException(
                 f"Operation {self.op} cannot be used to order a query"
             )
+
+    def validate_can_groupby(self) -> bool:
+        return self.can_groupby
+
+    def validate_can_filter(self) -> bool:
+        return self.can_filter
 
     def run_post_query_function(
         self,
@@ -433,6 +467,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             return self.snql_func(**kwargs)
         except TypeError as e:
             raise InvalidParams(e)
+
+    def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
+        return self.default_null_value
 
 
 class MetricExpressionBase(ABC):
@@ -556,6 +593,34 @@ class MetricExpressionBase(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        """
+        Method that generates a list of SnQL groupby statements based on whether an instance of MetricsFieldBase
+        supports it
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        """
+        Method that generates a list of SnQL where statements based on whether an instance of MetricsFieldBase
+        supports it
+        """
+        raise NotImplementedError
+
 
 @dataclass
 class MetricExpressionDefinition:
@@ -616,10 +681,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         return []
 
     def generate_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
-        return cast(
-            Optional[Union[int, List[Tuple[float]]]],
-            copy.copy(DEFAULT_AGGREGATES[self.metric_operation.op]),
-        )
+        return self.metric_operation.get_default_null_values()
 
     def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseKey) -> Set[int]:
         return self.metric_object.generate_metric_ids(projects, use_case_id)
@@ -665,6 +727,44 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
             entity=entity,
             params=params,
             org_id=org_id,
+        )
+
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        if not self.metric_operation.validate_can_groupby():
+            raise InvalidParams(
+                f"Cannot group by metrics expression {self.metric_operation.op}("
+                f"{get_public_name_from_mri(self.metric_object.metric_mri)})"
+            )
+        return self.generate_select_statements(
+            projects=projects,
+            use_case_id=use_case_id,
+            alias=alias,
+            params=params,
+        )
+
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        if not self.metric_operation.validate_can_filter():
+            raise InvalidParams(
+                f"Cannot filter by metrics expression {self.metric_operation.op}("
+                f"{get_public_name_from_mri(self.metric_object.metric_mri)})"
+            )
+        return self.generate_select_statements(
+            projects=projects,
+            use_case_id=use_case_id,
+            alias=alias,
+            params=params,
         )
 
 
@@ -887,6 +987,24 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     ) -> Iterable[Tuple[Optional[MetricOperationType], str, str]]:
         return [(None, self.metric_mri, alias)]
 
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(f"Cannot group by metric {get_public_name_from_mri(self.metric_mri)}")
+
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(f"Cannot filter by metric {get_public_name_from_mri(self.metric_mri)}")
+
 
 class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -1054,6 +1172,24 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         # ToDo(ahmed): This won't work if there is not post_query_func because there is an assumption that this function
         #  will aggregate the result somehow
         return self.post_query_func(*compute_func_args)
+
+    def generate_groupby_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(f"Cannot group by metric {get_public_name_from_mri(self.metric_mri)}")
+
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(f"Cannot filter by metric {get_public_name_from_mri(self.metric_mri)}")
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
@@ -1347,21 +1483,33 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             can_orderby=False,
             post_query_func=rebucket_histogram,
             snql_func=histogram_snql_factory,
+            default_null_value=[],
         ),
         DerivedOp(
             op="rate",
             can_orderby=False,
             snql_func=rate_snql_factory,
+            default_null_value=0,
         ),
         DerivedOp(
             op="count_web_vitals",
             can_orderby=True,
             snql_func=count_web_vitals_snql_factory,
+            default_null_value=0,
         ),
         DerivedOp(
             op="count_transaction_name",
             can_orderby=True,
             snql_func=count_transaction_name_snql_factory,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="team_key_transaction",
+            can_orderby=True,
+            can_groupby=True,
+            can_filter=True,
+            snql_func=team_key_transaction_snql,
+            default_null_value=0,
         ),
     ]
 }
