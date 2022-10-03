@@ -67,10 +67,10 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   renderAuthor() {
-    const {eventView} = this.props;
+    const {eventView, isHomepage} = this.props;
     const {savedQuery} = this.state;
     // No saved query in use.
-    if (!eventView.id) {
+    if (!eventView.id || isHomepage) {
       return null;
     }
     let createdBy = ' \u2014 ';
@@ -87,8 +87,16 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, errorCode, eventView, yAxis, router, setSavedQuery} =
-      this.props;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      yAxis,
+      router,
+      setSavedQuery,
+      isHomepage,
+    } = this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -103,6 +111,7 @@ class ResultsHeader extends Component<Props, State> {
             savedQuery={savedQuery}
             organization={organization}
             eventView={eventView}
+            isHomepage={isHomepage}
           />
           {this.renderAuthor()}
         </StyledHeaderContent>
