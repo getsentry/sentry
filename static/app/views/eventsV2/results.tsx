@@ -293,7 +293,7 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const query = isHomepage ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;

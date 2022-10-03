@@ -1,10 +1,11 @@
-import {InjectedRouter} from 'react-router';
+import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 import isEmpty from 'lodash/isEmpty';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -24,11 +25,11 @@ type Props = {
   savedQuery?: SavedQuery;
 };
 
-type SavedQueryState = AsyncComponent['state'] & {
+type HomepageQueryState = AsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
 };
 
-class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
+class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
@@ -45,6 +46,28 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
     }
     return endpoints;
   }
+
+  onRequestSuccess = ({stateKey, data}) => {
+    const {location} = this.props;
+    if (stateKey === 'savedQuery') {
+      const normalizedDateTime = normalizeDateTimeParams({
+        start: data.start,
+        end: data.end,
+        statsPeriod: data.range,
+        utc: data.utc,
+      });
+
+      browserHistory.replace({
+        pathname: location.pathname,
+        query: {
+          project: data.projects ?? [],
+          environment: data.environment ?? [],
+          ...normalizedDateTime,
+          ...location.query,
+        },
+      });
+    }
+  };
 
   setSavedQuery = (newSavedQuery: SavedQuery) => {
     this.setState({savedQuery: newSavedQuery});
@@ -86,7 +109,7 @@ function HomepageContainer(props: Props) {
         props.organization.features.includes('global-views') && !!props.savedQuery
       }
     >
-      <SavedQueryAPI {...props} />
+      <HomepageQueryAPI {...props} />
     </PageFiltersContainer>
   );
 }
