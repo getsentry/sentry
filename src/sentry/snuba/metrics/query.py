@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Direction, Granularity, Limit, Offset
-from snuba_sdk.conditions import Condition, ConditionGroup
+from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
+from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -87,6 +87,17 @@ class MetricGroupByField:
         raise InvalidParams(f"Invalid groupBy field type: {self.field}")
 
 
+@dataclass(frozen=True)
+class MetricConditionField:
+    """
+    Modelled after snuba_sdk.conditions.Condition
+    """
+
+    lhs: MetricField
+    op: Op
+    rhs: Union[int, float, str]
+
+
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
 
@@ -121,7 +132,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: datetime
     end: datetime
     granularity: Granularity
-    where: Optional[ConditionGroup] = None
+    # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
+    #  instances of MetricConditionField
+    where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
     groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[OrderBy]] = None
     limit: Optional[Limit] = None
