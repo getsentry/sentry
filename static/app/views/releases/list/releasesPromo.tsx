@@ -243,7 +243,7 @@ const ReleasesPromoSuccess = ({
                 {
                   label: <GroupHeader>{t('Available Integrations')}</GroupHeader>,
                   id: 'available-integrations',
-                  items: (integrations || []).map(renderIntegrationNode),
+                  items: integrations.map(renderIntegrationNode),
                 },
               ]}
               alignMenu="left"
