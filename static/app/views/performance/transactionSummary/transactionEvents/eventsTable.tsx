@@ -121,7 +121,6 @@ class EventsTable extends Component<Props, State> {
 
       updateQuery(searchConditions, action, column, value);
 
-      // console.log(searchConditions);
       browserHistory.push({
         pathname: location.pathname,
         query: {
