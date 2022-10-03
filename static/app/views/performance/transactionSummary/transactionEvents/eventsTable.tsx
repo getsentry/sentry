@@ -111,8 +111,17 @@ class EventsTable extends Component<Props, State> {
 
       const searchConditions = normalizeSearchConditions(eventView.query);
 
+      const isIssueDetailsPage = location.pathname.startsWith(
+        `/organizations/${organization.slug}/issues/`
+      );
+      if (isIssueDetailsPage) {
+        searchConditions.removeFilter('issue.id');
+        searchConditions.removeFilter('performance.issue_ids');
+      }
+
       updateQuery(searchConditions, action, column, value);
 
+      // console.log(searchConditions);
       browserHistory.push({
         pathname: location.pathname,
         query: {

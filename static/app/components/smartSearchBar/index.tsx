@@ -168,6 +168,10 @@ type Props = WithRouterProps & {
    */
   excludeEnvironment?: boolean;
   /**
+   * An array of query fields to exclude from the search bar
+   */
+  excludeQueryField?: string[];
+  /**
    * List user's recent searches
    */
   hasRecentSearches?: boolean;
@@ -1086,6 +1090,10 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
+    if (this.props.excludeQueryField) {
+      tagKeys = tagKeys.filter(key => !this.props.excludeQueryField?.includes(key));
+    }
+
     const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
 
     // Filter out search items that are behind feature flags
@@ -1299,6 +1307,7 @@ class SmartSearchBar extends Component<Props, State> {
       organization,
       savedSearchType,
       searchSource,
+      excludeQueryField,
     } = this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -1348,6 +1357,10 @@ class SmartSearchBar extends Component<Props, State> {
     // Ignore the environment tag if the feature is active and
     // excludeEnvironment = true
     if (excludeEnvironment && tagName === 'environment') {
+      return null;
+    }
+
+    if (excludeQueryField && excludeQueryField.includes(tagName)) {
       return null;
     }
 
