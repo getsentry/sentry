@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import logging
 import time
 from collections import deque
 from concurrent.futures import Future
 from io import BytesIO
-from typing import Any, Callable, Deque, Mapping, MutableMapping, NamedTuple, Optional, cast
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    cast,
+)
 
 import msgpack
 import sentry_sdk
@@ -99,38 +110,45 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         with sentry_sdk.start_transaction(
             op="replays.consumer.flush_batch", description="Replay recording segment stored."
         ):
-            sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
+            with segment_cache_manager(cached_replay_recording_segment) as cached_data:
+                sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
 
-            try:
-                headers, recording_segment = self._process_headers(
-                    cached_replay_recording_segment.data
+                try:
+                    headers, recording_segment = self._process_headers(cached_data)
+                except MissingRecordingSegmentHeaders:
+                    logger.warning(f"missing header on {message_dict['replay_id']}")
+                    return None
+
+                # Check for an existing recording-segment before continuing.  If a segment exists,
+                # cleanup and exit.
+                count_existing_segments = ReplayRecordingSegment.objects.filter(
+                    replay_id=message_dict["replay_id"],
+                    project_id=message_dict["project_id"],
+                    segment_id=headers["segment_id"],
+                ).count()
+                if count_existing_segments > 0:
+                    logger.warning("Recording segment was already processed.")
+                    return None
+
+                # create a File for our recording segment.
+                recording_segment_file_name = (
+                    f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
                 )
-            except MissingRecordingSegmentHeaders:
-                logger.warning(f"missing header on {message_dict['replay_id']}")
-                return
-
-            # create a File for our recording segment.
-            recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
-            file = File.objects.create(
-                name=recording_segment_file_name,
-                type="replay.recording",
-            )
-            file.putfile(
-                BytesIO(recording_segment),
-                blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
-            )
-            # associate this file with an indexable replay_id via ReplayRecordingSegment
-            ReplayRecordingSegment.objects.create(
-                replay_id=message_dict["replay_id"],
-                project_id=message_dict["project_id"],
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-            )
-            # delete the recording segment from cache after we've stored it
-            cached_replay_recording_segment.delete()
-
-            # TODO: how to handle failures in the above calls. what should happen?
-            # also: handling same message twice?
+                file = File.objects.create(
+                    name=recording_segment_file_name,
+                    type="replay.recording",
+                )
+                file.putfile(
+                    BytesIO(recording_segment),
+                    blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
+                )
+                # associate this file with an indexable replay_id via ReplayRecordingSegment
+                ReplayRecordingSegment.objects.create(
+                    replay_id=message_dict["replay_id"],
+                    project_id=message_dict["project_id"],
+                    segment_id=headers["segment_id"],
+                    file_id=file.id,
+                )
 
     def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
         cache_id = replay_recording_segment_cache_id(
@@ -264,3 +282,18 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str) -> str:
     return f"{project_id}:{replay_id}"
+
+
+@contextlib.contextmanager
+def segment_cache_manager(segment_cache: CachedAttachment) -> Iterator[dict]:
+    """Recording-segment cache manager.
+
+    Ensures proper data fetching and cleanup behavior is observed.
+    """
+    try:
+        yield segment_cache.data
+    except Exception:
+        segment_cache.delete()
+        raise
+    else:
+        segment_cache.delete()
