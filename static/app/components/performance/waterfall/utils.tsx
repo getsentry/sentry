@@ -3,6 +3,8 @@ import CHART_PALETTE from 'sentry/constants/chartPalette';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 
+import {SPAN_HATCH_TYPE_COLOURS, SpanBarHatch} from './constants';
+
 export const getBackgroundColor = ({
   showStriping,
   showDetail,
@@ -23,16 +25,10 @@ export const getBackgroundColor = ({
   return theme.background;
 };
 
-type HatchProps = {
-  spanBarHatch: boolean;
-};
+export function getHatchPattern(spanBarHatch: SpanBarHatch | undefined) {
+  if (spanBarHatch) {
+    const {primary, alternate} = SPAN_HATCH_TYPE_COLOURS[spanBarHatch];
 
-export function getHatchPattern(
-  {spanBarHatch}: HatchProps,
-  primary: string,
-  alternate: string
-) {
-  if (spanBarHatch === true) {
     return `
       background-image: linear-gradient(135deg,
         ${alternate},
@@ -60,12 +56,10 @@ export function getHatchPattern(
 
 export const getDurationPillAlignment = ({
   durationDisplay,
-  theme,
-  spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
-  spanBarHatch: boolean;
   theme: Theme;
+  spanBarHatch?: SpanBarHatch;
 }) => {
   switch (durationDisplay) {
     case 'left':
@@ -75,9 +69,28 @@ export const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
       `;
   }
+};
+
+export const getDurationPillColour = ({
+  durationDisplay,
+  theme,
+  showDetail,
+  spanBarHatch,
+}: {
+  durationDisplay: DurationDisplay;
+  showDetail: boolean;
+  theme: Theme;
+  spanBarHatch?: SpanBarHatch;
+}) => {
+  if (durationDisplay === 'inset') {
+    return `color: ${
+      spanBarHatch && spanBarHatch === SpanBarHatch.gap ? theme.gray300 : theme.white
+    };`;
+  }
+
+  return `color: ${showDetail === true ? theme.gray200 : theme.gray300};`;
 };
 
 export const getToggleTheme = ({
