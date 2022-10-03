@@ -71,6 +71,7 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  isHomepage?: boolean;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -372,7 +373,8 @@ class TableView extends Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location, tableData} = this.props;
+      const {eventView, organization, projects, location, tableData, isHomepage} =
+        this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -437,7 +439,9 @@ class TableView extends Component<TableViewProps> {
             function: ['count', '', undefined, undefined],
           });
 
-          browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+          browserHistory.push(
+            nextView.getResultsViewUrlTarget(organization.slug, isHomepage)
+          );
 
           return;
         }
@@ -458,7 +462,7 @@ class TableView extends Component<TableViewProps> {
       }
       nextView.query = query.formatString();
 
-      const target = nextView.getResultsViewUrlTarget(organization.slug);
+      const target = nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
       browserHistory.push(target);
@@ -466,7 +470,7 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView, location} = this.props;
+    const {organization, eventView, location, isHomepage} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -476,7 +480,10 @@ class TableView extends Component<TableViewProps> {
     });
 
     const nextView = eventView.withColumns(columns);
-    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(organization.slug);
+    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
+      organization.slug,
+      isHomepage
+    );
     // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
     const previousYAxis = decodeList(location.query.yAxis);
     resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>

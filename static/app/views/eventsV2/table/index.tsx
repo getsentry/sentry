@@ -31,6 +31,7 @@ type TableProps = {
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  isHomepage?: boolean;
 };
 
 type TableState = {

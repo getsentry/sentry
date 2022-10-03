@@ -1,14 +1,16 @@
 import {InjectedRouter} from 'react-router';
 import {Location} from 'history';
+import isEmpty from 'lodash/isEmpty';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {Organization, PageFilters, SavedQuery} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+
+import {Results} from './results';
 
 type Props = {
   api: Client;
@@ -27,36 +29,17 @@ type SavedQueryState = AsyncComponent['state'] & {
 };
 
 class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const {location} = this.props;
-    if (
-      !defined(location.query?.id) &&
-      prevProps.location.query?.id !== location.query?.id
-    ) {
-      this.setState({savedQuery: undefined});
-    }
-    super.componentDidUpdate(prevProps, prevState);
-  }
-
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
-    if (location.query.id) {
-      endpoints.push([
-        'savedQuery',
-        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-      ]);
-      return endpoints;
-    }
-
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
       organization.features.includes('discover-query') &&
       isEmpty(location.query)
     ) {
       endpoints.push([
-        'homepageQuery',
+        'savedQuery',
         `/organizations/${organization.slug}/discover/homepage/`,
       ]);
     }
@@ -72,14 +55,14 @@ class SavedQueryAPI extends AsyncComponent<Props, SavedQueryState> {
   }
 
   renderBody(): React.ReactNode {
-    const {homepageQuery, savedQuery, loading} = this.state;
+    const {savedQuery, loading} = this.state;
     return (
       <Results
         {...this.props}
         savedQuery={savedQuery ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
-        homepageQuery={homepageQuery}
+        isHomepage
       />
     );
   }
@@ -108,4 +91,4 @@ function HomepageContainer(props: Props) {
   );
 }
 
-export default withApi(withOrganization(withPageFilters(ResultsContainer)));
+export default withApi(withOrganization(withPageFilters(HomepageContainer)));
