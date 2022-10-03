@@ -82,6 +82,48 @@ def test_raw_description_strategy(span: Span, fingerprint: Optional[List[str]]) 
             .build(),
             ["SELECT count() FROM table WHERE id IN (%s)"],
         ),
+        # description has multiple IN statements
+        (
+            SpanBuilder()
+            .with_op("db.sql.query")
+            .with_description(
+                "SELECT count() FROM table WHERE id IN (%s, %s) AND id IN (%s, %s, %s)"
+            )
+            .build(),
+            ["SELECT count() FROM table WHERE id IN (%s) AND id IN (%s)"],
+        ),
+        # supports unparametrized queries
+        (
+            SpanBuilder()
+            .with_op("db.sql.query")
+            .with_description("SELECT count() FROM table WHERE id IN (100, 101, 102)")
+            .build(),
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
+        # supports lowercase IN
+        (
+            SpanBuilder()
+            .with_op("db.sql.query")
+            .with_description("select count() from table where id in (100, 101, 102)")
+            .build(),
+            ["select count() from table where id IN (%s)"],
+        ),
+        # op is an ActiveRecord query
+        (
+            SpanBuilder()
+            .with_op("db.sql.active_record")
+            .with_description("SELECT count() FROM table WHERE id IN ($1, $2, $3)")
+            .build(),
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
+        # op is a Laravel query
+        (
+            SpanBuilder()
+            .with_op("db.sql.query")
+            .with_description("SELECT count() FROM table WHERE id IN (?, ?, ?)")
+            .build(),
+            ["SELECT count() FROM table WHERE id IN (%s)"],
+        ),
         # the number of %s is relevant
         (
             SpanBuilder()
