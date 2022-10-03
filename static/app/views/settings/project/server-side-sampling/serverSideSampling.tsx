@@ -38,6 +38,7 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -80,9 +81,9 @@ export function ServerSideSampling({project}: Props) {
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
   const routeContext = useRouteContext();
+  const params = useParams();
 
   const samplingProjectSettingsPath = `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`;
-  const uniformSampleRateModalPath = `${samplingProjectSettingsPath}set-global-sample-rate/`;
 
   const [rules, setRules] = useState<SamplingRule[]>(currentRules ?? []);
 
@@ -229,38 +230,103 @@ export function ServerSideSampling({project}: Props) {
     [api, project.slug, project.id, organization, isProjectIncompatible, rules]
   );
 
+  const handleOpenUniformRateModal = useCallback(
+    (rule?: SamplingRule) => {
+      openModal(
+        modalProps => (
+          <UniformRateModal
+            {...modalProps}
+            organization={organization}
+            project={project}
+            rules={rules}
+            onSubmit={saveUniformRule}
+            onReadDocs={handleReadDocs}
+            uniformRule={rule}
+          />
+        ),
+        {
+          modalCss: responsiveModal,
+          onClose: () => {
+            navigate(samplingProjectSettingsPath);
+          },
+        }
+      );
+    },
+    [
+      navigate,
+      organization,
+      project,
+      rules,
+      saveUniformRule,
+      handleReadDocs,
+      samplingProjectSettingsPath,
+    ]
+  );
+
+  const handleOpenSpecificConditionsModal = useCallback(
+    (rule?: SamplingRule) => {
+      openModal(
+        modalProps => (
+          <SpecificConditionsModal
+            {...modalProps}
+            organization={organization}
+            project={project}
+            rule={rule}
+            rules={rules}
+          />
+        ),
+        {
+          modalCss: responsiveModal,
+          onClose: () => {
+            navigate(samplingProjectSettingsPath);
+          },
+        }
+      );
+    },
+    [navigate, organization, project, rules, samplingProjectSettingsPath]
+  );
+
   useEffect(() => {
-    if (routeContext.location.pathname !== uniformSampleRateModalPath) {
+    if (
+      routeContext.location.pathname !== `${samplingProjectSettingsPath}rules/new/` &&
+      routeContext.location.pathname !==
+        `${samplingProjectSettingsPath}rules/${params.rule}/`
+    ) {
       return;
     }
 
-    openModal(
-      modalProps => (
-        <UniformRateModal
-          {...modalProps}
-          organization={organization}
-          project={project}
-          rules={rules}
-          onSubmit={saveUniformRule}
-          onReadDocs={handleReadDocs}
-        />
-      ),
-      {
-        modalCss: responsiveModal,
-        onClose: () => {
-          navigate(samplingProjectSettingsPath);
-        },
+    if (routeContext.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
+      if (!rules.length) {
+        handleOpenUniformRateModal();
+        return;
       }
-    );
+      handleOpenSpecificConditionsModal();
+      return;
+    }
+
+    if (
+      routeContext.location.pathname ===
+      `${samplingProjectSettingsPath}rules/${params.rule}/`
+    ) {
+      const rule = rules.find(r => String(r.id) === params.rule);
+
+      if (!rule) {
+        addErrorMessage(t('Unable to find sampling rule'));
+        return;
+      }
+
+      if (isUniformRule(rule)) {
+        handleOpenUniformRateModal(rule);
+        return;
+      }
+      handleOpenSpecificConditionsModal(rule);
+    }
   }, [
-    navigate,
-    routeContext.location.pathname,
-    uniformSampleRateModalPath,
-    handleReadDocs,
-    organization,
-    project,
+    params.rule,
+    handleOpenUniformRateModal,
+    handleOpenSpecificConditionsModal,
     rules,
-    saveUniformRule,
+    routeContext.location.pathname,
     samplingProjectSettingsPath,
   ]);
 
@@ -336,7 +402,7 @@ export function ServerSideSampling({project}: Props) {
       project_id: project.id,
     });
 
-    navigate(uniformSampleRateModalPath);
+    navigate(`${samplingProjectSettingsPath}rules/new/`);
   }
 
   async function handleSortRules({
@@ -370,49 +436,6 @@ export function ServerSideSampling({project}: Props) {
       handleXhrErrorResponse(message)(error);
       addErrorMessage(message);
     }
-  }
-
-  function handleAddRule() {
-    openModal(modalProps => (
-      <SpecificConditionsModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rules={rules}
-      />
-    ));
-  }
-
-  function handleEditRule(rule: SamplingRule) {
-    if (isUniformRule(rule)) {
-      openModal(
-        modalProps => (
-          <UniformRateModal
-            {...modalProps}
-            organization={organization}
-            project={project}
-            uniformRule={rule}
-            rules={rules}
-            onSubmit={saveUniformRule}
-            onReadDocs={handleReadDocs}
-          />
-        ),
-        {
-          modalCss: responsiveModal,
-        }
-      );
-      return;
-    }
-
-    openModal(modalProps => (
-      <SpecificConditionsModal
-        {...modalProps}
-        organization={organization}
-        project={project}
-        rule={rule}
-        rules={rules}
-      />
-    ));
   }
 
   async function handleDeleteRule(rule: SamplingRule) {
@@ -582,7 +605,9 @@ export function ServerSideSampling({project}: Props) {
                       }
                       hideGrabButton={items.length === 1}
                       rule={currentRule}
-                      onEditRule={() => handleEditRule(currentRule)}
+                      onEditRule={() =>
+                        navigate(`${samplingProjectSettingsPath}rules/${currentRule.id}/`)
+                      }
                       onDeleteRule={() => handleDeleteRule(currentRule)}
                       onActivate={() => handleActivateToggle(currentRule)}
                       noPermission={!hasAccess}
@@ -620,7 +645,7 @@ export function ServerSideSampling({project}: Props) {
                         : undefined
                     }
                     priority="primary"
-                    onClick={handleAddRule}
+                    onClick={() => navigate(`${samplingProjectSettingsPath}rules/new/`)}
                     icon={<IconAdd isCircled />}
                   >
                     {t('Add Rule')}

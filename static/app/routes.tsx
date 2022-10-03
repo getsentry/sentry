@@ -475,7 +475,7 @@ function buildRoutes() {
           )}
         />
         <Route
-          path="set-global-sample-rate/"
+          path="rules/:rule/"
           component={make(
             () => import('sentry/views/settings/project/server-side-sampling')
           )}

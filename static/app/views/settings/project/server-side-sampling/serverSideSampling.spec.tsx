@@ -1,4 +1,12 @@
 import {
+  createMemoryHistory,
+  IndexRoute,
+  Route,
+  Router,
+  RouterContext,
+} from 'react-router';
+
+import {
   render,
   screen,
   userEvent,
@@ -6,6 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {RouteContext} from 'sentry/views/routeContext';
 import {SERVER_SIDE_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 import {samplingBreakdownTitle} from './samplingBreakdown.spec';
@@ -57,11 +66,37 @@ describe('Server-Side Sampling', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders onboarding promo', async function () {
-    const {router, organization, project} = getMockData();
+  it('renders onboarding promo and open uniform rule modal', async function () {
+    const {organization, project} = getMockData();
+
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+    );
+
+    function Component() {
+      return <TestComponent organization={organization} project={project} withModal />;
+    }
 
     const {container} = render(
-      <TestComponent router={router} organization={organization} project={project} />
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
     );
 
     expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
@@ -86,9 +121,14 @@ describe('Server-Side Sampling', function () {
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(screen.getByRole('button', {name: 'Start Setup'})).toBeInTheDocument();
-
     expect(container).toSnapshot();
+
+    // Open Modal
+    userEvent.click(screen.getByRole('button', {name: 'Start Setup'}));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
+    ).toBeInTheDocument();
   });
 
   it('renders rules panel', async function () {
@@ -243,8 +283,8 @@ describe('Server-Side Sampling', function () {
     expect(await screen.findByRole('heading', {name: 'Next steps'})).toBeInTheDocument();
   });
 
-  it('Open specific conditions modal', async function () {
-    const {router, project, organization} = getMockData({
+  it('open specific conditions modal when adding rule', async function () {
+    const {project, organization} = getMockData({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -265,17 +305,38 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+    );
+
+    function Component() {
+      return <TestComponent organization={organization} project={project} withModal />;
+    }
+
     render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
     );
 
     // Open Modal
-    userEvent.click(screen.getByLabelText('Add Rule'));
+    userEvent.click(await screen.findByLabelText('Add Rule'));
 
     expect(await screen.findByRole('heading', {name: 'Add Rule'})).toBeInTheDocument();
   });
@@ -335,7 +396,7 @@ describe('Server-Side Sampling', function () {
   });
 
   it('open uniform rate modal when editing a uniform rule', async function () {
-    const {organization, router, project} = getMockData({
+    const {organization, project} = getMockData({
       projects: [
         TestStubs.Project({
           dynamicSampling: {
@@ -345,24 +406,43 @@ describe('Server-Side Sampling', function () {
       ],
     });
 
-    render(
-      <TestComponent
-        organization={organization}
-        project={project}
-        router={router}
-        withModal
-      />
+    const memoryHistory = createMemoryHistory();
+
+    memoryHistory.push(
+      `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
     );
 
-    userEvent.click(screen.getByLabelText('Actions'));
+    function Component() {
+      return <TestComponent organization={organization} project={project} withModal />;
+    }
+
+    render(
+      <Router
+        history={memoryHistory}
+        render={props => {
+          return (
+            <RouteContext.Provider value={props}>
+              <RouterContext {...props} />
+            </RouteContext.Provider>
+          );
+        }}
+      >
+        <Route
+          path={`/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`}
+        >
+          <IndexRoute component={Component} />
+          <Route path="rules/:rule/" component={Component} />
+        </Route>
+      </Router>
+    );
+
+    userEvent.click(await screen.findByLabelText('Actions'));
 
     // Open Modal
     userEvent.click(screen.getByLabelText('Edit'));
 
     expect(
-      await screen.findByRole('heading', {
-        name: 'Set a global sample rate',
-      })
+      await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
   });
 
