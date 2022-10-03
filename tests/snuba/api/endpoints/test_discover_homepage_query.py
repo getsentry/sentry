@@ -24,7 +24,6 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by=self.user,
-            name="Test query",
             query=self.query,
             is_homepage=True,
         )
@@ -38,7 +37,6 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by=self.user,
-            name="Test query",
             query=self.query,
             is_homepage=True,
         )
@@ -46,7 +44,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
             response = self.client.put(
                 self.url,
                 {
-                    "name": "A new homepage query update",
+                    "name": "This gets ignored",
                     "projects": ["-1"],
                     "fields": ["field1", "field2"],
                 },
@@ -55,13 +53,13 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert response.status_code == 204, response.content
 
         saved_query.refresh_from_db()
-        assert saved_query.name == "A new homepage query update"
+        assert saved_query.name == ""
         assert saved_query.query["fields"] == ["field1", "field2"]
 
     def test_put_creates_new_discover_saved_query_if_none_exists(self):
         homepage_query_payload = {
             "version": 2,
-            "name": "New Homepage Query",
+            "name": "Name is ignored",
             "projects": ["-1"],
             "environment": ["alpha"],
             "fields": ["environment", "platform.name"],
@@ -76,7 +74,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         new_query = DiscoverSavedQuery.objects.get(
             created_by=self.user, organization=self.org, is_homepage=True
         )
-        assert new_query.name == homepage_query_payload["name"]
+        assert new_query.name == ""
         assert new_query.query["fields"] == homepage_query_payload["fields"]
         assert new_query.query["environment"] == homepage_query_payload["environment"]
 
