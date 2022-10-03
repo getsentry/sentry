@@ -238,10 +238,13 @@ describe('Breadcrumbs', () => {
         <TestComponent organization={organization} router={router}>
           <Breadcrumbs
             {...props}
+            event={TestStubs.Event({
+              entries: [],
+              tags: [{key: 'replayId', value: '761104e184c64d439ee1014b72b4d83b'}],
+            })}
             organization={TestStubs.Organization({
               features: ['session-replay-ui'],
             })}
-            replayId="761104e184c64d439ee1014b72b4d83b"
           />
         </TestComponent>
       );

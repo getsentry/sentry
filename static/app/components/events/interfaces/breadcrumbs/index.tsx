@@ -36,7 +36,6 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   organization: Organization;
   projectSlug: string;
   isShare?: boolean;
-  replayId?: string;
 };
 
 type State = {
@@ -55,7 +54,6 @@ function BreadcrumbsContainer({
   organization,
   projectSlug,
   isShare,
-  replayId,
   route,
   router,
 }: Props) {
@@ -321,6 +319,7 @@ function BreadcrumbsContainer({
     };
   }
 
+  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
   const showReplay =
     !isShare && Boolean(replayId) && organization.features.includes('session-replay-ui');
 

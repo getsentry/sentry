@@ -127,6 +127,7 @@ const EventEntries = ({
   const orgFeatures = organization?.features ?? [];
 
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
+  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
 
   const recordIssueError = useCallback(() => {
     if (!event || !event.errors || !(event.errors.length > 0)) {
@@ -414,7 +415,7 @@ const EventEntries = ({
           }
         />
       )}
-      {!isShare && hasEventAttachmentsFeature && (
+      {!isShare && !hasReplay && hasEventAttachmentsFeature && (
         <RRWebIntegration
           event={event}
           orgId={orgSlug}

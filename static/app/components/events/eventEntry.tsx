@@ -54,8 +54,6 @@ function EventEntry({
 
   const groupingCurrentLevel = group?.metadata?.current_level;
 
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
-
   switch (entry.type) {
     case EntryType.EXCEPTION: {
       return hasNativeStackTraceV2 ? (
@@ -127,7 +125,6 @@ function EventEntry({
           route={route}
           isShare={isShare}
           projectSlug={projectSlug}
-          replayId={replayId}
         />
       );
     }
