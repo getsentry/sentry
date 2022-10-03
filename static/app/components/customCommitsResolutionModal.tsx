@@ -58,7 +58,9 @@ function CustomCommitsResolutionModal({
 
   return (
     <form onSubmit={onSubmit}>
-      <Header>{t('Resolved In')}</Header>
+      <Header>
+        <h3>{t('Resolved In')}</h3>
+      </Header>
       <Body>
         <SelectAsyncField
           label={t('Commit')}
