@@ -68,15 +68,16 @@ def test_outcomes_consumed(track_outcome, kafka_producer, kafka_admin):
         producer.flush()
 
         metrics_consumer = get_metrics_billing_consumer(
-            topic=metrics_topic,
             group_id=uuid.uuid4().hex,
             auto_offset_reset="earliest",
             force_topic=None,
             force_cluster=None,
+            max_batch_size=2,
+            max_batch_time=1000,
         )
 
         calls = track_outcome.mock_calls
-        for _ in range(100):
+        for _ in range(10):
             metrics_consumer._run_once()
             if calls:
                 assert calls == [
@@ -93,3 +94,5 @@ def test_outcomes_consumed(track_outcome, kafka_producer, kafka_admin):
                     )
                 ]
                 break
+        else:
+            assert False

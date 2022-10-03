@@ -1,16 +1,6 @@
 import logging
-from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    Union,
-    cast,
-)
+from datetime import datetime, timedelta
+from typing import Callable, Mapping, MutableMapping, Optional, Sequence, TypedDict, Union, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -29,16 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 def get_metrics_billing_consumer(
-    topic: str,
     group_id: str,
     auto_offset_reset: str,
     force_topic: Union[str, None],
     force_cluster: Union[str, None],
-    **options: Any,
+    max_batch_size: int,
+    max_batch_time: int,
 ) -> StreamProcessor[KafkaPayload]:
-    bootstrap_servers = _get_bootstrap_servers(topic, force_topic, force_cluster)
-
-    logger.warning("Unused options: %s", options)
+    topic = force_topic or settings.KAFKA_SNUBA_GENERIC_METRICS
+    bootstrap_servers = _get_bootstrap_servers(topic, force_cluster)
 
     return StreamProcessor(
         consumer=KafkaConsumer(
@@ -50,14 +39,11 @@ def get_metrics_billing_consumer(
             ),
         ),
         topic=Topic(topic),
-        processor_factory=BillingMetricsConsumerStrategyFactory(),
+        processor_factory=BillingMetricsConsumerStrategyFactory(max_batch_size, max_batch_time),
     )
 
 
-def _get_bootstrap_servers(
-    kafka_topic: str, force_topic: Union[str, None], force_cluster: Union[str, None]
-) -> Sequence[str]:
-    topic = force_topic or kafka_topic
+def _get_bootstrap_servers(topic: str, force_cluster: Union[str, None]) -> Sequence[str]:
     cluster = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
 
     options = settings.KAFKA_CLUSTERS[cluster]
@@ -68,12 +54,18 @@ def _get_bootstrap_servers(
 
 
 class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self, max_batch_size: int, max_batch_time: int):
+        self.__max_batch_size = max_batch_size
+        self.__max_batch_time = max_batch_time
+
     def create_with_partitions(
         self,
         commit: Callable[[Mapping[Partition, Position]], None],
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return BillingTxCountMetricConsumerStrategy(commit)
+        return BillingTxCountMetricConsumerStrategy(
+            commit, self.__max_batch_size, self.__max_batch_time
+        )
 
 
 class MetricsBucket(TypedDict):
@@ -98,13 +90,23 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
 
-    def __init__(self, commit: Callable[[Mapping[Partition, Position]], None]) -> None:
+    def __init__(
+        self,
+        commit: Callable[[Mapping[Partition, Position]], None],
+        max_batch_size: int,
+        max_batch_time: int,
+    ) -> None:
         self.__commit = commit
+        self.__max_batch_size = max_batch_size
+        self.__max_batch_time = timedelta(milliseconds=max_batch_time)
+        self.__messages_since_last_commit = 0
+        self.__last_commit = datetime.now()
         self.__ready_to_commit: MutableMapping[Partition, Position] = {}
         self.__closed = False
 
     def poll(self) -> None:
-        self._bulk_commit()
+        if self._should_commit():
+            self._bulk_commit()
 
     def terminate(self) -> None:
         self.close()
@@ -114,6 +116,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         assert not self.__closed
+        self.__messages_since_last_commit += 1
 
         payload = self._get_payload(message)
         self._produce_billing_outcomes(payload)
@@ -151,6 +154,17 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     def join(self, timeout: Optional[float] = None) -> None:
         self._bulk_commit()
 
+    def _should_commit(self) -> bool:
+        if not self.__ready_to_commit:
+            return False
+        if self.__messages_since_last_commit >= self.__max_batch_size:
+            return True
+        if self.__last_commit + self.__max_batch_time <= datetime.now():
+            return True
+        return False
+
     def _bulk_commit(self) -> None:
         self.__commit(self.__ready_to_commit)
         self.__ready_to_commit = {}
+        self.__messages_since_last_commit = 0
+        self.__last_commit = datetime.now()
