@@ -37,7 +37,7 @@ const GroupPreviewTooltip = ({
         </StackTracePreview>
       );
     default:
-      return <Fragment>children</Fragment>;
+      return <Fragment>{children}</Fragment>;
   }
 };
 
