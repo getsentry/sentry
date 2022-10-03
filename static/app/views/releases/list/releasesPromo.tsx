@@ -21,10 +21,11 @@ import {IconAdd, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {Organization, Project, SentryApp} from 'sentry/types';
+import {Project, SentryApp} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import useApiRequests from 'sentry/utils/useApiRequests';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -85,32 +86,31 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
 ];
 
 type Props = {
-  organization: Organization;
   project: Project;
 };
 
-const ReleasesPromo = ({organization, project}: Props) => {
-  const {data, renderComponent, isLoading} = useApiRequests<{
-    internalIntegrations: SentryApp[];
-  }>({
-    endpoints: [
-      [
-        'internalIntegrations',
-        `/organizations/${organization.slug}/sentry-apps/`,
-        {query: {status: 'internal'}},
-      ],
-    ],
-  });
+type ResponseData = {
+  internalIntegrations: SentryApp[];
+};
+
+const ReleasesPromoSuccess = ({
+  data,
+  project,
+}: {
+  data: ResponseData;
+  project: Project;
+}) => {
   const api = useApi();
+  const organization = useOrganization();
   const [token, setToken] = useState(null);
   const [integrations, setIntegrations] = useState<SentryApp[]>([]);
   const [selectedItem, selectItem] = useState<Pick<Item, 'label' | 'value'> | null>(null);
 
   useEffect(() => {
-    if (!isLoading && data.internalIntegrations) {
+    if (data.internalIntegrations) {
       setIntegrations(data.internalIntegrations);
     }
-  }, [isLoading, data.internalIntegrations]);
+  }, [data.internalIntegrations]);
   useEffect(() => {
     trackAdvancedAnalyticsEvent('releases.quickstart_viewed', {
       organization,
@@ -197,7 +197,8 @@ const ReleasesPromo = ({organization, project}: Props) => {
       ),
     };
   };
-  return renderComponent(
+
+  return (
     <Panel>
       <Container>
         <StyledPageHeader>
@@ -324,6 +325,21 @@ const ReleasesPromo = ({organization, project}: Props) => {
       </Container>
     </Panel>
   );
+};
+
+const ReleasesPromo = ({project}: Props) => {
+  const organization = useOrganization();
+  const {renderComponent} = useApiRequests<ResponseData>({
+    endpoints: [
+      [
+        'internalIntegrations',
+        `/organizations/${organization.slug}/sentry-apps/`,
+        {query: {status: 'internal'}},
+      ],
+    ],
+  });
+
+  return renderComponent(({data}) => <ReleasesPromoSuccess {...{data, project}} />);
 };
 
 const StyledPageHeader = styled(PageHeader)`

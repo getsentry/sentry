@@ -448,7 +448,7 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     if (this.shouldShowQuickstart) {
-      return <ReleasesPromo organization={organization} project={selectedProject!} />;
+      return <ReleasesPromo project={selectedProject!} />;
     }
 
     return (

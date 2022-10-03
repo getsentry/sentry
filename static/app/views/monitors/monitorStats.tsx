@@ -13,28 +13,10 @@ type Props = {
 };
 
 type State = {
-  stats: MonitorStat[] | null;
+  stats: MonitorStat[];
 };
 
-const MonitorStats = ({monitor}: Props) => {
-  const until = Math.floor(new Date().getTime() / 1000);
-  const since = until - 3600 * 24 * 30;
-  const {data, renderComponent} = useApiRequests<State>({
-    endpoints: [
-      [
-        'stats',
-        `/monitors/${monitor.id}/stats/`,
-        {
-          query: {
-            since: since.toString(),
-            until: until.toString(),
-            resolution: '1d',
-          },
-        },
-      ],
-    ],
-  });
-
+const MonitorStatsSuccess = ({data}: {data: State}) => {
   let emptyStats = true;
   const success = {
     seriesName: t('Successful'),
@@ -45,7 +27,7 @@ const MonitorStats = ({monitor}: Props) => {
     data: [] as SeriesDataUnit[],
   };
 
-  data.stats?.forEach(p => {
+  data.stats.forEach(p => {
     if (p.ok || p.error) {
       emptyStats = false;
     }
@@ -55,7 +37,7 @@ const MonitorStats = ({monitor}: Props) => {
   });
   const colors = [theme.green300, theme.red300];
 
-  return renderComponent(
+  return (
     <Panel>
       <PanelBody withPadding>
         {!emptyStats ? (
@@ -77,6 +59,28 @@ const MonitorStats = ({monitor}: Props) => {
       </PanelBody>
     </Panel>
   );
+};
+
+const MonitorStats = ({monitor}: Props) => {
+  const until = Math.floor(new Date().getTime() / 1000);
+  const since = until - 3600 * 24 * 30;
+  const {renderComponent} = useApiRequests<State>({
+    endpoints: [
+      [
+        'stats',
+        `/monitors/${monitor.id}/stats/`,
+        {
+          query: {
+            since: since.toString(),
+            until: until.toString(),
+            resolution: '1d',
+          },
+        },
+      ],
+    ],
+  });
+
+  return renderComponent(MonitorStatsSuccess);
 };
 
 export default MonitorStats;

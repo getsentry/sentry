@@ -1,4 +1,11 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ResponseMeta} from 'sentry/api';
@@ -55,6 +62,16 @@ interface State<T extends Record<string, any>> {
   remainingRequests: number;
 }
 
+type NonNullableValues<T extends Record<string, any>> = {
+  [Property in keyof T]: NonNullable<T[Property]>;
+};
+
+type SuccessData<T extends Record<string, any>> = NonNullableValues<UseApiRequestData<T>>;
+
+type RenderSuccess<T extends Record<string, any>> = (props: {
+  data: SuccessData<T>;
+}) => ReactElement;
+
 interface Result<T extends Record<string, any>> extends State<T> {
   /**
    * renderComponent is a helper function that is used to render loading and
@@ -69,7 +86,7 @@ interface Result<T extends Record<string, any>> extends State<T> {
    *
    * The react element will only be rendered once all endpoints have been loaded.
    */
-  renderComponent: (children: React.ReactElement) => React.ReactElement;
+  renderComponent: (render: RenderSuccess<T>) => React.ReactElement;
 }
 
 type EndpointRequestOptions = {
@@ -395,14 +412,14 @@ function useApiRequests<T extends Record<string, any>>({
 
   const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
 
-  const renderComponent = useCallback(
-    (children: React.ReactElement) =>
+  const renderComponent: Result<T>['renderComponent'] = useCallback(
+    render =>
       shouldRenderLoading
         ? renderLoading()
         : state.hasError
         ? renderError(new Error('Unable to load all required endpoints'))
-        : children,
-    [shouldRenderLoading, state.hasError, renderError]
+        : render({data: state.data as SuccessData<T>}),
+    [shouldRenderLoading, state.hasError, state.data, renderError]
   );
 
   return {...state, renderComponent};

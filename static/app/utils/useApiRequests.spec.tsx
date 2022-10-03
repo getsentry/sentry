@@ -13,15 +13,15 @@ describe('useApiRequests', () => {
 
   describe('error handling', () => {
     function HomePage() {
-      const {renderComponent, data} = useApiRequests<{message: {value?: string}}>({
+      const {renderComponent} = useApiRequests<{message: {value?: string}}>({
         endpoints: [['message', '/some/path/to/something/']],
         shouldRenderBadRequests: true,
       });
-      return renderComponent(<div>{data.message?.value}</div>);
+      return renderComponent(({data}) => <div>{data.message?.value}</div>);
     }
 
     function UniqueErrorsAsyncComponent() {
-      const {renderComponent, data} = useApiRequests({
+      const {renderComponent} = useApiRequests({
         endpoints: [
           ['first', '/first/path/'],
           ['second', '/second/path/'],
@@ -31,7 +31,7 @@ describe('useApiRequests', () => {
       });
 
       // @ts-expect-error
-      return renderComponent(<div>{data.message?.value}</div>);
+      return renderComponent(({data}) => <div>{data.message?.value}</div>);
     }
 
     const memoryHistory = createMemoryHistory();
