@@ -9,6 +9,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
+import {INTERVAL_DISPLAY_MODES} from 'sentry/utils/discover/types';
 
 type IntervalUnits = 's' | 'm' | 'h' | 'd';
 
@@ -53,6 +54,7 @@ const SUPPORTED_RELATIVE_UNITS_LIST = Object.keys(
 ) as IntervalUnits[];
 
 type Props = {
+  displayMode: string;
   eventView: EventView;
   onIntervalChange: (value: string | undefined) => void;
 };
@@ -130,29 +132,33 @@ function getIntervalOption(rangeHours: number): IntervalOption {
 }
 
 function bindInterval(
-  currentInterval: string,
   rangeHours: number,
   intervalHours: number,
   intervalOption: IntervalOption
-): string {
+): boolean {
   // If the interval is out of bounds for time range reset it to the default
   // Bounds are either option.min or half the current
   const optionMax = rangeHours / 2;
-  let interval = currentInterval;
 
-  if (intervalHours < intervalOption.min || intervalHours > optionMax) {
-    interval = intervalOption.default;
-  }
-  return interval;
+  return intervalHours < intervalOption.min || intervalHours > optionMax;
 }
 
-export default function IntervalSelector({eventView, onIntervalChange}: Props) {
+export default function IntervalSelector({
+  displayMode,
+  eventView,
+  onIntervalChange,
+}: Props) {
+  if (!INTERVAL_DISPLAY_MODES.includes(displayMode)) {
+    return null;
+  }
+
   // Get the interval from the eventView if one was set, otherwise determine what the default is
   // TODO: use the INTERVAL_OPTIONS default instead
-  const usingDefaultInterval = eventView.interval === undefined;
   // Can't just do usingDefaultInterval ? ... : ...; here cause the type of interval will include undefined
-  const interval =
-    eventView.interval ?? getInterval(eventView.getPageFilters().datetime, 'high');
+  const defaultInterval = getInterval(eventView.getPageFilters().datetime, 'high');
+  const interval = eventView.interval || defaultInterval;
+  const usingDefaultInterval =
+    eventView.interval === undefined || interval === defaultInterval;
 
   const rangeHours = eventView.getDays() * 24;
   const intervalHours = parsePeriodToHours(interval);
@@ -161,12 +167,9 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
   const intervalOption = getIntervalOption(rangeHours);
 
   // Only bind the interval if we're not using the default
-  let boundInterval = interval;
   if (!usingDefaultInterval) {
-    boundInterval = bindInterval(interval, rangeHours, intervalHours, intervalOption);
-    // If the interval mismatches, reset to undefined which means the default interval
-    if (boundInterval !== interval) {
-      onIntervalChange(undefined);
+    if (bindInterval(rangeHours, intervalHours, intervalOption)) {
+      onIntervalChange(defaultInterval);
     }
   }
 
@@ -175,7 +178,8 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
     const results = _timeRangeAutoCompleteFilter(items, filterValue, {
       supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,
       supportedUnits: SUPPORTED_RELATIVE_UNITS_LIST,
-    }).filter(item => {
+    });
+    const filteredResults = results.filter(item => {
       const itemHours = parsePeriodToHours(item.value);
       if (itemHours < intervalOption.min) {
         newItem = intervalOption.min;
@@ -188,7 +192,7 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
     });
     if (newItem) {
       const [amount, unit] = formatHoursToInterval(newItem);
-      results.push(
+      filteredResults.push(
         makeItem(
           amount,
           unit,
@@ -197,7 +201,7 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
         )
       );
     }
-    return results;
+    return filteredResults;
   };
 
   return (
@@ -212,11 +216,10 @@ export default function IntervalSelector({eventView, onIntervalChange}: Props) {
       autoCompleteFilter={(items, filterValue) =>
         intervalAutoComplete(items, filterValue)
       }
-      alignMenu="right"
     >
       {({isOpen}) => (
         <DropdownButton borderless prefix={t('Interval')} isOpen={isOpen}>
-          {boundInterval}
+          {interval}
         </DropdownButton>
       )}
     </DropdownAutoComplete>

@@ -33,13 +33,19 @@ ALLOWED_SDK_NAMES = frozenset(
         "sentry.javascript.node",  # Node, Express, koa
         "sentry.javascript.react-native",  # React Native
         "sentry.javascript.serverless",  # AWS Lambda Node
+        "sentry.javascript.gatsby",  # Gatsby
+        "sentry.javascript.svelte",  # Svelte
         "sentry.python",  # python, django, flask, FastAPI, Starlette, Bottle, Celery, pyramid, rq
         "sentry.python.serverless",  # AWS Lambda
         "sentry.cocoa",  # iOS
+        "sentry.ruby",  # Ruby
+        "sentry.ruby.rails",  # Rails
     )
 )
-# We want sentry.java.android, sentry.java.android.timber, and all others to match
-ALLOWED_SDK_NAMES_PREFIXES = frozenset(("sentry.java.android",))
+# We want sentry.java, sentry.java.spring, sentry.java.android, sentry.java.android.timber,
+# and all others to match
+# Same for sentry.dart, sentry.dart.browser, and sentry.dart.flutter
+ALLOWED_SDK_NAMES_PREFIXES = frozenset(("sentry.java", "sentry.dart"))
 
 
 class QueryBoundsException(Exception):

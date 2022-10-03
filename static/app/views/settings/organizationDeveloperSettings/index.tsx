@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -202,10 +202,11 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   }
   renderBody() {
     const {organization} = this.props;
-    const tabs = [
+    const tabs: [id: Tab, label: string][] = [
       ['internal', t('Internal Integration')],
       ['public', t('Public Integration')],
-    ] as [id: Tab, label: string][];
+    ];
+
     if (organization.features.includes('sentry-functions')) {
       tabs.push(['sentryfx', t('Sentry Function')]);
     }
@@ -215,7 +216,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         <SettingsPageHeader
           title={t('Developer Settings')}
           body={
-            <React.Fragment>
+            <Fragment>
               {t(
                 'Create integrations that interact with Sentry using the REST API and webhooks. '
               )}
@@ -233,7 +234,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
                   />
                 ),
               })}
-            </React.Fragment>
+            </Fragment>
           }
           action={
             <ActionContainer>

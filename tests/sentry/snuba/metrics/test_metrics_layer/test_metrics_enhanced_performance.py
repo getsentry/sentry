@@ -10,12 +10,13 @@ import pytest
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
-from snuba_sdk import Direction, Granularity, Limit, Offset
+from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
+    MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricsQuery,
@@ -101,7 +102,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             start=self.now - timedelta(hours=1),
             end=self.now,
             granularity=Granularity(granularity=3600),
-            groupby=[MetricGroupByField(name="transaction", alias="transaction_group")],
+            groupby=[MetricGroupByField(field="transaction", alias="transaction_group")],
             orderby=[
                 OrderBy(
                     MetricField(
@@ -240,8 +241,339 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time()
+    @freeze_time("2022-09-28 13:00:00")
+    def test_custom_measurement_query_with_valid_mri(self):
+        now = timezone.now()
+        transactions_speed_mri = "d:transactions/measurements.speed@millisecond"
+
+        for value in (100, 200, 300):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=transactions_speed_mri,
+                tags={},
+                timestamp=(now - timedelta(hours=1)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=transactions_speed_mri,
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            groupby=[],
+            orderby=[],
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 3
+        expected_alias = "count(measurements.speed)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    @freeze_time("2022-09-28 13:00:00")
+    def test_custom_measurement_query_with_invalid_mri(self):
+        now = timezone.now()
+        invalid_mris = [
+            "d:sessions/measurements.speed@millisecond",
+            "s:transactions/measurements.speed@millisecond",
+        ]
+
+        for value, invalid_mri in zip([100, 200], invalid_mris):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=invalid_mri,
+                tags={},
+                timestamp=(now - timedelta(hours=1)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        for invalid_mri in invalid_mris:
+            with pytest.raises(
+                InvalidParams, match=f"Unable to find a mri reverse mapping for '{invalid_mri}'."
+            ):
+                # We keep the query in order to add more context to the test, even though the actual test
+                # is testing for the '__post_init__' inside 'MetricField'.
+                metrics_query = MetricsQuery(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    select=[
+                        MetricField(
+                            op="count",
+                            metric_mri=invalid_mri,
+                        ),
+                    ],
+                    start=self.now - timedelta(hours=1),
+                    end=self.now,
+                    granularity=Granularity(granularity=3600),
+                    groupby=[],
+                    orderby=[],
+                    limit=Limit(limit=2),
+                    offset=Offset(offset=0),
+                    include_series=False,
+                )
+
+                get_series(
+                    [self.project],
+                    metrics_query=metrics_query,
+                    include_meta=True,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+    @freeze_time("2022-09-29 11:30:00")
+    def test_query_with_tuple_condition(self):
+        now = timezone.now()
+
+        for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                timestamp=(now - timedelta(seconds=1)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count",
+                    metric_mri=TransactionMRI.DURATION.value,
+                ),
+            ],
+            start=now - timedelta(minutes=1),
+            end=now,
+            groupby=[],
+            where=[
+                Condition(
+                    lhs=Function(
+                        function="tuple",
+                        parameters=[
+                            Column(
+                                name="tags[transaction]",
+                            )
+                        ],
+                    ),
+                    op=Op.IN,
+                    rhs=Function(
+                        function="tuple",
+                        parameters=[("/foo",), ("/bar",)],
+                    ),
+                )
+            ],
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=1),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        expected_count = 2
+        expected_alias = "count(transaction.duration)"
+        assert groups[0]["totals"] == {
+            expected_alias: expected_count,
+        }
+        assert data["meta"] == sorted(
+            [
+                {"name": expected_alias, "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    @freeze_time("2022-09-22 10:01:09")
+    def test_count_transaction_with_valid_condition(self):
+        now = timezone.now()
+
+        for transaction, values in (
+            ("<< unparameterized >>", [1]),
+            ("", [2, 3]),
+            ("/foo", [4, 5, 6]),
+        ):
+            if transaction == "":
+                tags = {}
+            else:
+                tags = {"transaction": transaction}
+
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags=tags,
+                    timestamp=now.timestamp(),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": "is_unparameterized"},
+                    alias="count_transaction_name_is_unparameterized",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": "is_null"},
+                    alias="count_transaction_name_is_null",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": "has_value"},
+                    alias="count_transaction_name_has_value",
+                ),
+            ],
+            start=now - timedelta(minutes=1),
+            end=now,
+            groupby=[],
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=3),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=True,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+
+        groups = data["groups"]
+        assert len(groups) == 1
+
+        assert groups[0]["totals"] == {
+            "count_transaction_name_is_unparameterized": 1,
+            "count_transaction_name_is_null": 2,
+            "count_transaction_name_has_value": 3,
+        }
+
+        assert data["meta"] == sorted(
+            [
+                {"name": "count_transaction_name_is_unparameterized", "type": "UInt64"},
+                {"name": "count_transaction_name_is_null", "type": "UInt64"},
+                {"name": "count_transaction_name_has_value", "type": "UInt64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    @freeze_time("2022-09-22 10:01:09")
+    def test_count_transaction_with_invalid_condition(self):
+        now = timezone.now()
+
+        for transaction, values in (
+            ("<< unparameterized >>", [1]),
+            ("", [2]),
+            ("/foo", [4]),
+        ):
+            if transaction == "":
+                tags = {}
+            else:
+                tags = {"transaction": transaction}
+
+            for value in values:
+                self.store_metric(
+                    org_id=self.organization.id,
+                    project_id=self.project.id,
+                    type="distribution",
+                    name=TransactionMRI.DURATION.value,
+                    tags=tags,
+                    timestamp=now.timestamp(),
+                    value=value,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+        invalid_condition = "invalid"
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri=TransactionMRI.DURATION.value,
+                    params={"transaction_name": invalid_condition},
+                    alias="count_transaction_name_invalid",
+                ),
+            ],
+            start=now - timedelta(minutes=1),
+            end=now,
+            groupby=[],
+            granularity=Granularity(granularity=60),
+            limit=Limit(limit=3),
+            offset=Offset(offset=0),
+            include_series=False,
+        )
+
+        with pytest.raises(
+            InvalidParams,
+            match=f"The `count_transaction_name` function expects a valid transaction name filter, which must be "
+            f"either is_unparameterized is_null has_value but {invalid_condition} was passed",
+        ):
+            get_series(
+                [self.project],
+                metrics_query=metrics_query,
+                include_meta=True,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    @freeze_time("2022-09-22 11:07:00")
     def test_alias_on_single_entity_derived_metrics(self):
+        """
+        We want to freeze time and self.now don't freezes when we decorate only function
+        it helps to reproduce flakiness. Also it's important to freeze it for :00 second,
+        otherwise you can't catch race condition and test will work.
+        """
+        now = timezone.now()
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
@@ -254,7 +586,9 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
-                timestamp=self.now.timestamp(),
+                # It's important that we store metric between now and now - 1 minute
+                # Note: now is not included
+                timestamp=(now - timedelta(seconds=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -269,8 +603,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=self.now - timedelta(minutes=1),
-            end=self.now,
+            start=now - timedelta(minutes=1),
+            end=now,
             granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
@@ -864,7 +1198,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             start=start,
             groupby=[
                 MetricGroupByField(
-                    name="transaction",
+                    field="transaction",
                 )
             ],
             end=end,
@@ -900,6 +1234,222 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             ],
             key=lambda elem: elem["name"],
         )
+
+    @freeze_time("2022-09-22 11:07:00")
+    def test_team_key_transactions_my_teams(self):
+        now = timezone.now()
+
+        for idx, (transaction, value) in enumerate(
+            (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                timestamp=(now - timedelta(minutes=idx)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="team_key_transaction",
+                    metric_mri=str(TransactionMRI.DURATION.value),
+                    params={
+                        "team_key_condition_rhs": [
+                            (self.project.id, "foo_transaction"),
+                        ]
+                    },
+                    alias="team_key_transactions",
+                ),
+                MetricField(
+                    op="p95",
+                    metric_mri=str(TransactionMRI.DURATION.value),
+                    alias="p95",
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            groupby=[
+                MetricGroupByField(
+                    field=MetricField(
+                        op="team_key_transaction",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        params={
+                            "team_key_condition_rhs": [
+                                (self.project.id, "foo_transaction"),
+                            ]
+                        },
+                        alias="team_key_transactions",
+                    )
+                ),
+                MetricGroupByField("transaction"),
+            ],
+            orderby=[
+                OrderBy(
+                    field=MetricField(
+                        op="team_key_transaction",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        params={
+                            "team_key_condition_rhs": [
+                                (self.project.id, "foo_transaction"),
+                            ]
+                        },
+                        alias="team_key_transactions",
+                    ),
+                    direction=Direction.DESC,
+                ),
+                OrderBy(
+                    field=MetricField(
+                        op="p95",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        alias="p95",
+                    ),
+                    direction=Direction.DESC,
+                ),
+            ],
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=False,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        assert data["groups"] == [
+            {
+                "by": {"team_key_transactions": 1, "transaction": "foo_transaction"},
+                "totals": {"team_key_transactions": 1, "p95": 1.0},
+            },
+            {
+                "by": {"team_key_transactions": 0, "transaction": "bar_transaction"},
+                "totals": {"team_key_transactions": 0, "p95": 1.0},
+            },
+            {
+                "by": {"team_key_transactions": 0, "transaction": "baz_transaction"},
+                "totals": {"team_key_transactions": 0, "p95": 0.5},
+            },
+        ]
+
+    @freeze_time("2022-09-22 11:07:00")
+    def test_team_key_transaction_as_condition(self):
+        now = timezone.now()
+
+        for idx, (transaction, value) in enumerate(
+            (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
+        ):
+            self.store_metric(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                type="distribution",
+                name=TransactionMRI.DURATION.value,
+                tags={"transaction": transaction},
+                timestamp=(now - timedelta(minutes=idx)).timestamp(),
+                value=value,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+        metrics_query = MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=[
+                MetricField(
+                    op="team_key_transaction",
+                    metric_mri=str(TransactionMRI.DURATION.value),
+                    params={
+                        "team_key_condition_rhs": [
+                            (self.project.id, "foo_transaction"),
+                        ]
+                    },
+                    alias="team_key_transactions",
+                ),
+                MetricField(
+                    op="p95",
+                    metric_mri=str(TransactionMRI.DURATION.value),
+                    alias="p95",
+                ),
+            ],
+            start=now - timedelta(hours=1),
+            end=now,
+            granularity=Granularity(granularity=3600),
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            groupby=[
+                MetricGroupByField(
+                    field=MetricField(
+                        op="team_key_transaction",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        params={
+                            "team_key_condition_rhs": [
+                                (self.project.id, "foo_transaction"),
+                            ]
+                        },
+                        alias="team_key_transactions",
+                    )
+                ),
+                MetricGroupByField("transaction"),
+            ],
+            orderby=[
+                OrderBy(
+                    field=MetricField(
+                        op="team_key_transaction",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        params={
+                            "team_key_condition_rhs": [
+                                (self.project.id, "foo_transaction"),
+                            ]
+                        },
+                        alias="team_key_transactions",
+                    ),
+                    direction=Direction.DESC,
+                ),
+                OrderBy(
+                    field=MetricField(
+                        op="p95",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        alias="p95",
+                    ),
+                    direction=Direction.DESC,
+                ),
+            ],
+            where=[
+                MetricConditionField(
+                    lhs=MetricField(
+                        op="team_key_transaction",
+                        metric_mri=str(TransactionMRI.DURATION.value),
+                        params={
+                            "team_key_condition_rhs": [
+                                (self.project.id, "foo_transaction"),
+                            ]
+                        },
+                        alias="team_key_transactions",
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
+            include_series=False,
+        )
+        data = get_series(
+            [self.project],
+            metrics_query=metrics_query,
+            include_meta=False,
+            use_case_id=UseCaseKey.PERFORMANCE,
+        )
+        assert data["groups"] == [
+            {
+                "by": {"team_key_transactions": 1, "transaction": "foo_transaction"},
+                "totals": {"team_key_transactions": 1, "p95": 1.0},
+            },
+        ]
 
 
 class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):

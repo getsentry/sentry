@@ -389,7 +389,7 @@ def test_validate_where():
 
 def test_validate_groupby():
     with pytest.raises(
-        InvalidParams, match="Tag name session.status cannot be used to groupBy query"
+        InvalidParams, match="Tag name session.status cannot be used in groupBy query"
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
@@ -478,3 +478,32 @@ def test_granularity_validation(stats_period, interval, error_message):
     # that is not present in the select
     with pytest.raises(InvalidParams, match=error_message):
         MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_metric_field_mri():
+    with pytest.raises(InvalidParams, match="Invalid Metric MRI: transaction-metric-duration"):
+        MetricField(
+            op="avg",
+            metric_mri="transaction-metric-duration",
+        )
+
+
+@pytest.mark.parametrize(
+    "alias",
+    [
+        pytest.param(
+            None,
+            id="No alias provided",
+        ),
+        pytest.param(
+            "ahmed_alias",
+            id="alias is provided",
+        ),
+    ],
+)
+def test_validate_metric_field_mri_is_public(alias):
+    with pytest.raises(
+        InvalidParams,
+        match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+    ):
+        MetricField(op=None, metric_mri="e:sessions/error.preaggr@none", alias=alias)

@@ -105,7 +105,7 @@ def pytest_configure(config):
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
-    settings.SENTRY_TSDB = "sentry.tsdb.inmemory.InMemoryTSDB"
+    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
     settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
@@ -134,11 +134,6 @@ def pytest_configure(config):
 
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
-
-    if os.environ.get("USE_SNUBA", False):
-        settings.SENTRY_SEARCH = "sentry.search.snuba.EventsDatasetSnubaSearchBackend"
-        settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
-        settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
@@ -198,6 +193,11 @@ def pytest_configure(config):
 
     # This is so tests can assume this feature is off by default
     settings.SENTRY_FEATURES["organizations:performance-view"] = False
+
+    # Enables performance problem detection
+    settings.SENTRY_OPTIONS["performance.issues.all.problem-creation"] = 1.0
+    # Enables performance issue detection and creation
+    settings.SENTRY_FEATURES["organizations:performance-issues-ingest"] = True
 
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
@@ -266,12 +266,6 @@ def register_extensions():
 
 
 def pytest_runtest_teardown(item):
-    if not os.environ.get("USE_SNUBA", False):
-        from sentry import tsdb
-
-        # TODO(dcramer): this only works if this is the correct tsdb backend
-        tsdb.flush()
-
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
 

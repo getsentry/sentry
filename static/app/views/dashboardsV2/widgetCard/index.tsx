@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
@@ -9,6 +9,7 @@ import {Location} from 'history';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -17,7 +18,7 @@ import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import Tooltip from 'sentry/components/tooltip';
-import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
+import {IconCopy, IconDelete, IconEdit, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
@@ -58,6 +59,7 @@ type Props = WithRouterProps & {
   index?: string;
   isMobile?: boolean;
   isPreview?: boolean;
+  isWidgetInvalid?: boolean;
   noDashboardsMEPProvider?: boolean;
   noLazyLoad?: boolean;
   onDelete?: () => void;
@@ -233,6 +235,7 @@ class WidgetCard extends Component<Props, State> {
       showStoredAlert,
       noDashboardsMEPProvider,
       dashboardFilters,
+      isWidgetInvalid,
     } = this.props;
 
     if (widget.displayType === DisplayType.TOP_N) {
@@ -283,7 +286,14 @@ class WidgetCard extends Component<Props, State> {
                 </Tooltip>
                 {this.renderContextMenu()}
               </WidgetHeader>
-              {noLazyLoad ? (
+              {isWidgetInvalid ? (
+                <Fragment>
+                  {renderErrorMessage?.('Widget query condition is invalid.')}
+                  <StyledErrorPanel>
+                    <IconWarning color="gray500" size="lg" />
+                  </StyledErrorPanel>
+                </Fragment>
+              ) : noLazyLoad ? (
                 <WidgetCardChartContainer
                   api={api}
                   organization={organization}
@@ -430,4 +440,8 @@ const WidgetHeader = styled('div')`
 const StoredDataAlert = styled(Alert)`
   margin-top: ${space(1)};
   margin-bottom: 0;
+`;
+
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
 `;

@@ -3,7 +3,6 @@ import {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {Team} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type CallbackOptions = {
   error?: Function;
@@ -14,10 +13,7 @@ const doCallback = (
   params: CallbackOptions = {},
   name: keyof CallbackOptions,
   ...args: any[]
-) => {
-  callIfFunction(params[name], ...args);
-};
-
+) => params[name]?.(...args);
 /**
  * Note these are both slugs
  */

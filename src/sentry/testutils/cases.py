@@ -32,7 +32,6 @@ __all__ = (
 
 import hashlib
 import inspect
-import os
 import os.path
 import time
 from contextlib import contextmanager
@@ -141,6 +140,7 @@ from .helpers import (
     override_options,
     parse_queries,
 )
+from .silo import exempt_from_silo_limits
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
@@ -240,7 +240,8 @@ class BaseTestCase(Fixtures, Exam):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        login(request, user)
+        with exempt_from_silo_limits():
+            login(request, user)
         request.user = user
 
         if organization_ids is None:
@@ -923,9 +924,17 @@ class SnubaTestCase(BaseTestCase):
     def store_event(self, *args, **kwargs):
         with mock.patch("sentry.eventstream.insert", self.snuba_eventstream.insert):
             stored_event = Factories.store_event(*args, **kwargs)
+
+            # Error groups
             stored_group = stored_event.group
             if stored_group is not None:
                 self.store_group(stored_group)
+
+            # Performance groups
+            stored_groups = stored_event.groups
+            if stored_groups is not None:
+                for group in stored_groups:
+                    self.store_group(group)
             return stored_event
 
     def wait_for_event_count(self, project_id, total, attempts=2):

@@ -315,6 +315,10 @@ describe('Performance > TransactionSummary', function () {
           key: 'foo',
           topValues: [{count: 1, value: 'bar', name: 'bar'}],
         },
+        {
+          key: 'user',
+          topValues: [{count: 1, value: 'id:100', name: '100'}],
+        },
       ],
     });
     MockApiClient.addMockResponse({
@@ -755,8 +759,11 @@ describe('Performance > TransactionSummary', function () {
       userEvent.click(
         screen.getByLabelText('Add the bar segment tag to the search query')
       );
+      userEvent.click(
+        screen.getByLabelText('Add the id:100 segment tag to the search query')
+      );
 
-      expect(router.push).toHaveBeenCalledTimes(2);
+      expect(router.push).toHaveBeenCalledTimes(3);
 
       expect(router.push).toHaveBeenNthCalledWith(1, {
         query: {
@@ -771,6 +778,15 @@ describe('Performance > TransactionSummary', function () {
         query: {
           project: '2',
           query: 'foo:bar',
+          transaction: '/performance',
+          transactionCursor: '1:0:0',
+        },
+      });
+
+      expect(router.push).toHaveBeenNthCalledWith(3, {
+        query: {
+          project: '2',
+          query: 'user:"id:100"',
           transaction: '/performance',
           transactionCursor: '1:0:0',
         },

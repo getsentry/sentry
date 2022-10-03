@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 import sentry_sdk
 
@@ -16,6 +16,8 @@ from sentry.eventstore.models import Event
 from sentry.models import Organization, Project, ProjectOption
 from sentry.types.issues import GroupType
 from sentry.utils import metrics
+from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.safe import get_path
 
 from .performance_span_issue import PerformanceSpanProblem
 
@@ -24,6 +26,13 @@ TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
+INTEGRATIONS_OF_INTEREST = [
+    "django",
+    "flask",
+    "sqlalchemy",
+    "Mongo",  # Node
+    "Postgres",  # Node
+]
 
 
 class DetectorType(Enum):
@@ -35,6 +44,7 @@ class DetectorType(Enum):
     RENDER_BLOCKING_ASSET_SPAN = "render_blocking_assets"
     N_PLUS_ONE_SPANS = "n_plus_one"
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
+    N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -47,11 +57,13 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
     DetectorType.N_PLUS_ONE_SPANS: GroupType.PERFORMANCE_N_PLUS_ONE,
     DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
 }
 
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
 
 
@@ -65,7 +77,9 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     offender_span_ids: Sequence[str]
 
-    def to_dict(self) -> str:
+    def to_dict(
+        self,
+    ) -> Mapping[str, Any]:
         return {
             "fingerprint": self.fingerprint,
             "op": self.op,
@@ -88,6 +102,20 @@ class PerformanceProblem:
             data["offender_span_ids"],
         )
 
+    def __eq__(self, other):
+        if not isinstance(other, PerformanceProblem):
+            return NotImplemented
+        return (
+            self.fingerprint == other.fingerprint
+            and self.offender_span_ids == other.offender_span_ids
+            and self.type == other.type
+        )
+
+    def __hash__(self):
+        # This will de-duplicate on fingerprint and type and only for offending span ids.
+        # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
+        return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))
+
 
 class EventPerformanceProblem:
     """
@@ -107,6 +135,21 @@ class EventPerformanceProblem:
     def build_identifier(cls, event_id: str, problem_hash: str) -> str:
         identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
         return f"p-i-e:{identifier}"
+
+    @property
+    def evidence_hashes(self):
+        evidence_ids = self.problem.to_dict()
+        evidence_hashes = {}
+
+        spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
+
+        for key in ["parent", "cause", "offender"]:
+            span_ids = evidence_ids.get(key + "_span_ids", []) or []
+            spans = [spans_by_id.get(id) for id in span_ids]
+            hashes = [span.get("hash") for span in spans if span]
+            evidence_hashes[key + "_span_hashes"] = hashes
+
+        return evidence_hashes
 
     def save(self):
         nodestore.set(self.identifier, self.problem.to_dict())
@@ -230,6 +273,10 @@ def get_detection_settings(project_id: str):
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
         },
+        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
+            "count": settings["n_plus_one_db_count"],
+            "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+        },
     }
 
 
@@ -250,6 +297,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
         DetectorType.N_PLUS_ONE_SPANS: NPlusOneSpanDetector(detection_settings, data),
         DetectorType.N_PLUS_ONE_DB_QUERIES: NPlusOneDBSpanDetector(detection_settings, data),
+        DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: NPlusOneDBSpanDetectorExtended(
+            detection_settings, data
+        ),
     }
 
     for span in spans:
@@ -259,7 +309,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         detector.on_complete()
 
     # Metrics reporting only for detection, not created issues.
-    report_metrics_for_detectors(event_id, detectors, sdk_span)
+    report_metrics_for_detectors(data, event_id, detectors, sdk_span)
 
     # Get list of detectors that are allowed to create issues.
     allowed_perf_issue_detectors = get_allowed_issue_creation_detectors(project_id)
@@ -277,14 +327,18 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         for problem, detector_type in truncated_problems
     ]
 
-    if len(performance_problems) > 0:
+    # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
+    unique_performance_problems = set(performance_problems)
+
+    if len(unique_performance_problems) > 0:
         metrics.incr(
             "performance.performance_issue.performance_problem_emitted",
-            len(performance_problems),
+            len(unique_performance_problems),
             sample_rate=1.0,
         )
 
-    return performance_problems
+    # TODO: Make sure upstream is all compatible with set before switching output type.
+    return list(unique_performance_problems)
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
@@ -818,6 +872,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def init(self):
         self.stored_problems = {}
         self.potential_parents = {}
+        self.n_hash = None
         self.n_spans = []
         self.source_span = None
 
@@ -862,7 +917,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._maybe_store_problem()
 
-    def _contains_complete_query(self, span: Span) -> bool:
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # When SDKs truncate span description, they add a "..." suffix (three
         # full stops, not an ellipsis).
         query = span.get("description", None)
@@ -935,9 +990,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         # Track how many N+1-looking problems we found but dropped because we
         # couldn't be sure (maybe the truncated part of the query differs).
-        if not self._contains_complete_query(self.source_span) or not self._contains_complete_query(
-            self.n_spans[0]
-        ):
+        if not self._contains_complete_query(
+            self.source_span, is_source=True
+        ) or not self._contains_complete_query(self.n_spans[0]):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
@@ -971,12 +1026,42 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return f"1-{problem_class}-{full_fingerprint}"
 
 
+class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
+    """
+    Detector goals:
+    - Extend N+1 DB Detector to make it compatible with more frameworks.
+    """
+
+    __slots__ = (
+        "stored_problems",
+        "potential_parents",
+        "source_span",
+        "n_hash",
+        "n_spans",
+    )
+
+    def init(self):
+        super().init()
+        root_span = get_path(self._event, "contexts", "trace")
+        if root_span:
+            self.potential_parents[root_span.get("span_id")] = root_span
+
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
+        # Remove the truncation check from the n_plus_one db detector.
+        query = span.get("description", None)
+        if is_source:
+            return bool(query)
+        else:
+            return query and not query.endswith("...")
+
+
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
-    event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
+    event: Event, event_id: Optional[str], detectors: Dict[str, PerformanceDetector], sdk_span: Any
 ):
     all_detected_problems = [i for _, d in detectors.items() for i in d.stored_problems]
     has_detected_problems = bool(all_detected_problems)
+    sdk_name = get_sdk_name(event)
 
     try:
         # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
@@ -986,14 +1071,23 @@ def report_metrics_for_detectors(
 
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
+        set_tag("_pi_sdk_name", sdk_name or "")
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
+            tags={"sdk_name": sdk_name},
         )
         if event_id:
             set_tag("_pi_transaction", event_id)
 
-    detected_tags = {}
+    detected_tags = {"sdk_name": sdk_name}
+    event_integrations = event.get("sdk", {}).get("integrations", []) or []
+
+    for integration_name in INTEGRATIONS_OF_INTEREST:
+        detected_tags["integration_" + integration_name.lower()] = (
+            integration_name in event_integrations
+        )
+
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems

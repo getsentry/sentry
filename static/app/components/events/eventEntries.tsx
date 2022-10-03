@@ -52,7 +52,6 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
-import EventReplay from './eventReplay';
 import EventTagsAndScreenshot from './eventTagsAndScreenshot';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -128,7 +127,7 @@ const EventEntries = ({
   const orgFeatures = organization?.features ?? [];
 
   const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+  const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
 
   const recordIssueError = useCallback(() => {
     if (!event || !event.errors || !(event.errors.length > 0)) {
@@ -407,22 +406,25 @@ const EventEntries = ({
       {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
         <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
       )}
-      {!isShare &&
-        event.groupID &&
-        group?.issueCategory !== IssueCategory.PERFORMANCE && (
-          <EventGroupingInfo
-            projectId={projectSlug}
-            event={event}
-            showGroupingConfig={orgFeatures.includes('set-grouping-config')}
-          />
-        )}
-      {!isShare && (
-        <MiniReplayView
+      {!isShare && event.groupID && (
+        <EventGroupingInfo
+          projectId={projectSlug}
           event={event}
-          orgFeatures={orgFeatures}
-          orgSlug={orgSlug}
-          projectSlug={projectSlug}
-          replayId={replayId}
+          showGroupingConfig={
+            orgFeatures.includes('set-grouping-config') && 'groupingConfig' in event
+          }
+        />
+      )}
+      {!isShare && !hasReplay && hasEventAttachmentsFeature && (
+        <RRWebIntegration
+          event={event}
+          orgId={orgSlug}
+          projectId={projectSlug}
+          renderer={children => (
+            <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
+              {children}
+            </StyledReplayEventDataSection>
+          )}
         />
       )}
     </div>
@@ -468,6 +470,7 @@ function injectResourcesEntry(definedEvent: Event) {
 function Entries({
   definedEvent,
   projectSlug,
+  isShare,
   group,
   organization,
   route,
@@ -475,6 +478,7 @@ function Entries({
 }: {
   definedEvent: Event;
   projectSlug: string;
+  isShare?: boolean;
 } & Pick<Props, 'group' | 'organization' | 'route' | 'router'>) {
   if (!Array.isArray(definedEvent.entries)) {
     return null;
@@ -506,51 +510,12 @@ function Entries({
             entry={entry}
             route={route}
             router={router}
+            isShare={isShare}
           />
         </ErrorBoundary>
       ))}
     </Fragment>
   );
-}
-
-type MiniReplayViewProps = {
-  event: Event;
-  orgFeatures: string[];
-  orgSlug: string;
-  projectSlug: string;
-  replayId: undefined | string;
-};
-
-function MiniReplayView({
-  event,
-  orgFeatures,
-  orgSlug,
-  projectSlug,
-  replayId,
-}: MiniReplayViewProps) {
-  const hasEventAttachmentsFeature = orgFeatures.includes('event-attachments');
-  const hasSessionReplayFeature = orgFeatures.includes('session-replay-ui');
-
-  if (replayId && hasSessionReplayFeature) {
-    return (
-      <EventReplay replayId={replayId} orgSlug={orgSlug} projectSlug={projectSlug} />
-    );
-  }
-  if (hasEventAttachmentsFeature) {
-    return (
-      <RRWebIntegration
-        event={event}
-        orgId={orgSlug}
-        projectId={projectSlug}
-        renderer={children => (
-          <StyledReplayEventDataSection type="context-replay" title={t('Replay')}>
-            {children}
-          </StyledReplayEventDataSection>
-        )}
-      />
-    );
-  }
-  return null;
 }
 
 const StyledEventDataSection = styled(EventDataSection)`

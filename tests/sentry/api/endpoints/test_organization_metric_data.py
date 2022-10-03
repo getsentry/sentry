@@ -37,6 +37,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 
 @region_silo_test
+@freeze_time()
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -104,7 +105,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             interval="1h",
         )
         assert response.data["detail"] == (
-            "Tag name session.status cannot be used to groupBy query"
+            "Tag name session.status cannot be used in groupBy query"
         )
 
     def test_filter_session_status(self):
@@ -1168,7 +1169,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
         assert len(response.data["groups"]) == 1
 
-    @pytest.mark.skip(reason="flaky: INGEST-1174")
     def test_one_field_orderby_with_no_groupby_returns_one_row(self):
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):

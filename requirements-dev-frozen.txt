@@ -118,11 +118,11 @@ pyopenssl==22.0.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 pysocks==1.7.1
-pytest==6.1.2
+pytest==7.1.2
 pytest-cov==3.0.0
 pytest-django==4.4.0
 pytest-forked==1.4.0
-pytest-rerunfailures==9.1.1
+pytest-rerunfailures==10.2
 pytest-sentry==0.1.9
 pytest-xdist==2.4.0
 python-dateutil==2.8.1
@@ -158,7 +158,7 @@ soupsieve==2.3.2.post1
 sqlparse==0.3.0
 statsd==3.3
 structlog==21.1.0
-symbolic==8.7.1
+symbolic==9.2.0
 tokenize-rt==4.2.1
 toml==0.10.2
 tomli==2.0.1

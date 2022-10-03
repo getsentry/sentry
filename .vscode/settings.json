@@ -32,7 +32,8 @@
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
     "**/node_modules/@storybook/theming/*",
-    "**/node_modules/@storybook/addons/*"
+    "**/node_modules/@storybook/addons/*",
+    "**/node_modules/@testing-library/*"
   ],
 
   "[typescriptreact]": {

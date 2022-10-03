@@ -14,13 +14,17 @@ import {
 import DataSection from '../../eventTagsAndScreenshot/dataSection';
 import KeyValueList from '../keyValueList';
 import TraceView from '../spans/traceView';
-import {RawSpanType, SpanEntry} from '../spans/types';
+import {RawSpanType, SpanEntry, TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 interface Props {
   event: EventTransaction;
   organization: Organization;
 }
+
+export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
+  span_id: string; // TODO: Remove this temporary type.
+};
 
 export function SpanEvidenceSection({event, organization}: Props) {
   if (!event.perfProblem) {
@@ -37,11 +41,15 @@ export function SpanEvidenceSection({event, organization}: Props) {
   const spanEntry = event.entries.find((entry: SpanEntry | any): entry is SpanEntry => {
     return entry.type === EntryType.SPANS;
   });
-  const spans: Array<RawSpanType> = spanEntry?.data ?? [];
+  const spans: Array<RawSpanType | TraceContextSpanProxy> = [...spanEntry?.data] ?? [];
+
+  if (event?.contexts?.trace && event?.contexts?.trace?.span_id) {
+    // TODO: Fix this conditional and check if span_id is ever actually undefined.
+    spans.push(event.contexts.trace as TraceContextSpanProxy);
+  }
   const spansById = keyBy(spans, 'span_id');
 
   const parentSpan = spansById[event.perfProblem.parentSpanIds[0]];
-  const sourceSpan = spansById[event.perfProblem.causeSpanIds[0]];
   const repeatingSpan = spansById[event.perfProblem.offenderSpanIds[0]];
 
   const data: KeyValueListData = [
@@ -57,27 +65,18 @@ export function SpanEvidenceSection({event, organization}: Props) {
     },
     {
       key: '2',
-      subject: t('Source Span'),
-      value: getSpanEvidenceValue(sourceSpan),
-    },
-    {
-      key: '3',
       subject: t('Repeating Span'),
       value: getSpanEvidenceValue(repeatingSpan),
     },
   ];
 
-  const affectedSpanIds = [
-    parentSpan.span_id,
-    sourceSpan.span_id,
-    ...event.perfProblem.offenderSpanIds,
-  ];
+  const affectedSpanIds = [parentSpan.span_id, ...event.perfProblem.offenderSpanIds];
 
   return (
     <DataSection
       title={t('Span Evidence')}
       description={t(
-        'Span Evidence identifies the parent span where the N+1 occurs, the source span that occurs immediately before the repeating spans, and the repeating span itself.'
+        'Span Evidence identifies the parent span where the N+1 occurs, and the repeating spans.'
       )}
     >
       <KeyValueList data={data} />
@@ -93,7 +92,7 @@ export function SpanEvidenceSection({event, organization}: Props) {
   );
 }
 
-function getSpanEvidenceValue(span: RawSpanType) {
+function getSpanEvidenceValue(span: RawSpanType | TraceContextSpanProxy) {
   if (!span.op && !span.description) {
     return t('(no value)');
   }
