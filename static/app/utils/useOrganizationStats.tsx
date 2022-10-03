@@ -27,7 +27,7 @@ export function useOrganizationStats({
   const api = useApi();
 
   const organizationStats = useQuery<SeriesApi>(
-    ['samplingDistribution', organizationSlug, queryParameters],
+    ['organizationStats', organizationSlug, queryParameters],
     async (): Promise<SeriesApi> =>
       await api.requestPromise(`/organizations/${organizationSlug}/stats_v2/`, {
         query: queryParameters,
