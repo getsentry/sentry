@@ -324,8 +324,6 @@ urlpatterns += [
             ]
         ),
     ),
-    # Onboarding
-    url(r"^onboarding/", generic_react_page_view),
     # Admin
     url(r"^manage/", react_page_view, name="sentry-admin-overview"),
     # Legacy Redirects
