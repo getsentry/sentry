@@ -79,7 +79,7 @@ export function breadcrumbFactory(
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
     category: 'exception',
-    message: error['error.value'].join(''),
+    message: error.title,
     data: {
       label: error['error.type'].join(''),
       eventId: error.id,
