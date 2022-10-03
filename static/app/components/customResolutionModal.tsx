@@ -58,7 +58,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
   return (
     <form onSubmit={onSubmit}>
       <Header>
-        <h3>{t('Resolved In')}</h3>
+        <h4>{t('Resolved In')}</h4>
       </Header>
       <Body>
         <SelectAsyncField
