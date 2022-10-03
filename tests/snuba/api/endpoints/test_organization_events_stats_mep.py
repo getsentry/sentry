@@ -315,7 +315,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             },
         )
         assert response.status_code == 200, response.content
-        return not response.data["isMetricsData"]
+        assert not response.data["isMetricsData"]
         meta = response.data["meta"]
         assert meta["isMetricsData"] == response.data["isMetricsData"]
 
