@@ -91,4 +91,21 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.getByText('Show events with values greater than')).toBeInTheDocument();
     expect(screen.getByText('Show events with values less than')).toBeInTheDocument();
   });
+
+  it('should render custom performance metrics custom unit', function () {
+    const {router, organization} = initializeOrg();
+    const event = TestStubs.Event({
+      measurements: {
+        'custom.unit': {unit: 'customunit', value: 456},
+      },
+    });
+    render(
+      <EventCustomPerformanceMetrics
+        location={router.location}
+        organization={organization}
+        event={event}
+      />
+    );
+    expect(screen.getByText('456 customunit')).toBeInTheDocument();
+  });
 });

@@ -91,6 +91,7 @@ export function getFieldTypeFromUnit(unit) {
     if (unit === 'none') {
       return 'integer';
     }
+    return 'string';
   }
   return 'number';
 }
@@ -108,13 +109,14 @@ function EventCustomPerformanceMetric({
   }
 
   const fieldType = getFieldTypeFromUnit(unit);
+  const renderValue = fieldType === 'string' ? `${value} ${unit}` : value;
   const rendered = fieldType
     ? FIELD_FORMATTERS[fieldType].renderFunc(
         name,
-        {[name]: value},
+        {[name]: renderValue},
         {location, organization, unit}
       )
-    : value;
+    : renderValue;
 
   function generateLinkWithQuery(query: string) {
     const eventView = EventView.fromLocation(location);
