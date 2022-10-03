@@ -34,7 +34,7 @@ from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
-from sentry.utils.safe import get_path, set_path, setdefault_path
+from sentry.utils.safe import get_path, set_path
 from sentry.utils.urls import non_standard_url_join
 
 from .cache import SourceCache, SourceMapCache
@@ -1200,26 +1200,28 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if features.has(
                 "organization:javascript-console-error-tag", self.organization.id, actor=None
             ):
-                suspected_console_errors = None
-                try:
-                    suspected_console_errors = self.suspected_console_errors(new_frames)
-                except Exception as exc:
-                    logger.error(
-                        "Failed to evaluate event for suspected JavaScript browser console error",
-                        exc_info=exc,
-                    )
-
-                try:
-                    setdefault_path(self.data, "tags", value=[])
-                    set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
-                except Exception as exc:
-                    logger.error(
-                        "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
-                        suspected_console_errors,
-                        exc_info=exc,
-                    )
+                self.tag_suspected_console_errors(new_frames)
 
             return new_frames, raw_frames, all_errors
+
+    def tag_suspected_console_errors(self, new_frames):
+        suspected_console_errors = None
+        try:
+            suspected_console_errors = self.suspected_console_errors(new_frames)
+        except Exception as exc:
+            logger.error(
+                "Failed to evaluate event for suspected JavaScript browser console error",
+                exc_info=exc,
+            )
+
+        try:
+            set_tag(self.data, "empty_stacktrace.js_console", suspected_console_errors)
+        except Exception as exc:
+            logger.error(
+                "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
+                suspected_console_errors,
+                exc_info=exc,
+            )
 
     def expand_frame(self, frame, source=None):
         """

@@ -11,6 +11,7 @@ import responses
 from requests.exceptions import RequestException
 
 from sentry import http, options
+from sentry.event_manager import get_tag
 from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
@@ -95,7 +96,7 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         assert processor.dist.name == "foo"
         assert processor.dist.date_added.timestamp() == processor.data["timestamp"]
 
-    def test_suspected_console_error(self):
+    def test_tag_suspected_console_error(self):
         project = self.create_project()
         release = self.create_release(project=project, version="12.31.12")
 
@@ -139,6 +140,9 @@ class JavaScriptStacktraceProcessorTest(TestCase):
         frames = processor.get_valid_frames()
         assert processor.suspected_console_errors(frames) is True
 
+        processor.tag_suspected_console_errors(frames)
+        assert get_tag(processor.data, "empty_stacktrace.js_console") is True
+
     def test_no_suspected_console_error(self):
         project = self.create_project()
         release = self.create_release(project=project, version="12.31.12")
@@ -160,21 +164,14 @@ class JavaScriptStacktraceProcessorTest(TestCase):
                                 {
                                     "abs_path": "http://example.com/foo.js",
                                     "filename": "<anonymous>",
-                                    "function": "?",
+                                    "function": "name",
                                     "lineno": 4,
                                     "colno": 0,
                                 },
                                 {
                                     "abs_path": "http://example.com/foo.js",
                                     "filename": "<anonymous>",
-                                    "function": "?",
-                                    "lineno": 4,
-                                    "colno": 0,
-                                },
-                                {
-                                    "abs_path": "http://example.com/foo.js",
-                                    "filename": "<anonymous>",
-                                    "function": "?",
+                                    "function": "new name",
                                     "lineno": 4,
                                     "colno": 0,
                                 },
@@ -197,6 +194,9 @@ class JavaScriptStacktraceProcessorTest(TestCase):
 
         frames = processor.get_valid_frames()
         assert processor.suspected_console_errors(frames) is False
+
+        processor.tag_suspected_console_errors(frames)
+        assert get_tag(processor.data, "empty_stacktrace.js_console") is False
 
 
 def test_build_fetch_retry_condition() -> None:
