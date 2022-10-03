@@ -111,6 +111,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
     "sentry.tasks.process_buffer.process_incr": 0.01,
+    "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
