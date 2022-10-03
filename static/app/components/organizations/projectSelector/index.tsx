@@ -379,7 +379,11 @@ function ProjectSelector({
             <InputActions>
               {showPin && (
                 <GuideAnchor target="new_page_filter_pin" position="bottom">
-                  <PageFilterPinButton size="xs" filter="projects" />
+                  <PageFilterPinButton
+                    organization={organization}
+                    filter="projects"
+                    size="xs"
+                  />
                 </GuideAnchor>
               )}
             </InputActions>
