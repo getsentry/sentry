@@ -56,8 +56,6 @@ export function getHatchPattern(spanBarHatch: SpanBarHatch | undefined) {
 
 export const getDurationPillAlignment = ({
   durationDisplay,
-  theme,
-  spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
   theme: Theme;
@@ -71,11 +69,28 @@ export const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${
-          spanBarHatch && spanBarHatch === SpanBarHatch.gap ? theme.gray300 : theme.white
-        };
       `;
   }
+};
+
+export const getDurationPillColour = ({
+  durationDisplay,
+  theme,
+  showDetail,
+  spanBarHatch,
+}: {
+  durationDisplay: DurationDisplay;
+  showDetail: boolean;
+  theme: Theme;
+  spanBarHatch?: SpanBarHatch;
+}) => {
+  if (durationDisplay === 'inset') {
+    return `color: ${
+      spanBarHatch && spanBarHatch === SpanBarHatch.gap ? theme.gray300 : theme.white
+    };`;
+  }
+
+  return `color: ${showDetail === true ? theme.gray200 : theme.gray300};`;
 };
 
 export const getToggleTheme = ({
