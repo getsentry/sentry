@@ -9,6 +9,7 @@ __all__ = (
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
+    "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
     "FIELD_ALIAS_MAPPINGS",
@@ -33,6 +34,7 @@ __all__ = (
     "OP_REGEX",
     "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
+    "NON_RESOLVABLE_TAG_VALUES",
 )
 
 
@@ -79,6 +81,7 @@ MetricOperationType = Literal[
     "rate",
     "count_web_vitals",
     "count_transaction_name",
+    "team_key_transaction",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -175,6 +178,9 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
+NON_RESOLVABLE_TAG_VALUES = (
+    {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
+)
 
 
 class Tag(TypedDict):
@@ -205,7 +211,13 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-DERIVED_OPERATIONS = ("histogram", "rate", "count_web_vitals", "count_transaction_name")
+DERIVED_OPERATIONS = (
+    "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
+)
 OPERATIONS = (
     (
         "avg",
@@ -232,12 +244,12 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
-    "histogram": [],
-    "rate": 0,
-    "count_web_vitals": 0,
-    "count_transaction_name": 0,
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNIT_TO_TYPE = {
+    "sessions": "count",
+    "percentage": "percentage",
+    "users": "count",
+}
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
 
