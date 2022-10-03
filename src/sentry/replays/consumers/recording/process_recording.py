@@ -15,6 +15,7 @@ from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Position
 from django.conf import settings
+from django.db.utils import IntegrityError
 
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.attachments.base import CachedAttachment
@@ -119,18 +120,24 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 BytesIO(recording_segment),
                 blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE,
             )
-            # associate this file with an indexable replay_id via ReplayRecordingSegment
-            ReplayRecordingSegment.objects.create(
-                replay_id=message_dict["replay_id"],
-                project_id=message_dict["project_id"],
-                segment_id=headers["segment_id"],
-                file_id=file.id,
-            )
+
+            try:
+                # associate this file with an indexable replay_id via ReplayRecordingSegment
+                ReplayRecordingSegment.objects.create(
+                    replay_id=message_dict["replay_id"],
+                    project_id=message_dict["project_id"],
+                    segment_id=headers["segment_id"],
+                    file_id=file.id,
+                )
+            except IntegrityError:
+                # Same message was encountered more than once.
+                logger.warning("Recording-segment has already been processed.")
+
+                # Cleanup the blob.
+                file.delete()
+
             # delete the recording segment from cache after we've stored it
             cached_replay_recording_segment.delete()
-
-            # TODO: how to handle failures in the above calls. what should happen?
-            # also: handling same message twice?
 
     def _get_from_cache(self, message_dict: RecordingSegmentMessage) -> CachedAttachment | None:
         cache_id = replay_recording_segment_cache_id(
