@@ -23,6 +23,7 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {CursorHandler} from 'sentry/components/pagination';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -306,6 +307,18 @@ export class Results extends Component<Props, State> {
       nextEventView.getResultsViewUrlTarget(organization.slug, isHomepage)
     );
   }
+
+  handleCursor: CursorHandler = (cursor, path, query, _direction) => {
+    const {router} = this.props;
+    router.push({
+      pathname: path,
+      query: {...query, cursor},
+    });
+    // Treat pagination like the user already confirmed the query
+    if (!this.state.needConfirmation) {
+      this.handleConfirmed();
+    }
+  };
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
@@ -604,6 +617,7 @@ export class Results extends Component<Props, State> {
                     onChangeShowTags={this.handleChangeShowTags}
                     showTags={showTags}
                     confirmedQuery={confirmedQuery}
+                    onCursor={this.handleCursor}
                     isHomepage={isHomepage}
                   />
                 </Layout.Main>

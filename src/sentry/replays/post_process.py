@@ -53,6 +53,8 @@ def generate_normalized_output(
         item["urls"] = list(generate_sorted_urls(item.pop("agg_urls")))
         item["countUrls"] = len(item["urls"])
 
+        item.pop("isArchived")
+
         yield item
 
 
