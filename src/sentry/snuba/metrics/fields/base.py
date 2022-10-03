@@ -297,6 +297,10 @@ class MetricOperation(MetricOperationDefinition, ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def validate_can_filter(self) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def run_post_query_function(
         self,
         data: SnubaDataType,
@@ -328,6 +332,7 @@ class MetricOperation(MetricOperationDefinition, ABC):
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
     can_groupby: bool = False
+    can_filter: bool = False
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
     snql_func: Callable[..., Optional[Function]] = lambda _: None
     default_null_value: Optional[Union[int, List[Tuple[float]]]] = None
@@ -338,6 +343,9 @@ class RawOp(MetricOperation):
         return
 
     def validate_can_groupby(self) -> bool:
+        return False
+
+    def validate_can_filter(self) -> bool:
         return False
 
     def run_post_query_function(
@@ -385,6 +393,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
 
     def validate_can_groupby(self) -> bool:
         return self.can_groupby
+
+    def validate_can_filter(self) -> bool:
+        return self.can_filter
 
     def run_post_query_function(
         self,
@@ -596,6 +607,20 @@ class MetricExpressionBase(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        """
+        Method that generates a list of SnQL where statements based on whether an instance of MetricsFieldBase
+        supports it
+        """
+        raise NotImplementedError
+
 
 @dataclass
 class MetricExpressionDefinition:
@@ -714,6 +739,25 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         if not self.metric_operation.validate_can_groupby():
             raise InvalidParams(
                 f"Cannot group by metrics expression {self.metric_operation.op}("
+                f"{get_public_name_from_mri(self.metric_object.metric_mri)})"
+            )
+        return self.generate_select_statements(
+            projects=projects,
+            use_case_id=use_case_id,
+            alias=alias,
+            params=params,
+        )
+
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        if not self.metric_operation.validate_can_filter():
+            raise InvalidParams(
+                f"Cannot filter by metrics expression {self.metric_operation.op}("
                 f"{get_public_name_from_mri(self.metric_object.metric_mri)})"
             )
         return self.generate_select_statements(
@@ -952,6 +996,15 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     ) -> List[Function]:
         raise InvalidParams(f"Cannot group by metric {get_public_name_from_mri(self.metric_mri)}")
 
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(f"Cannot filter by metric {get_public_name_from_mri(self.metric_mri)}")
+
 
 class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -1128,6 +1181,15 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         params: Optional[MetricOperationParams] = None,
     ) -> List[Function]:
         raise InvalidParams(f"Cannot group by metric {get_public_name_from_mri(self.metric_mri)}")
+
+    def generate_where_statements(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseKey,
+        alias: str,
+        params: Optional[MetricOperationParams] = None,
+    ) -> List[Function]:
+        raise InvalidParams(f"Cannot filter by metric {get_public_name_from_mri(self.metric_mri)}")
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
@@ -1445,6 +1507,7 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             op="team_key_transaction",
             can_orderby=True,
             can_groupby=True,
+            can_filter=True,
             snql_func=team_key_transaction_snql,
             default_null_value=0,
         ),
