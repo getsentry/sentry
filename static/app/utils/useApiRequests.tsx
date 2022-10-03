@@ -1,10 +1,10 @@
 import React, {
-  ReactElement,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  VoidFunctionComponent,
 } from 'react';
 import * as Sentry from '@sentry/react';
 
@@ -68,9 +68,9 @@ type NonNullableValues<T extends Record<string, any>> = {
 
 type SuccessData<T extends Record<string, any>> = NonNullableValues<UseApiRequestData<T>>;
 
-type RenderSuccess<T extends Record<string, any>> = (props: {
+type RenderSuccess<T extends Record<string, any>> = VoidFunctionComponent<{
   data: SuccessData<T>;
-}) => ReactElement;
+}>;
 
 interface Result<T extends Record<string, any>> extends State<T> {
   /**
@@ -86,7 +86,7 @@ interface Result<T extends Record<string, any>> extends State<T> {
    *
    * The react element will only be rendered once all endpoints have been loaded.
    */
-  renderComponent: (render: RenderSuccess<T>) => React.ReactElement;
+  renderComponent: (SuccessComponent: RenderSuccess<T>) => React.ReactElement;
 }
 
 type EndpointRequestOptions = {
@@ -169,7 +169,7 @@ function useApiRequests<T extends Record<string, any>>({
   const initialState = useMemo<State<T>>(
     () => ({
       data: {} as T,
-      isLoading: false,
+      isLoading: true,
       hasError: false,
       isReloading: false,
       errors: {},
@@ -413,12 +413,14 @@ function useApiRequests<T extends Record<string, any>>({
   const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
 
   const renderComponent: Result<T>['renderComponent'] = useCallback(
-    render =>
-      shouldRenderLoading
-        ? renderLoading()
-        : state.hasError
-        ? renderError(new Error('Unable to load all required endpoints'))
-        : render({data: state.data as SuccessData<T>}),
+    SuccessComponent =>
+      shouldRenderLoading ? (
+        renderLoading()
+      ) : state.hasError ? (
+        renderError(new Error('Unable to load all required endpoints'))
+      ) : (
+        <SuccessComponent data={state.data as SuccessData<T>} />
+      ),
     [shouldRenderLoading, state.hasError, state.data, renderError]
   );
 
