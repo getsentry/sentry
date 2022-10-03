@@ -80,7 +80,7 @@ const SuggestedAssignees = ({
                 </SuggestedOwnerHovercard>
               </ActorMaxWidth>
 
-              <Button
+              <StyledButton
                 role="button"
                 size="zero"
                 borderless
@@ -123,4 +123,8 @@ const SuggestionRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const StyledButton = styled(Button)`
+  padding-right: 0;
 `;
