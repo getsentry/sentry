@@ -175,6 +175,17 @@ def mocked_discover_query():
                 'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
+            # project: spring
+            {
+                "sdk.version": "6.5.0-beta.2",
+                "sdk.name": "sentry.java.spring",
+                "project": "spring",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 6,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 4,
+                "count()": 21,
+            },
             # project: timber
             {
                 "sdk.version": "6.4.1",
@@ -336,6 +347,14 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "latestSDKVersion": "7.1.4",
                     "isSendingSampleRate": False,
                     "isSendingSource": False,
+                    "isSupportedPlatform": True,
+                },
+                {
+                    "project": "spring",
+                    "latestSDKName": "sentry.java.spring",
+                    "latestSDKVersion": "6.5.0-beta.2",
+                    "isSendingSampleRate": True,
+                    "isSendingSource": True,
                     "isSupportedPlatform": True,
                 },
                 {
