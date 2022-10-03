@@ -77,7 +77,7 @@ def process_commit_context(
                 frames = munged[1]
 
             # First frame in the stacktrace that is "in_app"
-            frame = next(filter(lambda frame: frame.get("in_app", False), frames), None)
+            frame = next(filter(lambda frame: frame.get("in_app", False), frames[::-1]), None)
 
             if not frame:
                 metrics.incr(
