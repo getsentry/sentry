@@ -136,6 +136,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         if quantity < 1:
             return
 
+        # track_outcome does not guarantee to deliver the outcome, making this
+        # an at-most-once delivery.
+        #
+        # If it turns out that we drop too many outcomes on shutdown,
+        # we may have to revisit this part to achieve a
+        # better approximation of exactly-once delivery.
         track_outcome(
             org_id=payload["org_id"],
             project_id=payload["project_id"],
