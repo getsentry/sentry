@@ -101,7 +101,7 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
     return [span.get("description") or ""]
 
 
-IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
+IN_CONDITION_PATTERN = re.compile(r" IN \(((%s|\$?\d+|\?)(\s*,\s*(%s|\$?\d+|\?))*)\)")
 
 
 @span_op(["db", "db.query", "db.sql.query", "db.sql.active_record"])
