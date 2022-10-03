@@ -85,7 +85,7 @@ function TimeSince({
   const user = ConfigStore.get('user');
   const options = user ? user.options : null;
   const tooltipFormat = tooltipShowSeconds
-    ? 'MMMM D, YYYY h:mm:ss A z'
+    ? 'MMM D, YYYY h:mm:ss A z'
     : 'MMMM D, YYYY h:mm A z';
   const format = options?.clock24Hours ? 'MMMM D, YYYY HH:mm z' : tooltipFormat;
 
