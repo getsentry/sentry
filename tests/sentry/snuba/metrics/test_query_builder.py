@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from unittest import mock
@@ -23,6 +24,7 @@ from snuba_sdk import (
     Query,
 )
 
+from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
@@ -58,8 +60,8 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.metrics.query import MetricField, MetricGroupByField
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -1011,6 +1013,198 @@ def test_translate_meta_results_with_duplicates():
         ],
         key=lambda elem: elem["name"],
     )
+
+
+@pytest.mark.parametrize(
+    "select,groupby,usecase,error_string",
+    [
+        pytest.param(
+            [
+                MetricField("sum", SessionMRI.SESSION.value),
+                MetricField("count_unique", SessionMRI.USER.value),
+                MetricField("p95", SessionMRI.RAW_DURATION.value),
+            ],
+            [
+                MetricGroupByField(MetricField("sum", SessionMRI.SESSION.value)),
+            ],
+            UseCaseKey.RELEASE_HEALTH,
+            re.escape("Cannot group by metrics expression sum(sentry.sessions.session)"),
+            id="invalid grouping by metric expression - release_health",
+        ),
+        pytest.param(
+            [
+                MetricField("count", TransactionMRI.DURATION.value),
+            ],
+            [
+                MetricGroupByField(MetricField("count", TransactionMRI.DURATION.value)),
+            ],
+            UseCaseKey.PERFORMANCE,
+            re.escape("Cannot group by metrics expression count(transaction.duration)"),
+            id="invalid grouping by metric expression - performance",
+        ),
+        pytest.param(
+            [
+                MetricField(None, TransactionMRI.FAILURE_RATE.value),
+            ],
+            [
+                MetricGroupByField(MetricField(None, TransactionMRI.FAILURE_RATE.value)),
+            ],
+            UseCaseKey.PERFORMANCE,
+            "Cannot group by metric transaction.failure_rate",
+            id="invalid grouping by derived metric - release_health",
+        ),
+        pytest.param(
+            [
+                MetricField(None, SessionMRI.ERRORED.value),
+            ],
+            [
+                MetricGroupByField(MetricField(None, SessionMRI.ERRORED.value)),
+            ],
+            UseCaseKey.PERFORMANCE,
+            "Cannot group by metric session.errored",
+            id="invalid grouping by composite entity derived metric - release_health",
+        ),
+        pytest.param(
+            [
+                MetricField(
+                    "team_key_transaction",
+                    TransactionMRI.DURATION.value,
+                    params={"team_key_condition_rhs": [(1, "foo")]},
+                ),
+            ],
+            [
+                MetricGroupByField(
+                    MetricField(
+                        "team_key_transaction",
+                        TransactionMRI.DURATION.value,
+                        params={"team_key_condition_rhs": [(1, "foo")]},
+                    )
+                ),
+            ],
+            UseCaseKey.PERFORMANCE,
+            "",
+            id="valid grouping by metrics expression",
+        ),
+    ],
+)
+def test_only_can_groupby_operations_can_be_added_to_groupby(
+    select, groupby, usecase, error_string
+):
+    query_definition = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=select,
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        groupby=groupby,
+    )
+    if error_string:
+        with pytest.raises(InvalidParams, match=error_string):
+            snuba_queries, _ = SnubaQueryBuilder(
+                [PseudoProject(1, 1)], query_definition, use_case_id=usecase
+            ).get_snuba_queries()
+    else:
+        snuba_queries, _ = SnubaQueryBuilder(
+            [PseudoProject(1, 1)], query_definition, use_case_id=usecase
+        ).get_snuba_queries()
+
+
+@pytest.mark.parametrize(
+    "select,where,usecase,error_string",
+    [
+        pytest.param(
+            [
+                MetricField("sum", SessionMRI.SESSION.value),
+                MetricField("count_unique", SessionMRI.USER.value),
+                MetricField("p95", SessionMRI.RAW_DURATION.value),
+            ],
+            [
+                MetricConditionField(MetricField("sum", SessionMRI.SESSION.value), Op.GTE, 10),
+            ],
+            UseCaseKey.RELEASE_HEALTH,
+            re.escape("Cannot filter by metrics expression sum(sentry.sessions.session)"),
+            id="invalid filtering by metric expression - release_health",
+        ),
+        pytest.param(
+            [
+                MetricField("count", TransactionMRI.DURATION.value),
+            ],
+            [
+                MetricConditionField(MetricField("count", TransactionMRI.DURATION.value), Op.LT, 2),
+            ],
+            UseCaseKey.PERFORMANCE,
+            re.escape("Cannot filter by metrics expression count(transaction.duration)"),
+            id="invalid filtering by metric expression - performance",
+        ),
+        pytest.param(
+            [
+                MetricField(None, TransactionMRI.FAILURE_RATE.value),
+            ],
+            [
+                MetricConditionField(
+                    MetricField(None, TransactionMRI.FAILURE_RATE.value), Op.EQ, 0.5
+                ),
+            ],
+            UseCaseKey.PERFORMANCE,
+            "Cannot filter by metric transaction.failure_rate",
+            id="invalid filtering by derived metric - release_health",
+        ),
+        pytest.param(
+            [
+                MetricField(None, SessionMRI.ERRORED.value),
+            ],
+            [
+                MetricConditionField(MetricField(None, SessionMRI.ERRORED.value), Op.EQ, 7),
+            ],
+            UseCaseKey.PERFORMANCE,
+            "Cannot filter by metric session.errored",
+            id="invalid filtering by composite entity derived metric - release_health",
+        ),
+        pytest.param(
+            [
+                MetricField(
+                    "team_key_transaction",
+                    TransactionMRI.DURATION.value,
+                    params={"team_key_condition_rhs": [(1, "foo")]},
+                ),
+            ],
+            [
+                MetricConditionField(
+                    MetricField(
+                        "team_key_transaction",
+                        TransactionMRI.DURATION.value,
+                        params={"team_key_condition_rhs": [(1, "foo")]},
+                    ),
+                    Op.EQ,
+                    1,
+                ),
+            ],
+            UseCaseKey.PERFORMANCE,
+            "",
+            id="valid filtering by metrics expression",
+        ),
+    ],
+)
+def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase, error_string):
+    query_definition = MetricsQuery(
+        org_id=1,
+        project_ids=[1],
+        select=select,
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+        where=where,
+    )
+    if error_string:
+        with pytest.raises(InvalidParams, match=error_string):
+            snuba_queries, _ = SnubaQueryBuilder(
+                [PseudoProject(1, 1)], query_definition, use_case_id=usecase
+            ).get_snuba_queries()
+    else:
+        snuba_queries, _ = SnubaQueryBuilder(
+            [PseudoProject(1, 1)], query_definition, use_case_id=usecase
+        ).get_snuba_queries()
 
 
 class QueryDefinitionTestCase(TestCase):

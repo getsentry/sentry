@@ -21,15 +21,24 @@ import mentionStyle from './mentionStyle';
 import {CreateError, MentionChangeEvent, Mentioned} from './types';
 
 type Props = {
+  /**
+   * Is the note saving?
+   */
   busy?: boolean;
+  /**
+   * Display an error message
+   */
   error?: boolean;
   errorJSON?: CreateError | null;
+  /**
+   * Minimum height of the edit area
+   */
   minHeight?: number;
   /**
    * This is the id of the server's note object and is meant to indicate that
    * you are editing an existing item
    */
-  modelId?: string;
+  noteId?: string;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
   onCreate?: (data: NoteType) => void;
   onEditFinish?: () => void;
@@ -47,15 +56,15 @@ function NoteInput({
   onChange,
   onUpdate,
   onEditFinish,
-  modelId,
+  noteId,
+  errorJSON,
   busy = false,
   placeholder = t('Add a comment.\nTag users with @, or teams with #'),
   minHeight = 140,
-  errorJSON,
 }: Props) {
   const theme = useTheme();
 
-  const memberList = useLegacyStore(MemberListStore).map(member => ({
+  const members = useLegacyStore(MemberListStore).map(member => ({
     id: `user:${member.id}`,
     display: member.name,
     email: member.email,
@@ -78,6 +87,8 @@ function NoteInput({
     .replace(/\[sentry\.strip:member\]/g, '@')
     .replace(/\[sentry\.strip:team\]/g, '');
 
+  const existingItem = !!noteId;
+
   // each mention looks like [id, display]
   const finalizedMentions = [...memberMentions, ...teamMentions]
     .filter(mention => value.includes(mention[1]))
@@ -85,10 +96,10 @@ function NoteInput({
 
   const submitForm = useCallback(
     () =>
-      modelId
+      existingItem
         ? onUpdate?.({text: cleanMarkdown, mentions: finalizedMentions})
         : onCreate?.({text: cleanMarkdown, mentions: finalizedMentions}),
-    [modelId, onUpdate, cleanMarkdown, finalizedMentions, onCreate]
+    [existingItem, onUpdate, cleanMarkdown, finalizedMentions, onCreate]
   );
 
   const handleCancel = useCallback(
@@ -122,9 +133,9 @@ function NoteInput({
   const handleChange: MentionsInputProps['onChange'] = useCallback(
     e => {
       setValue(e.target.value);
-      onChange?.(e, {updating: !!modelId});
+      onChange?.(e, {updating: existingItem});
     },
-    [modelId, onChange]
+    [existingItem, onChange]
   );
 
   const handleKeyDown: MentionsInputProps['onKeyDown'] = useCallback(
@@ -136,8 +147,6 @@ function NoteInput({
     },
     [canSubmit, submitForm]
   );
-
-  const existingItem = !!modelId;
 
   const errorId = useRef(domId('note-error-'));
   const errorMessage =
@@ -169,7 +178,7 @@ function NoteInput({
             >
               <Mention
                 trigger="@"
-                data={memberList}
+                data={members}
                 onAdd={handleAddMember}
                 displayTransform={(_id, display) => `@${display}`}
                 markup="**[sentry.strip:member]__display__**"
