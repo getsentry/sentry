@@ -1,6 +1,5 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
 
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -31,13 +30,12 @@ type HomepageQueryState = AsyncComponent['state'] & {
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, location} = this.props;
+    const {organization} = this.props;
 
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
     if (
       organization.features.includes('discover-query-builder-as-landing-page') &&
-      organization.features.includes('discover-query') &&
-      isEmpty(location.query)
+      organization.features.includes('discover-query')
     ) {
       endpoints.push([
         'savedQuery',
