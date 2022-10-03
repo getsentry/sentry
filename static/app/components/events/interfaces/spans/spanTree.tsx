@@ -346,7 +346,7 @@ class SpanTree extends Component<PropType> {
             key={key}
             organization={organization}
             event={waterfallModel.event}
-            spanBarColor={isAffectedSpan ? 'red' : spanBarColor}
+            spanBarColor={spanBarColor}
             spanBarHatch={spanBarHatch}
             span={span}
             showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
