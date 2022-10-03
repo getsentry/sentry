@@ -69,15 +69,15 @@ export function DynamicSamplingMetricsAccuracyAlert({
     requiredFeatureFlagsEnabled && !!selectedProject && recommendChangingClientSdk;
 
   useEffect(() => {
-    if (!recommendChangingClientSdk || !selectedProject?.id) {
+    if (!showAlert) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('sampling.sdk.client.rate.change.alert', {
+    trackAdvancedAnalyticsEvent('sampling.performance.metrics.accuracy.alert', {
       organization,
       project_id: selectedProject.id,
     });
-  }, [recommendChangingClientSdk, organization, selectedProject?.id]);
+  }, [showAlert, selectedProject?.id, organization]);
 
   if (!showAlert) {
     return null;
