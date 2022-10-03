@@ -37,7 +37,7 @@ type TableState = {
   error: null | string;
   isLoading: boolean;
   pageLinks: null | string;
-  prevView: null | EventView;
+  prevView: null | [EventView, Location];
   tableData: TableData | null | undefined;
   tableFetchID: symbol | undefined;
 };
@@ -83,7 +83,9 @@ class Table extends PureComponent<TableProps, TableState> {
     if (prevView === null) {
       return true;
     }
-    const otherAPIPayload = prevView.getEventsAPIPayload(this.props.location);
+
+    const [prevEventView, prevLocation] = prevView;
+    const otherAPIPayload = prevEventView.getEventsAPIPayload(prevLocation);
 
     return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
   };
@@ -101,7 +103,7 @@ class Table extends PureComponent<TableProps, TableState> {
     if (!eventView.isValid() || !confirmedQuery) {
       return;
     }
-    this.setState({prevView: eventView});
+    this.setState({prevView: [eventView, location]});
 
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
