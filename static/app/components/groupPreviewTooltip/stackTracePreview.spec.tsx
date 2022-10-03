@@ -1,12 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {StackTracePreview} from 'sentry/components/stacktracePreview';
-import {EventError} from 'sentry/types';
+import {EventError, Organization} from 'sentry/types';
 import {EntryType, Event, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
 import useApi from 'sentry/utils/useApi';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
+
+import {StackTracePreview} from './stackTracePreview';
 
 const makeEvent = (event: Partial<Event> = {}): Event => {
   const evt: Event = {
@@ -17,11 +18,11 @@ const makeEvent = (event: Partial<Event> = {}): Event => {
   return evt;
 };
 
-function TestComponent({children}: {children: React.ReactNode}) {
+function TestComponent({org, children}: {children: React.ReactNode; org?: Organization}) {
   const {organization, router} = initializeOrg();
 
   return (
-    <OrganizationContext.Provider value={organization}>
+    <OrganizationContext.Provider value={org ?? organization}>
       <RouteContext.Provider
         value={{
           router,
@@ -51,12 +52,7 @@ describe('StackTracePreview', () => {
 
     render(
       <TestComponent>
-        <StackTracePreview
-          issueId="issue"
-          eventId="event_id"
-          projectSlug="project_slug"
-          organization={TestStubs.Organization({slug: 'org_slug'})}
-        >
+        <StackTracePreview issueId="issue" eventId="event_id" projectSlug="project_slug">
           Preview Trigger
         </StackTracePreview>
       </TestComponent>
@@ -66,7 +62,7 @@ describe('StackTracePreview', () => {
 
     await waitFor(() => {
       expect(spy.mock.calls[0][0]).toBe(
-        `/projects/org_slug/project_slug/events/event_id/`
+        `/projects/org-slug/project_slug/events/event_id/`
       );
     });
   });
@@ -82,12 +78,7 @@ describe('StackTracePreview', () => {
 
     render(
       <TestComponent>
-        <StackTracePreview
-          issueId="issue"
-          organization={TestStubs.Organization({slug: 'org_slug'})}
-        >
-          Preview Trigger
-        </StackTracePreview>
+        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
       </TestComponent>
     );
 
@@ -111,12 +102,7 @@ describe('StackTracePreview', () => {
 
     render(
       <TestComponent>
-        <StackTracePreview
-          issueId="issue"
-          organization={TestStubs.Organization({slug: 'org_slug'})}
-        >
-          Preview Trigger
-        </StackTracePreview>
+        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
       </TestComponent>
     );
 
@@ -136,12 +122,7 @@ describe('StackTracePreview', () => {
 
     render(
       <TestComponent>
-        <StackTracePreview
-          issueId="issue"
-          organization={TestStubs.Organization({slug: 'org_slug'})}
-        >
-          Preview Trigger
-        </StackTracePreview>
+        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
       </TestComponent>
     );
 
@@ -214,16 +195,8 @@ describe('StackTracePreview', () => {
     useApi.mockReturnValue(api);
 
     render(
-      <TestComponent>
-        <StackTracePreview
-          issueId="issue"
-          organization={TestStubs.Organization({
-            slug: 'org_slug',
-            features,
-          })}
-        >
-          Preview Trigger
-        </StackTracePreview>
+      <TestComponent org={TestStubs.Organization({features})}>
+        <StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>
       </TestComponent>
     );
 
