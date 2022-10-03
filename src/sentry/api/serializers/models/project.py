@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, MutableMapping, Optional, Sequence, cast
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
 from django.db import connection
@@ -206,6 +206,7 @@ class ProjectSerializer(Serializer):  # type: ignore
         environment_id: str | None = None,
         stats_period: str | None = None,
         expand: Iterable[str] | None = None,
+        expand_context: Mapping[str, Any] | None = None,
         collapse: Iterable[str] | None = None,
     ) -> None:
         if stats_period is not None:
@@ -214,6 +215,7 @@ class ProjectSerializer(Serializer):  # type: ignore
         self.environment_id = environment_id
         self.stats_period = stats_period
         self.expand = expand
+        self.expand_context = expand_context
         self.collapse = collapse
 
     def _expand(self, key: str) -> bool:
@@ -254,6 +256,11 @@ class ProjectSerializer(Serializer):  # type: ignore
             else:
                 bookmarks = set()
                 notification_settings_by_scope = {}
+
+        with measure_span("options"):
+            options = None
+            if self._expand("options"):
+                options = self.get_options(project_ids)
 
         with measure_span("stats"):
             stats = None
@@ -308,7 +315,20 @@ class ProjectSerializer(Serializer):  # type: ignore
                     serialized["transactionStats"] = transaction_stats[project.id]
                 if session_stats:
                     serialized["sessionStats"] = session_stats[project.id]
+                if options:
+                    serialized["options"] = options[project.id]
         return result
+
+    def get_options(self, project_ids):
+        # no option specified
+        if not self.expand_context.get("options"):
+            return {}
+
+        # Access ProjectOptions[optionKey in self.expand_context.get("options")]
+        # Check if this key is in the SAFE KEYS
+        return {
+            project_id: {self.expand_context.get("options")[0]: True} for project_id in project_ids
+        }
 
     def get_stats(self, project_ids, query):
         # we need to compute stats at 1d (1h resolution), and 14d
@@ -427,6 +447,8 @@ class ProjectSerializer(Serializer):  # type: ignore
             context["transactionStats"] = attrs["transactionStats"]
         if "sessionStats" in attrs:
             context["sessionStats"] = attrs["sessionStats"]
+        if "options" in attrs:
+            context["options"] = attrs["options"]
         return context
 
 
@@ -650,6 +672,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             context.update(transactionStats=attrs["transactionStats"])
         if "sessionStats" in attrs:
             context.update(sessionStats=attrs["sessionStats"])
+        if "options" in attrs:
+            context.update(options=attrs["options"])
 
         return context
 
