@@ -142,7 +142,7 @@ function fetchProjectStats30d({
 export function fetchProjectStats(props: {
   api: Client;
   orgSlug: Organization['slug'];
-  projId?: Project['id'];
+  projId: Project['id'];
 }) {
   return Promise.all([fetchProjectStats48h(props), fetchProjectStats30d(props)]);
 }

@@ -16,6 +16,7 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -218,7 +219,8 @@ export function PerformanceLanding(props: Props) {
                     <DynamicSamplingAlert
                       organization={organization}
                       selectedProject={
-                        selectedProjects.length === 1
+                        selectedProjects.length === 1 &&
+                        selectedProjects[0] !== String(ALL_ACCESS_PROJECTS) // -1 means that all projects are selected
                           ? projects.find(project => project.id === selectedProjects[0])
                           : undefined
                       }
