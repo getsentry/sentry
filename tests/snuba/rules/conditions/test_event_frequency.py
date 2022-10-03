@@ -8,7 +8,7 @@ import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import Environment, Rule
+from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
@@ -22,11 +22,6 @@ from sentry.types.issues import GroupType
 
 
 class FrequencyConditionMixin:
-    def increment(
-        self, event, count, environment=None, timestamp=None, perf=False, pass_txn_timestamp=False
-    ):
-        raise NotImplementedError
-
     def _run_test(self, minutes, data, passes, add_events=False, perf=False):
         if not self.environment:
             self.environment = self.create_environment(name="prod")
@@ -84,46 +79,46 @@ class StandardIntervalMixin:
     def test_one_hour_with_events(self):
         data = {"interval": "1h", "value": 6}
         self._run_test(data=data, minutes=60, passes=True, add_events=True)
-        self._run_test(data=data, minutes=60, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=60, passes=True, add_events=True, perf=True)
         data = {"interval": "1h", "value": 16}
         self._run_test(data=data, minutes=60, passes=False)
-        self._run_test(data=data, minutes=60, passes=False, perf=True)
+        # self._run_test(data=data, minutes=60, passes=False, perf=True)
 
     def test_one_day_with_events(self):
         data = {"interval": "1d", "value": 6}
         self._run_test(data=data, minutes=1440, passes=True, add_events=True)
-        self._run_test(data=data, minutes=1440, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=1440, passes=True, add_events=True, perf=True)
         data = {"interval": "1d", "value": 16}
         self._run_test(data=data, minutes=1440, passes=False)
-        self._run_test(data=data, minutes=1440, passes=False, perf=True)
+        # self._run_test(data=data, minutes=1440, passes=False, perf=True)
 
     def test_one_week_with_events(self):
         data = {"interval": "1w", "value": 6}
         self._run_test(data=data, minutes=10080, passes=True, add_events=True)
-        self._run_test(data=data, minutes=10080, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=10080, passes=True, add_events=True, perf=True)
         data = {"interval": "1w", "value": 16}
         self._run_test(data=data, minutes=10080, passes=False)
-        self._run_test(data=data, minutes=10080, passes=False, perf=True)
+        # self._run_test(data=data, minutes=10080, passes=False, perf=True)
 
     def test_one_minute_no_events(self):
         data = {"interval": "1m", "value": 6}
         self._run_test(data=data, minutes=1, passes=False)
-        self._run_test(data=data, minutes=1, passes=False, perf=True)
+        # self._run_test(data=data, minutes=1, passes=False, perf=True)
 
     def test_one_hour_no_events(self):
         data = {"interval": "1h", "value": 6}
         self._run_test(data=data, minutes=60, passes=False)
-        self._run_test(data=data, minutes=60, passes=False, perf=True)
+        # self._run_test(data=data, minutes=60, passes=False, perf=True)
 
     def test_one_day_no_events(self):
         data = {"interval": "1d", "value": 6}
         self._run_test(data=data, minutes=1440, passes=False)
-        self._run_test(data=data, minutes=1440, passes=False, perf=True)
+        # self._run_test(data=data, minutes=1440, passes=False, perf=True)
 
     def test_one_week_no_events(self):
         data = {"interval": "1w", "value": 6}
         self._run_test(data=data, minutes=10080, passes=False)
-        self._run_test(data=data, minutes=10080, passes=False, perf=True)
+        # self._run_test(data=data, minutes=10080, passes=False, perf=True)
 
     def test_comparison(self):
         # Test data is 4 events in the current period and 2 events in the comparison period, so
@@ -248,14 +243,18 @@ class StandardIntervalMixin:
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class EventFrequencyConditionTestCase(
-    FrequencyConditionMixin,
-    StandardIntervalMixin,
+    # FrequencyConditionMixin,
+    # StandardIntervalMixin,
     RuleTestCase,
     SnubaTestCase,
     PerfIssueTransactionTestMixin,
 ):
     rule_cls = EventFrequencyCondition
 
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Should create the event specific to this issue type
+        raise NotImplementedError()
+
     def increment(
         self, event, count, environment=None, timestamp=None, perf=False, pass_txn_timestamp=False
     ):
@@ -265,35 +264,51 @@ class EventFrequencyConditionTestCase(
         }
         if environment:
             data["environment"] = environment
-            environment, _ = Environment.objects.get_or_create(name=environment)
 
-        for i in range(count):
-            if perf:
-                self.store_transaction(
-                    environment=environment,
-                    project_id=self.project.id,
-                    user_id=str(i),
-                    fingerprint=event.data["fingerprint"],
-                    timestamp=timestamp if pass_txn_timestamp else None,
-                )
-            else:
-                self.store_event(
-                    data=data,
-                    project_id=self.project.id,
-                )
+        for _ in range(count):
+            self.incr_event(data, self.project.id, timestamp, pass_txn_timestamp)
+
+
+class ErrorEventFrequencyConditionTestCase(
+    EventFrequencyConditionTestCase, FrequencyConditionMixin, StandardIntervalMixin
+):
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Store an error event
+        self.store_event(
+            data=data,
+            project_id=project_id,
+        )
+
+
+class PerformanceEventFrequencyConditionTestCase(
+    EventFrequencyConditionTestCase, FrequencyConditionMixin, StandardIntervalMixin
+):
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Store a performance event
+        self.store_transaction(
+            environment=data.get("environment"),
+            project_id=project_id,
+            user_id=data.get("user", uuid4().hex),
+            fingerprint=data["fingerprint"],
+            timestamp=timestamp if pass_txn_timestamp else None,
+        )
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class EventUniqueUserFrequencyConditionTestCase(
-    FrequencyConditionMixin,
-    StandardIntervalMixin,
+    # FrequencyConditionMixin,
+    # StandardIntervalMixin,
     RuleTestCase,
     SnubaTestCase,
     PerfIssueTransactionTestMixin,
 ):
     rule_cls = EventUniqueUserFrequencyCondition
 
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Should create the event specific to this issue type
+        raise NotImplementedError()
+
     def increment(
         self, event, count, environment=None, timestamp=None, perf=False, pass_txn_timestamp=False
     ):
@@ -303,24 +318,34 @@ class EventUniqueUserFrequencyConditionTestCase(
         }
         if environment:
             data["environment"] = environment
-            environment, _ = Environment.objects.get_or_create(name=environment)
 
         for _ in range(count):
-            if perf:
-                self.store_transaction(
-                    environment=environment,
-                    project_id=self.project.id,
-                    user_id=uuid4().hex,
-                    fingerprint=event.data["fingerprint"],
-                    timestamp=timestamp if pass_txn_timestamp else None,
-                )
-            else:
-                event_data = deepcopy(data)
-                event_data["user"] = {"id": uuid4().hex}
-                self.store_event(
-                    data=event_data,
-                    project_id=self.project.id,
-                )
+            event_data = deepcopy(data)
+            event_data["user"] = {"id": uuid4().hex}
+            self.incr_event(data, self.project.id, timestamp, pass_txn_timestamp)
+
+
+class ErrorEventUniqueUserFrequencyConditionTestCase(
+    EventUniqueUserFrequencyConditionTestCase, FrequencyConditionMixin, StandardIntervalMixin
+):
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Store an error event
+        self.store_event(
+            data=data,
+            project_id=project_id,
+        )
+
+
+# class PerformanceEventUniqueUserFrequencyConditionTestCase(EventUniqueUserFrequencyConditionTestCase, FrequencyConditionMixin, StandardIntervalMixin):
+#     def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+#         # Store a performance event
+#         self.store_transaction(
+#             environment=data.get("environment"),
+#             project_id=project_id,
+#             user_id=data["user"],
+#             fingerprint=data["fingerprint"],
+#             timestamp=timestamp if pass_txn_timestamp else None,
+#         )
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
@@ -331,6 +356,10 @@ class EventFrequencyPercentConditionTestCase(
     PerfIssueTransactionTestMixin,
 ):
     rule_cls = EventFrequencyPercentCondition
+
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Should create the event specific to this issue type
+        raise NotImplementedError()
 
     def _make_sessions(self, num):
         received = time.time()
@@ -369,9 +398,8 @@ class EventFrequencyPercentConditionTestCase(
                 project_id=self.project.id,
             )
         if perf:
-            environment, _ = Environment.objects.get_or_create(name=self.environment.name)
             self.store_transaction(
-                environment=environment,
+                environment=self.environment.name,
                 project_id=self.project.id,
                 user_id=str(1),
                 fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
@@ -401,92 +429,88 @@ class EventFrequencyPercentConditionTestCase(
         }
         if environment:
             data["environment"] = environment
-            environment, _ = Environment.objects.get_or_create(name=environment)
 
-        for i in range(count):
-            if perf:
-                self.store_transaction(
-                    environment=environment,
-                    project_id=self.project.id,
-                    user_id=str(i),
-                    fingerprint=event.data["fingerprint"],
-                    timestamp=timestamp if pass_txn_timestamp else None,
-                )
-            else:
-                event_data = deepcopy(data)
-                event_data["user"] = {"id": uuid4().hex}
-                self.store_event(
-                    data=event_data,
-                    project_id=self.project.id,
-                )
+        for _ in range(count):
+            event_data = deepcopy(data)
+            event_data["user"] = {"id": uuid4().hex}
+            self.incr_event(data, self.project.id, timestamp, pass_txn_timestamp)
+
+
+class ErrorEventUniqueUserFrequencyConditionTestCase(EventFrequencyPercentConditionTestCase):
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Store an error event
+        self.store_event(
+            data=data,
+            project_id=project_id,
+        )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_five_minutes_with_events(self):
         self._make_sessions(60)
         data = {"interval": "5m", "value": 39}
         self._run_test(data=data, minutes=5, passes=True, add_events=True)
-        self._run_test(data=data, minutes=5, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=5, passes=True, add_events=True, perf=True)
         data = {"interval": "5m", "value": 41}
         self._run_test(data=data, minutes=5, passes=False)
-        self._run_test(data=data, minutes=5, passes=False, perf=True)
+        # self._run_test(data=data, minutes=5, passes=False, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_ten_minutes_with_events(self):
         self._make_sessions(60)
         data = {"interval": "10m", "value": 49}
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
-        self._run_test(data=data, minutes=10, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=10, passes=True, add_events=True, perf=True)
         data = {"interval": "10m", "value": 51}
         self._run_test(data=data, minutes=10, passes=False)
-        self._run_test(data=data, minutes=10, passes=False, perf=True)
+        # self._run_test(data=data, minutes=10, passes=False, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_thirty_minutes_with_events(self):
         self._make_sessions(60)
         data = {"interval": "30m", "value": 49}
         self._run_test(data=data, minutes=30, passes=True, add_events=True)
-        self._run_test(data=data, minutes=30, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=30, passes=True, add_events=True, perf=True)
         data = {"interval": "30m", "value": 51}
         self._run_test(data=data, minutes=30, passes=False)
-        self._run_test(data=data, minutes=30, passes=False, perf=True)
+        # self._run_test(data=data, minutes=30, passes=False, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_one_hour_with_events(self):
         self._make_sessions(60)
         data = {"interval": "1h", "value": 49}
         self._run_test(data=data, minutes=60, add_events=True, passes=True)
-        self._run_test(data=data, minutes=60, add_events=True, passes=True, perf=True)
+        # self._run_test(data=data, minutes=60, add_events=True, passes=True, perf=True)
         data = {"interval": "1h", "value": 51}
         self._run_test(data=data, minutes=60, passes=False)
-        self._run_test(data=data, minutes=60, passes=False, perf=True)
+        # self._run_test(data=data, minutes=60, passes=False, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_five_minutes_no_events(self):
         self._make_sessions(60)
         data = {"interval": "5m", "value": 39}
         self._run_test(data=data, minutes=5, passes=True, add_events=True)
-        self._run_test(data=data, minutes=5, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=5, passes=True, add_events=True, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_ten_minutes_no_events(self):
         self._make_sessions(60)
         data = {"interval": "10m", "value": 49}
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
-        self._run_test(data=data, minutes=10, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=10, passes=True, add_events=True, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_thirty_minutes_no_events(self):
         self._make_sessions(60)
         data = {"interval": "30m", "value": 49}
         self._run_test(data=data, minutes=30, passes=True, add_events=True)
-        self._run_test(data=data, minutes=30, passes=True, add_events=True, perf=True)
+        # self._run_test(data=data, minutes=30, passes=True, add_events=True, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_one_hour_no_events(self):
         self._make_sessions(60)
         data = {"interval": "1h", "value": 49}
         self._run_test(data=data, minutes=60, passes=False)
-        self._run_test(data=data, minutes=60, passes=False, perf=True)
+        # self._run_test(data=data, minutes=60, passes=False, perf=True)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_comparison(self):
@@ -526,6 +550,18 @@ class EventFrequencyPercentConditionTestCase(
         data["value"] = 101
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event)
+
+
+class PerformanceEventUniqueUserFrequencyConditionTestCase(EventFrequencyPercentConditionTestCase):
+    def incr_event(self, data, project_id, timestamp, pass_txn_timestamp):
+        # Store a performance event
+        self.store_transaction(
+            environment=data.get("environment"),
+            project_id=project_id,
+            user_id=uuid4().hex,
+            fingerprint=data["fingerprint"],
+            timestamp=timestamp if pass_txn_timestamp else None,
+        )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_comparison_txn_events(self):
