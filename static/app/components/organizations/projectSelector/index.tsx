@@ -399,8 +399,10 @@ function ProjectSelector({
                   organization,
                 });
 
-                // Close action triggers onClose which needs to run on next render
-                // with updated state to work correctly
+                // The close action here triggers the onClose() handler which we
+                // use to apply the current selection. We need that to happen on the
+                // next render so that the state will reflect All Projects instead of
+                // the outdated selection that exists when this callback is triggered.
                 setTimeout(actions.close);
               }}
               onShowMyProjects={() => {
@@ -411,8 +413,10 @@ function ProjectSelector({
                   organization,
                 });
 
-                // Close action triggers onClose which needs to run on next render
-                // with updated state to work correctly
+                // The close action here triggers the onClose() handler which we
+                // use to apply the current selection. We need that to happen on the
+                // next render so that the state will reflect My Projects instead of
+                // the outdated selection that exists when this callback is triggered.
                 setTimeout(actions.close);
               }}
               message={footerMessage}
