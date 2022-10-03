@@ -11,6 +11,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -121,14 +122,18 @@ describe('Server-Side Sampling', function () {
       SERVER_SIDE_SAMPLING_DOC_LINK
     );
 
-    expect(container).toSnapshot();
-
     // Open Modal
     userEvent.click(screen.getByRole('button', {name: 'Start Setup'}));
 
     expect(
       await screen.findByRole('heading', {name: 'Set a global sample rate'})
     ).toBeInTheDocument();
+
+    // Close Modal
+    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
+
+    expect(container).toSnapshot();
   });
 
   it('renders rules panel', async function () {
