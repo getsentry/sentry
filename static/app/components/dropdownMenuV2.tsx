@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import React, {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -46,7 +46,7 @@ type Props = {
   /*
    * Title to display on top of the menu
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactNode;
   onClose?: () => void;
   size?: MenuItemProps['size'];
   /**

@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,6 +8,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import Duration from 'sentry/components/duration';
 import Tooltip from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
@@ -39,6 +41,18 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
 ];
 
+function countTimes(count: number) {
+  return count === 1
+    ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+    : tn('%s time\u2026', '%s times\u2026', count);
+}
+
+function countUsers(count: number) {
+  return count === 1
+    ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+    : tn('%s user\u2026', '%s users\u2026', count);
+}
+
 type Props = {
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -48,6 +62,7 @@ type Props = {
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
+  size?: 'xs' | 'sm';
 };
 
 const IgnoreActions = ({
@@ -57,7 +72,10 @@ const IgnoreActions = ({
   confirmMessage,
   confirmLabel = t('Ignore'),
   isIgnored = false,
+  size = 'xs',
 }: Props) => {
+  const [currentSubmenu, setCurrentSubmenu] = useState<null | string>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
     openConfirmModal({
       bypass: !shouldConfirm,
@@ -80,12 +98,12 @@ const IgnoreActions = ({
       <Tooltip title={t('Change status to unresolved')}>
         <Button
           priority="primary"
-          size="xs"
+          size={size}
           onClick={() =>
             onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
           }
           aria-label={t('Unignore')}
-          icon={<IconMute size="xs" />}
+          icon={<IconMute size={size} />}
         />
       </Tooltip>
     );
@@ -125,12 +143,28 @@ const IgnoreActions = ({
       />
     ));
 
-  const dropdownItems = [
+  const dropdownItems: MenuItemProps[] = [
     {
       key: 'for',
       label: t('For\u2026'),
-      isSubmenu: true,
-      children: [
+      onAction: () => setCurrentSubmenu('for'),
+    },
+    {
+      key: 'until-reoccur',
+      label: t('Until this occurs again\u2026'),
+      onAction: () => setCurrentSubmenu('until-reoccur'),
+    },
+    {
+      key: 'until-affect',
+      label: t('Until this affects an additional\u2026'),
+      onAction: () => setCurrentSubmenu('until-affect'),
+    },
+  ];
+
+  const submenu: Record<string, {submenu: MenuItemProps[]; title: string}> = {
+    for: {
+      title: t('Ignore for\u2026'),
+      submenu: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
           label: <Duration seconds={duration * 60} />,
@@ -143,70 +177,13 @@ const IgnoreActions = ({
         },
       ],
     },
-    {
-      key: 'until-reoccur',
-      label: t('Until this occurs again\u2026'),
-      isSubmenu: true,
-      children: [
-        ...IGNORE_COUNTS.map(count => ({
-          key: `until-reoccur-${count}-times`,
-          label:
-            count === 1
-              ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
-              : tn('%s time\u2026', '%s times\u2026', count),
-          isSubmenu: true,
-          children: [
-            {
-              key: `until-reoccur-${count}-times-from-now`,
-              label: t('from now'),
-              onAction: () => onIgnore({ignoreCount: count}),
-            },
-            ...IGNORE_WINDOWS.map(({value, label}) => ({
-              key: `until-reoccur-${count}-times-from-${label}`,
-              label,
-              onAction: () =>
-                onIgnore({
-                  ignoreCount: count,
-                  ignoreWindow: value,
-                }),
-            })),
-          ],
-        })),
-        {
-          key: 'until-reoccur-custom',
-          label: t('Custom'),
-          onAction: () => openCustomIgnoreCount(),
-        },
-      ],
-    },
-    {
-      key: 'until-affect',
-      label: t('Until this affects an additional\u2026'),
-      isSubmenu: true,
-      children: [
+    'until-affect': {
+      title: t('Ignore until this affects an additional\u2026'),
+      submenu: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-affect-${count}-users`,
-          label:
-            count === 1
-              ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
-              : tn('%s user\u2026', '%s users\u2026', count),
-          isSubmenu: true,
-          children: [
-            {
-              key: `until-affect-${count}-users-from-now`,
-              label: t('from now'),
-              onAction: () => onIgnore({ignoreUserCount: count}),
-            },
-            ...IGNORE_WINDOWS.map(({value, label}) => ({
-              key: `until-affect-${count}-users-from-${label}`,
-              label,
-              onAction: () =>
-                onIgnore({
-                  ignoreUserCount: count,
-                  ignoreUserWindow: value,
-                }),
-            })),
-          ],
+          label: countUsers(count),
+          onAction: () => setCurrentSubmenu(`until-affect-${count}-users`),
         })),
         {
           key: 'until-affect-custom',
@@ -215,36 +192,106 @@ const IgnoreActions = ({
         },
       ],
     },
-  ];
+    'until-reoccur': {
+      title: t('Ignore until this occurs again\u2026'),
+      submenu: [
+        ...IGNORE_COUNTS.map(count => ({
+          key: `until-reoccur-${count}-times`,
+          label: countTimes(count),
+          onAction: () => setCurrentSubmenu(`until-reoccur-${count}-times`),
+        })),
+        {
+          key: 'until-reoccur-custom',
+          label: t('Custom'),
+          onAction: () => openCustomIgnoreCount(),
+        },
+      ],
+    },
+    ...IGNORE_COUNTS.reduce((acc, count) => {
+      acc[`until-reoccur-${count}-times`] = {
+        title: t('Ignore until this occurs again %s', countTimes(count)),
+        submenu: [
+          {
+            key: `until-reoccur-${count}-times-from-now`,
+            label: t('from now'),
+            onAction: () => onIgnore({ignoreCount: count}),
+          },
+          ...IGNORE_WINDOWS.map(({value, label}) => ({
+            key: `until-reoccur-${count}-times-from-${label}`,
+            label,
+            onAction: () =>
+              onIgnore({
+                ignoreCount: count,
+                ignoreWindow: value,
+              }),
+          })),
+        ],
+      };
+      acc[`until-affect-${count}-users`] = {
+        title: t('Ignore until this affects an additional %s', countUsers(count)),
+        submenu: [
+          {
+            key: `until-affect-${count}-users-from-now`,
+            label: t('from now'),
+            onAction: () => onIgnore({ignoreUserCount: count}),
+          },
+          ...IGNORE_WINDOWS.map(({value, label}) => ({
+            key: `until-affect-${count}-users-from-${label}`,
+            label,
+            onAction: () =>
+              onIgnore({
+                ignoreUserCount: count,
+                ignoreUserWindow: value,
+              }),
+          })),
+        ],
+      };
+      return acc;
+    }, {}),
+  };
 
   return (
     <ButtonBar merged>
       <IgnoreButton
-        size="xs"
+        size={size}
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
         )}
-        icon={<IconMute size="xs" />}
         onClick={() => onIgnore()}
         disabled={disabled}
       >
         {t('Ignore')}
       </IgnoreButton>
       <DropdownMenuControl
-        size="sm"
+        size={size}
+        placement="bottom right"
+        closeOnSelect={false}
+        isOpen={isOpen}
+        closeRootMenu={() => {
+          setIsOpen(false);
+          setCurrentSubmenu(null);
+        }}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
             {...triggerProps}
             aria-label={t('Ignore options')}
-            size="xs"
-            icon={<IconChevron direction="down" size="xs" />}
+            size={size}
+            icon={<IconChevron direction="down" size={size} />}
             disabled={disabled}
+            onClick={() => {
+              setIsOpen(!isOpen);
+              setCurrentSubmenu(null);
+            }}
           />
         )}
-        menuTitle={t('Ignore')}
-        items={dropdownItems}
+        menuTitle={
+          <DropdownTitleWrapper>
+            {currentSubmenu ? submenu[currentSubmenu].title : t('Ignore')}
+          </DropdownTitleWrapper>
+        }
+        items={currentSubmenu ? submenu[currentSubmenu].submenu : dropdownItems}
         isDisabled={disabled}
       />
     </ButtonBar>
@@ -256,6 +303,11 @@ export default IgnoreActions;
 const IgnoreButton = styled(Button)`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
+`;
+
+const DropdownTitleWrapper = styled('div')`
+  width: 260px;
+  white-space: normal;
 `;
 
 const DropdownTrigger = styled(Button)`

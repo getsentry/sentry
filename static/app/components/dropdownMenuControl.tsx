@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {AriaMenuOptions, useMenuTrigger} from '@react-aria/menu';
@@ -83,7 +83,7 @@ type Props = {
   /**
    * Title for the current menu.
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactNode;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */

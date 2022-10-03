@@ -20,6 +20,7 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions from 'sentry/components/actions/ignore';
+import IgnoreButton from 'sentry/components/actions/ignoreV2';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
@@ -484,7 +485,7 @@ class Actions extends Component<Props, State> {
           ) : (
             <Fragment>
               <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
-                <IgnoreActions
+                <IgnoreButton
                   isIgnored={isIgnored}
                   onUpdate={this.onUpdate}
                   disabled={disabled}
@@ -503,6 +504,7 @@ class Actions extends Component<Props, State> {
                   isResolved={isResolved}
                   isAutoResolved={isAutoResolved}
                   size="sm"
+                  hideIcon
                   priority="primary"
                   dropdownPlacement="bottom right"
                 />

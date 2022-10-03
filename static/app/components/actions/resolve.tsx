@@ -38,6 +38,7 @@ type Props = {
   disableDropdown?: boolean;
   disabled?: boolean;
   dropdownPlacement?: AriaPositionProps['placement'];
+  hideIcon?: boolean;
   latestRelease?: Release;
   priority?: ButtonProps['priority'];
   projectFetchError?: boolean;
@@ -259,8 +260,9 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       projectFetchError,
-      size = 'xs',
       priority,
+      size = 'xs',
+      hideIcon = false,
     } = this.props;
 
     if (isResolved) {
@@ -286,7 +288,7 @@ class ResolveActions extends Component<Props> {
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
             tooltipProps={{delay: 300, disabled}}
-            icon={<IconCheckmark size={size} />}
+            icon={hideIcon ? null : <IconCheckmark size={size} />}
             onClick={onResolve}
             disabled={disabled}
           >
