@@ -237,11 +237,7 @@ function SpanDurationBar(props: SpanDurationBarProps) {
           containerDisplayMode="block"
         >
           <DurationBarSection style={{backgroundColor: pickBarColor(spanOp)}}>
-            <DurationPill
-              durationDisplay={position}
-              showDetail={false}
-              spanBarHatch={false}
-            >
+            <DurationPill durationDisplay={position} showDetail={false}>
               <PerformanceDuration abbreviation milliseconds={spanDuration} />
             </DurationPill>
           </DurationBarSection>

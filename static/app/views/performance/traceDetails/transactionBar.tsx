@@ -365,7 +365,6 @@ class TransactionBar extends Component<Props, State> {
             width: widthPercentage,
           })}
           showDetail={showDetail}
-          spanBarHatch={false}
         >
           {getHumanDuration(duration)}
         </DurationPill>

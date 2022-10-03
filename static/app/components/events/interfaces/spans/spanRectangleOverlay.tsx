@@ -27,11 +27,7 @@ export function SpanRectangleOverlay({
         width: toPercent(bounds.width || 0),
       }}
     >
-      <DurationPill
-        durationDisplay={durationDisplay}
-        showDetail={false}
-        spanBarHatch={false}
-      >
+      <DurationPill durationDisplay={durationDisplay} showDetail={false}>
         {durationString}
       </DurationPill>
     </RowRectangle>

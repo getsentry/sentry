@@ -26,7 +26,7 @@ export const RowRectangle = styled('div')<{
 export const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
-  spanBarHatch: boolean;
+  spanBarHatch?: SpanBarHatch;
 }>`
   position: absolute;
   top: 50%;

@@ -60,8 +60,8 @@ export const getDurationPillAlignment = ({
   spanBarHatch,
 }: {
   durationDisplay: DurationDisplay;
-  spanBarHatch: boolean;
   theme: Theme;
+  spanBarHatch?: SpanBarHatch;
 }) => {
   switch (durationDisplay) {
     case 'left':
@@ -71,7 +71,9 @@ export const getDurationPillAlignment = ({
     default:
       return `
         right: ${space(0.75)};
-        color: ${spanBarHatch === true ? theme.gray300 : theme.white};
+        color: ${
+          spanBarHatch && spanBarHatch === SpanBarHatch.gap ? theme.gray300 : theme.white
+        };
       `;
   }
 };

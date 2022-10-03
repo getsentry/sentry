@@ -949,7 +949,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               <DurationPill
                 durationDisplay={durationDisplay}
                 showDetail={this.state.showDetail}
-                spanBarHatch={!!spanBarHatch}
+                spanBarHatch={spanBarHatch}
               >
                 {durationString}
                 {this.renderWarningText()}
