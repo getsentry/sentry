@@ -304,8 +304,6 @@ function isProfileChunk(
 function isThreadmetaData(
   event: ChromeTrace.Event
 ): event is ChromeTrace.ThreadMetadataEvent {
-  event.name === 'Thread';
-
   return event.ph === 'M' && event.name === 'Thread';
 }
 
