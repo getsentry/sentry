@@ -62,13 +62,14 @@ class FrequencyConditionMixin:
             )
 
         group = event.group if event.group is not None else event.groups[0]
+        event = event.for_group(group)
 
         if passes:
-            self.assertPasses(rule, event.for_group(group))
-            self.assertPasses(environment_rule, event.for_group(group))
+            self.assertPasses(rule, event)
+            self.assertPasses(environment_rule, event)
         else:
-            self.assertDoesNotPass(rule, event.for_group(group))
-            self.assertDoesNotPass(environment_rule, event.for_group(group))
+            self.assertDoesNotPass(rule, event)
+            self.assertDoesNotPass(environment_rule, event)
 
 
 class StandardIntervalMixin:
@@ -216,7 +217,7 @@ class EventFrequencyConditionTestCase(RuleTestCase, SnubaTestCase, PerfIssueTran
         if environment:
             data["environment"] = environment
 
-        if event_type == "performance":  # or use a registry pattern? idk
+        if event_type == "performance":
             cls = PerformanceEventTestCase
         else:
             cls = ErrorEventTestCase
@@ -240,14 +241,6 @@ class EventUniqueUserFrequencyConditionTestCase(
         }
         if environment:
             data["environment"] = environment
-
-        # for _ in range(count):
-        #     event_data = deepcopy(data)
-        #     event_data["user"] = {"id": uuid4().hex}
-        #     self.store_event(
-        #         data=event_data,
-        #         project_id=self.project.id,
-        #     )
 
         if event_type == "performance":
             cls = PerformanceEventTestCase
@@ -295,15 +288,24 @@ class EventFrequencyPercentConditionTestCase(
         if not self.environment or self.environment.name != "prod":
             self.environment = self.create_environment(name="prod")
         if not hasattr(self, "test_event"):
-            self.test_event = self.store_event(
-                data={
-                    "fingerprint": ["something_random"],
-                    "timestamp": iso_format(before_now(minutes=minutes)),
-                    "user": {"id": uuid4().hex},
-                    "environment": self.environment.name,
-                },
-                project_id=self.project.id,
-            )
+            if event_type == "performance":
+                self.test_event = self.store_transaction(
+                    environment=self.environment.name,
+                    project_id=self.project.id,
+                    user_id=uuid4().hex,
+                    fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                    timestamp=iso_format(before_now(minutes=minutes)),
+                )
+            else:
+                self.test_event = self.store_event(
+                    data={
+                        "fingerprint": ["something_random"],
+                        "timestamp": iso_format(before_now(minutes=minutes)),
+                        "user": {"id": uuid4().hex},
+                        "environment": self.environment.name,
+                    },
+                    project_id=self.project.id,
+                )
         if add_events:
             self.increment(
                 self.test_event,
@@ -314,12 +316,20 @@ class EventFrequencyPercentConditionTestCase(
             )
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
+
+        group = (
+            self.test_event.group
+            if self.test_event.group is not None
+            else self.test_event.groups[0]
+        )
+        event = self.test_event.for_group(group)
+
         if passes:
-            self.assertPasses(rule, self.test_event)
-            self.assertPasses(environment_rule, self.test_event)
+            self.assertPasses(rule, event)
+            self.assertPasses(environment_rule, event)
         else:
-            self.assertDoesNotPass(rule, self.test_event)
-            self.assertDoesNotPass(environment_rule, self.test_event)
+            self.assertDoesNotPass(rule, event)
+            self.assertDoesNotPass(environment_rule, event)
 
     def increment(self, event, count, environment=None, timestamp=None, event_type="error"):
         data = {
@@ -329,23 +339,15 @@ class EventFrequencyPercentConditionTestCase(
         if environment:
             data["environment"] = environment
 
+        if event_type == "performance":
+            cls = PerformanceEventTestCase
+        else:
+            cls = ErrorEventTestCase
+
         for _ in range(count):
             event_data = deepcopy(data)
             event_data["user"] = {"id": uuid4().hex}
-            self.store_event(
-                data=event_data,
-                project_id=self.project.id,
-            )
-
-        # if event_type == "performance":
-        #     cls = PerformanceEventTestCase
-        # else:
-        #     cls = ErrorEventTestCase
-
-        # for _ in range(count):
-        #     event_data = deepcopy(data)
-        #     event_data["user"] = {"id": uuid4().hex}
-        #     cls.add_event(self, event_data, self.project.id, timestamp)
+            cls.add_event(self, event_data, self.project.id, timestamp)
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_five_minutes_with_events(self):
@@ -359,7 +361,6 @@ class EventFrequencyPercentConditionTestCase(
     def test_ten_minutes_with_events(self):
         self._make_sessions(60)
         data = {"interval": "10m", "value": 49}
-        # print("rule cls: ", self.rule_cls)
         self._run_test(data=data, minutes=10, passes=True, add_events=True)
         data = {"interval": "10m", "value": 51}
         self._run_test(data=data, minutes=10, passes=False)
@@ -478,6 +479,6 @@ class PerformanceEventTestCase(
             project_id=project_id,
             user_id=data.get("user", uuid4().hex),
             fingerprint=data["fingerprint"],
-            timestamp=None,
+            timestamp=timestamp,
             # timestamp=timestamp if pass_txn_timestamp else None,
         )
