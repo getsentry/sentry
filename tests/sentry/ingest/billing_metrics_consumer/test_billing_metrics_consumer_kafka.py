@@ -96,7 +96,7 @@ def test_outcomes_consumed(track_outcome):
         strategy.poll()
         strategy.submit(generate_kafka_message(bucket))
         # commit is called for every two messages:
-        assert fake_commit.mock_calls == i // 2
+        assert fake_commit.call_count == i // 2
         if i < 3:
             assert track_outcome.call_count == 0
         else:
