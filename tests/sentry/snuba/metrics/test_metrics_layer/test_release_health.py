@@ -21,7 +21,7 @@ from sentry.testutils import BaseMetricsLayerTestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-@freeze_time(BaseMetricsLayerTestCase.DEFAULT_FROZEN_TIME)
+@freeze_time("2022-09-29 10:00:00")
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase):
     def now(self):
         return timezone.now()
@@ -93,25 +93,19 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase):
             ("abnormal", 4),
             ("init", 15),
         ):
-            self.store_metric_in_metrics_layer(
-                org_id=self.organization.id,
-                project_id=self.project.id,
+            self.store_release_health_metric(
                 type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value},
                 value=count_value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
                 minutes_before_now=4,
             )
         for value in range(3):
-            self.store_metric_in_metrics_layer(
-                org_id=self.organization.id,
-                project_id=self.project.id,
+            self.store_release_health_metric(
                 type="set",
                 name=SessionMRI.ERROR.value,
                 tags={"release": "foo"},
                 value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
             )
 
         metrics_query = MetricsQuery(
@@ -153,14 +147,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase):
             ("crashed", [7, 8, 9]),
         ):
             for v in d_value:
-                self.store_metric_in_metrics_layer(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_release_health_metric(
                     type="distribution",
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
                     value=v,
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
 
         metrics_query = MetricsQuery(
@@ -236,14 +227,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase):
         ]
 
     def test_query_private_metrics_raise_exception(self):
-        self.store_metric_in_metrics_layer(
-            org_id=self.organization.id,
-            project_id=self.project.id,
+        self.store_release_health_metric(
             type="counter",
             name=SessionMRI.SESSION.value,
             tags={"session.status": "errored_preaggr"},
             value=2,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
         with pytest.raises(

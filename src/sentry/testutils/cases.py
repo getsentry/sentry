@@ -1236,12 +1236,6 @@ class BaseMetricsTestCase(SnubaTestCase):
 
 
 class BaseMetricsLayerTestCase(ABC, TestCase, BaseMetricsTestCase):
-
-    # The idea of this time is that we want to always have the start of the hour in order to handle
-    # all tests properly. The format can be generalized as follows "****-**-** **:00:00" where "*" stands
-    # for any number in the interval [0-9].
-    DEFAULT_FROZEN_TIME = "2022-09-29 10:00:00"
-
     @abstractmethod
     def now(self):
         """
@@ -1252,15 +1246,15 @@ class BaseMetricsLayerTestCase(ABC, TestCase, BaseMetricsTestCase):
         """
         raise NotImplementedError
 
-    def store_metric_in_metrics_layer(
+    def _store_metric_in_metrics_layer(
         self,
-        org_id,
-        project_id,
         type,
         name,
         tags,
         value,
         use_case_id,
+        org_id=None,
+        project_id=None,
         hours_before_now=0,
         minutes_before_now=0,
         seconds_before_now=0,
@@ -1273,8 +1267,8 @@ class BaseMetricsLayerTestCase(ABC, TestCase, BaseMetricsTestCase):
         #
         # The solution proposed aims at solving the problem of flaky tests that occurred during CI at specific times.
         self.store_metric(
-            org_id=org_id,
-            project_id=project_id,
+            org_id=self.organization.id if org_id is None else org_id,
+            project_id=self.project.id if project_id is None else project_id,
             type=type,
             name=name,
             tags=tags,
@@ -1288,6 +1282,56 @@ class BaseMetricsLayerTestCase(ABC, TestCase, BaseMetricsTestCase):
             ).timestamp(),
             value=value,
             use_case_id=use_case_id,
+        )
+
+    def store_performance_metric(
+        self,
+        type,
+        name,
+        tags,
+        value,
+        org_id=None,
+        project_id=None,
+        hours_before_now=0,
+        minutes_before_now=0,
+        seconds_before_now=0,
+    ):
+        self._store_metric_in_metrics_layer(
+            type=type,
+            name=name,
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            use_case_id=UseCaseKey.PERFORMANCE,
+            hours_before_now=hours_before_now,
+            minutes_before_now=minutes_before_now,
+            seconds_before_now=seconds_before_now,
+        )
+
+    def store_release_health_metric(
+        self,
+        type,
+        name,
+        tags,
+        value,
+        org_id=None,
+        project_id=None,
+        hours_before_now=0,
+        minutes_before_now=0,
+        seconds_before_now=0,
+    ):
+        self._store_metric_in_metrics_layer(
+            type=type,
+            name=name,
+            tags=tags,
+            value=value,
+            org_id=org_id,
+            project_id=project_id,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            hours_before_now=hours_before_now,
+            minutes_before_now=minutes_before_now,
+            seconds_before_now=seconds_before_now,
         )
 
 
