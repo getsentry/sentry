@@ -180,7 +180,7 @@ def get_login_redirect(request, default=None):
 
     login_redirect = _get_login_redirect(request, default)
     url_prefix = None
-    if "subdomain" in request and request.subdomain:
+    if hasattr(request, "subdomain") and request.subdomain:
         url_prefix = generate_organization_url(request.subdomain)
         return absolute_uri(login_redirect, url_prefix=url_prefix)
     return login_redirect
