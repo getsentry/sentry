@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+import sentry.tasks.post_process
 from sentry import options
 from sentry.eventstream.kafka.postprocessworker import (
     ErrorsPostProcessForwarderWorker,
@@ -9,6 +10,7 @@ from sentry.eventstream.kafka.postprocessworker import (
     TransactionsPostProcessForwarderWorker,
 )
 from sentry.eventstream.kafka.protocol import InvalidVersion
+from sentry.testutils.helpers import TaskRunner
 from sentry.utils import json
 
 
@@ -289,5 +291,77 @@ def test_transactions_post_process_forwarder_true_headers(
             {"id": 43, "is_new": False, "is_regression": None, "is_new_group_environment": False}
         ],
     )
+
+    forwarder.shutdown()
+
+
+@pytest.mark.django_db
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
+    wraps=sentry.tasks.post_process.post_process_group.delay,
+)
+def test_errors_post_process_forwarder_calls_post_process_group(
+    post_process_group_spy,
+    kafka_message_without_transaction_header,
+):
+    forwarder = ErrorsPostProcessForwarderWorker(concurrency=1)
+
+    with TaskRunner():
+        assert post_process_group_spy.call_count == 0
+
+        future = forwarder.process_message(kafka_message_without_transaction_header)
+
+        assert future is not None
+        forwarder.flush_batch([future])
+
+        assert post_process_group_spy.call_count == 1
+        from sentry.utils.cache import cache_key_for_event
+
+        assert post_process_group_spy.call_args.kwargs == dict(
+            group_id=43,
+            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+            cache_key=cache_key_for_event(
+                {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
+            ),
+            is_new=False,
+            is_regression=None,
+            is_new_group_environment=False,
+        )
+
+    forwarder.shutdown()
+
+
+@pytest.mark.django_db
+@patch(
+    "sentry.eventstream.kafka.postprocessworker.post_process_group.delay",
+    wraps=sentry.tasks.post_process.post_process_group.delay,
+)
+def test_transactions_post_process_forwarder_calls_post_process_group(
+    post_process_group_spy,
+    kafka_message_with_transaction_header_true,
+):
+    forwarder = TransactionsPostProcessForwarderWorker(concurrency=1)
+
+    with TaskRunner():
+        assert post_process_group_spy.call_count == 0
+
+        future = forwarder.process_message(kafka_message_with_transaction_header_true)
+
+        assert future is not None
+        forwarder.flush_batch([future])
+
+        assert post_process_group_spy.call_count == 1
+        from sentry.utils.cache import cache_key_for_event
+
+        assert post_process_group_spy.call_args.kwargs == dict(
+            group_id=43,
+            primary_hash="311ee66a5b8e697929804ceb1c456ffe",
+            cache_key=cache_key_for_event(
+                {"project": str(1), "event_id": "fe0ee9a2bc3b415497bad68aaf70dc7f"}
+            ),
+            is_new=False,
+            is_regression=None,
+            is_new_group_environment=False,
+        )
 
     forwarder.shutdown()
