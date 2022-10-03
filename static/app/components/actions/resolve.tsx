@@ -304,6 +304,7 @@ export default withOrganization(ResolveActions);
 const ResolveButton = styled(Button)`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
+  border-right-color: ${p => p.theme.background};
 `;
 
 const DropdownTrigger = styled(Button)`

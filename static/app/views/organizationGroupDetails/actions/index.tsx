@@ -629,6 +629,10 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   white-space: nowrap;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    flex-wrap: nowrap;
+  }
 `;
 
 export {Actions};

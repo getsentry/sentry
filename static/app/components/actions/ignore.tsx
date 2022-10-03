@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -40,6 +41,18 @@ const IGNORE_WINDOWS: SelectValue<number>[] = [
   {value: ONE_HOUR * 24 * 7, label: t('per week')},
 ];
 
+function countTimes(count: number) {
+  return count === 1
+    ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
+    : tn('%s time\u2026', '%s times\u2026', count);
+}
+
+function countUsers(count: number) {
+  return count === 1
+    ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
+    : tn('%s user\u2026', '%s users\u2026', count);
+}
+
 type Props = {
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
@@ -61,6 +74,8 @@ const IgnoreActions = ({
   isIgnored = false,
   size = 'xs',
 }: Props) => {
+  const [currentSubmenu, setCurrentSubmenu] = useState<null | string>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
     openConfirmModal({
       bypass: !shouldConfirm,
@@ -132,8 +147,24 @@ const IgnoreActions = ({
     {
       key: 'for',
       label: t('For\u2026'),
-      isSubmenu: true,
-      children: [
+      onAction: () => setCurrentSubmenu('for'),
+    },
+    {
+      key: 'until-reoccur',
+      label: t('Until this occurs again\u2026'),
+      onAction: () => setCurrentSubmenu('until-reoccur'),
+    },
+    {
+      key: 'until-affect',
+      label: t('Until this affects an additional\u2026'),
+      onAction: () => setCurrentSubmenu('until-affect'),
+    },
+  ];
+
+  const submenu: Record<string, {submenu: MenuItemProps[]; title: string}> = {
+    for: {
+      title: t('Ignore for\u2026'),
+      submenu: [
         ...IGNORE_DURATIONS.map(duration => ({
           key: `for-${duration}`,
           label: <Duration seconds={duration * 60} />,
@@ -146,72 +177,13 @@ const IgnoreActions = ({
         },
       ],
     },
-    {
-      key: 'until-reoccur',
-      label: t('Until this occurs again\u2026'),
-      isSubmenu: true,
-      placement: 'top left',
-      children: [
-        ...IGNORE_COUNTS.map(count => ({
-          key: `until-reoccur-${count}-times`,
-          label:
-            count === 1
-              ? t('one time\u2026') // This is intentional as unbalanced string formatters are problematic
-              : tn('%s time\u2026', '%s times\u2026', count),
-          isSubmenu: true,
-          children: [
-            {
-              key: `until-reoccur-${count}-times-from-now`,
-              label: t('from now'),
-              onAction: () => onIgnore({ignoreCount: count}),
-            },
-            ...IGNORE_WINDOWS.map(({value, label}) => ({
-              key: `until-reoccur-${count}-times-from-${label}`,
-              label,
-              onAction: () =>
-                onIgnore({
-                  ignoreCount: count,
-                  ignoreWindow: value,
-                }),
-            })),
-          ],
-        })),
-        {
-          key: 'until-reoccur-custom',
-          label: t('Custom'),
-          onAction: () => openCustomIgnoreCount(),
-        },
-      ],
-    },
-    {
-      key: 'until-affect',
-      label: t('Until this affects an additional\u2026'),
-      isSubmenu: true,
-      placement: 'top left',
-      children: [
+    'until-affect': {
+      title: t('Ignore until this affects an additional\u2026'),
+      submenu: [
         ...IGNORE_COUNTS.map(count => ({
           key: `until-affect-${count}-users`,
-          label:
-            count === 1
-              ? t('one user\u2026') // This is intentional as unbalanced string formatters are problematic
-              : tn('%s user\u2026', '%s users\u2026', count),
-          isSubmenu: true,
-          children: [
-            {
-              key: `until-affect-${count}-users-from-now`,
-              label: t('from now'),
-              onAction: () => onIgnore({ignoreUserCount: count}),
-            },
-            ...IGNORE_WINDOWS.map(({value, label}) => ({
-              key: `until-affect-${count}-users-from-${label}`,
-              label,
-              onAction: () =>
-                onIgnore({
-                  ignoreUserCount: count,
-                  ignoreUserWindow: value,
-                }),
-            })),
-          ],
+          label: countUsers(count),
+          onAction: () => setCurrentSubmenu(`until-affect-${count}-users`),
         })),
         {
           key: 'until-affect-custom',
@@ -220,7 +192,63 @@ const IgnoreActions = ({
         },
       ],
     },
-  ];
+    'until-reoccur': {
+      title: t('Ignore until this occurs again\u2026'),
+      submenu: [
+        ...IGNORE_COUNTS.map(count => ({
+          key: `until-reoccur-${count}-times`,
+          label: countTimes(count),
+          onAction: () => setCurrentSubmenu(`until-reoccur-${count}-times`),
+        })),
+        {
+          key: 'until-reoccur-custom',
+          label: t('Custom'),
+          onAction: () => openCustomIgnoreCount(),
+        },
+      ],
+    },
+    ...IGNORE_COUNTS.reduce((acc, count) => {
+      acc[`until-reoccur-${count}-times`] = {
+        title: t('Ignore until this occurs again %s', countTimes(count)),
+        submenu: [
+          {
+            key: `until-reoccur-${count}-times-from-now`,
+            label: t('from now'),
+            onAction: () => onIgnore({ignoreCount: count}),
+          },
+          ...IGNORE_WINDOWS.map(({value, label}) => ({
+            key: `until-reoccur-${count}-times-from-${label}`,
+            label,
+            onAction: () =>
+              onIgnore({
+                ignoreCount: count,
+                ignoreWindow: value,
+              }),
+          })),
+        ],
+      };
+      acc[`until-affect-${count}-users`] = {
+        title: t('Until this affects an additional %s', countUsers(count)),
+        submenu: [
+          {
+            key: `until-affect-${count}-users-from-now`,
+            label: t('from now'),
+            onAction: () => onIgnore({ignoreUserCount: count}),
+          },
+          ...IGNORE_WINDOWS.map(({value, label}) => ({
+            key: `until-affect-${count}-users-from-${label}`,
+            label,
+            onAction: () =>
+              onIgnore({
+                ignoreUserCount: count,
+                ignoreUserWindow: value,
+              }),
+          })),
+        ],
+      };
+      return acc;
+    }, {}),
+  };
 
   return (
     <ButtonBar merged>
@@ -238,7 +266,13 @@ const IgnoreActions = ({
       </IgnoreButton>
       <DropdownMenuControl
         size={size}
-        placement="bottom right"
+        placement="bottom"
+        closeOnSelect={false}
+        isOpen={isOpen}
+        closeRootMenu={() => {
+          setIsOpen(false);
+          setCurrentSubmenu(null);
+        }}
         trigger={({props: triggerProps, ref: triggerRef}) => (
           <DropdownTrigger
             ref={triggerRef}
@@ -247,10 +281,14 @@ const IgnoreActions = ({
             size={size}
             icon={<IconChevron direction="down" size={size} />}
             disabled={disabled}
+            onClick={() => {
+              setIsOpen(!isOpen);
+              setCurrentSubmenu(null);
+            }}
           />
         )}
-        menuTitle={t('Ignore')}
-        items={dropdownItems}
+        menuTitle={currentSubmenu ? submenu[currentSubmenu].title : t('Ignore')}
+        items={currentSubmenu ? submenu[currentSubmenu].submenu : dropdownItems}
         isDisabled={disabled}
       />
     </ButtonBar>
