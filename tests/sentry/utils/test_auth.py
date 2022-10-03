@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 from django.urls import reverse
-from requests import request
 
 import sentry.utils.auth
 from sentry.models import User
