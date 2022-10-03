@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
-import EventDataSection from 'sentry/components/events/eventDataSection';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
@@ -48,47 +47,47 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
     return 0;
   }, [eventTimestamp, startTimestampMs]);
 
+  if (fetching || !replayRecord) {
+    return (
+      <StyledPlaceholder
+        testId="replay-loading-placeholder"
+        height="400px"
+        width="100%"
+      />
+    );
+  }
+
   return (
-    <EventDataSection type="replay" title={t('Replay')}>
-      {fetching || !replayRecord ? (
-        <StyledPlaceholder
-          testId="replay-loading-placeholder"
-          height="400px"
-          width="100%"
+    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+      <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
+        <BadgeContainer>
+          <FeatureText>{t('Replays')}</FeatureText>
+          <ReplaysFeatureBadge />
+        </BadgeContainer>
+        <ReplayView
+          toggleFullscreen={toggleFullscreen}
+          showAddressBar={false}
+          controlBarActions={
+            <Button
+              data-test-id="view-replay-button"
+              to={{
+                pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
+                query: {
+                  t_main: 'console',
+                  f_c_search: undefined,
+                  ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
+                },
+              }}
+              priority="primary"
+              size="sm"
+              icon={<IconPlay size="sm" />}
+            >
+              {t('View Full Replay')}
+            </Button>
+          }
         />
-      ) : (
-        <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-          <PlayerContainer ref={fullscreenRef} data-test-id="player-container">
-            <BadgeContainer>
-              <FeatureText>{t('Replays')}</FeatureText>
-              <ReplaysFeatureBadge />
-            </BadgeContainer>
-            <ReplayView
-              toggleFullscreen={toggleFullscreen}
-              showAddressBar={false}
-              controlBarActions={
-                <Button
-                  data-test-id="view-replay-button"
-                  to={{
-                    pathname: `/organizations/${orgSlug}/replays/${replaySlug}/`,
-                    query: {
-                      t_main: 'console',
-                      f_c_search: undefined,
-                      ...(initialTimeOffset ? {t: initialTimeOffset} : {}),
-                    },
-                  }}
-                  priority="primary"
-                  size="sm"
-                  icon={<IconPlay size="sm" />}
-                >
-                  {t('View Full Replay')}
-                </Button>
-              }
-            />
-          </PlayerContainer>
-        </ReplayContextProvider>
-      )}
-    </EventDataSection>
+      </PlayerContainer>
+    </ReplayContextProvider>
   );
 }
 
