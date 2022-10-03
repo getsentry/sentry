@@ -6,12 +6,14 @@ import EventView from 'sentry/utils/discover/eventView';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 export interface Props {
+  isPerfIssue: boolean;
   issueId: string;
   location: Location;
   organization: Organization;
 }
 
-const PerfEventsTable = (props: Props) => {
+const AllEventsTable = (props: Props) => {
+  const {location, organization, issueId, isPerfIssue} = props;
   const eventView: EventView = EventView.fromLocation(props.location);
 
   eventView.fields = [
@@ -21,12 +23,14 @@ const PerfEventsTable = (props: Props) => {
     {field: 'release'},
     {field: 'environment'},
     {field: 'user.display'},
-    {field: 'transaction.duration'},
+    ...(isPerfIssue ? [{field: 'transaction.duration'}] : []),
     {field: 'timestamp'},
   ];
-  eventView.query = `performance.issue_ids:${props.issueId} ${
-    props.location.query.query || ''
-  }`;
+
+  const idQuery = isPerfIssue
+    ? `performance.issue_ids:${issueId}`
+    : `issue.id:${issueId}`;
+  eventView.query = `${idQuery} ${props.location.query.query || ''}`;
 
   const columnTitles: Readonly<string[]> = [
     t('event id'),
@@ -35,15 +39,15 @@ const PerfEventsTable = (props: Props) => {
     t('release'),
     t('environment'),
     t('user'),
-    t('total duration'),
+    ...(isPerfIssue ? [t('total duration')] : []),
     t('timestamp'),
   ];
 
   return (
     <EventsTable
       eventView={eventView}
-      location={props.location}
-      organization={props.organization}
+      location={location}
+      organization={organization}
       setError={() => {}}
       transactionName=""
       disablePagination
@@ -52,4 +56,4 @@ const PerfEventsTable = (props: Props) => {
   );
 };
 
-export default PerfEventsTable;
+export default AllEventsTable;

@@ -29,7 +29,7 @@ type Props = {
    * This is the id of the note object from the server. This is to indicate you
    * are editing an existing item
    */
-  modelId: string;
+  noteId: string;
   onDelete: (props: Props) => void;
   onUpdate: (data: NoteType, props: Props) => void;
   /**
@@ -63,7 +63,7 @@ function Note(props: Props) {
   const [editing, setEditing] = useState(false);
 
   const {
-    modelId,
+    noteId,
     user,
     dateCreated,
     text,
@@ -80,7 +80,7 @@ function Note(props: Props) {
   const activityItemProps = {
     hideDate,
     showTime,
-    id: `activity-item-${modelId}`,
+    id: `activity-item-${noteId}`,
     author: {
       type: 'user' as ActivityAuthorType,
       user,
@@ -110,7 +110,7 @@ function Note(props: Props) {
     <ActivityItemNote {...activityItemProps}>
       {() => (
         <NoteInput
-          {...{modelId, minHeight, text, projectSlugs}}
+          {...{noteId, minHeight, text, projectSlugs}}
           onEditFinish={() => setEditing(false)}
           onUpdate={note => {
             onUpdate(note, props);
@@ -142,7 +142,7 @@ const ActivityItemNote = styled(ActivityItem)`
     margin-bottom: ${space(2)};
   }
 
-  ul:not(.nav),
+  ul,
   ol {
     padding-left: 20px;
   }
