@@ -168,7 +168,7 @@ export const tracing = [
   'react-native-tracing',
 ] as const;
 
-export const performance: PlatformKey[] = [
+export const performance = [
   'javascript',
   'javascript-ember',
   'javascript-react',

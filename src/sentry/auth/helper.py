@@ -195,22 +195,25 @@ class AuthIdentityHandler:
         subdomain = None
         if data:
             subdomain = data.get("subdomain") or None
-        login_redirect_url = auth.get_login_redirect(self.request)
-        if subdomain is not None:
-            url_prefix = generate_organization_url(subdomain)
-            login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
 
         try:
             self._login(user)
         except self._NotCompletedSecurityChecks:
-            return HttpResponseRedirect(login_redirect_url)
+            return HttpResponseRedirect(self._get_login_redirect(subdomain))
 
         state.clear()
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
             auth.set_active_org(self.request, self.organization.slug)
-        return HttpResponseRedirect(login_redirect_url)
+        return HttpResponseRedirect(self._get_login_redirect(subdomain))
+
+    def _get_login_redirect(self, subdomain):
+        login_redirect_url = auth.get_login_redirect(self.request)
+        if subdomain is not None:
+            url_prefix = generate_organization_url(subdomain)
+            login_redirect_url = absolute_uri(login_redirect_url, url_prefix=url_prefix)
+        return login_redirect_url
 
     def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
         user = auth_identity.user
