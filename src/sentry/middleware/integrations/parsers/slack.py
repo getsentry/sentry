@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from django.urls import ResolverMatch, resolve
 from rest_framework.request import Request
 from sentry_sdk import capture_exception
 
@@ -45,7 +44,7 @@ class SlackRequestParser(BaseRequestParser):
             # We need convert the raw Django request to a Django Rest Framework request
             # since that's the type the SlackRequest expects
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
+            slack_request = self.match.func.view_class.slack_request_class(drf_request)
             try:
                 slack_request._authorize()
                 slack_request._validate_integration()
@@ -55,7 +54,7 @@ class SlackRequestParser(BaseRequestParser):
                     "integration_control.slack.validation_error",
                     extra={"path": self.request.path},
                 )
-                return
+                return None
             return slack_request.integration
         elif view_class_name in self.django_view_classes:
             # Parse the signed params and ensure the organization is associated with the
@@ -72,9 +71,12 @@ class SlackRequestParser(BaseRequestParser):
         """
         Slack Webhook Requests all require synchronous responses.
         """
-        self.match: ResolverMatch = resolve(self.request.path)
         regions = self.get_regions()
         if len(regions) == 0:
+            logger.error(
+                "integration_control.slack.no_regions",
+                extra={"path": self.request.path},
+            )
             return self.get_response_from_control_silo()
         # Slack only requires one synchronous response.
         # By convention, we just assume it's the first returned region.

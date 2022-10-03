@@ -5,6 +5,7 @@ import logging
 from typing import Any, Callable, Sequence
 
 from django.http.request import HttpRequest
+from django.urls import ResolverMatch, resolve
 
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.models.organization import Organization
@@ -20,6 +21,7 @@ class BaseRequestParser(abc.ABC):
 
     def __init__(self, request: HttpRequest, response_handler: Callable):
         self.request = request
+        self.match: ResolverMatch = resolve(self.request.path)
         self.response_handler = response_handler
         self.error_message = "Integration Request Parsers should only be run on the control silo."
 
