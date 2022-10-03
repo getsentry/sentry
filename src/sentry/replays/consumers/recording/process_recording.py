@@ -285,7 +285,7 @@ def replay_recording_segment_cache_id(project_id: int, replay_id: str) -> str:
 
 
 @contextlib.contextmanager
-def segment_cache_manager(segment_cache: CachedAttachment) -> Iterator[dict]:
+def segment_cache_manager(segment_cache: CachedAttachment) -> Iterator[bytes]:
     """Recording-segment cache manager.
 
     Ensures proper data fetching and cleanup behavior is observed.
