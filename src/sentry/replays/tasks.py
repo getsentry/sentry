@@ -35,6 +35,7 @@ def _archive_replay(project_id: int, replay_id: str) -> None:
     config = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_REPLAY_EVENTS]
     replay_publisher = KafkaPublisher(
         kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
+        asynchronous=False,
     )
 
     replay_payload = {
