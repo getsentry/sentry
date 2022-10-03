@@ -1,9 +1,7 @@
 """
 Metrics Service Layer Tests for Performance
 """
-import inspect
 import re
-import time
 from datetime import timedelta
 from unittest import mock
 
@@ -27,80 +25,17 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
-from sentry.testutils import BaseMetricsTestCase, TestCase
-from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 pytestmark = pytest.mark.sentry_metrics
 
-# TODO: put this utils in the proper file. Here only for demonstration and prototyping.
 
-
-@freeze_time()
-class FrozenTimeTestCase(TestCase):
+@freeze_time(BaseMetricsLayerTestCase.DEFAULT_FROZEN_TIME)
+class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase):
     def now(self):
         return timezone.now()
 
-    def now_minus(self, **kwargs):
-        return self.now() - timedelta(**kwargs)
-
-    def now_plus(self, **kwargs):
-        return self.now() + timedelta(**kwargs)
-
-
-class FrozenTestCase1(FrozenTimeTestCase):
-    def test_case(self):
-        self.now()
-        self.now_minus(seconds=10)
-        self.now_plus(hours=10)
-
-
-class TimeObject:
-    def now(self):
-        return timezone.now()
-
-    def now_minus(self, **kwargs):
-        return self.now() - timedelta(**kwargs)
-
-    def now_plus(self, **kwargs):
-        return self.now() + timedelta(**kwargs)
-
-
-def freeze(frozen_time, func):
-    def wrapped(*args, **kwargs):
-        with freeze_time(frozen_time):
-            kwargs["frozen_time"] = TimeObject()
-            return func(*args, **kwargs)
-
-    return wrapped
-
-
-def frozen_test_case(frozen_time=None):
-    def inner(cls):
-        for name, m in inspect.getmembers(
-            cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)
-        ):
-            # We inject automatically the frozen time into the methods that start with "test_frozen_*"
-            if name.startswith("test_frozen_"):
-                setattr(cls, name, freeze(frozen_time, m))
-
-        return cls
-
-    return inner
-
-
-@frozen_test_case(frozen_time="2022-09-28 13:00:00")
-class FrozenTestCase2(TestCase):
-    def test_frozen_case(self, frozen_time):
-        frozen_time.now()
-        frozen_time.now_minus(seconds=10)
-        frozen_time.now_plus(hours=10)
-
-    def test_case(self):
-        timezone.now()
-
-
-class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
     def test_valid_filter_include_meta_derived_metrics(self):
         query_params = MultiValueDict(
             {
@@ -135,13 +70,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
     def test_alias_on_different_metrics_expression(self):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={"transaction": v_transaction, "measurement_rating": "poor"},
-                    timestamp=int(time.time()),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -161,8 +95,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_fcp",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=self.now() - timedelta(hours=1),
+            end=self.now(),
             granularity=Granularity(granularity=3600),
             groupby=[MetricGroupByField(name="transaction", alias="transaction_group")],
             orderby=[
@@ -220,13 +154,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
     def test_alias_on_same_metrics_expression_but_different_aliases(self):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={"transaction": v_transaction, "measurement_rating": "poor"},
-                    timestamp=int(time.time()),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -246,8 +179,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_lcp_2",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=self.now() - timedelta(hours=1),
+            end=self.now(),
             granularity=Granularity(granularity=3600),
             groupby=[
                 MetricGroupByField("transaction", alias="transaction_group"),
@@ -303,19 +236,16 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time("2022-09-28 13:00:00")
     def test_custom_measurement_query_with_valid_mri(self):
-        now = timezone.now()
         transactions_speed_mri = "d:transactions/measurements.speed@millisecond"
 
         for value in (100, 200, 300):
-            self.store_metric(
+            self.store_metric_in_metrics_layer(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=transactions_speed_mri,
                 tags={},
-                timestamp=(now - timedelta(hours=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -329,8 +259,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     metric_mri=transactions_speed_mri,
                 ),
             ],
-            start=now - timedelta(hours=1),
-            end=now,
+            start=self.now() - timedelta(hours=1),
+            end=self.now(),
             granularity=Granularity(granularity=3600),
             groupby=[],
             orderby=[],
@@ -360,22 +290,19 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time("2022-09-28 13:00:00")
     def test_custom_measurement_query_with_invalid_mri(self):
-        now = timezone.now()
         invalid_mris = [
             "d:sessions/measurements.speed@millisecond",
             "s:transactions/measurements.speed@millisecond",
         ]
 
         for value, invalid_mri in zip([100, 200], invalid_mris):
-            self.store_metric(
+            self.store_metric_in_metrics_layer(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=invalid_mri,
                 tags={},
-                timestamp=(now - timedelta(hours=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -395,8 +322,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                             metric_mri=invalid_mri,
                         ),
                     ],
-                    start=self.now - timedelta(hours=1),
-                    end=self.now,
+                    start=self.now() - timedelta(hours=1),
+                    end=self.now(),
                     granularity=Granularity(granularity=3600),
                     groupby=[],
                     orderby=[],
@@ -412,18 +339,14 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
-    @freeze_time("2022-09-29 11:30:00")
     def test_query_with_tuple_condition(self):
-        now = timezone.now()
-
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
-            self.store_metric(
+            self.store_metric_in_metrics_layer(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
-                timestamp=(now - timedelta(seconds=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -437,8 +360,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=now - timedelta(minutes=1),
-            end=now,
+            start=self.now() - timedelta(minutes=1),
+            end=self.now(),
             groupby=[],
             where=[
                 Condition(
@@ -485,10 +408,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_valid_condition(self):
-        now = timezone.now()
-
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2, 3]),
@@ -500,13 +420,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 tags = {"transaction": transaction}
 
             for value in values:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=now.timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -534,8 +453,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_has_value",
                 ),
             ],
-            start=now - timedelta(minutes=1),
-            end=now,
+            start=self.now() - timedelta(minutes=1),
+            end=self.now(),
             groupby=[],
             granularity=Granularity(granularity=60),
             limit=Limit(limit=3),
@@ -568,10 +487,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time("2022-09-22 10:01:09")
     def test_count_transaction_with_invalid_condition(self):
-        now = timezone.now()
-
         for transaction, values in (
             ("<< unparameterized >>", [1]),
             ("", [2]),
@@ -583,13 +499,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 tags = {"transaction": transaction}
 
             for value in values:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
-                    timestamp=now.timestamp(),
                     value=value,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -607,8 +522,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_transaction_name_invalid",
                 ),
             ],
-            start=now - timedelta(minutes=1),
-            end=now,
+            start=self.now() - timedelta(minutes=1),
+            end=self.now(),
             groupby=[],
             granularity=Granularity(granularity=60),
             limit=Limit(limit=3),
@@ -628,29 +543,19 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
 
-    @freeze_time("2022-09-22 11:07:00")
     def test_alias_on_single_entity_derived_metrics(self):
-        """
-        We want to freeze time and self.now don't freezes when we decorate only function
-        it helps to reproduce flakiness. Also it's important to freeze it for :00 second,
-        otherwise you can't catch race condition and test will work.
-        """
-        now = timezone.now()
         for value, tag_value in (
             (3.4, TransactionStatusTagValue.OK.value),
             (0.3, TransactionStatusTagValue.CANCELLED.value),
             (2.3, TransactionStatusTagValue.UNKNOWN.value),
             (0.5, TransactionStatusTagValue.ABORTED.value),
         ):
-            self.store_metric(
+            self.store_metric_in_metrics_layer(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
-                # It's important that we store metric between now and now - 1 minute
-                # Note: now is not included
-                timestamp=(now - timedelta(seconds=1)).timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
@@ -665,8 +570,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=now - timedelta(minutes=1),
-            end=now,
+            start=self.now() - timedelta(minutes=1),
+            end=self.now(),
             granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
@@ -690,13 +595,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             ("transaction", "/bar/", [4, 5, 6]),
         ):
             for subvalue in numbers:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -706,23 +610,16 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             ("transaction", "/bar/", [13, 14, 15]),
         ):
             for subvalue in numbers:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_FCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "1h",
-                "interval": "1h",
-            }
-        )
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -738,8 +635,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="p50_fcp",
                 ),
             ],
-            start=start,
-            end=end,
+            start=self.now() - timedelta(hours=1),
+            end=self.now(),
             groupby=[
                 MetricGroupByField("transaction", "transaction_group"),
                 MetricGroupByField("project_id", "project"),
@@ -755,7 +652,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     direction=Direction.ASC,
                 )
             ],
-            granularity=Granularity(granularity=rollup),
+            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
         )
@@ -808,13 +705,12 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             ("tag1", "value2", [10, 100, 1000]),
         ):
             for subvalue in numbers:
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
                     use_case_id=UseCaseKey.PERFORMANCE,
                 )
@@ -825,7 +721,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             select=[
                 MetricField(
                     op="histogram",
-                    # ToDo(ahmed): Replace this with MRI once we make MetricsQuery accept MRI
                     metric_mri=TransactionMRI.MEASUREMENTS_LCP.value,
                     params={
                         "histogram_from": 2,
@@ -845,8 +740,8 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="histogram_lcp_2",
                 ),
             ],
-            start=self.now - timedelta(hours=1),
-            end=self.now,
+            start=self.now() - timedelta(hours=1),
+            end=self.now(),
             granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -873,23 +768,17 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for _ in range(count):
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(hours=hour)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
+                    hours_before_now=hour,
                 )
 
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "6h",
-                "interval": "1h",
-            }
-        )
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -904,9 +793,9 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
+            start=self.now() - timedelta(hours=6),
+            end=self.now(),
+            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -935,23 +824,17 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
             for minute in range(count):
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(hours=hour)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
+                    hours_before_now=hour,
                 )
 
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "6h",
-                "interval": "1h",
-            }
-        )
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -962,9 +845,9 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     params={"numerator": 86400, "denominator": 60},
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
+            start=self.now() - timedelta(hours=6),
+            end=self.now(),
+            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -1060,23 +943,17 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for _ in range(count):
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(minutes=minute)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
+                    minutes_before_now=minute,
                 )
 
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "6m",
-                "interval": "1m",
-            }
-        )
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -1091,9 +968,9 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
+            start=self.now() - timedelta(minutes=6),
+            end=self.now(),
+            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -1124,22 +1001,17 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
             for _ in range(count):
-                self.store_metric(
+                self.store_metric_in_metrics_layer(
                     org_id=self.organization.id,
                     project_id=self.project.id,
                     type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
-                    timestamp=(self.now - timedelta(minutes=minute)).timestamp(),
                     value=1,
                     use_case_id=UseCaseKey.PERFORMANCE,
+                    minutes_before_now=minute,
                 )
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "6m",
-                "interval": "1m",
-            }
-        )
+
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
@@ -1149,9 +1021,9 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=start,
-            end=end,
-            granularity=Granularity(granularity=rollup),
+            start=self.now() - timedelta(minutes=6),
+            end=self.now(),
+            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -1170,8 +1042,6 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_measurement_rating(self):
-        min_ago = before_now(minutes=1)
-
         for tags, metric, metric_mri, value in (
             (
                 {"measurement_rating": "good", "transaction": "foo_transaction"},
@@ -1204,23 +1074,15 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 0.15,
             ),
         ):
-            self.store_metric(
+            self.store_metric_in_metrics_layer(
                 org_id=self.organization.id,
                 project_id=self.project.id,
                 type="distribution",
                 name=metric_mri,
                 tags=tags,
-                timestamp=min_ago.timestamp(),
                 value=value,
                 use_case_id=UseCaseKey.PERFORMANCE,
             )
-
-        start, end, rollup = get_date_range(
-            {
-                "statsPeriod": "1h",
-                "interval": "1h",
-            }
-        )
 
         metrics_query = MetricsQuery(
             org_id=self.organization.id,
@@ -1257,14 +1119,14 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                     alias="count_web_vitals_measurements_cls_good",
                 ),
             ],
-            start=start,
+            start=self.now() - timedelta(minutes=1),
             groupby=[
                 MetricGroupByField(
                     name="transaction",
                 )
             ],
-            end=end,
-            granularity=Granularity(granularity=rollup),
+            end=self.now(),
+            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,

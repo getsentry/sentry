@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+
 import responses
 
 __all__ = (
@@ -16,6 +18,7 @@ __all__ = (
     "IntegrationTestCase",
     "SnubaTestCase",
     "BaseMetricsTestCase",
+    "BaseMetricsLayerTestCase",
     "BaseIncidentsTest",
     "IntegrationRepositoryTestCase",
     "ReleaseCommitPatchTest",
@@ -35,7 +38,7 @@ import inspect
 import os.path
 import time
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Dict, List, Optional, Union
 from unittest import mock
@@ -1229,6 +1232,62 @@ class BaseMetricsTestCase(SnubaTestCase):
                 data=json.dumps(buckets),
             ).status_code
             == 200
+        )
+
+
+class BaseMetricsLayerTestCase(ABC, TestCase, BaseMetricsTestCase):
+
+    # The idea of this time is that we want to always have the start of the hour in order to handle
+    # all tests properly. The format can be generalized as follows "****-**-** **:00:00" where "*" stands
+    # for any number in the interval [0-9].
+    DEFAULT_FROZEN_TIME = "2022-09-29 10:00:00"
+
+    @abstractmethod
+    def now(self):
+        """
+        Returns the current time instance that will be used throughout the tests of the metrics layer.
+
+        This method has to be implemented in all the children classes because it serves as a way to standardize
+        access to time.
+        """
+        raise NotImplementedError
+
+    def store_metric_in_metrics_layer(
+        self,
+        org_id,
+        project_id,
+        type,
+        name,
+        tags,
+        value,
+        use_case_id,
+        hours_before_now=0,
+        minutes_before_now=0,
+        seconds_before_now=0,
+    ):
+        # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
+        # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
+        #
+        # Use SENTRY_SNUBA_INFO=true while running queries in tests to know more about how data is actually queried
+        # at the clickhouse level.
+        #
+        # The solution proposed aims at solving the problem of flaky tests that occurred during CI at specific times.
+        self.store_metric(
+            org_id=org_id,
+            project_id=project_id,
+            type=type,
+            name=name,
+            tags=tags,
+            timestamp=(
+                self.now()
+                - timedelta(
+                    hours=hours_before_now,
+                    minutes=minutes_before_now,
+                    seconds=seconds_before_now + 1,
+                )
+            ).timestamp(),
+            value=value,
+            use_case_id=use_case_id,
         )
 
 
