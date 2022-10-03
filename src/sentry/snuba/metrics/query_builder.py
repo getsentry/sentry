@@ -489,7 +489,7 @@ class SnubaQueryBuilder:
                 try:
                     metric_condition_filters.append(
                         Condition(
-                            lhs=metric_expression.generate_select_statements(
+                            lhs=metric_expression.generate_where_statements(
                                 use_case_id=self._use_case_id,
                                 params=condition.lhs.params,
                                 projects=self._projects,
