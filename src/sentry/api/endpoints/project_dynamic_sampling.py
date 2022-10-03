@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import List
 
 from django.utils import timezone
 from rest_framework import status
@@ -63,14 +64,23 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer=referrer,
         )["data"]
 
-    def __get_root_transactions_count(self, project, query, sample_size, query_time_range):
-        # Run query that gets total count of transactions with these conditions for the specified
-        # time period
+    def __get_transactions_count(
+        self,
+        project,
+        sample_size,
+        query,
+        query_time_range,
+        extra_query_args=("event.type:transaction",),
+    ):
+        """
+        Run query that gets total count of transactions with these conditions for the specified
+        time period
+        """
         return self.__run_discover_query(
             columns=[
                 "count()",
             ],
-            query=f"{query} event.type:transaction !has:trace.parent_span",
+            query=f"{query} event.type:transaction",
             params={
                 "start": query_time_range.start_time,
                 "end": query_time_range.end_time,
@@ -78,10 +88,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "organization_id": project.organization.id,
             },
             limit=sample_size,
-            referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
+            referrer="dynamic-sampling.distribution.fetch-transactions-count",
         )[0]["count()"]
 
-    def __generate_root_transactions_sampling_factor(
+    def __generate_transactions_sampling_factor(
         self, project, query, sample_size, query_time_range
     ):
         """
@@ -95,10 +105,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         results when dealing with values of n like 90,000 (In this case, we probably want the
         `normalized_transactions_coun`t to be 100,000 rather than 10,000)
         """
-        root_transactions_count = self.__get_root_transactions_count(
+        transactions_count = self.__get_transactions_count(
             project=project, query=query, sample_size=sample_size, query_time_range=query_time_range
         )
-        if root_transactions_count == 0:
+        if transactions_count == 0:
             # If the last hour has no transactions, then it might indicate that either this
             # transaction traffic for this project is low or that the org has run out of their
             # transactions' quota, and in that case we need to expand the query time bounds to the
@@ -113,7 +123,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
             transaction_count_month = self.__run_discover_query(
                 columns=["count()", "timestamp.to_day"],
-                query=f"{query} event.type:transaction !has:trace.parent_span",
+                query=f"{query} event.type:transaction",
                 params={
                     "start": start_bound_time,
                     "end": end_bound_time,
@@ -136,7 +146,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
             # Set the transactions count that will be used to determine the sampling factor to
             # the most recent day with transactions count
-            root_transactions_count = transaction_count_month[0]["count()"]
+            transactions_count = transaction_count_month[0]["count()"]
 
         if sample_size % 10 == 0:
             normalized_sample_count = sample_size
@@ -144,26 +154,24 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             sample_digit_count = len(str(sample_size))
             normalized_sample_count = 10**sample_digit_count
 
-        digit_count = len(str(root_transactions_count))
+        digit_count = len(str(transactions_count))
         normalized_transactions_count = (
             10 ** (digit_count - 1)
-            if (root_transactions_count <= 0.75 * 10**digit_count)
+            if (transactions_count <= 0.75 * 10**digit_count)
             else 10**digit_count
         )
         return max(normalized_transactions_count / (10 * normalized_sample_count), 1)
 
-    def __fetch_randomly_sampled_root_transactions(
-        self, project, query, sample_size, query_time_range
-    ):
+    def __fetch_randomly_sampled_transactions(self, project, query, sample_size, query_time_range):
         """
-        Fetches a random sample of root transactions of size `sample_size` in the last period
+        Fetches a random sample of transactions of size `sample_size` in the last period
         defined by `stats_period`. The random sample is fetched by generating a random number by
         for every row, and then doing a modulo operation on it, and if that number is divisible
         by the sampling factor then its kept, otherwise is discarded. This is an alternative to
         sampling the query before applying the conditions. The goal here is to fetch the
         transaction ids, their sample rates and their trace ids.
         """
-        sampling_factor = self.__generate_root_transactions_sampling_factor(
+        sampling_factor = self.__generate_transactions_sampling_factor(
             project=project,
             query=query,
             sample_size=sample_size,
@@ -177,7 +185,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "project_id": [project.id],
                 "organization_id": project.organization.id,
             },
-            query=f"{query} event.type:transaction !has:trace.parent_span",
+            query=f"{query} event.type:transaction",
             selected_columns=[
                 "id",
                 "trace",
@@ -196,13 +204,37 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         )
         builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
         snuba_query = builder.get_snql_query().query
-        groupby = snuba_query.groupby + [Column("modulo_num")]
+        groupby = snuba_query.groupby + [
+            Column("modulo_num"),
+        ]
         snuba_query = snuba_query.set_groupby(groupby)
 
-        return raw_snql_query(
+        data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
-            referrer="dynamic-sampling.distribution.fetch-parent-transactions",
+            referrer="dynamic-sampling.distribution.fetch-transactions",
         )["data"]
+        return data
+
+    @staticmethod
+    def parent_project_breakdown_post_processing(project_id, data) -> List:
+        if data is None:
+            return []
+        try:
+            project = next(item for item in data if item["project_id"] == project_id)
+        except StopIteration:
+            return []
+        # Requesting for a single project or already root of distributed trace
+        if project["count()"] == project["count_root"] and project["count_non_root"] == 0:
+            return []
+
+        # Requesting for a project that is root for some transactions but not root for others and part of distributed trace like sentry
+        elif project["count_root"] > 0 and project["count_non_root"] > 0:
+            # GET project distribution of this trace_ids (for ONLY parent trace ids)
+            return []
+
+        elif project["count()"] == project["count_non_root"] and project["count_root"] == 0:
+            return []
+        return []
 
     def get(self, request: Request, project) -> Response:
         """
@@ -243,35 +275,45 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         query_time_range: QueryTimeRange = QueryTimeRange(time_now - stats_period, time_now)
 
         try:
-            root_transactions = self.__fetch_randomly_sampled_root_transactions(
+            # Fetch X random trace ids group by count_if(trace.parent_span, equals, "")
+            transactions = self.__fetch_randomly_sampled_transactions(
                 project=project,
                 query=query,
                 sample_size=requested_sample_size,
                 query_time_range=query_time_range,
             )
         except EmptyTransactionDatasetException:
+            # TODO: make response keys in same notation (all camelCase)
             return Response(
                 {
                     "project_breakdown": None,
                     "sample_size": 0,
                     "startTimestamp": None,
                     "endTimestamp": None,
+                    "parentProjectBreakdown": [],
                 }
             )
-        sample_size = len(root_transactions)
-
+        sample_size = len(transactions)
         project_breakdown = None
         if distributed_trace:
             # If the distributedTrace flag was enabled, then we are also interested in fetching
             # the project breakdown of the projects in the trace of the root transaction
-            trace_id_list = [transaction.get("trace") for transaction in root_transactions]
+
+            trace_ids = [transaction.get("trace") for transaction in transactions]
             projects_in_org = Project.objects.filter(organization=project.organization).values_list(
                 "id", flat=True
             )
 
+            # Discover query to fetch parent projects
             project_breakdown = self.__run_discover_query(
-                columns=["project_id", "project", "count()"],
-                query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
+                columns=[
+                    "project_id",
+                    "project",
+                    "count()",
+                    'count_if(trace.parent_span, equals, "") as num_root_transaction',
+                    'count_if(trace.parent_span, notEquals, "") as non_root',
+                ],
+                query=f"event.type:transaction trace:[{','.join(trace_ids)}]",
                 params={
                     "start": query_time_range.start_time,
                     "end": query_time_range.end_time,
@@ -292,11 +334,16 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     },
                 )
 
+        parent_project_breakdown = self.parent_project_breakdown_post_processing(
+            project.id, project_breakdown
+        )
+
         return Response(
             {
                 "project_breakdown": project_breakdown,
                 "sample_size": sample_size,
                 "startTimestamp": query_time_range.start_time,
                 "endTimestamp": query_time_range.end_time,
+                "parentProjectBreakdown": parent_project_breakdown,
             }
         )

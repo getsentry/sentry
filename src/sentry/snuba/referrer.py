@@ -206,7 +206,7 @@ class Referrer(Enum):
         "dynamic-sampling.distribution.fetch-parent-transactions"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PARENT_TRANSACTIONS_COUNT = (
-        "dynamic-sampling.distribution.fetch-parent-transactions-count"
+        "dynamic-sampling.distribution.fetch-transactions-count"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
         "dynamic-sampling.distribution.fetch-project-breakdown"

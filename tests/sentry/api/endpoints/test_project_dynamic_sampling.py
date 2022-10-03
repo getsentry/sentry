@@ -8,6 +8,7 @@ from freezegun import freeze_time
 from snuba_sdk import Column
 from snuba_sdk.conditions import Condition, Op
 
+from sentry.api.endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -152,7 +153,7 @@ def mocked_query_builder_query(referrer):
 
 
 def mocked_discover_query(referrer):
-    if referrer == "dynamic-sampling.distribution.fetch-parent-transactions-count":
+    if referrer == "dynamic-sampling.distribution.fetch-transactions-count":
         return {"data": [{"count()": 100}]}
     elif referrer == "dynamic-sampling.distribution.fetch-project-breakdown":
         return {
@@ -167,8 +168,124 @@ def mocked_discover_query(referrer):
     raise Exception("Something went wrong!")
 
 
+def mocked_data():
+    return [
+        {
+            "project_id": 1,
+            "project": "javascript",
+            "count()": 7,
+            "count_non_root": 0,
+            "count_root": 7,
+        },
+        {
+            "project_id": 2,
+            "project": "sentry",
+            "count()": 13,
+            "count_non_root": 10,
+            "count_root": 3,
+        },
+        {
+            "project_id": 3,
+            "project": "snuba",
+            "count()": 1,
+            "count_non_root": 1,
+            "count_root": 0,
+        },
+        {
+            "project_id": 4,
+            "project": "single_project",
+            "count()": 40,
+            "count_non_root": 0,
+            "count_root": 40,
+        },
+    ]
+
+
+# 'count_if(trace.parent_span, equals, "") as num_root_transaction',
+# 'count_if(trace.parent_span, notEquals, "") as non_root',
+
+# D: Requesting for a single project
+# TEST D
+# Request project_id = 4
+
+
+def test_requesting_root_project_part_of_distributed_trace():
+    """
+    Requesting for a project that is root,
+    but is a part of distributed traces like in `javascript`
+    """
+    assert (
+        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
+            # javascript
+            2,
+            mocked_data(),
+        )
+        == []
+    )
+
+
+def test_requesting_root_project_and_non_root_for_others():
+    """
+    Requesting for a project that is root for some transactions,
+    but not root for others and part of distributed trace like `sentry`
+    """
+    assert ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
+        # sentry
+        1,
+        mocked_data(),
+    ) == [
+        {"project_id": 1, "percentege": 0.8, "project": "javascript"},
+        {"project_id": 2, "percentege": 0.2, "project": "sentry"},
+    ]
+
+
+def test_requesting_project_part_of_distributed_trace():
+    """
+    Requesting for a project that is part of a distributed trace,
+    but is not root like `snuba`
+    """
+    assert (
+        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
+            # snuba
+            3,
+            mocked_data(),
+        )
+        == []
+    )
+
+
+def test_requesting_root_project():
+    """
+    Requesting for a project that is root but is a part of distributed traces like in javascript
+    """
+    assert (
+        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
+            # javascript
+            1,
+            mocked_data(),
+        )
+        == []
+    )
+
+
+def test_requesting_single_project():
+    data = [
+        {
+            "project_id": 1,
+            "project": "single_project",
+            "count()": 40,
+            "count_non_root": 0,
+            "count_root": 40,
+        },
+    ]
+    assert (
+        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(1, data)
+        == []
+    )
+
+
 @region_silo_test
-class ProjectDynamicSamplingTest(APITestCase):
+class ProjectDynamicSamplingDistributionTest(APITestCase):
     @property
     def endpoint(self):
         return reverse(
@@ -197,7 +314,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_successful_response_with_distributed_traces(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
             mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
         ]
         mock_querybuilder.return_value = mocked_query_builder_query(
@@ -206,6 +323,7 @@ class ProjectDynamicSamplingTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.json() == {
+                "parentProjectBreakdown": [],
                 "project_breakdown": [
                     {"project_id": 27, "project": "earth", "count()": 34},
                     {"project_id": 28, "project": "heart", "count()": 3},
@@ -224,7 +342,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_successful_response_with_single_transactions(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
             mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
         ]
         mock_querybuilder.return_value = mocked_query_builder_query(
@@ -234,6 +352,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             response = self.client.get(f"{self.endpoint}?distributedTrace=0")
             assert response.json() == {
                 "project_breakdown": None,
+                "parentProjectBreakdown": [],
                 "sample_size": 21,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
@@ -245,7 +364,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_successful_response_with_small_sample_size(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
             {
                 "data": [
                     {"project_id": 25, "project": "fire", "count()": 2},
@@ -275,6 +394,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "project_breakdown": [
                     {"project_id": 25, "project": "fire", "count()": 2},
                 ],
+                "parentProjectBreakdown": [],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
@@ -288,6 +408,7 @@ class ProjectDynamicSamplingTest(APITestCase):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "project_breakdown": None,
+                "parentProjectBreakdown": [],
                 "sample_size": 0,
                 "startTimestamp": None,
                 "endTimestamp": None,
@@ -335,6 +456,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "project_breakdown": [
                     {"project_id": 25, "project": "fire", "count()": 2},
                 ],
+                "parentProjectBreakdown": [],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
@@ -345,7 +467,7 @@ class ProjectDynamicSamplingTest(APITestCase):
     def test_response_too_many_projects_in_the_breakdown(self, mock_query, mock_querybuilder):
         self.login_as(self.user)
         mock_query.side_effect = [
-            mocked_discover_query("dynamic-sampling.distribution.fetch-parent-transactions-count"),
+            mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
             {
                 "data": [
                     {"project_id": 27, "project": "earth", "count()": 34},
@@ -414,7 +536,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 selected_columns=[
                     "count()",
                 ],
-                query=f"{query} event.type:transaction !has:trace.parent_span",
+                query=f"{query} event.type:transaction",
                 params={
                     "start": start_time,
                     "end": end_time,
@@ -431,10 +553,16 @@ class ProjectDynamicSamplingTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
+                referrer="dynamic-sampling.distribution.fetch-transactions-count",
             ),
             mock.call(
-                selected_columns=["project_id", "project", "count()"],
+                selected_columns=[
+                    "project_id",
+                    "project",
+                    "count()",
+                    'count_if(trace.parent_span, equals, "") as num_root_transaction',
+                    'count_if(trace.parent_span, notEquals, "") as non_root',
+                ],
                 query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
                 params={
                     "start": start_time,
@@ -463,7 +591,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "random_number() AS rand_num",
                 "modulo(rand_num, 10) as modulo_num",
             ],
-            query=f"{query} event.type:transaction !has:trace.parent_span",
+            query=f"{query} event.type:transaction",
             params={
                 "start": start_time,
                 "end": end_time,
@@ -570,7 +698,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 selected_columns=[
                     "count()",
                 ],
-                query=f"{query} event.type:transaction !has:trace.parent_span",
+                query=f"{query} event.type:transaction",
                 params={
                     "start": start_time,
                     "end": end_time,
@@ -587,11 +715,11 @@ class ProjectDynamicSamplingTest(APITestCase):
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
                 functions_acl=None,
-                referrer="dynamic-sampling.distribution.fetch-parent-transactions-count",
+                referrer="dynamic-sampling.distribution.fetch-transactions-count",
             ),
             mock.call(
                 selected_columns=["count()", "timestamp.to_day"],
-                query=f"{query} event.type:transaction !has:trace.parent_span",
+                query=f"{query} event.type:transaction",
                 params={
                     "start": start_bound_time,
                     "end": end_bound_time,
@@ -611,7 +739,13 @@ class ProjectDynamicSamplingTest(APITestCase):
                 referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
             ),
             mock.call(
-                selected_columns=["project_id", "project", "count()"],
+                selected_columns=[
+                    "project_id",
+                    "project",
+                    "count()",
+                    'count_if(trace.parent_span, equals, "") as num_root_transaction',
+                    'count_if(trace.parent_span, notEquals, "") as non_root',
+                ],
                 query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
                 params={
                     "start": updated_start_time,
@@ -640,7 +774,7 @@ class ProjectDynamicSamplingTest(APITestCase):
                 "random_number() AS rand_num",
                 "modulo(rand_num, 10) as modulo_num",
             ],
-            query=f"{query} event.type:transaction !has:trace.parent_span",
+            query=f"{query} event.type:transaction",
             params={
                 "start": updated_start_time,
                 "end": updated_end_time,
