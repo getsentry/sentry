@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from unittest import mock
@@ -1027,7 +1028,7 @@ def test_translate_meta_results_with_duplicates():
                 MetricGroupByField(MetricField("sum", SessionMRI.SESSION.value)),
             ],
             UseCaseKey.RELEASE_HEALTH,
-            "Operation sum does not support being grouped by",
+            re.escape("Cannot group by metrics expression sum(sentry.sessions.session)"),
             id="invalid grouping by metric expression - release_health",
         ),
         pytest.param(
@@ -1038,7 +1039,7 @@ def test_translate_meta_results_with_duplicates():
                 MetricGroupByField(MetricField("count", TransactionMRI.DURATION.value)),
             ],
             UseCaseKey.PERFORMANCE,
-            "Operation count does not support being grouped by",
+            re.escape("Cannot group by metrics expression count(transaction.duration)"),
             id="invalid grouping by metric expression - performance",
         ),
         pytest.param(
@@ -1049,7 +1050,7 @@ def test_translate_meta_results_with_duplicates():
                 MetricGroupByField(MetricField(None, TransactionMRI.FAILURE_RATE.value)),
             ],
             UseCaseKey.PERFORMANCE,
-            "Metric transaction.failure_rate does not support being grouped by",
+            "Cannot group by metric transaction.failure_rate",
             id="invalid grouping by derived metric - release_health",
         ),
         pytest.param(
@@ -1060,7 +1061,7 @@ def test_translate_meta_results_with_duplicates():
                 MetricGroupByField(MetricField(None, SessionMRI.ERRORED.value)),
             ],
             UseCaseKey.PERFORMANCE,
-            "Metric session.errored does not support being grouped by",
+            "Cannot group by metric session.errored",
             id="invalid grouping by composite entity derived metric - release_health",
         ),
         pytest.param(

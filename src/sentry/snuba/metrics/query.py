@@ -248,7 +248,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 and metric_groupby_obj.field in UNALLOWED_TAGS
             ):
                 raise InvalidParams(
-                    f"Tag name {metric_groupby_obj.field} cannot be used to groupBy query"
+                    f"Tag name {metric_groupby_obj.field} cannot be used in groupBy query"
                 )
 
     def validate_include_totals(self) -> None:

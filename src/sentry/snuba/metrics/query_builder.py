@@ -458,7 +458,7 @@ class SnubaQueryBuilder:
                     params=metric_groupby_obj.field.params,
                     projects=projects,
                 )[0]
-            except KeyError:
+            except IndexError:
                 raise InvalidParams(f"Cannot resolve {metric_groupby_obj.field} into SnQL")
         else:
             raise NotImplementedError(f"Unsupported groupby field: {metric_groupby_obj.field}")

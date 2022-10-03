@@ -713,7 +713,8 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     ) -> List[Function]:
         if not self.metric_operation.validate_can_groupby():
             raise InvalidParams(
-                f"Operation {self.metric_operation.op} does not support being grouped by"
+                f"Cannot group by metrics expression {self.metric_operation.op}("
+                f"{get_public_name_from_mri(self.metric_object.metric_mri)})"
             )
         return self.generate_select_statements(
             projects=projects,
@@ -949,9 +950,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         alias: str,
         params: Optional[MetricOperationParams] = None,
     ) -> List[Function]:
-        raise InvalidParams(
-            f"Metric {get_public_name_from_mri(self.metric_mri)} does not support being grouped by"
-        )
+        raise InvalidParams(f"Cannot group by metric {get_public_name_from_mri(self.metric_mri)}")
 
 
 class CompositeEntityDerivedMetric(DerivedMetricExpression):
@@ -1128,9 +1127,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         alias: str,
         params: Optional[MetricOperationParams] = None,
     ) -> List[Function]:
-        raise InvalidParams(
-            f"Metric {get_public_name_from_mri(self.metric_mri)} does not support being grouped by"
-        )
+        raise InvalidParams(f"Cannot group by metric {get_public_name_from_mri(self.metric_mri)}")
 
 
 # ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string

@@ -578,7 +578,7 @@ def _get_group_limit_filters(
     # results down before checking for the group by column combinations.
     values_by_column = {
         key: list({row[aliased_key] for row in results})
-        for key, aliased_key in zip(list(key_to_condition_dict.keys()), aliased_group_keys)
+        for key, aliased_key in zip(key_to_condition_dict.keys(), aliased_group_keys)
     }
     conditions += [
         Condition(key_to_condition_dict[col], Op.IN, Function("tuple", col_values))

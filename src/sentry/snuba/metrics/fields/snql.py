@@ -437,8 +437,9 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
         if len(elem) != 2:
             raise InvalidParams("Invalid team_key_condition in params")
 
+        project_id, transaction_name = elem
         team_key_conditions.add(
-            (elem[0], resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, elem[1]))
+            (project_id, resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction_name))
         )
 
     return Function(
