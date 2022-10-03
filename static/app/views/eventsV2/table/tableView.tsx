@@ -111,7 +111,7 @@ class TableView extends Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView, tableData, location} = this.props;
+    const {organization, eventView, tableData, location, isHomepage} = this.props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -177,6 +177,7 @@ class TableView extends Component<TableViewProps> {
         orgSlug: organization.slug,
         eventSlug,
         eventView,
+        isHomepage,
       });
 
       return [
@@ -240,7 +241,8 @@ class TableView extends Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {isFirstPage, eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData, isHomepage} =
+      this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -270,6 +272,7 @@ class TableView extends Component<TableViewProps> {
         orgSlug: organization.slug,
         eventSlug,
         eventView,
+        isHomepage,
       });
 
       cell = (
