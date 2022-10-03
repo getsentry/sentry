@@ -155,7 +155,6 @@ class GroupEvents extends Component<Props, State> {
           defaultQuery=""
           onSearch={this.handleSearch}
           excludeEnvironment
-          excludeQueryField={['issue']}
           query={this.state.query}
           hasRecentSearches={false}
         />
