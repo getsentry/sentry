@@ -60,6 +60,7 @@ class OrganizationSerializerTest(TestCase):
             "team-insights",
             "discover-frontend-use-events-endpoint",
             "performance-frontend-use-events-endpoint",
+            "performance-issues-ingest",
         }
 
     @mock.patch("sentry.features.batch_has")

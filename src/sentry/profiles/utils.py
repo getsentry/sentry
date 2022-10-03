@@ -20,7 +20,7 @@ class RetrySkipTimeout(urllib3.Retry):
     read timeout. Retrying after a timeout adds useless load to Snuba.
     """
 
-    def increment(
+    def increment(  # type: ignore
         self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
     ):
         """
@@ -75,7 +75,7 @@ def get_from_profiling_service(
     if json_data:
         kwargs["headers"]["Content-Type"] = "application/json"
         kwargs["body"] = json.dumps(json_data)
-    return _profiling_pool.urlopen(
+    return _profiling_pool.urlopen(  # type: ignore
         method,
         path,
         **kwargs,
@@ -90,11 +90,11 @@ def proxy_profiling_service(
 ) -> StreamingHttpResponse:
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
 
-    def stream():
+    def stream():  # type: ignore
         yield from profiling_response.stream(decode_content=False)
 
     response = StreamingHttpResponse(
-        streaming_content=stream(),
+        streaming_content=stream(),  # type: ignore
         status=profiling_response.status,
         content_type=profiling_response.headers.get("Content_type", "application/json"),
     )

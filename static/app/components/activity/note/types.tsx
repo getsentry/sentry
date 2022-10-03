@@ -14,7 +14,7 @@ export type Mentionable = {
 /**
  * List of id, display name
  */
-export type Mentioned = [string, string];
+export type Mentioned = [id: string, display: string];
 
 /**
  * The typings for the react-mentionables library use this type

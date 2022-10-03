@@ -77,7 +77,7 @@ def process_commit_context(
                 frames = munged[1]
 
             # First frame in the stacktrace that is "in_app"
-            frame = next(filter(lambda frame: frame.get("in_app", False), frames), None)
+            frame = next(filter(lambda frame: frame.get("in_app", False), frames[::-1]), None)
 
             if not frame:
                 metrics.incr(
@@ -87,7 +87,7 @@ def process_commit_context(
                 return
 
             commit_context, selected_code_mapping = find_commit_context_for_event(
-                code_mappings=code_mappings, frame=frame
+                code_mappings=code_mappings, frame=frame, logger=logger
             )
 
             if not commit_context and not selected_code_mapping:

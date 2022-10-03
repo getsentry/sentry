@@ -23,7 +23,11 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
-import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
+import {
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateHomepageQuery,
+} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
 import {getPrebuiltQueries, handleAddQueryToDashboard} from './utils';
@@ -130,7 +134,7 @@ class QueryList extends Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {location, organization, savedQuerySearchQuery, router} = this.props;
+    const {api, location, organization, savedQuerySearchQuery, router} = this.props;
     const views = getPrebuiltQueries(organization);
 
     const hasSearchQuery =
@@ -172,6 +176,18 @@ class QueryList extends Component<Props> {
               router,
             }),
         },
+
+        ...(organization.features.includes('discover-query-builder-as-landing-page')
+          ? [
+              {
+                key: 'set-as-default',
+                label: t('Use as Discover Home'),
+                onAction: () => {
+                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                },
+              },
+            ]
+          : []),
       ];
 
       return (
@@ -211,7 +227,7 @@ class QueryList extends Component<Props> {
   }
 
   renderSavedQueries() {
-    const {savedQueries, location, organization, router} = this.props;
+    const {api, savedQueries, location, organization, router} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
@@ -244,6 +260,17 @@ class QueryList extends Component<Props> {
                     yAxis: savedQuery?.yAxis ?? eventView.yAxis,
                     router,
                   }),
+              },
+            ]
+          : []),
+        ...(organization.features.includes('discover-query-builder-as-landing-page')
+          ? [
+              {
+                key: 'set-as-default',
+                label: t('Use as Discover Home'),
+                onAction: () => {
+                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                },
               },
             ]
           : []),

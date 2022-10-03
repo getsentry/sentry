@@ -26,17 +26,8 @@ const ISSUE_CATEGORY_CAPABILITIES: Record<IssueCategory, IssueCategoryCapabiliti
       enabled: false,
       disabledReason: t('Not yet supported for performance issues'),
     },
-    // NOTE: The enabled flag is not being used by the ignore dropdown, since
-    // only specific suboptions are disabled. I am leaving the disabledReason
-    // here so it can be used in tooltips for each disabled dropdown option
-    ignore: {
-      enabled: false,
-      disabledReason: t('This ignore option is not yet supported for performance issues'),
-    },
-    share: {
-      enabled: false,
-      disabledReason: t('Sharing is not yet supported for performance issues'),
-    },
+    ignore: {enabled: true},
+    share: {enabled: true},
     codeowners: {
       enabled: false,
       disabledReason: t('Codeowners do not apply to performance issues'),
