@@ -15,9 +15,11 @@ function createSpan(extra: {
   description?: string;
 }): ReplaySpan<Record<string, any>> {
   return {
-    startTimestamp: 1,
-    endTimestamp: 2,
     data: {},
+    endTimestamp: 2,
+    id: '0',
+    startTimestamp: 1,
+    timestamp: 1,
     ...extra,
   };
 }
