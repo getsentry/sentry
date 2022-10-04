@@ -310,6 +310,14 @@ def configure_sdk():
     else:
         experimental_transport = None
 
+    if settings.SENTRY_PROFILING_ENABLED:
+        sdk_options.setdefault("_experiments", {}).update(
+            {
+                "profiles_sample_rate": settings.SENTRY_PROFILES_SAMPLE_RATE,
+                "profiler_mode": settings.SENTRY_PROFILER_MODE,
+            }
+        )
+
     class MultiplexingTransport(sentry_sdk.transport.Transport):
         def capture_envelope(self, envelope):
             # Temporarily capture envelope counts to compare to ingested
