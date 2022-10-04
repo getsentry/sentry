@@ -103,6 +103,13 @@ export type SamplingRule = {
 export type SamplingDistribution = {
   endTimestamp: string | null;
   null_sample_rate_percentage: null | number;
+  parentProjectBreakdown:
+    | null
+    | {
+        percentage: number;
+        project: string;
+        project_id: number;
+      }[];
   project_breakdown:
     | null
     | {

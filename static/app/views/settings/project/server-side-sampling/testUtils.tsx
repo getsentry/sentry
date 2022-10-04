@@ -140,6 +140,13 @@ export const mockedSamplingDistribution: SamplingDistribution = {
       'count()': 100,
     },
   ],
+  parentProjectBreakdown: [
+    {
+      percentage: 10,
+      project: 'parent-project',
+      project_id: 10,
+    },
+  ],
   sample_size: 100,
   null_sample_rate_percentage: 98,
   sample_rate_distributions: {
