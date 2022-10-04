@@ -126,6 +126,7 @@ type State = {
   isEditingQuery: boolean;
   isNewQuery: boolean;
 
+  previousEventView: EventView | null;
   queryName: string;
 };
 
@@ -136,7 +137,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // For a new unsaved query
     if (!savedQuery) {
       return {
-        canResetHomepage: prevState.canResetHomepage,
+        ...prevState,
         isNewQuery: true,
         isEditingQuery: false,
         queryName: prevState.queryName || '',
@@ -152,6 +153,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // Switching from a SavedQuery to another SavedQuery
     if (savedEventView.id !== nextEventView.id) {
       return {
+        ...prevState,
         canResetHomepage: false,
         isNewQuery: false,
         isEditingQuery: false,
@@ -171,7 +173,12 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         : savedQuery.yAxis
     );
     return {
-      canResetHomepage: prevState.canResetHomepage,
+      previousEventView: nextEventView,
+      canResetHomepage: !!(
+        prevState.canResetHomepage &&
+        prevState.previousEventView &&
+        nextEventView.isEqualTo(prevState.previousEventView)
+      ),
       isNewQuery: false,
       isEditingQuery: !isEqualQuery || !isEqualYAxis,
 
@@ -205,6 +212,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     isNewQuery: true,
     isEditingQuery: false,
 
+    previousEventView: this.props.savedQuery
+      ? EventView.fromSavedQuery(this.props.savedQuery)
+      : null,
     queryName: '',
   };
 
