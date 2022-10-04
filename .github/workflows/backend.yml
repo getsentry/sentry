@@ -109,11 +109,11 @@ jobs:
 
   backend-test-in-silo-modes:
     needs: files-changed
-    if:
-      (
-         contains(github.head_ref, '/hc-')
-      || contains(github.head_ref, 'hybrid-cloud')
-      )
+    if: needs.files-changed.outputs.backend == 'true'
+      && (
+            contains(github.head_ref, '/hc-')
+         || contains(github.head_ref, 'hybrid-cloud')
+         )
     continue-on-error: true
     timeout-minutes: 60
     name: Runs backend tests marked for control silo mode, as part of hybrid cloud.
