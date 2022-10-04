@@ -1198,7 +1198,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             raw_frames = [raw_frame] if changed_raw else None
 
             if features.has(
-                "organization:javascript-console-error-tag", self.organization.id, actor=None
+                "organizations:javascript-console-error-tag", self.organization.id, actor=None
             ):
                 self.tag_suspected_console_errors(new_frames)
 
