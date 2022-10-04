@@ -207,7 +207,10 @@ function hasTrace(event: Event) {
  */
 function eventHasSourceMaps(event: Event) {
   return event.entries?.some(entry => {
-    return entry.type === 'exception' && entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace);
+    return (
+      entry.type === 'exception' &&
+      entry.data.values?.some(value => !!value.rawStacktrace && !!value.stacktrace)
+    );
   });
 }
 
