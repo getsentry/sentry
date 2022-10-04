@@ -700,12 +700,103 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=None,
             where=None,
             groupby=None,
-            include_series=True,
+            include_series=False,
             include_totals=True,
             limit=Limit(limit=50),
             offset=Offset(offset=0),
         ),
         id="histogram query test case",
+    ),
+    # Count transaction name
+    pytest.param(
+        Query(
+            match=Entity("generic_metrics_distributions"),
+            select=[
+                Function(
+                    function="count_transaction_name",
+                    parameters=[Column("d:transactions/duration@millisecond"), "is_null"],
+                    alias="null_transaction_count",
+                ),
+                Function(
+                    function="count_transaction_name",
+                    parameters=[
+                        Column("d:transactions/duration@millisecond"),
+                        "is_unparameterized",
+                    ],
+                    alias="unparameterized_transaction_count",
+                ),
+                Function(
+                    function="count_transaction_name",
+                    parameters=[Column("d:transactions/duration@millisecond"), "has_value"],
+                    alias="has_value_transaction_count",
+                ),
+            ],
+            groupby=[],
+            array_join=None,
+            where=[
+                Condition(
+                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    op=Op.GTE,
+                    rhs=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
+                ),
+                Condition(
+                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    op=Op.LT,
+                    rhs=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
+                ),
+                Condition(
+                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    op=Op.IN,
+                    rhs=[3],
+                ),
+                Condition(
+                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    op=Op.EQ,
+                    rhs=3,
+                ),
+            ],
+            having=[],
+            orderby=[],
+            limitby=None,
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+            granularity=None,
+            totals=None,
+        ),
+        MetricsQuery(
+            org_id=3,
+            project_ids=[3],
+            select=[
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"transaction_name": "null_transaction_count"},
+                    alias="null_transaction_count",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"transaction_name": "is_unparameterized"},
+                    alias="unparameterized_transaction_count",
+                ),
+                MetricField(
+                    op="count_transaction_name",
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"transaction_name": "has_value"},
+                    alias="has_value_transaction_count",
+                ),
+            ],
+            start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755, tzinfo=pytz.utc),
+            end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755, tzinfo=pytz.utc),
+            granularity=None,
+            where=None,
+            groupby=None,
+            include_series=False,
+            include_totals=True,
+            limit=Limit(limit=50),
+            offset=Offset(offset=0),
+        ),
+        id="count_transaction_name query test case",
     ),
 ]
 
