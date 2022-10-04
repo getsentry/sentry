@@ -78,7 +78,7 @@ def random_group_id():
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 
-@pytest.mark.skip(reason="flakey")
+@pytest.mark.skip(reason="flaky: INGEST-1644")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize(
     "executor",
