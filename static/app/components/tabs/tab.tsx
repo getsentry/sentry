@@ -1,9 +1,11 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
+import {useHover} from '@react-aria/interactions';
 import {useTab} from '@react-aria/tabs';
 import {mergeProps, useObjectRef} from '@react-aria/utils';
 import {TabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import space from 'sentry/styles/space';
 
@@ -31,20 +33,32 @@ function BaseTab(
   forwardedRef: React.ForwardedRef<HTMLLIElement>
 ) {
   const ref = useObjectRef(forwardedRef);
+  const {isHovered, hoverProps} = useHover({});
 
   const {key, rendered} = item;
   const {tabProps, isSelected, isDisabled} = useTab({key}, state, ref);
 
   return (
     <TabWrap
-      {...mergeProps(tabProps)}
+      {...mergeProps(tabProps, hoverProps)}
       disabled={isDisabled}
       selected={isSelected}
       overflowing={overflowing}
       orientation={orientation}
       ref={ref}
     >
-      <HoverLayer orientation={orientation} />
+      <AnimatePresence>
+        {isHovered && (
+          <HoverLayer
+            orientation={orientation}
+            initial={{opacity: 0}}
+            exit={{opacity: 0}}
+            animate={{opacity: 0.06}}
+            layoutId="focusLayer"
+            transition={{layout: {duration: 0.25}}}
+          />
+        )}
+      </AnimatePresence>
       <FocusLayer orientation={orientation} />
       {rendered}
       <TabSelectionIndicator orientation={orientation} selected={isSelected} />
@@ -109,7 +123,7 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     `}
 `;
 
-const HoverLayer = styled('div')<{orientation: Orientation}>`
+const HoverLayer = styled(motion.div)<{orientation: Orientation}>`
   position: absolute;
   left: 0;
   right: 0;
@@ -120,21 +134,6 @@ const HoverLayer = styled('div')<{orientation: Orientation}>`
   background-color: currentcolor;
   border-radius: inherit;
   z-index: 0;
-
-  opacity: 0;
-  transition: opacity 0.1s ease-out;
-
-  li:hover:not(.focus-visible) > & {
-    opacity: 0.06;
-  }
-
-  ${p =>
-    p.orientation === 'vertical' &&
-    `
-      li[aria-selected='true']:not(.focus-visible) > & {
-        opacity: 0.06;
-      }
-    `}
 `;
 
 const FocusLayer = styled('div')<{orientation: Orientation}>`
