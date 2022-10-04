@@ -1,26 +1,33 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
+import {
+  ROW_HEIGHT,
+  ROW_PADDING,
+  SpanBarHatch,
+} from 'sentry/components/performance/waterfall/constants';
 import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {
   getDurationPillAlignment,
+  getDurationPillColour,
   getHatchPattern,
 } from 'sentry/components/performance/waterfall/utils';
 
-export const RowRectangle = styled('div')<{spanBarHatch: boolean}>`
+export const RowRectangle = styled('div')<{
+  spanBarHatch?: SpanBarHatch;
+}>`
   position: absolute;
   height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
   left: 0;
   min-width: 1px;
   user-select: none;
   transition: border-color 0.15s ease-in-out;
-  ${p => getHatchPattern(p, '#dedae3', '#f4f2f7')}
+  ${p => getHatchPattern(p.spanBarHatch)}
 `;
 
 export const DurationPill = styled('div')<{
   durationDisplay: DurationDisplay;
   showDetail: boolean;
-  spanBarHatch: boolean;
+  spanBarHatch?: SpanBarHatch;
 }>`
   position: absolute;
   top: 50%;
@@ -29,11 +36,12 @@ export const DurationPill = styled('div')<{
   transform: translateY(-50%);
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => (p.showDetail === true ? p.theme.gray200 : p.theme.gray300)};
+
   font-variant-numeric: tabular-nums;
   line-height: 1;
 
   ${getDurationPillAlignment}
+  ${getDurationPillColour}
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     font-size: 10px;

@@ -60,8 +60,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
 
     // Content
     expect(screen.getByText('Transactions (Last 30 days)')).toBeInTheDocument(); // Chart
-    expect(screen.getByRole('radio', {name: 'Current'})).toBeChecked();
-    expect(screen.getByRole('radio', {name: 'Suggested'})).not.toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Current'})).not.toBeChecked();
+    expect(screen.getByRole('radio', {name: 'Suggested'})).toBeChecked();
     expect(screen.getByText('100%')).toBeInTheDocument(); // Current client-side sample rate
     expect(screen.getByText('N/A')).toBeInTheDocument(); // Current server-side sample rate
     expect(screen.getAllByRole('spinbutton')[0]).toHaveValue(95); // Suggested client-side sample rate
@@ -178,7 +178,7 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     expect(suggestedSampleRates[0]).toHaveValue(100); // Suggested client-side sample rate
     expect(suggestedSampleRates[1]).toHaveValue(100); // Suggested server-side sample rate
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'sampling.settings.modal.uniform.rate_switch_current',
+      'sampling.settings.modal.uniform.rate_switch_recommended',
       expect.objectContaining({
         organization,
         project_id: project.id,
@@ -186,8 +186,19 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
     );
 
     // Footer
-    expect(screen.getByRole('button', {name: 'Done'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Done'})).toBeEnabled();
     expect(screen.queryByText('Step 1 of 2')).not.toBeInTheDocument();
+
+    // Switch to current sample rates
+    userEvent.click(screen.getByText('Current'));
+    expect(screen.getByRole('button', {name: 'Done'})).toBeDisabled();
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
+      'sampling.settings.modal.uniform.rate_switch_current',
+      expect.objectContaining({
+        organization,
+        project_id: project.id,
+      })
+    );
 
     // Hover over done button
     userEvent.hover(screen.getByRole('button', {name: 'Done'}));
@@ -195,16 +206,8 @@ describe('Server-Side Sampling - Uniform Rate Modal', function () {
       await screen.findByText('Current sampling values selected')
     ).toBeInTheDocument();
 
-    // Switch to suggested sample rates
+    // Switch again to recommended sample rates
     userEvent.click(screen.getByText('Suggested'));
-    expect(screen.getByRole('button', {name: 'Done'})).toBeEnabled();
-    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
-      'sampling.settings.modal.uniform.rate_switch_recommended',
-      expect.objectContaining({
-        organization,
-        project_id: project.id,
-      })
-    );
 
     // Take screenshot (this is good as we can not test the chart)
     expect(container).toSnapshot();
