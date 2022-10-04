@@ -319,7 +319,7 @@ describe('SmartSearchBar', function () {
       <SmartSearchBar
         {...defaultProps}
         onGetTagValues={getTagValuesMock}
-        excludeEnvironment
+        excludeTags={['environment']}
       />
     );
 
@@ -342,7 +342,7 @@ describe('SmartSearchBar', function () {
       <SmartSearchBar
         {...defaultProps}
         onGetTagValues={getTagValuesMock}
-        excludeEnvironment
+        excludeTags={['environment']}
       />
     );
 
@@ -365,7 +365,7 @@ describe('SmartSearchBar', function () {
       <SmartSearchBar
         {...defaultProps}
         onGetTagValues={getTagValuesMock}
-        excludeEnvironment
+        excludeTags={['environment']}
       />
     );
 
@@ -594,7 +594,7 @@ describe('SmartSearchBar', function () {
       <SmartSearchBar
         {...defaultProps}
         onGetTagValues={getTagValuesMock}
-        excludeEnvironment
+        excludeTags={['environment']}
         query="is:unresolved error.handled:true"
         onChange={mockOnChange}
       />
