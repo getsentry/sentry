@@ -1071,7 +1071,7 @@ class SmartSearchBar extends Component<Props, State> {
     const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
-    const {excludedTags: excludeTags} = this.props;
+    const {excludedTags} = this.props;
 
     let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
@@ -1082,8 +1082,8 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     // removes any tags that are marked for exclusion
-    if (excludeTags) {
-      tagKeys = tagKeys.filter(key => !excludeTags?.includes(key));
+    if (excludedTags) {
+      tagKeys = tagKeys.filter(key => !excludedTags?.includes(key));
     }
 
     if (this.props.excludedTags) {
