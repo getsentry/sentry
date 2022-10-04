@@ -1,6 +1,16 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Callable, Mapping, MutableMapping, Optional, Sequence, TypedDict, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
+    cast,
+)
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -78,7 +88,7 @@ class MetricsBucket(TypedDict):
     project_id: int
     metric_id: int
     timestamp: int
-    value: Sequence[float]  # only true for distribution buckets
+    value: Any
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
@@ -88,7 +98,8 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     buckets.
     """
 
-    counter_metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+    #: The ID of the metric used to count transactions
+    metric_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
 
     def __init__(
         self,
@@ -127,9 +138,14 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return cast(MetricsBucket, payload)
 
     def _count_processed_transactions(self, bucket_payload: MetricsBucket) -> int:
-        if bucket_payload["metric_id"] != self.counter_metric_id:
+        if bucket_payload["metric_id"] != self.metric_id:
             return 0
-        return len(bucket_payload["value"])
+        value = bucket_payload["value"]
+        try:
+            return len(value)
+        except TypeError:
+            # Unexpected value type for this metric ID, skip.
+            return 0
 
     def _produce_billing_outcomes(self, payload: MetricsBucket) -> None:
         quantity = self._count_processed_transactions(payload)
