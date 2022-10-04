@@ -31,6 +31,7 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
   group?: Group;
+  isShare?: boolean;
 };
 
 function EventEntry({
@@ -39,6 +40,7 @@ function EventEntry({
   event,
   organization,
   group,
+  isShare,
   route,
   router,
 }: Props) {
@@ -121,6 +123,8 @@ function EventEntry({
           event={event}
           router={router}
           route={route}
+          isShare={isShare}
+          projectSlug={projectSlug}
         />
       );
     }
@@ -180,7 +184,7 @@ function EventEntry({
       return (
         <Resources
           description={getResourceDescription(group.issueType)}
-          links={getResourceLinks(group.issueType)}
+          links={getResourceLinks(group.issueType, event.platform)}
         />
       );
     default:
