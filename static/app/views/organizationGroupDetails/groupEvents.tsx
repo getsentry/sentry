@@ -39,6 +39,8 @@ type State = {
   renderNewAllEventsTab: boolean;
 };
 
+const excludedTags = ['environment', 'issue', 'issue.id', 'performance.issues_ids'];
+
 class GroupEvents extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -141,6 +143,7 @@ class GroupEvents extends Component<Props, State> {
         isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
+        excludedTags={excludedTags}
       />
     );
   }
@@ -154,10 +157,9 @@ class GroupEvents extends Component<Props, State> {
           organization={this.props.organization}
           defaultQuery=""
           onSearch={this.handleSearch}
-          excludeTags={['environment']}
+          excludedTags={excludedTags}
           query={this.state.query}
           hasRecentSearches={false}
-          excludeTags={['issue']}
         />
       );
     }
