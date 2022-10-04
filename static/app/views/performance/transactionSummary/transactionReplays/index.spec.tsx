@@ -149,21 +149,6 @@ describe('TransactionReplays', () => {
     });
   });
 
-  // it('should display error message when api call fails', async () => {
-  //   const mockApi = MockApiClient.addMockResponse({
-  //     url: mockUrl,
-  //     statusCode: 500,
-  //     body: {},
-  //   });
-
-  //   renderComponent();
-
-  //   await waitFor(() => {
-  //     expect(mockApi).toHaveBeenCalledTimes(1);
-  //     expect(screen.getByText('error')).toBeInTheDocument();
-  //   });
-  // });
-
   it('should show loading indicator when loading replays', async () => {
     const mockApi = MockApiClient.addMockResponse({
       url: mockUrl,
