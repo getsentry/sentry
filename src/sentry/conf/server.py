@@ -515,7 +515,7 @@ SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
 # Queue configuration
-from kombu import Exchange, Queue
+from kombu import Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
@@ -680,21 +680,12 @@ CELERY_QUEUES = [
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
     Queue("counters-0", routing_key="counters-0"),
+    Queue("triggers-0", routing_key="triggers-0"),
 ]
 
 for queue in CELERY_QUEUES:
     queue.durable = False
 
-CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
-
-
-def create_partitioned_queues(name):
-    exchange = Exchange(name, type="direct")
-    for num in range(1):
-        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
-
-
-create_partitioned_queues("triggers")
 
 from celery.schedules import crontab
 
