@@ -12,6 +12,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
 from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupByField, MetricsQuery
+from sentry.snuba.metrics import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.mqb_query_transformer import tranform_mqb_query_to_metrics_query
 
 """
@@ -39,6 +40,15 @@ These SnQL function generators can be found in `sentry/src/sentry/snuba/metrics/
 defined for all derived operations i.e. operations not supported by clickhouse like rate, count_web_vitals,
 histogram (as it requires extra logic over the clickhouse function supported by datasketch), team_key_transaction,
 and count_transaction_name (for unparameterized and None)
+- Originally, it was agreed that all derived metrics such as failure_rate, user_misery and the other ones listed here
+https://github.com/getsentry/sentry/blob/4d3efb171ac2fc3ac77a846ec3d96f0da829ed12/src/sentry/snuba/metrics/naming_layer/mri.py#L98-L106
+would be passed as SnQL functions. However, this won't work without expanding the snuba-sdk Function regex to accept MRI
+format which does not really make sense to do, and hence it is best if they are provided in Column, or AliasedExpression
+as the Column regex has been expanded to accept MRI, and those derived metrics do not accept any arguments anyways.
+- Granularity is not handled here yet and so defaulted to 3600 but the metrics service layer handles granularity
+based on time bounds provided and if this behaviour is intended to be different, that logic will me modified within
+the metrics layer. However, passing granularity is abstracted to metrics layer (There is an ongoing discussion about
+specifically this)
 """
 # ToDo Test Invalid queries:= Transform Function, Tags in the select, Ordering by bucketed_time
 
@@ -85,22 +95,30 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 3, 24, 11, 11, 35, 447729, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[11],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="org_id",
+                    ),
                     op=Op.EQ,
                     rhs=11,
                 ),
@@ -177,9 +195,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     ],
                     alias="epm",
                 ),
-                Function(
-                    function="e:transaction/failure_rate@ratio",
-                    parameters=[],
+                AliasedExpression(
+                    exp=Column("e:transactions/failure_rate@ratio"),
                     alias="failure_rate",
                 ),
             ],
@@ -201,22 +218,30 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 3, 24, 11, 11, 36, 75132, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 22, 11, 11, 36, 75132, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[13],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="org_id",
+                    ),
                     op=Op.EQ,
                     rhs=14,
                 ),
@@ -266,7 +291,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
                 MetricField(
                     op=None,
-                    metric_mri="e:transaction/failure_rate@ratio",
+                    metric_mri="e:transactions/failure_rate@ratio",
                     alias="failure_rate",
                 ),
                 MetricField(
@@ -305,7 +330,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 MetricGroupByField("transaction", alias="title"),
             ],
             orderby=[
-                OrderBy(
+                MetricsOrderBy(
                     field=MetricField(
                         op="team_key_transaction",
                         metric_mri="d:transactions/duration@millisecond",
@@ -314,7 +339,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     ),
                     direction=Direction.ASC,
                 ),
-                OrderBy(
+                MetricsOrderBy(
                     field=MetricField(
                         op="p95",
                         metric_mri="d:transactions/duration@millisecond",
@@ -333,9 +358,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
         Query(
             match=Entity("generic_metrics_distributions"),
             select=[
-                Function(
-                    function="e:transactions/apdex@ratio",
-                    parameters=[],
+                AliasedExpression(
+                    exp=Column("e:transactions/apdex@ratio"),
                     alias="apdex",
                 ),
                 Function(
@@ -380,22 +404,30 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[18],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="org_id",
+                    ),
                     op=Op.EQ,
                     rhs=19,
                 ),
@@ -474,7 +506,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 AliasedExpression(
                     exp=Column(
                         name="tags[transaction]",
-                        key="transaction",
                     ),
                     alias="transaction",
                 )
@@ -482,22 +513,28 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 3, 24, 11, 11, 33, 21219, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 22, 11, 11, 33, 21219, tzinfo=pytz.utc),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[2],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(name="org_id"),
                     op=Op.EQ,
                     rhs=2,
                 ),
@@ -547,7 +584,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                         parameters=[
                             Column(
                                 name="tags[transaction]",
-                                key="transaction",
                             )
                         ],
                         alias=None,
@@ -586,22 +622,30 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 6, 21, 10, 0, tzinfo=None),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 21, 12, 0, tzinfo=None),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[2],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="org_id",
+                    ),
                     op=Op.EQ,
                     rhs=2,
                 ),
@@ -656,22 +700,30 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[3],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="org_id",
+                    ),
                     op=Op.EQ,
                     rhs=3,
                 ),
@@ -697,7 +749,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             ],
             start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755, tzinfo=pytz.utc),
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755, tzinfo=pytz.utc),
-            granularity=None,
+            granularity=Granularity(3600),
             where=None,
             groupby=None,
             include_series=False,
@@ -735,22 +787,30 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             array_join=None,
             where=[
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.GTE,
                     rhs=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
                 ),
                 Condition(
-                    lhs=Column(name="timestamp", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="timestamp",
+                    ),
                     op=Op.LT,
                     rhs=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
                 ),
                 Condition(
-                    lhs=Column(name="project_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="project_id",
+                    ),
                     op=Op.IN,
                     rhs=[3],
                 ),
                 Condition(
-                    lhs=Column(name="org_id", entity=None, subscriptable=None, key=None),
+                    lhs=Column(
+                        name="org_id",
+                    ),
                     op=Op.EQ,
                     rhs=3,
                 ),
@@ -788,7 +848,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             ],
             start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755, tzinfo=pytz.utc),
             end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755, tzinfo=pytz.utc),
-            granularity=None,
+            granularity=Granularity(3600),
             where=None,
             groupby=None,
             include_series=False,
