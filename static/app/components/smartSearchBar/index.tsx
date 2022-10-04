@@ -166,7 +166,7 @@ type Props = WithRouterProps & {
    * because we don't want to treat environment as a tag in some places such
    * as the stream view where it is a top level concept
    */
-  excludeTags?: string[];
+  excludedTags?: string[];
   /**
    * List user's recent searches
    */
@@ -1071,7 +1071,7 @@ class SmartSearchBar extends Component<Props, State> {
     const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
-    const {excludeTags} = this.props;
+    const {excludedTags} = this.props;
 
     let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
@@ -1082,8 +1082,8 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     // removes any tags that are marked for exclusion
-    if (excludeTags) {
-      tagKeys = tagKeys.filter(key => !excludeTags?.includes(key));
+    if (excludedTags) {
+      tagKeys = tagKeys.filter(key => !excludedTags?.includes(key));
     }
 
     const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
@@ -1293,7 +1293,7 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     query: string
   ): Promise<AutocompleteGroup | null> => {
-    const {prepareQuery, excludeTags, organization, savedSearchType, searchSource} =
+    const {prepareQuery, excludedTags, organization, savedSearchType, searchSource} =
       this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -1340,7 +1340,7 @@ class SmartSearchBar extends Component<Props, State> {
       };
     }
 
-    if (excludeTags && excludeTags.includes(tagName)) {
+    if (excludedTags && excludedTags.includes(tagName)) {
       return null;
     }
 

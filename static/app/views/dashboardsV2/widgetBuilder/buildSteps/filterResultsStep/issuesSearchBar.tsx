@@ -51,7 +51,7 @@ function IssuesSearchBarContainer({
           query={widgetQuery.conditions || ''}
           sort=""
           onClose={onClose}
-          excludeTags={['environment']}
+          excludedTags={['environment']}
           supportedTags={tags}
           placeholder={t('Search for issues, status, assigned, and more')}
           tagValueLoader={tagValueLoader}
