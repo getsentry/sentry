@@ -1248,16 +1248,16 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
 
     def _store_metric_in_metrics_layer(
         self,
-        type,
-        name,
-        tags,
+        type: str,
+        name: str,
+        tags: Dict[str, str],
         value,
-        use_case_id,
-        org_id=None,
-        project_id=None,
-        hours_before_now=0,
-        minutes_before_now=0,
-        seconds_before_now=0,
+        use_case_id: UseCaseKey,
+        org_id: int = None,
+        project_id: int = None,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
     ):
         # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
         # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
@@ -1277,6 +1277,22 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
                 - timedelta(
                     hours=hours_before_now,
                     minutes=minutes_before_now,
+                    # We subtract 1 second -(+1) in order to account for right non-inclusivity in the queries.
+                    #
+                    # E.g.: if we save at 10:00:00, and we have as "end" of the query that time, we must store our
+                    # value with a timestamp less than 10:00:00 so that irrespectively of the bucket we will have
+                    # the value in the query result set. This is because when we save 10:00:00 - 1 second in the db it
+                    # will be saved under different granularities as (09:59:59, 09:59:00, 09:00:00) and these are the
+                    # actual timestamps that will be compared to the bounds "start" and "end".
+                    # Supposing we store 09:59:59, and we have "start"=09:00:00 and "end"=10:00:00, and we want to query
+                    # by granularity (60 = minutes) then we look at entries with timestamp = 09:59:00 which is
+                    # >= "start" and < "end" thus all these records will be returned.
+                    # Of course this - 1 second "trick" is just to abstract away this complexity, but it can also be
+                    # avoided by being more mindful when it comes to using the "end" bound, however because we would
+                    # like our tests to be deterministic we would like to settle on this approach. This - 1 can also
+                    # be avoided by choosing specific frozen times depending on granularities and stored data but
+                    # as previously mentioned we would like to standardize the time we choose unless there are specific
+                    # cases.
                     seconds=seconds_before_now + 1,
                 )
             ).timestamp(),
@@ -1286,15 +1302,15 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
 
     def store_performance_metric(
         self,
-        type,
-        name,
-        tags,
+        type: str,
+        name: str,
+        tags: Dict[str, str],
         value,
-        org_id=None,
-        project_id=None,
-        hours_before_now=0,
-        minutes_before_now=0,
-        seconds_before_now=0,
+        org_id: int = None,
+        project_id: int = None,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
     ):
         self._store_metric_in_metrics_layer(
             type=type,
@@ -1311,15 +1327,15 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
 
     def store_release_health_metric(
         self,
-        type,
-        name,
-        tags,
+        type: str,
+        name: str,
+        tags: Dict[str, str],
         value,
-        org_id=None,
-        project_id=None,
-        hours_before_now=0,
-        minutes_before_now=0,
-        seconds_before_now=0,
+        org_id: int = None,
+        project_id: int = None,
+        hours_before_now: int = 0,
+        minutes_before_now: int = 0,
+        seconds_before_now: int = 0,
     ):
         self._store_metric_in_metrics_layer(
             type=type,
