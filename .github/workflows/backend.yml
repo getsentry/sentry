@@ -111,8 +111,8 @@ jobs:
     needs: files-changed
     if:
       (
-         contains(github.ref, '/hc-')
-      || contains(github.ref, 'hybrid-cloud')
+         contains(github.head_ref, '/hc-')
+      || contains(github.head_ref, 'hybrid-cloud')
       )
     continue-on-error: true
     timeout-minutes: 60
