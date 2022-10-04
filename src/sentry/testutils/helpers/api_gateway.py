@@ -1,18 +1,22 @@
 from urllib.parse import parse_qs
 
-import requests
 import responses
 from django.conf.urls import url
 from django.test import override_settings
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase
 from sentry.types.region import Region, RegionCategory
 from sentry.utils import json
 
 SENTRY_REGION_CONFIG = [
-    Region(name="region1", id=1, address="region1", category=RegionCategory.MULTI_TENANT),
+    Region(
+        name="region1",
+        id=1,
+        address="http://region1.sentry.io",
+        category=RegionCategory.MULTI_TENANT,
+    ),
 ]
 
 
@@ -60,14 +64,23 @@ def verify_file_body(file_body, headers):
 
 
 @override_settings(SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG, ROOT_URLCONF=__name__)
-class ApiGatewayTestCase(TestCase):
+class ApiGatewayTestCase(APITestCase):
     def setUp(self):
-        responses.add(responses.GET, "http://region1.sentry.io/get", body={"ok": True})
+        super().setUp()
+        responses.add(
+            responses.GET,
+            "http://region1.sentry.io/get",
+            body=json.dumps({"proxy": True}),
+            content_type="application/json",
+            adding_headers={"test": "header"},
+        )
         responses.add(
             responses.GET,
             "http://region1.sentry.io/error",
-            body={"ok": False},
+            body=json.dumps({"proxy": True}),
             status=400,
+            content_type="application/json",
+            adding_headers={"test": "header"},
         )
 
         # Echos the request body and header back for verification
@@ -84,15 +97,3 @@ class ApiGatewayTestCase(TestCase):
         )
 
         responses.add_callback(responses.POST, "http://region1.sentry.io/echo", return_request_body)
-
-
-class VerifyRequestBodyTest(ApiGatewayTestCase):
-    @responses.activate
-    def test_verify_request_body(self):
-        body = {"ab": "cd"}
-        headers = {"header": "nope"}
-        responses.add_callback(
-            responses.POST, "http://ab.cd.e/test", verify_request_body(body, headers)
-        )
-        resp = requests.post("http://ab.cd.e/test", json=body, headers=headers)
-        assert resp.status_code == 200
