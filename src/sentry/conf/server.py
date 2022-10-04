@@ -948,6 +948,8 @@ SENTRY_FEATURES = {
     "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Active Release Notifications
     "organizations:active-release-notifications-enable": False,
+    # Enables tagging javascript errors from the browser console.
+    "organizations:javascript-console-error-tag": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -2151,7 +2153,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
 )
 
-
 SENTRY_SDK_CONFIG = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
@@ -2163,12 +2164,34 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
 if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
     SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
+# The sample rate to use for profiles. This is conditional on the usage of
+# traces_sample_rate. So that means the true sample rate will be approximately
+# traces_sample_rate * profiles_sample_rate
+# (subject to things like the traces_sampler)
+SENTRY_PROFILES_SAMPLE_RATE = 0
+
+# We want to test a few schedulers possible in the profiler. Some are platform
+# specific, and each have their own pros/cons. See the sdk for more details.
+SENTRY_PROFILER_MODE = "sleep"
+
+# To have finer control over which process will have profiling enabled, this
+# environment variable will be required to enable profiling.
+#
+# This is because profiling requires that we run some stuff globally, and we
+# are not ready to run this on the more critical parts of the codebase such as
+# the ingest workers yet.
+#
+# This will allow us to have finer control over where we are running the
+# profiler. For example, only on the web server.
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
 
 # Callable to bind additional context for the Sentry SDK
 #
