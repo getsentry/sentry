@@ -435,7 +435,7 @@ class ProjectSerializer(Serializer):  # type: ignore
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
 
         options_by_project = defaultdict(dict)
-        for option in queryset.iterator():
+        for option in queryset:
             options_by_project[option.project_id][option.key] = option.value
 
         return options_by_project
