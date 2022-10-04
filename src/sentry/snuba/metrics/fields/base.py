@@ -327,12 +327,17 @@ class MetricOperation(MetricOperationDefinition, ABC):
     def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_meta_type(self) -> Optional[str]:
+        raise NotImplementedError
+
 
 @dataclass
 class DerivedOpDefinition(MetricOperationDefinition):
     can_orderby: bool
     can_groupby: bool = False
     can_filter: bool = False
+    meta_type: Optional[str] = None
     post_query_func: Callable[..., PostQueryFuncReturnType] = lambda data, *args: data
     snql_func: Callable[..., Optional[Function]] = lambda _: None
     default_null_value: Optional[Union[int, List[Tuple[float]]]] = None
@@ -347,6 +352,9 @@ class RawOp(MetricOperation):
 
     def validate_can_filter(self) -> bool:
         return False
+
+    def get_meta_type(self) -> Optional[str]:
+        return None
 
     def run_post_query_function(
         self,
@@ -396,6 +404,9 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
 
     def validate_can_filter(self) -> bool:
         return self.can_filter
+
+    def get_meta_type(self) -> Optional[str]:
+        return self.meta_type
 
     def run_post_query_function(
         self,
@@ -621,6 +632,13 @@ class MetricExpressionBase(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def get_meta_type(self) -> Optional[str]:
+        """
+        Method that returns the snuba meta type of an instance of MetricsFieldBase
+        """
+        raise NotImplementedError
+
 
 @dataclass
 class MetricExpressionDefinition:
@@ -767,6 +785,9 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
             params=params,
         )
 
+    def get_meta_type(self) -> Optional[str]:
+        return self.metric_operation.get_meta_type()
+
 
 @dataclass
 class DerivedMetricExpressionDefinition:
@@ -774,6 +795,7 @@ class DerivedMetricExpressionDefinition:
     metrics: List[str]
     unit: str
     op: Optional[str] = None
+    meta_type: Optional[str] = None
     result_type: Optional[MetricType] = None
     # TODO: better typing
     # snql attribute is a function that takes optional args that map to strings that are MRIs for
@@ -795,6 +817,9 @@ class DerivedMetricExpression(DerivedMetricExpressionDefinition, MetricExpressio
 
     def __str__(self) -> str:
         return self.metric_mri
+
+    def get_meta_type(self) -> Optional[str]:
+        return self.meta_type
 
 
 class SingularEntityDerivedMetric(DerivedMetricExpression):
@@ -1510,6 +1535,7 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             can_filter=True,
             snql_func=team_key_transaction_snql,
             default_null_value=0,
+            meta_type="boolean",
         ),
     ]
 }
