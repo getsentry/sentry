@@ -41,6 +41,7 @@ def register_configuration(config_id: str, strategies: Sequence[CallableStrategy
 
 
 DEFAULT_CONFIG_ID = "default:2021-08-25"
+INCOMING_DEFAULT_CONFIG_ID = "default:2022-10-04"
 
 
 register_configuration(
@@ -53,7 +54,7 @@ register_configuration(
 )
 
 register_configuration(
-    "looser-default:2022-10-04",
+    "default:2022-10-04",
     strategies=[
         loose_normalized_db_span_in_condition_strategy,
         remove_http_client_query_string_strategy,
