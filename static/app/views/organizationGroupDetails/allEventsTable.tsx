@@ -13,10 +13,12 @@ export interface Props {
   location: Location;
   organization: Organization;
   excludedTags?: string[];
+  totalEventCount?: string;
 }
 
 const AllEventsTable = (props: Props) => {
-  const {location, organization, issueId, isPerfIssue, excludedTags} = props;
+  const {location, organization, issueId, isPerfIssue, excludedTags, totalEventCount} =
+    props;
   const [error, setError] = useState<string>('');
   const eventView: EventView = EventView.fromLocation(props.location);
   eventView.sorts = decodeSorts(location);
@@ -61,7 +63,7 @@ const AllEventsTable = (props: Props) => {
         (msg: string) => setError(msg);
       }}
       transactionName=""
-      disablePagination
+      totalEventCount={totalEventCount}
       columnTitles={columnTitles.slice()}
     />
   );
