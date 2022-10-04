@@ -842,13 +842,13 @@ def get_series(
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
-    metrics_query_fields = {
-        str(metric_field) for metric_field in converter._alias_to_metric_field.keys()
-    }
     groupby_aliases = (
-        {metric_groupby_obj.alias for metric_groupby_obj in metrics_query.groupby}
+        {
+            metric_groupby_obj.alias: metric_groupby_obj
+            for metric_groupby_obj in metrics_query.groupby
+        }
         if metrics_query.groupby
-        else set()
+        else {}
     )
 
     return {
@@ -856,7 +856,11 @@ def get_series(
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(meta, metrics_query_fields, groupby_aliases)
+        "meta": translate_meta_results(
+            meta=meta,
+            alias_to_metric_field=converter._alias_to_metric_field,
+            alias_to_metric_group_by_field=groupby_aliases,
+        )
         if include_meta
         else [],
     }
