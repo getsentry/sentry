@@ -1,6 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
@@ -298,6 +298,33 @@ describe('EventsV2 > EventDetails', function () {
     );
     expect(releaseTagTarget.query.query).toEqual(
       'Dumpster release:82ebf297206a title:"Oh no something bad"'
+    );
+  });
+
+  it('links back to the homepage if the query param contains homepage flag', async () => {
+    const {organization, router, routerContext} = initializeOrg({
+      organization: TestStubs.Organization({
+        features: ['discover-query-builder-as-landing-page'],
+      }),
+      router: {
+        location: {
+          pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
+          query: {...allEventsView.generateQueryStringObject(), homepage: true},
+        },
+      },
+    });
+
+    render(
+      <EventDetails
+        organization={organization}
+        params={{eventSlug: 'project-slug:deadbeef'}}
+        location={router.location}
+      />,
+      {context: routerContext, organization}
+    );
+
+    expect((await screen.findByText('All Events')).pathname).toEqual(
+      '/organizations/org-slug/discover/homepage/'
     );
   });
 });

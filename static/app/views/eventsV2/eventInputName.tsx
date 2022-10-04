@@ -13,6 +13,7 @@ import {handleUpdateQueryName} from './savedQuery/utils';
 type Props = {
   eventView: EventView;
   organization: Organization;
+  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
 
@@ -22,7 +23,7 @@ const NAME_DEFAULT = t('Untitled query');
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-function EventInputName({organization, eventView, savedQuery}: Props) {
+function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
   const api = useApi();
 
   function handleChange(nextQueryName: string) {
@@ -59,7 +60,7 @@ function EventInputName({organization, eventView, savedQuery}: Props) {
       <EditableText
         value={value}
         onChange={handleChange}
-        isDisabled={!eventView.id}
+        isDisabled={!eventView.id || isHomepage}
         errorMessage={t('Please set a name for this query')}
       />
     </StyledTitle>
