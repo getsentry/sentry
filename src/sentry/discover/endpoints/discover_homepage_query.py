@@ -79,6 +79,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 query=data["query"],
                 version=data["version"],
             )
+            previous_homepage.set_projects(data["project_ids"])
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         model = DiscoverSavedQuery.objects.create(

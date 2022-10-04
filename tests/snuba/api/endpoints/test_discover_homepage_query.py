@@ -12,6 +12,10 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         super().setUp()
         self.url = reverse("sentry-api-0-discover-homepage-query", args=[self.org.slug])
         self.query = {"fields": ["test"], "conditions": [], "limit": 10}
+        self.project_ids = [
+            self.create_project(organization=self.org).id,
+            self.create_project(organization=self.org).id,
+        ]
 
     def test_returns_no_response_if_no_homepage_query_for_user(self):
         with self.feature(FEATURES):
@@ -47,7 +51,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
                 self.url,
                 {
                     "name": "A new homepage query update",
-                    "projects": ["-1"],
+                    "projects": self.project_ids,
                     "fields": ["field1", "field2"],
                 },
             )
@@ -57,12 +61,13 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         saved_query.refresh_from_db()
         assert saved_query.name == "A new homepage query update"
         assert saved_query.query["fields"] == ["field1", "field2"]
+        assert set(saved_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
     def test_put_creates_new_discover_saved_query_if_none_exists(self):
         homepage_query_payload = {
             "version": 2,
             "name": "New Homepage Query",
-            "projects": ["-1"],
+            "projects": self.project_ids,
             "environment": ["alpha"],
             "fields": ["environment", "platform.name"],
             "orderby": "-timestamp",
@@ -79,6 +84,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         assert new_query.name == homepage_query_payload["name"]
         assert new_query.query["fields"] == homepage_query_payload["fields"]
         assert new_query.query["environment"] == homepage_query_payload["environment"]
+        assert set(new_query.projects.values_list("id", flat=True)) == set(self.project_ids)
 
     def test_post_not_allowed(self):
         homepage_query_payload = {
