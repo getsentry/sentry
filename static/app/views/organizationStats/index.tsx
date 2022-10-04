@@ -10,14 +10,17 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageHeading from 'sentry/components/pageHeading';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   DATA_CATEGORY_NAMES,
@@ -30,6 +33,8 @@ import space from 'sentry/styles/space';
 import {DataCategory, DateString, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import HeaderTabs from 'sentry/views/organizationStats/header';
+
+import {SearchContainer} from '../issueList/filters';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
@@ -237,6 +242,27 @@ export class OrganizationStats extends Component<Props> {
     return nextLocation;
   };
 
+  renderProjectPageControl = () => {
+    const {organization} = this.props;
+    const {start, end, period, utc} = this.dataDatetime;
+    return (
+      <SearchContainer>
+        <PageFilterBar>
+          <ProjectPageFilter />
+          <DropdownDataCategory
+            triggerProps={{prefix: t('Category')}}
+            value={this.dataCategory}
+            options={CHART_OPTIONS_DATACATEGORY}
+            onChange={opt =>
+              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
+            }
+          />
+          <DatePageFilter alignDropdown="left" />
+        </PageFilterBar>
+      </SearchContainer>
+    );
+  };
+
   renderPageControl = () => {
     const {organization} = this.props;
 
@@ -250,7 +276,6 @@ export class OrganizationStats extends Component<Props> {
           options={CHART_OPTIONS_DATACATEGORY}
           onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
         />
-
         <StyledPageTimeRangeSelector
           organization={organization}
           relative={period ?? ''}
@@ -290,9 +315,9 @@ export class OrganizationStats extends Component<Props> {
               )}
               <HookHeader organization={organization} />
 
+              {this.renderProjectPageControl()}
               <PageGrid>
                 {this.renderPageControl()}
-
                 <ErrorBoundary mini>
                   <UsageStatsOrg
                     organization={organization}
