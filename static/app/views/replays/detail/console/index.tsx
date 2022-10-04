@@ -13,6 +13,7 @@ import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
+import {useScrollPosition} from 'sentry/utils/replays/hooks/useScrollPosition';
 import ConsoleMessage from 'sentry/views/replays/detail/console/consoleMessage';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 import {getLogLevels} from 'sentry/views/replays/detail/console/utils';
@@ -26,6 +27,11 @@ interface Props {
 function Console({breadcrumbs, startTimestampMs = 0}: Props) {
   const {currentHoverTime, currentTime} = useReplayContext();
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useScrollPosition({
+    scrollContainerRef: containerRef,
+    id: 'CONSOLE',
+  });
   useCurrentItemScroller(containerRef);
 
   const {items, logLevel, searchTerm, setLogLevel, setSearchTerm} = useConsoleFilters({

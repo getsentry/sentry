@@ -1,10 +1,11 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
   ListRowProps,
+  ScrollParams,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -16,6 +17,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {useScrollContext} from 'sentry/components/replays/scrollContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -42,6 +44,7 @@ const cache = new CellMeasurerCache({
 function DomMutations({replay}: Props) {
   const startTimestampMs = replay.getReplay().startedAt.getTime();
   const {currentTime} = useReplayContext();
+  const {scrollPosition, scrollRef} = useScrollContext();
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
   let listRef: ReactVirtualizedList | null = null;
 
@@ -53,6 +56,8 @@ function DomMutations({replay}: Props) {
     setSearchTerm,
   } = useDomFilters({actions});
 
+  // console.log({scrollPosition});
+
   const currentDomMutation = getPrevReplayEvent({
     items: items.map(mutation => mutation.crumb),
     targetTimestampMs: startTimestampMs + currentTime,
@@ -63,13 +68,15 @@ function DomMutations({replay}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
+  const test = useRef<ReactVirtualizedList>(null);
+
   useEffect(() => {
     // Restart cache when items changes
-    if (listRef) {
+    if (test.current) {
       cache.clearAll();
-      listRef?.forceUpdateGrid();
+      test.current?.scrollToPosition(1434);
     }
-  }, [items, listRef]);
+  }, [items, test]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const mutation = items[index];
@@ -120,8 +127,17 @@ function DomMutations({replay}: Props) {
     );
   };
 
+  // console log current scroll position of react-virtualized list
+  const onScroll = ({clientHeight, scrollHeight, scrollTop}: ScrollParams) => {
+    const scrollPosition = scrollTop / (scrollHeight - clientHeight);
+    // console.log({clientHeight, scrollHeight, scrollTop});
+    // console.log(scrollPosition);
+
+    // console.log({scrollPosition});
+  };
+
   return (
-    <MutationContainer>
+    <MutationContainer ref={scrollRef}>
       <MutationFilters>
         <CompactSelect
           triggerProps={{prefix: t('Event Type')}}
@@ -146,9 +162,11 @@ function DomMutations({replay}: Props) {
           <AutoSizer>
             {({width, height}) => (
               <ReactVirtualizedList
-                ref={(el: ReactVirtualizedList | null) => {
-                  listRef = el;
-                }}
+                // ref={(el: ReactVirtualizedList | null) => {
+                //   console.log(el);
+                //   listRef = el;
+                // }}
+                ref={test}
                 deferredMeasurementCache={cache}
                 height={height}
                 overscanRowCount={5}
@@ -161,6 +179,7 @@ function DomMutations({replay}: Props) {
                 rowHeight={cache.rowHeight}
                 rowRenderer={renderRow}
                 width={width}
+                onScroll={onScroll}
               />
             )}
           </AutoSizer>

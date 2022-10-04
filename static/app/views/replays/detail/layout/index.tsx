@@ -1,8 +1,10 @@
+import React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayView from 'sentry/components/replays/replayView';
+import {ScrollContextProvider} from 'sentry/components/replays/scrollContext';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
@@ -53,11 +55,13 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
   }
 
   const focusArea = (
-    <ErrorBoundary mini>
-      <FluidPanel title={<SmallMarginFocusTabs />}>
-        <FocusArea />
-      </FluidPanel>
-    </ErrorBoundary>
+    <ScrollContextProvider>
+      <ErrorBoundary mini>
+        <FluidPanel title={<SmallMarginFocusTabs />}>
+          <FocusArea />
+        </FluidPanel>
+      </ErrorBoundary>
+    </ScrollContextProvider>
   );
 
   if (layout === 'no_video') {
