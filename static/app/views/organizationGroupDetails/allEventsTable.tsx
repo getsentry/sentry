@@ -4,7 +4,7 @@ import {Location} from 'history';
 import LoadingError from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 export interface Props {
@@ -18,7 +18,7 @@ const AllEventsTable = (props: Props) => {
   const {location, organization, issueId, isPerfIssue} = props;
   const [error, setError] = useState<string | undefined>(undefined);
   const eventView: EventView = EventView.fromLocation(props.location);
-
+  eventView.sorts = decodeSorts(location);
   eventView.fields = [
     {field: 'id'},
     {field: 'transaction'},
