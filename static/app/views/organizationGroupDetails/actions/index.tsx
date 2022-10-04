@@ -363,6 +363,8 @@ class Actions extends Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
+    const shareKey = isBookmarked ? 'unbookmark' : 'bookmark';
+    const shareTitle = isBookmarked ? t('Unshare') : t('Share');
     const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
@@ -494,6 +496,7 @@ class Actions extends Component<Props, State> {
               </GuideAnchor>
               <GuideAnchor target="resolve" position="bottom" offset={20}>
                 <ResolveActions
+                  disableTooltip
                   disabled={disabled}
                   disableDropdown={disabled}
                   hasRelease={hasRelease}

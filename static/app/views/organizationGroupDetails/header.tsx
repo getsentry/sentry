@@ -393,6 +393,7 @@ function GroupHeader({
             event={event}
             query={location.query}
           /> */}
+          <div />
           <StyledSeenByList
             seenBy={group.seenBy}
             iconTooltip={t('People who have viewed this issue')}

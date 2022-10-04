@@ -36,6 +36,7 @@ type Props = {
   organization: Organization;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
+  disableTooltip?: boolean;
   disabled?: boolean;
   dropdownPlacement?: AriaPositionProps['placement'];
   hideIcon?: boolean;
@@ -260,6 +261,7 @@ class ResolveActions extends Component<Props> {
       disabled,
       confirmLabel,
       projectFetchError,
+      disableTooltip,
       priority,
       size = 'xs',
       hideIcon = false,
@@ -287,7 +289,7 @@ class ResolveActions extends Component<Props> {
             title={t(
               'Resolves the issue. The issue will get unresolved if it happens again.'
             )}
-            tooltipProps={{delay: 300, disabled}}
+            tooltipProps={{delay: 300, disabled: disabled || disableTooltip}}
             icon={hideIcon ? null : <IconCheckmark size={size} />}
             onClick={onResolve}
             disabled={disabled}

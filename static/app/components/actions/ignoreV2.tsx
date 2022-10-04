@@ -56,9 +56,7 @@ function countUsers(count: number) {
 type Props = {
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
-  confirmMessage?: (
-    statusDetails: ResolutionStatusDetails | undefined
-  ) => React.ReactNode;
+  confirmMessage?: (statusDetails?: ResolutionStatusDetails) => React.ReactNode;
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
@@ -76,7 +74,7 @@ const IgnoreActions = ({
 }: Props) => {
   const [currentSubmenu, setCurrentSubmenu] = useState<null | string>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
+  const onIgnore = (statusDetails: ResolutionStatusDetails = {}) => {
     openConfirmModal({
       bypass: !shouldConfirm,
       onConfirm: () =>
@@ -252,15 +250,7 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
-      <IgnoreButton
-        size={size}
-        tooltipProps={{delay: 300, disabled}}
-        title={t(
-          'Silences alerts for this issue and removes it from the issue stream by default.'
-        )}
-        onClick={() => onIgnore()}
-        disabled={disabled}
-      >
+      <IgnoreButton size={size} onClick={() => onIgnore()} disabled={disabled}>
         {t('Ignore')}
       </IgnoreButton>
       <DropdownMenuControl
