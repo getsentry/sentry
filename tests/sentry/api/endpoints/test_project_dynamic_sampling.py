@@ -227,11 +227,11 @@ def test_requesting_root_project_part_of_distributed_trace():
 def test_requesting_root_project_and_non_root_for_others():
     """
     Requesting for a project that is root for some transactions,
-    but not root for others and part of distributed trace like `sentry`
+    but not root for others and part of distributed trace like `snuba`
     """
     assert ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
-        # sentry
-        1,
+        # snuba
+        3,
         mocked_data(),
     ) == [
         {"project_id": 1, "percentege": 0.8, "project": "javascript"},

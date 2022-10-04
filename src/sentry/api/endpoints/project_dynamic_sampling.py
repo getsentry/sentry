@@ -189,6 +189,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
+                "trace.parent_span",
                 "random_number() as rand_num",
                 f"modulo(rand_num, {sampling_factor}) as modulo_num",
             ],
@@ -215,12 +216,13 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         )["data"]
         return data
 
-    @staticmethod
-    def parent_project_breakdown_post_processing(project_id, data) -> List:
-        if data is None:
+    def parent_project_breakdown_post_processing(
+        self, project_id, query_time_range, project_breakdown, parent_trace_ids
+    ) -> List:
+        if project_breakdown is None:
             return []
         try:
-            project = next(item for item in data if item["project_id"] == project_id)
+            project = next(item for item in project_breakdown if item["project_id"] == project_id)
         except StopIteration:
             return []
         # Requesting for a single project or already root of distributed trace
@@ -230,7 +232,22 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         # Requesting for a project that is root for some transactions but not root for others and part of distributed trace like sentry
         elif project["count_root"] > 0 and project["count_non_root"] > 0:
             # GET project distribution of this trace_ids (for ONLY parent trace ids)
-            return []
+            parent_project_breakdown = self.__run_discover_query(
+                columns=[
+                    "project_id",
+                    "project",
+                    "count()",
+                ],
+                query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
+                params={
+                    "start": query_time_range.start_time,
+                    "end": query_time_range.end_time,
+                    "organization_id": project.organization.id,
+                },
+                limit=20,
+                referrer="dynamic-sampling.distribution.fetch-parent-project-breakdown",
+            )["data"]
+            return parent_project_breakdown
 
         elif project["count()"] == project["count_non_root"] and project["count_root"] == 0:
             return []
@@ -295,11 +312,18 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
         sample_size = len(transactions)
         project_breakdown = None
+        parent_trace_ids = None
         if distributed_trace:
             # If the distributedTrace flag was enabled, then we are also interested in fetching
             # the project breakdown of the projects in the trace of the root transaction
 
             trace_ids = [transaction.get("trace") for transaction in transactions]
+            parent_trace_ids = [
+                transaction.get("trace")
+                for transaction in transactions
+                if transaction.get("count_root", 0) == 1
+            ]
+
             projects_in_org = Project.objects.filter(organization=project.organization).values_list(
                 "id", flat=True
             )
@@ -335,7 +359,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 )
 
         parent_project_breakdown = self.parent_project_breakdown_post_processing(
-            project.id, project_breakdown
+            project.id, query_time_range, project_breakdown, parent_trace_ids
         )
 
         return Response(
