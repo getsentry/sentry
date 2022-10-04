@@ -98,6 +98,14 @@ class EventManagerTestMixin:
 
 @region_silo_test
 class EventManagerTest(TestCase, EventManagerTestMixin):
+    @pytest.fixture(autouse=True)
+    def initialize(self, reset_snuba):
+        """
+        EventManager writes events to snuba, so make sure to reset
+        snuba to avoid states being persisted between runs.
+        """
+        pass
+
     def test_similar_message_prefix_doesnt_group(self):
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
