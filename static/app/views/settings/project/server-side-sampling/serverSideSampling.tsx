@@ -84,6 +84,7 @@ export function ServerSideSampling({project}: Props) {
 
   const hasAccess = organization.access.includes('project:write');
   const currentRules = project.dynamicSampling?.rules;
+
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
   const params = useParams();
