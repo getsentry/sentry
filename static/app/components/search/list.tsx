@@ -1,7 +1,7 @@
 import {Fragment, memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AutoComplete from 'sentry/components/autoComplete';
+import type {AutoCompleteChildrenProps} from 'sentry/components/autoComplete';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -10,7 +10,7 @@ import {Result} from './sources/types';
 import SearchResult from './searchResult';
 import SearchResultWrapper from './searchResultWrapper';
 
-type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
+type AutoCompleteOpts = AutoCompleteChildrenProps<Result['item']>;
 
 interface RenderItemProps {
   highlighted: boolean;

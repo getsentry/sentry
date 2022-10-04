@@ -2,7 +2,10 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
-import AutoComplete from 'sentry/components/autoComplete';
+import AutoComplete, {
+  AutoCompleteChildrenProps,
+  AutoCompleteState,
+} from 'sentry/components/autoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -13,7 +16,7 @@ import defaultAutoCompleteFilter from './autoCompleteFilter';
 import List from './list';
 import {Item, ItemsBeforeFilter} from './types';
 
-type AutoCompleteChildrenArgs = Parameters<AutoComplete<Item>['props']['children']>[0];
+type AutoCompleteChildrenArgs = AutoCompleteChildrenProps<Item>;
 type Actions = AutoCompleteChildrenArgs['actions'];
 
 export type MenuFooterChildProps = {
@@ -180,7 +183,7 @@ type Props = {
    */
   onSelect?: (
     item: Item,
-    state?: AutoComplete<Item>['state'],
+    state?: AutoCompleteState,
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
   /**

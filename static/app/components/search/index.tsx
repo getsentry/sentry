@@ -6,7 +6,10 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import AutoComplete from 'sentry/components/autoComplete';
+import AutoComplete, {
+  AutoCompleteChildrenProps,
+  AutoCompleteState,
+} from 'sentry/components/autoComplete';
 import SearchSources from 'sentry/components/search/sources';
 import ApiSource from 'sentry/components/search/sources/apiSource';
 import CommandSource from 'sentry/components/search/sources/commandSource';
@@ -20,11 +23,9 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {Result} from './sources/types';
 import List from './list';
 
-type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
-
 type ListProps = React.ComponentProps<typeof List>;
 
-interface InputProps extends Pick<AutoCompleteOpts, 'getInputProps'> {}
+interface InputProps extends Pick<AutoCompleteChildrenProps<Result>, 'getInputProps'> {}
 
 interface SearchProps extends WithRouterProps<{orgId: string}> {
   /**
@@ -91,7 +92,7 @@ function Search({
   }, [entryPoint]);
 
   const handleSelectItem = useCallback(
-    (item: Result['item'], state?: AutoComplete<Result['item']>['state']) => {
+    (item: Result['item'], state?: AutoCompleteState) => {
       if (!item) {
         return;
       }

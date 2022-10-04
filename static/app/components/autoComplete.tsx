@@ -8,32 +8,14 @@
  * This component handles logic like when the dropdown menu should be displayed, as well as handling keyboard input, how
  * it is rendered should be left to the child.
  */
-import {Component} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 import DeprecatedDropdownMenu, {
   GetActorArgs,
   GetMenuArgs,
 } from 'sentry/components/deprecatedDropdownMenu';
 import {uniqueId} from 'sentry/utils/guid';
-
-const defaultProps = {
-  itemToString: () => '',
-  /**
-   * If input should be considered an "actor". If there is another parent actor, then this should be `false`.
-   * e.g. You have a button that opens this <AutoComplete> in a dropdown.
-   */
-  inputIsActor: true,
-  disabled: false,
-  closeOnSelect: true,
-  /**
-   * Can select autocomplete item with "Enter" key
-   */
-  shouldSelectWithEnter: true,
-  /**
-   * Can select autocomplete item with "Tab" key
-   */
-  shouldSelectWithTab: false,
-};
+import usePrevious from 'sentry/utils/usePrevious';
 
 type Item = {
   'data-test-id'?: string;
@@ -61,7 +43,9 @@ type GetItemArgs<T> = {
   onClick?: (item: T) => (e: React.MouseEvent) => void;
 };
 
-type ChildrenProps<T> = Parameters<DeprecatedDropdownMenu['props']['children']>[0] & {
+export type AutoCompleteChildrenProps<T> = Parameters<
+  DeprecatedDropdownMenu['props']['children']
+>[0] & {
   /**
    * Returns props for the input element that handles searching the items
    */
@@ -104,21 +88,27 @@ type ChildrenProps<T> = Parameters<DeprecatedDropdownMenu['props']['children']>[
   selectedItem?: T;
 };
 
-type State<T> = {
+export type AutoCompleteState = {
   highlightedIndex: number;
   inputValue: string;
   isOpen: boolean;
-  selectedItem?: T;
 };
 
-type Props<T> = typeof defaultProps & {
+export type AutoCompleteProps<T> = {
   /**
    * Must be a function that returns a component
    */
-  children: (props: ChildrenProps<T>) => React.ReactElement | null;
-  disabled: boolean;
+  children: (props: AutoCompleteChildrenProps<T>) => React.ReactElement | null;
+  closeOnSelect?: boolean;
   defaultHighlightedIndex?: number;
   defaultInputValue?: string;
+  disabled?: boolean;
+
+  /**
+   * If input should be considered an "actor". If there is another parent actor, then this should be `false`.
+   * e.g. You have a button that opens this <AutoComplete> in a dropdown.
+   */
+  inputIsActor?: boolean;
   inputValue?: string;
   isOpen?: boolean;
   itemToString?: (item?: T) => string;
@@ -128,104 +118,203 @@ type Props<T> = typeof defaultProps & {
   onOpen?: (...args: Array<any>) => void;
   onSelect?: (
     item: T,
-    state?: State<T>,
+    state?: AutoCompleteState,
     e?: React.MouseEvent | React.KeyboardEvent
   ) => void;
   /**
    * Resets autocomplete input when menu closes
    */
   resetInputOnClose?: boolean;
+  /**
+   * Can select autocomplete item with "Enter" key
+   */
+  shouldSelectWithEnter?: boolean;
+  /**
+   * Can select autocomplete item with "Tab" key
+   */
+  shouldSelectWithTab?: boolean;
 };
 
-class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
-  static defaultProps = defaultProps;
+function useIsMounted() {
+  const [isMounted, setIsMounted] = useState(true);
 
-  state: State<T> = this.getInitialState();
-
-  getInitialState() {
-    const {defaultHighlightedIndex, isOpen, inputValue, defaultInputValue} = this.props;
-    return {
-      isOpen: !!isOpen,
-      highlightedIndex: defaultHighlightedIndex || 0,
-      inputValue: inputValue ?? defaultInputValue ?? '',
-      selectedItem: undefined,
+  useEffect(() => {
+    return () => {
+      setIsMounted(false);
     };
-  }
+  }, []);
 
-  componentDidMount() {
-    this._mounted = true;
-  }
+  return isMounted;
+}
 
-  componentDidUpdate(_prevProps: Props<T>, prevState: State<T>) {
-    // If we do NOT want to close on select, then we should not reset highlight state
-    // when we select an item (when we select an item, `this.state.selectedItem` changes)
-    if (this.props.closeOnSelect && this.state.selectedItem !== prevState.selectedItem) {
-      this.resetHighlightState();
+function useUniqueAutoCompleteId() {
+  const idRef = useRef(`autocomplete-${uniqueId()}`);
+
+  return idRef.current;
+}
+
+function useItemsMap() {
+  const itemsRef = useRef(new Map());
+
+  return itemsRef.current;
+}
+
+function useTimeoutRef() {
+  const timeoutRef = useRef<number | undefined>();
+
+  useEffect(() => {
+    const timer = timeoutRef.current;
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return timeoutRef;
+}
+
+function useHighlightedIndex<T>({
+  closeOnSelect,
+  selectedItem,
+  defaultHighlightedIndex,
+}: Pick<AutoCompleteProps<T>, 'closeOnSelect' | 'defaultHighlightedIndex'> & {
+  selectedItem?: T;
+}) {
+  const [highlightedIndex, setHighlightedIndex] = useState(defaultHighlightedIndex ?? 0);
+  const previousSelectedItem = usePrevious(selectedItem);
+
+  const resetHighlightState = useCallback(() => {
+    setHighlightedIndex(defaultHighlightedIndex ?? 0);
+  }, [defaultHighlightedIndex]);
+
+  // Resets
+  useEffect(() => {
+    if (closeOnSelect && selectedItem !== previousSelectedItem) {
+      resetHighlightState();
     }
-  }
+  }, [
+    closeOnSelect,
+    selectedItem,
+    previousSelectedItem,
+    defaultHighlightedIndex,
+    resetHighlightState,
+  ]);
 
-  componentWillUnmount() {
-    this._mounted = false;
-    window.clearTimeout(this.blurTimeout);
-    window.clearTimeout(this.cancelCloseTimeout);
-  }
+  return {highlightedIndex, setHighlightedIndex, resetHighlightState};
+}
 
-  private _mounted: boolean = false;
-  private _id = `autocomplete-${uniqueId()}`;
+function makeItemId(baseId: string, index: number) {
+  return `${baseId}-item-${index}`;
+}
 
-  /**
-   * Used to track keyboard navigation of items.
-   */
-  items = new Map<number, T>();
+function defaultItemToString() {
+  return '';
+}
 
-  /**
-   * When using a virtualized list the length of the items mapping will not match
-   * the actual item count. This stores the _real_ item count.
-   */
-  itemCount?: number;
+function AutoComplete<T extends Item>({
+  children,
+  closeOnSelect = true,
+  defaultHighlightedIndex,
+  defaultInputValue,
+  disabled = false,
+  inputValue: incomingInputValue,
+  isOpen: incomingIsOpen,
+  inputIsActor = true,
+  itemToString = defaultItemToString,
+  onClose,
+  onInputValueChange,
+  onMenuOpen,
+  onOpen,
+  onSelect,
+  resetInputOnClose,
+  shouldSelectWithEnter = true,
+  shouldSelectWithTab = false,
+}: AutoCompleteProps<T>) {
+  const isMounted = useIsMounted();
+  const id = useUniqueAutoCompleteId();
+  const items = useItemsMap();
+  const blurTimeoutRef = useTimeoutRef();
+  const cancelCloseTimeoutRef = useTimeoutRef();
 
-  blurTimeout: number | undefined = undefined;
-  cancelCloseTimeout: number | undefined = undefined;
+  const [localIsOpen, setIsOpen] = useState(false);
+  const [localInputValue, setInputValue] = useState(defaultInputValue ?? '');
+  const [selectedItem, setSelectedItem] = useState<T | undefined>();
+  const [itemCount, setItemCount] = useState<number | undefined>();
+  const inputValueIsControlled = typeof incomingInputValue !== 'undefined';
+  const isOpenIsControlled = typeof incomingIsOpen !== 'undefined';
 
-  get inputValueIsControlled() {
-    return typeof this.props.inputValue !== 'undefined';
-  }
+  const isOpen = isOpenIsControlled ? incomingIsOpen : localIsOpen;
+  const inputValue = inputValueIsControlled ? incomingInputValue : localInputValue;
 
-  get isOpenIsControlled() {
-    return typeof this.props.isOpen !== 'undefined';
-  }
+  const {highlightedIndex, setHighlightedIndex, resetHighlightState} =
+    useHighlightedIndex<T>({
+      closeOnSelect,
+      selectedItem,
+      defaultHighlightedIndex,
+    });
 
-  get inputValue() {
-    return this.props.inputValue ?? this.state.inputValue;
-  }
-
-  get isOpen() {
-    return this.isOpenIsControlled ? this.props.isOpen : this.state.isOpen;
-  }
-
-  makeItemId = (index: number) => {
-    return `${this._id}-item-${index}`;
-  };
-
-  getItemElement = (index: number) => {
-    const id = this.makeItemId(index);
-    const element = document.getElementById(id);
+  const getItemElement = (index: number) => {
+    const itemId = makeItemId(id, index);
+    const element = document.getElementById(itemId);
 
     return element;
   };
 
   /**
-   * Resets `this.items` and `this.state.highlightedIndex`.
-   * Should be called whenever `inputValue` changes.
+   * Open dropdown menu
+   *
+   * This is exposed to render function
    */
-  resetHighlightState() {
-    // reset items and expect `getInputProps` in child to give us a list of new items
-    this.setState({highlightedIndex: this.props.defaultHighlightedIndex ?? 0});
-  }
+  const openMenu = (...args: Array<any>) => {
+    onOpen?.(...args);
 
-  makeHandleInputChange<E extends HTMLInputElement>(
+    if (disabled || isOpenIsControlled) {
+      return;
+    }
+
+    resetHighlightState();
+    setIsOpen(true);
+  };
+
+  /**
+   * Close dropdown menu
+   *
+   * This is exposed to render function
+   */
+  const closeMenu = useCallback(
+    (...args: Array<any>) => {
+      onClose?.(...args);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setIsOpen(oldIsOpen => (!isOpenIsControlled ? false : oldIsOpen));
+      setInputValue(oldInputValue => (resetInputOnClose ? '' : oldInputValue));
+    },
+    [isMounted, isOpenIsControlled, onClose, resetInputOnClose]
+  );
+
+  /**
+   * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
+   */
+  const handleSelect = (item: T, e: React.MouseEvent | React.KeyboardEvent) => {
+    onSelect?.(item, {highlightedIndex, inputValue, isOpen}, e);
+
+    if (closeOnSelect) {
+      closeMenu();
+
+      setInputValue(itemToString(item));
+      setSelectedItem(item);
+      return;
+    }
+
+    setSelectedItem(item);
+  };
+
+  const makeHandleInputChange = <E extends HTMLInputElement>(
     onChange: GetInputArgs<E>['onChange']
-  ) {
+  ) => {
     // Some inputs (e.g. input) pass in only the event to the onChange listener and
     // others (e.g. TextField) pass in both the value and the event to the onChange listener.
     // This returned function is to accomodate both kinds of input components.
@@ -243,25 +332,26 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
       // We force `isOpen: true` here because:
       // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
       // 2) you select an item, input still has focus, and then change input
-      this.openMenu();
+      openMenu();
 
-      if (!this.inputValueIsControlled) {
-        this.setState({
-          inputValue: value,
-        });
+      if (!inputValueIsControlled) {
+        setInputValue(value);
       }
 
-      this.props.onInputValueChange?.(value);
+      onInputValueChange?.(value);
       onChange?.(changeEvent);
     };
-  }
+  };
 
-  makeHandleInputFocus<E extends HTMLInputElement>(onFocus: GetInputArgs<E>['onFocus']) {
+  const makeHandleInputFocus = <E extends HTMLInputElement>(
+    onFocus: GetInputArgs<E>['onFocus']
+  ) => {
     return (e: React.FocusEvent<E>) => {
-      this.openMenu();
+      setIsOpen(true);
+      // setInputValue('dsfjk');
       onFocus?.(e);
     };
-  }
+  };
 
   /**
    * We need this delay because we want to close the menu when input
@@ -271,22 +361,24 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
    * Clicks outside should close the dropdown immediately via <DeprecatedDropdownMenu />,
    * however blur via keyboard will have a 200ms delay
    */
-  makehandleInputBlur<E extends HTMLInputElement>(onBlur: GetInputArgs<E>['onBlur']) {
+  const makeHandleInputBlur = <E extends HTMLInputElement>(
+    onBlur: GetInputArgs<E>['onBlur']
+  ) => {
     return (e: React.FocusEvent<E>) => {
-      window.clearTimeout(this.blurTimeout);
-      this.blurTimeout = window.setTimeout(() => {
-        this.closeMenu();
+      window.clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = window.setTimeout(() => {
+        closeMenu();
         onBlur?.(e);
       }, 200);
     };
-  }
+  };
 
   // Dropdown detected click outside, we should close
-  handleClickOutside = async () => {
+  const handleClickOutside = useCallback(async () => {
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
-    window.clearTimeout(this.blurTimeout);
+    window.clearTimeout(blurTimeoutRef.current);
 
     // Wait until the current macrotask completes, in the case that the click
     // happened on a hovercard or some other element rendered outside of the
@@ -294,236 +386,168 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     // need to ensure any click handlers are run.
     await new Promise(resolve => window.setTimeout(resolve));
 
-    this.closeMenu();
+    closeMenu();
+  }, [blurTimeoutRef, closeMenu]);
+
+  const moveHighlightedIndex = (step: number) => {
+    let newIndex = highlightedIndex + step;
+
+    // when this component is in virtualized mode, only a subset of items will
+    // be passed down, making the map size inaccurate. instead we manually pass
+    // the length as itemCount
+    const listSize = itemCount ?? items.size;
+
+    // Make sure new index is within bounds
+    newIndex = Math.max(0, Math.min(newIndex, listSize - 1));
+
+    setHighlightedIndex(newIndex);
+
+    setTimeout(() => {
+      // Scroll the newly highlighted element into view
+      const highlightedElement = getItemElement(newIndex);
+
+      if (highlightedElement && typeof highlightedElement.scrollIntoView === 'function') {
+        highlightedElement.scrollIntoView({block: 'nearest'});
+      }
+    });
   };
 
-  makeHandleInputKeydown<E extends HTMLInputElement>(
+  const makeHandleInputKeydown = <E extends HTMLInputElement>(
     onKeyDown: GetInputArgs<E>['onKeyDown']
-  ) {
+  ) => {
     return (e: React.KeyboardEvent<E>) => {
-      const item = this.items.get(this.state.highlightedIndex);
+      const item = items.get(highlightedIndex);
 
-      const isEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
-      const isTab = this.props.shouldSelectWithTab && e.key === 'Tab';
+      const isEnter = shouldSelectWithEnter && e.key === 'Enter';
+      const isTab = shouldSelectWithTab && e.key === 'Tab';
 
       if (item !== undefined && (isEnter || isTab)) {
         if (!item.disabled) {
-          this.handleSelect(item, e);
+          handleSelect(item, e);
         }
 
         e.preventDefault();
       }
 
       if (e.key === 'ArrowUp') {
-        this.moveHighlightedIndex(-1);
+        moveHighlightedIndex(-1);
         e.preventDefault();
       }
 
       if (e.key === 'ArrowDown') {
-        this.moveHighlightedIndex(1);
+        moveHighlightedIndex(1);
         e.preventDefault();
       }
 
       if (e.key === 'Escape') {
-        this.closeMenu();
+        closeMenu();
       }
 
       onKeyDown?.(e);
     };
-  }
+  };
 
-  makeHandleItemClick({item, index}: GetItemArgs<T>) {
+  const makeHandleItemClick = ({item, index}: GetItemArgs<T>) => {
     return (e: React.MouseEvent) => {
       if (item.disabled) {
         return;
       }
 
-      window.clearTimeout(this.blurTimeout);
+      window.clearTimeout(blurTimeoutRef.current);
 
-      this.setState({highlightedIndex: index});
-      this.handleSelect(item, e);
+      setHighlightedIndex(index);
+      handleSelect(item, e);
     };
-  }
+  };
 
-  makeHandleMouseEnter({item, index}: GetItemArgs<T>) {
+  const makeHandleMouseEnter = ({item, index}: GetItemArgs<T>) => {
     return (_e: React.MouseEvent) => {
       if (item.disabled) {
         return;
       }
-      this.setState({highlightedIndex: index});
+
+      setHighlightedIndex(index);
     };
-  }
+  };
 
-  handleMenuMouseDown = () => {
-    window.clearTimeout(this.cancelCloseTimeout);
+  const handleMenuMouseDown = () => {
+    window.clearTimeout(cancelCloseTimeoutRef.current);
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    this.cancelCloseTimeout = window.setTimeout(() => {
-      window.clearTimeout(this.blurTimeout);
+    cancelCloseTimeoutRef.current = window.setTimeout(() => {
+      window.clearTimeout(blurTimeoutRef.current);
     });
   };
 
-  /**
-   * When an item is selected via clicking or using the keyboard (e.g. pressing "Enter")
-   */
-  handleSelect(item: T, e: React.MouseEvent | React.KeyboardEvent) {
-    const {onSelect, itemToString, closeOnSelect} = this.props;
-
-    onSelect?.(item, this.state, e);
-
-    if (closeOnSelect) {
-      this.closeMenu();
-
-      this.setState({
-        inputValue: itemToString(item),
-        selectedItem: item,
-      });
-      return;
-    }
-
-    this.setState({selectedItem: item});
-  }
-
-  moveHighlightedIndex(step: number) {
-    let newIndex = this.state.highlightedIndex + step;
-
-    // when this component is in virtualized mode, only a subset of items will
-    // be passed down, making the map size inaccurate. instead we manually pass
-    // the length as itemCount
-    const listSize = this.itemCount ?? this.items.size;
-
-    // Make sure new index is within bounds
-    newIndex = Math.max(0, Math.min(newIndex, listSize - 1));
-
-    this.setState({highlightedIndex: newIndex}, () => {
-      // Scroll the newly highlighted element into view
-      const highlightedElement = this.getItemElement(newIndex);
-
-      if (highlightedElement && typeof highlightedElement.scrollIntoView === 'function') {
-        highlightedElement.scrollIntoView({block: 'nearest'});
-      }
-    });
-  }
-
-  /**
-   * Open dropdown menu
-   *
-   * This is exposed to render function
-   */
-  openMenu = (...args: Array<any>) => {
-    const {onOpen, disabled} = this.props;
-
-    onOpen?.(...args);
-
-    if (disabled || this.isOpenIsControlled) {
-      return;
-    }
-
-    this.resetHighlightState();
-    this.setState({
-      isOpen: true,
-    });
-  };
-
-  /**
-   * Close dropdown menu
-   *
-   * This is exposed to render function
-   */
-  closeMenu = (...args: Array<any>) => {
-    const {onClose, resetInputOnClose} = this.props;
-
-    onClose?.(...args);
-
-    if (!this._mounted) {
-      return;
-    }
-
-    this.setState(state => ({
-      isOpen: !this.isOpenIsControlled ? false : state.isOpen,
-      inputValue: resetInputOnClose ? '' : state.inputValue,
-    }));
-  };
-
-  getInputProps<E extends HTMLInputElement>(
+  const getInputProps = <E extends HTMLInputElement>(
     inputProps?: GetInputArgs<E>
-  ): GetInputOutput<E> {
+  ): GetInputOutput<E> => {
     const {onChange, onKeyDown, onFocus, onBlur, ...rest} = inputProps ?? {};
     return {
       ...rest,
-      value: this.inputValue,
-      onChange: this.makeHandleInputChange<E>(onChange),
-      onKeyDown: this.makeHandleInputKeydown<E>(onKeyDown),
-      onFocus: this.makeHandleInputFocus<E>(onFocus),
-      onBlur: this.makehandleInputBlur<E>(onBlur),
+      value: inputValue,
+      onChange: makeHandleInputChange<E>(onChange),
+      onKeyDown: makeHandleInputKeydown<E>(onKeyDown),
+      onFocus: makeHandleInputFocus<E>(onFocus),
+      onBlur: makeHandleInputBlur<E>(onBlur),
     };
-  }
+  };
 
-  getItemProps = (itemProps: GetItemArgs<T>) => {
-    const {item, index, ...props} = itemProps ?? {};
+  const getItemProps = (itemProps: GetItemArgs<T>) => {
+    const {item, index, ...restItemProps} = itemProps ?? {};
 
     return {
-      ...props,
-      id: this.makeItemId(index),
+      ...restItemProps,
+      id: makeItemId(id, index),
       role: 'option',
       'data-test-id': item['data-test-id'],
-      onClick: this.makeHandleItemClick(itemProps),
-      onMouseEnter: this.makeHandleMouseEnter(itemProps),
+      onClick: makeHandleItemClick(itemProps),
+      onMouseEnter: makeHandleMouseEnter(itemProps),
     };
   };
 
-  registerVisibleItem = (index: number, item: T) => {
-    this.items.set(index, item);
-    return () => this.items.delete(index);
+  const registerVisibleItem = (index: number, item: T) => {
+    items.set(index, item);
+    return () => items.delete(index);
   };
 
-  registerItemCount = (count?: number) => {
-    this.itemCount = count;
-  };
+  return (
+    <DeprecatedDropdownMenu
+      isOpen={isOpen}
+      onClickOutside={handleClickOutside}
+      onOpen={onMenuOpen}
+    >
+      {dropdownMenuProps =>
+        children({
+          ...dropdownMenuProps,
+          getMenuProps: <E extends Element = Element>(incomingProps?: GetMenuArgs<E>) =>
+            dropdownMenuProps.getMenuProps({
+              ...incomingProps,
+              onMouseDown: handleMenuMouseDown,
+            }),
+          getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
+            incomingProps?: GetInputArgs<E>
+          ): GetInputOutput<E> => {
+            const inputProps = getInputProps<E>(incomingProps);
 
-  render() {
-    const {children, onMenuOpen, inputIsActor} = this.props;
-    const {selectedItem, highlightedIndex} = this.state;
-    const isOpen = this.isOpen;
+            return inputIsActor
+              ? dropdownMenuProps.getActorProps<E>(inputProps as GetActorArgs<E>)
+              : inputProps;
+          },
 
-    return (
-      <DeprecatedDropdownMenu
-        isOpen={isOpen}
-        onClickOutside={this.handleClickOutside}
-        onOpen={onMenuOpen}
-      >
-        {dropdownMenuProps =>
-          children({
-            ...dropdownMenuProps,
-            getMenuProps: <E extends Element = Element>(props?: GetMenuArgs<E>) =>
-              dropdownMenuProps.getMenuProps({
-                ...props,
-                onMouseDown: this.handleMenuMouseDown,
-              }),
-            getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
-              props?: GetInputArgs<E>
-            ): GetInputOutput<E> => {
-              const inputProps = this.getInputProps<E>(props);
-
-              return inputIsActor
-                ? dropdownMenuProps.getActorProps<E>(inputProps as GetActorArgs<E>)
-                : inputProps;
-            },
-
-            getItemProps: this.getItemProps,
-            registerVisibleItem: this.registerVisibleItem,
-            registerItemCount: this.registerItemCount,
-            inputValue: this.inputValue,
-            selectedItem,
-            highlightedIndex,
-            actions: {
-              open: this.openMenu,
-              close: this.closeMenu,
-            },
-          })
-        }
-      </DeprecatedDropdownMenu>
-    );
-  }
+          getItemProps,
+          registerVisibleItem,
+          registerItemCount: setItemCount,
+          inputValue,
+          selectedItem,
+          highlightedIndex,
+          actions: {
+            open: openMenu,
+            close: closeMenu,
+          },
+        })
+      }
+    </DeprecatedDropdownMenu>
+  );
 }
 
 export default AutoComplete;

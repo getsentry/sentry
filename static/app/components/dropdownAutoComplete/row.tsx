@@ -1,15 +1,13 @@
 import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AutoComplete from 'sentry/components/autoComplete';
+import type {AutoCompleteChildrenProps} from 'sentry/components/autoComplete';
 import space from 'sentry/styles/space';
 
 import {Item} from './types';
 
 type ItemSize = 'zero' | 'small';
-type AutoCompleteChildrenArgs<T extends Item> = Parameters<
-  AutoComplete<T>['props']['children']
->[0];
+type AutoCompleteChildrenArgs<T extends Item> = AutoCompleteChildrenProps<T>;
 
 type Props<T extends Item> = Pick<
   AutoCompleteChildrenArgs<T>,
