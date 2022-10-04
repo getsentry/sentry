@@ -131,7 +131,14 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
                 )
             except IntegrityError:
                 # Same message was encountered more than once.
-                logger.warning("Recording-segment has already been processed.")
+                logger.warning(
+                    "Recording-segment has already been processed.",
+                    extra={
+                        "replay_id": message_dict["replay_id"],
+                        "project_id": message_dict["project_id"],
+                        "segment_id": headers["segment_id"],
+                    },
+                )
 
                 # Cleanup the blob.
                 file.delete()
