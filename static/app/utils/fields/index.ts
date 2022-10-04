@@ -30,6 +30,7 @@ export enum FieldKey {
   DEVICE_SIMULATOR = 'device.simulator',
   DEVICE_UUID = 'device.uuid',
   DIST = 'dist',
+  EMPTY_STACKTRACE_JS_CONSOLE = 'empty_stacktrace.js_console',
   ENVIRONMENT = 'environment',
   ERROR_HANDLED = 'error.handled',
   ERROR_MECHANISM = 'error.mechanism',
@@ -535,6 +536,11 @@ const FIELD_DEFINITIONS: Record<AllFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.EMPTY_STACKTRACE_JS_CONSOLE]: {
+    desc: t('Errors from Javascript browser console'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [FieldKey.ENVIRONMENT]: {
     desc: t('The environment the event was seen in'),
     kind: FieldKind.FIELD,
@@ -899,6 +905,7 @@ export const ISSUE_FIELDS = [
   FieldKey.DEVICE_ORIENTATION,
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
+  FieldKey.EMPTY_STACKTRACE_JS_CONSOLE,
   FieldKey.ERROR_HANDLED,
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_TYPE,
