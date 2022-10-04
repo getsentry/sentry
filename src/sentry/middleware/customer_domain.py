@@ -14,6 +14,7 @@ from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
 from sentry.models import Organization
 from sentry.utils import auth
+from sentry.utils.http import absolute_uri
 
 
 def _org_exists(slug):
@@ -91,9 +92,7 @@ class CustomerDomainMiddleware:
             # DISALLOWED_CUSTOMER_DOMAINS is a list of org slugs that are explicitly not allowed to use customer domains.
             # We kick any request to the logout view.
             logout(request)
-            url_prefix = options.get("system.url-prefix")
-            logout_view = reverse("sentry-logout")
-            redirect_url = f"{url_prefix}{logout_view}"
+            redirect_url = absolute_uri(reverse("sentry-logout"))
             return HttpResponseRedirect(redirect_url)
 
         activeorg = _resolve_activeorg(request)
