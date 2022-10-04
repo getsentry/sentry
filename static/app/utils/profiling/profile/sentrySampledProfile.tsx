@@ -17,6 +17,9 @@ export class SentrySampledProfile extends Profile {
     const {samples, stacks, thread_metadata = {}} = sampledProfile.profile;
     const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
     const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
+    if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
+      throw TypeError('startedAt or endedAt is NaN');
+    }
     const threadId = parseInt(samples[0].thread_id, 10);
     const threadName = `thread: ${
       thread_metadata[samples[0].thread_id]?.name || threadId
@@ -69,7 +72,9 @@ export class SentrySampledProfile extends Profile {
     let node = this.appendOrderTree;
     const framesInStack: CallTreeNode[] = [];
 
-    for (const frame of stack) {
+    // frames are ordered outermost -> innermost so we have to iterate backward
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const frame = stack[i];
       const last = lastOfArray(node.children);
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {

@@ -43,15 +43,15 @@ export const makeSentrySampledProfile = (
         ],
         frames: [
           {
-            name: 'main',
-            instruction_addr: '',
-            line: 1,
-            file: 'main.c',
-          },
-          {
             name: 'foo',
             instruction_addr: '',
             line: 2,
+            file: 'main.c',
+          },
+          {
+            name: 'main',
+            instruction_addr: '',
+            line: 1,
             file: 'main.c',
           },
         ],
@@ -167,5 +167,31 @@ describe('SentrySampledProfile', () => {
     );
 
     expect(profile.name).toBe('thread: foo');
+  });
+
+  it('throws a TypeError when it cannot parse startedAt or endedAt', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 'a1000',
+            thread_id: '0',
+          },
+        ],
+        thread_metadata: {
+          '0': {
+            name: 'foo',
+          },
+        },
+      },
+    });
+
+    expect(() =>
+      SentrySampledProfile.FromProfile(
+        sampledProfile,
+        createSentrySampleProfileFrameIndex(sampledProfile.profile.frames)
+      )
+    ).toThrow(new TypeError('startedAt or endedAt is NaN'));
   });
 });
