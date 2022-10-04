@@ -59,18 +59,18 @@ class ResultsHeader extends Component<Props, State> {
 
   fetchData() {
     const {api, eventView, organization, isHomepage} = this.props;
-    let fetchRequest, fetchArgs;
     if (!isHomepage && typeof eventView.id === 'string') {
-      fetchRequest = fetchSavedQuery;
-      fetchArgs = [api, organization.slug, eventView.id];
+      this.setState({loading: true});
+      fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
+        this.setState({savedQuery, loading: false});
+      });
     } else if (isHomepage) {
-      fetchRequest = fetchHomepageQuery;
-      fetchArgs = [api, organization.slug];
+      this.setState({loading: true});
+      fetchHomepageQuery(api, organization.slug).then(savedQuery => {
+        this.setState({savedQuery, loading: false});
+      });
     }
-    this.setState({loading: true});
-    fetchRequest?.(...fetchArgs).then(savedQuery => {
-      this.setState({savedQuery, loading: false});
-    });
+    this.setState({loading: false});
   }
 
   renderAuthor() {
