@@ -531,6 +531,6 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
+                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
                 ("http://testserver/organizations/new/", 302),
             ]
