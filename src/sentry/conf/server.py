@@ -589,6 +589,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.release_registry",
     "sentry.tasks.release_summary",
     "sentry.tasks.reports",
+    "sentry.tasks.weekly_reports",
     "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.scheduler",
@@ -787,6 +788,13 @@ CELERYBEAT_SCHEDULE = {
     },
     "schedule-weekly-organization-reports": {
         "task": "sentry.tasks.reports.prepare_reports",
+        "schedule": crontab(
+            minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+        ),
+        "options": {"expires": 60 * 60 * 3},
+    },
+    "schedule-weekly-organization-reports-new": {
+        "task": "sentry.tasks.weekly_reports.prepare_reports",
         "schedule": crontab(
             minute=0, hour=12, day_of_week="monday"  # 05:00 PDT, 09:00 EDT, 12:00 UTC
         ),
