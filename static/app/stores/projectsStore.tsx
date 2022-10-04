@@ -4,6 +4,7 @@ import ProjectActions from 'sentry/actions/projectActions';
 import {Project, Team} from 'sentry/types';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
+import LatestContextStore from './latestContextStore';
 import {CommonStoreDefinition} from './types';
 
 type State = {
@@ -50,26 +51,7 @@ const storeConfig: ProjectsStoreDefinition = {
     this.reset();
 
     this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.addTeamSuccess, this.onAddTeam)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.changeSlug, this.onChangeSlug)
-    );
-    this.unsubscribeListeners.push(
       this.listenTo(ProjectActions.createSuccess, this.onCreateSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.loadProjects, this.loadInitialData)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.loadStatsSuccess, this.onStatsLoadSuccess)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.removeTeamSuccess, this.onRemoveTeam)
-    );
-    this.unsubscribeListeners.push(this.listenTo(ProjectActions.reset, this.reset));
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.updateSuccess, this.onUpdateSuccess)
     );
   },
 
@@ -116,6 +98,8 @@ const storeConfig: ProjectsStoreDefinition = {
 
     this.itemsById = {...this.itemsById, [project.id]: newProject};
     this.trigger(new Set([data.id]));
+
+    LatestContextStore.onUpdateProject(newProject);
   },
 
   onStatsLoadSuccess(data) {

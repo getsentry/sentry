@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Link from 'sentry/components/links/link';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import projectSecurityAndPrivacyGroups from 'sentry/data/forms/projectSecurityAndPrivacyGroups';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -21,7 +21,7 @@ type Props = {
 export default function ProjectSecurityAndPrivacy({organization, project}: Props) {
   function handleUpdateProject(data: Project) {
     // This will update our project global state
-    ProjectActions.updateSuccess(data);
+    ProjectsStore.onUpdateSuccess(data);
   }
 
   const initialData = project;

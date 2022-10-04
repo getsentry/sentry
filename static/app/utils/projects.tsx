@@ -3,7 +3,6 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {AvatarProject, Project} from 'sentry/types';
@@ -527,7 +526,7 @@ async function fetchProjects(
 
   // populate the projects store if all projects were fetched
   if (allProjects) {
-    ProjectActions.loadProjects(data);
+    ProjectsStore.loadInitialData(data);
   }
 
   return {

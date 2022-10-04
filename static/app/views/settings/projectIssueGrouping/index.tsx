@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -46,7 +46,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
 
   handleSubmit = (response: Project) => {
     // This will update our project context
-    ProjectActions.updateSuccess(response);
+    ProjectsStore.onUpdateSuccess(response);
   };
 
   renderBody() {

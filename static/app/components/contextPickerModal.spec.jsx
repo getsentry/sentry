@@ -51,7 +51,7 @@ describe('ContextPickerModal', function () {
     expect(wrapper.find('StyledSelectControl[name="organization"]').exists()).toBe(true);
     expect(wrapper.find('StyledSelectControl[name="project"]').exists()).toBe(false);
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -65,7 +65,7 @@ describe('ContextPickerModal', function () {
     const wrapper = mountWithTheme(getComponent());
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/');
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -95,7 +95,7 @@ describe('ContextPickerModal', function () {
 
     expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -109,11 +109,11 @@ describe('ContextPickerModal', function () {
 
     selectByValue(wrapper, 'org-slug', {control: true});
 
-    await tick();
+    await act(tick);
     wrapper.update();
     expect(onFinish).toHaveBeenCalledWith('/test/org-slug/path/');
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -123,7 +123,7 @@ describe('ContextPickerModal', function () {
       url: `/organizations/${org.slug}/projects/`,
       body: [project, project2, project4],
     });
-    await tick();
+    await act(tick);
 
     const wrapper = mountWithTheme(
       getComponent({
@@ -132,7 +132,7 @@ describe('ContextPickerModal', function () {
       })
     );
 
-    await tick();
+    await act(tick);
     wrapper.update();
 
     expect(fetchProjectsForOrg).toHaveBeenCalled();
@@ -201,7 +201,7 @@ describe('ContextPickerModal', function () {
       })
     );
 
-    await tick();
+    await act(tick);
     wrapper.update();
 
     // Should not have anything selected
@@ -212,7 +212,7 @@ describe('ContextPickerModal', function () {
     // Select org2
     selectByValue(wrapper, org2.slug, {control: true});
 
-    await tick();
+    await act(tick);
     wrapper.update();
 
     // <Projects> will fetch projects for org2
@@ -285,7 +285,7 @@ describe('ContextPickerModal', function () {
       `/settings/${org.slug}/integrations/github/${integration.id}/`
     );
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -322,7 +322,7 @@ describe('ContextPickerModal', function () {
     expect(wrapper.find('StyledSelectControl').exists()).toBeFalsy();
     expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 
@@ -359,7 +359,7 @@ describe('ContextPickerModal', function () {
     expect(wrapper.find('StyledSelectControl').exists()).toBeFalsy();
     expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
 
-    await tick();
+    await act(tick);
     wrapper.unmount();
   });
 });

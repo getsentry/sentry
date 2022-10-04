@@ -6,7 +6,6 @@ import {
   removeProject,
   transferProject,
 } from 'sentry/actionCreators/projects';
-import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Field from 'sentry/components/forms/field';
@@ -262,7 +261,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
               this.props.onChangeSlug(resp.slug);
             }
             // This will update our project context
-            ProjectActions.updateSuccess(resp);
+            ProjectsStore.onUpdateSuccess(resp);
           }}
         >
           <JsonForm

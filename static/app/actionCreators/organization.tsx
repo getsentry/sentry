@@ -6,10 +6,10 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client, ResponseMeta} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
@@ -118,7 +118,7 @@ export function fetchOrganizationDetails(
 ) {
   if (!silent) {
     OrganizationStore.reset();
-    ProjectActions.reset();
+    ProjectsStore.reset();
     TeamStore.reset();
     PageFiltersStore.onReset();
   }
@@ -158,7 +158,7 @@ export function fetchOrganizationDetails(
       isInitialFetch
     );
 
-    ProjectActions.loadProjects(projects);
+    ProjectsStore.loadInitialData(projects);
 
     const teamPageLinks = resp?.getResponseHeader('Link');
     if (teamPageLinks) {

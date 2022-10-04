@@ -1,7 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -201,7 +200,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       });
 
       const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
-      ProjectActions.loadProjects(fetchedProjects);
+      ProjectsStore.loadInitialData(fetchedProjects);
 
       setState({
         ...state,
@@ -251,7 +250,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
 
       // Only update the store if we have more items
       if (fetchedProjects.length > store.projects.length) {
-        ProjectActions.loadProjects(fetchedProjects);
+        ProjectsStore.loadInitialData(fetchedProjects);
       }
 
       setState({

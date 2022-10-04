@@ -47,7 +47,7 @@ describe('ProjectsStore', function () {
     });
 
     it('updates when slug changes', async function () {
-      ProjectActions.changeSlug('foo', 'new-project');
+      ProjectsStore.onChangeSlug('foo', 'new-project');
       await tick();
       expect(ProjectsStore.itemsById[projectFoo.id]).toMatchObject({
         slug: 'new-project',
@@ -77,7 +77,7 @@ describe('ProjectsStore', function () {
     it('updates a project in store', async function () {
       // Create a new project, but should have same id as `projectBar`
       const project = TestStubs.Project({id: '10', slug: 'bar', name: 'New Name'});
-      ProjectActions.updateSuccess(project);
+      ProjectsStore.onUpdateSuccess(project);
       await tick();
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
         id: '10',
@@ -98,7 +98,7 @@ describe('ProjectsStore', function () {
           expect.objectContaining({slug: 'team-bar'}),
         ],
       });
-      ProjectActions.removeTeamSuccess('team-foo', 'bar');
+      ProjectsStore.onRemoveTeam('team-foo', 'bar');
       await tick();
 
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
@@ -135,7 +135,7 @@ describe('ProjectsStore', function () {
       const team = TestStubs.Team({
         slug: 'new-team',
       });
-      ProjectActions.addTeamSuccess(team, 'foo');
+      ProjectsStore.onAddTeam(team, 'foo');
       await tick();
 
       expect(ProjectsStore.itemsById[projectBar.id]).toMatchObject({
