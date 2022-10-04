@@ -8,21 +8,18 @@ import {CommonStoreDefinition} from './types';
 type ProjectStats = {
   data: SeriesApi | undefined;
   error: string | undefined;
-  fetched: boolean;
   loading: boolean;
 };
 
 type Distribution = {
   data: SamplingDistribution | undefined;
   error: string | undefined;
-  fetched: boolean;
   loading: boolean;
 };
 
 type SdkVersions = {
   data: SamplingSdkVersion[] | undefined;
   error: string | undefined;
-  fetched: boolean;
   loading: boolean;
 };
 
@@ -37,25 +34,21 @@ const initialState: State = {
   projectStats48h: {
     error: undefined,
     loading: false,
-    fetched: false,
     data: undefined,
   },
   projectStats30d: {
     error: undefined,
     loading: false,
-    fetched: false,
     data: undefined,
   },
   distribution: {
     error: undefined,
     loading: false,
-    fetched: false,
     data: undefined,
   },
   sdkVersions: {
     error: undefined,
     loading: false,
-    fetched: false,
     data: undefined,
   },
 };
@@ -98,7 +91,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       projectStats48h: {
         error: undefined,
         loading: true,
-        fetched: false,
         data: undefined,
       },
     };
@@ -111,7 +103,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       projectStats48h: {
         error: undefined,
         loading: false,
-        fetched: true,
         data,
       },
     };
@@ -124,7 +115,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       projectStats48h: {
         error,
         loading: false,
-        fetched: true,
         data: undefined,
       },
     };
@@ -137,7 +127,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       projectStats30d: {
         error: undefined,
         loading: true,
-        fetched: false,
         data: undefined,
       },
     };
@@ -150,7 +139,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       projectStats30d: {
         error: undefined,
         loading: false,
-        fetched: true,
         data,
       },
     };
@@ -163,7 +151,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       projectStats30d: {
         error,
         loading: false,
-        fetched: true,
         data: undefined,
       },
     };
@@ -176,7 +163,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       distribution: {
         error: undefined,
         loading: true,
-        fetched: false,
         data: undefined,
       },
     };
@@ -189,7 +175,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       distribution: {
         error: undefined,
         loading: false,
-        fetched: true,
         data,
       },
     };
@@ -202,7 +187,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       distribution: {
         error,
         loading: false,
-        fetched: true,
         data: undefined,
       },
     };
@@ -215,7 +199,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       sdkVersions: {
         error: undefined,
         loading: true,
-        fetched: true,
         data: undefined,
       },
     };
@@ -228,7 +211,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       sdkVersions: {
         error: undefined,
         loading: false,
-        fetched: true,
         data,
       },
     };
@@ -241,7 +223,6 @@ const storeConfig: ServerSideSamplingStoreDefinition = {
       sdkVersions: {
         error,
         loading: false,
-        fetched: true,
         data: undefined,
       },
     };
