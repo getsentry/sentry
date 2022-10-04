@@ -89,7 +89,7 @@ from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimit
 from sentry.reprocessing2 import is_reprocessed_event, save_unprocessed_event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
-from sentry.spans.grouping.strategy.config import DEFAULT_CONFIG_ID, INCOMING_DEFAULT_CONFIG_ID
+from sentry.spans.grouping.strategy.config import INCOMING_DEFAULT_CONFIG_ID
 from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
@@ -2007,7 +2007,6 @@ def _calculate_span_grouping(jobs, projects):
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(set(groupings.results.values())),
-                tags={"config_id": DEFAULT_CONFIG_ID},
                 sample_rate=0.1,
             )
 
@@ -2017,9 +2016,8 @@ def _calculate_span_grouping(jobs, projects):
             experimental_groupings = event.get_span_groupings({"id": INCOMING_DEFAULT_CONFIG_ID})
 
             metrics.incr(
-                "save_event.transaction.span_group_count",
+                "save_event.transaction.span_group_count.incoming",
                 amount=len(set(experimental_groupings.results.values())),
-                tags={"config_id": INCOMING_DEFAULT_CONFIG_ID},
                 sample_rate=0.1,
             )
         except Exception:
