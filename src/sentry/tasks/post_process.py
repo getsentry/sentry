@@ -627,10 +627,6 @@ def process_similarity(event: "Event") -> None:
         safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
 
-@instrumented_task(
-    name="sentry.tasks.post_process.plugin_post_process_group",
-    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug,
-)
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
