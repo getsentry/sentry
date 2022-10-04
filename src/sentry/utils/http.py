@@ -14,6 +14,9 @@ def absolute_uri(url: Optional[str] = None, url_prefix=None) -> str:
         url_prefix = options.get("system.url-prefix")
     if not url:
         return url_prefix
+    parsed = urlparse(url)
+    if parsed.hostname is not None:
+        url_prefix = origin_from_url(url)
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
 
 

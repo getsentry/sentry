@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -12,9 +13,16 @@ type Props = {
   location: Location;
   organization: Organization;
   event?: Event;
+  isHomepage?: boolean;
 };
 
-function DiscoverBreadcrumb({eventView, event, organization, location}: Props) {
+function DiscoverBreadcrumb({
+  eventView,
+  event,
+  organization,
+  location,
+  isHomepage,
+}: Props) {
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
@@ -22,7 +30,7 @@ function DiscoverBreadcrumb({eventView, event, organization, location}: Props) {
           ? getDiscoverQueriesUrl(organization)
           : getDiscoverLandingUrl(organization),
         query: {
-          ...location.query,
+          ...omit(location.query, 'homepage'),
           ...eventView.generateBlankQueryStringObject(),
           ...eventView.getPageFiltersQuery(),
         },
@@ -36,7 +44,7 @@ function DiscoverBreadcrumb({eventView, event, organization, location}: Props) {
 
   if (eventView && eventView.isValid()) {
     crumbs.push({
-      to: eventView.getResultsViewUrlTarget(organization.slug),
+      to: eventView.getResultsViewUrlTarget(organization.slug, isHomepage),
       label: eventView.name || '',
     });
   }
