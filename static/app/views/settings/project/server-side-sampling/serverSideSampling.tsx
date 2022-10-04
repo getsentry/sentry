@@ -24,6 +24,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {
@@ -80,8 +81,9 @@ export function ServerSideSampling({project}: Props) {
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
-  const routeContext = useRouteContext();
   const params = useParams();
+  const routeContext = useRouteContext();
+  const router = routeContext.router;
 
   const samplingProjectSettingsPath = `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`;
 
@@ -93,6 +95,14 @@ export function ServerSideSampling({project}: Props) {
       project_id: project.id,
     });
   }, [project.id, organization]);
+
+  useEffect(() => {
+    return () => {
+      if (!router.location.pathname.startsWith(samplingProjectSettingsPath)) {
+        ServerSideSamplingStore.reset();
+      }
+    };
+  }, [router.location.pathname, samplingProjectSettingsPath]);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -126,7 +136,15 @@ export function ServerSideSampling({project}: Props) {
     }
 
     fetchData();
-  }, [api, organization.slug, project.slug, project.id, hasAccess]);
+  }, [
+    api,
+    organization.slug,
+    project.slug,
+    project.id,
+    hasAccess,
+    samplingProjectSettingsPath,
+    router.location.pathname,
+  ]);
 
   const handleReadDocs = useCallback(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
@@ -288,14 +306,13 @@ export function ServerSideSampling({project}: Props) {
 
   useEffect(() => {
     if (
-      routeContext.location.pathname !== `${samplingProjectSettingsPath}rules/new/` &&
-      routeContext.location.pathname !==
-        `${samplingProjectSettingsPath}rules/${params.rule}/`
+      router.location.pathname !== `${samplingProjectSettingsPath}rules/new/` &&
+      router.location.pathname !== `${samplingProjectSettingsPath}rules/${params.rule}/`
     ) {
       return;
     }
 
-    if (routeContext.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
+    if (router.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
       if (!rules.length) {
         handleOpenUniformRateModal();
         return;
@@ -305,8 +322,7 @@ export function ServerSideSampling({project}: Props) {
     }
 
     if (
-      routeContext.location.pathname ===
-      `${samplingProjectSettingsPath}rules/${params.rule}/`
+      router.location.pathname === `${samplingProjectSettingsPath}rules/${params.rule}/`
     ) {
       const rule = rules.find(r => String(r.id) === params.rule);
 
@@ -326,7 +342,7 @@ export function ServerSideSampling({project}: Props) {
     handleOpenUniformRateModal,
     handleOpenSpecificConditionsModal,
     rules,
-    routeContext.location.pathname,
+    router.location.pathname,
     samplingProjectSettingsPath,
   ]);
 
