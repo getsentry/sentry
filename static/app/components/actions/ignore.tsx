@@ -58,9 +58,12 @@ const IgnoreActions = ({
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
-  const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
+  const onIgnore = (
+    statusDetails: ResolutionStatusDetails | undefined = {},
+    {bypassConfirm} = {bypassConfirm: false}
+  ) => {
     openConfirmModal({
-      bypass: !shouldConfirm,
+      bypass: bypassConfirm || !shouldConfirm,
       onConfirm: () =>
         onUpdate({
           status: ResolutionStatus.IGNORED,
@@ -72,7 +75,7 @@ const IgnoreActions = ({
   };
 
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
-    onIgnore(statusDetails);
+    onIgnore(statusDetails, {bypassConfirm: true});
   };
 
   if (isIgnored) {
