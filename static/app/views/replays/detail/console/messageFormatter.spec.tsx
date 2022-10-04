@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,8 +8,9 @@ import {
   Crumb,
 } from 'sentry/types/breadcrumbs';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {MessageFormatter} from 'sentry/views/replays/detail/console/consoleMessage';
 import {RouteContext} from 'sentry/views/routeContext';
+
+import MessageFormatter from './messageFormatter';
 
 const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
   {

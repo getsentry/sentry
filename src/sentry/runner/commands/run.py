@@ -551,6 +551,30 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()
 
 
+@run.command("region-to-control-consumer")
+@log_options()
+@click.option(
+    "region_name",
+    "--region-name",
+    required=True,
+    help="Regional name to run the consumer for",
+)
+@batching_kafka_options("region-to-control-consumer")
+@configuration
+def region_to_control_consumer(region_name, **kafka_options):
+    """
+    Runs a "region -> consumer" task.
+
+    Processes specific even datums like UserIP that are produced in region silos but updated in control silos.
+    see region_to_control module
+    """
+    from sentry.region_to_control.consumer import get_region_to_control_consumer
+    from sentry.utils import metrics
+
+    with metrics.global_tags(region_name=region_name):
+        get_region_to_control_consumer(**kafka_options).run()
+
+
 @run.command("ingest-metrics-consumer-2")
 @log_options()
 @click.option("--topic", default="ingest-metrics", help="Topic to get metrics data from.")
@@ -632,6 +656,17 @@ def metrics_parallel_consumer(**options):
 
     initialize_global_consumer_state(ingest_config)
     streamer.run()
+
+
+@run.command("billing-metrics-consumer")
+@log_options()
+@batching_kafka_options("billing-metrics-consumer")
+@configuration
+def metrics_billing_consumer(**options):
+    from sentry.ingest.billing_metrics_consumer import get_metrics_billing_consumer
+
+    consumer = get_metrics_billing_consumer(**options)
+    consumer.run()
 
 
 @run.command("ingest-profiles")

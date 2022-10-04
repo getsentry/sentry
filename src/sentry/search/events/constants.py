@@ -293,5 +293,4 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "user_misery",
         "count_unique",
     ],
-    "generic_counter": [],
 }

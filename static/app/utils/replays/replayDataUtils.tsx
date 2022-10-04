@@ -10,12 +10,21 @@ import type {
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {
+  MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
+
+export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
+  return span.op === 'memory';
+};
+
+export const isNetworkSpan = (span: ReplaySpan) => {
+  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
+};
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   return {
@@ -70,9 +79,13 @@ export function breadcrumbFactory(
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
     category: 'exception',
-    message: error['error.value'],
+    message: error.title,
     data: {
-      label: error['error.type'],
+      label: error['error.type'].join(''),
+      eventId: error.id,
+      groupId: error['issue.id'] || 1,
+      groupShortId: error.issue || 'POKEDEX-4NN',
+      project: error['project.name'],
     },
     timestamp: error.timestamp,
   }));
@@ -144,7 +157,13 @@ export function breadcrumbFactory(
 }
 
 export function spansFactory(spans: ReplaySpan[]) {
-  return spans.sort((a, b) => a.startTimestamp - b.startTimestamp);
+  return spans
+    .sort((a, b) => a.startTimestamp - b.startTimestamp)
+    .map(span => ({
+      ...span,
+      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
+      timestamp: span.startTimestamp * 1000,
+    }));
 }
 
 /**
@@ -154,22 +173,27 @@ export function spansFactory(spans: ReplaySpan[]) {
  * @deprecated Once the backend returns the corrected timestamps, this is not needed.
  */
 export function replayTimestamps(
+  replayRecord: ReplayRecord,
   rrwebEvents: RecordingEvent[],
   rawCrumbs: ReplayCrumb[],
   rawSpanData: ReplaySpan[]
 ) {
-  const rrwebTimestamps = rrwebEvents.map(event => event.timestamp);
+  const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
   const breadcrumbTimestamps = (
     rawCrumbs.map(rawCrumb => rawCrumb.timestamp).filter(Boolean) as number[]
-  ).map(timestamp => +new Date(timestamp * 1000));
+  )
+    .map(timestamp => +new Date(timestamp * 1000))
+    .filter(Boolean);
   const spanStartTimestamps = rawSpanData.map(span => span.startTimestamp * 1000);
   const spanEndTimestamps = rawSpanData.map(span => span.endTimestamp * 1000);
 
   return {
     startTimestampMs: Math.min(
+      replayRecord.startedAt.getTime(),
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
     ),
     endTimestampMs: Math.max(
+      replayRecord.finishedAt.getTime(),
       ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
     ),
   };

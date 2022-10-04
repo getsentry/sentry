@@ -17,7 +17,12 @@ from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
 
-FEATURE_NAME = ["organizations:server-side-sampling", "organizations:server-side-sampling-ui"]
+FEATURE_NAME = [
+    "organizations:server-side-sampling",
+    "organizations:server-side-sampling-ui",
+    "organizations:dynamic-sampling-basic",
+    "organizations:dynamic-sampling-advanced",
+]
 
 uniform_rule_with_recommended_sampling_values = {
     "id": 1,
@@ -93,7 +98,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/outcomes/insert", data=json.dumps(outcomes)
+                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert", data=json.dumps(outcomes)
             ).status_code
             == 200
         )
@@ -249,7 +254,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             action.perform()
 
             # Click on delete button
-            delete_buttons = self.browser.elements('[aria-label="Delete"]')
+            delete_buttons = self.browser.elements('[data-test-id="delete"]')
             action.click(delete_buttons[0])
             action.perform()
 

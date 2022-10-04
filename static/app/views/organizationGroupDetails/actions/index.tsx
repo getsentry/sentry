@@ -391,7 +391,6 @@ class Actions extends Component<Props, State> {
         </GuideAnchor>
         <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
           <IgnoreActions
-            issueCategory={group.issueCategory}
             isIgnored={isIgnored}
             onUpdate={this.onUpdate}
             disabled={disabled}
@@ -482,12 +481,12 @@ class Actions extends Component<Props, State> {
 }
 
 const Wrapper = styled('div')`
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   justify-content: flex-start;
   align-items: center;
   grid-auto-flow: column;
   gap: ${space(0.5)};
-  margin-top: ${space(2)};
   white-space: nowrap;
 `;
 

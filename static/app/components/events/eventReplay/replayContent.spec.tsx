@@ -1,17 +1,26 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import ReplayContent from './replayContent';
 
-const testOrgSlug = 'sentry-emerging-tech';
-const testReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
+const mockOrgSlug = 'sentry-emerging-tech';
+const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 
-const mockStartedAt = 'Sep 12, 2022 11:29:13 PM UTC';
-const mockFinishedAt = 'Sep 15, 2022 17:22:07 PM UTC';
+const mockStartedAt = 'Sep 22, 2022 4:58:39 PM UTC';
+const mockFinishedAt = 'Sep 22, 2022 5:00:03 PM UTC';
 
-const mockReplayDuration = 670; // seconds (11 minutes, 10 seconds)
+const mockReplayDuration = 84; // seconds
+
+const mockEvent = {
+  ...TestStubs.Event(),
+  dateCreated: '2022-09-22T16:59:41.596000Z',
+};
+
+const mockButtonHref =
+  '/organizations/sentry-emerging-tech/replays/replays:761104e184c64d439ee1014b72b4d83b/?t=62&t_main=console';
 
 // Mock screenfull library
 jest.mock('screenfull', () => ({
@@ -23,79 +32,15 @@ jest.mock('screenfull', () => ({
   off: jest.fn(),
 }));
 
-// Mock replay object with the props we need for ReplayContent
-const mockReplay: Partial<ReplayReader> = {
-  getReplay: () => ({
-    userAgent:
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36',
-    title: '',
-    projectId: '6273278',
-    platform: 'javascript',
-    releases: ['1.0.0', '2.0.0'],
-    dist: '',
-    traceIds: [],
-    errorIds: ['5c83aaccfffb4a708ae893bad9be3a1c'],
+// Get replay data with the mocked replay reader params
+const replayReaderParams = TestStubs.ReplayReaderParams({
+  replayRecord: {
     startedAt: new Date(mockStartedAt),
     finishedAt: new Date(mockFinishedAt),
     duration: mockReplayDuration,
-    countSegments: 14,
-    countErrors: 1,
-    id: '761104e184c64d439ee1014b72b4d83b',
-    longestTransaction: 0,
-    environment: 'demo',
-    tags: {},
-    user: {
-      id: '',
-      name: '',
-      email: '',
-      ip_address: '127.0.0.1',
-      displayName: '127.0.0.1',
-    },
-    sdk: {
-      name: 'sentry.javascript.browser',
-      version: '7.1.1',
-    },
-    os: {
-      name: 'Other',
-      version: '',
-    },
-    browser: {
-      name: 'Other',
-      version: '',
-    },
-    device: {
-      name: '',
-      brand: '',
-      model: '',
-      family: 'Other',
-    },
-    urls: ['http://localhost:3000/'],
-    countUrls: 1,
-  }),
-  getRRWebEvents: () => [
-    {
-      type: 4,
-      data: {
-        href: 'http://localhost:3000/',
-        width: 1536,
-        height: 824,
-      },
-      timestamp: 1663025353247,
-    },
-    {
-      type: 4,
-      data: {
-        href: 'http://localhost:3000/',
-        width: 1536,
-        height: 151,
-      },
-      timestamp: 1663025450243,
-    },
-  ],
-  getDurationMs() {
-    return mockReplayDuration * 1000; // milliseconds
   },
-};
+});
+const mockReplay = ReplayReader.factory(replayReaderParams);
 
 // Mock useReplayData hook to return the mocked replay data
 jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
@@ -110,6 +55,15 @@ jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
   };
 });
 
+const render: typeof baseRender = children => {
+  return baseRender(
+    <OrganizationContext.Provider value={TestStubs.Organization()}>
+      {children}
+    </OrganizationContext.Provider>,
+    {context: TestStubs.routerContext()}
+  );
+};
+
 describe('ReplayContent', () => {
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
@@ -120,7 +74,13 @@ describe('ReplayContent', () => {
       };
     });
 
-    render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />);
+    render(
+      <ReplayContent
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        event={mockEvent}
+      />
+    );
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -136,35 +96,43 @@ describe('ReplayContent', () => {
     });
 
     expect(() =>
-      render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />)
+      render(
+        <ReplayContent
+          orgSlug={mockOrgSlug}
+          replaySlug={mockReplaySlug}
+          event={mockEvent}
+        />
+      )
     ).toThrow();
   });
 
+  it('Should render details button when there is a replay', () => {
+    render(
+      <ReplayContent
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        event={mockEvent}
+      />
+    );
+
+    const detailButton = screen.getByTestId('view-replay-button');
+    expect(detailButton).toBeVisible();
+
+    // Expect the details button to have the correct href
+    expect(detailButton).toHaveAttribute('href', mockButtonHref);
+  });
+
   it('Should render all its elements correctly', () => {
-    render(<ReplayContent orgSlug={testOrgSlug} replaySlug={testReplaySlug} />);
+    render(
+      <ReplayContent
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        event={mockEvent}
+      />
+    );
 
     // Expect replay view to be rendered
-    expect(screen.getByText('Replay')).toBeInTheDocument();
+    expect(screen.getByText('Replays')).toBeVisible();
     expect(screen.getByTestId('player-container')).toBeInTheDocument();
-
-    // Expect Id to be correct
-    expect(screen.getByText('Id')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-id')).toHaveTextContent(
-      mockReplay.getReplay?.().id ?? ''
-    );
-
-    // Expect Duration value to be correct
-    expect(screen.getByText('URL')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-duration')).toHaveTextContent('11 minutes');
-
-    // Expect Timestamp value to be correct
-    expect(screen.getByText('Timestamp')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-timestamp')).toHaveTextContent(mockStartedAt);
-
-    // Expect the URL value to be correct
-    expect(screen.getByText('Duration')).toBeInTheDocument();
-    expect(screen.getByTestId('replay-url')).toHaveTextContent(
-      mockReplay.getReplay?.().urls[0] ?? ''
-    );
   });
 });

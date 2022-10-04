@@ -218,11 +218,11 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     ) -> Sequence[Mapping[str, Any]]:
         [owner, name] = repo.name.split("/")
         query = f"""query {{
-            repository(name: {name}, owner: {owner}) {{
-                ref(qualifiedName: {ref}) {{
+            repository(name: "{name}", owner: "{owner}") {{
+                ref(qualifiedName: "{ref}") {{
                     target {{
                         ... on Commit {{
-                            blame(path: {path}) {{
+                            blame(path: "{path}") {{
                                 ranges {{
                                         commit {{
                                             oid
@@ -231,6 +231,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                                                 email
                                             }}
                                             message
+                                            committedDate
                                         }}
                                     startingLine
                                     endingLine
@@ -252,7 +253,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             .get("repository", {})
             .get("ref", {})
             .get("target", {})
-            .get("blame", [])
+            .get("blame", {})
+            .get("ranges", [])
         )
         return results
 

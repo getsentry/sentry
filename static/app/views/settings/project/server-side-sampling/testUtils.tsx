@@ -1,9 +1,10 @@
+import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization, Project} from 'sentry/types';
+import {Organization, Outcome, Project} from 'sentry/types';
 import {
   RecommendedSdkUpgrade,
   SamplingConditionOperator,
@@ -15,7 +16,6 @@ import {
   SamplingSdkVersion,
 } from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {Outcome} from 'sentry/views/organizationStats/types';
 import {RouteContext} from 'sentry/views/routeContext';
 import ServerSideSampling from 'sentry/views/settings/project/server-side-sampling';
 
@@ -164,7 +164,11 @@ export function getMockData({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
-      features: ['server-side-sampling', 'server-side-sampling-ui'],
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
       access: access ?? initializeOrg().organization.access,
       projects,
     },
@@ -180,25 +184,35 @@ export function TestComponent({
 }: {
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
+  router?: InjectedRouter;
   withModal?: boolean;
 }) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {
-          orgId: organization.slug,
-          projectId: project.slug,
-        },
-        routes: [],
-      }}
-    >
+  const children = (
+    <Fragment>
       {withModal && <GlobalModal />}
       <OrganizationContext.Provider value={organization}>
         <ServerSideSampling project={project} />
       </OrganizationContext.Provider>
-    </RouteContext.Provider>
+    </Fragment>
   );
+
+  if (router) {
+    return (
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    );
+  }
+
+  return children;
 }

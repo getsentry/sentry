@@ -226,17 +226,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
             border-top-color: ${theme.background};
           }
         }
-        .context-summary .context-item.darwin .context-item-icon,
-        .context-summary .context-item.ios .context-item-icon,
-        .context-summary .context-item.macos .context-item-icon,
-        .context-summary .context-item.tvos .context-item-icon,
-        .context-summary .context-item.mac-os-x .context-item-icon,
-        .context-summary .context-item.mac .context-item-icon,
-        .context-summary .context-item.apple .context-item-icon,
-        .context-summary .context-item.watchos .context-item-icon {
-          filter: invert(100%);
-          opacity: 0.8;
-        }
       `
     : ''}
 `;

@@ -1,5 +1,5 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import IgnoreActions from 'sentry/components/actions/ignore';
@@ -9,10 +9,8 @@ import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
 import {
   BaseGroup,
-  IssueCategory,
   IssueCategoryCapabilities,
   Project,
   ResolutionStatus,
@@ -24,7 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
-import IssueListSortOptions from './sortOptions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -35,11 +32,9 @@ type Props = {
   onDelete: () => void;
   onMerge: () => void;
   onShouldConfirm: (action: ConfirmAction) => boolean;
-  onSortChange: (sort: string) => void;
   onUpdate: (data?: any) => void;
   query: string;
   queryCount: number;
-  sort: string;
   selectedProjectSlug?: string;
 };
 
@@ -55,8 +50,6 @@ function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
-  sort,
-  onSortChange,
 }: Props) {
   const organization = useOrganization();
   const numIssues = issues.size;
@@ -111,13 +104,6 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
-
-  // If at least one Performance Issue is selected, some of the ignore dropdown options must be disabled.
-  const issueCategory: IssueCategory = selectedIssues.some(
-    issue => issue?.issueCategory === IssueCategory.PERFORMANCE
-  )
-    ? IssueCategory.PERFORMANCE
-    : IssueCategory.ERROR;
 
   const menuItems: MenuItemProps[] = [
     {
@@ -204,7 +190,7 @@ function ActionSet({
   ];
 
   return (
-    <Wrapper>
+    <Fragment>
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
@@ -249,11 +235,8 @@ function ActionSet({
       <IgnoreActions
         onUpdate={onUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-        confirmMessage={statusDetails =>
-          confirm({action: ConfirmAction.IGNORE, canBeUndone: true, statusDetails})
-        }
+        confirmMessage={() => confirm({action: ConfirmAction.IGNORE, canBeUndone: true})}
         confirmLabel={label('ignore')}
-        issueCategory={issueCategory}
         disabled={ignoreDisabled}
       />
       {!nestMergeAndReview && (
@@ -284,8 +267,7 @@ function ActionSet({
         }}
         isDisabled={!anySelected}
       />
-      <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-    </Wrapper>
+    </Fragment>
   );
 }
 
@@ -305,19 +287,3 @@ function isActionSupported(
 }
 
 export default ActionSet;
-
-const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    width: 66.66%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
-    width: 50%;
-  }
-  flex: 1;
-  margin: 0 ${space(1)};
-  display: grid;
-  gap: ${space(0.5)};
-  grid-auto-flow: column;
-  justify-content: flex-start;
-  white-space: nowrap;
-`;

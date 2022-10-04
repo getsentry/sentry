@@ -1,10 +1,16 @@
 import space from 'sentry/styles/space';
+import {Theme} from 'sentry/utils/theme';
+
+type Options = {
+  theme: Theme;
+  minHeight?: number;
+};
 
 /**
  * Note this is an object for `react-mentions` component and
  * not a styled component/emotion style
  */
-export default function mentionStyle({theme, minHeight}) {
+export default function mentionStyle({theme, minHeight}: Options) {
   return {
     control: {
       backgroundColor: `${theme.background}`,
@@ -35,7 +41,7 @@ export default function mentionStyle({theme, minHeight}) {
 
     '&multiLine': {
       control: {
-        fontFamily: 'Rubik, Avenir Next, Helvetica Neue, sans-serif',
+        fontFamily: theme.text.family,
         minHeight,
       },
 
@@ -59,15 +65,16 @@ export default function mentionStyle({theme, minHeight}) {
         overflow: 'auto',
         backgroundColor: `${theme.background}`,
         border: '1px solid rgba(0,0,0,0.15)',
-        fontSize: 12,
+        borderRadius: theme.borderRadius,
+        fontSize: theme.fontSizeSmall,
+        padding: space(0.5),
       },
 
       item: {
         padding: '5px 15px',
-        borderBottom: '1px solid rgba(0,0,0,0.15)',
-
+        borderRadius: theme.borderRadius,
         '&focused': {
-          backgroundColor: `${theme.backgroundSecondary}`,
+          backgroundColor: theme.hover,
         },
       },
     },

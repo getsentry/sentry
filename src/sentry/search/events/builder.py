@@ -102,6 +102,7 @@ from sentry.utils.snuba import (
     bulk_snql_query,
     is_duration_measurement,
     is_measurement,
+    is_numeric_measurement,
     is_percentage_measurement,
     is_span_op_breakdown,
     raw_snql_query,
@@ -137,12 +138,14 @@ class QueryBuilder:
         # used to allow metric alerts to be built and validated before creation in snuba.
         skip_time_conditions: bool = False,
         parser_config_overrides: Optional[Mapping[str, Any]] = None,
+        has_metrics: bool = False,
     ):
         self.dataset = dataset
 
         self.params = params
 
         self.organization_id = params.get("organization_id")
+        self.has_metrics = has_metrics
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
@@ -505,6 +508,7 @@ class QueryBuilder:
                 equations,
                 stripped_columns,
                 **self.equation_config,
+                custom_measurements=self.get_custom_measurement_names_set(),
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
@@ -847,18 +851,26 @@ class QueryBuilder:
     @cached_property  # type: ignore
     def custom_measurement_map(self) -> List[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
-        if "project_id" not in self.params or self.organization_id is None:
+        if "project_id" not in self.params or self.organization_id is None or not self.has_metrics:
             return []
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
-        result: List[MetricMeta] = get_custom_measurements(
-            project_ids=self.params["project_id"],
-            organization_id=self.organization_id,
-            start=datetime.today() - timedelta(days=90),
-            end=datetime.today(),
-        )
+        try:
+            result: List[MetricMeta] = get_custom_measurements(
+                project_ids=self.params["project_id"],
+                organization_id=self.organization_id,
+                start=datetime.today() - timedelta(days=90),
+                end=datetime.today(),
+            )
+        # Don't fully fail if we can't get the CM, but still capture the exception
+        except Exception as error:
+            sentry_sdk.capture_exception(error)
+            return []
         return result
+
+    def get_custom_measurement_names_set(self) -> Set[str]:
+        return {measurement["name"] for measurement in self.custom_measurement_map}
 
     def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
@@ -877,9 +889,11 @@ class QueryBuilder:
             or is_span_op_breakdown(field)
         ):
             return "duration"
-
-        if is_percentage_measurement(field):
+        elif is_percentage_measurement(field):
             return "percentage"
+        elif is_numeric_measurement(field):
+            return "number"
+
         measurement = self.get_measument_by_name(field)
         # let the caller decide what to do
         if measurement is None:
@@ -1051,14 +1065,21 @@ class QueryBuilder:
         else:
             return [operator(conditions=combined_conditions)]
 
-    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
-        return aggregate_filter.value
+    def resolve_measurement_value(self, unit: str, value: float) -> float:
+        if unit in SIZE_UNITS:
+            return SIZE_UNITS[unit] * value
+        elif unit in DURATION_UNITS:
+            return DURATION_UNITS[unit] * value
+        return value
 
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
-        value = self.resolve_aggregate_value(aggregate_filter).value
+        value = aggregate_filter.value.value
+        unit = self.get_function_result_type(aggregate_filter.key.name)
+        if unit:
+            value = self.resolve_measurement_value(unit, value)
 
         value = (
             int(to_timestamp(value))
@@ -1080,6 +1101,13 @@ class QueryBuilder:
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
         name = search_filter.key.name
+        value = search_filter.value.value
+        if value and (measurement_meta := self.get_measument_by_name(name)):
+            unit = measurement_meta.get("unit")
+            value = self.resolve_measurement_value(unit, value)
+            search_filter = SearchFilter(
+                search_filter.key, search_filter.operator, SearchValue(value)
+            )
 
         if name in NO_CONVERSION_FIELDS:
             return None
@@ -1320,6 +1348,7 @@ class UnresolvedQuery(QueryBuilder):
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
+        has_metrics: bool = False,
     ):
         super().__init__(
             dataset=dataset,
@@ -1337,6 +1366,7 @@ class UnresolvedQuery(QueryBuilder):
             turbo=turbo,
             sample_rate=sample_rate,
             equation_config=equation_config,
+            has_metrics=has_metrics,
         )
 
     def resolve_query(
@@ -1364,6 +1394,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         equations: Optional[List[str]] = None,
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
+        has_metrics: bool = False,
     ):
         super().__init__(
             dataset,
@@ -1374,6 +1405,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             auto_fields=False,
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
+            has_metrics=has_metrics,
         )
 
         self.granularity = Granularity(interval)
@@ -1753,6 +1785,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
+        # always true if this is being called
+        kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -1922,15 +1956,6 @@ class MetricsQueryBuilder(QueryBuilder):
         conditions = super().resolve_params()
         conditions.append(Condition(self.column("organization_id"), Op.EQ, self.organization_id))
         return conditions
-
-    def resolve_aggregate_value(self, aggregate_filter: AggregateFilter) -> SearchValue:
-        unit = self.get_function_result_type(aggregate_filter.key.name)
-        value = aggregate_filter.value.value
-        if unit in SIZE_UNITS:
-            return SearchValue(SIZE_UNITS[unit] * value)
-        elif unit in DURATION_UNITS:
-            return SearchValue(DURATION_UNITS[unit] * value)
-        return aggregate_filter.value
 
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
@@ -2456,7 +2481,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             dry_run=dry_run,
         )
-        if self.granularity.granularity >= interval:
+        if self.granularity.granularity > interval:
             for granularity in METRICS_GRANULARITIES:
                 if granularity < interval:
                     self.granularity = Granularity(granularity)

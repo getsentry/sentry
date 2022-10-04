@@ -11,7 +11,6 @@ import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {SentryReplayInit} from 'sentry/components/sentryReplayInit';
 import Sidebar from 'sentry/components/sidebar';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -283,12 +282,6 @@ class OrganizationContextContainer extends Component<Props, State> {
     });
   }
 
-  getOrganizationDetailsEndpoint() {
-    return `/organizations/${OrganizationContextContainer.getOrganizationSlug(
-      this.props
-    )}/`;
-  }
-
   getTitle() {
     return this.state.organization?.name ?? 'Sentry';
   }
@@ -329,7 +322,6 @@ class OrganizationContextContainer extends Component<Props, State> {
       <SentryDocumentTitle noSuffix title={this.getTitle()}>
         <OrganizationContext.Provider value={this.state.organization}>
           <div className="app">
-            <SentryReplayInit organization={this.state.organization} />
             {this.state.hooks}
             {this.renderSidebar()}
             {this.props.children}

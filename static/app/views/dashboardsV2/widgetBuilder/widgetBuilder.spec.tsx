@@ -251,6 +251,12 @@ describe('WidgetBuilder', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/transaction.duration/values/',
+      method: 'GET',
+      body: [],
+    });
+
     TagStore.reset();
   });
 
@@ -1658,6 +1664,29 @@ describe('WidgetBuilder', function () {
         '/organizations/org-slug/events-stats/',
         expectedArgs
       );
+    });
+
+    it('disables add widget button and prevents widget previewing from firing widget query if widget query condition is invalid', async function () {
+      renderTestComponent({
+        orgFeatures: [...defaultOrgFeatures],
+      });
+      userEvent.click(await screen.findByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+
+      userEvent.type(
+        screen.getByTestId('smart-search-input'),
+        'transaction.duration:123a'
+      );
+
+      // Unfocus input
+      userEvent.click(screen.getByText('Filter your results'));
+
+      await waitFor(() =>
+        expect(screen.getByText('Add Widget').closest('button')).toBeDisabled()
+      );
+      expect(screen.getByText('Widget query condition is invalid.')).toBeInTheDocument();
+      expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     });
 
     describe('Widget Library', function () {

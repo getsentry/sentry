@@ -8,6 +8,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import ReplayHighlight from 'sentry/components/replays/replayHighlight';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import TimeSince from 'sentry/components/timeSince';
@@ -113,7 +114,17 @@ function ReplayTable({isFetching, replays, showProjectColumn, sort, fetchError}:
       fieldName="countErrors"
       label={t('Errors')}
     />,
-    t('Activity'),
+
+    <Header key="activity">
+      {t('Activity')}{' '}
+      <QuestionTooltip
+        size="xs"
+        position="top"
+        title={t(
+          'Activity represents how much user activity happened in a replay. It is determined by the number of errors encountered, duration, and UI events.'
+        )}
+      />
+    </Header>,
   ].filter(Boolean);
 
   if (fetchError && !isFetching) {
@@ -195,7 +206,7 @@ function ReplayTableRow({
       <Item>
         <Duration seconds={Math.floor(replay.duration)} exact abbreviation />
       </Item>
-      <Item>{replay.countErrors || 0}</Item>
+      <Item data-test-id="replay-table-count-errors">{replay.countErrors || 0}</Item>
       <Item>
         <ReplayHighlight replay={replay} />
       </Item>
@@ -248,6 +259,13 @@ const StyledAlert = styled(Alert)`
   bottom: 0.5px;
   grid-column-start: span 99;
   margin-bottom: 0;
+`;
+
+const Header = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: ${space(0.5)};
+  align-items: center;
 `;
 
 export default ReplayTable;

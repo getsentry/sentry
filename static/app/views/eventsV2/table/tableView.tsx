@@ -24,7 +24,11 @@ import EventView, {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  DURATION_UNITS,
+  getFieldRenderer,
+  SIZE_UNITS,
+} from 'sentry/utils/discover/fieldRenderers';
 import {
   Column,
   fieldAlignment,
@@ -67,6 +71,7 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  isHomepage?: boolean;
   spanOperationBreakdownKeys?: string[];
 };
 
@@ -106,7 +111,7 @@ class TableView extends Component<TableViewProps> {
     dataRow?: any,
     rowIndex?: number
   ): React.ReactNode[] => {
-    const {organization, eventView, tableData, location} = this.props;
+    const {organization, eventView, tableData, location, isHomepage} = this.props;
     const hasAggregates = eventView.hasAggregateField();
     const hasIdField = eventView.hasIdField();
 
@@ -172,6 +177,7 @@ class TableView extends Component<TableViewProps> {
         orgSlug: organization.slug,
         eventSlug,
         eventView,
+        isHomepage,
       });
 
       return [
@@ -235,7 +241,8 @@ class TableView extends Component<TableViewProps> {
     rowIndex: number,
     columnIndex: number
   ): React.ReactNode => {
-    const {isFirstPage, eventView, location, organization, tableData} = this.props;
+    const {isFirstPage, eventView, location, organization, tableData, isHomepage} =
+      this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -265,6 +272,7 @@ class TableView extends Component<TableViewProps> {
         orgSlug: organization.slug,
         eventSlug,
         eventView,
+        isHomepage,
       });
 
       cell = (
@@ -294,6 +302,12 @@ class TableView extends Component<TableViewProps> {
       }
     }
 
+    const topResultsIndicator =
+      isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
+        // Add one if we need to include Other in the series
+        <TopResultsIndicator count={count} index={rowIndex} />
+      ) : null;
+
     const fieldName = columnKey;
     const value = dataRow[fieldName];
     if (tableData.meta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -303,6 +317,7 @@ class TableView extends Component<TableViewProps> {
           containerDisplayMode="block"
           position="right"
         >
+          {topResultsIndicator}
           <CellAction
             column={column}
             dataRow={dataRow}
@@ -316,10 +331,7 @@ class TableView extends Component<TableViewProps> {
 
     return (
       <Fragment>
-        {isFirstPage && isTopEvents && rowIndex < topEvents && columnIndex === 0 ? (
-          // Add one if we need to include Other in the series
-          <TopResultsIndicator count={count} index={rowIndex} />
-        ) : null}
+        {topResultsIndicator}
         <CellAction
           column={column}
           dataRow={dataRow}
@@ -364,7 +376,8 @@ class TableView extends Component<TableViewProps> {
 
   handleCellAction = (dataRow: TableDataRow, column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, organization, projects, location} = this.props;
+      const {eventView, organization, projects, location, tableData, isHomepage} =
+        this.props;
 
       const query = new MutableSearch(eventView.query);
 
@@ -429,17 +442,30 @@ class TableView extends Component<TableViewProps> {
             function: ['count', '', undefined, undefined],
           });
 
-          browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
+          browserHistory.push(
+            nextView.getResultsViewUrlTarget(organization.slug, isHomepage)
+          );
 
           return;
         }
         default: {
-          updateQuery(query, action, column, value);
+          // Some custom perf metrics have units.
+          // These custom perf metrics need to be adjusted to the correct value.
+          let cellValue = value;
+          const unit = tableData?.meta?.units?.[column.name];
+          if (typeof cellValue === 'number' && unit) {
+            if (Object.keys(SIZE_UNITS).includes(unit)) {
+              cellValue *= SIZE_UNITS[unit];
+            } else if (Object.keys(DURATION_UNITS).includes(unit)) {
+              cellValue *= DURATION_UNITS[unit];
+            }
+          }
+          updateQuery(query, action, column, cellValue);
         }
       }
       nextView.query = query.formatString();
 
-      const target = nextView.getResultsViewUrlTarget(organization.slug);
+      const target = nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
       // Get yAxis from location
       target.query.yAxis = decodeList(location.query.yAxis);
       browserHistory.push(target);
@@ -447,7 +473,7 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleUpdateColumns = (columns: Column[]): void => {
-    const {organization, eventView, location} = this.props;
+    const {organization, eventView, location, isHomepage} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -457,7 +483,10 @@ class TableView extends Component<TableViewProps> {
     });
 
     const nextView = eventView.withColumns(columns);
-    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(organization.slug);
+    const resultsViewUrlTarget = nextView.getResultsViewUrlTarget(
+      organization.slug,
+      isHomepage
+    );
     // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
     const previousYAxis = decodeList(location.query.yAxis);
     resultsViewUrlTarget.query.yAxis = previousYAxis.filter(yAxis =>
