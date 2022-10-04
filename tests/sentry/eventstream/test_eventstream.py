@@ -69,7 +69,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             is_transaction_event=is_transaction_event,
         )
 
-    @patch("sentry.eventstream.insert")
+    @patch("sentry.eventstream.insert", autospec=True)
     def test(self, mock_eventstream_insert):
         now = datetime.utcnow()
 
@@ -78,14 +78,20 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         # verify eventstream was called by EventManager
         insert_args, insert_kwargs = list(mock_eventstream_insert.call_args)
         assert not insert_args
-        assert insert_kwargs == {
-            "event": event,
+
+        group_state = {
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
+        }
+
+        assert insert_kwargs == {
+            "event": event,
+            **group_state,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
             "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)
@@ -99,7 +105,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
             == 1
         )
 
-    @patch("sentry.eventstream.insert")
+    @patch("sentry.eventstream.insert", autospec=True)
     def test_issueless(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
@@ -126,21 +132,25 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         )
         assert len(result["data"]) == 1
 
-    @patch("sentry.eventstream.insert")
+    @patch("sentry.eventstream.insert", autospec=True)
     def test_multiple_groups(self, mock_eventstream_insert):
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = None
         event.groups = [self.group]
         insert_args = ()
-        insert_kwargs = {
-            "event": event,
+        group_state = {
             "is_new_group_environment": True,
             "is_new": True,
             "is_regression": False,
+        }
+        insert_kwargs = {
+            "event": event,
+            **group_state,
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
             "received_timestamp": event.data["received"],
+            "group_states": [{"id": event.groups[0].id, **group_state}],
         }
 
         self.__produce_event(*insert_args, **insert_kwargs)
