@@ -4,6 +4,7 @@ Utilities related to proxying a request to a region silo
 
 import requests as external_request
 from requests import Response as external_response
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,6 +20,7 @@ def get_org_region(slug: str) -> str:
 
 
 def build_url(region: str, request: Request) -> str:
+    """Might need some changes to handle other format region address."""
     return region + request.path
 
 
@@ -30,8 +32,12 @@ def parse_response(response: external_response) -> Response:
 
 
 def proxy_request(request: Request, org_slug: str) -> Response:
+    """Take a django request opject and proxy it to a remote location given an org_slug"""
 
-    region_location = get_org_region(org_slug)
+    try:
+        region_location = get_org_region(org_slug)
+    except Organization.DoesNotExist:
+        raise NotFound(detail="Resource could not be found")
     target_url = build_url(region_location, request)
 
     query_params = getattr(request, request.method, None)
