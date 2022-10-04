@@ -2000,7 +2000,8 @@ def _calculate_span_grouping(jobs, projects):
             ):
                 continue
 
-            groupings = event.get_span_groupings()
+            with metrics.timer("event_manager.save.get_span_groupings.default"):
+                groupings = event.get_span_groupings()
             groupings.write_to_event(event.data)
 
             metrics.timing("save_event.transaction.span_count", len(groupings.results))
@@ -2013,7 +2014,10 @@ def _calculate_span_grouping(jobs, projects):
             # Try the second, looser config, and see how many groups it
             # generates for comparison against the base. Do not store changes,
             # record the number of generated unique groups.
-            experimental_groupings = event.get_span_groupings({"id": INCOMING_DEFAULT_CONFIG_ID})
+            with metrics.timer("event_manager.save.get_span_groupings.incoming"):
+                experimental_groupings = event.get_span_groupings(
+                    {"id": INCOMING_DEFAULT_CONFIG_ID}
+                )
 
             metrics.incr(
                 "save_event.transaction.span_group_count.incoming",
