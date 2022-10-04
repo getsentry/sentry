@@ -130,6 +130,12 @@ jobs:
       SENTRY_SILO_MODE: ${{ matrix.silo-mode }}
 
     steps:
+      - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
+        with:
+          # Avoid codecov error message related to SHA resolution:
+          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
+          fetch-depth: '2'
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
