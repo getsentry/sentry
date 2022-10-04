@@ -30,27 +30,19 @@ export function useSentryEvent<T extends Event>(
       return undefined;
     }
 
-    let unmounted = false;
-
     fetchSentryEvent<T>(api, organizationSlug, projectSlug, eventId)
       .then(transaction => {
-        if (unmounted) {
-          return;
-        }
         setRequestState({
           type: 'resolved',
           data: transaction,
         });
       })
       .catch(err => {
-        if (unmounted) {
-          return;
-        }
         setRequestState({type: 'errored', error: err});
       });
 
     return () => {
-      unmounted = true;
+      api.clear();
     };
   }, [api, organizationSlug, projectSlug, eventId]);
 
