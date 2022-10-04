@@ -1617,25 +1617,10 @@ class JavaScriptSmCacheStacktraceProcessor(JavaScriptStacktraceProcessor):
             new_frames = [new_frame]
             raw_frames = [raw_frame] if changed_raw else None
 
-            if features.has("javascript-console-error-tag", self.organization.id, actor=None):
-                suspected_console_errors = None
-                try:
-                    suspected_console_errors = self.suspected_console_errors(new_frames)
-                except Exception as exc:
-                    logger.error(
-                        "Failed to evaluate event for suspected JavaScript browser console error",
-                        exc_info=exc,
-                    )
-
-                try:
-                    with sentry_sdk.configure_scope() as scope:
-                        scope.set_tag("empty_stacktrace.js_console", suspected_console_errors)
-                except Exception as exc:
-                    logger.error(
-                        "Failed to tag issue with empty_stacktrace.js_console=%s for suspected JavaScript browser console error",
-                        suspected_console_errors,
-                        exc_info=exc,
-                    )
+            if features.has(
+                "organizations:javascript-console-error-tag", self.organization.id, actor=None
+            ):
+                self.tag_suspected_console_errors(new_frames)
 
             return new_frames, raw_frames, all_errors
 
