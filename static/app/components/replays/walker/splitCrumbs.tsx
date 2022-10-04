@@ -22,9 +22,9 @@ function splitCrumbs({
   onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const firstUrl = first(crumbs)?.data?.to;
+  const firstUrl = first(crumbs)?.data?.to?.split('?')?.[0];
   const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
-  const lastUrl = last(crumbs)?.data?.to;
+  const lastUrl = last(crumbs)?.data?.to?.split('?')?.[0];
 
   if (crumbs.length === 0) {
     // This one shouldn't overflow, but by including the component css stays
@@ -141,7 +141,7 @@ const Span = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
-  max-width: 120px;
+  max-width: 240px;
 `;
 
 const Link = styled('a')`
