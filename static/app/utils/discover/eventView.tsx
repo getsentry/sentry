@@ -188,15 +188,13 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
   }, []);
 };
 
-const decodeSorts = (location: Location): Array<Sort> => {
+export const decodeSorts = (location: Location): Array<Sort> => {
   const {query} = location;
 
   if (!query || !query.sort) {
     return [];
   }
-
   const sorts = decodeList(query.sort);
-
   return fromSorts(sorts);
 };
 
@@ -1172,9 +1170,13 @@ class EventView {
     return eventQuery;
   }
 
-  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewUrlTarget(
+    slug: string,
+    isHomepage: boolean = false
+  ): {pathname: string; query: Query} {
+    const target = isHomepage ? 'homepage' : 'results';
     return {
-      pathname: `/organizations/${slug}/discover/results/`,
+      pathname: `/organizations/${slug}/discover/${target}/`,
       query: this.generateQueryStringObject(),
     };
   }
