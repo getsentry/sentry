@@ -184,15 +184,11 @@ class StandardIntervalMixin:
             event,
             3,
             timestamp=now() - timedelta(minutes=1),
-            perf=True,
-            pass_txn_timestamp=True,
         )
         self.increment(
             event,
             2,
             timestamp=now() - timedelta(days=1, minutes=20),
-            perf=True,
-            pass_txn_timestamp=True,
         )
         data = {
             "interval": "1h",
@@ -319,6 +315,7 @@ class EventUniqueUserFrequencyConditionTestCase(
 class EventFrequencyPercentConditionTestCase(
     RuleTestCase,
     SnubaTestCase,
+    PerfIssueTransactionTestMixin,
 ):
     rule_cls = EventFrequencyPercentCondition
 
@@ -529,15 +526,11 @@ class EventFrequencyPercentConditionTestCase(
             event,
             1,
             timestamp=now() - timedelta(minutes=1),
-            perf=True,
-            pass_txn_timestamp=True,
         )
         self.increment(
             event,
             1,
             timestamp=now() - timedelta(days=1, minutes=20),
-            perf=True,
-            pass_txn_timestamp=True,
         )
         data = {
             "interval": "1h",
@@ -584,5 +577,4 @@ class PerformanceEventTestCase(
             user_id=data.get("user", uuid4().hex),
             fingerprint=data["fingerprint"],
             timestamp=None,
-            # timestamp=timestamp if pass_txn_timestamp else None,
         )
