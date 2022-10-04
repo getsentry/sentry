@@ -31,6 +31,8 @@ import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
+import {DEFAULT_EVENT_VIEW} from '../data';
+
 import {
   handleCreateQuery,
   handleDeleteQuery,
@@ -419,6 +421,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             if (isHomepage) {
               browserHistory.push({
                 pathname: location.pathname,
+                query: EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location),
               });
             }
           }}
