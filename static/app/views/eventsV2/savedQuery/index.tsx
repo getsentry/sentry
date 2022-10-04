@@ -34,6 +34,7 @@ import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 import {
   handleCreateQuery,
   handleDeleteQuery,
+  handleResetHomepageQuery,
   handleUpdateHomepageQuery,
   handleUpdateQuery,
 } from './utils';
@@ -117,9 +118,11 @@ type Props = DefaultProps & {
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  isHomepage?: boolean;
 };
 
 type State = {
+  canResetHomepage: boolean;
   isEditingQuery: boolean;
   isNewQuery: boolean;
 
@@ -133,6 +136,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // For a new unsaved query
     if (!savedQuery) {
       return {
+        canResetHomepage: prevState.canResetHomepage,
         isNewQuery: true,
         isEditingQuery: false,
         queryName: prevState.queryName || '',
@@ -148,6 +152,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // Switching from a SavedQuery to another SavedQuery
     if (savedEventView.id !== nextEventView.id) {
       return {
+        canResetHomepage: false,
         isNewQuery: false,
         isEditingQuery: false,
         queryName: '',
@@ -166,6 +171,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         : savedQuery.yAxis
     );
     return {
+      canResetHomepage: prevState.canResetHomepage,
       isNewQuery: false,
       isEditingQuery: !isEqualQuery || !isEqualYAxis,
 
@@ -195,6 +201,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   };
 
   state: State = {
+    canResetHomepage: !!this.props.isHomepage,
     isNewQuery: true,
     isEditingQuery: false,
 
@@ -389,13 +396,36 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderSaveAsHomepage() {
-    const {api, organization, eventView} = this.props;
+    const {canResetHomepage} = this.state;
+    const {api, organization, eventView, location, isHomepage} = this.props;
+    if (canResetHomepage) {
+      return (
+        <Button
+          key="reset-discover-homepage"
+          data-test-id="reset-discover-homepage"
+          onClick={() => {
+            handleResetHomepageQuery(api, organization);
+            this.setState({canResetHomepage: false});
+            if (isHomepage) {
+              browserHistory.push({
+                pathname: location.pathname,
+              });
+            }
+          }}
+        >
+          {t('Reset Discover Home')}
+          <FeatureBadge type="alpha" />
+        </Button>
+      );
+    }
+
     return (
       <Button
         key="save-query-as-homepage"
         data-test-id="save-query-as-homepage"
         onClick={() => {
           handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+          this.setState({canResetHomepage: true});
         }}
       >
         {t('Use as Discover Home')}

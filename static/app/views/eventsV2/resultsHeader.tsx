@@ -127,6 +127,7 @@ class ResultsHeader extends Component<Props, State> {
             updateCallback={() => this.fetchData()}
             yAxis={yAxis}
             router={router}
+            isHomepage={isHomepage}
           />
         </Layout.HeaderActions>
       </Layout.Header>
