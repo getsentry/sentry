@@ -2,12 +2,15 @@
 Utilities related to proxying a request to a region silo
 """
 
+from urllib.parse import urljoin
+
 import requests as external_request
 from requests import Response as external_response
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 
 
@@ -21,7 +24,8 @@ def get_org_region(slug: str) -> str:
 
 def build_url(region: str, request: Request) -> str:
     """Might need some changes to handle other format region address."""
-    return region + request.path
+    region_url = generate_region_url(region)
+    return urljoin(region_url, request.path)
 
 
 def parse_response(response: external_response) -> Response:

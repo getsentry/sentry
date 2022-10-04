@@ -14,7 +14,7 @@ SENTRY_REGION_CONFIG = [
     Region(
         name="region1",
         id=1,
-        address="http://region1.sentry.io",
+        address="region1",
         category=RegionCategory.MULTI_TENANT,
     ),
 ]
@@ -69,14 +69,14 @@ class ApiGatewayTestCase(APITestCase):
         super().setUp()
         responses.add(
             responses.GET,
-            "http://region1.sentry.io/get",
+            "http://region1.testserver/get",
             body=json.dumps({"proxy": True}),
             content_type="application/json",
             adding_headers={"test": "header"},
         )
         responses.add(
             responses.GET,
-            "http://region1.sentry.io/error",
+            "http://region1.testserver/error",
             body=json.dumps({"proxy": True}),
             status=400,
             content_type="application/json",
@@ -93,7 +93,9 @@ class ApiGatewayTestCase(APITestCase):
             return (200, request.headers, json.dumps(params).encode())
 
         responses.add_callback(
-            responses.GET, "http://region1.sentry.io/echo", return_request_params
+            responses.GET, "http://region1.testserver/echo", return_request_params
         )
 
-        responses.add_callback(responses.POST, "http://region1.sentry.io/echo", return_request_body)
+        responses.add_callback(
+            responses.POST, "http://region1.testserver/echo", return_request_body
+        )
