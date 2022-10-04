@@ -108,8 +108,8 @@ jobs:
         uses: ./.github/actions/artifacts
 
   backend-test-in-silo-modes:
-    if: needs.files-changed.outputs.backend == 'true'
-        && (
+    if:
+        (
              contains(github.ref, '/hc-')
           || contains(github.ref, 'hybrid-cloud')
         )
