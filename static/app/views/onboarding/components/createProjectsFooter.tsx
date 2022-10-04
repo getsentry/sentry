@@ -10,10 +10,10 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {createProject} from 'sentry/actionCreators/projects';
-import ProjectActions from 'sentry/actions/projectActions';
 import Button from 'sentry/components/button';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -72,7 +72,8 @@ export default function CreateProjectsFooter({
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       setPersistedOnboardingState(nextState);
 
-      responses.forEach(ProjectActions.createSuccess);
+      responses.forEach(data => ProjectsStore.onCreateSuccess(data, organization.slug));
+
       trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
         platforms: platforms.join(','),
         platform_count: platforms.length,
