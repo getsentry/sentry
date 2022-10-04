@@ -1,15 +1,19 @@
-from unittest.mock import Mock
+from collections import namedtuple
+from urllib.parse import parse_qs, parse_qsl, urlparse
 
 import responses
+from django.test import Client, RequestFactory
 from exam import fixture
 from requests.exceptions import SSLError
 
 import sentry.identity
-from sentry.identity.oauth2 import OAuth2CallbackView
+from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
+
+MockResponse = namedtuple("MockResponse", ["headers", "content"])
 
 
 @control_silo_test
@@ -17,6 +21,8 @@ class OAuth2CallbackViewTest(TestCase):
     def setUp(self):
         sentry.identity.register(DummyProvider)
         super().setUp()
+        self.request = RequestFactory().get("/")
+        self.request.subdomain = None
 
     def tearDown(self):
         super().tearDown()
@@ -35,11 +41,46 @@ class OAuth2CallbackViewTest(TestCase):
         responses.add(
             responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
         )
-        pipeline = IdentityProviderPipeline(request=Mock(), provider_key="dummy")
+
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
-        result = self.view.exchange_token(None, pipeline, code)
+        result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" in result
         assert "a-fake-token" == result["token"]
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://example.org/oauth/token"
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        assert data == {
+            "client_id": "123456",
+            "client_secret": "secret-value",
+            "code": "auth-code",
+            "grant_type": "authorization_code",
+            "redirect_uri": "http://testserver/extensions/default/setup/",
+        }
+
+    @responses.activate
+    def test_exchange_token_success_customer_domains(self):
+        responses.add(
+            responses.POST, "https://example.org/oauth/token", json={"token": "a-fake-token"}
+        )
+        self.request.subdomain = "albertos-apples"
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        code = "auth-code"
+        result = self.view.exchange_token(self.request, pipeline, code)
+        assert "token" in result
+        assert "a-fake-token" == result["token"]
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://example.org/oauth/token"
+        data = dict(parse_qsl(responses.calls[0].request.body))
+        assert data == {
+            "client_id": "123456",
+            "client_secret": "secret-value",
+            "code": "auth-code",
+            "grant_type": "authorization_code",
+            "redirect_uri": "http://testserver/extensions/default/setup/",
+        }
 
     @responses.activate
     def test_exchange_token_ssl_error(self):
@@ -49,9 +90,9 @@ class OAuth2CallbackViewTest(TestCase):
         responses.add_callback(
             responses.POST, "https://example.org/oauth/token", callback=ssl_error
         )
-        pipeline = IdentityProviderPipeline(request=Mock(), provider_key="dummy")
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
-        result = self.view.exchange_token(None, pipeline, code)
+        result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" not in result
         assert "error" in result
         assert "error_description" in result
@@ -60,10 +101,63 @@ class OAuth2CallbackViewTest(TestCase):
     @responses.activate
     def test_exchange_token_no_json(self):
         responses.add(responses.POST, "https://example.org/oauth/token", body="")
-        pipeline = IdentityProviderPipeline(request=Mock(), provider_key="dummy")
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
         code = "auth-code"
-        result = self.view.exchange_token(None, pipeline, code)
+        result = self.view.exchange_token(self.request, pipeline, code)
         assert "token" not in result
         assert "error" in result
         assert "error_description" in result
         assert "JSON" in result["error_description"]
+
+
+@control_silo_test
+class OAuth2LoginViewTest(TestCase):
+    def setUp(self):
+        sentry.identity.register(DummyProvider)
+        super().setUp()
+        self.request = RequestFactory().get("/")
+        self.request.session = Client().session
+        self.request.subdomain = None
+
+    def tearDown(self):
+        super().tearDown()
+        sentry.identity.unregister(DummyProvider)
+
+    @fixture
+    def view(self):
+        return OAuth2LoginView(
+            authorize_url="https://example.org/oauth2/authorize",
+            client_id=123456,
+            scope="all-the-things",
+        )
+
+    def test_simple(self):
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+
+        assert query["client_id"][0] == "123456"
+        assert query["redirect_uri"][0] == "http://testserver/extensions/default/setup/"
+        assert query["response_type"][0] == "code"
+        assert query["scope"][0] == "all-the-things"
+        assert "state" in query
+
+    def test_customer_domains(self):
+        self.request.subdomain = "albertos-apples"
+        pipeline = IdentityProviderPipeline(request=self.request, provider_key="dummy")
+        response = self.view.dispatch(self.request, pipeline)
+
+        assert response.status_code == 302
+        assert response["Location"].startswith("https://example.org/oauth2/authorize")
+        redirect_url = urlparse(response["Location"])
+        query = parse_qs(redirect_url.query)
+
+        assert query["client_id"][0] == "123456"
+        assert query["redirect_uri"][0] == "http://testserver/extensions/default/setup/"
+        assert query["response_type"][0] == "code"
+        assert query["scope"][0] == "all-the-things"
+        assert "state" in query
