@@ -1,4 +1,7 @@
-import {updateHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
+import {
+  deleteHomepageQuery,
+  updateHomepageQuery,
+} from 'sentry/actionCreators/discoverHomepageQueries';
 import {
   createSavedQuery,
   deleteSavedQuery,
@@ -225,6 +228,18 @@ export function handleUpdateHomepageQuery(
     })
     .catch(() => {
       addErrorMessage(t('Unable to set query as Discover home'));
+    });
+}
+
+export function handleResetHomepageQuery(api: Client, organization: Organization) {
+  const promise = deleteHomepageQuery(api, organization.slug);
+
+  return promise
+    .then(() => {
+      addSuccessMessage(t('Successfully reset Discover home'));
+    })
+    .catch(() => {
+      addErrorMessage(t('Unable to reset Discover home'));
     });
 }
 
