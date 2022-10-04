@@ -268,7 +268,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                                       s.marker
                                     }<strong>${
                                       s.seriesName &&
-                                      truncationFormatter(s.seriesName, 12)
+                                      truncationFormatter(s.seriesName, 32)
                                     }</strong></span>${s.data[1].toFixed(2)}%</div>`
                                 )
                                 .join(''),
