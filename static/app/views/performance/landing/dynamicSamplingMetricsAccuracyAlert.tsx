@@ -40,8 +40,6 @@ export function DynamicSamplingMetricsAccuracyAlert({
     organization.features.includes('server-side-sampling-ui') &&
     organization.features.includes('dynamic-sampling-performance-cta');
 
-  const hasAcces = organization.access.includes('project:write');
-
   const organizationStats = useOrganizationStats({
     organizationSlug: organization.slug,
     queryParameters: {
@@ -54,8 +52,8 @@ export function DynamicSamplingMetricsAccuracyAlert({
     },
     queryOptions: {
       enabled:
-        // Only show if all required feature flags are enabled, user has write access and a project is selected
-        requiredFeatureFlagsEnabled && hasAcces && !!selectedProject?.id,
+        // Only show if all required feature flags are enabled  and a project is selected
+        requiredFeatureFlagsEnabled && !!selectedProject?.id,
       staleTime: 1000 * 60 * 60, // a request will be considered fresh (or not stale) for 1 hour, dismissing the need for a new request
     },
   });
