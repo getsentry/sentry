@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict
+from typing import TYPE_CHECKING, Optional, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -21,6 +21,7 @@ from sentry.utils.services import build_instance_from_options
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+    from sentry.eventstream.base import GroupState
 
 logger = logging.getLogger("sentry")
 
@@ -29,7 +30,7 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 class PostProcessJob(TypedDict, total=False):
     event: "Event"
-    group_state: Dict[str, Any]
+    group_state: "GroupState"
     is_reprocessed: bool
     has_reappeared: bool
     has_alert: bool
