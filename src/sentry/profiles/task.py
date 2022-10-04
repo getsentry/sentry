@@ -238,9 +238,12 @@ def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List
             frame.pop("post_context", None)
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
-            # remove top frames related to the profiler
-            if frames[0].get("function", "") == "perf_signal_handler":
-                return stack[2:]
+            # remove top frames related to the profiler (top of the stack)
+            if frames[stack[0]].get("function", "") == "perf_signal_handler":
+                stack = stack[2:]
+            # remove unsymbolicated frames before the runtime calls (bottom of the stack)
+            if frames[stack[len(stack) - 2]].get("function", "") == "":
+                stack = stack[:-2]
             return stack
 
     elif profile["platform"] == "cocoa":
