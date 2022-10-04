@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List
 
 from django.utils import timezone
 from rest_framework import status
@@ -70,7 +69,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         sample_size,
         query,
         query_time_range,
-        extra_query_args=("event.type:transaction",),
     ):
         """
         Run query that gets total count of transactions with these conditions for the specified
@@ -216,44 +214,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         )["data"]
         return data
 
-    def parent_project_breakdown_post_processing(
-        self, project_id, query_time_range, project_breakdown, parent_trace_ids
-    ) -> List:
-        if project_breakdown is None:
-            return []
-        try:
-            project = next(item for item in project_breakdown if item["project_id"] == project_id)
-        except StopIteration:
-            return []
-        # Requesting for a single project or already root of distributed trace
-        if project["count()"] == project["count_root"] and project["count_non_root"] == 0:
-            return []
-
-        # Requesting for a project that is root for some transactions but not root for others and part of distributed trace like sentry
-        elif project["count_root"] > 0 and project["count_non_root"] > 0:
-            # GET project distribution of this trace_ids (for ONLY parent trace ids)
-            total_parent_trace_ids = len(parent_trace_ids)
-            parent_project_breakdown = self.__run_discover_query(
-                columns=[
-                    "project_id",
-                    "project",
-                    f"count() / {total_parent_trace_ids}",
-                ],
-                query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
-                params={
-                    "start": query_time_range.start_time,
-                    "end": query_time_range.end_time,
-                    "organization_id": project.organization.id,
-                },
-                limit=20,
-                referrer="dynamic-sampling.distribution.fetch-parent-project-breakdown",
-            )["data"]
-            return parent_project_breakdown
-
-        elif project["count()"] == project["count_non_root"] and project["count_root"] == 0:
-            return []
-        return []
-
     def get(self, request: Request, project) -> Response:
         """
         Generates distribution function values for client sample rates from a random sample of
@@ -312,30 +272,46 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 }
             )
         sample_size = len(transactions)
+<<<<<<< HEAD
+||||||| parent of 19e2853f58 (finish main flow)
+        sample_rates = sorted(
+            transaction.get("trace.client_sample_rate") for transaction in transactions
+        )
+        non_null_sample_rates = sorted(
+            float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
+        )
+
+=======
+        # TODO: (andrii) recheck it later if we want to filter by is_root_transaction == 1
+        sample_rates = sorted(
+            transaction.get("trace.client_sample_rate") for transaction in transactions
+        )
+        non_null_sample_rates = sorted(
+            float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
+        )
+
+>>>>>>> 19e2853f58 (finish main flow)
         project_breakdown = None
         parent_trace_ids = None
+        parent_project_breakdown = []
         if distributed_trace:
             # If the distributedTrace flag was enabled, then we are also interested in fetching
             # the project breakdown of the projects in the trace of the root transaction
 
             trace_ids = [transaction.get("trace") for transaction in transactions]
-            parent_trace_ids = [
-                transaction.get("trace")
-                for transaction in transactions
-                if transaction.get("count_root", 0) == 1
-            ]
 
             projects_in_org = Project.objects.filter(organization=project.organization).values_list(
                 "id", flat=True
             )
 
-            # Discover query to fetch parent projects
-            project_breakdown = self.__run_discover_query(
+            # Discover query to fetch parent projects (smart query)
+            projects_counts = self.__run_discover_query(
                 columns=[
                     "project_id",
                     "project",
                     "count()",
-                    'count_if(trace.parent_span, equals, "") as num_root_transaction',
+                    # TODO: (andrii) refactor using QueryBuilder
+                    'count_if(trace.parent_span, equals, "") as root',
                     'count_if(trace.parent_span, notEquals, "") as non_root',
                 ],
                 query=f"event.type:transaction trace:[{','.join(trace_ids)}]",
@@ -349,6 +325,70 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 referrer="dynamic-sampling.distribution.fetch-project-breakdown",
             )
 
+            # Requesting for a project that is root for some transactions,
+            # but not root for others and part of distributed trace like
+            root_projects_count = len(
+                [project for project in projects_counts if project["num_root_transaction"] > 0]
+            )
+            # get requested project id in projects_count dataset
+            try:
+                project = next(item for item in projects_counts if item["project_id"] == project.id)
+            except StopIteration:
+                project = None
+
+            # This condition covers all 3 cases (A, C, D):
+            if root_projects_count == 1 and project:
+                # build parent_project_breakdown
+                parent_project_breakdown = [{"project_id": project.id, "percentege": 1}]
+                project_breakdown = [{"project": project} for project in projects_counts]
+            # Case B: the most tricky one and requires extra query
+            elif root_projects_count > 1 and project:
+                parent_project_breakdown = []
+                total_count = sum(
+                    project["count()"] for project in projects_counts if project["root"] > 0
+                )
+                for project in projects_counts:
+                    if project["root"] > 0:
+                        parent_project_breakdown.append(
+                            {
+                                "project": project["project"],
+                                "project_id": project["project_id"],
+                                "percentege": project["root"] / total_count
+                                if total_count > 0
+                                else 0,
+                            }
+                        )
+                # loop over trace ids, and filter down trace ids where project is sentry
+                parent_trace_ids = [
+                    transaction.get("trace")
+                    for transaction in transactions
+                    if transaction.get("count_root", 0) == 1
+                    and transaction.get("project_id", 0) == project.id
+                ]
+                # and !has:trace.parent_span → project_breakdown attribute.
+                project_breakdown = self.__run_discover_query(
+                    columns=[
+                        "project_id",
+                        "project",
+                        "count()",
+                    ],
+                    query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
+                    params={
+                        "start": query_time_range.start_time,
+                        "end": query_time_range.end_time,
+                        "project_id": list(projects_in_org),
+                        "organization_id": project.organization.id,
+                    },
+                    limit=20,
+                    referrer="dynamic-sampling.distribution.fetch-project-breakdown",
+                )["data"]
+            # no data
+            else:
+                project_breakdown = None
+                parent_project_breakdown = []
+
+            # Get project breakdown
+
             # If the number of the projects in the breakdown is greater than 10 projects,
             # then a question needs to be raised on the eligibility of the org for dynamic sampling
             if len(project_breakdown) > 10:
@@ -358,10 +398,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                         "detail": "Way too many projects in the distributed trace's project breakdown"
                     },
                 )
-
-        parent_project_breakdown = self.parent_project_breakdown_post_processing(
-            project.id, query_time_range, project_breakdown, parent_trace_ids
-        )
 
         return Response(
             {
