@@ -29,6 +29,13 @@ export type IssueEventParameters = {
     group?: string;
     platform?: string;
   };
+  'issue_group_details.tab.clicked': {
+    tab: string;
+    browser?: string;
+    device?: string;
+    os?: string;
+    platform?: string;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -120,6 +127,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
+  'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
