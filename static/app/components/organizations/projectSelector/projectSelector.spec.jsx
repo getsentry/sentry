@@ -39,6 +39,8 @@ describe('ProjectSelector', function () {
   }
 
   const props = {
+    customDropdownButton: () => 'Project Picker',
+    customLoadingIndicator: () => 'Loading...',
     isGlobalSelectionReady: true,
     organization: mockOrg,
     memberProjects: [testProject, anotherProject],
