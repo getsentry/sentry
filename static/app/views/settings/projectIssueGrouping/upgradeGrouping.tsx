@@ -2,7 +2,6 @@ import {Fragment, useEffect} from 'react';
 import {Location} from 'history';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
@@ -10,6 +9,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import Field from 'sentry/components/forms/field';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import marked from 'sentry/utils/marked';
@@ -86,7 +86,7 @@ function UpgradeGrouping({
         }
       );
       clearIndicators();
-      ProjectActions.updateSuccess(response);
+      ProjectsStore.onUpdateSuccess(response);
       onUpgrade();
     } catch {
       handleXhrErrorResponse(t('Unable to upgrade config'));
