@@ -1,0 +1,40 @@
+from collections import OrderedDict
+from typing import Any
+
+from django import forms
+
+from sentry.eventstore.models import Event
+from sentry.rules import EventState
+from sentry.rules.filters import EventFilter
+from sentry.types.issues import GroupCategory
+
+CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", gc.name) for gc in GroupCategory])
+
+
+class IssueCategoryForm(forms.Form):
+    value = forms.ChoiceField(choices=list(CATEGORY_CHOICES.items()))
+
+
+class IssueCategoryFilter(EventFilter):
+    id = "sentry.rules.filters.issue_category.IssueCategoryFilter"
+    form_cls = IssueCategoryForm
+    form_fields = {"value": {"type": "choice", "choices": list(CATEGORY_CHOICES.items())}}
+    rule_type = "filter/event"
+    label = "The issue's category is equal to {value}"
+    prompt = "The issue's category is ..."
+
+    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+        try:
+            value: GroupCategory = GroupCategory(int(self.get_option("value")))
+        except (TypeError, ValueError):
+            return False
+
+        if event.group and event.group.issue_category:
+            return value == event.group.issue_category
+
+        if event.groups:
+            for group in event.groups:
+                if value == group.issue_category:
+                    return True
+
+        return False
