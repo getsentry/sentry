@@ -11,14 +11,35 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Query
 
-from sentry.snuba.metrics import MetricField, MetricsQuery
+from sentry.snuba.metrics import MetricConditionField, MetricField, MetricGroupByField, MetricsQuery
 from sentry.snuba.metrics.mqb_query_transformer import tranform_mqb_query_to_metrics_query
 
+"""
+Notes:
+- Parameter argument order for non column arguments should match the order of arguments after (aggregate_filter,
+org_id) or just (aggregate_filter) in the SnQL generator functions. As an example, if we define a histogram
+function in SnQL as:-
+Function(
+    function="histogram",
+    parameters=[
+        Column("d:transactions/duration@millisecond"),
+        0,  # histogram_from
+        5,  # histogram_to
+        5,  # num_buckets
+    ],
+    alias="histogram_transaction_duration",
+)
 
-class MetricGroupByField:
-    ...
+then the order of arguments after the Column argument (i.e. numeric arguments) should be histogram_from, histogram_to,
+num_buckets matching the order in the following SnQL generator function definition
 
+def histogram_snql_factory(aggregate_filter, histogram_from, histogram_to, histogram_buckets, alias)
 
+These SnQL function generators can be found in `sentry/src/sentry/snuba/metrics/fields/base.py`, and these are
+defined for all derived operations i.e. operations not supported by clickhouse like rate, count_web_vitals,
+histogram (as it requires extra logic over the clickhouse function supported by datasketch), team_key_transaction,
+and count_transaction_name (for unparameterized and None)
+"""
 # ToDo Test Invalid queries:= Transform Function, Tags in the select, Ordering by bucketed_time
 
 VALID_QUERIES_INTEGRATION_TEST_CASES = [
@@ -28,32 +49,27 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             match=Entity("generic_metrics_distributions"),
             select=[
                 Function(
-                    function="count_web_vitals_measurements",
-                    initializers=None,
+                    function="count_web_vitals",
                     parameters=[Column("d:transactions/measurements.cls@millisecond"), "good"],
                     alias="count_web_vitals_measurements_cls_good",
                 ),
                 Function(
-                    function="count_web_vitals_measurements",
-                    initializers=None,
+                    function="count_web_vitals",
                     parameters=[Column("d:transactions/measurements.fid@millisecond"), "meh"],
                     alias="count_web_vitals_measurements_fid_meh",
                 ),
                 Function(
-                    function="count_web_vitals_measurements",
-                    initializers=None,
+                    function="count_web_vitals",
                     parameters=[Column("d:transactions/measurements.fp@millisecond"), "good"],
                     alias="count_web_vitals_measurements_fp_good",
                 ),
                 Function(
-                    function="count_web_vitals_measurements",
-                    initializers=None,
+                    function="count_web_vitals",
                     parameters=[Column("d:transactions/measurements.lcp@millisecond"), "good"],
                     alias="count_web_vitals_measurements_lcp_good",
                 ),
                 Function(
-                    function="count_web_vitals_measurements",
-                    initializers=None,
+                    function="count_web_vitals",
                     parameters=[Column("d:transactions/measurements.fcp@millisecond"), "meh"],
                     alias="count_web_vitals_measurements_fcp_meh",
                 ),
@@ -62,9 +78,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 AliasedExpression(
                     exp=Column(
                         name="tags[transaction]",
-                        entity=None,
-                        subscriptable="tags",
-                        key="transaction",
                     ),
                     alias="transaction",
                 )
@@ -105,33 +118,33 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             project_ids=[11],
             select=[
                 MetricField(
-                    op="count_web_vitals_measurements",
-                    metric_name="d:transactions/measurements.cls@millisecond",
-                    args=["good"],
+                    op="count_web_vitals",
+                    metric_mri="d:transactions/measurements.cls@millisecond",
+                    params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_cls_good",
                 ),
                 MetricField(
-                    op="count_web_vitals_measurements",
-                    metric_name="d:transactions/measurements.fid@millisecond",
-                    args=["meh"],
+                    op="count_web_vitals",
+                    metric_mri="d:transactions/measurements.fid@millisecond",
+                    params={"measurement_rating": "meh"},
                     alias="count_web_vitals_measurements_fid_meh",
                 ),
                 MetricField(
-                    op="count_web_vitals_measurements",
-                    metric_name="d:transactions/measurements.fp@millisecond",
-                    args=["good"],
+                    op="count_web_vitals",
+                    metric_mri="d:transactions/measurements.fp@millisecond",
+                    params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_fp_good",
                 ),
                 MetricField(
-                    op="count_web_vitals_measurements",
-                    metric_name="d:transactions/measurements.lcp@millisecond",
-                    args=["good"],
+                    op="count_web_vitals",
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
+                    params={"measurement_rating": "good"},
                     alias="count_web_vitals_measurements_lcp_good",
                 ),
                 MetricField(
-                    op="count_web_vitals_measurements",
-                    metric_name="d:transactions/measurements.fcp@millisecond",
-                    args=["meh"],
+                    op="count_web_vitals",
+                    metric_mri="d:transactions/measurements.fcp@millisecond",
+                    params={"measurement_rating": "meh"},
                     alias="count_web_vitals_measurements_fcp_meh",
                 ),
             ],
@@ -139,7 +152,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             end=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729, tzinfo=pytz.utc),
             granularity=Granularity(granularity=3600),
             where=None,
-            groupby=[MetricGroupByField("transaction", alias=None)],
+            groupby=[MetricGroupByField("transaction")],
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,
@@ -152,13 +165,11 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 Function(
                     function="p95",
-                    initializers=None,
                     parameters=[Column("d:transactions/duration@millisecond")],
                     alias="p95",
                 ),
                 Function(
                     function="rate",
-                    initializers=None,
                     parameters=[
                         Column("d:transactions/duration@millisecond"),
                         60,
@@ -168,25 +179,23 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
                 Function(
                     function="e:transaction/failure_rate@ratio",
-                    initializers=None,
                     parameters=[],
                     alias="failure_rate",
                 ),
             ],
             groupby=[
                 AliasedExpression(
-                    exp=Column("transaction.status"),
+                    exp=Column("tags[transaction.status]"),
                     alias="transaction.status",
                 ),
                 Function(
-                    function="e:transactions/team_key_transactions@none",
-                    initializers=None,
+                    function="team_key_transaction",
                     parameters=[
                         [(13, "foo_transaction")],
                     ],
                     alias="team_key_transaction",
                 ),
-                AliasedExpression(exp=Column("transaction"), alias="title"),
+                AliasedExpression(exp=Column("tags[transaction]"), alias="title"),
                 Column("project_id"),
             ],
             array_join=None,
@@ -211,13 +220,23 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     op=Op.EQ,
                     rhs=14,
                 ),
+                Condition(
+                    lhs=Function(
+                        function="team_key_transaction",
+                        parameters=[
+                            [(13, "foo_transaction")],
+                        ],
+                        alias="team_key_transaction",
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
             ],
             having=[],
             orderby=[
                 OrderBy(
                     exp=Function(
                         function="p95",
-                        initializers=None,
                         parameters=[Column("d:transactions/duration@millisecond")],
                         alias="p95",
                     ),
@@ -236,39 +255,50 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 MetricField(
                     op="p95",
-                    metric_name="d:transactions/duration@millisecond",
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="p95",
                 ),
                 MetricField(
                     op="rate",
-                    metric_name="d:transactions/duration@millisecond",
-                    args=[60, 7776000.0],
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"denominator": 60, "numerator": 7776000.0},
                     alias="epm",
                 ),
                 MetricField(
                     op=None,
-                    metric_name="e:transaction/failure_rate@ratio",
+                    metric_mri="e:transaction/failure_rate@ratio",
                     alias="failure_rate",
                 ),
                 MetricField(
-                    op=None,
-                    metric_name="e:transactions/team_key_transactions@none",
-                    args=[[(20, "foo_transaction")]],
+                    op="team_key_transaction",
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"team_key_condition_rhs": [(20, "foo_transaction")]},
                     alias="team_key_transaction",
                 ),
             ],
             start=datetime.datetime(2022, 3, 24, 11, 11, 38, 32475, tzinfo=pytz.utc),
             end=datetime.datetime(2022, 6, 22, 11, 11, 38, 32475, tzinfo=pytz.utc),
             granularity=Granularity(granularity=3600),
-            where=None,
+            where=[
+                MetricConditionField(
+                    lhs=MetricField(
+                        op="team_key_transaction",
+                        metric_mri="d:transactions/duration@millisecond",
+                        params={"team_key_condition_rhs": [(20, "foo_transaction")]},
+                        alias="team_key_transaction",
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                )
+            ],
             groupby=[
                 MetricGroupByField("transaction.status"),
                 MetricGroupByField(
                     MetricField(
-                        op=None,
-                        metric_name="e:transactions/team_key_transactions@none",
-                        args=[[(20, "foo_transaction")]],
-                        alias="e:transactions/team_key_transactions@none",
+                        op="team_key_transaction",
+                        metric_mri="d:transactions/duration@millisecond",
+                        params={"team_key_condition_rhs": [(20, "foo_transaction")]},
+                        alias="team_key_transaction",
                     ),
                 ),
                 MetricGroupByField("project_id"),
@@ -277,17 +307,17 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             orderby=[
                 OrderBy(
                     field=MetricField(
-                        op=None,
-                        metric_name="e:transactions/team_key_transactions@none",
-                        args=[[(20, "foo_transaction")]],
-                        alias="e:transactions/team_key_transactions@none",
+                        op="team_key_transaction",
+                        metric_mri="d:transactions/duration@millisecond",
+                        params={"team_key_condition_rhs": [(20, "foo_transaction")]},
+                        alias="team_key_transaction",
                     ),
                     direction=Direction.ASC,
                 ),
                 OrderBy(
                     field=MetricField(
                         op="p95",
-                        metric_name="d:transactions/duration@millisecond",
+                        metric_mri="d:transactions/duration@millisecond",
                         alias="p95",
                     ),
                     direction=Direction.ASC,
@@ -305,13 +335,11 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 Function(
                     function="e:transactions/apdex@ratio",
-                    initializers=None,
                     parameters=[],
                     alias="apdex",
                 ),
                 Function(
                     function="p75",
-                    initializers=None,
                     parameters=[
                         Column("d:transactions/measurements.cls@millisecond"),
                     ],
@@ -319,7 +347,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
                 Function(
                     function="rate",
-                    initializers=None,
                     parameters=[
                         Column("d:transactions/duration@millisecond"),
                         60,
@@ -329,26 +356,23 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
                 Function(
                     function="p75",
-                    initializers=None,
                     parameters=[Column("d:transactions/measurements.fid@millisecond")],
                     alias="p75_measurements_fid",
                 ),
                 Function(
                     function="p75",
-                    initializers=None,
                     parameters=[Column("d:transactions/measurements.fcp@millisecond")],
                     alias="p75_measurements_fcp",
                 ),
                 Function(
                     function="p75",
-                    initializers=None,
                     parameters=[Column("d:transactions/measurements.lcp@millisecond")],
                     alias="p75_measurements_lcp",
                 ),
             ],
             groupby=[
                 AliasedExpression(
-                    exp=Column("transaction"),
+                    exp=Column("tags[transaction]"),
                     alias="transaction",
                 ),
                 Column("project_id"),
@@ -390,33 +414,33 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 MetricField(
                     op=None,
-                    metric_name="e:transactions/apdex@ratio",
+                    metric_mri="e:transactions/apdex@ratio",
                     alias="apdex",
                 ),
                 MetricField(
                     op="p75",
-                    metric_name="d:transactions/measurements.cls@millisecond",
+                    metric_mri="d:transactions/measurements.cls@millisecond",
                     alias="p75_measurement_cls",
                 ),
                 MetricField(
                     op="rate",
-                    metric_name="d:transactions/duration@millisecond",
-                    args=[60, 7776000.0],
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"denominator": 60, "numerator": 7776000.0},
                     alias="tpm",
                 ),
                 MetricField(
                     op="p75",
-                    metric_name="d:transactions/measurements.fid@millisecond",
+                    metric_mri="d:transactions/measurements.fid@millisecond",
                     alias="p75_measurement_fid",
                 ),
                 MetricField(
                     op="p75",
-                    metric_name="d:transactions/measurements.fcp@millisecond",
+                    metric_mri="d:transactions/measurements.fcp@millisecond",
                     alias="p75_measurement_fcp",
                 ),
                 MetricField(
                     op="p75",
-                    metric_name="d:transactions/measurements.lcp@millisecond",
+                    metric_mri="d:transactions/measurements.lcp@millisecond",
                     alias="p75_measurement_lcp",
                 ),
             ],
@@ -440,7 +464,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 Function(
                     function="count_unique",
-                    initializers=None,
                     parameters=[
                         Column("s:transactions/user@none"),
                     ],
@@ -451,8 +474,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 AliasedExpression(
                     exp=Column(
                         name="tags[transaction]",
-                        entity=None,
-                        subscriptable="tags",
                         key="transaction",
                     ),
                     alias="transaction",
@@ -483,13 +504,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Condition(
                     lhs=Function(
                         function="tuple",
-                        initializers=None,
                         parameters=[
                             Column(
                                 name="tags[transaction]",
-                                entity=None,
-                                subscriptable="tags",
-                                key="transaction",
                             )
                         ],
                         alias=None,
@@ -497,7 +514,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     op=Op.IN,
                     rhs=Function(
                         function="tuple",
-                        initializers=None,
                         parameters=[("foo_transaction",), ("bar_transaction",)],
                         alias=None,
                     ),
@@ -517,7 +533,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 MetricField(
                     op="count_unique",
-                    metric_name="d:transactions/duration@millisecond",
+                    metric_mri="d:transactions/duration@millisecond",
                     alias="count_unique_user",
                 )
             ],
@@ -528,12 +544,9 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Condition(
                     lhs=Function(
                         function="tuple",
-                        initializers=None,
                         parameters=[
                             Column(
                                 name="tags[transaction]",
-                                entity=None,
-                                subscriptable="tags",
                                 key="transaction",
                             )
                         ],
@@ -542,7 +555,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     op=Op.IN,
                     rhs=Function(
                         function="tuple",
-                        initializers=None,
                         parameters=[("foo_transaction",), ("bar_transaction",)],
                         alias=None,
                     ),
@@ -564,7 +576,6 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 Function(
                     function="count_unique",
-                    initializers=None,
                     parameters=[
                         Column("s:transactions/user@none"),
                     ],
@@ -609,7 +620,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 MetricField(
                     op="count_unique",
-                    metric_name="s:transactions/user@none",
+                    metric_mri="s:transactions/user@none",
                     alias="count_unique_user",
                 )
             ],
@@ -634,8 +645,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     function="histogram",
                     parameters=[
                         Column("d:transactions/duration@millisecond"),
-                        0,  # min
-                        5,  # max
+                        0,  # histogram_from
+                        5,  # histogram_to
                         5,  # num_buckets
                     ],
                     alias="histogram_transaction_duration",
@@ -679,8 +690,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 MetricField(
                     op="histogram",
-                    metric_name="d:transactions/duration@millisecond",
-                    args=[0, 5, 5],  # min  # max  # num_buckets
+                    metric_mri="d:transactions/duration@millisecond",
+                    params={"histogram_from": 0, "histogram_to": 5, "histogram_buckets": 5},
                     alias="histogram_transaction_duration",
                 )
             ],
