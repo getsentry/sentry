@@ -17,8 +17,7 @@ def backfill_project_ownership(apps, schema_editor):
         ownership = ProjectOwnership(
             project_id=codeowner.project_id,
             auto_assignment=False,
-            date_created=None,
-            last_updated=None,
+            suspect_committer_auto_assignment=False,
         )
         ownership.save()
 
