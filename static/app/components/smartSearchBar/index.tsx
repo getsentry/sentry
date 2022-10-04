@@ -1293,13 +1293,8 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     query: string
   ): Promise<AutocompleteGroup | null> => {
-    const {
-      prepareQuery,
-      excludedTags: excludeTags,
-      organization,
-      savedSearchType,
-      searchSource,
-    } = this.props;
+    const {prepareQuery, excludedTags, organization, savedSearchType, searchSource} =
+      this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
     const preparedQuery =
@@ -1345,11 +1340,11 @@ class SmartSearchBar extends Component<Props, State> {
       };
     }
 
-    if (excludeTags && excludeTags.includes(tagName)) {
+    if (excludedTags && excludedTags.includes(tagName)) {
       return null;
     }
 
-    if (excludeTags && excludeTags.includes(tagName)) {
+    if (excludedTags && excludedTags.includes(tagName)) {
       return null;
     }
 
