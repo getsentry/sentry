@@ -1086,10 +1086,6 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => !excludedTags?.includes(key));
     }
 
-    if (this.props.excludedTags) {
-      tagKeys = tagKeys.filter(key => !this.props.excludedTags?.includes(key));
-    }
-
     const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
 
     // Filter out search items that are behind feature flags
