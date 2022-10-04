@@ -1416,7 +1416,6 @@ class EventView {
     return selectedProjectIds.map(id => projectMap[String(id)]);
   }
 }
-``;
 
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 

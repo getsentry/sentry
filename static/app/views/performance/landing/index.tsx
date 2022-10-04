@@ -16,7 +16,6 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -150,7 +149,7 @@ export function PerformanceLanding(props: Props) {
 
   const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
 
-  const selectedProjects = eventView.project.map(String);
+  const fullSelectedProjects = eventView.getFullSelectedProjects(projects);
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -222,12 +221,8 @@ export function PerformanceLanding(props: Props) {
                           <DynamicSamplingMetricsAccuracyAlert
                             organization={organization}
                             selectedProject={
-                              selectedProjects.length === 1 &&
-                              String(selectedProjects[0]) !== String(ALL_ACCESS_PROJECTS) // -1 means that all projects are selected
-                                ? projects.find(
-                                    project =>
-                                      String(project.id) === String(selectedProjects[0])
-                                  )
+                              fullSelectedProjects.length === 1
+                                ? fullSelectedProjects[0]
                                 : undefined
                             }
                           />
@@ -292,7 +287,7 @@ export function PerformanceLanding(props: Props) {
                               organization={organization}
                               teams={teams}
                               selectedTeams={['myteams']}
-                              selectedProjects={selectedProjects}
+                              selectedProjects={eventView.project.map(String)}
                             >
                               <GenericQueryBatcher>
                                 <ViewComponent {...props} />

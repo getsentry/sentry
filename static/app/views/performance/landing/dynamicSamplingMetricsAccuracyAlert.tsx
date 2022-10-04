@@ -7,10 +7,7 @@ import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useOrganizationStats} from 'sentry/utils/useOrganizationStats';
-import {
-  getClientSampleRates,
-  isUniformRule,
-} from 'sentry/views/settings/project/server-side-sampling/utils';
+import {getClientSampleRates} from 'sentry/views/settings/project/server-side-sampling/utils';
 
 export const dynamicSamplingMetricsAccuracyMessage = t(
   'The accuracy of performance metrics can be improved by adjusting your client-side sample rate.'
@@ -81,19 +78,16 @@ export function DynamicSamplingMetricsAccuracyAlert({
     return null;
   }
 
-  const dynamicSamplingRules = selectedProject.dynamicSampling?.rules ?? [];
-  const uniformRule = dynamicSamplingRules.find(isUniformRule);
-
-  const buttonUrl = !uniformRule
-    ? `/settings/${organization.slug}/projects/${selectedProject.slug}/dynamic-sampling/rules/new/?referrer=performance.rate-alert`
-    : `/settings/${organization.slug}/projects/${selectedProject.slug}/dynamic-sampling/rules/${uniformRule.id}/?referrer=performance.rate-alert`;
-
   return (
     <Alert
       type="warning"
       showIcon
       trailingItems={
-        <Button priority="link" borderless href={buttonUrl}>
+        <Button
+          priority="link"
+          borderless
+          href={`/settings/${organization.slug}/projects/${selectedProject.slug}/dynamic-sampling/rules/uniform/?referrer=performance.rate-alert`}
+        >
           {t('Adjust Sample Rates')}
         </Button>
       }
