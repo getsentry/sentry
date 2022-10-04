@@ -5,7 +5,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column
+from snuba_sdk import Column, Function
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.request import Request as SnubaRequest
 
@@ -14,6 +14,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, parse_snuba_datetime, raw_snql_query
 
@@ -81,8 +82,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 "project_id",
                 "project",
                 "count()",
-                'count_if(trace.parent_span, equals, "") as root',
-                'count_if(trace.parent_span, notEquals, "") as non_root',
             ],
             equations=[],
             orderby=None,
@@ -93,22 +92,25 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             offset=0,
             equation_config={"auto_add": False},
         )
-        # builder.add_conditions(
-        #     [
-        #         Condition(
-        #             Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
-        #             Op.EQ,
-        #             1,
-        #         ),
-        #         Condition(
-        #             Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
-        #             Op.EQ,
-        #             1,
-        #         )
-        #
-        #     ]
-        # )
         snuba_query = builder.get_snql_query().query
+        extra_select = [
+            Function(
+                "countIf",
+                [
+                    Function(
+                        "not",
+                        [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
+                    )
+                ],
+                alias="root",
+            ),
+            Function(
+                "countIf",
+                [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
+                alias="non_root",
+            ),
+        ]
+        snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
 
         data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
