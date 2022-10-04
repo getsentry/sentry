@@ -29,6 +29,7 @@ export interface ProfileGroup {
   name: string;
   profiles: Profile[];
   traceID: string;
+  transactionID: string | null;
 }
 
 export function importProfile(
@@ -102,6 +103,7 @@ function importJSSelfProfile(
   return {
     traceID,
     name: traceID,
+    transactionID: null,
     activeProfileIndex: 0,
     profiles: [profile],
     metadata: {
@@ -136,6 +138,7 @@ function importSchema(
 
   return {
     traceID,
+    transactionID: input.metadata.transactionID ?? null,
     name: input.metadata?.transactionName ?? traceID,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     metadata: input.metadata ?? {},
@@ -154,6 +157,7 @@ function importNodeProfile(
 
   return {
     traceID,
+    transactionID: null,
     name: input.name,
     activeProfileIndex: 0,
     metadata: {},
