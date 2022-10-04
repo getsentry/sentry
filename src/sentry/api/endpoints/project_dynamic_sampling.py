@@ -63,6 +63,59 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer=referrer,
         )["data"]
 
+    def __projects_counts_query(self, project, query_time_range, trace_ids):
+        """
+        Smart query:
+        returns: [{'project': 'fire', 'project_id': 4, 'non_root': 2, 'count': 21, 'root': 19}]
+        """
+        builder = QueryBuilder(
+            Dataset.Discover,
+            params={
+                "start": query_time_range.start_time,
+                "end": query_time_range.end_time,
+                "project_id": [project.id],
+                "organization_id": project.organization.id,
+            },
+            query=f"event.type:transaction trace:[{','.join(trace_ids)}]",
+            selected_columns=[
+                "project_id",
+                "project",
+                "count()",
+                'count_if(trace.parent_span, equals, "") as root',
+                'count_if(trace.parent_span, notEquals, "") as non_root',
+            ],
+            equations=[],
+            orderby=None,
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            limit=20,
+            offset=0,
+            equation_config={"auto_add": False},
+        )
+        # builder.add_conditions(
+        #     [
+        #         Condition(
+        #             Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
+        #             Op.EQ,
+        #             1,
+        #         ),
+        #         Condition(
+        #             Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
+        #             Op.EQ,
+        #             1,
+        #         )
+        #
+        #     ]
+        # )
+        snuba_query = builder.get_snql_query().query
+
+        data = raw_snql_query(
+            SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
+            referrer="dynamic-sampling.distribution.fetch-projects-and-counts",
+        )["data"]
+        return data
+
     def __get_transactions_count(self, project, query, sample_size, query_time_range):
         # Run query that gets total count of transactions with these conditions for the specified
         # time period
@@ -297,55 +350,48 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
 
             # Discover query to fetch parent projects (smart query)
-            projects_counts = self.__run_discover_query(
-                columns=[
-                    "project_id",
-                    "project",
-                    "count()",
-                    # TODO: (andrii) refactor using QueryBuilder
-                    'count_if(trace.parent_span, equals, "") as root',
-                    'count_if(trace.parent_span, notEquals, "") as non_root',
-                ],
-                query=f"event.type:transaction trace:[{','.join(trace_ids)}]",
-                params={
-                    "start": query_time_range.start_time,
-                    "end": query_time_range.end_time,
-                    "project_id": list(projects_in_org),
-                    "organization_id": project.organization.id,
-                },
-                limit=20,
-                referrer="dynamic-sampling.distribution.fetch-project-breakdown",
-            )
+            projects_counts = self.__projects_counts_query(project, query_time_range, trace_ids)
 
             # Requesting for a project that is root for some transactions,
             # but not root for others and part of distributed trace like
             root_projects_count = len(
-                [project for project in projects_counts if project["num_root_transaction"] > 0]
+                [project for project in projects_counts if project["root"] > 0]
             )
             # get requested project id in projects_count dataset
             try:
-                project = next(item for item in projects_counts if item["project_id"] == project.id)
+                requested_project = next(
+                    item for item in projects_counts if item["project_id"] == project.id
+                )
             except StopIteration:
-                project = None
+                requested_project = None
 
             # This condition covers all 3 cases (A, C, D):
-            if root_projects_count == 1 and project:
+            if root_projects_count == 1 and requested_project:
                 # build parent_project_breakdown
-                parent_project_breakdown = [{"project_id": project.id, "percentege": 1}]
-                project_breakdown = [{"project": project} for project in projects_counts]
+                parent_project_breakdown = [
+                    {"project_id": project.id, "project": project.slug, "percentege": 1}
+                ]
+                project_breakdown = [
+                    {
+                        "project_id": _project["project_id"],
+                        "project": _project["project"],
+                        "count()": _project["count"],
+                    }
+                    for _project in projects_counts
+                ]
             # Case B: the most tricky one and requires extra query
-            elif root_projects_count > 1 and project:
+            elif root_projects_count > 1 and requested_project["root"] > 0:
                 parent_project_breakdown = []
                 total_count = sum(
-                    project["count()"] for project in projects_counts if project["root"] > 0
+                    _project["count"] for _project in projects_counts if _project["root"] > 0
                 )
-                for project in projects_counts:
-                    if project["root"] > 0:
+                for _project in projects_counts:
+                    if _project["root"] > 0:
                         parent_project_breakdown.append(
                             {
-                                "project": project["project"],
-                                "project_id": project["project_id"],
-                                "percentege": project["root"] / total_count
+                                "project": _project["project"],
+                                "project_id": _project["project_id"],
+                                "percentege": _project["root"] / total_count
                                 if total_count > 0
                                 else 0,
                             }
@@ -376,7 +422,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 )["data"]
             # no data
             else:
-                project_breakdown = None
+                project_breakdown = []
                 parent_project_breakdown = []
 
             # Get project breakdown
