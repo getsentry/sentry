@@ -9,9 +9,10 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    all_silo_model,
+    control_silo_model,
     sane_repr,
 )
+from sentry.region_to_control.messages import AuditLogEvent
 
 MAX_ACTOR_LABEL_LENGTH = 64
 
@@ -30,7 +31,7 @@ def format_scim_token_actor_name(actor):
     return "SCIM Internal Integration (" + uuid_prefix + ")"
 
 
-@all_silo_model
+@control_silo_model
 class AuditLogEntry(Model):
     __include_in_export__ = False
 
@@ -76,6 +77,49 @@ class AuditLogEntry(Model):
         # trim label to the max length
         self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         super().save(*args, **kwargs)
+
+    def save_or_write_to_kafka(self):
+        pass
+
+    def as_kafka_event(self):
+        """
+        Serializes a potential audit log database entry as a kafka event that should be deserialized and loaded via
+        `from_event` as faithfully as possible.  It is worth keeping in mind that due to the over the wire, persistent
+        queue involved in the final storage of these entries on the control silo from the region silo, that `from_event`
+        may be called on this payload at a time in which the schema has changed in a future version.  Regressions are
+        written and maintained to ensure the contract of this behavior.
+        :return:
+        """
+        return AuditLogEvent(
+            organization_id=int(
+                self.organization.id
+            ),  # prefer raising NoneType here over actually passing through
+            datetime=self.datetime or timezone.now(),
+            actor_user_id=self.actor and self.actor.id,
+            target_object_id=self.target_object and self.target_object.id,
+            ip_address=str(self.ip_address),
+            event_id=int(self.event),
+            data=self.data,
+        )
+
+    @classmethod
+    def from_event(cls, event: AuditLogEvent) -> "AuditLogEntry":
+        """
+        Deserializes a kafka event object into a control silo database item.  Keep in mind that these event objects
+        could have been created from previous code versions -- the kafka queue introduces persistent asynchronous
+        contact between the serialization and deserialization processes that could imply all sorts of previous
+        application states.  This method handles gracefully the process of converting the event object into a database
+        object for storage.
+        """
+        return AuditLogEntry(
+            organization_id=event.organization_id,
+            datetime=event.datetime,
+            actor_id=event.actor_user_id,
+            target_object_id=event.target_object_id,
+            ip_address=event.ip_address,
+            event=event.event_id,
+            data=event.data,
+        )
 
     def get_actor_name(self):
         if self.actor:

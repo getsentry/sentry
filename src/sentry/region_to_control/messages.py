@@ -1,6 +1,6 @@
 import dataclasses
 import datetime
-from typing import Optional, Union
+from typing import Mapping, Optional, Union
 
 from sentry.utils import json
 
@@ -19,6 +19,17 @@ class NormalizedUserIpEvent(UserIpEvent):
     user_id: int = -1
     ip_address: str = "127.0.0.1"
     last_seen: datetime.datetime = datetime.datetime(2000, 1, 1)
+
+
+@dataclasses.dataclass
+class AuditLogEvent:
+    organization_id: int
+    datetime: datetime.datetime
+    actor_user_id: Optional[int] = None
+    ip_address: Optional[str] = None
+    target_object_id: Optional[int] = None
+    event_id: Optional[int] = None
+    data: Optional[Mapping[str, any]] = None
 
 
 def discard_extra_fields(Dc, payload):
