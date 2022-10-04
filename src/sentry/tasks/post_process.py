@@ -401,7 +401,7 @@ def post_process_group(
             }
         else:
             # TODO handle perf issues with multiple groups, not sure how to do update_event_group, handle_owner_assignment, etc
-            return
+            pass
 
         # TODO does this work for multiple group ids?
         update_event_group(event)
@@ -583,7 +583,7 @@ def process_rules(job: PostProcessJob) -> None:
     event = job["event"]
     is_new = job["group_state"]["is_new"]
     is_regression = job["group_state"]["is_regression"]
-    is_new_group_environment = job["group_state"]["is_regression"]
+    is_new_group_environment = job["group_state"]["is_new_group_environment"]
     has_reappeared = job["has_reappeared"]
 
     rp = RuleProcessor(event, is_new, is_regression, is_new_group_environment, has_reappeared)
