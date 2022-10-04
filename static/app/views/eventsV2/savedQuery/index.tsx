@@ -156,7 +156,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     if (savedEventView.id !== nextEventView.id) {
       return {
         ...prevState,
-        canResetHomepage: false,
         isNewQuery: false,
         isEditingQuery: false,
         queryName: '',
@@ -409,7 +408,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
   renderSaveAsHomepage() {
     const {canResetHomepage} = this.state;
-    const {api, organization, eventView, location, isHomepage} = this.props;
+    const {api, organization, eventView, location, isHomepage, savedQueryLoading} =
+      this.props;
     if (canResetHomepage) {
       return (
         <Button
@@ -419,12 +419,17 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             handleResetHomepageQuery(api, organization);
             this.setState({canResetHomepage: false});
             if (isHomepage) {
+              const nextEventView = EventView.fromNewQueryWithLocation(
+                DEFAULT_EVENT_VIEW,
+                location
+              );
               browserHistory.push({
                 pathname: location.pathname,
-                query: EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location),
+                query: nextEventView.generateQueryStringObject(),
               });
             }
           }}
+          disabled={savedQueryLoading}
         >
           {t('Reset Discover Home')}
           <FeatureBadge type="alpha" />

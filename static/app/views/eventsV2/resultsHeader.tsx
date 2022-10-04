@@ -3,6 +3,7 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -58,12 +59,18 @@ class ResultsHeader extends Component<Props, State> {
 
   fetchData() {
     const {api, eventView, organization, isHomepage} = this.props;
+    let fetchRequest, fetchArgs;
     if (!isHomepage && typeof eventView.id === 'string') {
-      this.setState({loading: true});
-      fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
-        this.setState({savedQuery, loading: false});
-      });
+      fetchRequest = fetchSavedQuery;
+      fetchArgs = [api, organization.slug, eventView.id];
+    } else if (isHomepage) {
+      fetchRequest = fetchHomepageQuery;
+      fetchArgs = [api, organization.slug];
     }
+    this.setState({loading: true});
+    fetchRequest?.(...fetchArgs).then(savedQuery => {
+      this.setState({savedQuery, loading: false});
+    });
   }
 
   renderAuthor() {
