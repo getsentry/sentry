@@ -1,4 +1,3 @@
-from sentry import analytics
 from sentry.eventstore.models import Event
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
@@ -57,33 +56,18 @@ class NotifyActiveReleaseEmailAction(NotifyEmailAction):
     label = f"Send a notification to {ActionTargetType.RELEASE_MEMBERS.value}"
     metrics_slug = "ActiveReleaseEmailAction"
 
-    def after(self, event: Event, state, release_dry_run: bool):
+    def after(self, event: Event, state):
         recipients = determine_eligible_recipients(
             event.group.project,
             ActionTargetType.RELEASE_MEMBERS,
             target_identifier=None,
             event=event,
-            release_dry_run=release_dry_run,
         )
         if not recipients:
             self.logger.info(
                 "rule.fail.should_notify",
                 extra={"event_id": event.event_id, "group_id": event.group.id},
             )
-            return
-
-        # TODO(scttcper): Remove after active release dry run experiment has ended
-        if release_dry_run:
-            # Record who would've received a notification, do not actually send one
-            for recipient in recipients:
-                analytics.record(
-                    "active_release_notification.dry_run",
-                    organization_id=event.group.organization.id,
-                    project_id=event.group.project_id,
-                    group_id=event.group_id,
-                    release_version=event.group.get_last_release(),
-                    recipient_id=recipient.id,
-                )
             return
 
         metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
