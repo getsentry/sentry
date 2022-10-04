@@ -189,8 +189,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
-                "count_if(trace.parent_span)",
-                'has(trace.parent_span, equals, "") as is_root_transaction',
+                'count_if(trace.parent_span, equals, "") as is_root_transaction',
                 "random_number() as rand_num",
                 f"modulo(rand_num, {sampling_factor}) as modulo_num",
             ],
