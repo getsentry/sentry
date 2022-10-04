@@ -365,7 +365,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name in set(alias_to_metric_group_by_field.keys())
+        is_tag = column_name in alias_to_metric_group_by_field.keys()
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 
@@ -397,7 +397,7 @@ def translate_meta_results(
                             }
                         )
                     continue
-                if record["name"] not in set(alias_to_metric_field.keys()):
+                if record["name"] not in alias_to_metric_field.keys():
                     raise InvalidParams(f"Field {record['name']} was not in the select clause")
 
                 defined_parent_meta_type = get_metric_object_from_metric_field(
