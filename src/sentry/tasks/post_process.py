@@ -29,7 +29,7 @@ locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOC
 
 class PostProcessJob(TypedDict, total=False):
     event: "Event"
-    group_state: Dict[str, Any]  # TODO wait for barkshark typed dict
+    group_state: Dict[str, Any]
     is_reprocessed: bool
     has_reappeared: Optional[bool]
     has_alert: Optional[bool]
@@ -309,7 +309,7 @@ def fetch_buffered_group_stats(group):
 )
 def post_process_group(
     is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
-):  # TODO move booleans into group_states or something similar
+):
     """
     Fires post processing hooks for a group.
     """
@@ -363,34 +363,10 @@ def post_process_group(
 
             return
 
-        # group states
-        # {
-        #     "id": gi.group.id,
-        #     "is_new": gi.is_new,
-        #     "is_regression": gi.is_regression,
-        #     "is_new_group_environment": gi.is_new_group_environment,
-        # }
-
-        # ppg_configs = {
-        #     IssueCategory.Error: PostProcessGroupConfig(
-        #         post_process_functions=[
-        #             run_issue_alerts,
-        #             run_snooze,
-        #             run_issue_assignment,
-        #             ...
-        #         ]
-        #     )
-        # }
-
-        # config = ppg_configs[group.issue_category]
-        # # Do common stuff
-        # for ppg_func in post_process_functions:
-        #     ppg_func(group)
-
         group_states = kwargs.get("group_states")
 
-        # error issue
         if group_states is None:
+            # error issue
             group_states = {
                 1: {
                     "id": group_id,
@@ -400,10 +376,9 @@ def post_process_group(
                 }
             }
         else:
-            # TODO handle perf issues with multiple groups, not sure how to do update_event_group, handle_owner_assignment, etc
-            pass
+            # performance issue
+            return
 
-        # TODO does this work for multiple group ids?
         update_event_group(event)
         bind_organization_context(event.project.organization)
 
