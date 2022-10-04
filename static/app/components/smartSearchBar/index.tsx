@@ -1344,10 +1344,6 @@ class SmartSearchBar extends Component<Props, State> {
       return null;
     }
 
-    if (excludedTags && excludedTags.includes(tagName)) {
-      return null;
-    }
-
     const fetchTagValuesFn =
       tag.key === 'firstRelease'
         ? this.getReleases
