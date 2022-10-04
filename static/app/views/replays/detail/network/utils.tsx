@@ -1,12 +1,5 @@
 import {defined} from 'sentry/utils';
-
-export type NetworkSpan = {
-  data: Record<string, any>;
-  endTimestamp: number;
-  op: string;
-  startTimestamp: number;
-  description?: string;
-};
+import type {NetworkSpan} from 'sentry/views/replays/types';
 
 export interface ISortConfig {
   asc: boolean;

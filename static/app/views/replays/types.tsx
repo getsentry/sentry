@@ -123,8 +123,10 @@ export type RecordingEvent = eventWithTime;
 export interface ReplaySpan<T = Record<string, any>> {
   data: T;
   endTimestamp: number;
+  id: string;
   op: string;
   startTimestamp: number;
+  timestamp: number;
   description?: string;
 }
 
@@ -135,6 +137,8 @@ export type MemorySpanType = ReplaySpan<{
     usedJSHeapSize: number;
   };
 }>;
+
+export type NetworkSpan = ReplaySpan;
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 

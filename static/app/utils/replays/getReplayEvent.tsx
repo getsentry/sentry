@@ -1,4 +1,7 @@
-export function getPrevReplayEvent<T extends {timestamp?: string | number}>({
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {ReplaySpan} from 'sentry/views/replays/types';
+
+export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
   items,
   targetTimestampMs,
   allowExact = false,
@@ -30,7 +33,7 @@ export function getPrevReplayEvent<T extends {timestamp?: string | number}>({
   }, undefined);
 }
 
-export function getNextReplayEvent<T extends {timestamp?: string}>({
+export function getNextReplayEvent<T extends ReplaySpan | Crumb>({
   items,
   targetTimestampMs,
   allowExact = false,
