@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -42,6 +41,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -69,11 +69,11 @@ import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAle
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = {
   project: Project;
 };
 
-export function ServerSideSampling({project, router}: Props) {
+export function ServerSideSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
@@ -82,6 +82,8 @@ export function ServerSideSampling({project, router}: Props) {
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
   const params = useParams();
+  const routeContext = useRouteContext();
+  const router = routeContext.router;
 
   const samplingProjectSettingsPath = `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`;
 

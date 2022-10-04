@@ -1,5 +1,3 @@
-import {RouteComponentProps} from 'react-router';
-
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {PanelAlert} from 'sentry/components/panels';
@@ -9,11 +7,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {ServerSideSampling} from './serverSideSampling';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = {
   project: Project;
 };
 
-export default function ServerSideSamplingContainer({project, ...props}: Props) {
+export default function ServerSideSamplingContainer({project}: Props) {
   const organization = useOrganization();
 
   return (
@@ -31,7 +29,7 @@ export default function ServerSideSamplingContainer({project, ...props}: Props) 
         />
       )}
     >
-      <ServerSideSampling project={project} {...props} />
+      <ServerSideSampling project={project} />
     </Feature>
   );
 }
