@@ -2008,7 +2008,6 @@ def _calculate_span_grouping(jobs, projects):
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(set(groupings.results.values())),
-                sample_rate=0.1,
             )
 
             # Try the second, looser config, and see how many groups it
@@ -2022,7 +2021,6 @@ def _calculate_span_grouping(jobs, projects):
             metrics.incr(
                 "save_event.transaction.span_group_count.incoming",
                 amount=len(set(experimental_groupings.results.values())),
-                sample_rate=0.1,
             )
         except Exception:
             sentry_sdk.capture_exception()
