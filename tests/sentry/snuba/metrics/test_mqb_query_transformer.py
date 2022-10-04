@@ -40,6 +40,9 @@ These SnQL function generators can be found in `sentry/src/sentry/snuba/metrics/
 defined for all derived operations i.e. operations not supported by clickhouse like rate, count_web_vitals,
 histogram (as it requires extra logic over the clickhouse function supported by datasketch), team_key_transaction,
 and count_transaction_name (for unparameterized and None)
+
+All non clickhouse functions (derived functions) are listed here
+https://github.com/getsentry/sentry/blob/0eb312411989c2dbde3cf0b5094d47829d01c854/src/sentry/snuba/metrics/fields/base.py#L1505-L1540
 - Originally, it was agreed that all derived metrics such as failure_rate, user_misery and the other ones listed here
 https://github.com/getsentry/sentry/blob/4d3efb171ac2fc3ac77a846ec3d96f0da829ed12/src/sentry/snuba/metrics/naming_layer/mri.py#L98-L106
 would be passed as SnQL functions. However, this won't work without expanding the snuba-sdk Function regex to accept MRI
