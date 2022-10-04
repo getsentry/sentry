@@ -1321,7 +1321,7 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
         data = get_series(
             [self.project],
             metrics_query=metrics_query,
-            include_meta=False,
+            include_meta=True,
             use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data["groups"] == [
@@ -1338,6 +1338,14 @@ class PerformanceMetricsLayerTestCase(TestCase, BaseMetricsTestCase):
                 "totals": {"team_key_transactions": 0, "p95": 0.5},
             },
         ]
+        assert data["meta"] == sorted(
+            [
+                {"name": "p95", "type": "Array(Float64)"},
+                {"name": "team_key_transactions", "type": "boolean"},
+                {"name": "transaction", "type": "string"},
+            ],
+            key=lambda elem: elem["name"],
+        )
 
     @freeze_time("2022-09-22 11:07:00")
     def test_team_key_transaction_as_condition(self):

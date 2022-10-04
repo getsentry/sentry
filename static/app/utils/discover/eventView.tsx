@@ -1170,9 +1170,13 @@ class EventView {
     return eventQuery;
   }
 
-  getResultsViewUrlTarget(slug: string): {pathname: string; query: Query} {
+  getResultsViewUrlTarget(
+    slug: string,
+    isHomepage: boolean = false
+  ): {pathname: string; query: Query} {
+    const target = isHomepage ? 'homepage' : 'results';
     return {
-      pathname: `/organizations/${slug}/discover/results/`,
+      pathname: `/organizations/${slug}/discover/${target}/`,
       query: this.generateQueryStringObject(),
     };
   }
@@ -1414,7 +1418,6 @@ class EventView {
     return selectedProjectIds.map(id => projectMap[String(id)]);
   }
 }
-``;
 
 export type ImmutableEventView = Readonly<Omit<EventView, 'additionalConditions'>>;
 
