@@ -2,7 +2,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Collection, Literal, Mapping, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Collection,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    Union,
+)
 
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
@@ -20,6 +30,16 @@ class ForwarderNotRequired(NotImplementedError):
     Exception raised if this backend does not require a forwarder process to
     enqueue post-processing tasks.
     """
+
+
+class GroupState(TypedDict):
+    id: int
+    is_new: bool
+    is_regression: bool
+    is_new_group_environment: bool
+
+
+GroupStates = Sequence[GroupState]
 
 
 class EventStream(Service):
@@ -50,6 +70,7 @@ class EventStream(Service):
         is_new_group_environment: bool,
         primary_hash: Optional[str],
         skip_consume: bool = False,
+        group_states: Optional[GroupStates] = None,
     ) -> None:
         if skip_consume:
             logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -74,6 +95,7 @@ class EventStream(Service):
         primary_hash: Optional[str],
         received_timestamp: float,
         skip_consume: bool = False,
+        group_states: Optional[GroupStates] = None,
     ) -> None:
         self._dispatch_post_process_group_task(
             event.event_id,
@@ -84,6 +106,7 @@ class EventStream(Service):
             is_new_group_environment,
             primary_hash,
             skip_consume,
+            group_states,
         )
 
     def start_delete_groups(

@@ -9,7 +9,7 @@ __all__ = (
     "translate_meta_results",
 )
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
 from snuba_sdk import (
     AliasedExpression,
@@ -44,6 +44,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     COMPOSITE_ENTITY_CONSTITUENT_ALIAS,
+    MetricExpressionBase,
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
 )
@@ -341,10 +342,15 @@ def parse_tag(use_case_id: UseCaseKey, org_id: int, tag_string: str) -> str:
     return reverse_resolve(use_case_id, org_id, tag_key)
 
 
+def get_metric_object_from_metric_field(metric_field: MetricField) -> MetricExpressionBase:
+    """Get the metric object from a metric field"""
+    return metric_object_factory(op=metric_field.op, metric_mri=metric_field.metric_mri)
+
+
 def translate_meta_results(
     meta: Sequence[Dict[str, str]],
-    query_metric_fields: Set[str],
-    groupby_aliases: Set[str],
+    alias_to_metric_field: Dict[str, MetricField],
+    alias_to_metric_group_by_field: Dict[str, MetricGroupByField],
 ) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
@@ -359,7 +365,7 @@ def translate_meta_results(
 
         # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
         # "project_id" or "metric_id"
-        is_tag = column_name in groupby_aliases
+        is_tag = column_name in alias_to_metric_group_by_field.keys()
         is_time_col = column_name in [TS_COL_GROUP]
         is_dataset_col = column_name in DATASET_COLUMNS
 
@@ -375,10 +381,31 @@ def translate_meta_results(
                     # it is a safe assumption to make.
                     parent_alias = record["name"].split(COMPOSITE_ENTITY_CONSTITUENT_ALIAS)[1]
                     if parent_alias not in {elem["name"] for elem in results}:
-                        results.append({"name": parent_alias, "type": record["type"]})
+                        try:
+                            defined_parent_meta_type = get_metric_object_from_metric_field(
+                                alias_to_metric_field[parent_alias]
+                            ).get_meta_type()
+                        except KeyError:
+                            defined_parent_meta_type = None
+
+                        results.append(
+                            {
+                                "name": parent_alias,
+                                "type": record["type"]
+                                if defined_parent_meta_type is None
+                                else defined_parent_meta_type,
+                            }
+                        )
                     continue
-                if record["name"] not in query_metric_fields:
+                if record["name"] not in alias_to_metric_field.keys():
                     raise InvalidParams(f"Field {record['name']} was not in the select clause")
+
+                defined_parent_meta_type = get_metric_object_from_metric_field(
+                    alias_to_metric_field[record["name"]]
+                ).get_meta_type()
+                record["type"] = (
+                    record["type"] if defined_parent_meta_type is None else defined_parent_meta_type
+                )
             except InvalidParams:
                 # XXX(ahmed): We get into this branch when we are tying to generate inferred types
                 # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from
@@ -394,7 +421,17 @@ def translate_meta_results(
             if is_tag:
                 # since we changed value from int to str we need
                 # also want to change type
-                record["type"] = "string"
+                metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+                if isinstance(metric_groupby_field.field, MetricField):
+                    defined_parent_meta_type = get_metric_object_from_metric_field(
+                        metric_groupby_field.field
+                    ).get_meta_type()
+                else:
+                    defined_parent_meta_type = None
+
+                record["type"] = (
+                    "string" if defined_parent_meta_type is None else defined_parent_meta_type
+                )
             elif is_time_col or is_dataset_col:
                 record["name"] = column_name
 
