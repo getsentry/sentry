@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {ResponseMeta} from 'sentry/api';
-import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {Body, Header, Hovercard} from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
 import {IconInfo} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
@@ -68,19 +68,9 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {projects, event} = this.props;
     return projects.find(project => project.id === event.projectID);
   }
-  get match() {
-    return this.state.match;
-  }
-  get config() {
-    return this.match.config;
-  }
-
-  get integrations() {
-    return this.match.integrations;
-  }
 
   get errorText() {
-    const error = this.match.error;
+    const error = this.state.match.error;
 
     switch (error) {
       case 'stack_root_mismatch':
@@ -158,6 +148,23 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     ];
   }
 
+  onRequestSuccess(resp: {data: StacktraceResultItem; stateKey: 'match'}) {
+    const {config, sourceUrl} = resp.data;
+    trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
+      view: 'stacktrace_issue_details',
+      organization: this.props.organization,
+      state:
+        // Should follow the same logic in render
+        config && sourceUrl
+          ? 'match'
+          : config
+          ? 'no_match'
+          : !this.state.isDismissed
+          ? 'prompt'
+          : 'empty',
+    });
+  }
+
   onRequestError(resp: ResponseMeta) {
     handleXhrErrorResponse('Unable to fetch stack trace link')(resp);
   }
@@ -174,7 +181,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   onOpenLink() {
-    const provider = this.config?.provider;
+    const provider = this.state.match.config?.provider;
     if (provider) {
       trackIntegrationAnalytics(
         StacktraceLinkEvents.OPEN_LINK,
@@ -189,8 +196,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   onReconfigureMapping() {
-    const provider = this.config?.provider;
-    const error = this.match.error;
+    const provider = this.state.match.config?.provider;
+    const error = this.state.match.error;
     if (provider) {
       trackIntegrationAnalytics(
         'integrations.reconfigure_stacktrace_setup',
@@ -224,94 +231,85 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const filename = this.props.frame.filename;
     const platform = this.props.event.platform;
-    if (this.project && this.integrations.length > 0 && filename) {
+    const {integrations} = this.state.match;
+    if (this.project && integrations.length > 0 && filename) {
       return (
-        <Access organization={organization} access={['org:integrations']}>
-          {({hasAccess}) =>
-            hasAccess && (
-              <CodeMappingButtonContainer columnQuantity={2}>
-                {tct('[link:Link your stack trace to your source code.]', {
-                  link: (
-                    <a
-                      onClick={() => {
-                        trackIntegrationAnalytics(
-                          'integrations.stacktrace_start_setup',
-                          {
-                            view: 'stacktrace_issue_details',
-                            platform,
-                            organization,
-                          },
-                          {startSession: true}
-                        );
-                        openModal(
-                          deps =>
-                            this.project && (
-                              <StacktraceLinkModal
-                                onSubmit={this.handleSubmit}
-                                filename={filename}
-                                project={this.project}
-                                organization={organization}
-                                integrations={this.integrations}
-                                {...deps}
-                              />
-                            )
-                        );
-                      }}
-                    />
-                  ),
-                })}
-                <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
-              </CodeMappingButtonContainer>
-            )
-          }
-        </Access>
+        <CodeMappingButtonContainer columnQuantity={2}>
+          {tct('[link:Link your stack trace to your source code.]', {
+            link: (
+              <a
+                onClick={() => {
+                  trackIntegrationAnalytics(
+                    'integrations.stacktrace_start_setup',
+                    {
+                      view: 'stacktrace_issue_details',
+                      platform,
+                      organization,
+                    },
+                    {startSession: true}
+                  );
+                  openModal(
+                    deps =>
+                      this.project && (
+                        <StacktraceLinkModal
+                          onSubmit={this.handleSubmit}
+                          filename={filename}
+                          project={this.project}
+                          organization={organization}
+                          integrations={integrations}
+                          {...deps}
+                        />
+                      )
+                  );
+                }}
+              />
+            ),
+          })}
+          <StyledIconClose size="xs" onClick={() => this.dismissPrompt()} />
+        </CodeMappingButtonContainer>
       );
     }
     return null;
   }
 
   renderHovercard() {
-    const error = this.match.error;
-    const url = this.match.attemptedUrl;
     const {frame} = this.props;
-    const {config} = this.match;
+    const {config, error, attemptedUrl} = this.state.match;
     return (
-      <Fragment>
-        <StyledHovercard
-          header={
-            error === 'stack_root_mismatch' ? (
-              <span>{t('Mismatch between filename and stack root')}</span>
-            ) : (
-              <span>{t('Unable to find source code url')}</span>
-            )
-          }
-          body={
-            error === 'stack_root_mismatch' ? (
-              <HeaderContainer>
-                <HovercardLine>
+      <StyledHovercard
+        skipWrapper
+        header={
+          <HovercardHeader>
+            {error === 'stack_root_mismatch'
+              ? t('Mismatch between filename and stack root')
+              : t('Unable to find source code url')}
+          </HovercardHeader>
+        }
+        body={
+          <HovercardBody>
+            {error === 'stack_root_mismatch' ? (
+              <Fragment>
+                <div>
                   filename: <code>{`${frame.filename}`}</code>
-                </HovercardLine>
-                <HovercardLine>
+                </div>
+                <div>
                   stack root: <code>{`${config?.stackRoot}`}</code>
-                </HovercardLine>
-              </HeaderContainer>
+                </div>
+              </Fragment>
             ) : (
-              <HeaderContainer>
-                <HovercardLine>{url}</HovercardLine>
-              </HeaderContainer>
-            )
-          }
-        >
-          <StyledIconInfo size="xs" />
-        </StyledHovercard>
-      </Fragment>
+              attemptedUrl
+            )}
+          </HovercardBody>
+        }
+      >
+        <StyledIconInfo size="xs" aria-label={t('More Info')} />
+      </StyledHovercard>
     );
   }
 
   renderMatchNoUrl() {
-    const {config, error} = this.match;
+    const {config, error} = this.state.match;
     const {organization} = this.props;
-    const url = `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/?tab=codeMappings`;
     return (
       <CodeMappingButtonContainer columnQuantity={2}>
         <ErrorInformation>
@@ -319,11 +317,14 @@ class StacktraceLink extends AsyncComponent<Props, State> {
           <ErrorText>{this.errorText}</ErrorText>
           {tct('[link:Configure Stack Trace Linking] to fix this problem.', {
             link: (
-              <a
+              <Link
                 onClick={() => {
                   this.onReconfigureMapping();
                 }}
-                href={url}
+                to={{
+                  pathname: `/settings/${organization.slug}/integrations/${config?.provider.key}/${config?.integrationId}/`,
+                  query: {tab: 'codeMappings'},
+                }}
               />
             ),
           })}
@@ -346,7 +347,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {config, sourceUrl} = this.match || {};
+    const {config, sourceUrl} = this.state.match || {};
     const {isDismissed, promptLoaded} = this.state;
 
     if (config && sourceUrl) {
@@ -392,23 +393,21 @@ const StyledHovercard = styled(Hovercard)`
   font-weight: normal;
   width: inherit;
   line-height: 0;
-  ${Header} {
-    font-weight: strong;
-    font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => p.theme.subText};
-  }
-  ${Body} {
-    font-weight: normal;
-    font-size: ${p => p.theme.fontSizeSmall};
-  }
 `;
-const HeaderContainer = styled('div')`
-  width: 100%;
+
+const HovercardHeader = styled('span')`
+  font-weight: strong;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const HovercardBody = styled('span')`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
   display: flex;
-  justify-content: space-between;
-`;
-const HovercardLine = styled('div')`
-  padding-bottom: 3px;
+  flex-direction: column;
+  gap: ${space(0.5)};
+  line-height: 1.2;
 `;
 
 const ErrorInformation = styled('div')`

@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
@@ -195,6 +195,7 @@ describe('Results', function () {
   });
 
   afterEach(function () {
+    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.reset());
   });
@@ -1701,6 +1702,51 @@ describe('Results', function () {
     wrapper.update();
     expect(wrapper.find('Alert').find('Message').text()).toEqual(
       'These are unparameterized transactions. To better organize your transactions, set transaction names manually.'
+    );
+  });
+
+  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', () => {
+    const mockHomepageUpdate = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 204,
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        // These fields take priority and should be sent in the request
+        location: {query: {field: ['title', 'user']}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    userEvent.click(screen.getByText('Use as Discover Home'));
+
+    expect(mockHomepageUpdate).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/homepage/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          fields: ['title', 'user'],
+        }),
+      })
     );
   });
 });

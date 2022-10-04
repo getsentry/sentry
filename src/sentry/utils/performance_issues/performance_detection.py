@@ -26,6 +26,13 @@ TransactionSpans = List[Span]
 PerformanceProblemsMap = Dict[str, PerformanceSpanProblem]
 
 PERFORMANCE_GROUP_COUNT_LIMIT = 10
+INTEGRATIONS_OF_INTEREST = [
+    "django",
+    "flask",
+    "sqlalchemy",
+    "Mongo",  # Node
+    "Postgres",  # Node
+]
 
 
 class DetectorType(Enum):
@@ -56,6 +63,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
 # Detector and the corresponding system option must be added to this list to have issues created.
 DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
 }
 
 
@@ -93,6 +101,20 @@ class PerformanceProblem:
             data["cause_span_ids"],
             data["offender_span_ids"],
         )
+
+    def __eq__(self, other):
+        if not isinstance(other, PerformanceProblem):
+            return NotImplemented
+        return (
+            self.fingerprint == other.fingerprint
+            and self.offender_span_ids == other.offender_span_ids
+            and self.type == other.type
+        )
+
+    def __hash__(self):
+        # This will de-duplicate on fingerprint and type and only for offending span ids.
+        # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
+        return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))
 
 
 class EventPerformanceProblem:
@@ -305,14 +327,18 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         for problem, detector_type in truncated_problems
     ]
 
-    if len(performance_problems) > 0:
+    # Leans on Set to remove duplicate problems when extending a detector, since the new extended detector can overlap in terms of created issues.
+    unique_performance_problems = set(performance_problems)
+
+    if len(unique_performance_problems) > 0:
         metrics.incr(
             "performance.performance_issue.performance_problem_emitted",
-            len(performance_problems),
+            len(unique_performance_problems),
             sample_rate=1.0,
         )
 
-    return performance_problems
+    # TODO: Make sure upstream is all compatible with set before switching output type.
+    return list(unique_performance_problems)
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
@@ -891,7 +917,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._maybe_store_problem()
 
-    def _contains_complete_query(self, span: Span) -> bool:
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # When SDKs truncate span description, they add a "..." suffix (three
         # full stops, not an ellipsis).
         query = span.get("description", None)
@@ -964,9 +990,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
         # Track how many N+1-looking problems we found but dropped because we
         # couldn't be sure (maybe the truncated part of the query differs).
-        if not self._contains_complete_query(self.source_span) or not self._contains_complete_query(
-            self.n_spans[0]
-        ):
+        if not self._contains_complete_query(
+            self.source_span, is_source=True
+        ) or not self._contains_complete_query(self.n_spans[0]):
             metrics.incr("performance.performance_issue.truncated_np1_db")
             return
 
@@ -977,6 +1003,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.n_spans[0].get("hash", None),
         )
         if fingerprint not in self.stored_problems:
+            self._metrics_for_extra_matching_spans()
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
@@ -986,6 +1014,19 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
             )
+
+    def _metrics_for_extra_matching_spans(self):
+        # Checks for any extra spans that match the detected problem but are not part of affected spans.
+        # Temporary check since we eventually want to capture extra perf problems on the initial pass while walking spans.
+        n_count = len(self.n_spans)
+        all_matching_spans = [
+            span
+            for span in self._event.get("spans", [])
+            if span.get("span_id", None) == self.n_hash
+        ]
+        all_count = len(all_matching_spans)
+        if n_count > 0 and n_count != all_count:
+            metrics.incr("performance.performance_issue.np1_db.extra_spans")
 
     def _reset_detection(self):
         self.source_span = None
@@ -1020,10 +1061,13 @@ class NPlusOneDBSpanDetectorExtended(NPlusOneDBSpanDetector):
         if root_span:
             self.potential_parents[root_span.get("span_id")] = root_span
 
-    def _contains_complete_query(self, span: Span) -> bool:
+    def _contains_complete_query(self, span: Span, is_source: Optional[bool] = False) -> bool:
         # Remove the truncation check from the n_plus_one db detector.
         query = span.get("description", None)
-        return bool(query)
+        if is_source:
+            return bool(query)
+        else:
+            return query and not query.endswith("...")
 
 
 # Reports metrics and creates spans for detection
@@ -1042,6 +1086,7 @@ def report_metrics_for_detectors(
 
     if has_detected_problems:
         set_tag("_pi_all_issue_count", len(all_detected_problems))
+        set_tag("_pi_sdk_name", sdk_name or "")
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
@@ -1051,6 +1096,13 @@ def report_metrics_for_detectors(
             set_tag("_pi_transaction", event_id)
 
     detected_tags = {"sdk_name": sdk_name}
+    event_integrations = event.get("sdk", {}).get("integrations", []) or []
+
+    for integration_name in INTEGRATIONS_OF_INTEREST:
+        detected_tags["integration_" + integration_name.lower()] = (
+            integration_name in event_integrations
+        )
+
     for detector_enum, detector in detectors.items():
         detector_key = detector_enum.value
         detected_problems = detector.stored_problems

@@ -78,10 +78,12 @@ class AvatarChooser extends Component<Props, State> {
     hasError: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
+  componentDidUpdate(prevProps: Props) {
+    const {model} = this.props;
+
     // Update local state if defined in props
-    if (typeof nextProps.model !== 'undefined') {
-      this.setState({model: nextProps.model});
+    if (model !== undefined && model !== prevProps.model) {
+      this.setState({model});
     }
   }
 
@@ -167,7 +169,7 @@ class AvatarChooser extends Component<Props, State> {
       help,
       defaultChoice,
     } = this.props;
-    const {hasError, model} = this.state;
+    const {hasError, model, dataUrl} = this.state;
 
     if (hasError) {
       return <LoadingError />;
@@ -247,7 +249,7 @@ class AvatarChooser extends Component<Props, State> {
                   type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
-                  disabled={disabled}
+                  disabled={disabled || (avatarType === 'upload' && !dataUrl)}
                 >
                   {t('Save Avatar')}
                 </Button>

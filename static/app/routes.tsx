@@ -246,7 +246,7 @@ function buildRoutes() {
           () => import('sentry/views/settings/account/accountAuthorizations')
         )}
       />
-      <Route name={t('Security')} path="security/">
+      <Route path="security/" name={t('Security')}>
         <Route
           component={make(
             () =>
@@ -468,13 +468,19 @@ function buildRoutes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
-      <Route
-        path="dynamic-sampling/"
-        name={t('Dynamic Sampling')}
-        component={make(
-          () => import('sentry/views/settings/project/server-side-sampling')
-        )}
-      />
+      <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/project/server-side-sampling')
+          )}
+        />
+        <Route
+          path="rules/:rule/"
+          component={make(
+            () => import('sentry/views/settings/project/server-side-sampling')
+          )}
+        />
+      </Route>
       <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
@@ -678,7 +684,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route name={t('Teams')} path="teams/">
+      <Route path="teams/" name={t('Teams')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/organizationTeams'))}
         />
@@ -721,7 +727,7 @@ function buildRoutes() {
         </Route>
       </Route>
       <Redirect from="plugins/" to="integrations/" />
-      <Route name={t('Integrations')} path="plugins/">
+      <Route path="plugins/" name={t('Integrations')}>
         <Route
           path=":integrationSlug/"
           name={t('Integration Details')}
@@ -731,7 +737,7 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="sentry-apps/" to="integrations/" />
-      <Route name={t('Integrations')} path="sentry-apps/">
+      <Route path="sentry-apps/" name={t('Integrations')}>
         <Route
           path=":integrationSlug"
           name={t('Details')}
@@ -741,7 +747,7 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="document-integrations/" to="integrations/" />
-      <Route name={t('Integrations')} path="document-integrations/">
+      <Route path="document-integrations/" name={t('Integrations')}>
         <Route
           path=":integrationSlug"
           name={t('Details')}
@@ -751,7 +757,7 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route name={t('Integrations')} path="integrations/">
+      <Route path="integrations/" name={t('Integrations')}>
         <IndexRoute
           component={make(
             () => import('sentry/views/organizationIntegrations/integrationListDirectory')
@@ -776,7 +782,7 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
-      <Route name={t('Developer Settings')} path="developer-settings/">
+      <Route path="developer-settings/" name={t('Developer Settings')}>
         <IndexRoute
           component={make(
             () => import('sentry/views/settings/organizationDeveloperSettings')
@@ -864,7 +870,7 @@ function buildRoutes() {
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
       <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
-      <Route name={t('Organization')} path=":orgId/">
+      <Route path=":orgId/" name={t('Organization')}>
         {orgSettingsRoutes}
         {projectSettingsRoutes}
         {legacySettingsRedirects}
@@ -1143,9 +1149,15 @@ function buildRoutes() {
       component={make(() => import('sentry/views/eventsV2'))}
     >
       <Feature features={['discover-query-builder-as-landing-page']}>
-        <IndexRedirect to="results/" />
+        <IndexRedirect to="homepage/" />
       </Feature>
       <IndexRedirect to="queries/" />
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <Route
+          path="homepage/"
+          component={make(() => import('sentry/views/eventsV2/homepage'))}
+        />
+      </Feature>
       <Route
         path="queries/"
         component={make(() => import('sentry/views/eventsV2/landing'))}

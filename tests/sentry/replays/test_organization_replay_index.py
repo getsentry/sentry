@@ -607,3 +607,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url + "?field=unknown")
             assert response.status_code == 400
+
+    def test_archived_records_are_not_returned(self):
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=30)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=15)
+
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id))
+        self.store_replays(
+            mock_replay(seq2_timestamp, self.project.id, replay1_id, is_archived=True)
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert len(response.json()["data"]) == 0

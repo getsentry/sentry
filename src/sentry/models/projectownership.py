@@ -22,11 +22,13 @@ class ProjectOwnership(Model):
     raw = models.TextField(null=True)
     schema = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
+    # Auto Assignment through Ownership Rules & Code Owners
     auto_assignment = models.BooleanField(default=False)
     date_created = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
     codeowners_auto_sync = models.BooleanField(default=True, null=True)
+    suspect_committer_auto_assignment = models.BooleanField(default=False)
 
     # An object to indicate ownership is implicitly everyone
     Everyone = object()

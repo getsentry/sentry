@@ -22,7 +22,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import PerfEventsTable from './perfEventsTable';
+import AllEventsTable from './allEventsTable';
 
 type Props = {
   api: Client;
@@ -36,7 +36,7 @@ type State = {
   loading: boolean;
   pageLinks: string;
   query: string;
-  renderPerfIssueEvents: boolean;
+  renderNewAllEventsTab: boolean;
 };
 
 class GroupEvents extends Component<Props, State> {
@@ -44,9 +44,8 @@ class GroupEvents extends Component<Props, State> {
     super(props);
 
     const queryParams = this.props.location.query;
-    const renderPerfIssueEvents =
+    const renderNewAllEventsTab =
       !!this.props.group.id &&
-      this.props.group.issueCategory === IssueCategory.PERFORMANCE &&
       this.props.organization.features.includes('performance-issues-all-events-tab');
 
     this.state = {
@@ -55,7 +54,7 @@ class GroupEvents extends Component<Props, State> {
       error: false,
       pageLinks: '',
       query: queryParams.query || '',
-      renderPerfIssueEvents,
+      renderNewAllEventsTab,
     };
   }
 
@@ -135,10 +134,11 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 
-  renderPerfIssueEvents() {
+  renderNewAllEventsTab() {
     return (
-      <PerfEventsTable
+      <AllEventsTable
         issueId={this.props.group.id}
+        isPerfIssue={this.props.group.issueCategory === IssueCategory.PERFORMANCE}
         location={this.props.location}
         organization={this.props.organization}
       />
@@ -146,7 +146,7 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderSearchBar() {
-    const {renderPerfIssueEvents} = this.state;
+    const {renderNewAllEventsTab: renderPerfIssueEvents} = this.state;
 
     if (renderPerfIssueEvents) {
       return (
@@ -154,7 +154,7 @@ class GroupEvents extends Component<Props, State> {
           organization={this.props.organization}
           defaultQuery=""
           onSearch={this.handleSearch}
-          excludeEnvironment
+          excludeTags={['environment']}
           query={this.state.query}
           hasRecentSearches={false}
         />
@@ -186,12 +186,12 @@ class GroupEvents extends Component<Props, State> {
   }
 
   renderBody() {
-    const {renderPerfIssueEvents} = this.state;
+    const {renderNewAllEventsTab} = this.state;
 
     let body: React.ReactNode;
 
-    if (renderPerfIssueEvents) {
-      return this.renderPerfIssueEvents();
+    if (renderNewAllEventsTab) {
+      return this.renderNewAllEventsTab();
     }
     if (this.state.loading) {
       body = <LoadingIndicator />;

@@ -24,7 +24,9 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  setSavedQuery: (savedQuery: SavedQuery) => void;
   yAxis: string[];
+  isHomepage?: boolean;
 };
 
 type State = {
@@ -55,8 +57,8 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   fetchData() {
-    const {api, eventView, organization} = this.props;
-    if (typeof eventView.id === 'string') {
+    const {api, eventView, organization, isHomepage} = this.props;
+    if (!isHomepage && typeof eventView.id === 'string') {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
         this.setState({savedQuery, loading: false});
@@ -65,10 +67,10 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   renderAuthor() {
-    const {eventView} = this.props;
+    const {eventView, isHomepage} = this.props;
     const {savedQuery} = this.state;
     // No saved query in use.
-    if (!eventView.id) {
+    if (!eventView.id || isHomepage) {
       return null;
     }
     let createdBy = ' \u2014 ';
@@ -85,7 +87,16 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   render() {
-    const {organization, location, errorCode, eventView, yAxis, router} = this.props;
+    const {
+      organization,
+      location,
+      errorCode,
+      eventView,
+      yAxis,
+      router,
+      setSavedQuery,
+      isHomepage,
+    } = this.props;
     const {savedQuery, loading} = this.state;
 
     return (
@@ -100,11 +111,13 @@ class ResultsHeader extends Component<Props, State> {
             savedQuery={savedQuery}
             organization={organization}
             eventView={eventView}
+            isHomepage={isHomepage}
           />
           {this.renderAuthor()}
         </StyledHeaderContent>
         <Layout.HeaderActions>
           <SavedQueryButtonGroup
+            setSavedQuery={setSavedQuery}
             location={location}
             organization={organization}
             eventView={eventView}
