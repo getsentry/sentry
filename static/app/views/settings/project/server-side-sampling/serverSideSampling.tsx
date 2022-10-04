@@ -136,15 +136,7 @@ export function ServerSideSampling({project}: Props) {
     }
 
     fetchData();
-  }, [
-    api,
-    organization.slug,
-    project.slug,
-    project.id,
-    hasAccess,
-    samplingProjectSettingsPath,
-    router.location.pathname,
-  ]);
+  }, [api, organization.slug, project.slug, project.id, hasAccess]);
 
   const handleReadDocs = useCallback(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
@@ -306,37 +298,35 @@ export function ServerSideSampling({project}: Props) {
 
   useEffect(() => {
     if (
-      router.location.pathname !== `${samplingProjectSettingsPath}rules/new/` &&
       router.location.pathname !== `${samplingProjectSettingsPath}rules/${params.rule}/`
     ) {
       return;
     }
 
+    if (router.location.pathname === `${samplingProjectSettingsPath}rules/uniform/`) {
+      const uniformRule = rules.find(isUniformRule);
+      handleOpenUniformRateModal(uniformRule);
+      return;
+    }
+
     if (router.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
-      if (!rules.length) {
-        handleOpenUniformRateModal();
-        return;
-      }
       handleOpenSpecificConditionsModal();
       return;
     }
 
-    if (
-      router.location.pathname === `${samplingProjectSettingsPath}rules/${params.rule}/`
-    ) {
-      const rule = rules.find(r => String(r.id) === params.rule);
+    const rule = rules.find(r => String(r.id) === params.rule);
 
-      if (!rule) {
-        addErrorMessage(t('Unable to find sampling rule'));
-        return;
-      }
-
-      if (isUniformRule(rule)) {
-        handleOpenUniformRateModal(rule);
-        return;
-      }
-      handleOpenSpecificConditionsModal(rule);
+    if (!rule) {
+      addErrorMessage(t('Unable to find sampling rule'));
+      return;
     }
+
+    if (isUniformRule(rule)) {
+      handleOpenUniformRateModal(rule);
+      return;
+    }
+
+    handleOpenSpecificConditionsModal(rule);
   }, [
     params.rule,
     handleOpenUniformRateModal,
@@ -418,7 +408,7 @@ export function ServerSideSampling({project}: Props) {
       project_id: project.id,
     });
 
-    navigate(`${samplingProjectSettingsPath}rules/new/`);
+    navigate(`${samplingProjectSettingsPath}rules/uniform/`);
   }
 
   async function handleSortRules({
@@ -621,9 +611,13 @@ export function ServerSideSampling({project}: Props) {
                       }
                       hideGrabButton={items.length === 1}
                       rule={currentRule}
-                      onEditRule={() =>
-                        navigate(`${samplingProjectSettingsPath}rules/${currentRule.id}/`)
-                      }
+                      onEditRule={() => {
+                        navigate(
+                          isUniformRule(currentRule)
+                            ? `${samplingProjectSettingsPath}rules/uniform/`
+                            : `${samplingProjectSettingsPath}rules/${currentRule.id}/`
+                        );
+                      }}
                       onDeleteRule={() => handleDeleteRule(currentRule)}
                       onActivate={() => handleActivateToggle(currentRule)}
                       noPermission={!hasAccess}

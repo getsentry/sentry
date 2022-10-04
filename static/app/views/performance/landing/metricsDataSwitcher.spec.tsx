@@ -1,3 +1,5 @@
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
@@ -13,27 +15,31 @@ const WrappedComponent = ({data, withStaticFilters = true}) => {
     withStaticFilters,
   });
 
+  const client = new QueryClient();
+
   return (
-    <OrganizationContext.Provider value={data.organization}>
-      <MetricsCardinalityProvider
-        location={data.router.location}
-        organization={data.organization}
-      >
-        <PerformanceLanding
-          router={data.router}
-          organization={data.organization}
+    <QueryClientProvider client={client}>
+      <OrganizationContext.Provider value={data.organization}>
+        <MetricsCardinalityProvider
           location={data.router.location}
-          eventView={eventView}
-          projects={data.projects}
-          selection={eventView.getPageFilters()}
-          onboardingProject={undefined}
-          handleSearch={() => {}}
-          handleTrendsClick={() => {}}
-          setError={() => {}}
-          withStaticFilters={withStaticFilters}
-        />
-      </MetricsCardinalityProvider>
-    </OrganizationContext.Provider>
+          organization={data.organization}
+        >
+          <PerformanceLanding
+            router={data.router}
+            organization={data.organization}
+            location={data.router.location}
+            eventView={eventView}
+            projects={data.projects}
+            selection={eventView.getPageFilters()}
+            onboardingProject={undefined}
+            handleSearch={() => {}}
+            handleTrendsClick={() => {}}
+            setError={() => {}}
+            withStaticFilters={withStaticFilters}
+          />
+        </MetricsCardinalityProvider>
+      </OrganizationContext.Provider>
+    </QueryClientProvider>
   );
 };
 
