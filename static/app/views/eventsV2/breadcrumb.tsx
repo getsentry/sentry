@@ -1,4 +1,5 @@
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
@@ -29,7 +30,7 @@ function DiscoverBreadcrumb({
           ? getDiscoverQueriesUrl(organization)
           : getDiscoverLandingUrl(organization),
         query: {
-          ...location.query,
+          ...omit(location.query, 'homepage'),
           ...eventView.generateBlankQueryStringObject(),
           ...eventView.getPageFiltersQuery(),
         },
