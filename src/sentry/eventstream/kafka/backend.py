@@ -1,11 +1,12 @@
 import logging
 import signal
-from typing import Any, Literal, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import Any, Literal, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
 
 from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry import options
+from sentry.eventstream.base import GroupStates
 from sentry.eventstream.kafka.consumer import SynchronizedConsumer
 from sentry.eventstream.kafka.postprocessworker import (
     ErrorsPostProcessForwarderWorker,
@@ -57,6 +58,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp: float,
         skip_consume,
+        group_states: Optional[GroupStates] = None,
     ) -> Mapping[str, str]:
 
         # HACK: We are putting all this extra information that is required by the
@@ -68,6 +70,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
             if value is None:
                 value = False
             return str(int(value))
+
+        def encode_list(value: Sequence[Any]) -> str:
+            return json.dumps(value)
 
         # we strip `None` values here so later in the pipeline they can be
         # cleanly encoded without nullability checks
@@ -93,6 +98,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
                     "is_regression": encode_bool(is_regression),
                     "skip_consume": encode_bool(skip_consume),
                     "transaction_forwarder": encode_bool(transaction_forwarder),
+                    "group_states": encode_list(group_states) if group_states is not None else None,
                 }
             )
         else:
@@ -117,6 +123,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         primary_hash,
         received_timestamp: float,
         skip_consume=False,
+        group_states: Optional[GroupStates] = None,
         **kwargs,
     ):
         message_type = "transaction" if self._is_transaction_event(event) else "error"
@@ -140,6 +147,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
             primary_hash,
             received_timestamp,
             skip_consume,
+            group_states,
             **kwargs,
         )
 
