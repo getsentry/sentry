@@ -86,7 +86,11 @@ export function DynamicSamplingMetricsAccuracyAlert({
         <Button
           priority="link"
           borderless
-          href={`/settings/${organization.slug}/projects/${selectedProject.slug}/dynamic-sampling/rules/uniform/?referrer=performance.rate-alert`}
+          to={
+            organization.access.includes('project:write')
+              ? `/settings/${organization.slug}/projects/${selectedProject.slug}/dynamic-sampling/rules/uniform/?referrer=performance.rate-alert`
+              : `/settings/${organization.slug}/projects/${selectedProject.slug}/dynamic-sampling/?referrer=performance.rate-alert`
+          }
         >
           {t('Adjust Sample Rates')}
         </Button>
