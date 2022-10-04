@@ -352,7 +352,7 @@ class EventFrequencyPercentConditionTestCase(
                     project_id=self.project.id,
                     user_id=uuid4().hex,
                     fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
-                    timestamp=iso_format(before_now(minutes=minutes)),
+                    timestamp=before_now(minutes=minutes).replace(tzinfo=pytz.utc),
                 )
             else:
                 self.test_event = self.store_event(
