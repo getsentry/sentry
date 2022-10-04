@@ -27,7 +27,7 @@ export type StacktraceLinkEventParameters = {
     setup_type?: 'automatic' | 'manual';
     state?: 'match' | 'no_match' | 'prompt' | 'empty';
   } & IntegrationView &
-    BaseEventAnalyticsParams;
+    Partial<BaseEventAnalyticsParams>; // make optional
 };
 
 export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string> = {
