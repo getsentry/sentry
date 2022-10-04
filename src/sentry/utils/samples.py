@@ -113,6 +113,7 @@ def load_data(
     span_id=None,
     spans=None,
     trace_context=None,
+    fingerprint=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -236,6 +237,16 @@ def load_data(
                         "value": round(data["start_timestamp"] + entry["value"] / 1000, 3)
                     }
             measurements.update(measurement_markers)
+
+        if fingerprint is not None:
+            for f in fingerprint:
+                f_data = f.split("-", 1)
+                if len(f_data) < 2:
+                    raise ValueError(
+                        "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
+                    )
+
+            data["fingerprint"] = fingerprint
 
     data["platform"] = platform
     # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
