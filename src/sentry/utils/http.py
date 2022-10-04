@@ -3,6 +3,7 @@ from typing import Optional
 from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
+from rest_framework.request import Request
 
 from sentry import options
 
@@ -18,6 +19,13 @@ def absolute_uri(url: Optional[str] = None, url_prefix=None) -> str:
     if parsed.hostname is not None:
         url_prefix = origin_from_url(url)
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
+
+
+def create_redirect_url(request: Request, redirect_url: str) -> str:
+    qs = request.META.get("QUERY_STRING") or ""
+    if qs:
+        qs = "?" + qs
+    return f"{redirect_url}{qs}"
 
 
 def origin_from_url(url):
