@@ -31,8 +31,8 @@ class PostProcessJob(TypedDict, total=False):
     event: "Event"
     group_state: Dict[str, Any]
     is_reprocessed: bool
-    has_reappeared: Optional[bool]
-    has_alert: Optional[bool]
+    has_reappeared: bool
+    has_alert: bool
 
 
 def _get_service_hooks(project_id):
@@ -388,7 +388,6 @@ def post_process_group(
                 "group_state": group_state,
                 "is_reprocessed": is_reprocessed,
                 "has_reappeared": not group_state["is_new"],
-                "has_alert": None,
             }
 
             _capture_stats(job)
