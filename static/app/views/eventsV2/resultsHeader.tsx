@@ -3,7 +3,6 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -62,11 +61,6 @@ class ResultsHeader extends Component<Props, State> {
     if (!isHomepage && typeof eventView.id === 'string') {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
-        this.setState({savedQuery, loading: false});
-      });
-    } else if (isHomepage) {
-      this.setState({loading: true});
-      fetchHomepageQuery(api, organization.slug).then(savedQuery => {
         this.setState({savedQuery, loading: false});
       });
     }
