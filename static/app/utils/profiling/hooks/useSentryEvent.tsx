@@ -31,10 +31,10 @@ export function useSentryEvent<T extends Event>(
     }
 
     fetchSentryEvent<T>(api, organizationSlug, projectSlug, eventId)
-      .then(transaction => {
+      .then(event => {
         setRequestState({
           type: 'resolved',
-          data: transaction,
+          data: event,
         });
       })
       .catch(err => {
