@@ -131,20 +131,9 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: check silo mode flags
-        id: check-silo-mode-flags
-        if: github.event_name == 'pull_request'
-        uses:  getsentry/action-check-ci-flag@1928048605990e119446310513f7d704530c9b0b
-        with:
-          appId: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          privateKey: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-          label: Silo Mode
-          targets: all, control
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.check-silo-mode-flags.outputs.isFlagPresent
         with:
           snuba: true
           # Right now, we run so few bigtable related tests that the
@@ -154,14 +143,12 @@ jobs:
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.check-silo-mode-flags.outputs.isFlagPresent
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
           make test-python-ci
 
       - name: Handle artifacts
-        if: steps.check-silo-mode-flags.outputs.isFlagPresent
         uses: ./.github/actions/artifacts
 
   backend-test-in-region-mode:
@@ -188,20 +175,9 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
-      - name: check silo mode flags
-        id: check-silo-mode-flags
-        if: github.event_name == 'pull_request'
-        uses:  getsentry/action-check-ci-flag@1928048605990e119446310513f7d704530c9b0b
-        with:
-          appId: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
-          privateKey: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-          label: Silo Mode
-          targets: all, region
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: steps.check-silo-mode-flags.outputs.isFlagPresent
         with:
           snuba: true
           # Right now, we run so few bigtable related tests that the
@@ -211,14 +187,12 @@ jobs:
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: steps.check-silo-mode-flags.outputs.isFlagPresent
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
           make test-python-ci
 
       - name: Handle artifacts
-        if: steps.check-silo-mode-flags.outputs.isFlagPresent
         uses: ./.github/actions/artifacts
 
   backend-test-snuba-contains-metrics-tag-values:
