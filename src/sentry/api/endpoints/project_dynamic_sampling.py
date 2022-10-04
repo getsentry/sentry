@@ -56,6 +56,7 @@ def percentile_fn(data, percentile):
     return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
 
 
+<<<<<<< HEAD
 class ProjectStats:
     project: str
     project_id: str
@@ -67,6 +68,19 @@ class ProjectStats:
 
 
 >>>>>>> 5d76c9aed7 (fix tests!)
+||||||| parent of 20bd2d8c02 (cleanup)
+class ProjectStats:
+    project: str
+    project_id: str
+    percentage: float
+
+    @property
+    def total_root(self):
+        pass
+
+
+=======
+>>>>>>> 20bd2d8c02 (cleanup)
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
