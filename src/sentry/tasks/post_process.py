@@ -392,10 +392,12 @@ def post_process_group(
         # error issue
         if group_states is None:
             group_states = {
-                "id": group_id,
-                "is_new": is_new,
-                "is_regression": is_regression,
-                "is_new_group_environment": is_new_group_environment,
+                1: {
+                    "id": group_id,
+                    "is_new": is_new,
+                    "is_regression": is_regression,
+                    "is_new_group_environment": is_new_group_environment,
+                }
             }
         else:
             # TODO handle perf issues with multiple groups, not sure how to do update_event_group, handle_owner_assignment, etc
@@ -405,7 +407,7 @@ def post_process_group(
         update_event_group(event)
         bind_organization_context(event.project.organization)
 
-        for group_state in group_states:
+        for group_state in group_states.values():
             job = {
                 "event": event,
                 "group_state": group_state,
