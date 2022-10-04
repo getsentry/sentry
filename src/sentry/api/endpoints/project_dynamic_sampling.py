@@ -234,7 +234,15 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
+<<<<<<< HEAD
                 'count_if(trace.parent_span, equals, "") as is_root_transaction',
+||||||| parent of 6187b1cdf6 (replace count_if)
+                "trace.client_sample_rate",
+                # TODO: (andrii) rewrite with has
+                'count_if(trace.parent_span, equals, "") as is_root_transaction',
+=======
+                "trace.client_sample_rate",
+>>>>>>> 6187b1cdf6 (replace count_if)
                 "random_number() as rand_num",
                 f"modulo(rand_num, {sampling_factor}) as modulo_num",
             ],
@@ -250,9 +258,13 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         )
         builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
         snuba_query = builder.get_snql_query().query
-        groupby = snuba_query.groupby + [
-            Column("modulo_num"),
+
+        extra_select = [
+            Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root")
         ]
+        snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
+
+        groupby = snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
         snuba_query = snuba_query.set_groupby(groupby)
 
         data = raw_snql_query(
@@ -402,7 +414,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 parent_trace_ids = [
                     transaction.get("trace")
                     for transaction in transactions
-                    if transaction.get("count_root", 0) == 1
+                    if transaction.get("is_root", False)
                     and transaction.get("project_id", 0) == project.id
                 ]
                 # and !has:trace.parent_span → project_breakdown attribute.
