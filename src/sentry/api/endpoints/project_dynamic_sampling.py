@@ -70,10 +70,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         query,
         query_time_range,
     ):
-        """
-        Run query that gets total count of transactions with these conditions for the specified
-        time period
-        """
+        # Run query that gets total count of transactions with these conditions for the specified
+        # time period
         return self.__run_discover_query(
             columns=[
                 "count()",
