@@ -368,14 +368,14 @@ def post_process_group(
 
         if group_states is None:
             # error issue
-            group_states = {
-                1: {
+            group_states = [
+                {
                     "id": group_id,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,
                 }
-            }
+            ]
         else:
             # performance issue
             return
@@ -383,7 +383,7 @@ def post_process_group(
         update_event_group(event)
         bind_organization_context(event.project.organization)
 
-        for group_state in group_states.values():
+        for group_state in group_states:
             job = {
                 "event": event,
                 "group_state": group_state,
