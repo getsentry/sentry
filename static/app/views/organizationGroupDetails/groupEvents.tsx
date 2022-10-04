@@ -154,7 +154,7 @@ class GroupEvents extends Component<Props, State> {
           organization={this.props.organization}
           defaultQuery=""
           onSearch={this.handleSearch}
-          excludeEnvironment
+          excludeTags={['environment']}
           query={this.state.query}
           hasRecentSearches={false}
           excludeTags={['issue']}
