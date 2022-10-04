@@ -90,17 +90,6 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
 }
 
 function HomepageContainer(props: Props) {
-  /**
-   * Block `<Results>` from mounting until GSH is ready since there are API
-   * requests being performed on mount.
-   *
-   * Also, we skip loading last used projects if you have multiple projects feature as
-   * you no longer need to enforce a project if it is empty. We assume an empty project is
-   * the desired behavior because saved queries can contain a project filter. The only
-   * exception is if we are showing a prebuilt saved query in which case we want to
-   * respect pinned filters.
-   */
-
   return (
     <PageFiltersContainer
       skipLoadLastUsed={
