@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -179,25 +180,35 @@ export function TestComponent({
 }: {
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
+  router?: InjectedRouter;
   withModal?: boolean;
 }) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {
-          orgId: organization.slug,
-          projectId: project.slug,
-        },
-        routes: [],
-      }}
-    >
+  const children = (
+    <Fragment>
       {withModal && <GlobalModal />}
       <OrganizationContext.Provider value={organization}>
         <ServerSideSampling project={project} />
       </OrganizationContext.Provider>
-    </RouteContext.Provider>
+    </Fragment>
   );
+
+  if (router) {
+    return (
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    );
+  }
+
+  return children;
 }
