@@ -468,13 +468,19 @@ function buildRoutes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
-      <Route
-        path="dynamic-sampling/"
-        name={t('Dynamic Sampling')}
-        component={make(
-          () => import('sentry/views/settings/project/server-side-sampling')
-        )}
-      />
+      <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/settings/project/server-side-sampling')
+          )}
+        />
+        <Route
+          path="rules/:rule/"
+          component={make(
+            () => import('sentry/views/settings/project/server-side-sampling')
+          )}
+        />
+      </Route>
       <Redirect from="server-side-sampling/" to="dynamic-sampling/" />
       <Route
         path="issue-grouping/"
@@ -1143,9 +1149,15 @@ function buildRoutes() {
       component={make(() => import('sentry/views/eventsV2'))}
     >
       <Feature features={['discover-query-builder-as-landing-page']}>
-        <IndexRedirect to="results/" />
+        <IndexRedirect to="homepage/" />
       </Feature>
       <IndexRedirect to="queries/" />
+      <Feature features={['discover-query-builder-as-landing-page']}>
+        <Route
+          path="homepage/"
+          component={make(() => import('sentry/views/eventsV2/homepage'))}
+        />
+      </Feature>
       <Route
         path="queries/"
         component={make(() => import('sentry/views/eventsV2/landing'))}

@@ -17,6 +17,7 @@ from rest_framework.request import Request
 
 from sentry.models import Authenticator, User
 from sentry.utils import metrics
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
@@ -149,7 +150,7 @@ def get_org_redirect_url(request, active_organization):
     return "/organizations/new/"
 
 
-def get_login_redirect(request, default=None):
+def _get_login_redirect(request, default=None):
     if default is None:
         default = get_login_url()
 
@@ -172,6 +173,17 @@ def get_login_redirect(request, default=None):
         login_url = default
 
     return login_url
+
+
+def get_login_redirect(request, default=None):
+    from sentry.api.utils import generate_organization_url
+
+    login_redirect = _get_login_redirect(request, default)
+    url_prefix = None
+    if hasattr(request, "subdomain") and request.subdomain:
+        url_prefix = generate_organization_url(request.subdomain)
+        return absolute_uri(login_redirect, url_prefix=url_prefix)
+    return login_redirect
 
 
 def is_valid_redirect(url: str, allowed_hosts: Optional[Container] = None) -> bool:
