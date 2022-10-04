@@ -232,11 +232,12 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         # Requesting for a project that is root for some transactions but not root for others and part of distributed trace like sentry
         elif project["count_root"] > 0 and project["count_non_root"] > 0:
             # GET project distribution of this trace_ids (for ONLY parent trace ids)
+            total_parent_trace_ids = len(parent_trace_ids)
             parent_project_breakdown = self.__run_discover_query(
                 columns=[
                     "project_id",
                     "project",
-                    "count()",
+                    f"count() / {total_parent_trace_ids}",
                 ],
                 query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
                 params={
