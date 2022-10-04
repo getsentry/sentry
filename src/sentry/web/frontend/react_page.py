@@ -28,7 +28,7 @@ class ReactMixin:
         # page. So there's no point in rendering a random `<input>` field.
         get_csrf_token(request)
 
-        return render_to_response("sentry/bases/react.html", context=context, request=request)
+        return render_to_response("sentry/base-react.html", context=context, request=request)
 
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
