@@ -108,11 +108,6 @@ jobs:
         uses: ./.github/actions/artifacts
 
   backend-test-in-silo-modes:
-    if:
-        (
-             contains(github.ref, '/hc-')
-          || contains(github.ref, 'hybrid-cloud')
-        )
     needs: files-changed
     continue-on-error: true
     timeout-minutes: 60
