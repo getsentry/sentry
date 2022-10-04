@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
+import {RouteComponentProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
@@ -24,6 +25,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectStore from 'sentry/stores/projectsStore';
+import {ServerSideSamplingStore} from 'sentry/stores/serverSideSamplingStore';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {
@@ -40,7 +42,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -68,11 +69,11 @@ import {SamplingSDKClientRateChangeAlert} from './samplingSDKClientRateChangeAle
 import {SamplingSDKUpgradesAlert} from './samplingSDKUpgradesAlert';
 import {isUniformRule, SERVER_SIDE_SAMPLING_DOC_LINK} from './utils';
 
-type Props = {
+type Props = RouteComponentProps<{}, {}> & {
   project: Project;
 };
 
-export function ServerSideSampling({project}: Props) {
+export function ServerSideSampling({project, router}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
@@ -80,7 +81,6 @@ export function ServerSideSampling({project}: Props) {
   const currentRules = project.dynamicSampling?.rules;
   const previousRules = usePrevious(currentRules);
   const navigate = useNavigate();
-  const routeContext = useRouteContext();
   const params = useParams();
 
   const samplingProjectSettingsPath = `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`;
@@ -93,6 +93,14 @@ export function ServerSideSampling({project}: Props) {
       project_id: project.id,
     });
   }, [project.id, organization]);
+
+  useEffect(() => {
+    return () => {
+      if (!router.location.pathname.startsWith(samplingProjectSettingsPath)) {
+        ServerSideSamplingStore.reset();
+      }
+    };
+  }, [router.location.pathname, samplingProjectSettingsPath]);
 
   useEffect(() => {
     if (!isEqual(previousRules, currentRules)) {
@@ -126,7 +134,15 @@ export function ServerSideSampling({project}: Props) {
     }
 
     fetchData();
-  }, [api, organization.slug, project.slug, project.id, hasAccess]);
+  }, [
+    api,
+    organization.slug,
+    project.slug,
+    project.id,
+    hasAccess,
+    samplingProjectSettingsPath,
+    router.location.pathname,
+  ]);
 
   const handleReadDocs = useCallback(() => {
     trackAdvancedAnalyticsEvent('sampling.settings.view_read_docs', {
@@ -288,14 +304,13 @@ export function ServerSideSampling({project}: Props) {
 
   useEffect(() => {
     if (
-      routeContext.location.pathname !== `${samplingProjectSettingsPath}rules/new/` &&
-      routeContext.location.pathname !==
-        `${samplingProjectSettingsPath}rules/${params.rule}/`
+      router.location.pathname !== `${samplingProjectSettingsPath}rules/new/` &&
+      router.location.pathname !== `${samplingProjectSettingsPath}rules/${params.rule}/`
     ) {
       return;
     }
 
-    if (routeContext.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
+    if (router.location.pathname === `${samplingProjectSettingsPath}rules/new/`) {
       if (!rules.length) {
         handleOpenUniformRateModal();
         return;
@@ -305,8 +320,7 @@ export function ServerSideSampling({project}: Props) {
     }
 
     if (
-      routeContext.location.pathname ===
-      `${samplingProjectSettingsPath}rules/${params.rule}/`
+      router.location.pathname === `${samplingProjectSettingsPath}rules/${params.rule}/`
     ) {
       const rule = rules.find(r => String(r.id) === params.rule);
 
@@ -326,7 +340,7 @@ export function ServerSideSampling({project}: Props) {
     handleOpenUniformRateModal,
     handleOpenSpecificConditionsModal,
     rules,
-    routeContext.location.pathname,
+    router.location.pathname,
     samplingProjectSettingsPath,
   ]);
 
