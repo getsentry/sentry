@@ -33,6 +33,40 @@ class QueryTimeRange:
     end_time: datetime
 
 
+<<<<<<< HEAD
+||||||| parent of 5d76c9aed7 (fix tests!)
+def percentile_fn(data, percentile):
+    """
+    Returns the nth percentile from a sorted list
+
+    :param percentile: A value between 0 and 1
+    :param data: Sorted list of values
+    """
+    return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
+
+
+=======
+def percentile_fn(data, percentile):
+    """
+    Returns the nth percentile from a sorted list
+
+    :param percentile: A value between 0 and 1
+    :param data: Sorted list of values
+    """
+    return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
+
+
+class ProjectStats:
+    project: str
+    project_id: str
+    percentage: float
+
+    @property
+    def total_root(self):
+        pass
+
+
+>>>>>>> 5d76c9aed7 (fix tests!)
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
@@ -64,9 +98,14 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer=referrer,
         )["data"]
 
-    def __projects_counts_query(self, project, query_time_range, trace_ids):
+    def __project_stats_query(self, project, query_time_range, trace_ids):
         """
-        Smart query:
+        Smart query to get:
+        counts as count,
+        countIf(trace.parent_span_id == "") as root,
+        countIf(trace.parent_span_id != "") as non_root,
+        group by project_id
+
         returns: [{'project': 'fire', 'project_id': 4, 'non_root': 2, 'count': 21, 'root': 19}]
         """
         builder = QueryBuilder(
@@ -111,10 +150,9 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             ),
         ]
         snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
-
         data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
-            referrer="dynamic-sampling.distribution.fetch-projects-and-counts",
+            referrer="dynamic-sampling.distribution.fetch-project-stats",
         )["data"]
         return data
 
@@ -364,7 +402,16 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             )
 
             # Discover query to fetch parent projects (smart query)
-            projects_counts = self.__projects_counts_query(project, query_time_range, trace_ids)
+            projects_counts = self.__project_stats_query(project, query_time_range, trace_ids)
+            # If the number of the projects in the breakdown is greater than 10 projects,
+            # then a question needs to be raised on the eligibility of the org for dynamic sampling
+            if len(projects_counts) > 10:
+                return Response(
+                    status=status.HTTP_400_BAD_REQUEST,
+                    data={
+                        "detail": "Way too many projects in the distributed trace's project breakdown"
+                    },
+                )
 
             # Requesting for a project that is root for some transactions,
             # but not root for others and part of distributed trace like
@@ -372,26 +419,15 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 [project for project in projects_counts if project["root"] > 0]
             )
             # get requested project id in projects_count dataset
-            try:
-                requested_project = next(
-                    item for item in projects_counts if item["project_id"] == project.id
-                )
-            except StopIteration:
-                requested_project = None
+            requested_project = next(
+                item for item in projects_counts if item["project_id"] == project.id
+            )
 
             # This condition covers all 3 cases (A, C, D):
-            if root_projects_count == 1 and requested_project:
+            if root_projects_count == 1:
                 # build parent_project_breakdown
                 parent_project_breakdown = [
-                    {"project_id": project.id, "project": project.slug, "percentege": 1}
-                ]
-                project_breakdown = [
-                    {
-                        "project_id": _project["project_id"],
-                        "project": _project["project"],
-                        "count()": _project["count"],
-                    }
-                    for _project in projects_counts
+                    {"project_id": project.id, "project": project.slug, "percentage": 1}
                 ]
             # Case B: the most tricky one and requires extra query
             elif root_projects_count > 1 and requested_project["root"] > 0:
@@ -405,11 +441,25 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                             {
                                 "project": _project["project"],
                                 "project_id": _project["project_id"],
-                                "percentege": _project["root"] / total_count
+                                "percentage": _project["root"] / total_count
                                 if total_count > 0
                                 else 0,
                             }
                         )
+
+            else:
+                parent_project_breakdown = []
+
+            # Get project breakdown
+            project_breakdown = []
+
+            parent_project_ids = {p["project_id"] for p in parent_project_breakdown}
+
+            if (
+                requested_project["project_id"] in parent_project_ids
+                and len(parent_project_breakdown) > 1
+            ):
+
                 # loop over trace ids, and filter down trace ids where project is sentry
                 parent_trace_ids = [
                     transaction.get("trace")
@@ -433,23 +483,20 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     },
                     limit=20,
                     referrer="dynamic-sampling.distribution.fetch-project-breakdown",
-                )["data"]
-            # no data
-            else:
-                project_breakdown = []
-                parent_project_breakdown = []
-
-            # Get project breakdown
-
-            # If the number of the projects in the breakdown is greater than 10 projects,
-            # then a question needs to be raised on the eligibility of the org for dynamic sampling
-            if len(project_breakdown) > 10:
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={
-                        "detail": "Way too many projects in the distributed trace's project breakdown"
-                    },
                 )
+
+            elif (
+                requested_project["project_id"] in parent_project_ids
+                and len(parent_project_breakdown) == 1
+            ):
+                project_breakdown = [
+                    {
+                        "project_id": _project["project_id"],
+                        "project": _project["project"],
+                        "count()": _project["count"],
+                    }
+                    for _project in projects_counts
+                ]
 
         return Response(
             {

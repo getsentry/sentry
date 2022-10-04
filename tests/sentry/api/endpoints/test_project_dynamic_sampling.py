@@ -5,12 +5,11 @@ from unittest import mock
 from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
-from snuba_sdk import Column
+from snuba_sdk import Column, Function
 from snuba_sdk.conditions import Condition, Op
 
-from sentry.api.endpoints.project_dynamic_sampling import ProjectDynamicSamplingDistributionEndpoint
-from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
@@ -18,7 +17,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 def mocked_query_builder_query(referrer):
-    if referrer == "dynamic-sampling.distribution.fetch-parent-transactions":
+    if referrer == "dynamic-sampling.distribution.fetch-transactions":
         return {
             "data": [
                 {
@@ -26,127 +25,155 @@ def mocked_query_builder_query(referrer):
                     "id": "6ddc83ee612b4e89b95b5278c8fd188f",
                     "project.name": "fire",
                     "random_number() AS random_number": 4255299100,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b127a578f8440c793f9ba1de595229f",
                     "project.name": "fire",
                     "random_number() AS random_number": 3976019453,
+                    "is_root": 1,
                 },
                 {
                     "trace": "9f1a4413544f4d2d9cef4fe109ec426c",
                     "id": "4d3058e9b3094dcebfdf318d5c025931",
                     "project.name": "fire",
                     "random_number() AS random_number": 3941410921,
+                    "is_root": 1,
                 },
                 {
                     "trace": "06f91ed13ce042f58f848a11bd26ba3c",
                     "id": "c3bc0378a08249158d46e36f3dd1cc49",
                     "project.name": "fire",
                     "random_number() AS random_number": 3877259197,
+                    "is_root": 1,
                 },
                 {
                     "trace": "1f9f55e795f843efbf53a3eb84602c56",
                     "id": "9d45de8df2d74e5ea8237e694d39c742",
                     "project.name": "fire",
                     "random_number() AS random_number": 3573364680,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "e861796cea8242338981b2b43aa1b88a",
                     "project.name": "fire",
                     "random_number() AS random_number": 3096490437,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "aac21853bbe746a794303a8f26ec0ac3",
                     "project.name": "fire",
                     "random_number() AS random_number": 2311382371,
+                    "is_root": 1,
                 },
                 {
                     "trace": "05578079ff5848bdb27c50f70687ee0b",
                     "id": "060faa37691a48fb95ec2e3e4c06142a",
                     "project.name": "fire",
                     "random_number() AS random_number": 2211686055,
+                    "is_root": 1,
                 },
                 {
                     "trace": "05578079ff5848bdb27c50f70687ee0b",
                     "id": "ae563f50cfb34f5d8d0b3c32f744dace",
                     "project.name": "fire",
                     "random_number() AS random_number": 2192550125,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "5fdeddd215e6410f83ffad9087f966e8",
                     "project.name": "fire",
                     "random_number() AS random_number": 2175797883,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0ff7bdf09ddf427b89cc6892a0909ba0",
                     "project.name": "fire",
                     "random_number() AS random_number": 2142152502,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "9514c862fddb4686baac0477f4bd81db",
                     "project.name": "fire",
                     "random_number() AS random_number": 1863063737,
+                    "is_root": 1,
                 },
                 {
                     "trace": "c6e5dd7caeef4d6d8320b2d431fcaf1c",
                     "id": "02b3325de01f4e4ca85f4ca26904141d",
                     "project.name": "fire",
                     "random_number() AS random_number": 1764088972,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "712221220ff04138986905bb42c04bdf",
                     "project.name": "fire",
                     "random_number() AS random_number": 1637151306,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0b9eb3872cab4dddaed850ab3d9c1882",
                     "project.name": "fire",
                     "random_number() AS random_number": 1500459010,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "27d80cd631574d349345cbd21bf89bcd",
                     "project.name": "fire",
                     "random_number() AS random_number": 732695464,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "95c1ca5655ca4ddbb8421282abbaf950",
                     "project.name": "fire",
                     "random_number() AS random_number": 523157974,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "0bcf9d68b50544d0a4369586aad0721f",
                     "project.name": "fire",
                     "random_number() AS random_number": 283786475,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "da9b8f0f8e3c48f8af452a4def0dc356",
                     "project.name": "fire",
                     "random_number() AS random_number": 259256656,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "7aa51f558a8c411793fe28d6fbc6ba55",
                     "project.name": "fire",
                     "random_number() AS random_number": 171492976,
+                    "is_root": 1,
                 },
                 {
                     "trace": "6503ee33b7bc43aead1facaa625a5dba",
                     "id": "5c7c7eca495842e39744196851edd947",
                     "project.name": "fire",
                     "random_number() AS random_number": 121455970,
+                    "is_root": 1,
                 },
+            ]
+        }
+    elif referrer == "dynamic-sampling.distribution.fetch-project-stats":
+        return {
+            "data": [
+                {"project": "earth", "project_id": 27, "count": 30, "root": 0, "non_root": 30},
+                {"project": "heart", "project_id": 28, "count": 30, "root": 30, "non_root": 0},
             ]
         }
     raise Exception("Something went wrong!")
@@ -168,120 +195,47 @@ def mocked_discover_query(referrer):
     raise Exception("Something went wrong!")
 
 
-def mocked_data():
-    return [
-        {
-            "project_id": 1,
-            "project": "javascript",
-            "count()": 7,
-            "count_non_root": 0,
-            "count_root": 7,
+def build_expected_snuba_query(
+    query, requested_sample_size, updated_start_time, updated_end_time, project
+):
+    query_builder = QueryBuilder(
+        Dataset.Discover,
+        selected_columns=[
+            "id",
+            "trace",
+            "trace.client_sample_rate",
+            "random_number() AS rand_num",
+            "modulo(rand_num, 10) as modulo_num",
+        ],
+        query=f"{query} event.type:transaction",
+        params={
+            "start": updated_start_time,
+            "end": updated_end_time,
+            "project_id": [project.id],
+            "organization_id": project.organization.id,
         },
-        {
-            "project_id": 2,
-            "project": "sentry",
-            "count()": 13,
-            "count_non_root": 10,
-            "count_root": 3,
-        },
-        {
-            "project_id": 3,
-            "project": "snuba",
-            "count()": 1,
-            "count_non_root": 1,
-            "count_root": 0,
-        },
-        {
-            "project_id": 4,
-            "project": "single_project",
-            "count()": 40,
-            "count_non_root": 0,
-            "count_root": 40,
-        },
+        offset=0,
+        orderby=None,
+        limit=requested_sample_size,
+        equations=[],
+        auto_fields=True,
+        auto_aggregations=True,
+        use_aggregate_conditions=True,
+        functions_acl=["random_number", "modulo"],
+    )
+
+    query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
+    snuba_query = query_builder.get_snql_query().query
+
+    extra_select = [
+        Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root")
     ]
+    snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
 
+    groupby = snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
+    snuba_query = snuba_query.set_groupby(groupby)
 
-# 'count_if(trace.parent_span, equals, "") as num_root_transaction',
-# 'count_if(trace.parent_span, notEquals, "") as non_root',
-
-# D: Requesting for a single project
-# TEST D
-# Request project_id = 4
-
-
-def test_requesting_root_project_part_of_distributed_trace():
-    """
-    Requesting for a project that is root,
-    but is a part of distributed traces like in `javascript`
-    """
-    assert (
-        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
-            # javascript
-            2,
-            mocked_data(),
-        )
-        == []
-    )
-
-
-def test_requesting_root_project_and_non_root_for_others():
-    """
-    Requesting for a project that is root for some transactions,
-    but not root for others and part of distributed trace like `snuba`
-    """
-    assert ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
-        # snuba
-        3,
-        mocked_data(),
-    ) == [
-        {"project_id": 1, "percentege": 0.8, "project": "javascript"},
-        {"project_id": 2, "percentege": 0.2, "project": "sentry"},
-    ]
-
-
-def test_requesting_project_part_of_distributed_trace():
-    """
-    Requesting for a project that is part of a distributed trace,
-    but is not root like `snuba`
-    """
-    assert (
-        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
-            # snuba
-            3,
-            mocked_data(),
-        )
-        == []
-    )
-
-
-def test_requesting_root_project():
-    """
-    Requesting for a project that is root but is a part of distributed traces like in javascript
-    """
-    assert (
-        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(
-            # javascript
-            1,
-            mocked_data(),
-        )
-        == []
-    )
-
-
-def test_requesting_single_project():
-    data = [
-        {
-            "project_id": 1,
-            "project": "single_project",
-            "count()": 40,
-            "count_non_root": 0,
-            "count_root": 40,
-        },
-    ]
-    assert (
-        ProjectDynamicSamplingDistributionEndpoint.parent_project_breakdown_post_processing(1, data)
-        == []
-    )
+    return snuba_query
 
 
 @region_silo_test
@@ -317,13 +271,40 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
             mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
         ]
-        mock_querybuilder.return_value = mocked_query_builder_query(
-            referrer="dynamic-sampling.distribution.fetch-parent-transactions"
-        )
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "5c7c7eca495842e39744196851edd947",
+                        "trace.client_sample_rate": "",
+                        "project.name": self.project.slug,
+                        "project_id": self.project.id,
+                        "random_number() AS random_number": 121455970,
+                        "is_root": 1,
+                    }
+                ],
+            },
+            {
+                "data": [
+                    {
+                        "project_id": self.project.id,
+                        "project": self.project.slug,
+                        "count": 34,
+                        "root": 3,
+                        "non_root": 0,
+                    },
+                    {"project_id": 28, "project": "heart", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 24, "project": "water", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 23, "project": "wind", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 25, "project": "fire", "count": 21, "root": 3, "non_root": 0},
+                ]
+            },
+        ]
+
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(self.endpoint)
             assert response.json() == {
-                "parentProjectBreakdown": [],
                 "project_breakdown": [
                     {"project_id": 27, "project": "earth", "count()": 34},
                     {"project_id": 28, "project": "heart", "count()": 3},
@@ -331,9 +312,46 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                     {"project_id": 23, "project": "wind", "count()": 3},
                     {"project_id": 25, "project": "fire", "count()": 21},
                 ],
+<<<<<<< HEAD
                 "sample_size": 21,
+||||||| parent of 5d76c9aed7 (fix tests!)
+                "sample_size": 21,
+                "null_sample_rate_percentage": 71.42857142857143,
+                "sample_rate_distributions": {
+                    "min": 0.8096753824342516,
+                    "max": 0.9609190650573167,
+                    "avg": 0.8839713299875663,
+                    "p50": 0.8610195401441058,
+                    "p90": 0.9545587106701261,
+                    "p95": 0.9545587106701261,
+                    "p99": 0.9545587106701261,
+                },
+=======
+                "sample_size": 1,
+                "null_sample_rate_percentage": 100.0,
+                "sample_rate_distributions": {
+                    "min": None,
+                    "max": None,
+                    "avg": None,
+                    "p50": None,
+                    "p90": None,
+                    "p95": None,
+                    "p99": None,
+                },
+>>>>>>> 5d76c9aed7 (fix tests!)
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
+                "parentProjectBreakdown": [
+                    {
+                        "project": self.project.slug,
+                        "project_id": self.project.id,
+                        "percentage": 0.046875,
+                    },
+                    {"project": "heart", "project_id": 28, "percentage": 0.046875},
+                    {"project": "water", "project_id": 24, "percentage": 0.046875},
+                    {"project": "wind", "project_id": 23, "percentage": 0.046875},
+                    {"project": "fire", "project_id": 25, "percentage": 0.046875},
+                ],
             }
 
     @freeze_time("2022-08-18T11:00:0.000000Z")
@@ -343,11 +361,10 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
         self.login_as(self.user)
         mock_query.side_effect = [
             mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
-            mocked_discover_query("dynamic-sampling.distribution.fetch-project-breakdown"),
         ]
-        mock_querybuilder.return_value = mocked_query_builder_query(
-            referrer="dynamic-sampling.distribution.fetch-parent-transactions"
-        )
+        mock_querybuilder.side_effect = [
+            mocked_query_builder_query(referrer="dynamic-sampling.distribution.fetch-transactions")
+        ]
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?distributedTrace=0")
             assert response.json() == {
@@ -371,6 +388,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
+<<<<<<< HEAD
         mock_querybuilder.return_value = {
             "data": [
                 {
@@ -387,14 +405,68 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 },
             ]
         }
+||||||| parent of 5d76c9aed7 (fix tests!)
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+=======
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 4255299100,
+                    },
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "0b127a578f8440c793f9ba1de595229f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 3976019453,
+                    },
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project_id": self.project.id,
+                        "project": self.project.slug,
+                        "count": 3,
+                        "root": 3,
+                        "non_root": 0,
+                    },
+                ]
+            },
+        ]
+>>>>>>> 5d76c9aed7 (fix tests!)
 
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "project_breakdown": [
-                    {"project_id": 25, "project": "fire", "count()": 2},
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 3},
                 ],
-                "parentProjectBreakdown": [],
+                "parentProjectBreakdown": [
+                    {"project_id": self.project.id, "project": self.project.slug, "percentage": 1}
+                ],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
@@ -434,6 +506,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
+<<<<<<< HEAD
         mock_querybuilder.return_value = {
             "data": [
                 {
@@ -450,16 +523,70 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 },
             ]
         }
+||||||| parent of 5d76c9aed7 (fix tests!)
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+=======
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 4255299100,
+                    },
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "0b127a578f8440c793f9ba1de595229f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 3976019453,
+                    },
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project_id": self.project.id,
+                        "project": self.project.slug,
+                        "count": 3,
+                        "root": 3,
+                        "non_root": 0,
+                    },
+                ]
+            },
+        ]
+>>>>>>> 5d76c9aed7 (fix tests!)
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
                 "project_breakdown": [
-                    {"project_id": 25, "project": "fire", "count()": 2},
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 3}
                 ],
-                "parentProjectBreakdown": [],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
+                "parentProjectBreakdown": [
+                    {"project_id": self.project.id, "project": self.project.slug, "percentage": 1}
+                ],
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
@@ -468,25 +595,25 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
         self.login_as(self.user)
         mock_query.side_effect = [
             mocked_discover_query("dynamic-sampling.distribution.fetch-transactions-count"),
+        ]
+        mock_querybuilder.side_effect = [
+            mocked_query_builder_query(referrer="dynamic-sampling.distribution.fetch-transactions"),
             {
                 "data": [
-                    {"project_id": 27, "project": "earth", "count()": 34},
-                    {"project_id": 28, "project": "heart", "count()": 3},
-                    {"project_id": 24, "project": "water", "count()": 3},
-                    {"project_id": 23, "project": "wind", "count()": 3},
-                    {"project_id": 25, "project": "fire", "count()": 21},
-                    {"project_id": 21, "project": "air", "count()": 21},
-                    {"project_id": 20, "project": "fire-air", "count()": 21},
-                    {"project_id": 22, "project": "fire-water", "count()": 21},
-                    {"project_id": 30, "project": "fire-earth", "count()": 21},
-                    {"project_id": 31, "project": "fire-fire", "count()": 21},
-                    {"project_id": 32, "project": "fire-heart", "count()": 21},
+                    {"project_id": 29, "project": "y", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 28, "project": "a", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 24, "project": "b", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 23, "project": "c", "count": 3, "root": 3, "non_root": 0},
+                    {"project_id": 25, "project": "d", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 21, "project": "e", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 20, "project": "f", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 22, "project": "h", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 30, "project": "k", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 31, "project": "l", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 32, "project": "m", "count": 21, "root": 3, "non_root": 0},
                 ]
             },
         ]
-        mock_querybuilder.return_value = mocked_query_builder_query(
-            referrer="dynamic-sampling.distribution.fetch-parent-transactions"
-        )
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -506,6 +633,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
+<<<<<<< HEAD
         mock_querybuilder.return_value = {
             "data": [
                 {
@@ -522,14 +650,62 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 },
             ]
         }
+||||||| parent of 5d76c9aed7 (fix tests!)
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+=======
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 4255299100,
+                    },
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "0b127a578f8440c793f9ba1de595229f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 3976019453,
+                    },
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": "earth",
+                        "project_id": self.project.id,
+                        "count": 30,
+                        "root": 0,
+                        "non_root": 30,
+                    }
+                ]
+            },
+        ]
+>>>>>>> 5d76c9aed7 (fix tests!)
         end_time = timezone.now()
         start_time = end_time - timedelta(hours=1)
         query = "environment:dev"
         requested_sample_size = 2
-        projects_in_org = Project.objects.filter(
-            organization=self.project.organization
-        ).values_list("id", flat=True)
-        trace_id_list = ["6503ee33b7bc43aead1facaa625a5dba", "6503ee33b7bc43aead1facaa625a5dba"]
 
         calls = [
             mock.call(
@@ -555,34 +731,8 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 functions_acl=None,
                 referrer="dynamic-sampling.distribution.fetch-transactions-count",
             ),
-            mock.call(
-                selected_columns=[
-                    "project_id",
-                    "project",
-                    "count()",
-                    'count_if(trace.parent_span, equals, "") as num_root_transaction',
-                    'count_if(trace.parent_span, notEquals, "") as non_root',
-                ],
-                query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
-                params={
-                    "start": start_time,
-                    "end": end_time,
-                    "project_id": list(projects_in_org),
-                    "organization_id": self.project.organization.id,
-                },
-                equations=[],
-                functions_acl=None,
-                orderby=[],
-                offset=0,
-                limit=20,
-                auto_fields=True,
-                auto_aggregations=True,
-                allow_metric_aggregates=True,
-                use_aggregate_conditions=True,
-                transform_alias_to_input_format=True,
-                referrer="dynamic-sampling.distribution.fetch-project-breakdown",
-            ),
         ]
+<<<<<<< HEAD
         query_builder = QueryBuilder(
             Dataset.Discover,
             selected_columns=[
@@ -606,11 +756,36 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
             functions_acl=["random_number", "modulo"],
+||||||| parent of 5d76c9aed7 (fix tests!)
+        query_builder = QueryBuilder(
+            Dataset.Discover,
+            selected_columns=[
+                "id",
+                "trace",
+                "trace.client_sample_rate",
+                "random_number() AS rand_num",
+                "modulo(rand_num, 10) as modulo_num",
+            ],
+            query=f"{query} event.type:transaction",
+            params={
+                "start": start_time,
+                "end": end_time,
+                "project_id": [self.project.id],
+                "organization_id": self.project.organization.id,
+            },
+            offset=0,
+            orderby=None,
+            limit=requested_sample_size,
+            equations=[],
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["random_number", "modulo"],
+=======
+        snuba_query = build_expected_snuba_query(
+            query, requested_sample_size, start_time, end_time, self.project
+>>>>>>> 5d76c9aed7 (fix tests!)
         )
-        query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
-        snuba_query = query_builder.get_snql_query().query
-        groupby = snuba_query.groupby + [Column("modulo_num")]
-        snuba_query = snuba_query.set_groupby(groupby)
 
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(
@@ -660,6 +835,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
+<<<<<<< HEAD
         mock_querybuilder.return_value = {
             "data": [
                 {
@@ -676,14 +852,62 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 },
             ]
         }
+||||||| parent of 5d76c9aed7 (fix tests!)
+        mock_querybuilder.return_value = {
+            "data": [
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 4255299100,
+                },
+                {
+                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                    "id": "0b127a578f8440c793f9ba1de595229f",
+                    "trace.client_sample_rate": "",
+                    "project.name": "fire",
+                    "random_number() AS random_number": 3976019453,
+                },
+            ]
+        }
+=======
+        mock_querybuilder.side_effect = [
+            {
+                "data": [
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "6ddc83ee612b4e89b95b5278c8fd188f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 4255299100,
+                    },
+                    {
+                        "trace": "6503ee33b7bc43aead1facaa625a5dba",
+                        "id": "0b127a578f8440c793f9ba1de595229f",
+                        "trace.client_sample_rate": "",
+                        "project.name": "fire",
+                        "random_number() AS random_number": 3976019453,
+                    },
+                ]
+            },
+            {
+                "data": [
+                    {
+                        "project": "earth",
+                        "project_id": self.project.id,
+                        "count": 30,
+                        "root": 0,
+                        "non_root": 30,
+                    }
+                ]
+            },
+        ]
+>>>>>>> 5d76c9aed7 (fix tests!)
         end_time = timezone.now()
         start_time = end_time - timedelta(hours=1)
         query = "environment:dev"
         requested_sample_size = 2
-        projects_in_org = Project.objects.filter(
-            organization=self.project.organization
-        ).values_list("id", flat=True)
-        trace_id_list = ["6503ee33b7bc43aead1facaa625a5dba", "6503ee33b7bc43aead1facaa625a5dba"]
 
         updated_start_time = datetime.datetime(2022, 8, 6, 0, 0, 0, tzinfo=timezone.utc)
         updated_end_time = datetime.datetime(2022, 8, 7, 0, 0, 0, tzinfo=timezone.utc)
@@ -738,34 +962,8 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 functions_acl=None,
                 referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
             ),
-            mock.call(
-                selected_columns=[
-                    "project_id",
-                    "project",
-                    "count()",
-                    'count_if(trace.parent_span, equals, "") as num_root_transaction',
-                    'count_if(trace.parent_span, notEquals, "") as non_root',
-                ],
-                query=f"event.type:transaction trace:[{','.join(trace_id_list)}]",
-                params={
-                    "start": updated_start_time,
-                    "end": updated_end_time,
-                    "project_id": list(projects_in_org),
-                    "organization_id": self.project.organization.id,
-                },
-                equations=[],
-                functions_acl=None,
-                orderby=[],
-                offset=0,
-                limit=20,
-                auto_fields=True,
-                auto_aggregations=True,
-                allow_metric_aggregates=True,
-                use_aggregate_conditions=True,
-                transform_alias_to_input_format=True,
-                referrer="dynamic-sampling.distribution.fetch-project-breakdown",
-            ),
         ]
+<<<<<<< HEAD
         query_builder = QueryBuilder(
             Dataset.Discover,
             selected_columns=[
@@ -789,11 +987,36 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
             functions_acl=["random_number", "modulo"],
+||||||| parent of 5d76c9aed7 (fix tests!)
+        query_builder = QueryBuilder(
+            Dataset.Discover,
+            selected_columns=[
+                "id",
+                "trace",
+                "trace.client_sample_rate",
+                "random_number() AS rand_num",
+                "modulo(rand_num, 10) as modulo_num",
+            ],
+            query=f"{query} event.type:transaction",
+            params={
+                "start": updated_start_time,
+                "end": updated_end_time,
+                "project_id": [self.project.id],
+                "organization_id": self.project.organization.id,
+            },
+            offset=0,
+            orderby=None,
+            limit=requested_sample_size,
+            equations=[],
+            auto_fields=True,
+            auto_aggregations=True,
+            use_aggregate_conditions=True,
+            functions_acl=["random_number", "modulo"],
+=======
+        snuba_query = build_expected_snuba_query(
+            query, requested_sample_size, updated_start_time, updated_end_time, self.project
+>>>>>>> 5d76c9aed7 (fix tests!)
         )
-        query_builder.add_conditions([Condition(lhs=Column("modulo_num"), op=Op.EQ, rhs=0)])
-        snuba_query = query_builder.get_snql_query().query
-        groupby = snuba_query.groupby + [Column("modulo_num")]
-        snuba_query = snuba_query.set_groupby(groupby)
 
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(
@@ -801,7 +1024,6 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             )
             assert response.status_code == 200
             assert mock_query.mock_calls == calls
-
             mock_querybuilder_query = mock_querybuilder.call_args_list[0][0][0].query
 
             def snuba_sort_key(elem):
