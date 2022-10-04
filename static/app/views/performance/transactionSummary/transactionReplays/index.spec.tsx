@@ -27,7 +27,7 @@ const getComponent = ({
   location,
   organizationProps = {features: ['performance-view', 'session-replay-ui']},
 }: InitializeOrgProps) => {
-  const {router, organization, routerContext, projects} = initializeOrg({
+  const {router, organization, routerContext} = initializeOrg({
     organization: {
       ...organizationProps,
     },
@@ -160,7 +160,7 @@ describe('TransactionReplays', () => {
 
   //   await waitFor(() => {
   //     expect(mockApi).toHaveBeenCalledTimes(1);
-  //     expect(screen.getByText('Error')).toBeInTheDocument();
+  //     expect(screen.getByText('error')).toBeInTheDocument();
   //   });
   // });
 
@@ -306,6 +306,8 @@ describe('TransactionReplays', () => {
           location: {
             query: {
               sort: 'startedAt',
+              project: '1',
+              transaction: 'transaction',
             },
           },
         })
@@ -366,6 +368,8 @@ describe('TransactionReplays', () => {
           location: {
             query: {
               sort: 'duration',
+              project: '1',
+              transaction: 'transaction',
             },
           },
         })
@@ -426,6 +430,8 @@ describe('TransactionReplays', () => {
           location: {
             query: {
               sort: 'countErrors',
+              project: '1',
+              transaction: 'transaction',
             },
           },
         })
