@@ -1020,7 +1020,9 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         # Temporary check since we eventually want to capture extra perf problems on the initial pass while walking spans.
         n_count = len(self.n_spans)
         all_matching_spans = [
-            span for span in self.spans if span.get("span_id", None) == self.n_hash
+            span
+            for span in self._event.get("spans", [])
+            if span.get("span_id", None) == self.n_hash
         ]
         all_count = len(all_matching_spans)
         if n_count > 0 and n_count != all_count:
