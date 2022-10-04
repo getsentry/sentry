@@ -54,7 +54,7 @@ async function fetchReplayList({
   } catch (error) {
     if (error.responseJSON?.detail) {
       return {
-        fetchError: error.responseJSON?.detail,
+        fetchError: error.responseJSON.detail,
         isFetching: false,
         pageLinks: null,
         replays: [],
