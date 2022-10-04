@@ -51,6 +51,7 @@ class Buffer(Service, metaclass=BufferMount):
                 "filters": filters,
                 "extra": extra,
                 "signal_only": signal_only,
+                "queue": "counters-0",
             }
         )
 

@@ -679,6 +679,7 @@ CELERY_QUEUES = [
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
+    Queue("counters-0", routing_key="counters-0"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -693,7 +694,6 @@ def create_partitioned_queues(name):
         CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
 
 
-create_partitioned_queues("counters")
 create_partitioned_queues("triggers")
 
 from celery.schedules import crontab
