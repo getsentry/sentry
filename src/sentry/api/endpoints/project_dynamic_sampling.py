@@ -63,13 +63,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             referrer=referrer,
         )["data"]
 
-    def __get_transactions_count(
-        self,
-        project,
-        sample_size,
-        query,
-        query_time_range,
-    ):
+    def __get_transactions_count(self, project, query, sample_size, query_time_range):
         # Run query that gets total count of transactions with these conditions for the specified
         # time period
         return self.__run_discover_query(
