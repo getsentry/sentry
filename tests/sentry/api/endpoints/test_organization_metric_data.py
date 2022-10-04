@@ -37,7 +37,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 
 @region_silo_test
-@freeze_time()
+@freeze_time("2022-09-29 10:00:00")
 class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     endpoint = "sentry-api-0-organization-metrics-data"
 
@@ -53,6 +53,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.session_metric = rh_indexer_record(org_id, SessionMRI.SESSION.value)
         self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
+
+    def now(self):
+        return timezone.now()
 
     def test_missing_field(self):
         response = self.get_response(self.project.organization.slug)
@@ -93,7 +96,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(time.time() // 60 - minute) * 60,
+                        started=(self.now() - timedelta(minutes=minute)).timestamp(),
                         status=status,
                     )
                 )
@@ -114,7 +117,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(time.time() // 60 - minute) * 60,
+                        started=(self.now() - timedelta(minutes=minute)).timestamp(),
                         status=status,
                     )
                 )
@@ -230,7 +233,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -238,7 +241,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -246,7 +249,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p2.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -276,7 +279,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -284,7 +287,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -292,7 +295,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p2.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -321,7 +324,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -329,7 +332,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -358,7 +361,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -366,7 +369,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -396,7 +399,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -404,7 +407,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=prj_foo.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -412,7 +415,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=prj_boo.id,
-                    started=(time.time() // 60 - minute) * 60,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -486,8 +489,16 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_separate_projects(self):
         # Insert session metrics:
-        self.store_session(self.build_session(project_id=self.project.id))
-        self.store_session(self.build_session(project_id=self.project2.id))
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id, started=(self.now() - timedelta(seconds=1)).timestamp()
+            )
+        )
+        self.store_session(
+            self.build_session(
+                project_id=self.project2.id, started=(self.now() - timedelta(seconds=1)).timestamp()
+            )
+        )
 
         def count_sessions(project_id: Optional[int]) -> int:
             kwargs = dict(
@@ -512,15 +523,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
 
     def test_max_and_min_on_distributions(self):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
+            self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.MEASUREMENTS_LCP.value,
                 tags={"transaction": v_transaction},
-                timestamp=int(time.time()),
                 value=123.4 * count,
-                use_case_id=UseCaseKey.PERFORMANCE,
             )
 
         response = self.get_success_response(
@@ -554,15 +561,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             for v_rating in ("good", "meh", "poor"):
                 # count decides the cardinality of this distribution bucket
                 for value in [123.4] * count:
-                    self.store_metric(
-                        org_id=self.organization.id,
-                        project_id=self.project.id,
+                    self.store_performance_metric(
                         type="distribution",
                         name=TransactionMRI.MEASUREMENTS_LCP.value,
                         tags={"transaction": v_transaction, "measurement_rating": v_rating},
-                        timestamp=int(time.time()),
                         value=value,
-                        use_case_id=UseCaseKey.PERFORMANCE,
                     )
 
         response = self.get_success_response(
@@ -598,15 +601,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             for v_rating in ("good", "meh", "poor"):
                 # count decides the cardinality of this distribution bucket
                 for value in [123.4] * count:
-                    self.store_metric(
-                        org_id=self.organization.id,
-                        project_id=self.project.id,
+                    self.store_performance_metric(
                         type="distribution",
                         name=TransactionMRI.MEASUREMENTS_LCP.value,
                         tags={"transaction": v_transaction, "measurement_rating": v_rating},
-                        timestamp=int(time.time()),
                         value=value,
-                        use_case_id=UseCaseKey.PERFORMANCE,
                     )
 
         response = self.get_success_response(
@@ -651,15 +650,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag1", "value2", [1, 2, 3]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         response = self.get_success_response(
@@ -694,15 +689,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag1", "value2", [1, 2, 3]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         response = self.get_success_response(
@@ -746,15 +737,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag1", "value2", [1, 2, 3]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         response = self.get_success_response(
@@ -805,15 +792,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [4, 5, 6]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         for tag, value, numbers in (
@@ -821,15 +804,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [13, 14, 15]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_FCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         response = self.get_success_response(
@@ -875,15 +854,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [4, 5, 6]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         for tag, value, numbers in (
@@ -891,15 +866,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [13, 14, 15]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_FCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         kwargs = dict(
@@ -983,15 +954,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [4, 5, 6]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         for tag, value, numbers in (
@@ -999,15 +966,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", list(range(5))),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="set",
                     name=TransactionMRI.USER.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         response = self.get_success_response(
@@ -1052,36 +1015,28 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [4, 5, 6]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
-        user_ts = time.time()
-        for ts, ranges in [
-            (int(user_ts), [range(4, 5), range(6, 11)]),
-            (int(user_ts // 60 - 15) * 60, [range(3), range(6)]),
+        for minutes, ranges in [
+            (0, [range(4, 5), range(6, 11)]),
+            (15, [range(3), range(6)]),
         ]:
             for tag, value, numbers in (
                 ("transaction", "/foo/", list(ranges[0])),
                 ("transaction", "/bar/", list(ranges[1])),
             ):
                 for subvalue in numbers:
-                    self.store_metric(
-                        org_id=self.organization.id,
-                        project_id=self.project.id,
+                    self.store_performance_metric(
                         type="set",
                         name=TransactionMRI.USER.value,
                         tags={tag: value},
-                        timestamp=ts,
                         value=subvalue,
-                        use_case_id=UseCaseKey.PERFORMANCE,
+                        minutes_before_now=minutes,
                     )
 
         request_args = {
@@ -1150,7 +1105,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     self.store_session(
                         self.build_session(
                             project_id=self.project.id,
-                            started=(time.time() // 60 - 3 + minute) * 60,
+                            started=(
+                                self.now() - timedelta(minutes=3) + timedelta(minutes=minute)
+                            ).timestamp(),
                             release=release,
                         )
                     )
@@ -1178,7 +1135,12 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     self.store_session(
                         self.build_session(
                             project_id=self.project.id,
-                            started=(time.time() // 60 - 3 + minute) * 60,
+                            started=(
+                                self.now()
+                                - timedelta(minutes=3)
+                                + timedelta(minutes=minute)
+                                - timedelta(seconds=1)
+                            ).timestamp(),
                             release=release,
                         )
                     )
@@ -1210,15 +1172,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("transaction", "/bar/", [4, 5, 6]),
         ):
             for subvalue in numbers:
-                self.store_metric(
-                    org_id=self.organization.id,
-                    project_id=self.project.id,
+                self.store_performance_metric(
                     type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
-                    timestamp=int(time.time()),
                     value=subvalue,
-                    use_case_id=UseCaseKey.PERFORMANCE,
                 )
 
         response = self.get_success_response(
@@ -1257,16 +1215,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         Test that ensures when an `orderBy` clause is not set, then we still get groups that fit
         within the limit, and that are also with complete data from across the entities
         """
-        org_id = self.organization.id
-        self.store_metric(
-            org_id=org_id,
-            project_id=self.project.id,
+        self.store_release_health_metric(
             type="counter",
             name=SessionMRI.SESSION.value,
             tags={"tag3": "value1"},
-            timestamp=int(time.time()),
             value=10,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
         )
 
         for value in (
@@ -1274,15 +1227,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "value3",
             "value4",
         ):
-            self.store_metric(
-                org_id=org_id,
-                project_id=self.project.id,
+            self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.MEASUREMENTS_FCP.value,
                 tags={"tag3": value},
-                timestamp=int(time.time()),
                 value=1,
-                use_case_id=UseCaseKey.PERFORMANCE,
             )
         response = self.get_success_response(
             self.organization.slug,
@@ -1305,26 +1254,19 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         returned_values = {group["by"]["tag3"] for group in groups}
         assert "value1" not in returned_values, returned_values
 
-    @pytest.mark.skip(reason="flaky: TET-368")
     def test_limit_without_orderby_excess_groups_pruned(self):
         """
         Test that ensures that when requesting series data that is not ordered, if the limit of
         each query is not met, thereby a limit is not applied to the aueries and we end up with
         more groups than the limit then the excess number of groups should be pruned
         """
-        org_id = self.organization.id
-        user_ts = time.time()
-
         for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
-            self.store_metric(
-                org_id=org_id,
-                project_id=self.project.id,
+            self.store_release_health_metric(
                 type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={tag: tag_value},
-                timestamp=(user_ts // 60 - 4) * 60,
                 value=10,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                minutes_before_now=4,
             )
 
         for tag, tag_value, numbers in (
@@ -1332,15 +1274,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag1", "group3", list(range(3, 6))),
         ):
             for value in numbers:
-                self.store_metric(
-                    org_id=org_id,
-                    project_id=self.project.id,
+                self.store_release_health_metric(
                     type="set",
                     name=SessionMRI.ERROR.value,
                     tags={tag: tag_value},
-                    timestamp=user_ts,
                     value=value,
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
 
         for tag, tag_value, numbers in (
@@ -1348,15 +1286,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag1", "group5", list(range(3, 6))),
         ):
             for value in numbers:
-                self.store_metric(
-                    org_id=org_id,
-                    project_id=self.project.id,
+                self.store_release_health_metric(
                     type="distribution",
                     name=SessionMRI.DURATION.value,
                     tags={tag: tag_value},
-                    timestamp=int(time.time()),
                     value=value,
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
 
         response = self.get_success_response(
@@ -1381,23 +1315,17 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         each query is met, thereby a limit is applied to the queries and we end up with
         with groups that have complete data across all entities
         """
-        org_id = self.organization.id
-        user_ts = time.time()
-
         for tag, tag_value in (
             ("tag2", "A1"),
             ("tag2", "B1"),
             ("tag2", "C1"),
         ):
-            self.store_metric(
-                org_id=org_id,
-                project_id=self.project.id,
+            self.store_release_health_metric(
                 type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={tag: tag_value},
-                timestamp=(user_ts // 60 - 4) * 60,
                 value=10,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                minutes_before_now=4,
             )
 
         for tag, tag_value, numbers in (
@@ -1407,15 +1335,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag2", "B1", list(range(18, 21))),
         ):
             for value in numbers:
-                self.store_metric(
-                    org_id=org_id,
-                    project_id=self.project.id,
+                self.store_release_health_metric(
                     type="set",
                     name=SessionMRI.ERROR.value,
                     tags={tag: tag_value},
-                    timestamp=user_ts,
                     value=value,
-                    use_case_id=UseCaseKey.RELEASE_HEALTH,
                 )
 
         response = self.get_success_response(
@@ -1438,10 +1362,20 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         # metrics_sets to ensure we get groups with no partial results
         assert returned_values.issubset({"B1", "B2", "B3", "C1"})
 
+    # TODO: check whether we leave - 1 seconds or whether we will abstract build_session like store_*_metric.
     def test_groupby_project(self):
-        self.store_session(self.build_session(project_id=self.project2.id))
+        self.store_session(
+            self.build_session(
+                project_id=self.project2.id, started=(self.now() - timedelta(seconds=1)).timestamp()
+            )
+        )
         for _ in range(2):
-            self.store_session(self.build_session(project_id=self.project.id))
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(self.now() - timedelta(seconds=1)).timestamp(),
+                )
+            )
 
         response = self.get_response(
             self.organization.slug,
@@ -1468,7 +1402,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_unknown_groupby(self):
         """Use a tag name in groupby that does not exist in the indexer"""
         # Insert session metrics:
-        self.store_session(self.build_session(project_id=self.project.id))
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id, started=(self.now() - timedelta(seconds=1)).timestamp()
+            )
+        )
 
         # "foo" is known by indexer, "bar" is not
         rh_indexer_record(self.organization.id, "foo")
@@ -1505,7 +1443,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(4):
             self.store_session(
                 self.build_session(
-                    project_id=self.project.id, started=(time.time() // 60 - minute) * 60
+                    project_id=self.project.id,
+                    started=(self.now() - timedelta(minutes=minute)).timestamp(),
                 )
             )
         response = self.get_success_response(
@@ -1564,7 +1503,11 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_include_series(self):
         rh_indexer_record(self.organization.id, "session.status")
-        self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
+        self.store_session(
+            self.build_session(
+                project_id=self.project.id, started=(self.now() - timedelta(minutes=1)).timestamp()
+            )
+        )
         response = self.get_success_response(
             self.organization.slug,
             field="sum(sentry.sessions.session)",
@@ -1632,7 +1575,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 self.store_session(
                     self.build_session(
                         project_id=self.project.id,
-                        started=(time.time() // 60 - minute) * 60,
+                        started=(self.now() - timedelta(minutes=minute)).timestamp(),
                         status=status,
                     )
                 )

@@ -25,6 +25,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition, get_date_range
+from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseMetricsLayerTestCase, MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -32,7 +33,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time("2022-09-29 10:00:00")
-class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase):
+class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def now(self):
         return timezone.now()
 

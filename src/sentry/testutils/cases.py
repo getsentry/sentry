@@ -1235,7 +1235,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         )
 
 
-class BaseMetricsLayerTestCase(ABC, TestCase, BaseMetricsTestCase):
+class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
     @abstractmethod
     def now(self):
         """
@@ -1963,7 +1963,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
 
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")
-class MetricsAPIBaseTestCase(BaseMetricsTestCase, APITestCase):
+class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
     ...
 
 

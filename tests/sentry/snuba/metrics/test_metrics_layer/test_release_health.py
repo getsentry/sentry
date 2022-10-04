@@ -16,13 +16,13 @@ from sentry.snuba.metrics import MetricField, MetricsQuery
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query_builder import QueryDefinition
-from sentry.testutils import BaseMetricsLayerTestCase
+from sentry.testutils import BaseMetricsLayerTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time("2022-09-29 10:00:00")
-class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase):
+class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def now(self):
         return timezone.now()
 
