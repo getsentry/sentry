@@ -103,17 +103,17 @@ describe('GroupSidebar', function () {
         {organization}
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
-      expect(await screen.findByText('device')).toBeInTheDocument();
-      expect(await screen.findByText('url')).toBeInTheDocument();
-      expect(await screen.findByText('environment')).toBeInTheDocument();
-      expect(await screen.findByText('user')).toBeInTheDocument();
+      expect(await screen.getByText('device')).toBeInTheDocument();
+      expect(await screen.getByText('url')).toBeInTheDocument();
+      expect(await screen.getByText('environment')).toBeInTheDocument();
+      expect(await screen.getByText('user')).toBeInTheDocument();
     });
   });
 
   describe('environment toggle', function () {
     it('re-requests tags with correct environment', async function () {
       const stagingEnv = {name: 'staging', displayName: 'Staging', id: '2'};
-      render(
+      const {rerender} = render(
         <GroupSidebar
           group={group}
           project={project}
@@ -125,7 +125,7 @@ describe('GroupSidebar', function () {
       );
       expect(await screen.findByText('browser')).toBeInTheDocument();
       expect(tagsMock).toHaveBeenCalledTimes(1);
-      render(
+      rerender(
         <GroupSidebar
           group={group}
           project={project}
