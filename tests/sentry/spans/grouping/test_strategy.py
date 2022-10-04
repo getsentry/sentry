@@ -5,7 +5,6 @@ import pytest
 from sentry.spans.grouping.strategy.base import (
     Span,
     SpanGroupingStrategy,
-    loose_normalized_db_span_in_condition_strategy,
     normalized_db_span_in_condition_strategy,
     raw_description_strategy,
     remove_http_client_query_string_strategy,
@@ -105,59 +104,6 @@ def test_normalized_db_span_in_condition_strategy(
     span: Span, fingerprint: Optional[List[str]]
 ) -> None:
     assert normalized_db_span_in_condition_strategy(span) == fingerprint
-
-
-@pytest.mark.parametrize(
-    "span,fingerprint",
-    [
-        # description has multiple IN statements
-        (
-            SpanBuilder()
-            .with_op("db.sql.query")
-            .with_description(
-                "SELECT count() FROM table WHERE id IN (%s, %s) AND id IN (%s, %s, %s)"
-            )
-            .build(),
-            ["SELECT count() FROM table WHERE id IN (%s) AND id IN (%s)"],
-        ),
-        # supports unparametrized queries
-        (
-            SpanBuilder()
-            .with_op("db.sql.query")
-            .with_description("SELECT count() FROM table WHERE id IN (100, 101, 102)")
-            .build(),
-            ["SELECT count() FROM table WHERE id IN (%s)"],
-        ),
-        # supports lowercase IN
-        (
-            SpanBuilder()
-            .with_op("db.sql.query")
-            .with_description("select count() from table where id in (100, 101, 102)")
-            .build(),
-            ["select count() from table where id IN (%s)"],
-        ),
-        # op is an ActiveRecord query
-        (
-            SpanBuilder()
-            .with_op("db.sql.active_record")
-            .with_description("SELECT count() FROM table WHERE id IN ($1, $2, $3)")
-            .build(),
-            ["SELECT count() FROM table WHERE id IN (%s)"],
-        ),
-        # op is a Laravel query
-        (
-            SpanBuilder()
-            .with_op("db.sql.query")
-            .with_description("SELECT count() FROM table WHERE id IN (?, ?, ?)")
-            .build(),
-            ["SELECT count() FROM table WHERE id IN (%s)"],
-        ),
-    ],
-)
-def test_loose_normalized_db_span_in_condition_strategy(
-    span: Span, fingerprint: Optional[List[str]]
-) -> None:
-    assert loose_normalized_db_span_in_condition_strategy(span) == fingerprint
 
 
 @pytest.mark.parametrize(
