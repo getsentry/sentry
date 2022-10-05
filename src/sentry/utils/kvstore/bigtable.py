@@ -8,7 +8,7 @@ from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple, cast
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
-from google.cloud.bigtable.row_data import PartialRowData
+from google.cloud.bigtable.row import PartialRowData
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
 

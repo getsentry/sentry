@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -141,16 +142,6 @@ export const mockedSamplingDistribution: SamplingDistribution = {
     },
   ],
   sample_size: 100,
-  null_sample_rate_percentage: 98,
-  sample_rate_distributions: {
-    min: 1,
-    max: 1,
-    avg: 1,
-    p50: 1,
-    p90: 1,
-    p95: 1,
-    p99: 1,
-  },
   startTimestamp: '2017-08-04T07:52:11Z',
   endTimestamp: '2017-08-05T07:52:11Z',
 };
@@ -163,7 +154,11 @@ export function getMockData({
     ...initializeOrg(),
     organization: {
       ...initializeOrg().organization,
-      features: ['server-side-sampling', 'server-side-sampling-ui'],
+      features: [
+        'server-side-sampling',
+        'server-side-sampling-ui',
+        'dynamic-sampling-basic',
+      ],
       access: access ?? initializeOrg().organization.access,
       projects,
     },
@@ -179,25 +174,35 @@ export function TestComponent({
 }: {
   organization: Organization;
   project: Project;
-  router: InjectedRouter;
+  router?: InjectedRouter;
   withModal?: boolean;
 }) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {
-          orgId: organization.slug,
-          projectId: project.slug,
-        },
-        routes: [],
-      }}
-    >
+  const children = (
+    <Fragment>
       {withModal && <GlobalModal />}
       <OrganizationContext.Provider value={organization}>
         <ServerSideSampling project={project} />
       </OrganizationContext.Provider>
-    </RouteContext.Provider>
+    </Fragment>
   );
+
+  if (router) {
+    return (
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {
+            orgId: organization.slug,
+            projectId: project.slug,
+          },
+          routes: [],
+        }}
+      >
+        {children}
+      </RouteContext.Provider>
+    );
+  }
+
+  return children;
 }

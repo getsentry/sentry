@@ -1,5 +1,4 @@
-include setup.py README.md MANIFEST.in LICENSE AUTHORS
-recursive-include ./ requirements*.txt
+include AUTHORS requirements*.txt
 graft ./config
 graft src/sentry
 graft src/sentry_plugins
