@@ -151,8 +151,6 @@ jobs:
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
-          unset USE_SNUBA
           make test-python-ci
 
   backend-test-snuba-contains-metrics-tag-values:
