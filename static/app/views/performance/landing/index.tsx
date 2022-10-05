@@ -185,10 +185,11 @@ export function PerformanceLanding(props: Props) {
               ))}
             </TabList>
           </Layout.Header>
+
           <Layout.Body data-test-id="performance-landing-body">
-            <TabPanels>
-              <Item key={landingDisplay.field}>
-                <Layout.Main fullWidth>
+            <Layout.Main fullWidth>
+              <TabPanels>
+                <Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
                     organization={organization}
                     location={location}
@@ -303,9 +304,9 @@ export function PerformanceLanding(props: Props) {
                       }}
                     </MetricsDataSwitcher>
                   </MetricsCardinalityProvider>
-                </Layout.Main>
-              </Item>
-            </TabPanels>
+                </Item>
+              </TabPanels>
+            </Layout.Main>
           </Layout.Body>
         </Tabs>
       </PageErrorProvider>
