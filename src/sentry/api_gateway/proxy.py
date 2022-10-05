@@ -2,53 +2,50 @@
 Utilities related to proxying a request to a region silo
 """
 
-from urllib.parse import urljoin
 
-import requests as external_request
-from requests import Response as external_response
+from django.http import StreamingHttpResponse
+from requests import Response as ExternalResponse
+from requests import request as external_request
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
-from rest_framework.response import Response
 
-from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 
-
-def get_org_region(slug: str) -> str:
-    from sentry.types.region import get_region_for_organization
-
-    org = Organization.objects.get(slug=slug)
-    region_info = get_region_for_organization(org)
-    return region_info.address
+# stream 0.5 MB at a time
+PROXY_CHUNK_SIZE = 512 * 1024
 
 
-def build_url(region: str, request: Request) -> str:
-    """Might need some changes to handle other format region address."""
-    region_url = generate_region_url(region)
-    return urljoin(region_url, request.path)
-
-
-def parse_response(response: external_response) -> Response:
+def _parse_response(response: ExternalResponse) -> StreamingHttpResponse:
     """
     Convert the Responses class from requests into the drf Response
     """
-    return Response(data=response.json(), headers=response.headers, status=response.status_code)
+    streamed_response = StreamingHttpResponse(
+        streaming_content=(chunk for chunk in response.iter_content(PROXY_CHUNK_SIZE)),
+        status=response.status_code,
+        content_type=response.headers.pop("Content-Type"),
+    )
+    # Add Headers to response
+    for header, value in response.headers.items():
+        streamed_response[header] = value
+    return streamed_response
 
 
-def proxy_request(request: Request, org_slug: str) -> Response:
+def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     """Take a django request opject and proxy it to a remote location given an org_slug"""
+    from sentry.types.region import get_region_for_organization
 
     try:
-        region_location = get_org_region(org_slug)
+        org = Organization.objects.get(slug=org_slug)
     except Organization.DoesNotExist:
         raise NotFound(detail="Resource could not be found")
-    target_url = build_url(region_location, request)
+    target_url = get_region_for_organization(org).to_url(request.path)
 
     query_params = getattr(request, request.method, None)
     request_args = {
         "headers": request.headers,
         "params": dict(query_params) if query_params is not None else None,
+        "stream": True,
     }
-    resp: external_response = external_request.request(request.method, target_url, **request_args)
+    resp: ExternalResponse = external_request(request.method, target_url, **request_args)
 
-    return parse_response(resp)
+    return _parse_response(resp)
