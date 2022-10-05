@@ -100,7 +100,7 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
         cached_replay_recording_segment: CachedAttachment,
     ) -> None:
         with sentry_sdk.start_transaction(
-            op="replays.consumer.flush_batch", description="Replay recording segment stored."
+            op="replays.consumer.flush_batch", name="replays.consumer.flush_batch"
         ):
             sentry_sdk.set_extra("replay_id", message_dict["replay_id"])
 
@@ -176,8 +176,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
         try:
             with sentry_sdk.start_transaction(
+                name="replays.consumer.process_recording",
                 op="replays.consumer.process_recording",
-                description="Replay recording segment message received.",
                 sampled=random.random()
                 < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
             ):
