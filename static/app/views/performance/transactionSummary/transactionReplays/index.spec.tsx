@@ -265,26 +265,6 @@ describe('TransactionReplays', () => {
     expect(screen.getByText('7 days ago')).toBeInTheDocument();
   });
 
-  it('should allow for searching and filtering events', async () => {
-    renderComponent();
-
-    await waitFor(() => {
-      userEvent.type(
-        screen.getByTestId('smart-search-input'),
-        `user.email:testing@sentry.io{Enter}`
-      );
-      expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/replays/',
-        query: {
-          sort: 'startedAt',
-          project: '1',
-          transaction: 'transaction',
-          'user.email': 'testing@sentry.io',
-        },
-      });
-    });
-  });
-
   it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
     const {rerender} = renderComponent();
 
