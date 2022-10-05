@@ -200,7 +200,6 @@ class StandardIntervalMixin:
         self.assertDoesNotPass(rule, event)
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 class EventFrequencyConditionTestCase(
     FrequencyConditionMixin, StandardIntervalMixin, SnubaTestCase
 ):
@@ -220,7 +219,6 @@ class EventFrequencyConditionTestCase(
             )
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 class EventUniqueUserFrequencyConditionTestCase(
     FrequencyConditionMixin,
     StandardIntervalMixin,
@@ -244,7 +242,6 @@ class EventUniqueUserFrequencyConditionTestCase(
             )
 
 
-@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 class EventFrequencyPercentConditionTestCase(SnubaTestCase):
     rule_cls = EventFrequencyPercentCondition
 
@@ -416,6 +413,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
         self.assertDoesNotPass(rule, event)
 
 
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class ErrorIssueFrequencyConditionTestCase(
     EventFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
@@ -423,6 +421,7 @@ class ErrorIssueFrequencyConditionTestCase(
     pass
 
 
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class PerfIssueFrequencyConditionTestCase(
     EventFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
@@ -430,6 +429,7 @@ class PerfIssueFrequencyConditionTestCase(
     pass
 
 
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class ErrorIssueUniqueUserFrequencyConditionTestCase(
     EventUniqueUserFrequencyConditionTestCase, RuleTestCase, ErrorEventMixin
@@ -437,6 +437,7 @@ class ErrorIssueUniqueUserFrequencyConditionTestCase(
     pass
 
 
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class PerfIssueUniqueUserFrequencyConditionTestCase(
     EventUniqueUserFrequencyConditionTestCase, RuleTestCase, PerfEventMixin
@@ -444,6 +445,7 @@ class PerfIssueUniqueUserFrequencyConditionTestCase(
     pass
 
 
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class ErrorIssueEventFrequencyPercentConditionTestCase(
     EventFrequencyPercentConditionTestCase, RuleTestCase, ErrorEventMixin
@@ -451,6 +453,7 @@ class ErrorIssueEventFrequencyPercentConditionTestCase(
     pass
 
 
+@freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class PerfIssueEventFrequencyPercentConditionTestCase(
     EventFrequencyPercentConditionTestCase, RuleTestCase, PerfEventMixin
