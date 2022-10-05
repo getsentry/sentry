@@ -52,6 +52,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.session_duration = rh_indexer_record(org_id, SessionMRI.DURATION.value)
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.ERROR.value)
 
+    @property
     def now(self):
         return timezone.now()
 
@@ -95,7 +96,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     self.build_session(
                         project_id=self.project.id,
                         started=(
-                            self.now().replace(second=0) - timedelta(minutes=minute)
+                            self.now.replace(second=0) - timedelta(minutes=minute)
                         ).timestamp(),
                         status=status,
                     )
@@ -118,7 +119,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                     self.build_session(
                         project_id=self.project.id,
                         started=(
-                            self.now().replace(second=0) - timedelta(minutes=minute)
+                            self.now.replace(second=0) - timedelta(minutes=minute)
                         ).timestamp(),
                         status=status,
                     )
@@ -235,7 +236,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -243,7 +244,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -251,7 +252,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p2.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -281,7 +282,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -289,7 +290,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -297,7 +298,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p2.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -326,7 +327,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -334,7 +335,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -363,7 +364,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -371,7 +372,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=p.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -401,7 +402,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -409,7 +410,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=prj_foo.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -417,7 +418,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             self.store_session(
                 self.build_session(
                     project_id=prj_boo.id,
-                    started=(self.now().replace(second=0) - timedelta(minutes=minute)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(minutes=minute)).timestamp(),
                     status="ok",
                 )
             )
@@ -496,13 +497,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 project_id=self.project.id,
                 # We decided to explicitly show - 1 seconds because this is a "trick" that we used for
                 # standardizing tests against flakiness. More explanations found in BaseMetricsLayerTestCase.
-                started=(self.now().replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
             )
         )
         self.store_session(
             self.build_session(
                 project_id=self.project2.id,
-                started=(self.now().replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
             )
         )
 
@@ -1097,7 +1098,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                         self.build_session(
                             project_id=self.project.id,
                             started=(
-                                self.now() - timedelta(minutes=3 - minute) - timedelta(seconds=1)
+                                self.now - timedelta(minutes=3 - minute) - timedelta(seconds=1)
                             ).timestamp(),
                             release=release,
                         )
@@ -1127,7 +1128,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                         self.build_session(
                             project_id=self.project.id,
                             started=(
-                                self.now() - timedelta(minutes=3 - minute) - timedelta(seconds=1)
+                                self.now - timedelta(minutes=3 - minute) - timedelta(seconds=1)
                             ).timestamp(),
                             release=release,
                         )
@@ -1347,14 +1348,14 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project2.id,
-                started=(self.now().replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
             )
         )
         for _ in range(2):
             self.store_session(
                 self.build_session(
                     project_id=self.project.id,
-                    started=(self.now().replace(second=0) - timedelta(seconds=1)).timestamp(),
+                    started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
                 )
             )
 
@@ -1386,7 +1387,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now().replace(second=0) - timedelta(seconds=1)).timestamp(),
+                started=(self.now.replace(second=0) - timedelta(seconds=1)).timestamp(),
             )
         )
 
@@ -1426,7 +1427,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 self.build_session(
                     project_id=self.project.id,
                     started=(
-                        self.now().replace(second=0)
+                        self.now.replace(second=0)
                         - timedelta(minutes=minute)
                         - timedelta(seconds=1)
                     ).timestamp(),
@@ -1490,7 +1491,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now() - timedelta(minutes=1)).timestamp(),
+                started=(self.now - timedelta(minutes=1)).timestamp(),
             )
         )
         response = self.get_success_response(
@@ -1539,6 +1540,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
         self.tx_user_metric = perf_indexer_record(self.organization.id, TransactionMRI.USER.value)
 
+    @property
     def now(self):
         return timezone.now()
 
@@ -1564,7 +1566,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     self.build_session(
                         project_id=self.project.id,
                         started=(
-                            self.now().replace(second=0) - timedelta(minutes=minute)
+                            self.now.replace(second=0) - timedelta(minutes=minute)
                         ).timestamp(),
                         status=status,
                     )
@@ -1606,7 +1608,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     self.build_session(
                         project_id=self.project.id,
                         started=(
-                            self.now().replace(second=0)
+                            self.now.replace(second=0)
                             - timedelta(minutes=minute)
                             - timedelta(seconds=1)
                         ).timestamp(),
@@ -1632,7 +1634,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     self.build_session(
                         project_id=self.project.id,
                         started=(
-                            self.now().replace(second=0)
+                            self.now.replace(second=0)
                             - timedelta(minutes=minute)
                             - timedelta(seconds=1)
                         ).timestamp(),
@@ -1645,7 +1647,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                 self.build_session(
                     project_id=self.project.id,
                     started=(
-                        self.now().replace(second=0)
+                        self.now.replace(second=0)
                         - timedelta(minutes=minute)
                         - timedelta(seconds=1)
                     ).timestamp(),
@@ -1747,7 +1749,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=self.now().replace(second=0).timestamp(),
+                started=self.now.replace(second=0).timestamp(),
                 status="ok",
                 release="foobar@2.0",
                 errors=2,
