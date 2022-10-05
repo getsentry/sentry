@@ -11,7 +11,7 @@ from sentry.types.issues import GroupCategory
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", gc.name) for gc in GroupCategory])
 
 
-class IssueCategoryForm(forms.Form):
+class IssueCategoryForm(forms.Form):  # type: ignore
     value = forms.ChoiceField(choices=list(CATEGORY_CHOICES.items()))
 
 
@@ -30,7 +30,7 @@ class IssueCategoryFilter(EventFilter):
             return False
 
         if event.group and event.group.issue_category:
-            return value == event.group.issue_category
+            return bool(value == event.group.issue_category)
 
         if event.groups:
             for group in event.groups:
