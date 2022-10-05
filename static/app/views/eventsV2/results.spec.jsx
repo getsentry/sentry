@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
@@ -1016,6 +1016,97 @@ describe('Results', function () {
         },
       });
       wrapper.unmount();
+    });
+
+    it('makes events call with updated cursor on pagination', async function () {
+      const mockEvents = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:50:0>; rel="next"; results="true"; cursor="0:50:0"',
+        },
+        body: {
+          data: [
+            {
+              'count()': 300,
+            },
+          ],
+          meta: {
+            fields: {
+              'count()': 'integer',
+            },
+            units: {},
+            isMetricsData: true,
+            tips: {},
+          },
+        },
+      });
+      const organization = TestStubs.Organization({
+        features,
+      });
+
+      const initialData = initializeOrg({
+        organization,
+        router: {
+          location: {query: {field: ['count()'], yAxis: 'count()'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+      const {rerender} = render(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+        />,
+        {context: initialData.routerContext, organization}
+      );
+
+      expect(await screen.findByLabelText('Next')).toBeEnabled();
+      userEvent.click(screen.getByLabelText('Next'));
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            cursor: '0:50:0',
+            field: ['count()'],
+            yAxis: 'count()',
+          }),
+        })
+      );
+
+      // initialData.router.location.query = {
+      //   cursor: '0:50:0',
+      //   field: ['count()'],
+      //   yAxis: 'count()',
+      // };
+      rerender(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+        />
+      );
+
+      await waitFor(() =>
+        expect(mockEvents).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: {
+              cursor: '0:50:0',
+              environment: [],
+              field: ['count()'],
+              per_page: 50,
+              project: [],
+              query: '',
+              referrer: 'api.discover.query-table',
+              statsPeriod: '14d',
+            },
+          })
+        )
+      );
     });
 
     it('renders a y-axis selector', async function () {
