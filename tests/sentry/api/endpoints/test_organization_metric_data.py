@@ -1750,7 +1750,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=self.now().timestamp(),
+                started=self.now().replace(second=0).timestamp(),
                 status="ok",
                 release="foobar@2.0",
                 errors=2,
