@@ -211,6 +211,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 Function(
                     function="team_key_transaction",
                     parameters=[
+                        Column("d:transactions/duration@millisecond"),
                         [(13, "foo_transaction")],
                     ],
                     alias="team_key_transaction",
@@ -252,6 +253,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     lhs=Function(
                         function="team_key_transaction",
                         parameters=[
+                            Column("d:transactions/duration@millisecond"),
                             [(13, "foo_transaction")],
                         ],
                         alias="team_key_transaction",

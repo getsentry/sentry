@@ -3,6 +3,7 @@ import inspect
 from snuba_sdk import AliasedExpression, Column, Function, Granularity, Op
 from snuba_sdk.query import Query
 
+from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS
 from sentry.snuba.metrics.fields.base import DERIVED_OPS
 from sentry.snuba.metrics.query import (
     MetricConditionField,
@@ -27,7 +28,7 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
     function_params = function.parameters[1:]
     snql_func_args = inspect.signature(DERIVED_OPS[function.function].snql_func).parameters.keys()
     for arg in snql_func_args:
-        if arg in {"aggregate_filer", "org_id"}:
+        if arg in {"aggregate_filter", "org_id", "alias"}:
             continue
         try:
             metric_field_params[arg] = function_params.pop(0)
@@ -35,7 +36,7 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
             raise MQBQueryTransformationException(
                 f"Too few function parameters are provided. The arguments provided for function "
                 f"{function.function} are "
-                f"{[arg for arg in snql_func_args if arg not in {'org_id', 'aggregate_filter'}]}"
+                f"{[arg for arg in snql_func_args if arg not in {'org_id', 'aggregate_filter', 'alias'}]}"
             )
 
     return MetricField(
@@ -101,25 +102,44 @@ def _transform_groupby(query_groupby):
             if groupby_field.name == "bucketed_time":
                 include_series = True
                 continue
-            if not groupby_field.name.startswith("tags["):
-                raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
-            mq_groupby.append(
-                MetricGroupByField(
-                    field=groupby_field.name.split("tags[")[1].split("]")[0],
+            if groupby_field.name in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values():
+                mq_groupby.append(
+                    MetricGroupByField(
+                        field=groupby_field.name,
+                    )
                 )
-            )
+            elif groupby_field.name.startswith("tags["):
+                mq_groupby.append(
+                    MetricGroupByField(
+                        field=groupby_field.name.split("tags[")[1].split("]")[0],
+                    )
+                )
+            else:
+                raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
+
         elif isinstance(groupby_field, AliasedExpression):
             if groupby_field.exp.name == "bucketed_time":
                 include_series = True
                 continue
-            if not groupby_field.name.exp.startswith("tags["):
-                raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
-            mq_groupby.append(
-                MetricGroupByField(
-                    field=groupby_field.name.split("tags[")[1].split("]")[0],
-                    alias=groupby_field.alias,
+            if (
+                groupby_field.exp.name
+                in FIELD_ALIAS_MAPPINGS.keys() | FIELD_ALIAS_MAPPINGS.values()
+            ):
+                mq_groupby.append(
+                    MetricGroupByField(
+                        field=groupby_field.exp.name,
+                        alias=groupby_field.alias,
+                    )
                 )
-            )
+            elif groupby_field.exp.name.startswith("tags["):
+                mq_groupby.append(
+                    MetricGroupByField(
+                        field=groupby_field.exp.name.split("tags[")[1].split("]")[0],
+                        alias=groupby_field.alias,
+                    )
+                )
+            else:
+                raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
         elif isinstance(groupby_field, Function):
             if groupby_field.function not in DERIVED_OPS:
                 raise MQBQueryTransformationException(
@@ -156,11 +176,7 @@ def _get_mq_dict_params_from_where(query_where):
                     mq_dict["start"] = condition.rhs
                 elif condition.op == Op.LT:
                     mq_dict["end"] = condition.rhs
-        elif isinstance(condition.lhs, Function):
-            if condition.lhs.function not in DERIVED_OPS:
-                raise MQBQueryTransformationException(
-                    f"Unsupported function {condition.lhs.function}"
-                )
+        elif isinstance(condition.lhs, Function) and condition.lhs.function in DERIVED_OPS:
             if not DERIVED_OPS[condition.lhs.function].can_filter:
                 raise MQBQueryTransformationException(
                     f"Cannot filter by function {condition.lhs.function}"
@@ -174,8 +190,8 @@ def _get_mq_dict_params_from_where(query_where):
             )
         else:
             where.append(condition)
-        mq_dict["where"] = where
-        return mq_dict
+    mq_dict["where"] = where
+    return mq_dict
 
 
 def _transform_orderby(query_orderby):
@@ -183,6 +199,10 @@ def _transform_orderby(query_orderby):
     for orderby_field in query_orderby:
         transformed_field_lst, _ = _transform_select([orderby_field.exp])
         transformed_field = transformed_field_lst.pop()
+        # ToDo(ahmed): Implement validate_can_orderby
+        # metric_exp = metric_object_factory(
+        #     op=transformed_field.op, metric_mri=transformed_field.metric_mri
+        # )
         mq_orderby.append(MetricOrderBy(field=transformed_field, direction=orderby_field.direction))
     return mq_orderby
 
