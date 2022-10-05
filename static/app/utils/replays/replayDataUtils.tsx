@@ -42,6 +42,9 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
     ...(apiResponse.device?.model ? {'device.model': [apiResponse.device.model]} : {}),
     ...(apiResponse.sdk?.name ? {'sdk.name': [apiResponse.sdk.name]} : {}),
     ...(apiResponse.sdk?.version ? {'sdk.version': [apiResponse.sdk.version]} : {}),
+    ...(apiResponse.user?.ip_address
+      ? {'user.ip_address': [apiResponse.user.ip_address]}
+      : {}),
   };
 
   // Sort the tags by key
