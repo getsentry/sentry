@@ -5,7 +5,7 @@ __all__ = ("PubSubAnalytics",)
 import logging
 
 from google.auth.exceptions import GoogleAuthError
-from google.cloud import pubsub_v1
+from google.cloud import pubsub_v1  # type: ignore[attr-defined]
 
 from sentry.utils.json import dumps
 
