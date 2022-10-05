@@ -56,7 +56,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             url=api_url,
-            match=[responses.matchers.query_param_matcher({"per_page": "1"})],
+            match=[responses.matchers.query_param_matcher({"page": 1, "per_page": 1})],
             json={
                 "repositories": [
                     {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
@@ -66,7 +66,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             headers={
                 "link": ",".join(
                     [
-                        f'Link: <https://{api_url}?page=1&per_page=1>; rel="next"',
+                        f'Link: <https://{api_url}?page=2&per_page=1>; rel="next"',
                         f'<https://{api_url}?page=2&per_page=1>; rel="last"',
                     ]
                 ),
@@ -75,7 +75,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
-            match=[responses.matchers.query_param_matcher({"page": "2"})],
+            match=[responses.matchers.query_param_matcher({"page": 2, "per_page": 1})],
             json={
                 "repositories": [
                     {"id": 1276555, "name": "baz", "full_name": "Test-Organization/baz"},
