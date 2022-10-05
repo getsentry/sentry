@@ -1,17 +1,15 @@
 import {browserHistory} from 'react-router';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import OrganizationsActions from 'sentry/actions/organizationsActions';
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {
-  cleanupActiveRefluxSubscriptions,
-  makeSafeRefluxStore,
-} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -74,7 +72,7 @@ const defaultState: GuideStoreState = {
   prevGuide: null,
 };
 
-interface GuideStoreDefinition extends StoreDefinition {
+interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
   browserHistoryListener: null | (() => void);
 
   closeGuide(dismissed?: boolean): void;
@@ -82,8 +80,10 @@ interface GuideStoreDefinition extends StoreDefinition {
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
+  setActiveOrganization(data: Organization): void;
   setForceHide(forceHide: boolean): void;
   state: GuideStoreState;
+  teardown(): void;
   toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
@@ -91,22 +91,16 @@ interface GuideStoreDefinition extends StoreDefinition {
 
 const storeConfig: GuideStoreDefinition = {
   state: defaultState,
-  unsubscribeListeners: [],
   browserHistoryListener: null,
 
   init() {
     this.state = defaultState;
-
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
-    );
 
     window.addEventListener('load', this.onURLChange, false);
     this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
   },
 
   teardown() {
-    cleanupActiveRefluxSubscriptions(this.unsubscribeListeners);
     window.removeEventListener('load', this.onURLChange);
 
     if (this.browserHistoryListener) {
@@ -114,12 +108,16 @@ const storeConfig: GuideStoreDefinition = {
     }
   },
 
+  getState() {
+    return this.state;
+  },
+
   onURLChange() {
     this.state.forceShow = window.location.hash === '#assistant';
     this.updateCurrentGuide();
   },
 
-  onSetActiveOrganization(data) {
+  setActiveOrganization(data: Organization) {
     this.state.orgId = data ? data.id : null;
     this.state.orgSlug = data ? data.slug : null;
     this.updateCurrentGuide();
@@ -276,5 +274,5 @@ const storeConfig: GuideStoreDefinition = {
   },
 };
 
-const GuideStore = createStore(makeSafeRefluxStore(storeConfig));
+const GuideStore = createStore(storeConfig);
 export default GuideStore;

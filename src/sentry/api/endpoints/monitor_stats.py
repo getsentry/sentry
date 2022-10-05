@@ -1,20 +1,19 @@
-from collections import OrderedDict
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import tsdb
-from sentry.api.base import StatsMixin
+from sentry.api.base import StatsMixin, pending_silo_endpoint
 from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.models import CheckInStatus, MonitorCheckIn
 
 
+@pending_silo_endpoint
 class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
     def get(self, request: Request, project, monitor) -> Response:
         args = self._parse_args(request)
 
-        stats = OrderedDict()
+        stats = {}
         current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
         end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
         while current <= end:

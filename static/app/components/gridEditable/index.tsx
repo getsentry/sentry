@@ -125,7 +125,7 @@ class GridEditable<
   // Static methods do not allow the use of generics bounded to the parent class
   // For more info: https://github.com/microsoft/TypeScript/issues/14600
   static getDerivedStateFromProps(
-    props: Readonly<GridEditableProps<Object, keyof Object>>,
+    props: Readonly<GridEditableProps<Record<string, any>, ObjectKey>>,
     prevState: GridEditableState
   ): GridEditableState {
     return {
@@ -312,6 +312,7 @@ class GridEditable<
     return (
       <GridRow data-test-id="grid-head-row">
         {prependColumns &&
+          columnOrder?.length > 0 &&
           prependColumns.map((item, i) => (
             <GridHeadCellStatic key={`prepend-${i}`}>{item}</GridHeadCellStatic>
           ))}

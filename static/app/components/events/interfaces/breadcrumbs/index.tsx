@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -7,7 +7,9 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';
+import EventReplay from 'sentry/components/events/eventReplay';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
@@ -32,6 +34,8 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   };
   event: Event;
   organization: Organization;
+  projectSlug: string;
+  isShare?: boolean;
 };
 
 type State = {
@@ -44,8 +48,15 @@ type State = {
   searchTerm: string;
   relativeTime?: string;
 };
-
-function BreadcrumbsContainer({data, event, organization, route, router}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  projectSlug,
+  isShare,
+  route,
+  router,
+}: Props) {
   const [state, setState] = useState<State>({
     searchTerm: '',
     breadcrumbs: [],
@@ -98,7 +109,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
 
     const options: FilterOptions = [];
 
-    if (!!typeOptions.length) {
+    if (typeOptions.length) {
       options.push({
         value: 'types',
         label: t('Types'),
@@ -106,7 +117,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
       });
     }
 
-    if (!!levels.length) {
+    if (levels.length) {
       options.push({
         value: 'levels',
         label: t('Levels'),
@@ -224,13 +235,13 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
       );
     }
 
-    if (!![...checkedTypeOptions].length) {
+    if ([...checkedTypeOptions].length) {
       return breadcrumbs.filter(filteredCrumb =>
         checkedTypeOptions.has(filteredCrumb.type)
       );
     }
 
-    if (!![...checkedLevelOptions].length) {
+    if ([...checkedLevelOptions].length) {
       return breadcrumbs.filter(filteredCrumb =>
         checkedLevelOptions.has(filteredCrumb.level)
       );
@@ -282,7 +293,7 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
   }
 
   function getEmptyMessage() {
-    if (!!filteredBySearch.length) {
+    if (filteredBySearch.length) {
       return {};
     }
 
@@ -308,6 +319,22 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
     };
   }
 
+  const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
+  const showReplay =
+    !isShare && Boolean(replayId) && organization.features.includes('session-replay-ui');
+
+  const searchBar = (
+    <StyledSearchBarAction
+      placeholder={t('Search breadcrumbs')}
+      onChange={handleSearch}
+      query={searchTerm}
+      filterOptions={filterOptions}
+      filterSelections={state.filterSelections}
+      onFilterChange={handleFilter}
+      isFullWidth={showReplay}
+    />
+  );
+
   return (
     <EventDataSection
       type={EntryType.BREADCRUMBS}
@@ -316,19 +343,21 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
           <h3>{t('Breadcrumbs')}</h3>
         </GuideAnchor>
       }
-      actions={
-        <StyledSearchBarAction
-          placeholder={t('Search breadcrumbs')}
-          onChange={handleSearch}
-          query={searchTerm}
-          filterOptions={filterOptions}
-          filterSelections={state.filterSelections}
-          onFilterChange={handleFilter}
-        />
-      }
+      actions={!showReplay ? searchBar : null}
       wrapTitle={false}
       isCentered
     >
+      {showReplay ? (
+        <Fragment>
+          <EventReplay
+            replayId={replayId!}
+            projectSlug={projectSlug}
+            orgSlug={organization.slug}
+            event={event}
+          />
+          {searchBar}
+        </Fragment>
+      ) : null}
       <ErrorBoundary>
         <Breadcrumbs
           router={router}
@@ -349,8 +378,10 @@ function BreadcrumbsContainer({data, event, organization, route, router}: Props)
 
 export default BreadcrumbsContainer;
 
-const StyledSearchBarAction = styled(SearchBarAction)`
+const StyledSearchBarAction = styled(SearchBarAction)<{isFullWidth?: boolean}>`
   z-index: 2;
+  ${p => (p.isFullWidth ? 'width: 100% !important' : '')};
+  margin-bottom: ${p => (p.isFullWidth ? space(1) : 0)};
 `;
 
 const LevelWrap = styled('span')`

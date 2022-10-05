@@ -74,7 +74,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   {
     id: 'session-health',
     title: t('Session Health'),
-    description: t('Number of abnormal,crashed, errored and healthy sessions.'),
+    description: t('Number of abnormal, crashed, errored and healthy sessions.'),
     displayType: DisplayType.TABLE,
     widgetType: WidgetType.RELEASE,
     interval: '5m',

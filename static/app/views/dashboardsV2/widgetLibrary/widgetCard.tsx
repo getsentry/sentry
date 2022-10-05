@@ -62,7 +62,7 @@ function WidgetLibraryCard({
           const updatedWidgets = selectedWidgets.slice().concat(widget);
           setSelectedWidgets(updatedWidgets);
         }
-        setSelected(!!!selected);
+        setSelected(!selected);
       }}
     >
       <PanelBody>

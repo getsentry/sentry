@@ -51,6 +51,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
     const {Header, Footer, Body, countLabel, label, closeModal, windowOptions} =
       this.props;
     const {count, window} = this.state;
+
     return (
       <Fragment>
         <Header>

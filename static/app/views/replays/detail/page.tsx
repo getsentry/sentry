@@ -3,26 +3,26 @@ import styled from '@emotion/styled';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
+import DeleteButton from 'sentry/components/replays/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import space from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import EventMetaData, {
-  HeaderPlaceholder,
-} from 'sentry/views/replays/detail/eventMetaData';
 import ChooseLayout from 'sentry/views/replays/detail/layout/chooseLayout';
+import ReplayMetaData, {
+  HeaderPlaceholder,
+} from 'sentry/views/replays/detail/replayMetaData';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
   children: ReactNode;
   orgSlug: string;
   crumbs?: Crumb[];
-  durationMs?: number;
   replayRecord?: ReplayRecord;
 };
 
-function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
+function Page({children, crumbs, orgSlug, replayRecord}: Props) {
   const title = replayRecord
     ? `${replayRecord.id} - Replays - ${orgSlug}`
     : `Replays - ${orgSlug}`;
@@ -33,8 +33,9 @@ function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
         <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
       </HeaderContent>
       <ButtonActionsWrapper>
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
+        <DeleteButton />
         <ChooseLayout />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>
 
       {replayRecord && crumbs ? (
@@ -44,11 +45,7 @@ function Page({children, crumbs, durationMs, orgSlug, replayRecord}: Props) {
       )}
 
       <MetaDataColumn>
-        <EventMetaData
-          crumbs={crumbs}
-          durationMs={durationMs}
-          replayRecord={replayRecord}
-        />
+        <ReplayMetaData replayRecord={replayRecord} />
       </MetaDataColumn>
     </Header>
   );
@@ -76,7 +73,7 @@ const HeaderContent = styled(Layout.HeaderContent)`
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
 const ButtonActionsWrapper = styled(Layout.HeaderActions)`
   display: grid;
-  grid-template-columns: repeat(2, max-content);
+  grid-template-columns: repeat(3, max-content);
   justify-content: flex-end;
   gap: ${space(1)};
 `;

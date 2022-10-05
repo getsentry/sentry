@@ -18,6 +18,7 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import TextCopyInput from 'sentry/components/forms/textCopyInput';
 import TextField from 'sentry/components/forms/textField';
 import {Panel} from 'sentry/components/panels';
+import {RadioGroupRating} from 'sentry/components/radioGroupRating';
 import Switch from 'sentry/components/switchButton';
 
 export default {
@@ -456,6 +457,44 @@ NonInlineField.parameters = {
   docs: {
     description: {
       story: 'Radio Group used w/ FormField',
+    },
+  },
+};
+
+export const _RadioGroupRating = () => (
+  <RadioGroupRating
+    name="feelingIfFeatureNotAvailableRating"
+    options={{
+      0: {
+        label: 'Very Dissatisfied',
+        description: "Not disappointed (It isn't really useful)",
+      },
+      1: {
+        label: 'Dissatisfied',
+      },
+      2: {
+        label: 'Neutral',
+      },
+      3: {
+        label: 'Satisfied',
+      },
+      4: {
+        description: "Very disappointed (It's a deal breaker)",
+        label: 'Very Satisfied',
+      },
+    }}
+    label="How satisfied are you with this feature?"
+    inline={false}
+    stacked
+  />
+);
+
+_RadioGroupRating.storyName = 'Radio Group Rating';
+
+_RadioGroupRating.parameters = {
+  docs: {
+    description: {
+      story: 'Used to provide insights regarding opinions and experiences',
     },
   },
 };

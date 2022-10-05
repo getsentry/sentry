@@ -13,8 +13,8 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
-  FIELDS,
   FieldValueType,
+  getFieldDefinition,
   MEASUREMENT_FIELDS,
   SpanOpBreakdown,
   WebVital,
@@ -44,7 +44,10 @@ export type ParsedFunction = {
   name: string;
 };
 
-type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
+type ValidateColumnValueFunction = (data: {
+  dataType: ColumnType;
+  name: string;
+}) => boolean;
 
 export type ValidateColumnTypes =
   | ColumnType[]
@@ -186,7 +189,7 @@ export const AGGREGATIONS = {
       },
     ],
     isSortable: true,
-    multiPlotType: 'line',
+    multiPlotType: 'area',
   },
   [AggregationKey.CountMiserable]: {
     ...getDocsAndOutputType(AggregationKey.CountMiserable),
@@ -568,7 +571,7 @@ export const SEMVER_TAGS = {
  * Some tag keys should never be formatted as `tag[...]`
  * when used as a filter because they are predefined.
  */
-const EXCLUDED_TAG_KEYS = new Set(['release']);
+const EXCLUDED_TAG_KEYS = new Set(['release', 'user']);
 
 export function formatTagKey(key: string): string {
   // Some tags may be normalized from context, but not all of them are.
@@ -933,7 +936,7 @@ export function getColumnsAndAggregates(fields: string[]): {
   columns: string[];
 } {
   const aggregates = getAggregateFields(fields);
-  const columns = fields.filter(field => !!!aggregates.includes(field));
+  const columns = fields.filter(field => !aggregates.includes(field));
   return {columns, aggregates};
 }
 
@@ -1022,8 +1025,10 @@ export function aggregateFunctionOutputType(
 
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
-  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg].valueType as AggregationOutputType;
+  const fieldDef = getFieldDefinition(firstArg ?? '');
+
+  if (fieldDef !== null) {
+    return fieldDef.valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1058,8 +1063,10 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
 
   // If the function is an inherit type it will have a field as
   // the first parameter and we can use that to get the type.
-  if (firstArg && FIELDS.hasOwnProperty(firstArg)) {
-    return FIELDS[firstArg].valueType as AggregationOutputType;
+  const fieldDef = getFieldDefinition(firstArg ?? '');
+
+  if (fieldDef !== null) {
+    return fieldDef.valueType as AggregationOutputType;
   }
 
   if (firstArg && isMeasurement(firstArg)) {
@@ -1199,8 +1206,10 @@ export function getColumnType(column: Column): ColumnType {
       return outputType;
     }
   } else if (column.kind === 'field') {
-    if (FIELDS.hasOwnProperty(column.field)) {
-      return FIELDS[column.field].valueType as ColumnType;
+    const fieldDef = getFieldDefinition(column.field);
+
+    if (fieldDef !== null) {
+      return fieldDef.valueType as ColumnType;
     }
     if (isMeasurement(column.field)) {
       return measurementType(column.field);

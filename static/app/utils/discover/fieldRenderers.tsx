@@ -118,7 +118,22 @@ export const SIZE_UNITS = {
   tebibyte: 1024 ** 4,
   pebibyte: 1024 ** 5,
   exbibyte: 1024 ** 6,
+  kilobyte: 1000,
+  megabyte: 1000 ** 2,
+  gigabyte: 1000 ** 3,
+  terabyte: 1000 ** 4,
+  petabyte: 1000 ** 5,
+  exabyte: 1000 ** 6,
 };
+
+export const ABYTE_UNITS = [
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+  'petabyte',
+  'exabyte',
+];
 
 export const DURATION_UNITS = {
   nanosecond: 1 / 1000 ** 2,
@@ -211,7 +226,10 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       return (
         <NumberContainer>
           {unit && SIZE_UNITS[unit] && typeof data[field] === 'number' ? (
-            <FileSize bytes={data[field] * SIZE_UNITS[unit]} />
+            <FileSize
+              bytes={data[field] * SIZE_UNITS[unit]}
+              base={ABYTE_UNITS.includes(unit) ? 10 : 2}
+            />
           ) : (
             emptyValue
           )}
@@ -683,7 +701,6 @@ const spanOperationRelativeBreakdownRenderer = (
               containerDisplayMode="block"
             >
               <RectangleRelativeOpsBreakdown
-                spanBarHatch={false}
                 style={{
                   backgroundColor: pickBarColor(operationName),
                   cursor: 'pointer',
@@ -716,7 +733,7 @@ const spanOperationRelativeBreakdownRenderer = (
       })}
       <div key="other" style={{width: toPercent(otherPercentage || 0)}}>
         <Tooltip title={<div>{t('Other')}</div>} containerDisplayMode="block">
-          <OtherRelativeOpsBreakdown spanBarHatch={false} />
+          <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
     </RelativeOpsBreakdown>

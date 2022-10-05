@@ -10,12 +10,12 @@ import {Group, Organization, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedItem from './mergedItem';
-import MergedToolbar from './mergedToolbar';
+import {MergedToolbar} from './mergedToolbar';
 
 type Props = {
   groupId: Group['id'];
   /*
-   * From GroupingActions.toggleCollapseFingerprints
+   * From GroupingStore.onToggleCollapseFingerprints
    */
   onToggleCollapse: () => void;
   /**
@@ -74,6 +74,7 @@ function MergedList({
               key={fingerprint.id}
               organization={organization}
               fingerprint={fingerprint}
+              totalFingerprint={fingerprintsWithLatestEvent.length}
             />
           ))}
         </PanelBody>

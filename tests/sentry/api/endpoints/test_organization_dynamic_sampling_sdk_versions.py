@@ -4,10 +4,10 @@ from unittest import mock
 
 from django.urls import reverse
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.silo import region_silo_test
 
 
 def mocked_discover_query():
@@ -175,6 +175,28 @@ def mocked_discover_query():
                 'count_if(transaction.source, notEquals, "")': 0,
                 "count()": 1,
             },
+            # project: spring
+            {
+                "sdk.version": "6.5.0-beta.2",
+                "sdk.name": "sentry.java.spring",
+                "project": "spring",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 6,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 4,
+                "count()": 21,
+            },
+            # project: timber
+            {
+                "sdk.version": "6.4.1",
+                "sdk.name": "sentry.java.android.timber",
+                "project": "timber",
+                'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 1.0,
+                'count_if(trace.client_sample_rate, notEquals, "")': 7,
+                'equation|count_if(transaction.source, notEquals, "") / count()': 1.0,
+                'count_if(transaction.source, notEquals, "")': 5,
+                "count()": 23,
+            },
             # project: dummy
             {
                 "sdk.version": "7.1.4",
@@ -190,6 +212,7 @@ def mocked_discover_query():
     }
 
 
+@region_silo_test
 class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
     @property
     def endpoint(self):
@@ -211,27 +234,80 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         with Feature({"organizations:server-side-sampling": True}):
-            response = self.client.get(f"{self.endpoint}?project={self.project.id}")
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
             assert response.status_code == 403
 
     def test_feature_flag_disabled(self):
         self.login_as(self.user)
-        response = self.client.get(self.endpoint)
+        response = self.client.get(
+            f"{self.endpoint}?project={self.project.id}&"
+            f"start=2022-08-06T00:02:00+00:00&"
+            f"end=2022-08-07T00:00:02+00:00"
+        )
         assert response.status_code == 404
 
     def test_no_project_ids_filter_requested(self):
         self.login_as(self.user)
         with Feature({"organizations:server-side-sampling": True}):
-            response = self.client.get(self.endpoint)
+            response = self.client.get(
+                f"{self.endpoint}?"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
             assert response.status_code == 200
             assert response.data == []
+
+    def test_no_query_start_or_no_query_end(self):
+        self.login_as(self.user)
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "'start' and 'end' are required"
+
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&start=2022-08-06T00:02:00+00:00"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "'start' and 'end' are required"
+
+    def test_query_start_is_before_query_end(self):
+        self.login_as(self.user)
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project="
+                f"{self.project.id}&start=2022-08-10T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.status_code == 400
+            assert response.json()["detail"] == "'start' has to be before 'end'"
+
+    def test_query_start_and_query_end_are_atmost_one_day_apart(self):
+        self.login_as(self.user)
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project="
+                f"{self.project.id}&start=2022-08-05T00:02:00+00:00&end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.status_code == 400
+            assert (
+                response.json()["detail"] == "'start' and 'end' have to be a maximum of 1 day apart"
+            )
 
     @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
     def test_successful_response(self, mock_query):
         self.login_as(self.user)
         mock_query.return_value = mocked_discover_query()
         with Feature({"organizations:server-side-sampling": True}):
-            response = self.client.get(f"{self.endpoint}?project={self.project.id}")
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
             assert response.json() == [
                 {
                     "project": "wind",
@@ -274,6 +350,22 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
                     "isSupportedPlatform": True,
                 },
                 {
+                    "project": "spring",
+                    "latestSDKName": "sentry.java.spring",
+                    "latestSDKVersion": "6.5.0-beta.2",
+                    "isSendingSampleRate": True,
+                    "isSendingSource": True,
+                    "isSupportedPlatform": True,
+                },
+                {
+                    "project": "timber",
+                    "latestSDKName": "sentry.java.android.timber",
+                    "latestSDKVersion": "6.4.1",
+                    "isSendingSampleRate": True,
+                    "isSendingSource": True,
+                    "isSupportedPlatform": True,
+                },
+                {
                     "project": "dummy",
                     "latestSDKName": "sentry.unknown",
                     "latestSDKVersion": "7.1.4",
@@ -288,17 +380,20 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
         self.login_as(self.user)
         mock_query.return_value = {"data": []}
         with Feature({"organizations:server-side-sampling": True}):
-            response = self.client.get(f"{self.endpoint}?project={self.project.id}")
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
             assert response.json() == []
 
-    @freeze_time("2022-07-07 03:21:34")
     @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
     def test_request_params_are_applied_to_discover_query(self, mock_query):
         self.login_as(self.user)
         mock_query.return_value = mocked_discover_query()
 
-        end_time = datetime.datetime(2022, 7, 7, 3, 20, 0, tzinfo=timezone.utc)
-        start_time = end_time - timedelta(hours=6)
+        end_time = datetime.datetime(2022, 8, 7, 0, 0, 0, tzinfo=timezone.utc)
+        start_time = end_time - timedelta(hours=24)
 
         calls = [
             mock.call(
@@ -334,6 +429,47 @@ class OrganizationDynamicSamplingSDKVersionsTest(APITestCase):
         ]
 
         with Feature({"organizations:server-side-sampling": True}):
-            response = self.client.get(f"{self.endpoint}?project={self.project.id}&statsPeriod=6h")
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
             assert response.status_code == 200
             assert mock_query.mock_calls == calls
+
+    @mock.patch("sentry.api.endpoints.organization_dynamic_sampling_sdk_versions.discover.query")
+    def test_sdk_versions_incompatible_with_semantic_versions(self, mock_query):
+        self.login_as(self.user)
+        mock_query.return_value = {
+            "data": [
+                {
+                    "sdk.version": "dev-develop@39fa647",
+                    "sdk.name": "sentry.php",
+                    "project": "sentry-php",
+                    'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                    'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                    'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                    'count_if(transaction.source, notEquals, "")': 0,
+                    "count()": 2,
+                },
+                {
+                    "sdk.version": "dev-dsc@606d781",
+                    "sdk.name": "sentry.php",
+                    "project": "sentry-php",
+                    'equation|count_if(trace.client_sample_rate, notEquals, "") / count()': 0.0,
+                    'count_if(trace.client_sample_rate, notEquals, "")': 0,
+                    'equation|count_if(transaction.source, notEquals, "") / count()': 0.0,
+                    'count_if(transaction.source, notEquals, "")': 0,
+                    "count()": 11,
+                },
+            ]
+        }
+        with Feature({"organizations:server-side-sampling": True}):
+            response = self.client.get(
+                f"{self.endpoint}?project={self.project.id}&"
+                f"start=2022-08-06T00:02:00+00:00&"
+                f"end=2022-08-07T00:00:02+00:00"
+            )
+            assert response.json()["detail"] == (
+                "Unable to parse sdk versions. Please check that sdk versions are valid semantic versions."
+            )

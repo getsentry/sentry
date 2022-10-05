@@ -1,11 +1,11 @@
 import Breadcrumbs from 'sentry/components/events/interfaces/breadcrumbs';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import DebugMeta from 'sentry/components/events/interfaces/debugMeta';
+import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import Exception from 'sentry/components/events/interfaces/exception';
 import ExceptionV2 from 'sentry/components/events/interfaces/exceptionV2';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
-import {PerformanceIssueSection} from 'sentry/components/events/interfaces/performance';
+import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {Request} from 'sentry/components/events/interfaces/request';
 import Spans from 'sentry/components/events/interfaces/spans';
 import StackTrace from 'sentry/components/events/interfaces/stackTrace';
@@ -13,11 +13,17 @@ import StackTraceV2 from 'sentry/components/events/interfaces/stackTraceV2';
 import {Template} from 'sentry/components/events/interfaces/template';
 import Threads from 'sentry/components/events/interfaces/threads';
 import ThreadsV2 from 'sentry/components/events/interfaces/threadsV2';
-import {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {Entry, EntryType, Event, EventError, EventTransaction} from 'sentry/types/event';
+import {
+  Group,
+  IssueCategory,
+  Organization,
+  Project,
+  SharedViewOrganization,
+} from 'sentry/types';
+import {Entry, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
-import {EmbeddedSpanTree} from './interfaces/spans/embeddedSpanTree';
-import {FocusedSpanIDMap} from './interfaces/spans/types';
+import {Resources} from './interfaces/performance/resources';
+import {getResourceDescription, getResourceLinks} from './interfaces/performance/utils';
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   entry: Entry;
@@ -25,6 +31,7 @@ type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> 
   organization: SharedViewOrganization | Organization;
   projectSlug: Project['slug'];
   group?: Group;
+  isShare?: boolean;
 };
 
 function EventEntry({
@@ -33,6 +40,7 @@ function EventEntry({
   event,
   organization,
   group,
+  isShare,
   route,
   router,
 }: Props) {
@@ -115,6 +123,8 @@ function EventEntry({
           event={event}
           router={router}
           route={route}
+          isShare={isShare}
+          projectSlug={projectSlug}
         />
       );
     }
@@ -148,43 +158,33 @@ function EventEntry({
         />
       );
     case EntryType.SPANS:
+      if (
+        group?.issueCategory === IssueCategory.PERFORMANCE &&
+        organization?.features?.includes('performance-issues')
+      ) {
+        return (
+          <SpanEvidenceSection
+            event={event as EventTransaction}
+            organization={organization as Organization}
+          />
+        );
+      }
+
       return (
         <Spans
           event={event as EventTransaction}
           organization={organization as Organization}
         />
       );
-    case EntryType.SPANTREE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
-        return null;
-      }
-
-      const {focusedSpanIds: _focusedSpanIds} = entry.data;
-
-      const focusedSpanIds: FocusedSpanIDMap = {};
-      _focusedSpanIds.forEach(spanId => (focusedSpanIds[spanId] = new Set()));
-
-      // TODO: Need to dynamically determine the project slug for this issue
-      const INTERNAL_PROJECT = 'sentry';
-
-      return (
-        <EmbeddedSpanTree
-          event={event}
-          organization={organization as Organization}
-          projectSlug={INTERNAL_PROJECT}
-          focusedSpanIds={focusedSpanIds}
-        />
-      );
-    case EntryType.PERFORMANCE:
-      if (!organization.features?.includes('performance-extraneous-spans-poc')) {
+    case EntryType.RESOURCES:
+      if (!group || !group.issueType) {
         return null;
       }
 
       return (
-        <PerformanceIssueSection
-          issue={group as Group}
-          event={event as EventError}
-          organization={organization as Organization}
+        <Resources
+          description={getResourceDescription(group.issueType)}
+          links={getResourceLinks(group.issueType, event.platform)}
         />
       );
     default:

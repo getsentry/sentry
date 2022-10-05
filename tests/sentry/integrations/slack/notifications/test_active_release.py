@@ -9,9 +9,11 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@region_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     def setUp(self):
         super().setUp()
@@ -62,7 +64,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_notify_user(self, mock_func, mock_get_release_committers):
         mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             rp = RuleProcessor(
                 self.event,
                 is_new=True,

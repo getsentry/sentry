@@ -1,7 +1,6 @@
 import {createStore, StoreDefinition} from 'reflux';
 
 import {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -20,8 +19,6 @@ interface ModalStoreDefinition extends StoreDefinition {
 }
 
 const storeConfig: ModalStoreDefinition = {
-  unsubscribeListeners: [],
-
   init() {
     this.reset();
   },
@@ -52,5 +49,5 @@ const storeConfig: ModalStoreDefinition = {
   },
 };
 
-const ModalStore = createStore(makeSafeRefluxStore(storeConfig));
+const ModalStore = createStore(storeConfig);
 export default ModalStore;

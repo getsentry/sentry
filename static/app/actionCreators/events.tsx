@@ -186,7 +186,7 @@ export function fetchTagFacets(
  */
 export function fetchTotalCount(
   api: Client,
-  orgSlug: String,
+  orgSlug: string,
   query: EventQuery & LocationQuery
 ): Promise<number> {
   const urlParams = pick(query, Object.values(PERFORMANCE_URL_PARAM));

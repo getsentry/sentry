@@ -3,8 +3,10 @@ from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models import EventUser
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class ProjectUsersDocs(APIDocsTestCase):
     def setUp(self):
         self.project = self.create_project()

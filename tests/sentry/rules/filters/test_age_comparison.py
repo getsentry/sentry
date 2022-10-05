@@ -1,8 +1,7 @@
 from datetime import datetime, timedelta
-from unittest import mock
 
 import pytz
-from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import RuleTestCase
@@ -11,36 +10,33 @@ from sentry.testutils.cases import RuleTestCase
 class AgeComparisonFilterTest(RuleTestCase):
     rule_cls = AgeComparisonFilter
 
-    @mock.patch("django.utils.timezone.now")
-    def test_older_applies_correctly(self, now):
-        now.return_value = datetime(2020, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
-
+    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_older_applies_correctly(self):
         event = self.get_event()
         value = 10
         data = {"comparison_type": "older", "value": str(value), "time": "hour"}
 
         rule = self.get_rule(data=data)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=3)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=3)
         self.assertDoesNotPass(rule, event)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=11)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=10, microseconds=1)
+        # this needs to be offset by 1ms otherwise it's exactly the same time as "now" and won't pass
         self.assertPasses(rule, event)
 
-    @mock.patch("django.utils.timezone.now")
-    def test_newer_applies_correctly(self, now):
-        now.return_value = datetime(2020, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
-
+    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_newer_applies_correctly(self):
         event = self.get_event()
         value = 10
         data = {"comparison_type": "newer", "value": str(value), "time": "hour"}
 
         rule = self.get_rule(data=data)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=3)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=3)
         self.assertPasses(rule, event)
 
-        event.group.first_seen = timezone.now() - timedelta(hours=11)
+        event.group.first_seen = datetime.now(pytz.utc) - timedelta(hours=10)
         self.assertDoesNotPass(rule, event)
 
     def test_fails_on_insufficient_data(self):

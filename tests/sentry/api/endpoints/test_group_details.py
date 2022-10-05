@@ -26,9 +26,12 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.issues import GroupType
 
 
+@region_silo_test
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_with_numerical_id(self):
         self.login_as(user=self.user)
@@ -228,6 +231,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 429
 
 
+@region_silo_test
 class GroupUpdateTest(APITestCase):
     def test_resolve(self):
         self.login_as(user=self.user)
@@ -514,6 +518,23 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
+    def test_discard_performance_issue(self):
+        self.login_as(user=self.user)
+        group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
+
+        url = f"/api/0/issues/{group.id}/"
+
+        with self.tasks():
+            with self.feature("projects:discard-groups"):
+                response = self.client.put(url, data={"discard": True})
+
+        assert response.status_code == 400, response.content
+
+        # Ensure it's still there
+        assert Group.objects.filter(id=group.id).exists()
+        assert GroupHash.objects.filter(group_id=group.id).exists()
+
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
@@ -526,6 +547,7 @@ class GroupUpdateTest(APITestCase):
             assert response.status_code == 429
 
 
+@region_silo_test
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
         self.login_as(user=self.user)
@@ -556,6 +578,22 @@ class GroupDeleteTest(APITestCase):
         # Now we killed everything with fire
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_delete_performance_issue(self):
+        """Test that a performance issue cannot be deleted"""
+        self.login_as(user=self.user)
+
+        group = self.create_group(type=GroupType.PERFORMANCE_SLOW_SPAN.value)
+        GroupHash.objects.create(project=group.project, hash="x" * 32, group=group)
+
+        url = f"/api/0/issues/{group.id}/"
+
+        response = self.client.delete(url, format="json")
+        assert response.status_code == 400, response.content
+
+        # Ensure it's still there
+        assert Group.objects.filter(id=group.id).exists()
+        assert GroupHash.objects.filter(group_id=group.id).exists()
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):

@@ -64,12 +64,7 @@ const RadioGroup = <C extends string>({
       const disabled = !!disabledChoice || groupDisabled;
       const content = (
         <Fragment>
-          <RadioLineItem
-            role="radio"
-            index={index}
-            aria-checked={value === id}
-            disabled={disabled}
-          >
+          <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
             <Radio
               aria-label={t('Select %s', name)}
               disabled={disabled}
@@ -90,7 +85,7 @@ const RadioGroup = <C extends string>({
         </Fragment>
       );
 
-      if (!!disabledChoiceReason) {
+      if (disabledChoiceReason) {
         return (
           <Tooltip key={index} title={disabledChoiceReason}>
             {content}

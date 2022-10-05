@@ -3,7 +3,6 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {AvatarProject, Project} from 'sentry/types';
@@ -61,7 +60,7 @@ type RenderProps = {
    * Calls API and searches for project, accepts a callback function with signature:
    * fn(searchTerm, {append: bool})
    */
-  onSearch: (searchTerm: string, {append: boolean}) => void;
+  onSearch: (searchTerm: string, options: {append: boolean}) => void;
 
   /**
    * We want to make sure that at the minimum, we return a list of objects with only `slug`
@@ -139,9 +138,9 @@ class BaseProjects extends Component<Props, State> {
   componentDidMount() {
     const {slugs, projectIds} = this.props;
 
-    if (!!slugs?.length) {
+    if (slugs?.length) {
       this.loadSpecificProjects();
-    } else if (!!projectIds?.length) {
+    } else if (projectIds?.length) {
       this.loadSpecificProjectsFromIds();
     } else {
       this.loadAllProjects();
@@ -167,7 +166,7 @@ class BaseProjects extends Component<Props, State> {
       return;
     }
 
-    if (!!slugs?.length) {
+    if (slugs?.length) {
       // Extract the requested projects from the store based on props.slugs
       const projectsMap = this.getProjectsMap(projects);
       const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
@@ -294,7 +293,7 @@ class BaseProjects extends Component<Props, State> {
       .map(slug =>
         projectsMap.has(slug)
           ? projectsMap.get(slug)
-          : !!passthroughPlaceholderProject
+          : passthroughPlaceholderProject
           ? {slug}
           : null
       )
@@ -527,7 +526,7 @@ async function fetchProjects(
 
   // populate the projects store if all projects were fetched
   if (allProjects) {
-    ProjectActions.loadProjects(data);
+    ProjectsStore.loadInitialData(data);
   }
 
   return {

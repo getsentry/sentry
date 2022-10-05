@@ -22,6 +22,11 @@ type Props = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
 };
 
+type VitalLabel = {
+  isPoorValue: boolean;
+  vital: Vital;
+};
+
 function MeasurementsPanel(props: Props) {
   const {event, generateBounds, dividerPosition} = props;
   const measurements = getMeasurements(event, generateBounds);
@@ -44,20 +49,17 @@ function MeasurementsPanel(props: Props) {
           return null;
         }
 
-        // Measurements are referred to by their full name `measurements.<name>`
-        // here but are stored using their abbreviated name `<name>`. Make sure
-        // to convert it appropriately.
-        const vitals: Vital[] = Object.keys(verticalMark.marks).map(
-          name => WEB_VITAL_DETAILS[`measurements.${name}`]
-        );
+        const vitalLabels: VitalLabel[] = Object.keys(verticalMark.marks).map(name => ({
+          vital: WEB_VITAL_DETAILS[`measurements.${name}`],
+          isPoorValue: verticalMark.marks[name].failedThreshold,
+        }));
 
-        if (vitals.length > 1) {
+        if (vitalLabels.length > 1) {
           return (
             <MultiLabelContainer
               key={String(timestamp)}
-              failedThreshold={verticalMark.failedThreshold}
               left={toPercent(bounds.left || 0)}
-              vitals={vitals}
+              vitalLabels={vitalLabels}
             />
           );
         }
@@ -65,9 +67,8 @@ function MeasurementsPanel(props: Props) {
         return (
           <LabelContainer
             key={String(timestamp)}
-            failedThreshold={verticalMark.failedThreshold}
             left={toPercent(bounds.left || 0)}
-            vital={vitals[0]}
+            vitalLabel={vitalLabels[0]}
           />
         );
       })}
@@ -123,9 +124,8 @@ const Label = styled('div')<{
 export default MeasurementsPanel;
 
 type LabelContainerProps = {
-  failedThreshold: boolean;
   left: string;
-  vital: Vital;
+  vitalLabel: VitalLabel;
 };
 
 type LabelContainerState = {
@@ -149,7 +149,7 @@ class LabelContainer extends Component<LabelContainerProps> {
   elementDOMRef = createRef<HTMLDivElement>();
 
   render() {
-    const {left, failedThreshold, vital} = this.props;
+    const {left, vitalLabel} = this.props;
 
     return (
       <StyledLabelContainer
@@ -158,9 +158,13 @@ class LabelContainer extends Component<LabelContainerProps> {
           left: `clamp(calc(0.5 * ${this.state.width}px), ${left}, calc(100% - 0.5 * ${this.state.width}px))`,
         }}
       >
-        <Label failedThreshold={failedThreshold} isSingleLabel>
-          <Tooltip title={vital.name} position="top" containerDisplayMode="inline-block">
-            {vital.acronym}
+        <Label failedThreshold={vitalLabel.isPoorValue} isSingleLabel>
+          <Tooltip
+            title={vitalLabel.vital.name}
+            position="top"
+            containerDisplayMode="inline-block"
+          >
+            {vitalLabel.vital.acronym}
           </Tooltip>
         </Label>
       </StyledLabelContainer>
@@ -168,8 +172,9 @@ class LabelContainer extends Component<LabelContainerProps> {
   }
 }
 
-type MultiLabelContainerProps = Omit<LabelContainerProps, 'vital'> & {
-  vitals: Vital[];
+type MultiLabelContainerProps = {
+  left: string;
+  vitalLabels: VitalLabel[];
 };
 
 class MultiLabelContainer extends Component<MultiLabelContainerProps> {
@@ -190,7 +195,7 @@ class MultiLabelContainer extends Component<MultiLabelContainerProps> {
   elementDOMRef = createRef<HTMLDivElement>();
 
   render() {
-    const {left, failedThreshold, vitals} = this.props;
+    const {left, vitalLabels} = this.props;
 
     return (
       <StyledMultiLabelContainer
@@ -199,14 +204,14 @@ class MultiLabelContainer extends Component<MultiLabelContainerProps> {
           left: `clamp(calc(0.5 * ${this.state.width}px), ${left}, calc(100% - 0.5 * ${this.state.width}px))`,
         }}
       >
-        {vitals.map(vital => (
-          <Label failedThreshold={failedThreshold} key={`${vital.name}-label`}>
+        {vitalLabels.map(label => (
+          <Label failedThreshold={label.isPoorValue} key={`${label.vital.name}-label`}>
             <Tooltip
-              title={vital.name}
+              title={label.vital.name}
               position="top"
               containerDisplayMode="inline-block"
             >
-              {vital.acronym}
+              {label.vital.acronym}
             </Tooltip>
           </Label>
         ))}

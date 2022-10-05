@@ -101,19 +101,11 @@ runs:
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
     - name: Setup python
-      uses: actions/setup-python@c4e89fac7e8767b327bbad6cb4d859eda999cf08  # v4
+      uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
       with:
         python-version: ${{ inputs.python-version }}
         cache: pip
         cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-
-    - name: Install system dependencies
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          libxmlsec1-dev \
-          libmaxminddb-dev
 
     - name: Set up outputs
       id: config

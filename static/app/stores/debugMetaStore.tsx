@@ -1,8 +1,4 @@
-import {createActions, createStore, StoreDefinition} from 'reflux';
-
-import {makeSafeRefluxStore, SafeStoreDefinition} from 'sentry/utils/makeSafeRefluxStore';
-
-const DebugMetaActions = createActions(['updateFilter']);
+import {createStore, StoreDefinition} from 'reflux';
 
 type State = {
   filter: string | null;
@@ -19,19 +15,11 @@ type Internals = {
   filter: string | null;
 };
 
-const storeConfig: StoreDefinition &
-  DebugMetaStoreInterface &
-  Internals &
-  SafeStoreDefinition = {
+const storeConfig: StoreDefinition & DebugMetaStoreInterface & Internals = {
   filter: null,
-  unsubscribeListeners: [],
 
   init() {
     this.reset();
-
-    this.unsubscribeListeners.push(
-      this.listenTo(DebugMetaActions.updateFilter, this.updateFilter)
-    );
   },
 
   reset() {
@@ -51,7 +39,7 @@ const storeConfig: StoreDefinition &
   },
 };
 
-const DebugMetaStore = createStore(makeSafeRefluxStore(storeConfig));
+const DebugMetaStore = createStore(storeConfig);
 
-export {DebugMetaActions, DebugMetaStore};
+export {DebugMetaStore};
 export default DebugMetaStore;

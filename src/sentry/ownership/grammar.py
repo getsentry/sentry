@@ -70,6 +70,14 @@ class Rule(namedtuple("Rule", "matcher owners")):
     This line contains a Matcher and a list of Owners.
     """
 
+    def __str__(self) -> str:
+        owners = [o.dump() for o in self.owners]
+        owners_str = " ".join(
+            f"#{owner['identifier']}" if owner["type"] == "team" else owner["identifier"]
+            for owner in owners
+        )
+        return f"{self.matcher} {owners_str}"
+
     def dump(self) -> Mapping[str, Sequence[Owner]]:
         return {"matcher": self.matcher.dump(), "owners": [o.dump() for o in self.owners]}
 
@@ -95,6 +103,9 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         path:src/*
         src/*
     """
+
+    def __str__(self) -> str:
+        return f"{self.type}:{self.pattern}"
 
     def dump(self) -> Mapping[str, str]:
         return {"type": self.type, "pattern": self.pattern}
@@ -493,6 +504,20 @@ def convert_codeowners_syntax(
                 result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
 
     return result
+
+
+def get_source_code_path_from_stacktrace_path(
+    stacktrace_path: str, code_mapping: RepositoryProjectPathConfig
+) -> str | None:
+    if re.search(r"[\/].{1}", stacktrace_path):
+        path_with_source_root = stacktrace_path.replace(
+            code_mapping.stack_root, code_mapping.source_root, 1
+        )
+        # flatten multiple '/' if not protocol
+        formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_source_root)
+        return formatted_path
+
+    return None
 
 
 def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, ActorTuple]:

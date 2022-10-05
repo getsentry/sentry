@@ -1,9 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import {removeSentryFunction} from 'sentry/actionCreators/sentryFunctions';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -20,7 +21,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import CreateIntegrationButton from 'sentry/views/organizationIntegrations/createIntegrationButton';
 import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 
@@ -202,10 +202,11 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   }
   renderBody() {
     const {organization} = this.props;
-    const tabs = [
+    const tabs: [id: Tab, label: string][] = [
       ['internal', t('Internal Integration')],
       ['public', t('Public Integration')],
-    ] as [id: Tab, label: string][];
+    ];
+
     if (organization.features.includes('sentry-functions')) {
       tabs.push(['sentryfx', t('Sentry Function')]);
     }
@@ -215,7 +216,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
         <SettingsPageHeader
           title={t('Developer Settings')}
           body={
-            <React.Fragment>
+            <Fragment>
               {t(
                 'Create integrations that interact with Sentry using the REST API and webhooks. '
               )}
@@ -233,7 +234,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
                   />
                 ),
               })}
-            </React.Fragment>
+            </Fragment>
           }
           action={
             <ActionContainer>

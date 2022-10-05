@@ -151,7 +151,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_file.return_value.encoding = None
         mock_fetch_file.return_value.headers = {}
 
-        event = self.post_and_retrieve_event(data)
+        # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
+        # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
+        # Note its been called twice, as there as two processors when run with the feature.
+        with self.feature({"projects:sourcemapcache-processor": False}):
+            event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/foo.js",
@@ -209,7 +213,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         mock_fetch_file.return_value.body = force_bytes("\n".join("<generated source>"))
         mock_fetch_file.return_value.encoding = None
 
-        event = self.post_and_retrieve_event(data)
+        # TODO(smcache): We make sure that the tests are run without the feature to preserve correct mock assertions.
+        # It will work just fine when we migrate to SmCache, as call count will stay the same with the new processor.
+        # Note its been called twice, as there as two processors when run with the feature.
+        with self.feature({"projects:sourcemapcache-processor": False}):
+            event = self.post_and_retrieve_event(data)
 
         mock_fetch_file.assert_called_once_with(
             "http://example.com/test.min.js",
@@ -424,10 +432,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
 
-        f_minified = File.objects.create(
-            name="nofiles.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_minified.putfile(open(get_fixture_path("nofiles.js"), "rb"))
+        with open(get_fixture_path("nofiles.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="nofiles.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f_minified.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}",
             release_id=release.id,
@@ -435,10 +444,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             file=f_minified,
         )
 
-        f_sourcemap = File.objects.create(
-            name="nofiles.js.map", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_sourcemap.putfile(open(get_fixture_path("nofiles.js.map"), "rb"))
+        with open(get_fixture_path("nofiles.js.map"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="nofiles.js.map",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"app:///{f_sourcemap.name}",
             release_id=release.id,
@@ -472,6 +484,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 1
         frame = frame_list[0]
+        assert frame.abs_path == "app:///nofiles.js.map"
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -481,6 +494,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
+        # TODO(smcache): Assertions below are the one that're correct. Use it when migrating from legacy processor.
+        # assert frame.abs_path == "app:///nofiles.js"
+        # assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        # assert frame.context_line == "\treturn a + b; // fôo"
+        # assert frame.post_context == ["}", ""]
 
     @responses.activate
     def test_indexed_sourcemap_source_expansion(self):
@@ -594,10 +612,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file.min.js
         # ------------
 
-        f_minified = File.objects.create(
-            name="file.min.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_minified.putfile(open(get_fixture_path("file.min.js"), "rb"))
+        with open(get_fixture_path("file.min.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="file.min.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_minified.putfile(f)
 
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
@@ -611,10 +632,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file1.js
         # ---------
 
-        f1 = File.objects.create(
-            name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f1.putfile(open(get_fixture_path("file1.js"), "rb"))
+        with open(get_fixture_path("file1.js"), "rb") as f:
+            f1 = File.objects.create(
+                name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f1.putfile(f)
 
         ReleaseFile.objects.create(
             name=f"http://example.com/{f1.name}",
@@ -626,10 +648,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file2.js
         # ----------
 
-        f2 = File.objects.create(
-            name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2.putfile(open(get_fixture_path("file2.js"), "rb"))
+        with open(get_fixture_path("file2.js"), "rb") as f:
+            f2 = File.objects.create(
+                name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f2.name}",
             release_id=release.id,
@@ -642,10 +665,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # hostname that points to an empty file. If the processor chooses
         # this empty file over the correct file2.js, it will not locate
         # context for the 2nd frame.
-        f2_empty = File.objects.create(
-            name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
+        with open(get_fixture_path("empty.js"), "rb") as f:
+            f2_empty = File.objects.create(
+                name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2_empty.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
             release_id=release.id,
@@ -656,12 +680,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # sourcemap
         # ----------
 
-        f_sourcemap = File.objects.create(
-            name="file.sourcemap.js",
-            type="release.file",
-            headers={"Content-Type": "application/json"},
-        )
-        f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
+        with open(get_fixture_path("file.sourcemap.js"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="file.sourcemap.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f_sourcemap.name}",
             release_id=release.id,
@@ -732,10 +757,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file.min.js
         # ------------
 
-        f_minified = File.objects.create(
-            name="file.min.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f_minified.putfile(open(get_fixture_path("file.min.js"), "rb"))
+        with open(get_fixture_path("file.min.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="file.min.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_minified.putfile(f)
 
         # Intentionally omit hostname - use alternate artifact path lookup instead
         # /file1.js vs http://example.com/file1.js
@@ -750,10 +778,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file1.js
         # ---------
 
-        f1 = File.objects.create(
-            name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f1.putfile(open(get_fixture_path("file1.js"), "rb"))
+        with open(get_fixture_path("file1.js"), "rb") as f:
+            f1 = File.objects.create(
+                name="file1.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f1.putfile(f)
 
         ReleaseFile.objects.create(
             name=f"http://example.com/{f1.name}",
@@ -766,10 +795,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # file2.js
         # ----------
 
-        f2 = File.objects.create(
-            name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2.putfile(open(get_fixture_path("file2.js"), "rb"))
+        with open(get_fixture_path("file2.js"), "rb") as f:
+            f2 = File.objects.create(
+                name="file2.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f2.name}",
             release_id=release.id,
@@ -783,10 +813,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # hostname that points to an empty file. If the processor chooses
         # this empty file over the correct file2.js, it will not locate
         # context for the 2nd frame.
-        f2_empty = File.objects.create(
-            name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
-        )
-        f2_empty.putfile(open(get_fixture_path("empty.js"), "rb"))
+        with open(get_fixture_path("empty.js"), "rb") as f:
+            f2_empty = File.objects.create(
+                name="empty.js", type="release.file", headers={"Content-Type": "application/json"}
+            )
+            f2_empty.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f2.name}",  # intentionally using f2.name ("file2.js")
             release_id=release.id,
@@ -798,12 +829,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         # sourcemap
         # ----------
 
-        f_sourcemap = File.objects.create(
-            name="file.sourcemap.js",
-            type="release.file",
-            headers={"Content-Type": "application/json"},
-        )
-        f_sourcemap.putfile(open(get_fixture_path("file.sourcemap.js"), "rb"))
+        with open(get_fixture_path("file.sourcemap.js"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="file.sourcemap.js",
+                type="release.file",
+                headers={"Content-Type": "application/json"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"http://example.com/{f_sourcemap.name}",
             release_id=release.id,
@@ -1223,12 +1255,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         )
         release.add_project(project)
 
-        f_minified = File.objects.create(
-            name="dist.bundle.js",
-            type="release.file",
-            headers={"Content-Type": "application/javascript"},
-        )
-        f_minified.putfile(open(get_fixture_path("dist.bundle.js"), "rb"))
+        with open(get_fixture_path("dist.bundle.js"), "rb") as f:
+            f_minified = File.objects.create(
+                name="dist.bundle.js",
+                type="release.file",
+                headers={"Content-Type": "application/javascript"},
+            )
+            f_minified.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f_minified.name}",
             release_id=release.id,
@@ -1236,12 +1269,13 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             file=f_minified,
         )
 
-        f_sourcemap = File.objects.create(
-            name="dist.bundle.js.map",
-            type="release.file",
-            headers={"Content-Type": "application/javascript"},
-        )
-        f_sourcemap.putfile(open(get_fixture_path("dist.bundle.js.map"), "rb"))
+        with open(get_fixture_path("dist.bundle.js.map"), "rb") as f:
+            f_sourcemap = File.objects.create(
+                name="dist.bundle.js.map",
+                type="release.file",
+                headers={"Content-Type": "application/javascript"},
+            )
+            f_sourcemap.putfile(f)
         ReleaseFile.objects.create(
             name=f"~/{f_sourcemap.name}",
             release_id=release.id,
@@ -1310,15 +1344,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         assert len(frame_list) == 6
 
-        import pprint
-
-        pprint.pprint(frame_list[0].__dict__)
-        pprint.pprint(frame_list[1].__dict__)
-        pprint.pprint(frame_list[2].__dict__)
-        pprint.pprint(frame_list[3].__dict__)
-        pprint.pprint(frame_list[4].__dict__)
-        pprint.pprint(frame_list[5].__dict__)
-
         assert frame_list[0].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
         assert frame_list[0].function == "bar"
         assert frame_list[0].lineno == 8
@@ -1332,6 +1357,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame_list[2].lineno == 2
 
         assert frame_list[3].abs_path == "app:///dist.bundle.js"
+        # TODO(smcache): Assertion below is the one that's correct. Use it when migrating from legacy processor.
+        # assert frame_list[3].abs_path == "webpack:///webpack/bootstrap d9a5a31d9276b73873d3"
         assert frame_list[3].function == "Object.<anonymous>"
         assert frame_list[3].lineno == 1
 

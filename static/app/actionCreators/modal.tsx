@@ -1,8 +1,6 @@
 import type {ModalTypes} from 'sentry/components/globalModal';
-import type {DashboardWidgetModalOptions} from 'sentry/components/modals/addDashboardWidgetModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
-import {DashboardWidgetLibraryModalOptions} from 'sentry/components/modals/dashboardWidgetLibraryModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
@@ -236,13 +234,6 @@ export async function openInviteMembersModal({
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
-export async function openAddDashboardWidgetModal(options: DashboardWidgetModalOptions) {
-  const mod = await import('sentry/components/modals/addDashboardWidgetModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
-}
-
 export async function openWidgetBuilderOverwriteModal(
   options: OverwriteWidgetModalProps
 ) {
@@ -277,19 +268,17 @@ export async function demoSignupModal(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
+export async function demoSignupModalV2(options: ModalOptions = {}) {
+  const mod = await import('sentry/components/modals/demoSignUpV2');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}
+
 export async function openDashboardWidgetQuerySelectorModal(
   options: DashboardWidgetQuerySelectorModalOptions
 ) {
   const mod = await import('sentry/components/modals/dashboardWidgetQuerySelectorModal');
-  const {default: Modal, modalCss} = mod;
-
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
-}
-
-export async function openDashboardWidgetLibraryModal(
-  options: DashboardWidgetLibraryModalOptions
-) {
-  const mod = await import('sentry/components/modals/dashboardWidgetLibraryModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});

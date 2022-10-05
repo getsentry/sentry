@@ -18,6 +18,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -84,6 +85,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         )
 
 
+@region_silo_test
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -160,6 +162,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(external_actors) == 1
 
 
+@region_silo_test
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()

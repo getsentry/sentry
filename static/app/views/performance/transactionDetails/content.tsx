@@ -5,7 +5,9 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
-import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
+import EventCustomPerformanceMetrics, {
+  EventDetailPageSource,
+} from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
@@ -14,6 +16,7 @@ import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
@@ -36,7 +39,6 @@ import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
-import {TransactionToProfileButton} from './transactionToProfileButton';
 
 type Props = Pick<
   RouteComponentProps<{eventSlug: string}, {}>,
@@ -224,7 +226,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               organization={organization}
                               event={event}
                               project={_projects[0] as Project}
-                              showExampleCommit={false}
                               showTagSummary={false}
                               location={location}
                               api={this.api}
@@ -255,6 +256,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                           event={event}
                           location={location}
                           organization={organization}
+                          source={EventDetailPageSource.PERFORMANCE}
                         />
                       )}
                       <TagsTable

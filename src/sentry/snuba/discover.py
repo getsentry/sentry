@@ -126,19 +126,15 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(
-    results, function_alias_map, translated_columns, snuba_filter
-) -> EventsResponse:
+def transform_results(results, query_builder, translated_columns, snuba_filter) -> EventsResponse:
     results = transform_data(results, translated_columns, snuba_filter)
-    results["meta"] = transform_meta(results, function_alias_map)
+    results["meta"] = transform_meta(results, query_builder)
     return results
 
 
-def transform_meta(results: EventsResponse, function_alias_map) -> Dict[str, str]:
+def transform_meta(results: EventsResponse, query_builder: QueryBuilder) -> Dict[str, str]:
     meta: Dict[str, str] = {
-        value["name"]: get_json_meta_type(
-            value["name"], value.get("type"), function_alias_map.get(value["name"])
-        )
+        value["name"]: get_json_meta_type(value["name"], value.get("type"), query_builder)
         for value in results["meta"]
     }
     # Ensure all columns in the result have types.
@@ -219,6 +215,7 @@ def query(
     functions_acl=None,
     transform_alias_to_input_format=False,
     sample=None,
+    has_metrics=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -269,6 +266,7 @@ def query(
         offset=offset,
         equation_config={"auto_add": include_equation_fields},
         sample_rate=sample,
+        has_metrics=has_metrics,
     )
     if conditions is not None:
         builder.add_conditions(conditions)
@@ -278,13 +276,12 @@ def query(
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
         translated_columns = {}
-        function_alias_map = builder.function_alias_map
         if transform_alias_to_input_format:
             translated_columns = {
                 column: function_details.field
                 for column, function_details in builder.function_alias_map.items()
             }
-            function_alias_map = {
+            builder.function_alias_map = {
                 translated_columns.get(column): function_details
                 for column, function_details in builder.function_alias_map.items()
             }
@@ -292,7 +289,7 @@ def query(
                 translated_columns[f"equation[{index}]"] = f"equation|{equation}"
         result = transform_results(
             result,
-            function_alias_map,
+            builder,
             translated_columns,
             None,
         )
@@ -310,6 +307,7 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
+    has_metrics=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -344,6 +342,7 @@ def timeseries_query(
             selected_columns=columns,
             equations=equations,
             functions_acl=functions_acl,
+            has_metrics=has_metrics,
         )
         query_list = [base_builder]
         if comparison_delta:
@@ -368,27 +367,42 @@ def timeseries_query(
         results = []
         for snql_query, result in zip(query_list, query_results):
             results.append(
-                zerofill(
-                    result["data"],
-                    snql_query.params["start"],
-                    snql_query.params["end"],
-                    rollup,
-                    "time",
-                )
-                if zerofill_results
-                else result["data"]
+                {
+                    "data": zerofill(
+                        result["data"],
+                        snql_query.params["start"],
+                        snql_query.params["end"],
+                        rollup,
+                        "time",
+                    )
+                    if zerofill_results
+                    else result["data"],
+                    "meta": result["meta"],
+                }
             )
 
     if len(results) == 2 and comparison_delta:
         col_name = base_builder.aggregates[0].alias
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
-        for result, cmp_result in zip(results[0], results[1]):
+        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
             cmp_result_val = cmp_result.get(col_name, 0)
             result["comparisonCount"] = cmp_result_val
 
     result = results[0]
-    return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
+
+    return SnubaTSResult(
+        {
+            "data": result["data"],
+            "meta": {
+                value["name"]: get_json_meta_type(value["name"], value.get("type"), base_builder)
+                for value in result["meta"]
+            },
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
 
 
 def create_result_key(result_row, fields, issues) -> str:
@@ -521,7 +535,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, top_events_builder.function_alias_map, {}, None)
+        result = transform_results(result, top_events_builder, {}, None)
 
         issues = {}
         if "issue" in selected_columns:
@@ -707,7 +721,8 @@ def get_facets(
             )
 
     # Need to cast tuple values to str since the value might be None
-    return sorted(results, key=lambda result: (str(result.key), str(result.value)))
+    # Reverse sort the count so the highest values show up first
+    return sorted(results, key=lambda result: (str(result.key), -result.count, str(result.value)))
 
 
 def spans_histogram_query(
@@ -980,7 +995,7 @@ def histogram_query(
     if extra_conditions is not None:
         builder.add_conditions(extra_conditions)
     results = builder.run_query(referrer)
-    results["meta"] = transform_meta(results, builder.function_alias_map)
+    results["meta"] = transform_meta(results, builder)
 
     if not normalize_results:
         return results

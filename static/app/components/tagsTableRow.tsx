@@ -8,7 +8,7 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {EventTag} from 'sentry/types/event';
 
-import AnnotatedText from './events/meta/annotatedText';
+import {AnnotatedText} from './events/meta/annotatedText';
 
 interface Props {
   generateUrl: (tag: EventTag) => LocationDescriptor;
@@ -37,20 +37,22 @@ function TagsTableRow({tag, query, generateUrl, meta}: Props) {
         !!keyMetaData && !tag.key ? (
           <AnnotatedText value={tag.key} meta={keyMetaData} />
         ) : (
-          <StyledTooltip title={tag.key}>{tag.key}</StyledTooltip>
+          <StyledTooltip title={tag.key} showOnlyOnOverflow>
+            {tag.key}
+          </StyledTooltip>
         )
       }
       value={
         !!valueMetaData && !tag.value ? (
           <AnnotatedText value={tag.value} meta={valueMetaData} />
         ) : keyMetaData?.err?.length ? (
-          <span>{renderTagValue()}</span>
+          <ValueContainer>{renderTagValue()}</ValueContainer>
         ) : tagInQuery ? (
-          <Tooltip title={t('This tag is in the current filter conditions')}>
-            <span>{renderTagValue()}</span>
-          </Tooltip>
+          <StyledTooltip title={t('This tag is in the current filter conditions')}>
+            <ValueContainer>{renderTagValue()}</ValueContainer>
+          </StyledTooltip>
         ) : (
-          <StyledTooltip title={renderTagValue()}>
+          <StyledTooltip title={renderTagValue()} showOnlyOnOverflow>
             <Link to={target || ''}>{renderTagValue()}</Link>
           </StyledTooltip>
         )
@@ -63,4 +65,11 @@ export default TagsTableRow;
 
 const StyledTooltip = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
+`;
+
+const ValueContainer = styled('span')`
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: normal;
 `;

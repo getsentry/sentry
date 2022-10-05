@@ -3,11 +3,11 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -15,12 +15,12 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Tooltip from 'sentry/components/tooltip';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 
 type Props = {
@@ -121,7 +121,7 @@ class TeamProjects extends Component<Props, State> {
       method: action === 'add' ? 'POST' : 'DELETE',
       success: resp => {
         this.fetchAll();
-        ProjectActions.updateSuccess(resp);
+        ProjectsStore.onUpdateSuccess(resp);
         addSuccessMessage(
           action === 'add'
             ? t('Successfully added project to team.')

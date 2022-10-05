@@ -13,6 +13,7 @@ from sentry.models import (
     GroupRuleStatus,
     GroupStatus,
     NotificationSetting,
+    ProjectOwnership,
     Release,
     Rule,
     RuleFireHistory,
@@ -51,6 +52,7 @@ class RuleProcessorTest(TestCase):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={"conditions": [EVERY_EVENT_COND_DATA], "actions": [EMAIL_ACTION_DATA]},
@@ -251,6 +253,7 @@ class RuleProcessorTestFilters(TestCase):
         filter_data = {"id": "tests.sentry.rules.test_processor.MockFilterTrue"}
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={
@@ -306,6 +309,7 @@ class RuleProcessorTestFilters(TestCase):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={
@@ -334,6 +338,7 @@ class RuleProcessorTestFilters(TestCase):
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={"actions": [EMAIL_ACTION_DATA], "action_match": "any"},
@@ -362,6 +367,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             project=self.event.project,
             data={
@@ -408,6 +414,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         Rule.objects.filter(project=self.event.project).delete()
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         self.rule = Rule.objects.create(
             environment_id=self.environment.id,
             project=self.event.project,
@@ -483,7 +490,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
     @mock.patch("sentry.notifications.utils.participants.get_release_committers")
     def test_default_notification_setting_off(self, mock_get_release_committers):
         mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -506,7 +513,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
             user=self.user,
             project=self.project,
         )
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -545,7 +552,8 @@ class RuleProcessorActiveReleaseTest(TestCase):
                 ],
             },
         )
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -583,7 +591,7 @@ class RuleProcessorActiveReleaseTest(TestCase):
         )
 
         mock_get_release_committers.return_value = [self.user, user2]
-        with self.tasks(), self.feature("projects:active-release-monitor-default-on"):
+        with self.tasks(), self.feature("organizations:active-release-notifications-enable"):
             mail.outbox = []
             rp = RuleProcessor(
                 self.event,
@@ -598,28 +606,3 @@ class RuleProcessorActiveReleaseTest(TestCase):
             assert mail.outbox[0]
             assert mail.outbox[0].subject == "**ARM** [Sentry] BAR-1 - Hello world"
             assert mail.outbox[0].to == [self.user.email]
-
-    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
-    @mock.patch("sentry.analytics.record")
-    def test_active_release_disabled(self, mock_record, mock_get_release_committers):
-        mock_get_release_committers.return_value = [self.user]
-        with self.tasks(), self.feature({"projects:active-release-monitor-default-on": False}):
-            mail.outbox = []
-            rp = RuleProcessor(
-                self.event,
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                has_reappeared=False,
-            )
-            results = list(rp.apply())
-            assert len(results) == 0
-            assert len(mail.outbox) == 0
-            mock_record.assert_called_with(
-                "active_release_notification.dry_run",
-                organization_id=self.event.group.organization.id,
-                project_id=self.event.group.project_id,
-                group_id=self.event.group_id,
-                release_version=self.event.group.get_last_release(),
-                recipient_id=self.user.id,
-            )

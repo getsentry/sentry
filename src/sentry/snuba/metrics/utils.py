@@ -9,6 +9,7 @@ __all__ = (
     "MetricType",
     "OP_TO_SNUBA_FUNCTION",
     "AVAILABLE_OPERATIONS",
+    "AVAILABLE_GENERIC_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
     "FIELD_ALIAS_MAPPINGS",
@@ -33,6 +34,7 @@ __all__ = (
     "OP_REGEX",
     "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
+    "NON_RESOLVABLE_TAG_VALUES",
 )
 
 
@@ -76,6 +78,10 @@ MetricOperationType = Literal[
     "p95",
     "p99",
     "histogram",
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
 ]
 MetricUnit = Literal[
     "nanosecond",
@@ -94,11 +100,24 @@ MetricUnit = Literal[
     "tebibyte",
     "pebibyte",
     "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal["counter", "set", "distribution", "numeric"]
 
-MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
+MetricEntity = Literal[
+    "metrics_counters",
+    "metrics_sets",
+    "metrics_distributions",
+    "generic_metrics_counters",
+    "generic_metrics_sets",
+    "generic_metrics_distributions",
+]
 
 OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
@@ -145,18 +164,23 @@ AVAILABLE_GENERIC_OPERATIONS = {
 OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_OPERATIONS.items() for op in operations
 }
+GENERIC_OPERATIONS_TO_ENTITY = {
+    op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
+}
 
 # ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
-    "generic_counter": EntityKey.GenericMetricsCounters,
     "generic_set": EntityKey.GenericMetricsSets,
     "generic_distribution": EntityKey.GenericMetricsDistributions,
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
+NON_RESOLVABLE_TAG_VALUES = (
+    {"team_key_transaction"} | set(FIELD_ALIAS_MAPPINGS.keys()) | set(FIELD_ALIAS_MAPPINGS.values())
+)
 
 
 class Tag(TypedDict):
@@ -187,17 +211,25 @@ OPERATIONS_PERCENTILES = (
     "p95",
     "p99",
 )
-
-# ToDo Dynamically generate this from OP_TO_SNUBA_FUNCTION
-OPERATIONS = (
-    "avg",
-    "count_unique",
-    "count",
-    "max",
-    "min",
-    "sum",
+DERIVED_OPERATIONS = (
     "histogram",
-) + OPERATIONS_PERCENTILES
+    "rate",
+    "count_web_vitals",
+    "count_transaction_name",
+    "team_key_transaction",
+)
+OPERATIONS = (
+    (
+        "avg",
+        "count_unique",
+        "count",
+        "max",
+        "min",
+        "sum",
+    )
+    + OPERATIONS_PERCENTILES
+    + DERIVED_OPERATIONS
+)
 
 DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
     "avg": None,
@@ -212,9 +244,12 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
     "p99": None,
     "sum": 0,
     "percentage": None,
-    "histogram": [],
 }
-UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
+UNIT_TO_TYPE = {
+    "sessions": "count",
+    "percentage": "percentage",
+    "users": "count",
+}
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
 

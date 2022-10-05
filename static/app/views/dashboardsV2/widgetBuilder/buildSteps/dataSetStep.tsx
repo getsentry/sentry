@@ -55,7 +55,7 @@ export function DataSetStep({
         `This reflects the type of information you want to use. To learn more, [link: read the docs].`,
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/product/dashboards/custom-dashboards/#data-set-selection" />
+            <ExternalLink href="https://docs.sentry.io/product/dashboards/widget-builder/#choose-your-dataset" />
           ),
         }
       )}
@@ -70,7 +70,7 @@ export function DataSetStep({
                 [
                   DataSet.RELEASES,
                   <Fragment key="releases-dataset">
-                    {t('Releases (sessions, crash rates)')} <FeatureBadge type="beta" />
+                    {t('Releases (Sessions, Crash rates)')} <FeatureBadge type="new" />
                   </Fragment>,
                 ],
               ]

@@ -38,7 +38,7 @@ type State = {
 function getIntendedStackView(thread: Thread, event: Event) {
   const exception = getThreadException(event, thread);
   if (exception) {
-    return !!exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
+    return exception.values.find(value => !!value.stacktrace?.hasSystemFrames)
       ? STACK_VIEW.APP
       : STACK_VIEW.FULL;
   }

@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -23,6 +24,7 @@ class DiscoverQueryPermission(OrganizationPermission):
     scope_map = {"POST": ["org:read", "project:read"]}
 
 
+@pending_silo_endpoint
 class DiscoverQueryEndpoint(OrganizationEndpoint):
     permission_classes = (DiscoverQueryPermission,)
     enforce_rate_limit = True

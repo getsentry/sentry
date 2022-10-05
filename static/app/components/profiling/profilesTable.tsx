@@ -142,7 +142,7 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
       }
 
       const profileSummaryTarget = generateProfileSummaryRouteWithQuery({
-        location,
+        query: location.query,
         orgSlug: organization.slug,
         projectSlug: project.slug,
         transaction: dataRow.transaction_name,

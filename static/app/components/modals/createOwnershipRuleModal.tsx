@@ -28,7 +28,9 @@ const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) =
 
   return (
     <Fragment>
-      <Header closeButton>{t('Create Ownership Rule')}</Header>
+      <Header closeButton>
+        <h4>{t('Create Ownership Rule')}</h4>
+      </Header>
       <Body>
         <ProjectOwnershipModal {...props} onSave={handleSuccess} />
       </Body>

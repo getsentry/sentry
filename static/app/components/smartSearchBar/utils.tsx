@@ -2,6 +2,7 @@
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
+  SearchConfig,
   TermOperator,
   Token,
   TokenResult,
@@ -26,8 +27,9 @@ import {
   Shortcut,
   ShortcutType,
 } from './types';
-import {Tag} from 'sentry/types';
+import {TagCollection} from 'sentry/types';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -384,13 +386,8 @@ const getItemTitle = (key: string, kind: FieldKind) => {
  * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
  * The parent will become interactive if there exists a key "device".
  */
-export const getTagItemsFromKeys = (
-  tagKeys: string[],
-  supportedTags: {
-    [key: string]: Tag;
-  }
-) => {
-  return [...tagKeys].reduce((groups, key) => {
+export const getTagItemsFromKeys = (tagKeys: string[], supportedTags: TagCollection) => {
+  return [...tagKeys].reduce<SearchItem[]>((groups, key) => {
     const keyWithColon = `${key}:`;
     const sections = key.split('.');
 
@@ -406,6 +403,7 @@ export const getTagItemsFromKeys = (
       documentation: definition?.desc ?? '-',
       kind,
       deprecated: definition?.deprecated,
+      featureFlag: definition?.featureFlag,
     };
 
     const lastGroup = groups.at(-1);
@@ -447,7 +445,7 @@ export const getTagItemsFromKeys = (
     }
 
     return [...groups, item];
-  }, [] as SearchItem[]);
+  }, []);
 };
 
 /**
@@ -590,4 +588,40 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
       type: ItemType.TAG_VALUE,
     },
   ];
+};
+
+export const getSearchConfigFromCustomPerformanceMetrics = (
+  customPerformanceMetrics?: CustomMeasurementCollection
+): Partial<SearchConfig> => {
+  const searchConfigMap: Record<string, string[]> = {
+    sizeKeys: [],
+    durationKeys: [],
+    percentageKeys: [],
+    numericKeys: [],
+  };
+  if (customPerformanceMetrics) {
+    Object.keys(customPerformanceMetrics).forEach(metricName => {
+      const {fieldType} = customPerformanceMetrics[metricName];
+      switch (fieldType) {
+        case 'size':
+          searchConfigMap.sizeKeys.push(metricName);
+          break;
+        case 'duration':
+          searchConfigMap.durationKeys.push(metricName);
+          break;
+        case 'percentage':
+          searchConfigMap.percentageKeys.push(metricName);
+          break;
+        default:
+          searchConfigMap.numericKeys.push(metricName);
+      }
+    });
+  }
+  const searchConfig = {
+    sizeKeys: new Set(searchConfigMap.sizeKeys),
+    durationKeys: new Set(searchConfigMap.durationKeys),
+    percentageKeys: new Set(searchConfigMap.percentageKeys),
+    numericKeys: new Set(searchConfigMap.numericKeys),
+  };
+  return searchConfig;
 };

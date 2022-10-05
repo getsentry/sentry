@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import first from 'lodash/first';
 import last from 'lodash/last';
@@ -9,6 +8,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
+import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 
 type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
@@ -22,9 +22,9 @@ function splitCrumbs({
   onClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const firstUrl = first(crumbs)?.data?.to;
+  const firstUrl = first(crumbs)?.data?.to?.split('?')?.[0];
   const summarizedCrumbs = crumbs.slice(1, -1) as Crumb[];
-  const lastUrl = last(crumbs)?.data?.to;
+  const lastUrl = last(crumbs)?.data?.to?.split('?')?.[0];
 
   if (crumbs.length === 0) {
     // This one shouldn't overflow, but by including the component css stays
@@ -100,30 +100,48 @@ function SummarySegment({
   handleOnClick: MaybeOnClickHandler;
   startTimestampMs: number;
 }) {
-  const summaryItems = crumbs.map(crumb => (
-    <BreadcrumbItem
-      key={crumb.id}
-      crumb={crumb}
-      startTimestampMs={startTimestampMs}
-      isHovered={false}
-      isSelected={false}
-      onClick={handleOnClick}
-    />
-  ));
+  const {handleMouseEnter, handleMouseLeave} = useCrumbHandlers(startTimestampMs);
+
+  const summaryItems = (
+    <ScrollingList>
+      {crumbs.map((crumb, i) => (
+        <li key={crumb.id || i}>
+          <BreadcrumbItem
+            crumb={crumb}
+            startTimestampMs={startTimestampMs}
+            isHovered={false}
+            isSelected={false}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onClick={handleOnClick}
+          />
+        </li>
+      ))}
+    </ScrollingList>
+  );
 
   return (
     <Span>
       <HalfPaddingHovercard body={summaryItems} position="right">
-        <TextOverflow>{tn('%s Page', '%s Pages', summaryItems.length)}</TextOverflow>
+        <TextOverflow>{tn('%s Page', '%s Pages', crumbs.length)}</TextOverflow>
       </HalfPaddingHovercard>
     </Span>
   );
 }
 
+const ScrollingList = styled('ul')`
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  max-height: calc(100vh - 32px);
+  overflow: scroll;
+`;
+
 const Span = styled('span')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 0;
+  max-width: 240px;
 `;
 
 const Link = styled('a')`

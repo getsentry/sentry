@@ -22,7 +22,9 @@ from sentry.search.events import constants
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_not_arm64
+from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
@@ -30,6 +32,7 @@ from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, 
 MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
+@region_silo_test
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
@@ -189,7 +192,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
-        query = {"field": ["id"], "query": "has:trace.parent_span_id"}
+        query = {"field": ["id"], "query": "has:trace.parent_span"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
@@ -215,7 +218,30 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
 
-        query = {"field": ["id"], "query": "!has:trace.parent_span_id"}
+        query = {"field": ["id"], "query": "!has:trace.parent_span"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == "a" * 32
+
+    def test_parent_span_id_in_context(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago,
+                "contexts": {
+                    "trace": {
+                        "span_id": "a" * 16,
+                        "trace_id": "b" * 32,
+                        "parent_span_id": "c" * 16,
+                    },
+                },
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"field": ["id"], "query": f"trace.parent_span:{'c' * 16}"}
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
@@ -467,6 +493,109 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["data"] == [
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
+
+    def test_performance_issue_ids_filter(self):
+        data = load_data(
+            platform="transaction",
+            timestamp=before_now(minutes=10),
+            start_timestamp=before_now(minutes=11),
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": f"project:{self.project.slug} performance.issue_ids:{event.groups[0].id}",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_has_performance_issue_ids(self):
+        data = load_data(
+            platform="transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        self.store_event(data=data, project_id=self.project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": "!has:performance.issue_ids",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 0
+
+    def test_performance_issue_ids_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:undefined",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_issue_ids_array_with_undefined(self):
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "2h",
+            "query": "performance.issue_ids:[1,2,3,undefined]",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+    def test_performance_short_group_id(self):
+        project = self.create_project(name="foo bar")
+        data = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event = self.store_event(data=data, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} issue:{event.groups[0].qualified_short_id}",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 1
+
+    def test_multiple_performance_short_group_ids_filter(self):
+        project = self.create_project(name="foo bar")
+        data1 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+        )
+        event1 = self.store_event(data=data1, project_id=project.id)
+
+        data2 = load_data(
+            "transaction",
+            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"],
+        )
+        event2 = self.store_event(data=data2, project_id=project.id)
+
+        query = {
+            "field": ["count()"],
+            "statsPeriod": "1h",
+            "query": f"project:{project.slug} issue:[{event1.groups[0].qualified_short_id},{event2.groups[0].qualified_short_id}]",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["count()"] == 2
 
     def test_event_id_with_in_search(self):
         self.store_event(
@@ -784,7 +913,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
-            assert [0] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.handled"]
 
         with self.feature("organizations:discover-basic"):
             query = {
@@ -795,8 +924,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert [None] == response.data["data"][0]["error.handled"]
-            assert [1] == response.data["data"][1]["error.handled"]
+            assert 1 == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][1]["error.handled"]
 
     def test_error_unhandled_condition(self):
         prototype = self.load_data(platform="android-ndk")
@@ -822,7 +951,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 1 == len(response.data["data"])
-            assert [0] == response.data["data"][0]["error.handled"]
+            assert 0 == response.data["data"][0]["error.handled"]
             assert 1 == response.data["data"][0]["error.unhandled"]
 
         with self.feature("organizations:discover-basic"):
@@ -834,10 +963,51 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response = self.do_request(query)
             assert response.status_code == 200, response.data
             assert 2 == len(response.data["data"])
-            assert [None] == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["error.handled"]
             assert 0 == response.data["data"][0]["error.unhandled"]
-            assert [1] == response.data["data"][1]["error.handled"]
+            assert 1 == response.data["data"][1]["error.handled"]
             assert 0 == response.data["data"][1]["error.unhandled"]
+
+    def test_groupby_error_handled_and_unhandled(self):
+        prototype = self.load_data(platform="android-ndk")
+        events = (
+            ("a" * 32, "not handled", False),
+            ("b" * 32, "was handled", True),
+            ("c" * 32, "undefined", None),
+        )
+        for event in events:
+            prototype["event_id"] = event[0]
+            prototype["message"] = event[1]
+            prototype["exception"]["values"][0]["value"] = event[1]
+            prototype["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            prototype["timestamp"] = self.ten_mins_ago
+            self.store_event(data=prototype, project_id=self.project.id)
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["error.handled", "count()"],
+                "query": "event.type:error",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert 0 == response.data["data"][0]["error.handled"]
+            assert 1 == response.data["data"][0]["count()"]
+            assert 1 == response.data["data"][1]["error.handled"]
+            assert 2 == response.data["data"][1]["count()"]
+
+        with self.feature("organizations:discover-basic"):
+            query = {
+                "field": ["error.unhandled", "count()"],
+                "query": "event.type:error",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+            assert 2 == len(response.data["data"])
+            assert 0 == response.data["data"][0]["error.unhandled"]
+            assert 2 == response.data["data"][0]["count()"]
+            assert 1 == response.data["data"][1]["error.unhandled"]
+            assert 1 == response.data["data"][1]["count()"]
 
     def test_implicit_groupby(self):
         self.store_event(

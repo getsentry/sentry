@@ -100,11 +100,21 @@ export type RawCrumb =
   | BreadcrumbTypeHTTP
   | BreadcrumbTypeDefault;
 
-export type Crumb = RawCrumb & {
+interface BaseCrumb {
   color: Color;
   description: string;
   id: number;
-};
+}
+
+interface NavigationCrumb extends BaseCrumb, BreadcrumbTypeNavigation {}
+interface HTTPCrumb extends BaseCrumb, BreadcrumbTypeHTTP {}
+interface DefaultCrumb extends BaseCrumb, BreadcrumbTypeDefault {}
+
+export type Crumb = NavigationCrumb | HTTPCrumb | DefaultCrumb;
+
+export function isBreadcrumbLogLevel(logLevel: string): logLevel is BreadcrumbLevelType {
+  return Object.values(BreadcrumbLevelType).includes(logLevel as any);
+}
 
 export function isBreadcrumbTypeDefault(
   breadcrumb: Crumb

@@ -8,6 +8,9 @@ type Rule = {
 };
 
 export type SamplingEventParameters = {
+  'sampling.performance.metrics.accuracy.alert': {
+    project_id: string;
+  };
   'sampling.sdk.client.rate.change.alert': {
     project_id: string;
   };
@@ -31,6 +34,9 @@ export type SamplingEventParameters = {
   };
   'sampling.settings.modal.specific.rule.condition_add': {
     conditions: SamplingInnerName[] | string[];
+    project_id: string;
+  };
+  'sampling.settings.modal.specify.client.open': {
     project_id: string;
   };
   'sampling.settings.modal.specify.client.rate_cancel': {
@@ -105,6 +111,8 @@ export type SamplingEventParameters = {
 type SamplingAnalyticsKey = keyof SamplingEventParameters;
 
 export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
+  'sampling.performance.metrics.accuracy.alert':
+    'Sampling Performance Metrics Accuracy Alert',
   'sampling.sdk.client.rate.change.alert': 'Recommended sdk client rate change alert',
   'sampling.sdk.updgrades.alert': 'Recommended sdk upgrades alert',
   'sampling.sdk.incompatible.alert': 'Incompatible sdk upgrades alert',
@@ -131,6 +139,7 @@ export const samplingEventMap: Record<SamplingAnalyticsKey, string> = {
   'sampling.settings.modal.specify.client.rate_cancel':
     'Cancel at specify client rate step',
   'sampling.settings.modal.specify.client.rate_next': 'Go to uniform rate step',
+  'sampling.settings.modal.specify.client.open': 'Open specify client step',
   'sampling.settings.rule.specific_create': 'Create specific sampling rule',
   'sampling.settings.rule.specific_delete': 'Delete specific sampling rule',
   'sampling.settings.rule.specific_save': 'Save specific sampling rule', // fired for both create and update

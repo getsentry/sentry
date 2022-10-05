@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from collections.abc import Callable
 from datetime import timedelta
 from enum import Enum
@@ -22,6 +21,9 @@ class TSDBModel(Enum):
     group = 4
     release = 7
 
+    # number of transactions seen specific to a group
+    group_performance = 10
+
     # the number of events sent to the server
     project_total_received = 100
     # the number of events rejected due to rate limiting
@@ -42,6 +44,8 @@ class TSDBModel(Enum):
     users_affected_by_group = 300
     # distinct count of users that have been affected by an event in a project
     users_affected_by_project = 301
+    # distinct count of users that have been affected by an event in a performance group
+    users_affected_by_perf_group = 302
 
     # frequent_organization_received_by_system = 400
     # frequent_organization_rejected_by_system = 401
@@ -161,7 +165,7 @@ class BaseTSDB(Service):
         if rollups is None:
             rollups = settings.SENTRY_TSDB_ROLLUPS
 
-        self.rollups = OrderedDict(rollups)
+        self.rollups = dict(rollups)
 
         # The ``SENTRY_TSDB_LEGACY_ROLLUPS`` setting should be used to store
         # previous rollup configuration values after they are modified in

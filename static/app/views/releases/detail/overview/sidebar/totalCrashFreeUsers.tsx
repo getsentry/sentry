@@ -6,7 +6,7 @@ import moment from 'moment';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import SidebarSection from 'sentry/components/sidebarSection';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -89,29 +89,32 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
     }
 
     return (
-      <SidebarSection title={t('Total Crash Free Users')}>
-        <Timeline>
-          {timeline.map(row => (
-            <Row key={row.date.toString()}>
-              <InnerRow>
-                <Text bold>{row.date.format('MMMM D')}</Text>
-                <Text bold right>
-                  <Count value={row.crashFreeUserCount} />{' '}
-                  {tn('user', 'users', row.crashFreeUserCount)}
-                </Text>
-              </InnerRow>
-              <InnerRow>
-                <Text>{row.dateLabel}</Text>
-                <Percent right>
-                  {defined(row.crashFreeUsers)
-                    ? displayCrashFreePercent(row.crashFreeUsers)
-                    : '-'}
-                </Percent>
-              </InnerRow>
-            </Row>
-          ))}
-        </Timeline>
-      </SidebarSection>
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{t('Total Crash Free Users')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          <Timeline>
+            {timeline.map(row => (
+              <Row key={row.date.toString()}>
+                <InnerRow>
+                  <Text bold>{row.date.format('MMMM D')}</Text>
+                  <Text bold right>
+                    <Count value={row.crashFreeUserCount} />{' '}
+                    {tn('user', 'users', row.crashFreeUserCount)}
+                  </Text>
+                </InnerRow>
+                <InnerRow>
+                  <Text>{row.dateLabel}</Text>
+                  <Percent right>
+                    {defined(row.crashFreeUsers)
+                      ? displayCrashFreePercent(row.crashFreeUsers)
+                      : '-'}
+                  </Percent>
+                </InnerRow>
+              </Row>
+            ))}
+          </Timeline>
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 }

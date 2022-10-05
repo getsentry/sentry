@@ -1,4 +1,6 @@
 import {Component, Fragment} from 'react';
+// eslint-disable-next-line no-restricted-imports
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -9,13 +11,17 @@ import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
+import OwnedBy from 'sentry/components/group/ownedBy';
 import GroupParticipants from 'sentry/components/group/participants';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import SuggestedOwners from 'sentry/components/group/suggestedOwners/suggestedOwners';
+import SuspectReleases from 'sentry/components/group/suspectReleases';
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
@@ -27,12 +33,11 @@ import {
   TagWithTopValues,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 
-import SidebarSection from './sidebarSection';
-import SuspectReleases from './suspectReleases';
-
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   environments: Environment[];
   group: Group;
@@ -68,6 +73,22 @@ class BaseGroupSidebar extends Component<Props, State> {
       this.setState({environments: nextProps.environments}, this.fetchTagData);
     }
   }
+
+  trackAssign: React.ComponentProps<typeof AssignedTo>['onAssign'] = () => {
+    const {group, project, organization, location} = this.props;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
+    trackAdvancedAnalyticsEvent('issue_details.action_clicked', {
+      organization,
+      project_id: parseInt(project.id, 10),
+      group_id: parseInt(group.id, 10),
+      issue_category: group.issueCategory,
+      action_type: 'assign',
+      alert_date:
+        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
+      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
+      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+    });
+  };
 
   async fetchAllEnvironmentsGroupData() {
     const {group, api} = this.props;
@@ -158,9 +179,12 @@ class BaseGroupSidebar extends Component<Props, State> {
     }
 
     return (
-      <SidebarSection title={t('External Issues')}>
-        <ExternalIssues>{issues}</ExternalIssues>
-      </SidebarSection>
+      <SidebarSection.Wrap>
+        <SidebarSection.Title>{t('External Issues')}</SidebarSection.Title>
+        <SidebarSection.Content>
+          <ExternalIssues>{issues}</ExternalIssues>
+        </SidebarSection.Content>
+      </SidebarSection.Wrap>
     );
   }
 
@@ -188,6 +212,12 @@ class BaseGroupSidebar extends Component<Props, State> {
         <PageFiltersContainer>
           <EnvironmentPageFilter alignDropdown="right" />
         </PageFiltersContainer>
+
+        <Feature organization={organization} features={['issue-details-owners']}>
+          <OwnedBy group={group} project={project} organization={organization} />
+          <AssignedTo group={group} projectId={project.id} onAssign={this.trackAssign} />
+        </Feature>
+
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
@@ -211,42 +241,47 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection title={t('Tags')}>
-          {!tagsWithTopValues ? (
-            <TagPlaceholders>
-              <Placeholder height="40px" />
-              <Placeholder height="40px" />
-              <Placeholder height="40px" />
-              <Placeholder height="40px" />
-            </TagPlaceholders>
-          ) : (
-            group.tags.map(tag => {
-              const tagWithTopValues = tagsWithTopValues[tag.key];
-              const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
-              const topValuesTotal = tagWithTopValues ? tagWithTopValues.totalValues : 0;
+        <SidebarSection.Wrap>
+          <SidebarSection.Title>{t('Tag Summary')}</SidebarSection.Title>
+          <SidebarSection.Content>
+            {!tagsWithTopValues ? (
+              <TagPlaceholders>
+                <Placeholder height="40px" />
+                <Placeholder height="40px" />
+                <Placeholder height="40px" />
+                <Placeholder height="40px" />
+              </TagPlaceholders>
+            ) : (
+              group.tags.map(tag => {
+                const tagWithTopValues = tagsWithTopValues[tag.key];
+                const topValues = tagWithTopValues ? tagWithTopValues.topValues : [];
+                const topValuesTotal = tagWithTopValues
+                  ? tagWithTopValues.totalValues
+                  : 0;
 
-              return (
-                <GroupTagDistributionMeter
-                  key={tag.key}
-                  tag={tag.key}
-                  totalValues={topValuesTotal}
-                  topValues={topValues}
-                  name={tag.name}
-                  organization={organization}
-                  projectId={projectId}
-                  group={group}
-                />
-              );
-            })
-          )}
-          {group.tags.length === 0 && (
-            <p data-test-id="no-tags">
-              {environments.length
-                ? t('No tags found in the selected environments')
-                : t('No tags found')}
-            </p>
-          )}
-        </SidebarSection>
+                return (
+                  <GroupTagDistributionMeter
+                    key={tag.key}
+                    tag={tag.key}
+                    totalValues={topValuesTotal}
+                    topValues={topValues}
+                    name={tag.name}
+                    organization={organization}
+                    projectId={projectId}
+                    group={group}
+                  />
+                );
+              })
+            )}
+            {group.tags.length === 0 && (
+              <p data-test-id="no-tags">
+                {environments.length
+                  ? t('No tags found in the selected environments')
+                  : t('No tags found')}
+              </p>
+            )}
+          </SidebarSection.Content>
+        </SidebarSection.Wrap>
 
         {this.renderParticipantData()}
       </Container>
@@ -274,6 +309,6 @@ const ExternalIssues = styled('div')`
   gap: ${space(2)};
 `;
 
-const GroupSidebar = withApi(BaseGroupSidebar);
+const GroupSidebar = withApi(withRouter(BaseGroupSidebar));
 
 export default GroupSidebar;

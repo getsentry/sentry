@@ -136,16 +136,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     this.setState({releasesCompletion});
   };
 
-  get showExampleCommit() {
-    return (
-      this.props.project?.isMember &&
-      this.props.project?.firstEvent &&
-      this.state.releasesCompletion?.some(
-        ({step, complete}) => step === 'commit' && !complete
-      )
-    );
-  }
-
   renderContent(eventWithMeta?: Event) {
     const {
       group,
@@ -177,7 +167,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         organization={organization}
         project={project}
         location={location}
-        showExampleCommit={this.showExampleCommit}
         router={router}
         route={route}
       />
@@ -228,6 +217,8 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     const {activity: activities} = group;
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
+    const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+
     return (
       <div className={className} data-test-id="group-event-details">
         <StyledLayoutBody>
@@ -258,6 +249,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                             organization={organization}
                             location={location}
                             project={project}
+                            hasReplay={hasReplay}
                           />
                         )}
                         <Wrapper>
@@ -303,6 +295,9 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
 const StyledLayoutBody = styled(Layout.Body)`
   /* Makes the borders align correctly */
   padding: 0 !important;
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
+    align-content: stretch;
+  }
 `;
 
 const Wrapper = styled('div')`
@@ -310,6 +305,12 @@ const Wrapper = styled('div')`
 `;
 
 const StyledLayoutMain = styled(Layout.Main)`
+  padding-top: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    padding-top: ${space(1)};
+  }
+
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-right: 1px solid ${p => p.theme.border};
     padding-right: 0;

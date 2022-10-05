@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api import client
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
@@ -121,6 +122,7 @@ class DeleteUserSerializer(serializers.Serializer):
     hardDelete = serializers.BooleanField(required=False)
 
 
+@control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
     def get(self, request: Request, user) -> Response:
         """

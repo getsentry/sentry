@@ -18,18 +18,33 @@ import {
   SelectValue,
 } from 'sentry/types';
 
-const IGNORE_DURATIONS = [30, 120, 360, 60 * 24, 60 * 24 * 7];
+const ONE_HOUR = 60;
+
+/**
+ * Ignore durations are in munutes
+ */
+const IGNORE_DURATIONS = [
+  ONE_HOUR / 2,
+  ONE_HOUR * 2,
+  ONE_HOUR * 6,
+  ONE_HOUR * 24,
+  ONE_HOUR * 24 * 7,
+];
+
 const IGNORE_COUNTS = [1, 10, 100, 1000, 10000, 100000];
+
 const IGNORE_WINDOWS: SelectValue<number>[] = [
-  {value: 60, label: t('per hour')},
-  {value: 24 * 60, label: t('per day')},
-  {value: 24 * 7 * 60, label: t('per week')},
+  {value: ONE_HOUR, label: t('per hour')},
+  {value: ONE_HOUR * 24, label: t('per day')},
+  {value: ONE_HOUR * 24 * 7, label: t('per week')},
 ];
 
 type Props = {
   onUpdate: (params: GroupStatusResolution) => void;
   confirmLabel?: string;
-  confirmMessage?: React.ReactNode;
+  confirmMessage?: (
+    statusDetails: ResolutionStatusDetails | undefined
+  ) => React.ReactNode;
   disabled?: boolean;
   isIgnored?: boolean;
   shouldConfirm?: boolean;
@@ -43,21 +58,24 @@ const IgnoreActions = ({
   confirmLabel = t('Ignore'),
   isIgnored = false,
 }: Props) => {
-  const onIgnore = (statusDetails: ResolutionStatusDetails | undefined = {}) => {
+  const onIgnore = (
+    statusDetails: ResolutionStatusDetails | undefined = {},
+    {bypassConfirm} = {bypassConfirm: false}
+  ) => {
     openConfirmModal({
-      bypass: !shouldConfirm,
+      bypass: bypassConfirm || !shouldConfirm,
       onConfirm: () =>
         onUpdate({
           status: ResolutionStatus.IGNORED,
           statusDetails,
         }),
-      message: confirmMessage,
+      message: confirmMessage?.(statusDetails) ?? null,
       confirmText: confirmLabel,
     });
   };
 
   const onCustomIgnore = (statusDetails: ResolutionStatusDetails) => {
-    onIgnore(statusDetails);
+    onIgnore(statusDetails, {bypassConfirm: true});
   };
 
   if (isIgnored) {

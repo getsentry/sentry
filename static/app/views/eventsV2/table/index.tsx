@@ -4,10 +4,11 @@ import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
+import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   isAPIPayloadSimilar,
@@ -26,16 +27,19 @@ type TableProps = {
   eventView: EventView;
   location: Location;
   onChangeShowTags: () => void;
+  onCursor: CursorHandler;
   organization: Organization;
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  isHomepage?: boolean;
 };
 
 type TableState = {
   error: null | string;
   isLoading: boolean;
   pageLinks: null | string;
+  prevView: null | EventView;
   tableData: TableData | null | undefined;
   tableFetchID: symbol | undefined;
 };
@@ -56,6 +60,7 @@ class Table extends PureComponent<TableProps, TableState> {
 
     pageLinks: null,
     tableData: null,
+    prevView: null,
   };
 
   componentDidMount() {
@@ -68,11 +73,22 @@ class Table extends PureComponent<TableProps, TableState> {
     if (
       (!this.state.isLoading && this.shouldRefetchData(prevProps)) ||
       (prevProps.eventView.isValid() === false && this.props.eventView.isValid()) ||
-      prevProps.confirmedQuery !== this.props.confirmedQuery
+      (prevProps.confirmedQuery !== this.props.confirmedQuery && this.didViewChange())
     ) {
       this.fetchData();
     }
   }
+
+  didViewChange = (): boolean => {
+    const {prevView} = this.state;
+    const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
+    if (prevView === null) {
+      return true;
+    }
+    const otherAPIPayload = prevView.getEventsAPIPayload(this.props.location);
+
+    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+  };
 
   shouldRefetchData = (prevProps: TableProps): boolean => {
     const thisAPIPayload = this.props.eventView.getEventsAPIPayload(this.props.location);
@@ -87,6 +103,7 @@ class Table extends PureComponent<TableProps, TableState> {
     if (!eventView.isValid() || !confirmedQuery) {
       return;
     }
+    this.setState({prevView: eventView});
 
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
@@ -134,7 +151,7 @@ class Table extends PureComponent<TableProps, TableState> {
         const tableData = shouldUseEvents
           ? {
               ...data,
-              meta: {...fields, nonFieldsMeta},
+              meta: {...fields, ...nonFieldsMeta},
             }
           : data;
 
@@ -178,7 +195,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView} = this.props;
+    const {eventView, onCursor} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -192,20 +209,25 @@ class Table extends PureComponent<TableProps, TableState> {
             const measurementKeys = Object.values(measurements).map(({key}) => key);
 
             return (
-              <TableView
-                {...this.props}
-                isLoading={isLoading}
-                isFirstPage={isFirstPage}
-                error={error}
-                eventView={eventView}
-                tableData={tableData}
-                measurementKeys={measurementKeys}
-                spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
-              />
+              <CustomMeasurementsContext.Consumer>
+                {contextValue => (
+                  <TableView
+                    {...this.props}
+                    isLoading={isLoading}
+                    isFirstPage={isFirstPage}
+                    error={error}
+                    eventView={eventView}
+                    tableData={tableData}
+                    measurementKeys={measurementKeys}
+                    spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
+                    customMeasurements={contextValue?.customMeasurements ?? undefined}
+                  />
+                )}
+              </CustomMeasurementsContext.Consumer>
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
       </Container>
     );
   }

@@ -181,7 +181,6 @@ class CompactIssue extends Component<Props, State> {
   }
 }
 
-export {CompactIssue};
 export default withApi(withOrganization(CompactIssue));
 
 const IssueHeaderMetaWrapper = styled('div')`

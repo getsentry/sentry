@@ -53,11 +53,13 @@ class OAuth2Login(AuthView):
         state = uuid4().hex
 
         params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
-        redirect_uri = f"{self.get_authorize_url()}?{urlencode(params)}"
+        authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"
 
         helper.bind_state("state", state)
+        if request.subdomain:
+            helper.bind_state("subdomain", request.subdomain)
 
-        return self.redirect(redirect_uri)
+        return self.redirect(authorization_url)
 
 
 class OAuth2Callback(AuthView):

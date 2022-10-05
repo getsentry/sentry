@@ -3,8 +3,10 @@ from django.urls import reverse
 from sentry.api.serializers import serialize
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test
 class OrganizationCodeMappingDetailsTest(APITestCase):
     endpoint = "sentry-api-0-organization-code-mapping-details"
 
@@ -12,8 +14,19 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
+        self.user2 = self.create_user("nisanthan@sentry.io", is_superuser=False)
         self.org = self.create_organization(owner=self.user, name="baz")
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
+        self.team2 = self.create_team(
+            organization=self.org,
+            name="Ecosystem",
+        )
+        self.create_member(
+            organization=self.org,
+            user=self.user2,
+            has_global_access=False,
+            teams=[self.team2],
+        )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.integration = Integration.objects.create(
             provider="github", name="Example", external_id="abcd"
@@ -54,6 +67,11 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["id"] == str(self.config.id)
         assert resp.data["sourceRoot"] == "newRoot"
+
+    def test_basic_edit_from_member_permissions(self):
+        self.login_as(user=self.user2)
+        resp = self.make_put({"sourceRoot": "newRoot"})
+        assert resp.status_code == 200
 
     def test_delete_with_existing_codeowners(self):
         self.create_codeowners(project=self.project, code_mapping=self.config)

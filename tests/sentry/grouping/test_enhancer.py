@@ -333,6 +333,23 @@ def test_mechanism_matching():
     )
 
 
+def test_mechanism_matching_no_frames():
+    enhancement = Enhancements.from_config_string(
+        """
+        error.mechanism:NSError -app
+    """
+    )
+    (rule,) = enhancement.rules
+    exception_data = {"mechanism": {"type": "NSError"}}
+
+    # Does not crash:
+    assert [] == _get_matching_frame_actions(rule, [], "python", exception_data)
+
+    # Matcher matches:
+    (matcher,) = rule._exception_matchers
+    assert matcher.matches_frame([], None, "python", exception_data, {})
+
+
 def test_range_matching():
     enhancement = Enhancements.from_config_string(
         """
@@ -412,3 +429,16 @@ def test_sentinel_and_prefix(action, type):
     actions[0][1].update_frame_components_contributions([component], frames, 0)
     expected = action == "+"
     assert getattr(component, f"is_{type}_frame") is expected
+
+
+@pytest.mark.parametrize(
+    "frame",
+    [
+        {"function": "foo"},
+        {"function": "foo", "in_app": False},
+    ],
+)
+def test_app_no_matches(frame):
+    enhancements = Enhancements.from_config_string("app:no +app")
+    enhancements.apply_modifications_to_frame([frame], "native", None)
+    assert frame.get("in_app")

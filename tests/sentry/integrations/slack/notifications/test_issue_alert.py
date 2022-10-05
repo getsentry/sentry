@@ -31,10 +31,12 @@ from sentry.plugins.base import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment, send_notification
+from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
+@region_silo_test
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
@@ -128,6 +130,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
                 "actions": [action_data],
             },
         )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = AlertRuleNotification(
             Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.user.id
@@ -691,6 +694,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
         digests.enabled.return_value = True
 
         rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )

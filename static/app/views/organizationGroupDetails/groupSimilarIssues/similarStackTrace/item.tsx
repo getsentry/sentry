@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import GroupingActions from 'sentry/actions/groupingActions';
 import Button from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
@@ -18,7 +17,6 @@ import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   groupId: Group['id'];
@@ -45,7 +43,7 @@ class Item extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
@@ -55,7 +53,7 @@ class Item extends Component<Props, State> {
 
     // clicking anywhere in the row will toggle the checkbox
     if (!this.state.busy) {
-      GroupingActions.toggleMerge(issue.id);
+      GroupingStore.onToggleMerge(issue.id);
     }
   };
 

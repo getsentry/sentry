@@ -2,7 +2,6 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import * as qs from 'query-string';
 
-import GroupingActions from 'sentry/actions/groupingActions';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -10,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import GroupingStore, {Fingerprint} from 'sentry/stores/groupingStore';
 import {Group, Organization, Project} from 'sentry/types';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import MergedList from './mergedList';
@@ -59,7 +57,7 @@ class GroupMergedView extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    callIfFunction(this.listener);
+    this.listener?.();
   }
 
   onGroupingChange = ({mergedItems, mergedLinks, loading, error}) => {
@@ -89,7 +87,7 @@ class GroupMergedView extends Component<Props, State> {
   }
 
   fetchData = () => {
-    GroupingActions.fetch([
+    GroupingStore.onFetch([
       {
         endpoint: this.getEndpoint(),
         dataKey: 'merged',
@@ -99,7 +97,7 @@ class GroupMergedView extends Component<Props, State> {
   };
 
   handleUnmerge = () => {
-    GroupingActions.unmerge({
+    GroupingStore.onUnmerge({
       groupId: this.props.params.groupId,
       loadingMessage: t('Unmerging events\u2026'),
       successMessage: t('Events successfully queued for unmerging.'),
@@ -138,7 +136,7 @@ class GroupMergedView extends Component<Props, State> {
               pageLinks={mergedLinks}
               groupId={groupId}
               onUnmerge={this.handleUnmerge}
-              onToggleCollapse={GroupingActions.toggleCollapseFingerprints}
+              onToggleCollapse={GroupingStore.onToggleCollapseFingerprints}
             />
           )}
         </Layout.Main>

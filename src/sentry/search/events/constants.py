@@ -32,6 +32,8 @@ TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
 MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
+TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
+TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 
 
 class ThresholdDict(TypedDict):
@@ -87,6 +89,7 @@ DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
 RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
 # event_search normalizes to bytes
+# based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
     "bit": 8,
     "byte": 1,
@@ -96,6 +99,12 @@ SIZE_UNITS = {
     "tebibyte": 1 / 1024**4,
     "pebibyte": 1 / 1024**5,
     "exbibyte": 1 / 1024**6,
+    "kilobyte": 1 / 1000,
+    "megabyte": 1 / 1000**2,
+    "gigabyte": 1 / 1000**3,
+    "terabyte": 1 / 1000**4,
+    "petabyte": 1 / 1000**5,
+    "exabyte": 1 / 1000**6,
 }
 # event_search normalizes to seconds
 DURATION_UNITS = {
@@ -119,6 +128,7 @@ ARRAY_FIELDS = {
     "error.mechanism",
     "error.type",
     "error.value",
+    "performance.issue_ids",
     "stack.abs_path",
     "stack.colno",
     "stack.filename",
@@ -283,5 +293,4 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "user_misery",
         "count_unique",
     ],
-    "generic_counter": [],
 }

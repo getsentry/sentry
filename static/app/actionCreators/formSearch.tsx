@@ -13,7 +13,7 @@ type Params = {
  * Creates a list of objects to be injected by a search source
  *
  * @param route The route a form field belongs on
- * @param formGroups An array of `FormGroup: {title: String, fields: [Field]}`
+ * @param formGroups An array of `FormGroup: {title: string, fields: [Field]}`
  * @param fields An object whose key is field name and value is a `Field`
  */
 const createSearchMap = ({

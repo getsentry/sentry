@@ -4,6 +4,7 @@ import ReactSelect, {
   GroupedOptionsType,
   mergeStyles,
   OptionsType,
+  OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig,
 } from 'react-select';
@@ -12,6 +13,7 @@ import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -22,7 +24,7 @@ import {FormSize} from 'sentry/utils/theme';
 
 import Option from './selectOption';
 
-function isGroupedOptions<OptionType>(
+function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
     | ReturnType<typeof convertFromSelect2Choices>
     | GroupedOptionsType<OptionType>
@@ -88,7 +90,7 @@ const SingleValueLabel = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-export type ControlProps<OptionType = GeneralSelectValue> = Omit<
+export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> = Omit<
   ReactSelectProps<OptionType>,
   'onChange' | 'value'
 > & {
@@ -135,7 +137,7 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
 /**
  * Additional props provided by forwardRef
  */
-type WrappedControlProps<OptionType> = ControlProps<OptionType> & {
+type WrappedControlProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
   /**
    * Ref forwarded into ReactSelect component.
    * The any is inherited from react-select.
@@ -215,7 +217,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
                     overflow: 'hidden',
                   }),
             }
-          : theme.form[size ?? 'md']),
+          : omit(theme.form[size ?? 'md'], 'height')),
       }),
 
       menu: (provided: React.CSSProperties) => ({
@@ -485,7 +487,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-type PickerProps<OptionType> = ControlProps<OptionType> & {
+type PickerProps<OptionType extends OptionTypeBase> = ControlProps<OptionType> & {
   /**
    * Enable async option loading.
    */
@@ -500,7 +502,7 @@ type PickerProps<OptionType> = ControlProps<OptionType> & {
   creatable?: boolean;
 };
 
-function SelectPicker<OptionType>({
+function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
   forwardedRef,

@@ -631,6 +631,7 @@ def kafka_message_payload():
             "is_regression": None,
             "is_new_group_environment": False,
             "skip_consume": False,
+            "group_states": None,
         },
     ]
 
@@ -669,7 +670,9 @@ class BatchedConsumerTest(TestCase):
         self.override_settings_cm.__exit__(None, None, None)
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
 
-    @patch("sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task")
+    @patch(
+        "sentry.eventstream.kafka.postprocessworker.dispatch_post_process_group_task", autospec=True
+    )
     def test_post_process_forwarder_batch_consumer(self, dispatch_post_process_group_task):
         consumer_group = f"consumer-{uuid.uuid1().hex}"
         synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
@@ -686,6 +689,8 @@ class BatchedConsumerTest(TestCase):
             commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
             commit_batch_size=1,
+            commit_batch_timeout_ms=100,
+            concurrency=1,
             initial_offset_reset="earliest",
         )
 
@@ -717,4 +722,5 @@ class BatchedConsumerTest(TestCase):
             is_new=False,
             is_regression=None,
             is_new_group_environment=False,
+            group_states=None,
         )

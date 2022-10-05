@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
@@ -17,7 +18,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 

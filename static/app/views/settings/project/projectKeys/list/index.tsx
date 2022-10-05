@@ -7,6 +7,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
@@ -16,7 +17,6 @@ import {Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';

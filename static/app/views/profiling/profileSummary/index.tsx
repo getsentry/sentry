@@ -115,14 +115,19 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               <Layout.Header>
                 <Layout.HeaderContent>
                   <Breadcrumb
-                    location={props.location}
                     organization={organization}
                     trails={[
-                      {type: 'landing'},
+                      {
+                        type: 'landing',
+                        payload: {
+                          query: props.location.query,
+                        },
+                      },
                       {
                         type: 'profile summary',
                         payload: {
                           projectSlug: project.slug,
+                          query: props.location.query,
                           transaction,
                         },
                       },

@@ -4,11 +4,11 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import Button from 'sentry/components/button';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import StrictClick from 'sentry/components/strictClick';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -163,7 +163,7 @@ export class Line extends Component<Props, State> {
 
     const {instructionAddr, addrMode} = this.props.data;
     if (instructionAddr) {
-      DebugMetaActions.updateFilter(
+      DebugMetaStore.updateFilter(
         makeFilter(instructionAddr, addrMode, this.props.image)
       );
     }
@@ -190,9 +190,7 @@ export class Line extends Component<Props, State> {
           css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
           size="zero"
           title={t('Toggle Context')}
-          tooltipProps={
-            isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
-          }
+          tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
           onClick={this.toggleContext}
         >
           <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />

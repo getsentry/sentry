@@ -15,7 +15,7 @@ import {getAlertText} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import AddIntegrationButton from './addIntegrationButton';
+import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 const FirstPartyIntegrationAlert = HookOrDefault({

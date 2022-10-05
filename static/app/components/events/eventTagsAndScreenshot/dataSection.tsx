@@ -27,7 +27,7 @@ function DataSection({title, description, children, className, ...props}: Props)
           <GuideAnchor target={type} position="bottom">
             <Title>{title}</Title>
           </GuideAnchor>
-          <QuestionTooltip size="xs" position="top" title={description} />
+          <QuestionTooltip size="sm" position="top" title={description} />
         </TitleWrapper>
       }
       wrapTitle={false}

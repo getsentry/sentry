@@ -5,10 +5,9 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DataSection} from 'sentry/components/events/styles';
 import Anchor from 'sentry/components/links/anchor';
-import {IconAnchor} from 'sentry/icons/iconAnchor';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 
 type Props = {
   children: React.ReactNode;
@@ -66,7 +65,7 @@ function EventDataSection({
             {showPermalink ? (
               <Permalink className="permalink">
                 <PermalinkAnchor href={`#${type}`}>
-                  <StyledIconAnchor size="xs" color="subText" />
+                  <StyledIconLink size="xs" color="subText" />
                 </PermalinkAnchor>
                 {titleNode}
               </Permalink>
@@ -76,18 +75,10 @@ function EventDataSection({
           </Title>
           {type === 'extra' && (
             <ButtonBar merged active={raw ? 'raw' : 'formatted'}>
-              <Button
-                barId="formatted"
-                size="xs"
-                onClick={() => callIfFunction(toggleRaw, false)}
-              >
+              <Button barId="formatted" size="xs" onClick={() => toggleRaw?.(false)}>
                 {t('Formatted')}
               </Button>
-              <Button
-                barId="raw"
-                size="xs"
-                onClick={() => callIfFunction(toggleRaw, true)}
-              >
+              <Button barId="raw" size="xs" onClick={() => toggleRaw?.(true)}>
                 {t('Raw')}
               </Button>
             </ButtonBar>
@@ -109,7 +100,7 @@ const Permalink = styled('span')`
   position: relative;
 `;
 
-const StyledIconAnchor = styled(IconAnchor)`
+const StyledIconLink = styled(IconLink)`
   opacity: 0;
   transform: translateY(-1px);
   transition: opacity 100ms;
@@ -126,7 +117,7 @@ const PermalinkAnchor = styled(Anchor)`
   padding-left: ${space(0.5)};
   transform: translateX(-${space(3)});
 
-  :hover ${StyledIconAnchor}, :focus ${StyledIconAnchor} {
+  :hover ${StyledIconLink}, :focus ${StyledIconLink} {
     opacity: 1;
   }
 `;
@@ -137,25 +128,16 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
   align-items: center;
   margin-bottom: ${space(1)};
 
-  > * {
-    margin-bottom: ${space(0.5)};
-  }
-
   & h3,
   & h3 a {
-    font-size: 14px;
+    color: ${p => p.theme.subText};
+    font-size: ${p => p.theme.fontSizeMedium};
     font-weight: 600;
-    line-height: 1.2;
-    color: ${p => p.theme.gray300};
   }
 
   & h3 {
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.2;
     padding: ${space(0.75)} 0;
     margin-bottom: 0;
-    text-transform: uppercase;
   }
 
   & small {

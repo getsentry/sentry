@@ -3,12 +3,12 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ProjectActions from 'sentry/actions/projectActions';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
@@ -114,7 +114,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       const updatedProject = await this.api.requestPromise(
         `/projects/${orgId}/${projectId}/`
       );
-      ProjectActions.updateSuccess(updatedProject);
+      ProjectsStore.onUpdateSuccess(updatedProject);
     } catch {
       addErrorMessage(t('An error occurred while fetching project data'));
     }

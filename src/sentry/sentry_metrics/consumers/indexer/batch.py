@@ -1,7 +1,18 @@
 import logging
 import random
 from collections import defaultdict
-from typing import List, Mapping, MutableMapping, NamedTuple, Optional, Sequence, Set
+from typing import (
+    Any,
+    List,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Set,
+    TypedDict,
+    cast,
+)
 
 import rapidjson
 import sentry_sdk
@@ -53,17 +64,31 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+class InboundMessage(TypedDict):
+    # Note: This is only the subset of fields we access in this file.
+    org_id: int
+    name: str
+    type: str
+    tags: Mapping[str, str]
+
+
 class IndexerBatch:
-    def __init__(self, use_case_id: UseCaseKey, outer_message: Message[MessageBatch]) -> None:
+    def __init__(
+        self,
+        use_case_id: UseCaseKey,
+        outer_message: Message[MessageBatch],
+        should_index_tag_values: bool,
+    ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
+        self.__should_index_tag_values = should_index_tag_values
 
-    @metrics.wraps("process_messages.parse_outer_message")
-    def extract_strings(self) -> Mapping[int, Set[str]]:
-        org_strings = defaultdict(set)
+        self._extract_messages()
 
+    @metrics.wraps("process_messages.extract_messages")
+    def _extract_messages(self) -> None:
         self.skipped_offsets: Set[PartitionIdxOffset] = set()
-        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
+        self.parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, InboundMessage] = {}
 
         for msg in self.outer_message.payload:
             partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
@@ -79,8 +104,41 @@ class IndexerBatch:
                 )
                 continue
 
+    @metrics.wraps("process_messages.filter_messages")
+    def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
+        metrics.incr(
+            "sentry_metrics.indexer.process_messages.dropped_message",
+            amount=len(keys_to_remove),
+            tags={
+                "reason": "cardinality_limit",
+            },
+        )
+
+        # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
+        for offset in keys_to_remove:
+            sentry_sdk.set_tag(
+                "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
+            )
+            if _should_sample_debug_log():
+                logger.error(
+                    "process_messages.dropped_message",
+                    extra={
+                        "reason": "cardinality_limit",
+                    },
+                )
+
+        self.skipped_offsets.update(keys_to_remove)
+
+    @metrics.wraps("process_messages.extract_strings")
+    def extract_strings(self) -> Mapping[int, Set[str]]:
+        org_strings = defaultdict(set)
+
         for partition_offset, message in self.parsed_payloads_by_offset.items():
+            if partition_offset in self.skipped_offsets:
+                continue
+
             partition_idx, offset = partition_offset
+
             metric_name = message["name"]
             metric_type = message["type"]
             org_id = message["org_id"]
@@ -128,8 +186,11 @@ class IndexerBatch:
             parsed_strings = {
                 metric_name,
                 *tags.keys(),
-                *tags.values(),
             }
+
+            if self.__should_index_tag_values:
+                parsed_strings.update(tags.values())
+
             org_strings[org_id].update(parsed_strings)
 
         string_count = 0
@@ -157,7 +218,10 @@ class IndexerBatch:
                     extra={"offset": message.offset, "partition": message.partition.index},
                 )
                 continue
-            new_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
+            new_payload_value = cast(
+                MutableMapping[Any, Any],
+                self.parsed_payloads_by_offset.pop(partition_offset),
+            )
 
             metric_name = new_payload_value["name"]
             org_id = new_payload_value["org_id"]
@@ -173,7 +237,6 @@ class IndexerBatch:
                 for k, v in tags.items():
                     used_tags.update({k, v})
                     new_k = mapping[org_id][k]
-                    new_v = mapping[org_id][v]
                     if new_k is None:
                         metadata = bulk_record_meta[org_id].get(k)
                         if (
@@ -186,19 +249,24 @@ class IndexerBatch:
                             exceeded_org_quotas += 1
                         continue
 
-                    if new_v is None:
-                        metadata = bulk_record_meta[org_id].get(v)
-                        if (
-                            metadata
-                            and metadata.fetch_type_ext
-                            and metadata.fetch_type_ext.is_global
-                        ):
-                            exceeded_global_quotas += 1
+                    value_to_write = v
+                    if self.__should_index_tag_values:
+                        new_v = mapping[org_id][v]
+                        if new_v is None:
+                            metadata = bulk_record_meta[org_id].get(v)
+                            if (
+                                metadata
+                                and metadata.fetch_type_ext
+                                and metadata.fetch_type_ext.is_global
+                            ):
+                                exceeded_global_quotas += 1
+                            else:
+                                exceeded_org_quotas += 1
+                            continue
                         else:
-                            exceeded_org_quotas += 1
-                        continue
+                            value_to_write = new_v
 
-                    new_tags[str(new_k)] = new_v
+                    new_tags[str(new_k)] = value_to_write
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
@@ -207,6 +275,7 @@ class IndexerBatch:
                 metrics.incr(
                     "sentry_metrics.indexer.process_messages.dropped_message",
                     tags={
+                        "reason": "writes_limit",
                         "string_type": "tags",
                     },
                 )
@@ -214,6 +283,7 @@ class IndexerBatch:
                     logger.error(
                         "process_messages.dropped_message",
                         extra={
+                            "reason": "writes_limit",
                             "string_type": "tags",
                             "num_global_quotas": exceeded_global_quotas,
                             "num_org_quotas": exceeded_org_quotas,
@@ -232,6 +302,12 @@ class IndexerBatch:
             mapping_header_content = bytes(
                 "".join(sorted(t.value for t in fetch_types_encountered)), "utf-8"
             )
+
+            # When sending tag values as strings, set the version on the payload
+            # to 2. This is used by the consumer to determine how to decode the
+            # tag values.
+            if not self.__should_index_tag_values:
+                new_payload_value["version"] = 2
             new_payload_value["tags"] = new_tags
             new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
             if numeric_metric_id is None:

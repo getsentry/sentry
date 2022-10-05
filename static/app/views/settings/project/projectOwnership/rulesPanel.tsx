@@ -1,10 +1,10 @@
-import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
+import TextArea from 'sentry/components/forms/controls/textarea';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TimeSince from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
-import {inputStyles} from 'sentry/styles/input';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 type Props = {
@@ -53,28 +53,27 @@ function RulesPanel({
   return (
     <Panel data-test-id={dataTestId}>
       <PanelHeader>
-        {[
-          <Container key="title">
-            {renderIcon()}
-            <Title>{renderTitle()}</Title>
-            {repoName && <Repository>{`- ${repoName}`}</Repository>}
-          </Container>,
-          <Container key="control">
+        <Container>
+          {renderIcon()}
+          <Title>{renderTitle()}</Title>
+          {repoName && <Repository>{`- ${repoName}`}</Repository>}
+        </Container>
+        <Container>
+          {dateUpdated && (
             <SyncDate>
-              {dateUpdated && `Last synced ${moment(dateUpdated).fromNow()}`}
+              {t('Last %s', type === 'codeowners' ? t('synced') : t('edited'))}{' '}
+              <TimeSince date={dateUpdated} />
             </SyncDate>
-            <Controls>
-              {(controls || []).map((c, n) => (
-                <span key={n}> {c}</span>
-              ))}
-            </Controls>
-          </Container>,
-        ]}
+          )}
+          <Controls>{controls}</Controls>
+        </Container>
       </PanelHeader>
 
       <PanelBody>
         <InnerPanelBody>
           <StyledTextArea
+            monospace
+            readOnly
             value={raw}
             spellCheck="false"
             autoComplete="off"
@@ -107,21 +106,18 @@ const InnerPanelBody = styled(PanelBody)`
   height: auto;
 `;
 
-const StyledTextArea = styled(TextareaAutosize)`
-  ${p => inputStyles(p)};
+const StyledTextArea = styled(TextArea)`
   height: 350px !important;
   overflow: auto;
   outline: 0;
   width: 100%;
   resize: none;
   margin: 0;
-  font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
   white-space: pre-wrap;
   line-height: ${space(3)};
   border: none;
   box-shadow: none;
-  padding: ${space(2)};
   color: transparent;
   text-shadow: 0 0 0 #9386a0;
 
@@ -138,9 +134,7 @@ const SyncDate = styled('div')`
   font-weight: normal;
 `;
 const Controls = styled('div')`
-  display: grid;
+  display: flex;
   align-items: center;
   gap: ${space(1)};
-  grid-auto-flow: column;
-  justify-content: flex-end;
 `;

@@ -2,10 +2,12 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {SpanBarHatch} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
@@ -30,6 +32,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   spans: EnhancedProcessedSpanType[];
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
+  focusedSpanIds?: Set<string>;
 };
 
 class SpanTree extends Component<PropType> {
@@ -69,17 +72,19 @@ class SpanTree extends Component<PropType> {
   }
 
   generateInfoMessage(input: {
+    filteredSpansAbove: EnhancedProcessedSpanType[];
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
-    numOfFilteredSpansAbove: number;
     numOfSpansOutOfViewAbove: number;
   }): React.ReactNode {
     const {
       isCurrentSpanHidden,
       numOfSpansOutOfViewAbove,
       isCurrentSpanFilteredOut,
-      numOfFilteredSpansAbove,
+      filteredSpansAbove,
     } = input;
+
+    const {focusedSpanIds, waterfallModel, organization} = this.props;
 
     const messages: React.ReactNode[] = [];
 
@@ -92,6 +97,8 @@ class SpanTree extends Component<PropType> {
         </span>
       );
     }
+
+    const numOfFilteredSpansAbove = filteredSpansAbove.length;
 
     const showFilteredSpansMessage =
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
@@ -122,7 +129,24 @@ class SpanTree extends Component<PropType> {
       return null;
     }
 
-    return <MessageRow>{messages}</MessageRow>;
+    return (
+      <MessageRow
+        onClick={
+          focusedSpanIds
+            ? () => {
+                trackAdvancedAnalyticsEvent(
+                  'issue_details.performance.hidden_spans_expanded',
+                  {organization}
+                );
+                waterfallModel.expandHiddenSpans(filteredSpansAbove.slice(0));
+              }
+            : undefined
+        }
+        cursor={focusedSpanIds ? 'pointer' : 'default'}
+      >
+        {messages}
+      </MessageRow>
+    );
   }
 
   generateLimitExceededMessage() {
@@ -167,7 +191,7 @@ class SpanTree extends Component<PropType> {
     });
 
     type AccType = {
-      numOfFilteredSpansAbove: number;
+      filteredSpansAbove: EnhancedProcessedSpanType[];
       numOfSpansOutOfViewAbove: number;
       spanNumber: number;
       spanTree: React.ReactNode[];
@@ -187,13 +211,15 @@ class SpanTree extends Component<PropType> {
       }
     }, 0);
 
-    const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
+    const isEmbeddedSpanTree = waterfallModel.isEmbeddedSpanTree;
+
+    const {spanTree, numOfSpansOutOfViewAbove, filteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType) => {
         const {type} = payload;
 
         switch (payload.type) {
           case 'filtered_out': {
-            acc.numOfFilteredSpansAbove += 1;
+            acc.filteredSpansAbove.push(payload);
             return acc;
           }
           case 'out_of_view': {
@@ -206,14 +232,14 @@ class SpanTree extends Component<PropType> {
         }
 
         const previousSpanNotDisplayed =
-          acc.numOfFilteredSpansAbove > 0 || acc.numOfSpansOutOfViewAbove > 0;
+          acc.filteredSpansAbove.length > 0 || acc.numOfSpansOutOfViewAbove > 0;
 
         if (previousSpanNotDisplayed) {
           const infoMessage = this.generateInfoMessage({
             isCurrentSpanHidden: false,
+            filteredSpansAbove: acc.filteredSpansAbove,
             numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
             isCurrentSpanFilteredOut: false,
-            numOfFilteredSpansAbove: acc.numOfFilteredSpansAbove,
           });
           acc.spanTree.push(infoMessage);
         }
@@ -238,6 +264,10 @@ class SpanTree extends Component<PropType> {
             />
           );
           acc.spanNumber = spanNumber + 1;
+
+          acc.numOfSpansOutOfViewAbove = 0;
+          acc.filteredSpansAbove = [];
+
           return acc;
         }
 
@@ -257,9 +287,14 @@ class SpanTree extends Component<PropType> {
               occurrence={payload.occurrence}
               onWheel={onWheel}
               generateContentSpanBarRef={generateContentSpanBarRef}
+              isEmbeddedSpanTree={isEmbeddedSpanTree}
             />
           );
           acc.spanNumber = spanNumber + 1;
+
+          acc.numOfSpansOutOfViewAbove = 0;
+          acc.filteredSpansAbove = [];
+
           return acc;
         }
 
@@ -269,8 +304,8 @@ class SpanTree extends Component<PropType> {
         const spanBarColor: string = pickBarColor(getSpanOperation(span));
         const numOfSpanChildren = payload.numOfSpanChildren;
 
-        acc.numOfFilteredSpansAbove = 0;
         acc.numOfSpansOutOfViewAbove = 0;
+        acc.filteredSpansAbove = [];
 
         let toggleSpanGroup: (() => void) | undefined = undefined;
         if (payload.type === 'span') {
@@ -291,13 +326,28 @@ class SpanTree extends Component<PropType> {
           groupType = GroupType.SIBLINGS;
         }
 
+        const isAffectedSpan =
+          !('type' in span) &&
+          isEmbeddedSpanTree &&
+          waterfallModel.affectedSpanIds?.includes(span.span_id);
+
+        let spanBarHatch: SpanBarHatch | undefined = undefined;
+
+        if (type === 'gap') {
+          spanBarHatch = SpanBarHatch.gap;
+        }
+
+        if (isAffectedSpan) {
+          spanBarHatch = SpanBarHatch.affected;
+        }
+
         acc.spanTree.push(
           <SpanBar
             key={key}
             organization={organization}
             event={waterfallModel.event}
             spanBarColor={spanBarColor}
-            spanBarHatch={type === 'gap'}
+            spanBarHatch={spanBarHatch}
             span={span}
             showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
@@ -326,12 +376,20 @@ class SpanTree extends Component<PropType> {
           />
         );
 
+        // If this is an embedded span tree, we will manually mark these spans as in view.
+        // This is necessary because generally these spans are dependant on intersection observers which will
+        // mark them in view, but these observers are not reliable when the span tree is in a condensed state.
+        // Marking them here will ensure that the horizontally positioning is correctly set when the tree is loaded.
+        if (isAffectedSpan) {
+          markSpanInView(span.span_id, treeDepth);
+        }
+
         acc.spanNumber = spanNumber + 1;
         return acc;
       },
       {
+        filteredSpansAbove: [],
         numOfSpansOutOfViewAbove: 0,
-        numOfFilteredSpansAbove: 0,
         spanTree: [],
         spanNumber: 1, // 1-based indexing
       }
@@ -341,7 +399,7 @@ class SpanTree extends Component<PropType> {
       isCurrentSpanHidden: false,
       numOfSpansOutOfViewAbove,
       isCurrentSpanFilteredOut: false,
-      numOfFilteredSpansAbove,
+      filteredSpansAbove,
     });
 
     return (

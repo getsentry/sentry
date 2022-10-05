@@ -14,7 +14,7 @@ import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 
-import AddIntegrationButton from './addIntegrationButton';
+import {AddIntegrationButton} from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
 
 type Props = {
@@ -107,8 +107,12 @@ export default class InstalledIntegration extends Component<Props> {
         ? this.disableConfirmProps
         : this.removeConfirmProps;
 
+    const allowMemberConfiguration = ['github', 'gitlab'].includes(
+      this.props.provider.key
+    );
+
     return (
-      <Access access={['org:integrations']}>
+      <Access organization={organization} access={['org:integrations']}>
         {({hasAccess}) => {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
@@ -118,7 +122,7 @@ export default class InstalledIntegration extends Component<Props> {
               </IntegrationItemBox>
               <div>
                 <Tooltip
-                  disabled={hasAccess}
+                  disabled={allowMemberConfiguration || hasAccess}
                   position="left"
                   title={t(
                     'You must be an organization owner, manager or admin to configure'
@@ -144,7 +148,7 @@ export default class InstalledIntegration extends Component<Props> {
                   <StyledButton
                     borderless
                     icon={<IconSettings />}
-                    disabled={disableAction}
+                    disabled={!allowMemberConfiguration && disableAction}
                     to={`/settings/${organization.slug}/integrations/${provider.key}/${integration.id}/`}
                     data-test-id="integration-configure-button"
                   >

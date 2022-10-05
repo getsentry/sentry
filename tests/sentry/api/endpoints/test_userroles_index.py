@@ -1,5 +1,6 @@
 from sentry.models import UserRole
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class PermissionTestMixin:
@@ -32,6 +33,7 @@ class UserRolesTest(APITestCase):
         self.add_user_permission(self.user, "users.admin")
 
 
+@control_silo_test
 class UserRolesGetTest(UserRolesTest, PermissionTestMixin):
     def test_simple(self):
         UserRole.objects.create(name="test-role")
@@ -41,6 +43,7 @@ class UserRolesGetTest(UserRolesTest, PermissionTestMixin):
         assert "test-role" in [r["name"] for r in resp.data]
 
 
+@control_silo_test
 class UserRolesPostTest(UserRolesTest, PermissionTestMixin):
     method = "POST"
 

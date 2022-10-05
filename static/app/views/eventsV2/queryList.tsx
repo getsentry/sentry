@@ -17,13 +17,17 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SavedQuery} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
-import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
+import {
+  handleCreateQuery,
+  handleDeleteQuery,
+  handleUpdateHomepageQuery,
+} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
 import {getPrebuiltQueries, handleAddQueryToDashboard} from './utils';
@@ -130,7 +134,7 @@ class QueryList extends Component<Props> {
   }
 
   renderPrebuiltQueries() {
-    const {location, organization, savedQuerySearchQuery, router} = this.props;
+    const {api, location, organization, savedQuerySearchQuery, router} = this.props;
     const views = getPrebuiltQueries(organization);
 
     const hasSearchQuery =
@@ -172,6 +176,18 @@ class QueryList extends Component<Props> {
               router,
             }),
         },
+
+        ...(organization.features.includes('discover-query-builder-as-landing-page')
+          ? [
+              {
+                key: 'set-as-default',
+                label: t('Use as Discover Home'),
+                onAction: () => {
+                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                },
+              },
+            ]
+          : []),
       ];
 
       return (
@@ -191,10 +207,8 @@ class QueryList extends Component<Props> {
             />
           )}
           onEventClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.prebuilt_query_click',
-              eventName: 'Discoverv2: Click a pre-built query',
-              organization_id: parseInt(this.props.organization.id, 10),
+            trackAdvancedAnalyticsEvent('discover_v2.prebuilt_query_click', {
+              organization,
               query_name: eventView.name,
             });
           }}
@@ -213,7 +227,7 @@ class QueryList extends Component<Props> {
   }
 
   renderSavedQueries() {
-    const {savedQueries, location, organization, router} = this.props;
+    const {api, savedQueries, location, organization, router} = this.props;
 
     if (!savedQueries || !Array.isArray(savedQueries) || savedQueries.length === 0) {
       return [];
@@ -249,6 +263,17 @@ class QueryList extends Component<Props> {
               },
             ]
           : []),
+        ...(organization.features.includes('discover-query-builder-as-landing-page')
+          ? [
+              {
+                key: 'set-as-default',
+                label: t('Use as Discover Home'),
+                onAction: () => {
+                  handleUpdateHomepageQuery(api, organization, eventView.toNewQuery());
+                },
+              },
+            ]
+          : []),
         {
           key: 'duplicate',
           label: t('Duplicate Query'),
@@ -273,11 +298,7 @@ class QueryList extends Component<Props> {
           createdBy={eventView.createdBy}
           dateStatus={dateStatus}
           onEventClick={() => {
-            trackAnalyticsEvent({
-              eventKey: 'discover_v2.saved_query_click',
-              eventName: 'Discoverv2: Click a saved query',
-              organization_id: parseInt(this.props.organization.id, 10),
-            });
+            trackAdvancedAnalyticsEvent('discover_v2.saved_query_click', {organization});
           }}
           renderGraph={() => (
             <MiniGraph

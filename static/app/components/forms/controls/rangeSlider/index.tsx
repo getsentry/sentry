@@ -127,13 +127,13 @@ function RangeSlider({
   }
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = parseInt(e.target.value, 10);
+    const newSliderValue = parseFloat(e.target.value);
     setSliderValue(newSliderValue);
     onChange?.(getActualValue(newSliderValue), e);
   }
 
   function handleCustomInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSliderValue(parseInt(e.target.value, 10) || 0);
+    setSliderValue(parseFloat(e.target.value) || 0);
   }
 
   function handleBlur(

@@ -1,25 +1,19 @@
 import {createStore, StoreDefinition} from 'reflux';
 
-import OrganizationActions from 'sentry/actions/organizationActions';
-import OrganizationsActions from 'sentry/actions/organizationsActions';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Organization, Project} from 'sentry/types';
-import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
-
-type OrgTypes = Organization | null;
 
 type State = {
   environment: string | string[] | null;
   lastProject: Project | null;
-  organization: OrgTypes;
+  organization: Organization | null;
   project: Project | null;
 };
 
 interface LatestContextStoreDefinition extends StoreDefinition {
   get(): State;
-  onSetActiveOrganization(organization: OrgTypes): void;
+  onSetActiveOrganization(organization: Organization): void;
   onSetActiveProject(project: Project | null): void;
-  onUpdateOrganization(organization: OrgTypes): void;
+  onUpdateOrganization(organization: Partial<Organization>): void;
   onUpdateProject(project: Project | null): void;
   reset(): void;
   state: State;
@@ -34,8 +28,6 @@ interface LatestContextStoreDefinition extends StoreDefinition {
  * here Org/project data is currently in organizationsStore/projectsStore
  */
 const storeConfig: LatestContextStoreDefinition = {
-  unsubscribeListeners: [],
-
   state: {
     project: null,
     lastProject: null,
@@ -49,22 +41,6 @@ const storeConfig: LatestContextStoreDefinition = {
 
   init() {
     this.reset();
-
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.setActive, this.onSetActiveProject)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(ProjectActions.updateSuccess, this.onUpdateProject)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationsActions.setActive, this.onSetActiveOrganization)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationsActions.update, this.onUpdateOrganization)
-    );
-    this.unsubscribeListeners.push(
-      this.listenTo(OrganizationActions.update, this.onUpdateOrganization)
-    );
   },
 
   reset() {
@@ -92,7 +68,7 @@ const storeConfig: LatestContextStoreDefinition = {
 
     this.state = {
       ...this.state,
-      organization: org,
+      organization: {...this.state.organization, ...org},
     };
     this.trigger(this.state);
   },
@@ -144,5 +120,5 @@ const storeConfig: LatestContextStoreDefinition = {
   },
 };
 
-const LatestContextStore = createStore(makeSafeRefluxStore(storeConfig));
+const LatestContextStore = createStore(storeConfig);
 export default LatestContextStore;

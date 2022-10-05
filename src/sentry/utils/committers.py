@@ -21,9 +21,10 @@ from django.db.models import Q
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
-from sentry.api.serializers.models.release import Author
+from sentry.api.serializers.models.release import Author, ReleaseSerializer
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.models.groupowner import get_release_committers_for_group
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
@@ -134,6 +135,12 @@ class AuthorCommits(TypedDict):
 class AuthorCommitsSerialized(TypedDict):
     author: Union[Author, None]
     commits: Sequence[MutableMapping[str, Any]]
+
+
+class AuthorCommitsWithReleaseSerialized(TypedDict):
+    author: Author
+    commits: Sequence[MutableMapping[str, Any]]
+    release: Release
 
 
 class AnnotatedFrame(TypedDict):
@@ -258,12 +265,7 @@ def get_event_file_committers(
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
-        str(f)
-        for f in (
-            frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
-            for frame in app_frames
-        )
-        if f
+        str(f) for f in (get_stacktrace_path_from_event_frame(frame) for frame in app_frames) if f
     }
 
     file_changes: Sequence[CommitFileChange] = (
@@ -278,7 +280,7 @@ def get_event_file_committers(
         {
             "frame": str(frame),
             "commits": commit_path_matches.get(
-                str(frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")),
+                str(get_stacktrace_path_from_event_frame(frame)),
                 [],
             ),
         }
@@ -336,3 +338,31 @@ def dedupe_commits(
     commits: Sequence[MutableMapping[str, Any]]
 ) -> Sequence[MutableMapping[str, Any]]:
     return list({c["id"]: c for c in commits}.values())
+
+
+# Get all serialized committers for the first releases for a group.
+def get_serialized_release_committers_for_group(
+    group: Group,
+) -> List[AuthorCommitsWithReleaseSerialized]:
+    release_committers = get_release_committers_for_group(group, include_commits=True)
+    serialized_committers: List[AuthorCommitsWithReleaseSerialized] = []
+    for committer in release_committers:
+        serialized_committers.append(
+            {
+                "author": committer["author"],
+                "commits": serialize(
+                    committer["commits"], serializer=CommitSerializer(exclude=["author"])
+                ),
+                "release": serialize(committer["release"], serializer=ReleaseSerializer()),
+            }
+        )
+
+    return serialized_committers
+
+
+def get_stacktrace_path_from_event_frame(frame: Mapping[str, Any]) -> str | None:
+    """
+    Returns the filepath from a stacktrace's frame.
+    frame: Event frame
+    """
+    return frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")

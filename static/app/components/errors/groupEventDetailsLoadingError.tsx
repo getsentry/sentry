@@ -1,10 +1,12 @@
 import DetailedError from 'sentry/components/errors/detailedError';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {Environment} from 'sentry/types';
 
 type Props = {
   environments: Environment[];
-  onRetry?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
+  onRetry?: (e: React.MouseEvent) => void;
 };
 
 const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
@@ -21,11 +23,11 @@ const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
     message = (
       <div>
         <p>{t('This could be due to a handful of reasons:')}</p>
-        <ol className="detailed-error-list">
+        <List symbol="bullet">
           {reasons.map((reason, i) => (
-            <li key={i}>{reason}</li>
+            <ListItem key={i}>{reason}</ListItem>
           ))}
-        </ol>
+        </List>
       </div>
     );
   } else {
@@ -36,7 +38,6 @@ const GroupEventDetailsLoadingError = ({onRetry, environments}: Props) => {
 
   return (
     <DetailedError
-      className="group-event-details-error"
       onRetry={environments.length === 0 ? onRetry : undefined}
       heading={t('Sorry, the events for this issue could not be found.')}
       message={message}

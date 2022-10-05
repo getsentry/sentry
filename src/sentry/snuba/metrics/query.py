@@ -3,10 +3,10 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Set, Union
+from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
-from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
-from snuba_sdk.conditions import Condition, ConditionGroup
+from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
+from snuba_sdk.conditions import BooleanCondition, Condition
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -18,7 +18,7 @@ from sentry.utils.dates import to_timestamp
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
 from ...release_health.base import AllowedResolution
-from .naming_layer.mapping import get_mri
+from .naming_layer.mapping import get_public_name_from_mri
 from .utils import (
     MAX_POINTS,
     OPERATIONS,
@@ -31,16 +31,75 @@ from .utils import (
 @dataclass(frozen=True)
 class MetricField:
     op: Optional[MetricOperationType]
-    metric_name: str
+    metric_mri: str
+    params: Optional[Dict[str, Union[str, int, float, Sequence[Tuple[Union[str, int]]]]]] = None
+    alias: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        # Validate that it is a valid MRI format
+        parsed_mri = parse_mri(self.metric_mri)
+        if parsed_mri is None:
+            raise InvalidParams(f"Invalid Metric MRI: {self.metric_mri}")
+
+        # Validates that the MRI requested is an MRI the metrics layer exposes
+        metric_name = get_public_name_from_mri(self.metric_mri)
+        if not self.alias:
+            key = f"{self.op}({metric_name})" if self.op is not None else metric_name
+            object.__setattr__(self, "alias", key)
 
     def __str__(self) -> str:
-        return f"{self.op}({self.metric_name})" if self.op else self.metric_name
+        metric_name = get_public_name_from_mri(self.metric_mri)
+        return f"{self.op}({metric_name})" if self.op else metric_name
+
+    def __hash__(self) -> int:
+        hashable_list = []
+        if self.op is not None:
+            hashable_list.append(self.op)
+        hashable_list.append(self.metric_mri)
+        if self.params is not None:
+            hashable_list.append(
+                ",".join(sorted(":".join((x, str(y))) for x, y in self.params.items()))
+            )
+        return hash(tuple(hashable_list))
+
+
+@dataclass(frozen=True)
+class MetricGroupByField:
+    field: Union[str, MetricField]
+    alias: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if not self.alias:
+            if isinstance(self.field, str):
+                alias = self.field
+            else:
+                assert self.field.alias is not None
+                alias = self.field.alias
+            object.__setattr__(self, "alias", alias)
+
+    @property
+    def name(self) -> str:
+        if isinstance(self.field, str):
+            return self.field
+        if isinstance(self.field, MetricField):
+            assert self.field.alias is not None
+            return self.field.alias
+        raise InvalidParams(f"Invalid groupBy field type: {self.field}")
+
+
+@dataclass(frozen=True)
+class MetricConditionField:
+    """
+    Modelled after snuba_sdk.conditions.Condition
+    """
+
+    lhs: MetricField
+    op: Op
+    rhs: Union[int, float, str]
 
 
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
-
-MAX_HISTOGRAM_BUCKET = 250
 
 
 @dataclass(frozen=True)
@@ -73,46 +132,42 @@ class MetricsQuery(MetricsQueryValidationRunner):
     start: datetime
     end: datetime
     granularity: Granularity
-    where: Optional[ConditionGroup] = None  # TODO: Should restrict
-    groupby: Optional[Sequence[Groupable]] = None
+    # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
+    #  instances of MetricConditionField
+    where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
+    groupby: Optional[Sequence[MetricGroupByField]] = None
     orderby: Optional[Sequence[OrderBy]] = None
     limit: Optional[Limit] = None
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
 
-    # TODO(ahmed): These should be properties of the Histogram field. We need to extend MetricField
-    #  to accept params and we should pass histogram fields as params on a specific instance of
-    #  MetricField rather than them living on an instance of MetricsQuery
-    histogram_buckets: int = 100
-    histogram_from: Optional[float] = None
-    histogram_to: Optional[float] = None
-
     @staticmethod
     def _use_case_id(metric_mri: str) -> UseCaseKey:
         """Find correct use_case_id based on metric_name"""
         parsed_mri = parse_mri(metric_mri)
-        if parsed_mri is not None:
-            if parsed_mri.namespace == "transactions":
-                return UseCaseKey.PERFORMANCE
-            elif parsed_mri.namespace == "sessions":
-                return UseCaseKey.RELEASE_HEALTH
-            raise ValueError("Can't find correct use_case_id based on metric MRI")
-        raise ValueError("Can't parse metric MRI")
+        assert parsed_mri is not None
+
+        if parsed_mri.namespace == "transactions":
+            return UseCaseKey.PERFORMANCE
+        elif parsed_mri.namespace == "sessions":
+            return UseCaseKey.RELEASE_HEALTH
+        raise ValueError("Can't find correct use_case_id based on metric MRI")
 
     @staticmethod
     def _validate_field(field: MetricField) -> None:
         derived_metrics_mri = get_derived_metrics(exclude_private=True)
-        metric_mri = get_mri(field.metric_name)
 
+        # Validate the validity of the expression meaning that if an operation is present, then it needs to be one of
+        # of the supported operations and that the metric mri should be one of the aggregated derived metrics
         if field.op:
             if field.op not in OPERATIONS:
                 raise InvalidParams(
                     f"Invalid operation '{field.op}'. Must be one of {', '.join(OPERATIONS)}"
                 )
-            if metric_mri in derived_metrics_mri:
+            if field.metric_mri in derived_metrics_mri:
                 raise DerivedMetricParseException(
-                    f"Failed to parse {field.op}({field.metric_name}). No operations can be "
+                    f"Failed to parse {field.op}({get_public_name_from_mri(field.metric_mri)}). No operations can be "
                     f"applied on this field as it is already a derived metric with an "
                     f"aggregation applied to it."
                 )
@@ -122,8 +177,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             raise InvalidParams('Request is missing a "field"')
         use_case_ids = set()
         for field in self.select:
-            metric_mri = get_mri(field.metric_name)
-            use_case_ids.add(self._use_case_id(metric_mri))
+            use_case_ids.add(self._use_case_id(field.metric_mri))
             self._validate_field(field)
         if len(use_case_ids) > 1:
             raise InvalidParams("All select fields should have the same use_case_id")
@@ -134,16 +188,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for condition in self.where:
             if (
                 isinstance(condition, Condition)
-                and isinstance(condition.lhs, Function)
-                and condition.lhs.function == "ifNull"
+                and isinstance(condition.lhs, Column)
+                and condition.lhs.name in UNALLOWED_TAGS
             ):
-                parameter = condition.lhs.parameters[0]
-                if isinstance(parameter, Column) and parameter.name.startswith(
-                    ("tags_raw[", "tags[")
-                ):
-                    tag_name = parameter.name.split("[")[1].split("]")[0]
-                    if tag_name in UNALLOWED_TAGS:
-                        raise InvalidParams(f"Tag name {tag_name} is not a valid query filter")
+                raise InvalidParams(f"Tag name {condition.lhs.name} is not a valid query filter")
 
     def validate_orderby(self) -> None:
         if not self.orderby:
@@ -157,11 +205,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for f in self.orderby:
             orderby_fields.add(f.field)
 
-            metric_mri = get_mri(f.field.metric_name)
             # Construct a metrics expression
-            metric_field_obj = metric_object_factory(f.field.op, metric_mri)
+            metric_field_obj = metric_object_factory(f.field.op, f.field.metric_mri)
 
-            use_case_id = self._use_case_id(metric_mri)
+            use_case_id = self._use_case_id(f.field.metric_mri)
             entity = metric_field_obj.get_entity(self.project_ids, use_case_id)
 
             if isinstance(entity, Mapping):
@@ -208,17 +255,14 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_groupby(self) -> None:
         if not self.groupby:
             return
-        for field in self.groupby:
-            if field in UNALLOWED_TAGS:
-                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
-
-    def validate_histogram_buckets(self) -> None:
-        # Validate histogram bucket count
-        if self.histogram_buckets > MAX_HISTOGRAM_BUCKET:
-            raise InvalidParams(
-                f"We don't have more than {MAX_HISTOGRAM_BUCKET} buckets stored for any "
-                f"given metric bucket."
-            )
+        for metric_groupby_obj in self.groupby:
+            if (
+                isinstance(metric_groupby_obj.field, str)
+                and metric_groupby_obj.field in UNALLOWED_TAGS
+            ):
+                raise InvalidParams(
+                    f"Tag name {metric_groupby_obj.field} cannot be used in groupBy query"
+                )
 
     def validate_include_totals(self) -> None:
         if self.include_totals or self.include_series:

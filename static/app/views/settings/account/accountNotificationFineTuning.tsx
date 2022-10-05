@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import SelectField from 'sentry/components/forms/selectField';
@@ -21,7 +22,6 @@ import {
   groupByOrganization,
   isGroupedByProject,
 } from 'sentry/views/settings/account/notifications/utils';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

@@ -14,17 +14,17 @@ import {
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
-import AnnotatedText from 'sentry/components/events/meta/annotatedText';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
-import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import StrictClick from 'sentry/components/strictClick';
 import Tooltip from 'sentry/components/tooltip';
+import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {IconQuestion} from 'sentry/icons/iconQuestion';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
+import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -92,7 +92,7 @@ function NativeFrame({
   const absoluteFilePaths =
     traceEventDataSectionContext?.display.includes('absolute-file-paths');
 
-  const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
+  const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
   const startingAddress = image ? image.image_addr : null;
   const packageClickable =
@@ -198,7 +198,7 @@ function NativeFrame({
           ? `${image.debug_id}!${frame.instructionAddr}`
           : frame.instructionAddr;
 
-      DebugMetaActions.updateFilter(searchTerm);
+      DebugMetaStore.updateFilter(searchTerm);
     }
 
     scrollToElement('#images-loaded');
@@ -329,9 +329,7 @@ function NativeFrame({
                 css={isDotnet(platform) && {display: 'block !important'}} // remove important once we get rid of css files
                 title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
-                tooltipProps={
-                  isHoverPreviewed ? {delay: STACKTRACE_PREVIEW_TOOLTIP_DELAY} : undefined
-                }
+                tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
                 icon={<IconChevron size="8px" direction={expanded ? 'up' : 'down'} />}
               />
             )}

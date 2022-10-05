@@ -5,15 +5,15 @@ import styled from '@emotion/styled';
 
 import {FormSize, Theme} from 'sentry/utils/theme';
 
-export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+export interface InputStylesProps {
   monospace?: boolean;
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
+  readOnly?: React.InputHTMLAttributes<HTMLInputElement>['readOnly'];
   size?: FormSize;
   type?: React.HTMLInputTypeAttribute;
 }
 
-export const inputStyles = (p: InputProps & {theme: Theme}) => css`
+export const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
   color: ${p.theme.formText};
@@ -52,6 +52,10 @@ export const inputStyles = (p: InputProps & {theme: Theme}) => css`
     box-shadow: ${p.theme.focusBorder} 0 0 0 1px;
   }
 `;
+
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
+    InputStylesProps {}
 
 /**
  * Basic input component.

@@ -26,6 +26,16 @@ class Columns(Enum):
         discover_name="group_id",
         alias="issue.id",
     )
+    # This is needed to query transactions by group id
+    # in the Issue Details page. This will not be
+    # exposed to users through discover search.
+    GROUP_IDS = Column(
+        group_name=None,
+        event_name="group_ids",
+        transaction_name="group_ids",
+        discover_name="group_ids",
+        alias="performance.issue_ids",
+    )
     PROJECT_ID = Column(
         group_name="events.project_id",
         event_name="project_id",
@@ -362,6 +372,13 @@ class Columns(Enum):
         transaction_name=None,
         discover_name="exception_stacks.mechanism_handled",
         alias="error.handled",
+    )
+    ERROR_RECEIVED = Column(
+        group_name=None,
+        event_name="received",
+        transaction_name=None,
+        discover_name="received",
+        alias="error.received",
     )
     STACK_ABS_PATH = Column(
         group_name="events.exception_frames.abs_path",

@@ -13,6 +13,16 @@ on:
       - releases/**
   pull_request:
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MIN: 3
+
 jobs:
   files-changed:
     name: detect what files changed
@@ -21,7 +31,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend: ${{ steps.changes.outputs.backend }}
+      backend: ${{ steps.changes.outputs.backend_all }}
     steps:
       - uses: actions/checkout@7884fcad6b5d53d10323aee724dc68d8b9096a2e  # v2
 
@@ -133,7 +143,7 @@ jobs:
         run: echo "::set-output name=webpack-path::.webpack_cache"
 
       - name: webpack cache
-        uses: actions/cache@9df7d7c016256c51d661e5d26a8632ccd0581680  # v3.0.7
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
@@ -166,7 +176,6 @@ jobs:
           make run-acceptance
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
-          USE_SNUBA: 1
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@e832d70549c14886ddc2ab809b436ba72e30e19b  # main
@@ -176,7 +185,7 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -211,7 +220,7 @@ jobs:
           chartcuterie: true
 
       - name: yarn cache
-        uses: actions/cache@9df7d7c016256c51d661e5d26a8632ccd0581680  # v3.0.7
+        uses: actions/cache@56046cbc4743437ac40542086317b1561d7705f8  # v3.0.8
         with:
           path: ${{ steps.setup.outputs.yarn-cache-dir }}
           key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
@@ -239,7 +248,7 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend == 'true'
+        if: needs.files-changed.outputs.backend_all == 'true'
 
   visual-diff:
     if: always()
