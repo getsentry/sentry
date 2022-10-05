@@ -157,8 +157,11 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def extract_entity_from_mri(mri_string: str) -> str:
+def extract_entity_from_mri(mri_string: str) -> Optional[str]:
     """
     Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
     """
-    return ENTITY_SHORTHANDS[parse_mri(mri_string).entity]
+    if (parsed_mri := parse_mri(mri_string)) is not None:
+        return ENTITY_SHORTHANDS[parsed_mri.entity]
+    else:
+        return None
