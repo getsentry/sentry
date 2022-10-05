@@ -23,6 +23,7 @@ from django.conf import settings
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.indexer.strings import TRANSACTION_METRICS_NAMES
 from sentry.utils import json
+from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -56,8 +57,8 @@ def get_metrics_billing_consumer(
 def _get_bootstrap_servers(topic: str, force_cluster: Union[str, None]) -> Sequence[str]:
     cluster = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
 
-    options = settings.KAFKA_CLUSTERS[cluster]
-    servers = options["common"]["bootstrap.servers"]
+    options = get_kafka_consumer_cluster_options(cluster)
+    servers = options["bootstrap.servers"]
     if isinstance(servers, (list, tuple)):
         return servers
     return [servers]
