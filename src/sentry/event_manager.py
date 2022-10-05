@@ -2024,6 +2024,7 @@ def _calculate_span_grouping(jobs, projects):
             metrics.incr(
                 "save_event.transaction.span_group_count.default",
                 amount=len(unique_default_hashes),
+                tags={"platform": job["platform"] or "unknown"},
             )
 
             # Try the second, looser config, and see how many groups it
@@ -2038,11 +2039,13 @@ def _calculate_span_grouping(jobs, projects):
             metrics.incr(
                 "save_event.transaction.span_group_count.incoming",
                 amount=len(unique_incoming_hashes),
+                tags={"platform": job["platform"] or "unknown"},
             )
 
             metrics.incr(
                 "save_event.transaction.span_group_count.difference",
                 amount=len(unique_default_hashes ^ unique_incoming_hashes),
+                tags={"platform": job["platform"] or "unknown"},
             )
         except Exception:
             sentry_sdk.capture_exception()
