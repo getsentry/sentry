@@ -139,7 +139,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // For a new unsaved query
     if (!savedQuery) {
       return {
-        ...prevState,
         isNewQuery: true,
         isEditingQuery: false,
         queryName: prevState.queryName || '',
@@ -155,7 +154,6 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     // Switching from a SavedQuery to another SavedQuery
     if (savedEventView.id !== nextEventView.id) {
       return {
-        ...prevState,
         isNewQuery: false,
         isEditingQuery: false,
         queryName: '',

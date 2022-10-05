@@ -66,7 +66,6 @@ class ResultsHeader extends Component<Props, State> {
         this.setState({savedQuery, loading: false});
       });
     }
-    this.setState({loading: false});
   }
 
   renderAuthor() {
