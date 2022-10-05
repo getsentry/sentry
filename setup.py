@@ -16,7 +16,7 @@ if python_version != (3, 8):
 
 from distutils.command.build import build as BuildCommand
 
-from setuptools import find_packages, setup
+from setuptools import setup
 from setuptools.command.develop import develop as DevelopCommand
 from setuptools.command.sdist import sdist as SDistCommand
 
@@ -32,7 +32,6 @@ from sentry.utils.distutils import (
     BuildJsSdkRegistryCommand,
 )
 
-VERSION = "22.10.0.dev0"
 IS_LIGHT_BUILD = os.environ.get("SENTRY_LIGHT_BUILD") == "1"
 
 
@@ -93,76 +92,7 @@ if not sys.argv[1:][0].startswith("bdist"):
 
 
 setup(
-    name="sentry",
-    version=VERSION,
-    author="Sentry",
-    author_email="oss@sentry.io",
-    url="https://sentry.io",
-    description="A realtime logging and aggregation server.",
-    long_description=open(os.path.join(ROOT, "README.md")).read(),
-    long_description_content_type="text/markdown",
-    package_dir={"": "src"},
-    packages=find_packages("src"),
-    zip_safe=False,
     install_requires=get_requirements("frozen"),
     extras_require=extras_require,
     cmdclass=cmdclass,
-    license="BSL-1.1",
-    include_package_data=True,
-    package_data={"sentry": [f"static/sentry/{d}/**" for d in ("dist", "js", "images", "vendor")]},
-    exclude_package_data={"sentry": [f"static/sentry/{d}/**" for d in ("app", "fonts", "less")]},
-    entry_points={
-        "console_scripts": ["sentry = sentry.runner:main"],
-        "sentry.apps": [
-            # TODO: This can be removed once the getsentry tests no longer check for this app
-            "auth_activedirectory = sentry.auth.providers.saml2.activedirectory",
-            "auth_auth0 = sentry.auth.providers.saml2.auth0",
-            "auth_github = sentry.auth.providers.github",
-            "auth_okta = sentry.auth.providers.saml2.okta",
-            "auth_onelogin = sentry.auth.providers.saml2.onelogin",
-            "auth_rippling = sentry.auth.providers.saml2.rippling",
-            "auth_jumpcloud = sentry.auth.providers.saml2.jumpcloud",
-            "auth_saml2 = sentry.auth.providers.saml2.generic",
-            "jira = sentry_plugins.jira",
-            "freight = sentry_plugins.freight",
-            "opsgenie = sentry_plugins.opsgenie",
-            "redmine = sentry_plugins.redmine",
-            "sessionstack = sentry_plugins.sessionstack",
-            "trello = sentry_plugins.trello",
-            "twilio = sentry_plugins.twilio",
-        ],
-        "sentry.plugins": [
-            "amazon_sqs = sentry_plugins.amazon_sqs.plugin:AmazonSQSPlugin",
-            "asana = sentry_plugins.asana.plugin:AsanaPlugin",
-            "bitbucket = sentry_plugins.bitbucket.plugin:BitbucketPlugin",
-            "freight = sentry_plugins.freight.plugin:FreightPlugin",
-            "github = sentry_plugins.github.plugin:GitHubPlugin",
-            "gitlab = sentry_plugins.gitlab.plugin:GitLabPlugin",
-            "heroku = sentry_plugins.heroku.plugin:HerokuPlugin",
-            "jira = sentry_plugins.jira.plugin:JiraPlugin",
-            "opsgenie = sentry_plugins.opsgenie.plugin:OpsGeniePlugin",
-            "pagerduty = sentry_plugins.pagerduty.plugin:PagerDutyPlugin",
-            "phabricator = sentry_plugins.phabricator.plugin:PhabricatorPlugin",
-            "pivotal = sentry_plugins.pivotal.plugin:PivotalPlugin",
-            "pushover = sentry_plugins.pushover.plugin:PushoverPlugin",
-            "redmine = sentry_plugins.redmine.plugin:RedminePlugin",
-            "segment = sentry_plugins.segment.plugin:SegmentPlugin",
-            "sessionstack = sentry_plugins.sessionstack.plugin:SessionStackPlugin",
-            "slack = sentry_plugins.slack.plugin:SlackPlugin",
-            "splunk = sentry_plugins.splunk.plugin:SplunkPlugin",
-            "trello = sentry_plugins.trello.plugin:TrelloPlugin",
-            "twilio = sentry_plugins.twilio.plugin:TwilioPlugin",
-            "victorops = sentry_plugins.victorops.plugin:VictorOpsPlugin",
-        ],
-    },
-    classifiers=[
-        "Framework :: Django",
-        "Intended Audience :: Developers",
-        "Intended Audience :: System Administrators",
-        "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Topic :: Software Development",
-        "License :: Other/Proprietary License",
-    ],
 )
