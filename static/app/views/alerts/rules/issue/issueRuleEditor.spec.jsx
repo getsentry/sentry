@@ -144,7 +144,6 @@ describe('IssueRuleEditor', function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.reset();
-    ProjectsStore.teardown();
   });
 
   describe('Edit Rule', function () {

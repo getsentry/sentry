@@ -65,7 +65,6 @@ describe('Dashboards > Create', function () {
 
     afterEach(function () {
       MockApiClient.clearMockResponses();
-      ProjectsStore.teardown();
     });
 
     // eslint-disable-next-line

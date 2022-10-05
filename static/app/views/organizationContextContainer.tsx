@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 
 import {openSudo} from 'sentry/actionCreators/modal';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import ProjectActions from 'sentry/actions/projectActions';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
 import LoadingError from 'sentry/components/loadingError';
@@ -182,7 +181,6 @@ class OrganizationContextContainer extends Component<Props, State> {
   }
 
   unlisteners = [
-    ProjectActions.createSuccess.listen(() => this.onProjectCreation(), undefined),
     OrganizationStore.listen(data => this.loadOrganization(data), undefined),
   ];
 
@@ -192,18 +190,6 @@ class OrganizationContextContainer extends Component<Props, State> {
       this.fetchData
     );
   };
-
-  onProjectCreation() {
-    // If a new project was created, we need to re-fetch the
-    // org details endpoint, which will propagate re-rendering
-    // for the entire component tree
-    fetchOrganizationDetails(
-      this.props.api,
-      OrganizationContextContainer.getOrganizationSlug(this.props),
-      true,
-      false
-    );
-  }
 
   isLoading() {
     // In the absence of an organization slug, the loading state should be

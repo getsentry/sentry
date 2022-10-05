@@ -6,7 +6,6 @@ import * as Sentry from '@sentry/react';
 import {PlatformIcon} from 'platformicons';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import ProjectActions from 'sentry/actions/projectActions';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import TeamSelector from 'sentry/components/forms/teamSelector';
@@ -16,6 +15,7 @@ import PlatformPicker from 'sentry/components/platformPicker';
 import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import space from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import {logExperiment} from 'sentry/utils/analytics';
@@ -277,7 +277,8 @@ class CreateProject extends Component<Props, State> {
         rule_id: ruleId || '',
       });
 
-      ProjectActions.createSuccess(projectData);
+      ProjectsStore.onCreateSuccess(projectData, organization.slug);
+
       const platformKey = platform || 'other';
       const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
       browserHistory.push(nextUrl);
