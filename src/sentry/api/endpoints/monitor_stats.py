@@ -17,11 +17,14 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
         duration_stats = {}
         current = tsdb.normalize_to_epoch(args["start"], args["rollup"])
         end = tsdb.normalize_to_epoch(args["end"], args["rollup"])
+
+        # initialize success/failure/duration stats in preparation for counting/aggregating
         while current <= end:
             stats[current] = {CheckInStatus.OK: 0, CheckInStatus.ERROR: 0}
             duration_stats[current] = {"sum": 0, "num_checkins": 0}
             current += args["rollup"]
 
+        # retrieve the list of checkins in the time range and count success/failure/duration
         history = MonitorCheckIn.objects.filter(
             monitor=monitor,
             status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
@@ -35,6 +38,7 @@ class MonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
                 duration_stats[ts]["sum"] += duration
                 duration_stats[ts]["num_checkins"] += 1
 
+        # compute average duration and construct response object
         stats_duration_data = []
         for ts, data in stats.items():
             duration_sum, num_checkins = duration_stats[ts].values()
