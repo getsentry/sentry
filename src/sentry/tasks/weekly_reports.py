@@ -3,7 +3,7 @@ import logging
 import math
 import operator
 import zlib
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import OrderedDict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
@@ -54,6 +54,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
+date_format = partial(dateformat.format, format_string="F jS, Y")
 
 
 class OrganizationReportContext:
@@ -65,7 +66,9 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization = organization
-        self.projects = defaultdict(ProjectContext)
+        self.projects = {}
+        for project in organization.project_set.all():
+            self.projects[project.id] = ProjectContext(project)
 
     def __repr__(self):
         return self.projects.__repr__()
@@ -82,6 +85,9 @@ class ProjectContext:
 
     # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
     key_transactions = []
+
+    def __init__(self, project):
+        self.project = project
 
     def __repr__(self):
         return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
@@ -279,21 +285,119 @@ def deliver_reports(ctx, dry_run=False):
         send_email(ctx, user, dry_run=dry_run)
 
 
+project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+total_color = """
+linear-gradient(
+    -45deg,
+    #ccc 25%,
+    transparent 25%,
+    transparent 50%,
+    #ccc 50%,
+    #ccc 75%,
+    transparent 75%,
+    transparent
+);
+"""
+
+
 # Serialize ctx for template, and calculate view parameters (like graph bar heights)
+# This function should be pure, and it should not make any external queries
 def render_template_context(ctx, user):
+    # Render the first section of the email where we had the table showing the
+    # number of accepted/dropped errors/transactions for each project.
+    def trends():
+        # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
+        def sum_event_counts(project_ctxs):
+            return reduce(
+                lambda a, b: (a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]),
+                [
+                    (
+                        project_ctx.accepted_error_count,
+                        project_ctx.dropped_error_count,
+                        project_ctx.accepted_transaction_count,
+                        project_ctx.dropped_transaction_count,
+                    )
+                    for project_ctx in project_ctxs
+                ],
+            )
+
+        projects_associated_with_user = list(filter(lambda project: True, ctx.projects.values()))
+        # Highest volume projects go first
+        projects_associated_with_user.sort(
+            reverse=True,
+            key=lambda item: item.accepted_error_count * item.accepted_transaction_count,
+        )
+        # Calculate total
+        (
+            total_error,
+            total_dropped_error,
+            total_transaction,
+            total_dropped_transaction,
+        ) = sum_event_counts(projects_associated_with_user)
+        # The number of reports to keep is the same as the number of colors
+        # available to use in the legend.
+        items_taken = projects_associated_with_user[: len(project_breakdown_colors)]
+        # All other items are merged to "Others"
+        items_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
+
+        results = [
+            {
+                "slug": project_ctx.project.slug,
+                "url": project_ctx.project.get_absolute_url(),
+                "color": project_breakdown_colors[i],
+                "dropped_error_count": project_ctx.dropped_error_count,
+                "accepted_error_count": project_ctx.accepted_error_count,
+                "dropped_transaction_count": project_ctx.dropped_transaction_count,
+                "accepted_transaction_count": project_ctx.accepted_transaction_count,
+            }
+            for i, project_ctx in enumerate(items_taken)
+        ]
+
+        if len(items_not_taken) > 0:
+            (
+                others_error,
+                others_dropped_error,
+                others_transaction,
+                others_dropped_transaction,
+            ) = sum_event_counts(items_not_taken)
+            results.append(
+                {
+                    "slug": f"Other ({len(items_not_taken)})",
+                    "color": "#f2f0fa",
+                    "dropped_error_count": others_dropped_error,
+                    "accepted_error_count": others_error,
+                    "dropped_transaction_count": others_dropped_transaction,
+                    "accepted_transaction_count": others_transaction,
+                }
+            )
+        if len(items_taken) > 1:
+            results.append(
+                {
+                    "slug": f"Total ({len(projects_associated_with_user)})",
+                    "color": total_color,
+                    "dropped_error_count": total_dropped_error,
+                    "accepted_error_count": total_error,
+                    "dropped_transaction_count": total_dropped_transaction,
+                    "accepted_transaction_count": total_transaction,
+                }
+            )
+        return {"legend": results, "total_error_count": total_error}
+
     return {
         "organization": ctx.organization,
+        "start": date_format(ctx.start),
+        "end": date_format(ctx.end),
+        "trends": trends(),
     }
 
 
 def send_email(ctx, user, dry_run=False):
     template_ctx = render_template_context(ctx, user)
 
-    date_format = partial(dateformat.format, format_string="F jS, Y")
     message = MessageBuilder(
         subject=f"Weekly Report for {ctx.organization.name}: {date_format(ctx.start)} - {date_format(ctx.end)}",
-        template="sentry/emails/reports/body.txt",
-        html_template="sentry/emails/reports/body.html",
+        template="sentry/emails/reports/new.txt",
+        html_template="sentry/emails/reports/new.html",
         type="report.organization",
         context=template_ctx,
         headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
