@@ -27,7 +27,7 @@ const ControlState = ({isSaving, isSaved, error}: ControlStateProps) => (
   <Fragment>
     {isSaving ? (
       <ControlStateWrapper>
-        <FormSpinner />
+        <FormSpinner data-test-id="saving" />
       </ControlStateWrapper>
     ) : isSaved ? (
       <ControlStateWrapper>

@@ -162,11 +162,11 @@ type Props = WithRouterProps & {
   disabled?: boolean;
   dropdownClassName?: string;
   /**
-   * If true, excludes the environment tag from the autocompletion list. This
-   * is because we don't want to treat environment as a tag in some places such
+   * A list of tags to exclude from the autocompletion list, for ex environment may be excluded
+   * because we don't want to treat environment as a tag in some places such
    * as the stream view where it is a top level concept
    */
-  excludeEnvironment?: boolean;
+  excludedTags?: string[];
   /**
    * List user's recent searches
    */
@@ -1071,6 +1071,7 @@ class SmartSearchBar extends Component<Props, State> {
     const {prepareQuery, supportedTagType} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
+    const {excludedTags} = this.props;
 
     let tagKeys = Object.keys(supportedTags).sort((a, b) => a.localeCompare(b));
 
@@ -1080,10 +1081,9 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = filterKeysFromQuery(tagKeys, preparedSearchTerm);
     }
 
-    // If the environment feature is active and excludeEnvironment = true
-    // then remove the environment key
-    if (this.props.excludeEnvironment) {
-      tagKeys = tagKeys.filter(key => key !== 'environment');
+    // removes any tags that are marked for exclusion
+    if (excludedTags) {
+      tagKeys = tagKeys.filter(key => !excludedTags?.includes(key));
     }
 
     const allTagItems = getTagItemsFromKeys(tagKeys, supportedTags);
@@ -1293,13 +1293,8 @@ class SmartSearchBar extends Component<Props, State> {
     tagName: string,
     query: string
   ): Promise<AutocompleteGroup | null> => {
-    const {
-      prepareQuery,
-      excludeEnvironment,
-      organization,
-      savedSearchType,
-      searchSource,
-    } = this.props;
+    const {prepareQuery, excludedTags, organization, savedSearchType, searchSource} =
+      this.props;
     const supportedTags = this.props.supportedTags ?? {};
 
     const preparedQuery =
@@ -1345,9 +1340,7 @@ class SmartSearchBar extends Component<Props, State> {
       };
     }
 
-    // Ignore the environment tag if the feature is active and
-    // excludeEnvironment = true
-    if (excludeEnvironment && tagName === 'environment') {
+    if (excludedTags && excludedTags.includes(tagName)) {
       return null;
     }
 

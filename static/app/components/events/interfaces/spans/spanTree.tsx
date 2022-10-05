@@ -2,6 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {SpanBarHatch} from 'sentry/components/performance/waterfall/constants';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
@@ -325,13 +326,28 @@ class SpanTree extends Component<PropType> {
           groupType = GroupType.SIBLINGS;
         }
 
+        const isAffectedSpan =
+          !('type' in span) &&
+          isEmbeddedSpanTree &&
+          waterfallModel.affectedSpanIds?.includes(span.span_id);
+
+        let spanBarHatch: SpanBarHatch | undefined = undefined;
+
+        if (type === 'gap') {
+          spanBarHatch = SpanBarHatch.gap;
+        }
+
+        if (isAffectedSpan) {
+          spanBarHatch = SpanBarHatch.affected;
+        }
+
         acc.spanTree.push(
           <SpanBar
             key={key}
             organization={organization}
             event={waterfallModel.event}
             spanBarColor={spanBarColor}
-            spanBarHatch={type === 'gap'}
+            spanBarHatch={spanBarHatch}
             span={span}
             showSpanTree={!waterfallModel.hiddenSpanSubTrees.has(getSpanID(span))}
             numOfSpanChildren={numOfSpanChildren}
@@ -364,12 +380,7 @@ class SpanTree extends Component<PropType> {
         // This is necessary because generally these spans are dependant on intersection observers which will
         // mark them in view, but these observers are not reliable when the span tree is in a condensed state.
         // Marking them here will ensure that the horizontally positioning is correctly set when the tree is loaded.
-        if (
-          !('type' in span) &&
-          isEmbeddedSpanTree &&
-          // We only do this for affected spans, since we don't want to always manually add every single span
-          waterfallModel.affectedSpanIds?.includes(span.span_id)
-        ) {
+        if (isAffectedSpan) {
           markSpanInView(span.span_id, treeDepth);
         }
 
