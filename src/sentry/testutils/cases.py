@@ -131,7 +131,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, extract_entity_from_mri
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -1236,6 +1236,13 @@ class BaseMetricsTestCase(SnubaTestCase):
 
 
 class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
+    ENTITY_SHORTHANDS = {
+        "c": "counter",
+        "s": "set",
+        "d": "distribution",
+        "g": "gauge",
+    }
+
     @abstractmethod
     def now(self):
         """
@@ -1246,11 +1253,18 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         """
         raise NotImplementedError
 
-    def _store_metric_in_metrics_layer(
+    def _extract_entity_from_mri(self, mri_string: str) -> Optional[str]:
+        """
+        Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
+        """
+        if (parsed_mri := parse_mri(mri_string)) is not None:
+            return self.ENTITY_SHORTHANDS[parsed_mri.entity]
+
+    def _store_metric(
         self,
         name: str,
         tags: Dict[str, str],
-        value,
+        value: int,
         use_case_id: UseCaseKey,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
@@ -1269,7 +1283,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=extract_entity_from_mri(name) if type is None else type,
+            type=self._extract_entity_from_mri(name) if type is None else type,
             name=name,
             tags=tags,
             timestamp=(
@@ -1304,7 +1318,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value,
+        value: int,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1312,7 +1326,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
     ):
-        self._store_metric_in_metrics_layer(
+        self._store_metric(
             type=type,
             name=name,
             tags=tags,
@@ -1329,7 +1343,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         self,
         name: str,
         tags: Dict[str, str],
-        value,
+        value: int,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1337,7 +1351,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
     ):
-        self._store_metric_in_metrics_layer(
+        self._store_metric(
             type=type,
             name=name,
             tags=tags,

@@ -494,6 +494,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
+                # We decided to explicitly show - 1 seconds because this is a "trick" that we used for
+                # standardizing tests against flakiness. More explanations found in BaseMetricsLayerTestCase.
                 started=(self.now().replace(second=0) - timedelta(seconds=1)).timestamp(),
             )
         )
@@ -1095,10 +1097,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                         self.build_session(
                             project_id=self.project.id,
                             started=(
-                                self.now()
-                                - timedelta(minutes=3)
-                                + timedelta(minutes=minute)
-                                - timedelta(seconds=1)
+                                self.now() - timedelta(minutes=3 - minute) - timedelta(seconds=1)
                             ).timestamp(),
                             release=release,
                         )
@@ -1494,7 +1493,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         self.store_session(
             self.build_session(
                 project_id=self.project.id,
-                started=(self.now().replace(second=0) - timedelta(minutes=1)).timestamp(),
+                started=(self.now() - timedelta(minutes=1)).timestamp(),
             )
         )
         response = self.get_success_response(
