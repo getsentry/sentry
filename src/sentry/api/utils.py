@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from datetime import timedelta
 from urllib.parse import urlparse
@@ -178,10 +176,9 @@ def generate_organization_url(org_slug: str) -> str:
     return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
 
 
-def generate_region_url(region: str | None = None) -> str:
+def generate_region_url() -> str:
     region_url_template = options.get("system.region-api-url-template")
-    if region is None:
-        region = options.get("system.region") or None
+    region = options.get("system.region") or None
     if not region_url_template or not region:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region)
