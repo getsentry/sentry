@@ -31,7 +31,6 @@ describe('ProfilingOnboarding', function () {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectStore.teardown();
     // @ts-ignore no-console
     // eslint-disable-next-line no-console
     console.error.mockRestore();
