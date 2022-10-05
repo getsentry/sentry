@@ -4,6 +4,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -85,7 +86,7 @@ class PerfEventMixin(PerfIssueTransactionTestMixin):
             project_id=project_id,
             user_id=data.get("user", uuid4().hex),
             fingerprint=[fingerprint],
-            timestamp=timestamp,
+            timestamp=timestamp.replace(tzinfo=pytz.utc),
         )
         return event.for_group(event.groups[0])
 
