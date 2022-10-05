@@ -159,7 +159,7 @@ def _transform_groupby(query_groupby):
             )
         else:
             raise MQBQueryTransformationException(f"Unsupported groupby field {groupby_field}")
-    return mq_groupby, include_series
+    return mq_groupby if len(mq_groupby) > 0 else None, include_series
 
 
 def _get_mq_dict_params_from_where(query_where):
@@ -190,7 +190,7 @@ def _get_mq_dict_params_from_where(query_where):
             )
         else:
             where.append(condition)
-    mq_dict["where"] = where
+    mq_dict["where"] = where if len(where) > 0 else None
     return mq_dict
 
 
@@ -204,7 +204,7 @@ def _transform_orderby(query_orderby):
         #     op=transformed_field.op, metric_mri=transformed_field.metric_mri
         # )
         mq_orderby.append(MetricOrderBy(field=transformed_field, direction=orderby_field.direction))
-    return mq_orderby
+    return mq_orderby if len(mq_orderby) > 0 else None
 
 
 def tranform_mqb_query_to_metrics_query(query: Query) -> MetricsQuery:

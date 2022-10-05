@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-import pytz
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -102,14 +101,14 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                         name="timestamp",
                     ),
                     op=Op.GTE,
-                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 35, 447729, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 35, 447729),
                 ),
                 Condition(
                     lhs=Column(
                         name="timestamp",
                     ),
                     op=Op.LT,
-                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729),
                 ),
                 Condition(
                     lhs=Column(
@@ -169,8 +168,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="count_web_vitals_measurements_fcp_meh",
                 ),
             ],
-            start=datetime.datetime(2022, 3, 24, 11, 11, 35, 447729, tzinfo=pytz.utc),
-            end=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729, tzinfo=pytz.utc),
+            start=datetime.datetime(2022, 3, 24, 11, 11, 35, 447729),
+            end=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729),
             granularity=Granularity(granularity=86400),
             where=None,
             groupby=[MetricGroupByField("transaction")],
@@ -193,8 +192,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     function="rate",
                     parameters=[
                         Column("d:transactions/duration@millisecond"),
-                        60,
                         7776000.0,
+                        60,
                     ],
                     alias="epm",
                 ),
@@ -226,14 +225,14 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                         name="timestamp",
                     ),
                     op=Op.GTE,
-                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 36, 75132, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 36, 75132),
                 ),
                 Condition(
                     lhs=Column(
                         name="timestamp",
                     ),
                     op=Op.LT,
-                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 36, 75132, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 36, 75132),
                 ),
                 Condition(
                     lhs=Column(
@@ -306,8 +305,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="team_key_transaction",
                 ),
             ],
-            start=datetime.datetime(2022, 3, 24, 11, 11, 38, 32475, tzinfo=pytz.utc),
-            end=datetime.datetime(2022, 6, 22, 11, 11, 38, 32475, tzinfo=pytz.utc),
+            start=datetime.datetime(2022, 3, 24, 11, 11, 38, 32475),
+            end=datetime.datetime(2022, 6, 22, 11, 11, 38, 32475),
             granularity=Granularity(granularity=86400),
             where=[
                 MetricConditionField(
@@ -378,8 +377,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     function="rate",
                     parameters=[
                         Column("d:transactions/duration@millisecond"),
-                        60,
                         7776000.0,
+                        60,
                     ],
                     alias="tpm",
                 ),
@@ -413,14 +412,14 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                         name="timestamp",
                     ),
                     op=Op.GTE,
-                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535),
                 ),
                 Condition(
                     lhs=Column(
                         name="timestamp",
                     ),
                     op=Op.LT,
-                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535),
                 ),
                 Condition(
                     lhs=Column(
@@ -481,8 +480,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="p75_measurement_lcp",
                 ),
             ],
-            start=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535, tzinfo=pytz.utc),
-            end=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535, tzinfo=pytz.utc),
+            start=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535),
+            end=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535),
             granularity=Granularity(granularity=86400),
             where=None,
             groupby=[
@@ -522,14 +521,14 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                         name="timestamp",
                     ),
                     op=Op.GTE,
-                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 33, 21219, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 3, 24, 11, 11, 33, 21219),
                 ),
                 Condition(
                     lhs=Column(
                         name="timestamp",
                     ),
                     op=Op.LT,
-                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 33, 21219, tzinfo=pytz.utc),
+                    rhs=datetime.datetime(2022, 6, 22, 11, 11, 33, 21219),
                 ),
                 Condition(
                     lhs=Column(
@@ -579,8 +578,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="count_unique_user",
                 )
             ],
-            start=datetime.datetime(2022, 3, 24, 11, 11, 33, 21219, tzinfo=pytz.utc),
-            end=datetime.datetime(2022, 6, 22, 11, 11, 33, 21219, tzinfo=pytz.utc),
+            start=datetime.datetime(2022, 3, 24, 11, 11, 33, 21219),
+            end=datetime.datetime(2022, 6, 22, 11, 11, 33, 21219),
             granularity=Granularity(granularity=3600),
             where=[
                 Condition(
@@ -659,7 +658,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             orderby=[],
             limitby=None,
             limit=Limit(limit=50),
-            offset=None,
+            offset=Offset(offset=0),
             granularity=Granularity(granularity=60),
             totals=None,
         ),
@@ -752,8 +751,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="histogram_transaction_duration",
                 )
             ],
-            start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755, tzinfo=pytz.utc),
-            end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755, tzinfo=pytz.utc),
+            start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
+            end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
             where=None,
             groupby=None,
@@ -835,7 +834,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 MetricField(
                     op="count_transaction_name",
                     metric_mri="d:transactions/duration@millisecond",
-                    params={"transaction_name": "null_transaction_count"},
+                    params={"transaction_name": "is_null"},
                     alias="null_transaction_count",
                 ),
                 MetricField(
@@ -851,8 +850,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     alias="has_value_transaction_count",
                 ),
             ],
-            start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755, tzinfo=pytz.utc),
-            end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755, tzinfo=pytz.utc),
+            start=datetime.datetime(2022, 3, 24, 14, 52, 59, 179755),
+            end=datetime.datetime(2022, 6, 22, 14, 52, 59, 179755),
             granularity=Granularity(3600),
             where=None,
             groupby=None,
