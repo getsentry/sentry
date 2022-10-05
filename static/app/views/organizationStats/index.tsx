@@ -30,15 +30,16 @@ import {
 import {t, tct} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {DataCategory, DateString, Organization, Project} from 'sentry/types';
+import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
+import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 
 import {SearchContainer} from '../issueList/filters';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-import UsageStatsProjects from './usageStatsProjects';
+// import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
@@ -56,6 +57,7 @@ const PAGE_QUERY_PARAMS = [
 
 type Props = {
   organization: Organization;
+  selection: PageFilters;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export class OrganizationStats extends Component<Props> {
@@ -78,14 +80,14 @@ export class OrganizationStats extends Component<Props> {
   }
 
   get dataDatetime(): DateTimeObject {
-    const query = this.props.location?.query ?? {};
+    const {selection} = this.props;
 
     const {
       start,
       end,
       statsPeriod,
       utc: utcString,
-    } = normalizeDateTimeParams(query, {
+    } = normalizeDateTimeParams(selection.datetime, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -243,8 +245,6 @@ export class OrganizationStats extends Component<Props> {
   };
 
   renderProjectPageControl = () => {
-    const {organization} = this.props;
-    const {start, end, period, utc} = this.dataDatetime;
     return (
       <SearchContainer>
         <PageFilterBar>
@@ -290,7 +290,7 @@ export class OrganizationStats extends Component<Props> {
   };
 
   render() {
-    const {organization} = this.props;
+    const {organization, selection: pageFilters} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
@@ -317,7 +317,6 @@ export class OrganizationStats extends Component<Props> {
 
               {this.renderProjectPageControl()}
               <PageGrid>
-                {this.renderPageControl()}
                 <ErrorBoundary mini>
                   <UsageStatsOrg
                     organization={organization}
@@ -326,6 +325,7 @@ export class OrganizationStats extends Component<Props> {
                     dataDatetime={this.dataDatetime}
                     chartTransform={this.chartTransform}
                     handleChangeState={this.setStateOnUrl}
+                    pageFilters={pageFilters ?? {}}
                   />
                 </ErrorBoundary>
               </PageGrid>
@@ -345,8 +345,7 @@ export class OrganizationStats extends Component<Props> {
                   </Alert>
                 )}
               </Feature>
-
-              <ErrorBoundary mini>
+              {/* <ErrorBoundary mini>
                 <UsageStatsProjects
                   organization={organization}
                   dataCategory={this.dataCategory}
@@ -358,7 +357,7 @@ export class OrganizationStats extends Component<Props> {
                   handleChangeState={this.setStateOnUrl}
                   getNextLocations={this.getNextLocations}
                 />
-              </ErrorBoundary>
+              </ErrorBoundary> */}
             </Layout.Main>
           </Body>
         </Fragment>
@@ -367,7 +366,7 @@ export class OrganizationStats extends Component<Props> {
   }
 }
 
-export default withOrganization(OrganizationStats);
+export default withPageFilters(withOrganization(OrganizationStats));
 
 const PageGrid = styled('div')`
   display: grid;
