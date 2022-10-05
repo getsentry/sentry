@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-
 import responses
 
 __all__ = (
@@ -1238,7 +1236,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         )
 
 
-class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
+class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     ENTITY_SHORTHANDS = {
         "c": "counter",
         "s": "set",
@@ -1247,7 +1245,6 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
     }
 
     @property
-    @abstractmethod
     def now(self):
         """
         Returns the current time instance that will be used throughout the tests of the metrics layer.
