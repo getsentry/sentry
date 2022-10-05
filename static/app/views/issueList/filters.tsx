@@ -46,7 +46,7 @@ function IssueListFilters({
         sort={sort}
         onSearch={onSearch}
         disabled={isSearchDisabled}
-        excludeTags={['environment']}
+        excludedTags={['environment']}
         supportedTags={tags}
         tagValueLoader={tagValueLoader}
         savedSearch={savedSearch}

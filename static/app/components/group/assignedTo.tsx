@@ -61,10 +61,12 @@ function AssignedTo({group, projectId}: AssignedToProps) {
                     data-test-id="assigned-avatar"
                     actor={assignedTo}
                     hasTooltip={false}
-                    size={20}
+                    size={24}
                   />
                 ) : (
-                  <IconUser size="md" />
+                  <IconWrapper>
+                    <IconUser size="md" />
+                  </IconWrapper>
                 )}
                 <ActorName>{getAssignedToDisplayName(assignedTo)}</ActorName>
               </ActorWrapper>
@@ -91,6 +93,11 @@ const ActorWrapper = styled('div')`
   align-items: center;
   gap: ${space(1)};
   max-width: 85%;
+  line-height: 1;
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
 `;
 
 const ActorName = styled('div')`
