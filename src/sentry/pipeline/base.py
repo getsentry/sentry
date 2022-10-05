@@ -230,7 +230,7 @@ class Pipeline(abc.ABC):
         self.state.data = data
 
     @property
-    def step_index(self):
+    def step_index(self) -> int:
         return self.state.step_index or 0
 
     def _fetch_state(self, key: str | None = None) -> Any | None:
