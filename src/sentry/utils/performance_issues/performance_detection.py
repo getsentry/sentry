@@ -282,7 +282,6 @@ def get_detection_settings(project_id: str):
 
 def _detect_performance_problems(data: Event, sdk_span: Any) -> List[PerformanceProblem]:
     event_id = data.get("event_id", None)
-    spans = data.get("spans", [])
     project_id = data.get("project")
 
     detection_settings = get_detection_settings(project_id)
@@ -302,11 +301,8 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
         ),
     }
 
-    for span in spans:
-        for _, detector in detectors.items():
-            detector.visit_span(span)
     for _, detector in detectors.items():
-        detector.on_complete()
+        run_detector_on_data(detector, data)
 
     # Metrics reporting only for detection, not created issues.
     report_metrics_for_detectors(data, event_id, detectors, sdk_span)
@@ -339,6 +335,14 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     # TODO: Make sure upstream is all compatible with set before switching output type.
     return list(unique_performance_problems)
+
+
+def run_detector_on_data(detector, data):
+    spans = data.get("spans", [])
+    for span in spans:
+        detector.visit_span(span)
+
+    detector.on_complete()
 
 
 # Uses options and flags to determine which orgs and which detectors automatically create performance issues.
