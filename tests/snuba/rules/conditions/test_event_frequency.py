@@ -4,7 +4,6 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -35,10 +34,10 @@ class FrequencyConditionMixin:
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=minutes)),
                 "user": {"id": uuid4().hex},
             },
             project_id=self.project.id,
+            timestamp=before_now(minutes=minutes),
         )
         if add_events:
             self.increment(
@@ -62,7 +61,8 @@ class FrequencyConditionMixin:
 
 
 class ErrorEventMixin:
-    def add_event(self, data, project_id):
+    def add_event(self, data, project_id, timestamp):
+        data["timestamp"] = iso_format(timestamp)
         # Store an error event
         event = self.store_event(
             data=data,
@@ -72,14 +72,15 @@ class ErrorEventMixin:
 
 
 class PerfEventMixin(PerfIssueTransactionTestMixin):
-    def add_event(self, data, project_id):
+    def add_event(self, data, project_id, timestamp):
         # Store a performance event
         event = self.store_transaction(
             environment=data.get("environment"),
             project_id=project_id,
             user_id=data.get("user", uuid4().hex),
             fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
-            timestamp=before_now(minutes=1).replace(tzinfo=pytz.utc),
+            # fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{data['fingerprint'][0]}"],
+            timestamp=timestamp,
         )
         return event.for_group(event.groups[0])
 
@@ -131,10 +132,10 @@ class StandardIntervalMixin:
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=1)),
                 "user": {"id": uuid4().hex},
             },
             project_id=self.project.id,
+            timestamp=before_now(minutes=1),
         )
         self.increment(
             event,
@@ -170,10 +171,10 @@ class StandardIntervalMixin:
         event = self.add_event(
             data={
                 "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=1)),
                 "user": {"id": uuid4().hex},
             },
             project_id=self.project.id,
+            timestamp=before_now(minutes=1),
         )
         data = {
             "interval": "1h",
@@ -201,10 +202,8 @@ class EventFrequencyConditionTestCase(
     rule_cls = EventFrequencyCondition
 
     def increment(self, event, count, environment=None, timestamp=None):
-        data = {
-            "fingerprint": event.data["fingerprint"],
-            "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
-        }
+        timestamp = timestamp if timestamp else before_now(minutes=1)
+        data = {"fingerprint": event.data["fingerprint"]}
         if environment:
             data["environment"] = environment
 
@@ -212,6 +211,7 @@ class EventFrequencyConditionTestCase(
             self.add_event(
                 data=data,
                 project_id=self.project.id,
+                timestamp=timestamp,
             )
 
 
@@ -224,10 +224,8 @@ class EventUniqueUserFrequencyConditionTestCase(
     rule_cls = EventUniqueUserFrequencyCondition
 
     def increment(self, event, count, environment=None, timestamp=None):
-        data = {
-            "fingerprint": event.data["fingerprint"],
-            "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
-        }
+        timestamp = timestamp if timestamp else before_now(minutes=1)
+        data = {"fingerprint": event.data["fingerprint"]}
         if environment:
             data["environment"] = environment
 
@@ -237,6 +235,7 @@ class EventUniqueUserFrequencyConditionTestCase(
             self.add_event(
                 data=event_data,
                 project_id=self.project.id,
+                timestamp=timestamp,
             )
 
 
@@ -274,11 +273,11 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
             self.test_event = self.add_event(
                 data={
                     "fingerprint": ["something_random"],
-                    "timestamp": iso_format(before_now(minutes=minutes)),
                     "user": {"id": uuid4().hex},
                     "environment": self.environment.name,
                 },
                 project_id=self.project.id,
+                timestamp=before_now(minutes=minutes),
             )
         if add_events:
             self.increment(
@@ -299,8 +298,8 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
     def increment(self, event, count, environment=None, timestamp=None):
         data = {
             "fingerprint": event.data["fingerprint"],
-            "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
         }
+        timestamp = timestamp if timestamp else before_now(minutes=1)
         if environment:
             data["environment"] = environment
 
@@ -310,6 +309,7 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
             self.add_event(
                 data=event_data,
                 project_id=self.project.id,
+                timestamp=timestamp,
             )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
@@ -378,11 +378,9 @@ class EventFrequencyPercentConditionTestCase(SnubaTestCase):
         # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
         # is 10%. Overall a 100% increase comparitively.
         event = self.add_event(
-            data={
-                "fingerprint": ["something_random"],
-                "timestamp": iso_format(before_now(minutes=1)),
-            },
+            data={"fingerprint": ["something_random"]},
             project_id=self.project.id,
+            timestamp=before_now(minutes=1),
         )
         self.increment(
             event,
