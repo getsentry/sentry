@@ -46,6 +46,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
+        sentry.integrations.github.client.ApiClient.page_size = 1
 
         responses.add(
             responses.POST,
@@ -56,7 +57,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             url=api_url,
-            match=[responses.matchers.query_param_matcher({"page": 1, "per_page": 1})],
+            match=[responses.matchers.query_param_matcher({"per_page": 1})],
             json={
                 "repositories": [
                     {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
@@ -66,8 +67,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             headers={
                 "link": ",".join(
                     [
-                        f'Link: <https://{api_url}?page=2&per_page=1>; rel="next"',
-                        f'<https://{api_url}?page=2&per_page=1>; rel="last"',
+                        f'Link: <{api_url}?page=2&per_page=1>; rel="next"',
+                        f'<{api_url}?page=2&per_page=1>; rel="last"',
                     ]
                 ),
             },
@@ -85,8 +86,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             headers={
                 "link": ",".join(
                     [
-                        f'Link: <https://{api_url}?page=1&per_page=1>; rel="prev"',
-                        f'<https://{api_url}?page=2&per_page=1>; rel="last"',
+                        f'Link: <{api_url}?page=1&per_page=1>; rel="prev"',
+                        f'<{api_url}?page=2&per_page=1>; rel="last"',
                     ]
                 ),
             },
@@ -331,16 +332,19 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_get_repositories_all(self):
+    def test_get_repositories_all_and_pagination(self):
+        """This getting all repositories and the pagination logic"""
         with self.tasks():
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
+
         result = installation.get_repositories()
         assert result == [
             {"name": "foo", "identifier": "Test-Organization/foo"},
             {"name": "bar", "identifier": "Test-Organization/bar"},
+            {"name": "baz", "identifier": "Test-Organization/baz"},
         ]
 
     @responses.activate

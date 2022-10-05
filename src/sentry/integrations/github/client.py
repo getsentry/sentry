@@ -69,11 +69,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         per_page: The number of results per page (max 100; default 30).
         """
-        self.page_size = 1
-        # XXX: This does not do pagination
         # Explicitly typing to satisfy mypy.
-        repositories: JSONData = self.get_with_pagination("/installation/repositories")
-        repos = repositories["repositories"]
+        repos: JSONData = self.get_with_pagination(
+            "/installation/repositories", response_key="repositories"
+        )
         return [repo for repo in repos if not repo.get("archived")]
 
     def search_repositories(self, query: str) -> Mapping[str, Sequence[JSONData]]:
@@ -88,7 +87,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
 
-    def get_with_pagination(self, path: str, *args: Any, **kwargs: Any) -> Sequence[JSONData]:
+    def get_with_pagination(self, path: str, response_key: str | None = None) -> Sequence[JSONData]:
         """
         Github uses the Link header to provide pagination links. Github
         recommends using the provided link relations and not constructing our
@@ -112,12 +111,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
             resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp)
+
+            output.extend(resp) if not response_key else output.extend(resp[response_key])
+
             page_number = 1
 
             while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))
-                output.extend(resp)
+                output.extend(resp) if not response_key else output.extend(resp[response_key])
+
                 page_number += 1
             return output
 
