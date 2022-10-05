@@ -102,7 +102,6 @@ export type SamplingRule = {
 
 export type SamplingDistribution = {
   endTimestamp: string | null;
-  null_sample_rate_percentage: null | number;
   project_breakdown:
     | null
     | {
@@ -110,15 +109,6 @@ export type SamplingDistribution = {
         project: string;
         project_id: number;
       }[];
-  sample_rate_distributions: null | {
-    avg: null | number;
-    max: null | number;
-    min: null | number;
-    p50: null | number;
-    p90: null | number;
-    p95: null | number;
-    p99: null | number;
-  };
   sample_size: number;
   startTimestamp: string | null;
 };
