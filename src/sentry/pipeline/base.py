@@ -19,6 +19,7 @@ from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
 from .types import PipelineAnalyticsEntry, PipelineRequestState
+from .views.nested import NestedPipelineView
 
 
 class Pipeline(abc.ABC):
@@ -228,11 +229,27 @@ class Pipeline(abc.ABC):
 
         self.state.data = data
 
-    def fetch_state(self, key: str | None = None) -> Any | None:
+    def _fetch_state(self, key: str | None = None) -> Any | None:
         data = self.state.data
         if not data:
             return None
         return data if key is None else data.get(key)
+
+    def fetch_state(self, key: str | None = None) -> Any | None:
+        step_index = self.state.step_index
+        if step_index >= len(self.pipeline_views):
+            return self._fetch_state(key)
+        view = self.pipeline_views[step_index]
+        if isinstance(view, NestedPipelineView):
+            # Attempt to surface state from a nested pipeline
+            nested_pipeline = view.pipeline_cls(
+                organization=self.organization,
+                request=self.request,
+                provider_key=view.provider_key,
+                config=view.config,
+            )
+            return nested_pipeline.fetch_state(key)
+        return self._fetch_state(key)
 
     def get_logger(self) -> logging.Logger:
         return logging.getLogger(f"sentry.integration.{self.provider.key}")
