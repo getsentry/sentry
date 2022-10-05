@@ -82,7 +82,7 @@ def get_from_profiling_service(
             }
         )
         kwargs["body"] = brotli.compress(
-            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.BrotliEncoderMode.TEXT
+            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.MODE_TEXT
         )
     return _profiling_pool.urlopen(  # type: ignore
         method,
