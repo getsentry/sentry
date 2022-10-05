@@ -8,6 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
@@ -431,6 +432,11 @@ function GroupHeader({
             seenBy={group.seenBy}
             iconTooltip={t('People who have viewed this issue')}
           />
+          {hasIssueActionsV2 && (
+            <div className="hidden-sm hidden-md hidden-lg">
+              <EnvironmentPageFilter alignDropdown="right" />
+            </div>
+          )}
         </HeaderRow>
         {group.issueCategory === IssueCategory.PERFORMANCE
           ? performanceIssueTabs
@@ -444,14 +450,10 @@ export default GroupHeader;
 
 const BreadcrumbActionWrapper = styled('div')`
   display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   gap: ${space(1)};
-  flex-direction: column;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    justify-content: space-between;
-    flex-direction: row;
-    align-items: center;
-  }
+  align-items: center;
 `;
 
 const ShortIdBreadrcumb = styled('div')`

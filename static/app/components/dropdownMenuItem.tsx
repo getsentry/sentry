@@ -27,6 +27,10 @@ export type MenuItemProps = MenuListItemProps & {
    */
   children?: MenuItemProps[];
   /**
+   * Plass a class name to the menu item.
+   */
+  className?: string;
+  /**
    * Hide item from the dropdown menu. Note: this will also remove the item
    * from the selection manager.
    */

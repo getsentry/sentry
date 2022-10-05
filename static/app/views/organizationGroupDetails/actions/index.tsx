@@ -51,6 +51,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import ReviewAction from 'sentry/views/issueList/actions/reviewAction';
 import ShareIssue from 'sentry/views/organizationGroupDetails/actions/shareIssue';
 
+import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
 
 type Props = {
@@ -346,7 +347,17 @@ class Actions extends Component<Props, State> {
   };
 
   openShareModal = () => {
-    openModal(this.renderDiscardModal);
+    const {group, organization} = this.props;
+
+    openModal(modalProps => (
+      <ShareIssueModal
+        {...modalProps}
+        loading={this.state.shareBusy}
+        organization={organization}
+        projectSlug={group.project.slug}
+        groupId={group.id}
+      />
+    ));
   };
 
   handleClick(disabled: boolean, onClick: (event?: MouseEvent) => void) {
@@ -415,8 +426,9 @@ class Actions extends Component<Props, State> {
 
     if (orgFeatures.has('issue-actions-v2')) {
       return (
-        <Wrapper>
+        <ActionWrapper>
           <DropdownMenuControl
+            placement="bottom"
             triggerProps={{
               'aria-label': t('More Actions'),
               icon: <IconEllipsis size="xs" />,
@@ -424,6 +436,20 @@ class Actions extends Component<Props, State> {
               size: 'sm',
             }}
             items={[
+              {
+                key: 'open-in-discover',
+                className: 'hidden-sm hidden-md hidden-lg',
+                label: t('Open in Discover'),
+                to: disabled ? '' : this.getDiscoverUrl(),
+                onAction: () => this.trackIssueAction('open_in_discover'),
+              },
+              {
+                key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
+                className: 'hidden-sm hidden-md hidden-lg',
+                label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
+                disabled: disabled || group.subscriptionDetails?.disabled,
+                onAction: this.onToggleSubscribe,
+              },
               ...(orgFeatures.has('shared-issues')
                 ? [
                     {
@@ -436,20 +462,23 @@ class Actions extends Component<Props, State> {
               ...sharedMenuItems,
             ]}
           />
-
           <SubscribeAction
+            className="hidden-xs"
             disabled={disabled}
             group={group}
             onClick={this.handleClick(disabled, this.onToggleSubscribe)}
             size="sm"
           />
-          <EnvironmentPageFilter alignDropdown="right" size="sm" />
+          <div className="hidden-xs">
+            <EnvironmentPageFilter alignDropdown="right" size="sm" />
+          </div>
           <Feature
             hookName="feature-disabled:open-in-discover"
             features={['discover-basic']}
             organization={organization}
           >
             <ActionButton
+              className="hidden-xs"
               disabled={disabled}
               to={disabled ? '' : this.getDiscoverUrl()}
               onClick={() => this.trackIssueAction('open_in_discover')}
@@ -482,6 +511,7 @@ class Actions extends Component<Props, State> {
             <Fragment>
               <GuideAnchor target="ignore_delete_discard" position="bottom" offset={20}>
                 <IgnoreButton
+                  className="hidden-xs"
                   isIgnored={isIgnored}
                   onUpdate={this.onUpdate}
                   disabled={disabled}
@@ -508,7 +538,7 @@ class Actions extends Component<Props, State> {
               </GuideAnchor>
             </Fragment>
           )}
-        </Wrapper>
+        </ActionWrapper>
       );
     }
 
@@ -593,6 +623,12 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   white-space: nowrap;
+`;
+
+const ActionWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
 `;
 
 export {Actions};

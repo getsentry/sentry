@@ -231,6 +231,7 @@ const Container = styled('div')`
 `;
 
 const Modal = styled(motion.div)`
+  max-width: 100%;
   width: 640px;
   pointer-events: auto;
   padding: 80px ${space(2)} ${space(4)} ${space(2)};

@@ -55,6 +55,7 @@ function countUsers(count: number) {
 
 type Props = {
   onUpdate: (params: GroupStatusResolution) => void;
+  className?: string;
   confirmLabel?: string;
   confirmMessage?: (statusDetails?: ResolutionStatusDetails) => React.ReactNode;
   disabled?: boolean;
@@ -64,6 +65,7 @@ type Props = {
 };
 
 const IgnoreActions = ({
+  className,
   onUpdate,
   disabled,
   shouldConfirm,
@@ -249,7 +251,7 @@ const IgnoreActions = ({
   };
 
   return (
-    <ButtonBar merged>
+    <ButtonBar merged className={className}>
       <IgnoreButton size={size} onClick={() => onIgnore()} disabled={disabled}>
         {t('Ignore')}
       </IgnoreButton>

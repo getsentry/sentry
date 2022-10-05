@@ -8,15 +8,17 @@ import {getSubscriptionReason} from '../utils';
 type Props = {
   group: Group;
   onClick: (event: React.MouseEvent) => void;
+  className?: string;
   disabled?: boolean;
   size?: 'xs' | 'sm';
 };
 
-function SubscribeAction({disabled, group, onClick, size = 'xs'}: Props) {
+function SubscribeAction({className, disabled, group, onClick, size = 'xs'}: Props) {
   const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
 
   return (
     <ActionButton
+      className={className}
       disabled={disabled || disabledNotifications}
       title={getSubscriptionReason(group, true)}
       tooltipProps={{delay: 300}}
