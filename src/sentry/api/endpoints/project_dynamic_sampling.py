@@ -33,54 +33,6 @@ class QueryTimeRange:
     end_time: datetime
 
 
-<<<<<<< HEAD
-||||||| parent of 5d76c9aed7 (fix tests!)
-def percentile_fn(data, percentile):
-    """
-    Returns the nth percentile from a sorted list
-
-    :param percentile: A value between 0 and 1
-    :param data: Sorted list of values
-    """
-    return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
-
-
-=======
-def percentile_fn(data, percentile):
-    """
-    Returns the nth percentile from a sorted list
-
-    :param percentile: A value between 0 and 1
-    :param data: Sorted list of values
-    """
-    return data[int((len(data) - 1) * percentile)] if len(data) > 0 else None
-
-
-<<<<<<< HEAD
-class ProjectStats:
-    project: str
-    project_id: str
-    percentage: float
-
-    @property
-    def total_root(self):
-        pass
-
-
->>>>>>> 5d76c9aed7 (fix tests!)
-||||||| parent of 20bd2d8c02 (cleanup)
-class ProjectStats:
-    project: str
-    project_id: str
-    percentage: float
-
-    @property
-    def total_root(self):
-        pass
-
-
-=======
->>>>>>> 20bd2d8c02 (cleanup)
 class DynamicSamplingPermission(ProjectPermission):
     scope_map = {"GET": ["project:write"]}
 
@@ -280,15 +232,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             selected_columns=[
                 "id",
                 "trace",
-<<<<<<< HEAD
-                'count_if(trace.parent_span, equals, "") as is_root_transaction',
-||||||| parent of 6187b1cdf6 (replace count_if)
-                "trace.client_sample_rate",
-                # TODO: (andrii) rewrite with has
-                'count_if(trace.parent_span, equals, "") as is_root_transaction',
-=======
-                "trace.client_sample_rate",
->>>>>>> 6187b1cdf6 (replace count_if)
                 "random_number() as rand_num",
                 f"modulo(rand_num, {sampling_factor}) as modulo_num",
             ],
@@ -377,25 +320,6 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 }
             )
         sample_size = len(transactions)
-<<<<<<< HEAD
-||||||| parent of 19e2853f58 (finish main flow)
-        sample_rates = sorted(
-            transaction.get("trace.client_sample_rate") for transaction in transactions
-        )
-        non_null_sample_rates = sorted(
-            float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
-        )
-
-=======
-        # TODO: (andrii) recheck it later if we want to filter by is_root_transaction == 1
-        sample_rates = sorted(
-            transaction.get("trace.client_sample_rate") for transaction in transactions
-        )
-        non_null_sample_rates = sorted(
-            float(sample_rate) for sample_rate in sample_rates if sample_rate not in {"", None}
-        )
-
->>>>>>> 19e2853f58 (finish main flow)
         project_breakdown = None
         parent_trace_ids = None
         parent_project_breakdown = []

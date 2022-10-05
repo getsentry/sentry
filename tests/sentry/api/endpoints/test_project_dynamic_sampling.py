@@ -203,7 +203,6 @@ def build_expected_snuba_query(
         selected_columns=[
             "id",
             "trace",
-            "trace.client_sample_rate",
             "random_number() AS rand_num",
             "modulo(rand_num, 10) as modulo_num",
         ],
@@ -311,33 +310,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                     {"project_id": 23, "project": "wind", "count()": 3},
                     {"project_id": 25, "project": "fire", "count()": 21},
                 ],
-<<<<<<< HEAD
-                "sample_size": 21,
-||||||| parent of 5d76c9aed7 (fix tests!)
-                "sample_size": 21,
-                "null_sample_rate_percentage": 71.42857142857143,
-                "sample_rate_distributions": {
-                    "min": 0.8096753824342516,
-                    "max": 0.9609190650573167,
-                    "avg": 0.8839713299875663,
-                    "p50": 0.8610195401441058,
-                    "p90": 0.9545587106701261,
-                    "p95": 0.9545587106701261,
-                    "p99": 0.9545587106701261,
-                },
-=======
                 "sample_size": 1,
-                "null_sample_rate_percentage": 100.0,
-                "sample_rate_distributions": {
-                    "min": None,
-                    "max": None,
-                    "avg": None,
-                    "p50": None,
-                    "p90": None,
-                    "p95": None,
-                    "p99": None,
-                },
->>>>>>> 5d76c9aed7 (fix tests!)
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
                 "parentProjectBreakdown": [
@@ -387,57 +360,19 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
-<<<<<<< HEAD
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-||||||| parent of 5d76c9aed7 (fix tests!)
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-=======
+
         mock_querybuilder.side_effect = [
             {
                 "data": [
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 4255299100,
                     },
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "0b127a578f8440c793f9ba1de595229f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 3976019453,
                     },
@@ -454,7 +389,6 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
->>>>>>> 5d76c9aed7 (fix tests!)
 
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
@@ -504,57 +438,18 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
-<<<<<<< HEAD
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-||||||| parent of 5d76c9aed7 (fix tests!)
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-=======
         mock_querybuilder.side_effect = [
             {
                 "data": [
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 4255299100,
                     },
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "0b127a578f8440c793f9ba1de595229f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 3976019453,
                     },
@@ -571,7 +466,6 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
->>>>>>> 5d76c9aed7 (fix tests!)
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
@@ -630,57 +524,18 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
-<<<<<<< HEAD
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-||||||| parent of 5d76c9aed7 (fix tests!)
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-=======
         mock_querybuilder.side_effect = [
             {
                 "data": [
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 4255299100,
                     },
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "0b127a578f8440c793f9ba1de595229f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 3976019453,
                     },
@@ -697,7 +552,6 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
->>>>>>> 5d76c9aed7 (fix tests!)
         end_time = timezone.now()
         start_time = end_time - timedelta(hours=1)
         query = "environment:dev"
@@ -728,59 +582,9 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 referrer="dynamic-sampling.distribution.fetch-transactions-count",
             ),
         ]
-<<<<<<< HEAD
-        query_builder = QueryBuilder(
-            Dataset.Discover,
-            selected_columns=[
-                "id",
-                "trace",
-                "random_number() AS rand_num",
-                "modulo(rand_num, 10) as modulo_num",
-            ],
-            query=f"{query} event.type:transaction",
-            params={
-                "start": start_time,
-                "end": end_time,
-                "project_id": [self.project.id],
-                "organization_id": self.project.organization.id,
-            },
-            offset=0,
-            orderby=None,
-            limit=requested_sample_size,
-            equations=[],
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            functions_acl=["random_number", "modulo"],
-||||||| parent of 5d76c9aed7 (fix tests!)
-        query_builder = QueryBuilder(
-            Dataset.Discover,
-            selected_columns=[
-                "id",
-                "trace",
-                "trace.client_sample_rate",
-                "random_number() AS rand_num",
-                "modulo(rand_num, 10) as modulo_num",
-            ],
-            query=f"{query} event.type:transaction",
-            params={
-                "start": start_time,
-                "end": end_time,
-                "project_id": [self.project.id],
-                "organization_id": self.project.organization.id,
-            },
-            offset=0,
-            orderby=None,
-            limit=requested_sample_size,
-            equations=[],
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            functions_acl=["random_number", "modulo"],
-=======
+
         snuba_query = build_expected_snuba_query(
             query, requested_sample_size, start_time, end_time, self.project
->>>>>>> 5d76c9aed7 (fix tests!)
         )
 
         with Feature({"organizations:server-side-sampling": True}):
@@ -831,57 +635,18 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
-<<<<<<< HEAD
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-||||||| parent of 5d76c9aed7 (fix tests!)
-        mock_querybuilder.return_value = {
-            "data": [
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 4255299100,
-                },
-                {
-                    "trace": "6503ee33b7bc43aead1facaa625a5dba",
-                    "id": "0b127a578f8440c793f9ba1de595229f",
-                    "trace.client_sample_rate": "",
-                    "project.name": "fire",
-                    "random_number() AS random_number": 3976019453,
-                },
-            ]
-        }
-=======
         mock_querybuilder.side_effect = [
             {
                 "data": [
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "6ddc83ee612b4e89b95b5278c8fd188f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 4255299100,
                     },
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "0b127a578f8440c793f9ba1de595229f",
-                        "trace.client_sample_rate": "",
                         "project.name": "fire",
                         "random_number() AS random_number": 3976019453,
                     },
@@ -898,7 +663,6 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 ]
             },
         ]
->>>>>>> 5d76c9aed7 (fix tests!)
         end_time = timezone.now()
         start_time = end_time - timedelta(hours=1)
         query = "environment:dev"
@@ -958,59 +722,8 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                 referrer="dynamic-sampling.distribution.get-most-recent-day-with-transactions",
             ),
         ]
-<<<<<<< HEAD
-        query_builder = QueryBuilder(
-            Dataset.Discover,
-            selected_columns=[
-                "id",
-                "trace",
-                "random_number() AS rand_num",
-                "modulo(rand_num, 10) as modulo_num",
-            ],
-            query=f"{query} event.type:transaction",
-            params={
-                "start": updated_start_time,
-                "end": updated_end_time,
-                "project_id": [self.project.id],
-                "organization_id": self.project.organization.id,
-            },
-            offset=0,
-            orderby=None,
-            limit=requested_sample_size,
-            equations=[],
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            functions_acl=["random_number", "modulo"],
-||||||| parent of 5d76c9aed7 (fix tests!)
-        query_builder = QueryBuilder(
-            Dataset.Discover,
-            selected_columns=[
-                "id",
-                "trace",
-                "trace.client_sample_rate",
-                "random_number() AS rand_num",
-                "modulo(rand_num, 10) as modulo_num",
-            ],
-            query=f"{query} event.type:transaction",
-            params={
-                "start": updated_start_time,
-                "end": updated_end_time,
-                "project_id": [self.project.id],
-                "organization_id": self.project.organization.id,
-            },
-            offset=0,
-            orderby=None,
-            limit=requested_sample_size,
-            equations=[],
-            auto_fields=True,
-            auto_aggregations=True,
-            use_aggregate_conditions=True,
-            functions_acl=["random_number", "modulo"],
-=======
         snuba_query = build_expected_snuba_query(
             query, requested_sample_size, updated_start_time, updated_end_time, self.project
->>>>>>> 5d76c9aed7 (fix tests!)
         )
 
         with Feature({"organizations:server-side-sampling": True}):
