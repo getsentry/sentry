@@ -323,7 +323,7 @@ describe('EventsV2 > EventDetails', function () {
       {context: routerContext, organization}
     );
 
-    expect((await screen.findByText('All Events')).pathname).toEqual(
+    expect((await screen.findByText('New Query')).pathname).toEqual(
       '/organizations/org-slug/discover/homepage/'
     );
   });
