@@ -8,7 +8,7 @@ from operator import attrgetter
 from random import randrange
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
-import lxml
+import lxml.html
 import toronado
 from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_text
