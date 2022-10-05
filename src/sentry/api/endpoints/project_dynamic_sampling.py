@@ -252,8 +252,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         except EmptyTransactionDatasetException:
             return Response(
                 {
-                    "project_breakdown": None,
-                    "sample_size": 0,
+                    "projectBreakdown": None,
+                    "sampleSize": 0,
                     "startTimestamp": None,
                     "endTimestamp": None,
                 }
@@ -294,8 +294,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
         return Response(
             {
-                "project_breakdown": project_breakdown,
-                "sample_size": sample_size,
+                "projectBreakdown": project_breakdown,
+                "sampleSize": sample_size,
                 "startTimestamp": query_time_range.start_time,
                 "endTimestamp": query_time_range.end_time,
             }
