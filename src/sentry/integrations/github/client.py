@@ -63,12 +63,20 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repository
 
     def get_repositories(self) -> Sequence[JSONData]:
+        """
+        This fetches all repositories accessible to a Github App
+        https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+
+        per_page: The number of results per page (max 100; default 30).
+        """
+        self.page_size = 1
+        # XXX: This does not do pagination
         # Explicitly typing to satisfy mypy.
-        repositories: JSONData = self.get("/installation/repositories", params={"per_page": 100})
+        repositories: JSONData = self.get_with_pagination("/installation/repositories")
         repos = repositories["repositories"]
         return [repo for repo in repos if not repo.get("archived")]
 
-    def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
+    def search_repositories(self, query: str) -> Mapping[str, Sequence[JSONData]]:
         # Explicitly typing to satisfy mypy.
         repositories: Mapping[str, Sequence[JSONData]] = self.get(
             "/search/repositories", params={"q": query}
@@ -138,6 +146,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_user(self, gh_username: str) -> JSONData:
         return self.get(f"/users/{gh_username}")
 
+    # subclassing BaseApiClient request method
     def request(
         self,
         method: str,
@@ -195,10 +204,17 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         )
         return file
 
+    # XXX: This function is mainly to find a file in a specific repo. Move to a different API
+    # Thankfully we do not use this code
     def search_file(
         self, repo: Repository, filename: str
     ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        """This uses Github's Search API.
+        It has a rate limit of 30 requests per minute.
+        https://docs.github.com/en/rest/search#about-the-search-api
+        """
         query = f"filename:{filename}+repo:{repo}"
+
         results: Mapping[str, Any] = self.get(path="/search/code", params={"q": query})
         return results
 

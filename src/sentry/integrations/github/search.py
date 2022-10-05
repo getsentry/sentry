@@ -43,7 +43,9 @@ class GitHubSearchEndpoint(IntegrationEndpoint):  # type: ignore
             )
 
         if field == "repo":
-            full_query = build_repository_query(integration.metadata, integration.name, query)
+            full_query = build_repository_query(
+                integration.metadata["account_type"], integration.name, query
+            )
             try:
                 response = installation.get_client().search_repositories(full_query)
             except ApiError as err:

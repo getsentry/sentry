@@ -90,12 +90,18 @@ API_ERRORS = {
 }
 
 
-def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -> bytes:
-    account_type = "user" if metadata["account_type"] == "User" else "org"
-    return f"{account_type}:{name} {query}".encode()
+def build_repository_query(account_type: str, name: str, query: str) -> str:
+    """It returns a query with what user/org to query and the actual query"""
+    account_type = "user" if account_type == "User" else "org"
+    return f"{account_type}:{name} {query}"
 
 
+# Some of the queries in here use installation related APIs:
+# https://docs.github.com/en/rest/apps/installations
+# List of available endpoints for Github Apps
+# https://docs.github.com/en/rest/overview/endpoints-available-for-github-apps
 class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMixin, CommitContextMixin):  # type: ignore
+    # integration_type = "github"
     repo_search = True
     codeowners_locations = ["CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS"]
 
@@ -103,13 +109,18 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return GitHubAppsClient(integration=self.model)
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, Any]]:
+        """Searches for all repositories that match the query.
+        If a query is not pass all repositories will be returned.
+        """
         if not query:
             return [
                 {"name": i["name"], "identifier": i["full_name"]}
                 for i in self.get_client().get_repositories()
             ]
 
-        full_query = build_repository_query(self.model.metadata, self.model.name, query)
+        full_query = build_repository_query(
+            self.model.metadata["account_type"], self.model.name, query
+        )
         response = self.get_client().search_repositories(full_query)
         return [
             {"name": i["name"], "identifier": i["full_name"]} for i in response.get("items", [])

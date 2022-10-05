@@ -41,6 +41,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         super().tearDown()
 
     def _stub_github(self):
+        """This stubs the calls related to a Github App"""
         responses.reset()
 
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
@@ -51,15 +52,43 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
             json={"token": self.access_token, "expires_at": self.expires_at},
         )
-
+        api_url = f"{self.base_url}/installation/repositories"
         responses.add(
             responses.GET,
-            self.base_url + "/installation/repositories",
+            url=api_url,
+            match=[responses.matchers.query_param_matcher({"per_page": "1"})],
             json={
                 "repositories": [
                     {"id": 1296269, "name": "foo", "full_name": "Test-Organization/foo"},
                     {"id": 9876574, "name": "bar", "full_name": "Test-Organization/bar"},
                 ]
+            },
+            headers={
+                "link": ",".join(
+                    [
+                        f'Link: <https://{api_url}?page=1&per_page=1>; rel="next"',
+                        f'<https://{api_url}?page=2&per_page=1>; rel="last"',
+                    ]
+                ),
+            },
+        )
+        responses.add(
+            responses.GET,
+            url=self.base_url + "/installation/repositories",
+            match=[responses.matchers.query_param_matcher({"page": "2"})],
+            json={
+                "repositories": [
+                    {"id": 1276555, "name": "baz", "full_name": "Test-Organization/baz"},
+                ]
+            },
+            # XXX: Verify in POC for correct link values
+            headers={
+                "link": ",".join(
+                    [
+                        f'Link: <https://{api_url}?page=1&per_page=1>; rel="prev"',
+                        f'<https://{api_url}?page=2&per_page=1>; rel="last"',
+                    ]
+                ),
             },
         )
 
@@ -280,6 +309,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             self.assert_setup_flow()
 
+        # XXX: This is actually wrong
         querystring = urlencode({"q": "org:Test Organization ex"})
         responses.add(
             responses.GET,
@@ -293,10 +323,24 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization)
+        # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example"},
             {"identifier": "test/exhaust", "name": "exhaust"},
+        ]
+
+    @responses.activate
+    def test_get_repositories_all(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(self.organization)
+        result = installation.get_repositories()
+        assert result == [
+            {"name": "foo", "identifier": "Test-Organization/foo"},
+            {"name": "bar", "identifier": "Test-Organization/bar"},
         ]
 
     @responses.activate
