@@ -73,13 +73,18 @@ class ErrorEventMixin:
 
 class PerfEventMixin(PerfIssueTransactionTestMixin):
     def add_event(self, data, project_id, timestamp):
+        fingerprint = data["fingerprint"][0]
+        fingerprint = (
+            fingerprint
+            if "-" in fingerprint
+            else f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{data['fingerprint'][0]}"
+        )
         # Store a performance event
         event = self.store_transaction(
             environment=data.get("environment"),
             project_id=project_id,
             user_id=data.get("user", uuid4().hex),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-group1"],
-            # fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE.value}-{data['fingerprint'][0]}"],
+            fingerprint=[fingerprint],
             timestamp=timestamp,
         )
         return event.for_group(event.groups[0])
