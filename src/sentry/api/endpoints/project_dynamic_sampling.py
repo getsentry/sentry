@@ -431,7 +431,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 item for item in projects_counts if item["project_id"] == project.id
             )
 
-            if root_projects_count > 1:
+            if root_projects_count >= 1:
                 parent_project_breakdown = []
                 total_count = sum(
                     _project["count"] for _project in projects_counts if _project["root_count"] > 0
@@ -442,9 +442,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                             {
                                 "project": _project["project"],
                                 "project_id": _project["project_id"],
-                                "percentage": _project["root_count"] / total_count
-                                if total_count > 0
-                                else 0,
+                                "percentage": _project["root_count"] / total_count,
                             }
                         )
 
@@ -456,48 +454,43 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
 
             parent_project_ids = {p["project_id"] for p in parent_project_breakdown}
 
-            if (
-                requested_project["project_id"] in parent_project_ids
-                and len(parent_project_breakdown) > 1
-            ):
+            if requested_project["project_id"] in parent_project_ids:
+                if len(parent_project_breakdown) > 1:
 
-                # loop over trace ids, and filter down trace ids where project is sentry
-                parent_trace_ids = [
-                    transaction.get("trace")
-                    for transaction in transactions
-                    if transaction.get("is_root", False)
-                    and transaction.get("project_id", 0) == project.id
-                ]
-                # Calculate parent project_breakdown attribute:
-                project_breakdown = self.__run_discover_query(
-                    columns=[
-                        "project_id",
-                        "project",
-                        "count()",
-                    ],
-                    query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
-                    params={
-                        "start": query_time_range.start_time,
-                        "end": query_time_range.end_time,
-                        "project_id": list(projects_in_org),
-                        "organization_id": project.organization.id,
-                    },
-                    limit=20,
-                    referrer="dynamic-sampling.distribution.fetch-project-breakdown",
-                )
+                    # loop over trace ids, and filter down trace ids where project is sentry
+                    parent_trace_ids = [
+                        transaction.get("trace")
+                        for transaction in transactions
+                        if transaction.get("is_root", False)
+                        and transaction["project_id"] == project.id
+                    ]
+                    # Calculate parent project_breakdown attribute:
+                    project_breakdown = self.__run_discover_query(
+                        columns=[
+                            "project_id",
+                            "project",
+                            "count()",
+                        ],
+                        query=f"event.type:transaction !has:trace.parent_span trace:[{','.join(parent_trace_ids)}]",
+                        params={
+                            "start": query_time_range.start_time,
+                            "end": query_time_range.end_time,
+                            "project_id": list(projects_in_org),
+                            "organization_id": project.organization.id,
+                        },
+                        limit=20,
+                        referrer="dynamic-sampling.distribution.fetch-project-breakdown",
+                    )
 
-            elif (
-                requested_project["project_id"] in parent_project_ids
-                and len(parent_project_breakdown) == 1
-            ):
-                project_breakdown = [
-                    {
-                        "project_id": _project["project_id"],
-                        "project": _project["project"],
-                        "count()": _project["count"],
-                    }
-                    for _project in projects_counts
-                ]
+                elif len(parent_project_breakdown) == 1:
+                    project_breakdown = [
+                        {
+                            "project_id": _project["project_id"],
+                            "project": _project["project"],
+                            "count()": _project["count"],
+                        }
+                        for _project in projects_counts
+                    ]
 
         return Response(
             {

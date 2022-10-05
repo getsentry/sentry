@@ -459,11 +459,15 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [],
+                "project_breakdown": [
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 3}
+                ],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
-                "parentProjectBreakdown": [],
+                "parentProjectBreakdown": [
+                    {"project": self.project.slug, "project_id": self.project.id, "percentage": 1.0}
+                ],
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
@@ -571,11 +575,15 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [],
+                "project_breakdown": [
+                    {"project_id": self.project.id, "project": self.project.slug, "count()": 3}
+                ],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
-                "parentProjectBreakdown": [],
+                "parentProjectBreakdown": [
+                    {"project": self.project.slug, "project_id": self.project.id, "percentage": 1.0}
+                ],
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
