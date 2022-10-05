@@ -109,8 +109,6 @@ function EnvironmentPageFilter({
       customLoadingIndicator={customLoadingIndicator}
       alignDropdown={alignDropdown}
       disabled={disabled}
-      detached
-      showPin
     />
   );
 }

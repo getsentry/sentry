@@ -84,6 +84,13 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
             snuba.Dataset.Events, "group_id", "tags[sentry:user]", [events_type_condition]
         ),
+        TSDBModel.users_affected_by_perf_group: SnubaModelQuerySettings(
+            snuba.Dataset.Transactions,
+            "group_id",
+            "tags[sentry:user]",
+            [],
+            [["arrayJoin", "group_ids", "group_id"]],
+        ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
             snuba.Dataset.Events, "project_id", "tags[sentry:user]", [events_type_condition]
         ),

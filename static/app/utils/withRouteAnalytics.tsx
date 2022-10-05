@@ -5,20 +5,16 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
 
 type WithRouteAnalyticsProps = React.ContextType<typeof RouteAnalyticsContext>;
 
+type WrappedProps<P> = Omit<P, keyof WithRouteAnalyticsProps> &
+  Partial<WithRouteAnalyticsProps>;
+
 const withRouteAnalytics = <P extends WithRouteAnalyticsProps>(
   WrappedComponent: React.ComponentType<P>
 ) => {
-  function ComponentWithRouteAnalytics(props: P & WithRouteAnalyticsProps) {
+  const ComponentWithRouteAnalytics: React.FC<WrappedProps<P>> = props => {
     const routeAnalyticsContext = useContext(RouteAnalyticsContext);
-    return (
-      <WrappedComponent
-        {...({
-          ...routeAnalyticsContext,
-          ...props,
-        } as P)}
-      />
-    );
-  }
+    return <WrappedComponent {...(props as P)} {...routeAnalyticsContext} />;
+  };
   ComponentWithRouteAnalytics.displayName = `withRouteAnalytics(${getDisplayName(
     WrappedComponent
   )})`;

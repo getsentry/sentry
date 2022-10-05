@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
@@ -33,12 +33,7 @@ describe('Results', function () {
   enforceActOnUseLegacyStoreHook();
 
   const eventTitle = 'Oh no something bad';
-  let eventsResultsMock,
-    eventsv2ResultsMock,
-    mockSaved,
-    eventsStatsMock,
-    mockVisit,
-    mockHomepage;
+  let eventsResultsMock, eventsv2ResultsMock, mockSaved, eventsStatsMock, mockVisit;
 
   const mountWithThemeAndOrg = (component, opts, organization) =>
     mountWithTheme(component, {
@@ -195,29 +190,6 @@ describe('Results', function () {
         widths: ['-1', '-1', '-1', '-1', '-1'],
         range: '24h',
         orderby: '-user.display',
-      },
-    });
-
-    mockHomepage = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/discover/homepage/',
-      method: 'GET',
-      statusCode: 200,
-      body: {
-        id: '2',
-        name: 'homepage query',
-        projects: [],
-        version: 2,
-        expired: false,
-        dateCreated: '2021-04-08T17:53:25.195782Z',
-        dateUpdated: '2021-04-09T12:13:18.567264Z',
-        createdBy: {
-          id: '2',
-        },
-        environment: [],
-        fields: ['environment'],
-        widths: ['-1'],
-        range: '24h',
-        orderby: '-environment',
       },
     });
   });
@@ -1733,7 +1705,12 @@ describe('Results', function () {
     );
   });
 
-  it('redirects with homepage query if no id in query', () => {
+  it('updates the homepage query with up to date eventView when Use as Discover Home is clicked', () => {
+    const mockHomepageUpdate = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 204,
+    });
     const organization = TestStubs.Organization({
       features: [
         'discover-basic',
@@ -1745,7 +1722,8 @@ describe('Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: TestStubs.location(),
+        // These fields take priority and should be sent in the request
+        location: {query: {field: ['title', 'user']}},
       },
     });
 
@@ -1756,50 +1734,19 @@ describe('Results', function () {
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
-        requiresHomepage
       />,
       {context: initialData.routerContext, organization}
     );
 
-    expect(browserHistory.replace).toHaveBeenCalledWith(
+    userEvent.click(screen.getByText('Use as Discover Home'));
+
+    expect(mockHomepageUpdate).toHaveBeenCalledWith(
+      '/organizations/org-slug/discover/homepage/',
       expect.objectContaining({
-        pathname: '/organizations/org-slug/discover/results/',
-        query: expect.objectContaining({
-          name: 'homepage query',
-          field: ['environment'],
+        data: expect.objectContaining({
+          fields: ['title', 'user'],
         }),
       })
     );
-  });
-
-  it('does not fetch homepage if id is in query', () => {
-    const organization = TestStubs.Organization({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'discover-query-builder-as-landing-page',
-      ],
-    });
-
-    const initialData = initializeOrg({
-      organization,
-      router: {
-        location: {query: {id: '1'}},
-      },
-    });
-
-    ProjectsStore.loadInitialData([TestStubs.Project()]);
-
-    render(
-      <Results
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-      />,
-      {context: initialData.routerContext, organization}
-    );
-
-    expect(mockSaved).toHaveBeenCalled();
-    expect(mockHomepage).not.toHaveBeenCalled();
   });
 });

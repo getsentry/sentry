@@ -10,12 +10,21 @@ import type {
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {
+  MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
   ReplaySpan,
 } from 'sentry/views/replays/types';
+
+export const isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
+  return span.op === 'memory';
+};
+
+export const isNetworkSpan = (span: ReplaySpan) => {
+  return span.op.startsWith('navigation.') || span.op.startsWith('resource.');
+};
 
 export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
   return {
@@ -70,7 +79,7 @@ export function breadcrumbFactory(
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
     category: 'exception',
-    message: error['error.value'].join(''),
+    message: error.title,
     data: {
       label: error['error.type'].join(''),
       eventId: error.id,
@@ -148,7 +157,13 @@ export function breadcrumbFactory(
 }
 
 export function spansFactory(spans: ReplaySpan[]) {
-  return spans.sort((a, b) => a.startTimestamp - b.startTimestamp);
+  return spans
+    .sort((a, b) => a.startTimestamp - b.startTimestamp)
+    .map(span => ({
+      ...span,
+      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
+      timestamp: span.startTimestamp * 1000,
+    }));
 }
 
 /**

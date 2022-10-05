@@ -283,7 +283,6 @@ MIDDLEWARE = (
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
-    "sentry.middleware.dedupe_cookies.DedupeCookiesMiddleware",
     "sentry.middleware.subdomain.SubdomainMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -559,6 +558,7 @@ CELERY_IMPORTS = (
     "sentry.discover.tasks",
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
+    "sentry.replays.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -678,6 +678,7 @@ CELERY_QUEUES = [
     Queue("release_health.duplex", routing_key="release_health.duplex"),
     Queue("get_suspect_resolutions", routing_key="get_suspect_resolutions"),
     Queue("get_suspect_resolutions_releases", routing_key="get_suspect_resolutions_releases"),
+    Queue("replays.delete_replay", routing_key="replays.delete_replay"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -1179,6 +1180,12 @@ SENTRY_FEATURES = {
     "organizations:server-side-sampling-ui": False,
     # Enable creating DS rules on incompatible platforms (used by SDK teams for dev purposes)
     "organizations:server-side-sampling-allow-incompatible-platforms": False,
+    # Enable the creation of a uniform sampling rule.
+    "organizations:dynamic-sampling-basic": False,
+    # Enable the creation of uniform and conditional sampling rules.
+    "organizations:dynamic-sampling-advanced": False,
+    # Enable dynamic sampling call to action in the performance product
+    "organizations:dynamic-sampling-performance-cta": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section
@@ -1883,6 +1890,9 @@ SENTRY_USE_CDC_DEV = False
 # This flag activates profiling backend in the development environment
 SENTRY_USE_PROFILING = False
 
+# This flag activates code paths that are specific for customer domains
+SENTRY_USE_CUSTOMER_DOMAINS = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2150,7 +2160,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
 )
 
-
 SENTRY_SDK_CONFIG = {
     "release": sentry.__semantic_version__,
     "environment": ENVIRONMENT,
@@ -2162,12 +2171,34 @@ SENTRY_SDK_CONFIG = {
         "custom_measurements": True,
     },
 }
+
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
 if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
     SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+
+# The sample rate to use for profiles. This is conditional on the usage of
+# traces_sample_rate. So that means the true sample rate will be approximately
+# traces_sample_rate * profiles_sample_rate
+# (subject to things like the traces_sampler)
+SENTRY_PROFILES_SAMPLE_RATE = 0
+
+# We want to test a few schedulers possible in the profiler. Some are platform
+# specific, and each have their own pros/cons. See the sdk for more details.
+SENTRY_PROFILER_MODE = "sleep"
+
+# To have finer control over which process will have profiling enabled, this
+# environment variable will be required to enable profiling.
+#
+# This is because profiling requires that we run some stuff globally, and we
+# are not ready to run this on the more critical parts of the codebase such as
+# the ingest workers yet.
+#
+# This will allow us to have finer control over where we are running the
+# profiler. For example, only on the web server.
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
 
 # Callable to bind additional context for the Sentry SDK
 #
@@ -2458,6 +2489,7 @@ KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
 KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
+KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 
@@ -2504,6 +2536,7 @@ KAFKA_TOPICS = {
     KAFKA_PROFILES: {"cluster": "default"},
     KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
+    KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
@@ -2793,7 +2826,7 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
-SENTRY_USE_SNOWFLAKE = False
+SENTRY_USE_SNOWFLAKE = True
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",

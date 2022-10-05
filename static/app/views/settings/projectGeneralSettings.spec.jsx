@@ -164,7 +164,7 @@ describe('projectGeneralSettings', function () {
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
     modal.find('Modal Button[priority="danger"]').simulate('click');
-    await tick();
+    await act(tick);
     await modal.update();
 
     expect(addSuccessMessage).toHaveBeenCalled();
@@ -204,7 +204,7 @@ describe('projectGeneralSettings', function () {
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
     modal.find('Modal Button[priority="danger"]').simulate('click');
-    await tick();
+    await act(tick);
     await modal.update();
 
     expect(deleteMock).toHaveBeenCalled();
@@ -277,7 +277,6 @@ describe('projectGeneralSettings', function () {
     // Slug does not save on blur
     expect(putMock).toHaveBeenCalled();
 
-    await tick();
     await act(tick);
     wrapper.update();
 
@@ -309,7 +308,7 @@ describe('projectGeneralSettings', function () {
       routerContext
     );
 
-    await tick();
+    await act(tick);
     wrapper.update();
 
     // Change slug to new-slug
@@ -345,7 +344,7 @@ describe('projectGeneralSettings', function () {
     wrapper.setProps({
       projectId: 'new-project',
     });
-    await tick();
+    await act(tick);
     wrapper.update();
     expect(newProjectGet).toHaveBeenCalled();
     expect(newProjectMembers).toHaveBeenCalled();
@@ -381,7 +380,7 @@ describe('projectGeneralSettings', function () {
     });
 
     it('can cancel unsaved changes for a field', async function () {
-      await tick();
+      await act(tick);
       wrapper.update();
 
       // Initially does not have "Cancel" button
@@ -414,7 +413,7 @@ describe('projectGeneralSettings', function () {
 
     it('saves when value is changed and "Save" clicked', async function () {
       // This test has been flaky and using act() isn't removing the flakyness.
-      await tick();
+      await act(tick);
       wrapper.update();
 
       // Initially does not have "Save" button
@@ -425,7 +424,7 @@ describe('projectGeneralSettings', function () {
         .find('input[name="resolveAge"]')
         .simulate('input', {target: {value: 12}})
         .simulate('mouseUp');
-      await tick();
+      await act(tick);
       wrapper.update();
 
       // Has "Save" button visible
@@ -436,7 +435,7 @@ describe('projectGeneralSettings', function () {
 
       // Click "Save"
       wrapper.find('Alert button[aria-label="Save"]').simulate('click');
-      await tick();
+      await act(tick);
       wrapper.update();
 
       // API endpoint should have been called

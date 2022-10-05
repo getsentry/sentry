@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {Organization, Project} from 'sentry/types';
-import useRouteAnalytics from 'sentry/utils/useRouteAnalytics';
+import useRouteAnalyticsParams from 'sentry/utils/useRouteAnalyticsParams';
 import withOrganization from 'sentry/utils/withOrganization';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -24,8 +24,8 @@ function InnerProjectSettingsLayout({
   children,
   ...props
 }: InnerProps) {
-  const {useRouteAnalyticsParameters} = useRouteAnalytics();
-  useRouteAnalyticsParameters({
+  // set analytics params for route based analytics
+  useRouteAnalyticsParams({
     project_id: project.id,
     project_platform: project.platform,
   });
