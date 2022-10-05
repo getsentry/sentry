@@ -22,18 +22,16 @@ export function FeatureFeedback<T extends Data>({
   buttonProps = {},
   ...props
 }: FeatureFeedbackProps<T>) {
-  const {onClick, ..._buttonProps} = buttonProps;
   function handleClick(e: React.MouseEvent) {
     openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
       modalCss,
     });
-    if (onClick) {
-      onClick(e);
-    }
+
+    buttonProps.onClick?.(e);
   }
 
   return (
-    <Button icon={<IconMegaphone />} onClick={handleClick} {..._buttonProps}>
+    <Button {...buttonProps} icon={<IconMegaphone />} onClick={handleClick}>
       {t('Give Feedback')}
     </Button>
   );
