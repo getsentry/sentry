@@ -361,8 +361,22 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}/blame?ref={ref}&range[start]=30&range[end]=31",
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}/blame?ref={ref}&range[start]=30&range[end]=30",
             json=[
+                {
+                    "commit": {
+                        "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                        "message": "Rename title",
+                        "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
+                        "authored_date": "2015-11-14T10:12:32.000Z",
+                        "author_name": "Nisanthan Nanthakumar",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
+                        "committed_date": "2015-11-14T10:12:32.000Z",
+                        "committer_name": "Nisanthan Nanthakumar",
+                        "committer_email": "nisanthan.nanthakumar@sentry.io",
+                    },
+                    "lines": ["## Installation Docs"],
+                },
                 {
                     "commit": {
                         "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
@@ -370,12 +384,26 @@ class GitlabIntegrationTest(IntegrationTestCase):
                         "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
                         "authored_date": "2015-12-18T08:12:22.000Z",
                         "author_name": "Nisanthan Nanthakumar",
-                        "author_email": "john.doe@example.com",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
                         "committed_date": "2015-12-18T08:12:22.000Z",
                         "committer_name": "Nisanthan Nanthakumar",
                         "committer_email": "nisanthan.nanthakumar@sentry.io",
                     },
-                    "lines": ["## Docs", "npm install"],
+                    "lines": ["## Docs"],
+                },
+                {
+                    "commit": {
+                        "id": "d42409d56517157c48bf3bd97d3f75974dde19fb",
+                        "message": "Create docs",
+                        "parent_ids": ["cc6e14f9328fa6d7b5a0d3c30dc2002a3f2a3822"],
+                        "authored_date": "2015-10-03T09:34:32.000Z",
+                        "author_name": "Nisanthan Nanthakumar",
+                        "author_email": "nisanthan.nanthakumar@sentry.io",
+                        "committed_date": "2015-10-03T09:34:32.000Z",
+                        "committer_name": "Nisanthan Nanthakumar",
+                        "committer_email": "nisanthan.nanthakumar@sentry.io",
+                    },
+                    "lines": ["## New"],
                 },
             ],
         )

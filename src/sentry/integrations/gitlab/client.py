@@ -326,6 +326,6 @@ class GitLabApiClient(ApiClient):
         project_id = repo.config["project_id"]
         request_path = GitLabApiClientPath.blame.format(project=project_id, path=path)
         contents = self.get(
-            request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno + 1}
+            request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
         )
         return contents

@@ -145,12 +145,15 @@ class GitlabIntegration(
             return data["error"]
 
     def get_commit_context(
-        self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
     ) -> Mapping[str, str] | None:
+        """
+        Returns the latest commit that altered the line from the event frame if it exists.
+        """
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        blame_range = self.get_blame_for_file(repo, filepath, branch, lineno)
+        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
 
         try:
             commit = sorted(

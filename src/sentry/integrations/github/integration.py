@@ -177,12 +177,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         return True
 
     def get_commit_context(
-        self, repo: Repository, filepath: str, branch: str, event_frame: Mapping[str, Any]
+        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
     ) -> Mapping[str, str] | None:
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        blame_range = self.get_blame_for_file(repo, filepath, branch, lineno)
+        blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
 
         try:
             commit = sorted(
