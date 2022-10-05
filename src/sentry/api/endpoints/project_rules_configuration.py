@@ -69,7 +69,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 ):
                     condition_list.append(context)
             elif rule_type.startswith("filter/"):
-                if perf_issue_filters or context["id"] in {
+                if perf_issue_filters or context["id"] not in {
                     "sentry.rules.filters.issue_category.IssueCategoryFilter",
                     "sentry.rules.filters.issue_type.IssueTypeFilter",
                 }:
