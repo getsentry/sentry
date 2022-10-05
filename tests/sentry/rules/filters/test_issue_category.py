@@ -56,4 +56,9 @@ class IssueCategoryFilterPerformanceTest(
             [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
         )
 
-        self.assertPasses(self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), tx_event)
+        group_events = list(tx_event.build_group_events())
+        assert len(group_events) == 1
+
+        self.assertPasses(
+            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), group_events[0]
+        )

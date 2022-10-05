@@ -1,9 +1,9 @@
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Union
 
 from django import forms
 
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.issues import GroupType
@@ -23,7 +23,7 @@ class IssueTypeFilter(EventFilter):
     label = "The issue's type is equal to {value}"
     prompt = "The issue's type is ..."
 
-    def passes(self, event: Event, state: EventState, **kwargs: Any) -> bool:
+    def passes(self, event: Union[Event, GroupEvent], state: EventState, **kwargs: Any) -> bool:
         try:
             value: GroupType = GroupType(int(self.get_option("value")))
         except (TypeError, ValueError):
@@ -31,10 +31,5 @@ class IssueTypeFilter(EventFilter):
 
         if event.group and event.group.issue_type:
             return bool(value == event.group.issue_type)
-
-        if event.groups:
-            for group in event.groups:
-                if value == group.issue_type:
-                    return True
 
         return False

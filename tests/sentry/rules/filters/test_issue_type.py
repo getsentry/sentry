@@ -64,4 +64,8 @@ class IssueTypeFilterPerformanceTest(RuleTestCase, SnubaTestCase, PerfIssueTrans
                 "test_transaction_category",
                 [f"{perf_type.value}-group{i}"],
             )
-            self.assertPasses(self.get_rule(data={"value": perf_type.value}), tx_event)
+
+            group_events = list(tx_event.build_group_events())
+            assert len(group_events) == 1
+
+            self.assertPasses(self.get_rule(data={"value": perf_type.value}), group_events[0])
