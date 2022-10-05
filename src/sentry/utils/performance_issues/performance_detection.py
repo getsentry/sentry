@@ -322,6 +322,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
+    metrics.incr("performance.performance_issue.detected", len(detected_problems))
+    metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
+
     performance_problems = [
         prepare_problem_for_grouping(problem, data, detector_type)
         for problem, detector_type in truncated_problems
