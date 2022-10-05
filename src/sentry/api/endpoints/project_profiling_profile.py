@@ -52,8 +52,6 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
         params = self.get_profiling_params(request, project)
 
         kwargs = {"params": params}
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
 
         return self.paginate(
             request,
@@ -73,8 +71,6 @@ class ProjectProfilingTransactionIDProfileIDEndpoint(ProjectProfilingBaseEndpoin
             "method": "GET",
             "path": f"/organizations/{project.organization.id}/projects/{project.id}/transactions/{transaction_id}",
         }
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
         return proxy_profiling_service(**kwargs)
 
 
@@ -87,8 +83,6 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
             "method": "GET",
             "path": f"/organizations/{project.organization.id}/projects/{project.id}/profiles/{profile_id}",
         }
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
         return proxy_profiling_service(**kwargs)
 
 
@@ -101,8 +95,6 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
             "method": "GET",
             "path": f"/organizations/{project.organization.id}/projects/{project.id}/raw_profiles/{profile_id}",
         }
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
         return proxy_profiling_service(**kwargs)
 
 

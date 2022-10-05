@@ -71,8 +71,6 @@ class OrganizationProfilingPaginatedBaseEndpoint(OrganizationProfilingBaseEndpoi
             return Response([])
 
         kwargs = {"params": params}
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
 
         return self.paginate(
             request,
@@ -143,8 +141,6 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
             return Response([])
 
         kwargs = {"params": params}
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
 
         return proxy_profiling_service("GET", f"/organizations/{organization.id}/filters", **kwargs)
 
@@ -174,8 +170,6 @@ class OrganizationProfilingStatsEndpoint(OrganizationProfilingBaseEndpoint):
             )
 
         kwargs = {"params": params}
-        if "Accept-Encoding" in request.headers:
-            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
 
         return proxy_profiling_service("GET", f"/organizations/{organization.id}/stats", **kwargs)
 
