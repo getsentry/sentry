@@ -11,7 +11,7 @@ const DEFAULT_CONTEXT = {
 };
 
 export const RouteAnalyticsContext = createContext<{
-  setDisableRouteAnalytics: (disable: boolean) => void;
+  setDisableRouteAnalytics: () => void;
   setOrganization: (organization: Organization) => void;
   setRouteAnalyticsParams: (params: Record<string, any>) => void;
 }>(DEFAULT_CONTEXT);
