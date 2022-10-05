@@ -1749,4 +1749,112 @@ describe('Results', function () {
       })
     );
   });
+
+  it('Changes the Use as Discover button to a reset button for saved query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 204,
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {id: '1'}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const {rerender} = render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    userEvent.click(screen.getByText('Use as Discover Home'));
+    expect(screen.getByText('Reset Discover Home')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Total Period'));
+    userEvent.click(screen.getByText('Previous Period'));
+    const rerenderData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...initialData.router.location.query, display: 'previous'}},
+      },
+    });
+    rerender(
+      <Results
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+      />
+    );
+    screen.getByText('Previous Period');
+    expect(await screen.findByText('Use as Discover Home')).toBeInTheDocument();
+  });
+
+  it('Changes the Use as Discover button to a reset button for unsaved query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/discover/homepage/',
+      method: 'PUT',
+      statusCode: 204,
+    });
+    const organization = TestStubs.Organization({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'discover-query-builder-as-landing-page',
+      ],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {field: ['title', 'user']}},
+      },
+    });
+
+    ProjectsStore.loadInitialData([TestStubs.Project()]);
+
+    const {rerender} = render(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      {context: initialData.routerContext, organization}
+    );
+
+    userEvent.click(screen.getByText('Use as Discover Home'));
+    expect(screen.getByText('Reset Discover Home')).toBeInTheDocument();
+
+    userEvent.click(screen.getByText('Total Period'));
+    userEvent.click(screen.getByText('Previous Period'));
+    const rerenderData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...initialData.router.location.query, display: 'previous'}},
+      },
+    });
+    rerender(
+      <Results
+        organization={organization}
+        location={rerenderData.router.location}
+        router={rerenderData.router}
+      />
+    );
+    screen.getByText('Previous Period');
+    expect(await screen.findByText('Use as Discover Home')).toBeInTheDocument();
+  });
 });
