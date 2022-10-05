@@ -35,6 +35,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 @freeze_time("2022-09-29 10:00:00")
 class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
+    @property
     def now(self):
         return timezone.now()
 
@@ -1050,27 +1051,21 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             key=lambda elem: elem["name"],
         )
 
-    @freeze_time("2022-09-22 11:07:00")
     def test_team_key_transactions_my_teams(self):
-        now = timezone.now()
-
         for idx, (transaction, value) in enumerate(
             (("foo_transaction", 1), ("bar_transaction", 1), ("baz_transaction", 0.5))
         ):
-            self.store_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
+            self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
-                timestamp=(now - timedelta(minutes=idx)).timestamp(),
                 value=value,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                minutes_before_now=idx,
             )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="team_key_transaction",
@@ -1088,9 +1083,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="p95",
                 ),
             ],
-            start=now - timedelta(hours=1),
-            end=now,
-            granularity=Granularity(granularity=3600),
             limit=Limit(limit=50),
             offset=Offset(offset=0),
             groupby=[

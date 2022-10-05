@@ -1246,6 +1246,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         "g": "gauge",
     }
 
+    @property
     @abstractmethod
     def now(self):
         """
@@ -1290,7 +1291,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
             name=name,
             tags=tags,
             timestamp=(
-                self.now()
+                self.now
                 - timedelta(
                     hours=hours_before_now,
                     minutes=minutes_before_now,
