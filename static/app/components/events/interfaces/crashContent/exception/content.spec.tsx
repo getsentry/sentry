@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -25,7 +25,7 @@ describe('Exception Content', function () {
       projects: [project],
     });
 
-    ProjectStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project]);
 
     const event = {
       ...TestStubs.Event(),

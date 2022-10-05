@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
-import ProjectStore from 'sentry/stores/projectsStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
@@ -23,7 +23,7 @@ describe('Frame Variables', function () {
       projects: [project],
     });
 
-    ProjectStore.loadInitialData([project]);
+    ProjectsStore.loadInitialData([project]);
 
     render(
       <OrganizationContext.Provider value={organization}>
