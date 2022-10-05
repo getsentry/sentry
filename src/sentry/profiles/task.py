@@ -50,9 +50,9 @@ def process_profile(
             "organization_id": profile["organization_id"],
             "project_id": profile["project_id"],
             "profile_id": event_id,
-            "platform": profile["platform"],
         },
     )
+    sentry_sdk.set_tag("platform", profile["platform"])
 
     try:
         if _should_symbolicate(profile):
