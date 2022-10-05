@@ -290,7 +290,7 @@ function formatList(items: Array<string | number | undefined>) {
   const filteredItems = items.filter(item => !!item);
   return [[...filteredItems].slice(0, -1).join(', '), [...filteredItems].slice(-1)]
     .filter(type => !!type)
-    .join(t(' and '));
+    .join(' and ');
 }
 
 export function useAria(
@@ -377,6 +377,6 @@ export function useAria(
 
   return {
     enabled: true,
-    label: {description: [title, ...seriesDescriptions].join('. ')},
+    label: {description: t([title, ...seriesDescriptions].join('. '))},
   };
 }
