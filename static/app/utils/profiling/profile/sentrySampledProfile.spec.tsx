@@ -43,15 +43,17 @@ export const makeSentrySampledProfile = (
         ],
         frames: [
           {
-            name: 'foo',
+            function: 'foo',
             instruction_addr: '',
-            line: 2,
+            lineno: 2,
+            colno: 2,
             file: 'main.c',
           },
           {
-            name: 'main',
+            function: 'main',
             instruction_addr: '',
-            line: 1,
+            lineno: 1,
+            colno: 1,
             file: 'main.c',
           },
         ],

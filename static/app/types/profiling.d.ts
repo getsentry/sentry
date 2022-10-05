@@ -9,10 +9,11 @@ declare namespace Profiling {
   type SentrySampledProfileStack = number[];
 
   type SentrySampledProfileFrame = {
-    name?: string;
+    function?: string;
     instruction_addr?: string;
-    line?: number;
-    file?: string;
+    lineno?: number;
+    colno?: number;
+    filename?: string;
   };
 
   type SentrySampledProfileDebugMetaImage = {

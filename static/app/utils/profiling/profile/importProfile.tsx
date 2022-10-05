@@ -193,8 +193,9 @@ function importSentrySampledProfile(
 
   const firstTransaction = input.transactions?.[0];
   return {
-    traceID: '',
-    name: '',
+    transactionID: firstTransaction?.id ?? null,
+    traceID: firstTransaction?.trace_id ?? '',
+    name: firstTransaction?.name ?? '',
     activeProfileIndex: 0,
     metadata: {
       // androidAPILevel: number;
