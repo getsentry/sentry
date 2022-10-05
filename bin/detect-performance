@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import click
+
+from sentry.runner import configure
+from sentry.utils import json
+
+configure()
+
+
+@click.command()
+@click.argument("filename", type=click.Path(exists=True))
+def main(filename):
+    """Runs performance detection on event data in the supplied filename using
+    default detector settings. Filename should be a JSON file."""
+    from sentry.utils.performance_issues.performance_detection import (
+        NPlusOneDBSpanDetectorExtended,
+        get_detection_settings,
+        run_detector_on_data,
+    )
+
+    settings = get_detection_settings()
+
+    with open(filename) as file:
+        data = json.loads(file.read())
+
+        detector = NPlusOneDBSpanDetectorExtended(settings, data)
+
+        run_detector_on_data(detector, data)
+
+        if len(detector.stored_problems) == 0:
+            click.echo("No problems detected")
+
+        for problem in detector.stored_problems.values():
+            click.echo(problem.to_dict())
+
+
+if __name__ == "__main__":
+    main()
