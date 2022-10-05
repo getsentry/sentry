@@ -3,6 +3,7 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -43,8 +44,16 @@ class ResultsHeader extends Component<Props, State> {
   };
 
   componentDidMount() {
-    if (this.props.eventView.id) {
+    const {eventView, isHomepage} = this.props;
+    const {loading} = this.state;
+    if (!isHomepage && eventView.id) {
       this.fetchData();
+    } else if (eventView.id === undefined && loading) {
+      // If this is a new query, there's nothing to load
+      this.setState({loading: false});
+    }
+    if (isHomepage) {
+      this.fetchHomepageQueryData();
     }
   }
 
@@ -66,6 +75,14 @@ class ResultsHeader extends Component<Props, State> {
         this.setState({savedQuery, loading: false});
       });
     }
+  }
+
+  fetchHomepageQueryData() {
+    const {api, organization} = this.props;
+    this.setState({loading: true});
+    fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
+      this.setState({homepageQuery, loading: false});
+    });
   }
 
   renderAuthor() {
@@ -124,7 +141,7 @@ class ResultsHeader extends Component<Props, State> {
             organization={organization}
             eventView={eventView}
             savedQuery={savedQuery}
-            savedQueryLoading={loading}
+            queryDataLoading={loading}
             disabled={errorCode >= 400 && errorCode < 500}
             updateCallback={() => this.fetchData()}
             yAxis={yAxis}
