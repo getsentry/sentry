@@ -168,6 +168,7 @@ function GroupHeader({
 
     return (
       <StyledTabList
+        hideBorder
         onSelectionChange={key => {
           trackAdvancedAnalyticsEvent('issue_group_details.tab.clicked', {
             organization,
@@ -492,6 +493,5 @@ const IconBadge = styled(Badge)`
 `;
 
 const StyledTabList = styled(TabList)`
-  border-bottom: none;
   margin-top: ${space(2)};
 `;
