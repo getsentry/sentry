@@ -4,7 +4,6 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
-import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
@@ -16,54 +15,40 @@ from sentry.rules.conditions.event_frequency import (
 )
 from sentry.testutils.cases import RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.perfomance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 
 
 class FrequencyConditionMixin:
-    def increment(self, event, count, environment=None, timestamp=None, event_type="error"):
+    def increment(self, event, count, environment=None, timestamp=None):
         raise NotImplementedError
 
-    def _run_test(self, minutes, data, passes, add_events=False, event_type="error"):
+    def _run_test(self, minutes, data, passes, add_events=False):
         if not self.environment:
             self.environment = self.create_environment(name="prod")
 
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
 
-        if event_type == "performance":
-            event = self.store_transaction(
-                project_id=self.project.id,
-                user_id=uuid4().hex,
-                fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
-            )
-        else:
-            event = self.store_event(
-                data={
-                    "fingerprint": ["something_random"],
-                    "timestamp": iso_format(before_now(minutes=minutes)),
-                    "user": {"id": uuid4().hex},
-                },
-                project_id=self.project.id,
-            )
+        event = self.store_event(
+            data={
+                "fingerprint": ["something_random"],
+                "timestamp": iso_format(before_now(minutes=minutes)),
+                "user": {"id": uuid4().hex},
+            },
+            project_id=self.project.id,
+        )
         if add_events:
             self.increment(
                 event,
                 data["value"] + 1,
                 environment=self.environment.name,
                 timestamp=now() - timedelta(minutes=minutes),
-                event_type=event_type,
             )
             self.increment(
                 event,
                 data["value"] + 1,
                 timestamp=now() - timedelta(minutes=minutes),
-                event_type=event_type,
             )
-
-        group = event.group if event.group is not None else event.groups[0]
-        event = event.for_group(group)
 
         if passes:
             self.assertPasses(rule, event)
@@ -77,60 +62,42 @@ class StandardIntervalMixin:
     def test_one_minute_with_events(self):
         data = {"interval": "1m", "value": 6}
         self._run_test(data=data, minutes=1, passes=True, add_events=True)
-        self._run_test(data=data, minutes=1, passes=True, add_events=True, event_type="performance")
         data = {"interval": "1m", "value": 16}
         self._run_test(data=data, minutes=1, passes=False)
-        self._run_test(data=data, minutes=1, passes=False, event_type="performance")
 
     def test_one_hour_with_events(self):
         data = {"interval": "1h", "value": 6}
         self._run_test(data=data, minutes=60, passes=True, add_events=True)
-        self._run_test(
-            data=data, minutes=60, passes=True, add_events=True, event_type="performance"
-        )
         data = {"interval": "1h", "value": 16}
         self._run_test(data=data, minutes=60, passes=False)
-        self._run_test(data=data, minutes=60, passes=False, event_type="performance")
 
     def test_one_day_with_events(self):
         data = {"interval": "1d", "value": 6}
         self._run_test(data=data, minutes=1440, passes=True, add_events=True)
-        self._run_test(
-            data=data, minutes=1440, passes=True, add_events=True, event_type="performance"
-        )
         data = {"interval": "1d", "value": 16}
         self._run_test(data=data, minutes=1440, passes=False)
-        self._run_test(data=data, minutes=1440, passes=False, event_type="performance")
 
     def test_one_week_with_events(self):
         data = {"interval": "1w", "value": 6}
         self._run_test(data=data, minutes=10080, passes=True, add_events=True)
-        self._run_test(
-            data=data, minutes=10080, passes=True, add_events=True, event_type="performance"
-        )
         data = {"interval": "1w", "value": 16}
         self._run_test(data=data, minutes=10080, passes=False)
-        self._run_test(data=data, minutes=10080, passes=False, event_type="performance")
 
     def test_one_minute_no_events(self):
         data = {"interval": "1m", "value": 6}
         self._run_test(data=data, minutes=1, passes=False)
-        self._run_test(data=data, minutes=1, passes=False, event_type="performance")
 
     def test_one_hour_no_events(self):
         data = {"interval": "1h", "value": 6}
         self._run_test(data=data, minutes=60, passes=False)
-        self._run_test(data=data, minutes=60, passes=False, event_type="performance")
 
     def test_one_day_no_events(self):
         data = {"interval": "1d", "value": 6}
         self._run_test(data=data, minutes=1440, passes=False)
-        self._run_test(data=data, minutes=1440, passes=False, event_type="performance")
 
     def test_one_week_no_events(self):
         data = {"interval": "1w", "value": 6}
         self._run_test(data=data, minutes=10080, passes=False)
-        self._run_test(data=data, minutes=10080, passes=False, event_type="performance")
 
     def test_comparison(self):
         # Test data is 4 events in the current period and 2 events in the comparison period, so
@@ -171,39 +138,6 @@ class StandardIntervalMixin:
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event)
 
-    def test_comparison_txn_events(self):
-        # Test data is 4 events in the current period and 2 events in the comparison period, so
-        # a 100% increase.
-        event = self.store_transaction(
-            project_id=self.project.id,
-            user_id=uuid4().hex,
-            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
-            timestamp=before_now(minutes=1).replace(tzinfo=pytz.utc),
-        )
-        self.increment(
-            event,
-            3,
-            timestamp=now() - timedelta(minutes=1),
-        )
-        self.increment(
-            event,
-            2,
-            timestamp=now() - timedelta(days=1, minutes=20),
-        )
-        data = {
-            "interval": "1h",
-            "value": 99,
-            "comparisonType": "percent",
-            "comparisonInterval": "1d",
-        }
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        group = event.group if event.group is not None else event.groups[0]
-        self.assertPasses(rule, event.for_group(group))
-
-        data["value"] = 101
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event.for_group(group))
-
     def test_comparison_empty_comparison_period(self):
         # Test data is 1 event in the current period and 0 events in the comparison period. This
         # should always result in 0 and never fire.
@@ -233,40 +167,15 @@ class StandardIntervalMixin:
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event)
 
-    def test_comparison_empty_comparison_period_txn_events(self):
-        # Test data is 1 event in the current period and 0 events in the comparison period. This
-        # should always result in 0 and never fire.
-        event = self.store_transaction(
-            project_id=self.project.id,
-            user_id=uuid4().hex,
-            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
-            timestamp=before_now(minutes=1).replace(tzinfo=pytz.utc),
-        )
-        data = {
-            "interval": "1h",
-            "value": 0,
-            "comparisonType": "percent",
-            "comparisonInterval": "1d",
-        }
-        group = event.group if event.group is not None else event.groups[0]
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event.for_group(group))
-
-        data["value"] = 100
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event.for_group(group))
-
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
-class EventFrequencyConditionTestCase(RuleTestCase, SnubaTestCase, PerfIssueTransactionTestMixin):
+class EventFrequencyConditionTestCase(
+    FrequencyConditionMixin, StandardIntervalMixin, RuleTestCase, SnubaTestCase
+):
     rule_cls = EventFrequencyCondition
 
-    def add_event(self, data, project_id, timestamp):
-        # Should create the event specific to this issue type
-        raise NotImplementedError()
-
-    def increment(self, event, count, environment=None, timestamp=None, event_type="error"):
+    def increment(self, event, count, environment=None, timestamp=None):
         data = {
             "fingerprint": event.data["fingerprint"],
             "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
@@ -274,24 +183,24 @@ class EventFrequencyConditionTestCase(RuleTestCase, SnubaTestCase, PerfIssueTran
         if environment:
             data["environment"] = environment
 
-        if event_type == "performance":
-            cls = PerformanceEventTestCase
-        else:
-            cls = ErrorEventTestCase
-
         for _ in range(count):
-            cls.add_event(self, data, self.project.id, timestamp)
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
 @region_silo_test
 class EventUniqueUserFrequencyConditionTestCase(
+    FrequencyConditionMixin,
+    StandardIntervalMixin,
     RuleTestCase,
     SnubaTestCase,
 ):
     rule_cls = EventUniqueUserFrequencyCondition
 
-    def increment(self, event, count, environment=None, timestamp=None, event_type="error"):
+    def increment(self, event, count, environment=None, timestamp=None):
         data = {
             "fingerprint": event.data["fingerprint"],
             "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
@@ -299,15 +208,13 @@ class EventUniqueUserFrequencyConditionTestCase(
         if environment:
             data["environment"] = environment
 
-        if event_type == "performance":
-            cls = PerformanceEventTestCase
-        else:
-            cls = ErrorEventTestCase
-
         for _ in range(count):
             event_data = deepcopy(data)
             event_data["user"] = {"id": uuid4().hex}
-            cls.add_event(self, event_data, self.project.id, timestamp)
+            self.store_event(
+                data=event_data,
+                project_id=self.project.id,
+            )
 
 
 @freeze_time((now() - timedelta(days=2)).replace(hour=12, minute=40, second=0, microsecond=0))
@@ -315,7 +222,6 @@ class EventUniqueUserFrequencyConditionTestCase(
 class EventFrequencyPercentConditionTestCase(
     RuleTestCase,
     SnubaTestCase,
-    PerfIssueTransactionTestMixin,
 ):
     rule_cls = EventFrequencyPercentCondition
 
@@ -342,54 +248,36 @@ class EventFrequencyPercentConditionTestCase(
 
         self.bulk_store_sessions([make_session(i) for i in range(num)])
 
-    def _run_test(self, minutes, data, passes, add_events=False, event_type="error"):
+    def _run_test(self, minutes, data, passes, add_events=False):
         if not self.environment or self.environment.name != "prod":
             self.environment = self.create_environment(name="prod")
         if not hasattr(self, "test_event"):
-            if event_type == "performance":
-                self.test_event = self.store_transaction(
-                    environment=self.environment.name,
-                    project_id=self.project.id,
-                    user_id=uuid4().hex,
-                    fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
-                    timestamp=before_now(minutes=minutes).replace(tzinfo=pytz.utc),
-                )
-            else:
-                self.test_event = self.store_event(
-                    data={
-                        "fingerprint": ["something_random"],
-                        "timestamp": iso_format(before_now(minutes=minutes)),
-                        "user": {"id": uuid4().hex},
-                        "environment": self.environment.name,
-                    },
-                    project_id=self.project.id,
-                )
+            self.test_event = self.store_event(
+                data={
+                    "fingerprint": ["something_random"],
+                    "timestamp": iso_format(before_now(minutes=minutes)),
+                    "user": {"id": uuid4().hex},
+                    "environment": self.environment.name,
+                },
+                project_id=self.project.id,
+            )
         if add_events:
             self.increment(
                 self.test_event,
                 max(1, int(minutes / 2)) - 1,
                 environment=self.environment.name,
                 timestamp=now() - timedelta(minutes=minutes),
-                event_type=event_type,
             )
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
-
-        group = (
-            self.test_event.group
-            if self.test_event.group is not None
-            else self.test_event.groups[0]
-        )
-        event = self.test_event.for_group(group)
-
         if passes:
-            self.assertPasses(rule, event)
-            self.assertPasses(environment_rule, event)
+            self.assertPasses(rule, self.test_event)
+            self.assertPasses(environment_rule, self.test_event)
         else:
-            self.assertDoesNotPass(rule, event)
-            self.assertDoesNotPass(environment_rule, event)
+            self.assertDoesNotPass(rule, self.test_event)
+            self.assertDoesNotPass(environment_rule, self.test_event)
 
-    def increment(self, event, count, environment=None, timestamp=None, event_type="error"):
+    def increment(self, event, count, environment=None, timestamp=None):
         data = {
             "fingerprint": event.data["fingerprint"],
             "timestamp": iso_format(timestamp) if timestamp else iso_format(before_now(minutes=1)),
@@ -397,15 +285,13 @@ class EventFrequencyPercentConditionTestCase(
         if environment:
             data["environment"] = environment
 
-        if event_type == "performance":
-            cls = PerformanceEventTestCase
-        else:
-            cls = ErrorEventTestCase
-
         for _ in range(count):
             event_data = deepcopy(data)
             event_data["user"] = {"id": uuid4().hex}
-            cls.add_event(self, event_data, self.project.id, timestamp)
+            self.store_event(
+                data=event_data,
+                project_id=self.project.id,
+            )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_five_minutes_with_events(self):
@@ -506,75 +392,3 @@ class EventFrequencyPercentConditionTestCase(
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         self.assertDoesNotPass(rule, event)
-
-    @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
-    def test_comparison_txn_events(self):
-        self._make_sessions(10)
-        # Create sessions for previous period
-        self._make_sessions(10)
-
-        # Test data is 2 events in the current period and 1 events in the comparison period.
-        # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
-        # is 10%. Overall a 100% increase comparitively.
-        event = self.store_transaction(
-            project_id=self.project.id,
-            user_id=uuid4().hex,
-            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
-            timestamp=before_now(minutes=1).replace(tzinfo=pytz.utc),
-        )
-        self.increment(
-            event,
-            1,
-            timestamp=now() - timedelta(minutes=1),
-        )
-        self.increment(
-            event,
-            1,
-            timestamp=now() - timedelta(days=1, minutes=20),
-        )
-        data = {
-            "interval": "1h",
-            "value": 99,
-            "comparisonType": "percent",
-            "comparisonInterval": "1d",
-        }
-        group = event.group if event.group is not None else event.groups[0]
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertPasses(rule, event.for_group(group))
-
-        data["value"] = 101
-        rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event.for_group(group))
-
-
-class ErrorEventTestCase(
-    EventFrequencyConditionTestCase,
-    EventUniqueUserFrequencyConditionTestCase,
-    EventFrequencyPercentConditionTestCase,
-    FrequencyConditionMixin,
-    StandardIntervalMixin,
-):
-    def add_event(self, data, project_id, timestamp):
-        # Store an error event
-        self.store_event(
-            data=data,
-            project_id=project_id,
-        )
-
-
-class PerformanceEventTestCase(
-    EventFrequencyConditionTestCase,
-    EventUniqueUserFrequencyConditionTestCase,
-    EventFrequencyPercentConditionTestCase,
-    FrequencyConditionMixin,
-    StandardIntervalMixin,
-):
-    def add_event(self, data, project_id, timestamp):
-        # Store a performance event
-        self.store_transaction(
-            environment=data.get("environment"),
-            project_id=project_id,
-            user_id=data.get("user", uuid4().hex),
-            fingerprint=data["fingerprint"],
-            timestamp=None,
-        )
