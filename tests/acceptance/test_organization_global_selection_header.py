@@ -1,9 +1,7 @@
-from datetime import datetime
-from unittest.mock import patch
-
 import pytest
 import pytz
 from django.utils import timezone
+from freezegun import freeze_time
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from fixtures.page_objects.issue_list import IssueListPage
@@ -272,8 +270,8 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )
 
-    @patch("django.utils.timezone.now")
-    def test_issues_list_to_details_and_back_with_all_projects(self, mock_now):
+    @freeze_time()
+    def test_issues_list_to_details_and_back_with_all_projects(self):
         """
         If user has access to the `global-views` feature, which allows selecting multiple projects,
         they should be able to visit issues list with no project in URL and list issues
@@ -283,7 +281,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         "My Projects" in issues list.
         """
         with self.feature("organizations:global-views"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_for_issue()
@@ -310,13 +307,12 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
                 self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
             )
 
-    @patch("django.utils.timezone.now")
-    def test_issues_list_to_details_and_back_with_initial_project(self, mock_now):
+    @freeze_time()
+    def test_issues_list_to_details_and_back_with_initial_project(self):
         """
         If user has a project defined in URL, if they visit an issue and then
         return back to issues list, that project id should still exist in URL
         """
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
         self.issues_list.visit_issue_list(self.org.slug, query=f"?project={self.project_2.id}")
         self.issues_list.wait_for_issue()
@@ -343,14 +339,13 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert f"project={self.project_3.id}" in self.browser.current_url
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_3.slug
 
-    @patch("django.utils.timezone.now")
-    def test_issue_details_to_stream_with_initial_env_no_project(self, mock_now):
+    @freeze_time()
+    def test_issue_details_to_stream_with_initial_env_no_project(self):
         """
         Visiting issue details directly with no project but with an environment defined in URL.
         When navigating back to issues stream, should keep environment and project in context.
         """
 
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
         self.create_issues()
         self.issue_details.visit_issue_in_environment(self.org.slug, self.issue_2.group.id, "prod")
 
@@ -371,17 +366,14 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
         assert self.issue_details.global_selection.get_selected_environment() == "prod"
 
-    @patch("django.utils.timezone.now")
-    def test_issue_details_to_stream_with_initial_env_no_project_with_multi_project_feature(
-        self, mock_now
-    ):
+    @freeze_time()
+    def test_issue_details_to_stream_with_initial_env_no_project_with_multi_project_feature(self):
         """
         Visiting issue details directly with no project but with an environment defined in URL.
         When navigating back to issues stream, should keep environment and project in context.
         """
 
         with self.feature("organizations:global-views"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
             self.issue_details.visit_issue_in_environment(
                 self.org.slug, self.issue_2.group.id, "prod"

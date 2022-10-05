@@ -1,8 +1,7 @@
-from unittest.mock import patch
 from urllib.parse import urlencode
 
-import pytz
 from django.db.models import F
+from freezegun import freeze_time
 
 from fixtures.page_objects.base import BasePage
 from sentry.models import Project
@@ -55,9 +54,10 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
 
         self.page = BasePage(self.browser)
 
-    @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_with_data(
+        self,
+    ):
         values = range(1, 100, 5)
 
         self.make_trend("improvement", [v for v in reversed(values)])

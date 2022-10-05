@@ -1,9 +1,8 @@
 from datetime import timedelta
-from unittest.mock import patch
 from urllib.parse import urlencode
 
 import pytest
-import pytz
+from freezegun import freeze_time
 
 from fixtures.page_objects.base import BasePage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
@@ -89,10 +88,8 @@ class PerformanceSpanSummaryTest(AcceptanceTestCase, SnubaTestCase):
         return self.store_event(data, project_id=self.project.id)
 
     @pytest.mark.skip(reason="Has been flaky lately.")
-    @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_with_data(self):
         self.create_event()
 
         with self.feature(FEATURES):

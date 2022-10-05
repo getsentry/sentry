@@ -1,8 +1,7 @@
 from datetime import timedelta
-from unittest.mock import patch
 from uuid import uuid4
 
-import pytz
+from freezegun import freeze_time
 
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -187,10 +186,10 @@ class PerformanceTraceDetailTest(AcceptanceTestCase, SnubaTestCase):
             iso_format(before_now(days=1).replace(hour=11, minute=0, second=0, microsecond=0)),
         )
 
-    @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_with_data(
+        self,
+    ):
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')

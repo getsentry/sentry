@@ -1,7 +1,6 @@
-from unittest.mock import patch
 from urllib.parse import urlencode
 
-import pytz
+from freezegun import freeze_time
 
 from fixtures.page_objects.transaction_summary import TransactionSummaryPage
 from sentry.models import AssistantActivity
@@ -39,10 +38,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         self.page = TransactionSummaryPage(self.browser)
 
-    @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_with_data(self):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
         self.store_event(data=event, project_id=self.project.id)
@@ -64,10 +61,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot("performance summary - with data")
 
-    @patch("django.utils.timezone.now")
-    def test_view_details_from_summary(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_view_details_from_summary(self):
         event = make_event(
             load_data(
                 "transaction", timestamp=before_now(minutes=3), trace="a" * 32, span_id="ab" * 8
@@ -84,10 +79,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot("performance event details")
 
-    @patch("django.utils.timezone.now")
-    def test_tags_page(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_tags_page(self):
         tags_path = "/organizations/{}/performance/summary/tags/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
@@ -104,10 +97,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
             self.browser.snapshot("transaction summary tags page")
 
-    @patch("django.utils.timezone.now")
-    def test_transaction_vitals(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_transaction_vitals(self):
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
             urlencode({"transaction": "/country_by_code/", "project": self.project.id}),
@@ -127,10 +118,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("real user monitoring")
 
-    @patch("django.utils.timezone.now")
-    def test_transaction_vitals_filtering(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_transaction_vitals_filtering(self):
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
             self.org.slug,
             urlencode(
@@ -191,10 +180,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("real user monitoring - view all data")
 
-    @patch("django.utils.timezone.now")
-    def test_transaction_threshold_modal(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_transaction_threshold_modal(self):
         # Create a transaction
         event = make_event(load_data("transaction", timestamp=before_now(minutes=3)))
         self.store_event(data=event, project_id=self.project.id)

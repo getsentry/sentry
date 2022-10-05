@@ -1,8 +1,6 @@
-from datetime import datetime
-from unittest.mock import patch
-
 import pytz
 from django.utils import timezone
+from freezegun import freeze_time
 
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
@@ -65,9 +63,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_test_id("empty-state")
         self.browser.snapshot("organization issues no results")
 
-    @patch("django.utils.timezone.now")
-    def test_with_results(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_with_results(self):
         self.create_issues()
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -78,9 +75,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert "oh snap" in groups[0].text
         assert "oh no" in groups[1].text
 
-    @patch("django.utils.timezone.now")
-    def test_resolve_issues(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_resolve_issues(self):
         self.create_issues()
         self.page.visit_issue_list(self.org.slug)
         self.page.wait_for_stream()
@@ -94,9 +90,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
         assert len(resolved_groups) == 2
 
-    @patch("django.utils.timezone.now")
-    def test_resolve_issues_removal(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_resolve_issues_removal(self):
         self.create_issues()
         # TODO(Kelly): update once issue-list-removal-action feature is stable
         with self.feature("organizations:issue-list-removal-action"):
@@ -115,9 +110,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_resolve_issues_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_resolve_issues_multi_projects(self):
         self.create_issues()
 
         with self.feature("organizations:global-views"):
@@ -133,9 +127,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             assert len(resolved_groups) == 2
 
-    @patch("django.utils.timezone.now")
-    def test_resolve_issues_removal_multi_projects(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_resolve_issues_removal_multi_projects(self):
         self.create_issues()
 
         # TODO(Kelly): update once issue-list-removal-action feature is stable
@@ -157,11 +150,10 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_ignore_issues(self, mock_now):
+    @freeze_time()
+    def test_ignore_issues(self):
         # TODO(Kelly): update once issue-list-removal-action feature is stable
         with self.feature("organizations:issue-list-removal-action"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
 
             group1 = self.event_a.group
@@ -179,11 +171,10 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_ignore_issues_multi_projects(self, mock_now):
+    @freeze_time()
+    def test_ignore_issues_multi_projects(self):
         # TODO(Kelly): update once issue-list-removal-action feature is stable
         with self.feature("organizations:issue-list-removal-action"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
 
             group1 = self.event_a.group
@@ -202,11 +193,10 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
                 assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_delete_issues(self, mock_now):
+    @freeze_time()
+    def test_delete_issues(self):
         # TODO(Kelly): update once issue-list-removal-action feature is stable
         with self.feature("organizations:issue-list-removal-action"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
 
             group1 = self.event_a.group
@@ -224,11 +214,10 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_delete_issues_multi_projects(self, mock_now):
+    @freeze_time()
+    def test_delete_issues_multi_projects(self):
         # TODO(Kelly): update once issue-list-removal-action feature is stable
         with self.feature("organizations:issue-list-removal-action"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
 
             group1 = self.event_a.group
@@ -247,11 +236,10 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
                 assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_merge_issues(self, mock_now):
+    @freeze_time()
+    def test_merge_issues(self):
         # TODO(Kelly): update once issue-list-removal-action feature is stable
         with self.feature("organizations:issue-list-removal-action"):
-            mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
             self.create_issues()
 
             group1 = self.event_a.group
@@ -272,9 +260,8 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
 
             assert len(groups) == 1
 
-    @patch("django.utils.timezone.now")
-    def test_inbox_results(self, mock_now):
-        mock_now.return_value = datetime.utcnow().replace(tzinfo=pytz.utc)
+    @freeze_time()
+    def test_inbox_results(self):
         self.create_issues()
         # Disable for_review_guide
         AssistantActivity.objects.create(user=self.user, guide_id=9, viewed_ts=timezone.now())

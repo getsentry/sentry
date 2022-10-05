@@ -1,10 +1,10 @@
 import copy
-from datetime import timedelta
-from unittest.mock import patch
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import pytest
 import pytz
+from freezegun import freeze_time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
@@ -182,10 +182,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - all events query - empty state - no tags")
 
-    @patch("django.utils.timezone.now")
-    def test_all_events_query(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
-        mock_now.return_value = now
+    @freeze_time()
+    def test_all_events_query(self):
+        now = datetime.now(pytz.utc)
         five_mins_ago = iso_format(now - timedelta(minutes=5))
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
@@ -243,10 +242,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "events-v2 - errors query - empty state - querybuilder - column edit state"
             )
 
-    @patch("django.utils.timezone.now")
-    def test_errors_query(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
-        mock_now.return_value = now
+    @freeze_time()
+    def test_errors_query(self):
+        now = datetime.now(pytz.utc)
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
         self.store_event(
             data={
@@ -299,10 +297,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.snapshot("events-v2 - transactions query - empty state - no tags")
 
-    @patch("django.utils.timezone.now")
-    def test_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_transactions_query(self):
         event_data = generate_transaction()
 
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
@@ -315,10 +311,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             )
             self.browser.snapshot("events-v2 - transactions query - list")
 
-    @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_all_events(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
-        mock_now.return_value = now
+    @freeze_time()
+    def test_event_detail_view_from_all_events(self):
+        now = datetime.now(pytz.utc)
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
 
         event_data = load_data("python")
@@ -353,10 +348,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("events-v2 - single error details view")
 
-    @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_errors_view(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
-        mock_now.return_value = now
+    @freeze_time()
+    def test_event_detail_view_from_errors_view(self):
+        now = datetime.now(pytz.utc)
 
         event_data = load_data("javascript")
         event_data.update(
@@ -389,10 +383,10 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("events-v2 - error event detail view")
 
-    @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_transactions_query(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_event_detail_view_from_transactions_query(
+        self,
+    ):
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
@@ -438,10 +432,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.click(child_button)
             self.wait_until_loaded()
 
-    @patch("django.utils.timezone.now")
-    def test_event_detail_view_from_transactions_query_siblings(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_event_detail_view_from_transactions_query_siblings(self):
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
 
         # Arranges sibling spans to be autogrouped in a way that will cover many edgecases
@@ -526,10 +518,8 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "events-v2 - transactions event after regrouping expanded sibling auto-grouped spans"
             )
 
-    @patch("django.utils.timezone.now")
-    def test_transaction_event_detail_view_ops_filtering(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_transaction_event_detail_view_ops_filtering(self):
         event_data = generate_transaction(trace="a" * 32, span="ab" * 8)
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=True)
 
@@ -676,10 +666,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             assert DiscoverSavedQuery.objects.filter(name=duplicate_name).exists()
 
     @pytest.mark.skip(reason="causing timeouts in github actions and travis")
-    @patch("django.utils.timezone.now")
-    def test_drilldown_result(self, mock_now):
-        now = before_now().replace(tzinfo=pytz.utc)
-        mock_now.return_value = now
+    @freeze_time()
+    def test_drilldown_result(self):
+        now = datetime.now(pytz.utc)
         ten_mins_ago = iso_format(now - timedelta(minutes=10))
         events = (
             ("a" * 32, "oh no", "group-1"),
@@ -715,10 +704,9 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             assert expected == actual
 
     @pytest.mark.skip(reason="not done")
-    @patch("django.utils.timezone.now")
-    def test_usage(self, mock_now):
-        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
-
+    @freeze_time()
+    def test_usage(self):
+        pass
         # TODO: load events
 
         # go to landing
