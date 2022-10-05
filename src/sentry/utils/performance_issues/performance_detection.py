@@ -191,13 +191,22 @@ def detect_performance_problems(data: Event) -> List[PerformanceProblem]:
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: str):
-    default_project_settings = projectoptions.get_well_known_default(
-        "sentry:performance_issue_settings",
-        project=project_id,
+def get_detection_settings(project_id: Optional[str] = None):
+    default_project_settings = (
+        projectoptions.get_well_known_default(
+            "sentry:performance_issue_settings",
+            project=project_id,
+        )
+        if project_id
+        else {}
     )
-    project_settings = ProjectOption.objects.get_value(
-        project_id, "sentry:performance_issue_settings", default_project_settings
+
+    project_settings = (
+        ProjectOption.objects.get_value(
+            project_id, "sentry:performance_issue_settings", default_project_settings
+        )
+        if project_id
+        else {}
     )
 
     use_project_option_settings = default_project_settings != project_settings
