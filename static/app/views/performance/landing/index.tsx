@@ -8,6 +8,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -56,6 +57,10 @@ import {
   LANDING_DISPLAYS,
   LandingDisplayField,
 } from './utils';
+
+const DynamicSamplingCTAHook = HookOrDefault({
+  hookName: 'component:dynamic-sampling-performance-cta',
+});
 
 type Props = {
   eventView: EventView;
@@ -150,6 +155,8 @@ export function PerformanceLanding(props: Props) {
   const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
 
   const fullSelectedProjects = eventView.getFullSelectedProjects(projects);
+  const selectedProject =
+    fullSelectedProjects.length === 1 ? fullSelectedProjects[0] : undefined;
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -216,18 +223,20 @@ export function PerformanceLanding(props: Props) {
                         router={props.router}
                         {...metricsDataSide}
                       />
-                      {!metricsDataSide.shouldWarnIncompatibleSDK &&
+                      {selectedProject &&
+                        !metricsDataSide.shouldWarnIncompatibleSDK &&
                         !metricsDataSide.shouldNotifyUnnamedTransactions && (
-                          <DynamicSamplingMetricsAccuracyAlert
-                            organization={organization}
-                            selectedProject={
-                              fullSelectedProjects.length === 1
-                                ? fullSelectedProjects[0]
-                                : undefined
-                            }
-                          />
+                          <Fragment>
+                            <DynamicSamplingMetricsAccuracyAlert
+                              organization={organization}
+                              selectedProject={selectedProject}
+                            />
+                            <DynamicSamplingCTAHook
+                              organization={organization}
+                              project={selectedProject}
+                            />
+                          </Fragment>
                         )}
-
                       <PageErrorAlert />
                       {showOnboarding ? (
                         <Fragment>

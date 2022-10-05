@@ -25,9 +25,8 @@ type Props = {
 // This alert will be shown if there is:
 // - all the required feature flags are enabled
 // - only one project selected
-// - the use viewing this has project:write permission
 // - if the diff between the current and recommended sample rates is equal or greater than 50%
-// - if we don't display other dynamic sampling alerts. According to the code this cans till be shown toegther with global sdk updates alert
+// - if we don't display other dynamic sampling alerts. According to the code this cans till be shown together with global sdk updates alert
 export function DynamicSamplingMetricsAccuracyAlert({
   organization,
   selectedProject,
