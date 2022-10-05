@@ -366,7 +366,9 @@ def post_process_group(
 
         group_states = kwargs.get("group_states")
 
-        if group_states is None:
+        # TODO: Remove this check once we're sending all group ids as `group_states` and treat all
+        # events the same way
+        if event.get_event_type() != "transaction" or group_states is None:
             # error issue
             group_states = [
                 {
