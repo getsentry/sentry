@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
+import re
 import time
+import typing
 from collections import deque
 from concurrent.futures import Future
 from io import BytesIO
@@ -108,6 +110,9 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             except MissingRecordingSegmentHeaders:
                 logger.warning(f"missing header on {message_dict['replay_id']}")
                 return
+
+            # Server side PII stripping enabled by default.
+            recording_segment = strip_pii_from_rrweb(recording_segment)
 
             # create a File for our recording segment.
             recording_segment_file_name = f"rr:{message_dict['replay_id']}:{headers['segment_id']}"
@@ -264,3 +269,96 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str) -> str:
     return f"{project_id}:{replay_id}"
+
+
+SKIP_NODES = {"style", "script"}
+PATTERNS = [
+    # US SSN
+    re.compile(r"(?x)\b([0-9]{3}-[0-9]{2}-[0-9]{4})\b"),
+    # UUIDs
+    re.compile(r"(?ix)\b[a-z0-9]{8}-?[a-z0-9]{4}-?[a-z0-9]{4}-?[a-z0-9]{4}-?[a-z0-9]{12}\b"),
+    # Email
+    re.compile(r"(?x)\b[a-zA-Z0-9.!\#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\b"),
+    # MAC
+    re.compile(r"(?x)\b([[:xdigit:]]{2}[:-]){5}[[:xdigit:]]{2}\b"),
+    # IMEI
+    re.compile(
+        r"""(?x)
+        \b
+            (\d{2}-?
+             \d{6}-?
+             \d{6}-?
+             \d{1,2})
+        \b
+        """
+    ),
+    # Credit Card
+    re.compile(
+        r"""(?x)
+        \b(
+            (?:  # vendor specific prefixes
+                  3[47]\d      # amex (no 13-digit version) (length: 15)
+                | 4\d{3}       # visa (16-digit version only)
+                | 5[1-5]\d\d   # mastercard
+                | 65\d\d       # discover network (subset)
+                | 6011         # discover network (subset)
+            )
+            # "wildcard" remainder (allowing dashes in every position because of variable length)
+            ([-\s]?\d){12}
+        )\b
+    """
+    ),
+    # PEM Key
+    re.compile(
+        r"""(?sx)
+        (?:
+            -----
+            BEGIN[A-Z\ ]+(?:PRIVATE|PUBLIC)\ KEY
+            -----
+            [\t\ ]*\r?\n?
+        )
+        (.+?)
+        (?:
+            \r?\n?
+            -----
+            END[A-Z\ ]+(?:PRIVATE|PUBLIC)\ KEY
+            -----
+        )
+    """
+    ),
+    # Auth URL
+    re.compile(
+        r"""(?x)
+        \b(?:
+            (?:[a-z0-9+-]+:)?//
+            ([a-zA-Z0-9%_.-]+(?::[a-zA-Z0-9%_.-]+)?)
+        )@
+    """
+    ),
+    # Password
+    re.compile(
+        r"(?i)(password|secret|passwd|api_key|apikey|access_token|auth|credentials|mysql_pwd|stripetoken|privatekey|private_key|github_token)"
+    ),
+]
+
+
+def strip_pii_from_rrweb(rrweb_output: bytes) -> bytes:
+    root = json.loads(rrweb_output)
+    for node in root:
+        if node["type"] == 2:
+            _recurse_rrweb(node["data"]["node"]["childNodes"])
+    return json.dumps(root).encode()
+
+
+def _recurse_rrweb(nodes: list[dict[str, typing.Any]]) -> None:
+    for node in nodes:
+        if node["type"] == 2 and node["tagName"] not in SKIP_NODES:
+            _recurse_rrweb(node["childNodes"])
+        elif node["type"] == 3:
+            for pattern in PATTERNS:
+                node["textContent"] = pattern.sub(_replace_text, node["textContent"])
+
+
+def _replace_text(match_obj: typing.Any) -> str:
+    """Replace text-content with asterisks."""
+    return "*" * len(match_obj.group(0))
