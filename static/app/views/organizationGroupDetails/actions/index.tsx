@@ -345,6 +345,10 @@ class Actions extends Component<Props, State> {
     });
   };
 
+  openShareModal = () => {
+    openModal(this.renderDiscardModal);
+  };
+
   handleClick(disabled: boolean, onClick: (event?: MouseEvent) => void) {
     return function (event: MouseEvent) {
       if (disabled) {
@@ -363,8 +367,9 @@ class Actions extends Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
-    const shareKey = isBookmarked ? 'unbookmark' : 'bookmark';
-    const shareTitle = isBookmarked ? t('Unshare') : t('Share');
+    const isShared = group.isPublic;
+    const shareKey = isShared ? 'shared' : 'share';
+    const shareTitle = isShared ? t('Shared') : t('Share');
     const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
@@ -382,23 +387,6 @@ class Actions extends Component<Props, State> {
     if (organization.features.includes('shared-issues')) {
       return (
         <Wrapper>
-          {/* <ReviewAction
-            onUpdate={this.onUpdate}
-            disabled={!group.inbox || disabled}
-            tooltip={t('Issue has been reviewed')}
-            tooltipProps={{disabled: !!group.inbox || disabled, delay: 300}}
-          /> */}
-          {/* {orgFeatures.has('shared-issues') && (
-            <ShareIssue
-              disabled={disabled || !shareCap.enabled}
-              disabledReason={shareCap.disabledReason}
-              loading={this.state.shareBusy}
-              isShared={group.isPublic}
-              shareUrl={this.getShareUrl(group.shareId)}
-              onToggle={this.onToggleShare}
-              onReshare={() => this.onShare(true)}
-            />
-          )} */}
           <Access organization={organization} access={['event:admin']}>
             {({hasAccess}) => (
               <DropdownMenuControl
@@ -409,10 +397,18 @@ class Actions extends Component<Props, State> {
                   size: 'sm',
                 }}
                 items={[
+                  ...(orgFeatures.has('shared-issues')
+                    ? [
+                        {
+                          key: shareKey,
+                          label: shareTitle,
+                          onAction: this.openShareModal,
+                        },
+                      ]
+                    : []),
                   {
                     key: bookmarkKey,
                     label: bookmarkTitle,
-                    hidden: false,
                     onAction: this.onToggleBookmark,
                   },
                   {
