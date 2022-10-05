@@ -71,6 +71,7 @@ backend_src: &backend_src
 backend_all: &backend_all
   - *backend_src
   - '**/*.py'
+  - '**/*.pyi'
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance

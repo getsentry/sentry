@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
-import brotli  # type: ignore
+import brotli
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse
