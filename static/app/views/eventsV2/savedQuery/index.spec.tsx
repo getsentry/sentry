@@ -38,6 +38,7 @@ function mount(
       router={router}
       savedQueryLoading={false}
       setSavedQuery={jest.fn()}
+      setHomepageQuery={jest.fn()}
     />
   );
 }
@@ -65,6 +66,7 @@ function generateWrappedComponent(
         router={router}
         savedQueryLoading={false}
         setSavedQuery={mockSetSavedQuery}
+        setHomepageQuery={jest.fn()}
       />
     ),
   };
