@@ -131,7 +131,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             limitby=None,
             limit=Limit(limit=51),
             offset=Offset(offset=0),
-            granularity=None,
+            granularity=Granularity(granularity=86400),
             totals=None,
         ),
         MetricsQuery(
@@ -171,7 +171,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             ],
             start=datetime.datetime(2022, 3, 24, 11, 11, 35, 447729, tzinfo=pytz.utc),
             end=datetime.datetime(2022, 6, 22, 11, 11, 35, 447729, tzinfo=pytz.utc),
-            granularity=Granularity(granularity=3600),
+            granularity=Granularity(granularity=86400),
             where=None,
             groupby=[MetricGroupByField("transaction")],
             limit=Limit(limit=51),
@@ -274,7 +274,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             limitby=None,
             limit=Limit(limit=51),
             offset=Offset(offset=0),
-            granularity=None,
+            granularity=Granularity(granularity=86400),
             totals=None,
         ),
         MetricsQuery(
@@ -306,7 +306,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             ],
             start=datetime.datetime(2022, 3, 24, 11, 11, 38, 32475, tzinfo=pytz.utc),
             end=datetime.datetime(2022, 6, 22, 11, 11, 38, 32475, tzinfo=pytz.utc),
-            granularity=Granularity(granularity=3600),
+            granularity=Granularity(granularity=86400),
             where=[
                 MetricConditionField(
                     lhs=MetricField(
@@ -440,7 +440,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             limitby=None,
             limit=Limit(limit=51),
             offset=Offset(offset=0),
-            granularity=None,
+            granularity=Granularity(granularity=86400),
             totals=None,
         ),
         MetricsQuery(
@@ -481,7 +481,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             ],
             start=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535, tzinfo=pytz.utc),
             end=datetime.datetime(2022, 6, 22, 11, 11, 37, 278535, tzinfo=pytz.utc),
-            granularity=Granularity(granularity=3600),
+            granularity=Granularity(granularity=86400),
             where=None,
             groupby=[
                 MetricGroupByField("project_id", alias=None),
@@ -564,7 +564,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             limitby=None,
             limit=Limit(limit=51),
             offset=Offset(offset=0),
-            granularity=None,
+            granularity=Granularity(granularity=3600),
             totals=None,
         ),
         MetricsQuery(
@@ -736,7 +736,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             limitby=None,
             limit=Limit(limit=50),
             offset=Offset(offset=0),
-            granularity=None,
+            granularity=Granularity(granularity=3600),
             totals=None,
         ),
         MetricsQuery(
@@ -823,7 +823,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             limitby=None,
             limit=Limit(limit=50),
             offset=Offset(offset=0),
-            granularity=None,
+            granularity=Granularity(granularity=3600),
             totals=None,
         ),
         MetricsQuery(
