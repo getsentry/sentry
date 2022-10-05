@@ -106,9 +106,9 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
             select=[
                 MetricField(
                     op=None,
@@ -116,9 +116,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="errored_sessions_alias",
                 ),
             ],
-            start=self.now() - timedelta(minutes=6),
-            end=self.now(),
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
         )
@@ -151,9 +148,9 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     value=v,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="histogram",
@@ -165,9 +162,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="histogram_non_filtered_duration",
                 ),
             ],
-            start=self.now() - timedelta(hours=1),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,
@@ -234,9 +228,9 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             InvalidParams,
             match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
         ):
-            MetricsQuery(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
+            self.build_metrics_query(
+                before_now="1h",
+                granularity="1h",
                 select=[
                     MetricField(
                         op=None,
@@ -244,9 +238,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                         alias="errored_preaggregated_sessions_alias",
                     ),
                 ],
-                start=self.now() - timedelta(hours=1),
-                end=self.now(),
-                granularity=Granularity(granularity=3600),
                 limit=Limit(limit=51),
                 offset=Offset(offset=0),
             )

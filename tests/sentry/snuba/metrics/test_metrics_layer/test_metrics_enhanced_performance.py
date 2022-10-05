@@ -77,9 +77,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     value=value,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="count",
@@ -92,9 +92,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="count_fcp",
                 ),
             ],
-            start=self.now() - timedelta(hours=1),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             groupby=[MetricGroupByField(name="transaction", alias="transaction_group")],
             orderby=[
                 OrderBy(
@@ -157,9 +154,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     value=value,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="count",
@@ -172,9 +169,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="count_lcp_2",
                 ),
             ],
-            start=self.now() - timedelta(hours=1),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             groupby=[
                 MetricGroupByField("transaction", alias="transaction_group"),
             ],
@@ -239,18 +233,15 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="count",
                     metric_mri=transactions_speed_mri,
                 ),
             ],
-            start=self.now() - timedelta(hours=1),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             groupby=[],
             orderby=[],
             limit=Limit(limit=1),
@@ -298,18 +289,15 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ):
                 # We keep the query in order to add more context to the test, even though the actual test
                 # is testing for the '__post_init__' inside 'MetricField'.
-                metrics_query = MetricsQuery(
-                    org_id=self.organization.id,
-                    project_ids=[self.project.id],
+                metrics_query = self.build_metrics_query(
+                    before_now="1h",
+                    granularity="1h",
                     select=[
                         MetricField(
                             op="count",
                             metric_mri=invalid_mri,
                         ),
                     ],
-                    start=self.now() - timedelta(hours=1),
-                    end=self.now(),
-                    granularity=Granularity(granularity=3600),
                     groupby=[],
                     orderby=[],
                     limit=Limit(limit=2),
@@ -332,17 +320,15 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
             select=[
                 MetricField(
                     op="count",
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=self.now() - timedelta(minutes=1),
-            end=self.now(),
             groupby=[],
             where=[
                 Condition(
@@ -361,7 +347,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     ),
                 )
             ],
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=1),
             offset=Offset(offset=0),
             include_series=False,
@@ -407,9 +392,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     value=value,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
             select=[
                 MetricField(
                     op="count_transaction_name",
@@ -430,10 +415,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="count_transaction_name_has_value",
                 ),
             ],
-            start=self.now() - timedelta(minutes=1),
-            end=self.now(),
             groupby=[],
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
@@ -484,9 +466,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
         invalid_condition = "invalid"
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
             select=[
                 MetricField(
                     op="count_transaction_name",
@@ -495,10 +477,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="count_transaction_name_invalid",
                 ),
             ],
-            start=self.now() - timedelta(minutes=1),
-            end=self.now(),
             groupby=[],
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=3),
             offset=Offset(offset=0),
             include_series=False,
@@ -531,9 +510,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
             select=[
                 MetricField(
                     op=None,
@@ -541,9 +520,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="failure_rate_alias",
                 ),
             ],
-            start=self.now() - timedelta(minutes=1),
-            end=self.now(),
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=2),
             offset=Offset(offset=0),
             include_series=False,
@@ -583,9 +559,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     value=subvalue,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="p50",
@@ -598,8 +574,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="p50_fcp",
                 ),
             ],
-            start=self.now() - timedelta(hours=1),
-            end=self.now(),
             groupby=[
                 MetricGroupByField("transaction", "transaction_group"),
                 MetricGroupByField("project_id", "project"),
@@ -615,7 +589,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     direction=Direction.ASC,
                 )
             ],
-            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
         )
@@ -674,9 +647,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     value=subvalue,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="histogram",
@@ -699,9 +672,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="histogram_lcp_2",
                 ),
             ],
-            start=self.now() - timedelta(hours=1),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,
@@ -734,9 +704,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     hours_before_now=hour,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="6h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="rate",
@@ -748,9 +718,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=self.now() - timedelta(hours=6),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -786,9 +753,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     hours_before_now=hour,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="6h",
+            granularity="1h",
             select=[
                 MetricField(
                     op="rate",
@@ -796,9 +763,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     params={"numerator": 86400, "denominator": 60},
                 ),
             ],
-            start=self.now() - timedelta(hours=6),
-            end=self.now(),
-            granularity=Granularity(granularity=3600),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -897,9 +861,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     minutes_before_now=minute,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
             select=[
                 MetricField(
                     op="rate",
@@ -911,9 +875,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=self.now() - timedelta(minutes=6),
-            end=self.now(),
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -951,18 +912,15 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     minutes_before_now=minute,
                 )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="6m",
+            granularity="1m",
             select=[
                 MetricField(
                     op="rate",
                     metric_mri=TransactionMRI.DURATION.value,
                 ),
             ],
-            start=self.now() - timedelta(minutes=6),
-            end=self.now(),
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=True,
@@ -1014,16 +972,14 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ),
         ):
             self.store_performance_metric(
-                org_id=self.organization.id,
-                project_id=self.project.id,
                 name=metric_mri,
                 tags=tags,
                 value=value,
             )
 
-        metrics_query = MetricsQuery(
-            org_id=self.organization.id,
-            project_ids=[self.project.id],
+        metrics_query = self.build_metrics_query(
+            before_now="1m",
+            granularity="1m",
             select=[
                 MetricField(
                     op="count_web_vitals",
@@ -1056,14 +1012,11 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     alias="count_web_vitals_measurements_cls_good",
                 ),
             ],
-            start=self.now() - timedelta(minutes=1),
             groupby=[
                 MetricGroupByField(
                     name="transaction",
                 )
             ],
-            end=self.now(),
-            granularity=Granularity(granularity=60),
             limit=Limit(limit=51),
             offset=Offset(offset=0),
             include_series=False,

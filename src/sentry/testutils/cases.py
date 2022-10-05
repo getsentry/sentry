@@ -40,7 +40,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Sequence, Union
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -69,6 +69,8 @@ from pkg_resources import iter_entry_points
 from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk import Granularity, Limit, Offset
+from snuba_sdk.conditions import ConditionGroup
 
 from sentry import auth, eventstore
 from sentry.auth.authenticators import TotpInterface
@@ -131,6 +133,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
+from ..snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, OrderBy, get_date_range
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
 from . import assert_status_code
 from .factories import Factories
@@ -1362,6 +1365,39 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
             seconds_before_now=seconds_before_now,
+        )
+
+    def build_metrics_query(
+        self,
+        select: Sequence[MetricField],
+        where: Optional[ConditionGroup] = None,
+        groupby: Optional[Sequence[MetricGroupByField]] = None,
+        orderby: Optional[Sequence[OrderBy]] = None,
+        limit: Optional[Limit] = None,
+        offset: Optional[Offset] = None,
+        include_totals: bool = True,
+        include_series: bool = True,
+        before_now: str = None,
+        granularity: str = None,
+    ):
+        (start, end, granularity_in_seconds) = get_date_range(
+            {"statsPeriod": before_now, "interval": granularity}
+        )
+
+        return MetricsQuery(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            select=select,
+            start=start,
+            end=end,
+            granularity=Granularity(granularity=granularity_in_seconds),
+            where=where,
+            groupby=groupby,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+            include_totals=include_totals,
+            include_series=include_series,
         )
 
 
