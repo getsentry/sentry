@@ -6,9 +6,11 @@ from django.conf import settings
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from requests import request as external_request
+from requests.exceptions import Timeout
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
+from sentry.api.exceptions import RequestTimeout
 from sentry.models.organization import Organization
 
 # stream 0.5 MB at a time
@@ -19,8 +21,12 @@ def _parse_response(response: ExternalResponse) -> StreamingHttpResponse:
     """
     Convert the Responses class from requests into the drf Response
     """
+
+    def stream_response():  # type: ignore
+        yield from response.iter_content(PROXY_CHUNK_SIZE)
+
     streamed_response = StreamingHttpResponse(
-        streaming_content=(chunk for chunk in response.iter_content(PROXY_CHUNK_SIZE)),
+        streaming_content=stream_response(),
         status=response.status_code,
         content_type=response.headers.pop("Content-Type"),
     )
@@ -48,6 +54,10 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
         "stream": True,
         "timeout": settings.GATEWAY_PROXY_TIMEOUT,
     }
-    resp: ExternalResponse = external_request(request.method, target_url, **request_args)
+    try:
+        resp: ExternalResponse = external_request(request.method, target_url, **request_args)
+    except Timeout:
+        # remote silo timeout. Use DRF timeout instead
+        raise RequestTimeout()
 
     return _parse_response(resp)
