@@ -116,11 +116,10 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
         """
         Smart query to get:
         counts as count,
-        countIf(trace.parent_span_id == "") as root,
-        countIf(trace.parent_span_id != "") as non_root,
+        countIf(trace.parent_span_id == "") as root_count,
         group by project_id
 
-        returns: [{'project': 'fire', 'project_id': 4, 'non_root': 2, 'count': 21, 'root': 19}]
+        returns: [{'project': 'fire', 'project_id': 4, 'count': 21, 'root_count': 19}]
         """
         builder = QueryBuilder(
             Dataset.Discover,
@@ -155,13 +154,8 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                         [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
                     )
                 ],
-                alias="root",
-            ),
-            Function(
-                "countIf",
-                [Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT])],
-                alias="non_root",
-            ),
+                alias="root_count",
+            )
         ]
         snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
         data = raw_snql_query(
@@ -315,9 +309,9 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
             Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT], alias="is_root")
         ]
         snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
-
-        groupby = snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
-        snuba_query = snuba_query.set_groupby(groupby)
+        snuba_query = snuba_query.set_groupby(
+            snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
+        )
 
         data = raw_snql_query(
             SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
@@ -427,35 +421,28 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     },
                 )
 
-            # Requesting for a project that is root for some transactions,
-            # but not root for others and part of distributed trace like
+            # Calculating the count of projects that started a distributed trace
+            # in the fetched randomly sampled transactions
             root_projects_count = len(
-                [project for project in projects_counts if project["root"] > 0]
+                [project for project in projects_counts if project["root_count"] > 0]
             )
             # get requested project id in projects_count dataset
             requested_project = next(
                 item for item in projects_counts if item["project_id"] == project.id
             )
 
-            # This condition covers all 3 cases (A, C, D):
-            if root_projects_count == 1:
-                # build parent_project_breakdown
-                parent_project_breakdown = [
-                    {"project_id": project.id, "project": project.slug, "percentage": 1}
-                ]
-            # Case B: the most tricky one and requires extra query
-            elif root_projects_count > 1 and requested_project["root"] > 0:
+            if root_projects_count > 1:
                 parent_project_breakdown = []
                 total_count = sum(
-                    _project["count"] for _project in projects_counts if _project["root"] > 0
+                    _project["count"] for _project in projects_counts if _project["root_count"] > 0
                 )
                 for _project in projects_counts:
-                    if _project["root"] > 0:
+                    if _project["root_count"] > 0:
                         parent_project_breakdown.append(
                             {
                                 "project": _project["project"],
                                 "project_id": _project["project_id"],
-                                "percentage": _project["root"] / total_count
+                                "percentage": _project["root_count"] / total_count
                                 if total_count > 0
                                 else 0,
                             }
@@ -481,7 +468,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                     if transaction.get("is_root", False)
                     and transaction.get("project_id", 0) == project.id
                 ]
-                # and !has:trace.parent_span → project_breakdown attribute.
+                # Calculate parent project_breakdown attribute:
                 project_breakdown = self.__run_discover_query(
                     columns=[
                         "project_id",

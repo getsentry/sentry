@@ -172,8 +172,8 @@ def mocked_query_builder_query(referrer):
     elif referrer == "dynamic-sampling.distribution.fetch-project-stats":
         return {
             "data": [
-                {"project": "earth", "project_id": 27, "count": 30, "root": 0, "non_root": 30},
-                {"project": "heart", "project_id": 28, "count": 30, "root": 30, "non_root": 0},
+                {"project": "earth", "project_id": 27, "count": 30, "root_count": 0},
+                {"project": "heart", "project_id": 28, "count": 30, "root_count": 30},
             ]
         }
     raise Exception("Something went wrong!")
@@ -291,13 +291,12 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                         "project_id": self.project.id,
                         "project": self.project.slug,
                         "count": 34,
-                        "root": 3,
-                        "non_root": 0,
+                        "root_count": 3,
                     },
-                    {"project_id": 28, "project": "heart", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 24, "project": "water", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 23, "project": "wind", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 25, "project": "fire", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 28, "project": "heart", "count": 3, "root_count": 3},
+                    {"project_id": 24, "project": "water", "count": 3, "root_count": 3},
+                    {"project_id": 23, "project": "wind", "count": 3, "root_count": 3},
+                    {"project_id": 25, "project": "fire", "count": 21, "root_count": 3},
                 ]
             },
         ]
@@ -450,8 +449,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                         "project_id": self.project.id,
                         "project": self.project.slug,
                         "count": 3,
-                        "root": 3,
-                        "non_root": 0,
+                        "root_count": 3,
                     },
                 ]
             },
@@ -461,15 +459,11 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [
-                    {"project_id": self.project.id, "project": self.project.slug, "count()": 3},
-                ],
-                "parentProjectBreakdown": [
-                    {"project_id": self.project.id, "project": self.project.slug, "percentage": 1}
-                ],
+                "project_breakdown": [],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-18T10:00:00Z",
                 "endTimestamp": "2022-08-18T11:00:00Z",
+                "parentProjectBreakdown": [],
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.discover.query")
@@ -568,8 +562,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                         "project_id": self.project.id,
                         "project": self.project.slug,
                         "count": 3,
-                        "root": 3,
-                        "non_root": 0,
+                        "root_count": 3,
                     },
                 ]
             },
@@ -578,15 +571,11 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
         with Feature({"organizations:server-side-sampling": True}):
             response = self.client.get(f"{self.endpoint}?sampleSize=2")
             assert response.json() == {
-                "project_breakdown": [
-                    {"project_id": self.project.id, "project": self.project.slug, "count()": 3}
-                ],
+                "project_breakdown": [],
                 "sample_size": 2,
                 "startTimestamp": "2022-08-06T00:00:00Z",
                 "endTimestamp": "2022-08-07T00:00:00Z",
-                "parentProjectBreakdown": [
-                    {"project_id": self.project.id, "project": self.project.slug, "percentage": 1}
-                ],
+                "parentProjectBreakdown": [],
             }
 
     @mock.patch("sentry.api.endpoints.project_dynamic_sampling.raw_snql_query")
@@ -600,17 +589,17 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
             mocked_query_builder_query(referrer="dynamic-sampling.distribution.fetch-transactions"),
             {
                 "data": [
-                    {"project_id": 29, "project": "y", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 28, "project": "a", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 24, "project": "b", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 23, "project": "c", "count": 3, "root": 3, "non_root": 0},
-                    {"project_id": 25, "project": "d", "count": 21, "root": 3, "non_root": 0},
-                    {"project_id": 21, "project": "e", "count": 21, "root": 3, "non_root": 0},
-                    {"project_id": 20, "project": "f", "count": 21, "root": 3, "non_root": 0},
-                    {"project_id": 22, "project": "h", "count": 21, "root": 3, "non_root": 0},
-                    {"project_id": 30, "project": "k", "count": 21, "root": 3, "non_root": 0},
-                    {"project_id": 31, "project": "l", "count": 21, "root": 3, "non_root": 0},
-                    {"project_id": 32, "project": "m", "count": 21, "root": 3, "non_root": 0},
+                    {"project_id": 29, "project": "y", "count": 3, "root_count": 3},
+                    {"project_id": 28, "project": "a", "count": 3, "root_count": 3},
+                    {"project_id": 24, "project": "b", "count": 3, "root_count": 3},
+                    {"project_id": 23, "project": "c", "count": 3, "root_count": 3},
+                    {"project_id": 25, "project": "d", "count": 21, "root_count": 3},
+                    {"project_id": 21, "project": "e", "count": 21, "root_count": 3},
+                    {"project_id": 20, "project": "f", "count": 21, "root_count": 3},
+                    {"project_id": 22, "project": "h", "count": 21, "root_count": 3},
+                    {"project_id": 30, "project": "k", "count": 21, "root_count": 3},
+                    {"project_id": 31, "project": "l", "count": 21, "root_count": 3},
+                    {"project_id": 32, "project": "m", "count": 21, "root_count": 3},
                 ]
             },
         ]
@@ -695,8 +684,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                         "project": "earth",
                         "project_id": self.project.id,
                         "count": 30,
-                        "root": 0,
-                        "non_root": 30,
+                        "root_count": 0,
                     }
                 ]
             },
@@ -897,8 +885,7 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                         "project": "earth",
                         "project_id": self.project.id,
                         "count": 30,
-                        "root": 0,
-                        "non_root": 30,
+                        "root_count": 0,
                     }
                 ]
             },
