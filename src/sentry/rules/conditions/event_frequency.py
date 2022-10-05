@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from sentry import release_health, tsdb
 from sentry.eventstore.models import Event
+from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GROUP_MODELS
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
@@ -138,7 +139,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate(self, event: Event, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
-
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
         option_override_cm = contextlib.nullcontext()
@@ -187,7 +187,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=self.tsdb.models.group,
+            model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
             keys=[event.group_id],
             start=start,
             end=end,
@@ -204,7 +204,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
     def query_hook(self, event: Event, start: datetime, end: datetime, environment_id: str) -> int:
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=self.tsdb.models.users_affected_by_group,
+            model=ISSUE_TSDB_USER_GROUP_MODELS[event.group.issue_category],
             keys=[event.group_id],
             start=start,
             end=end,
@@ -304,8 +304,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 percent_intervals[self.get_option("interval")][1].total_seconds() // 60
             )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+
             issue_count = self.tsdb.get_sums(
-                model=self.tsdb.models.group,
+                model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
                 keys=[event.group_id],
                 start=start,
                 end=end,

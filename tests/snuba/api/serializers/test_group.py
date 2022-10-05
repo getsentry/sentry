@@ -442,7 +442,7 @@ class PerformanceGroupSerializerSnubaTest(
                 proj.id,
                 "user1",
                 [first_group_fingerprint],
-                environment,
+                environment.name,
                 timestamp=timestamp + timedelta(minutes=1),
             )
 
@@ -450,7 +450,7 @@ class PerformanceGroupSerializerSnubaTest(
             proj.id,
             "user2",
             [first_group_fingerprint],
-            environment,
+            environment.name,
             timestamp=timestamp + timedelta(minutes=2),
         )
 
