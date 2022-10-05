@@ -3,7 +3,7 @@ import logging
 import math
 import operator
 import zlib
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import defaultdict, namedtuple
 from datetime import date, datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
@@ -265,7 +265,7 @@ def build_project_series(start__stop, project):
     )
     request = Request(dataset=Dataset.Outcomes.value, app_id="reports", query=outcomes_query)
     outcome_series = raw_snql_query(request, referrer="reports.outcome_series")
-    total_error_series = OrderedDict()
+    total_error_series = {}
     for v in outcome_series["data"]:
         if v["category"] in DataCategory.error_categories():
             timestamp = int(to_timestamp(parse_snuba_datetime(v["time"])))
@@ -1175,7 +1175,7 @@ def get_percentile(values, percentile):
 def colorize(spectrum, values):
     calculate_percentile = partial(get_percentile, sorted(values))
 
-    legend = OrderedDict()
+    legend = {}
     width = 1.0 / len(spectrum)
     for i, color in enumerate(spectrum, 1):
         legend[color] = calculate_percentile(i * width)

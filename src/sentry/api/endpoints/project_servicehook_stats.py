@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,7 +18,7 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         stat_args = self._parse_args(request)
 
-        stats = OrderedDict()
+        stats = {}
         for model, name in ((tsdb.models.servicehook_fired, "total"),):
             result = tsdb.get_range(model=model, keys=[hook.id], **stat_args)[hook.id]
             for ts, count in result:

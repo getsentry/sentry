@@ -3,7 +3,6 @@ import hashlib
 import itertools
 import logging
 import uuid
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
@@ -215,7 +214,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return event
 
-        events = OrderedDict()
+        events = {}
 
         for event in (
             create_message_event(

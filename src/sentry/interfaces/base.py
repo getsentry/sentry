@@ -1,5 +1,4 @@
 import logging
-from collections import OrderedDict
 from html import escape
 from typing import Any, Dict, List, Optional, Union
 
@@ -51,9 +50,7 @@ def get_interfaces(data):
 
         result.append((key, value))
 
-    return OrderedDict(
-        (k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)
-    )
+    return {k: v for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True)}
 
 
 class InterfaceValidationError(Exception):

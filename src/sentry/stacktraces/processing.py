@@ -1,5 +1,5 @@
 import logging
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 from datetime import datetime
 
 import sentry_sdk
@@ -457,7 +457,7 @@ def get_stacktrace_processing_task(infos, processors):
     # by_stacktrace_info requires stable sorting as it is used in
     # StacktraceProcessingTask.iter_processable_stacktraces. This is important
     # to guarantee reproducible symbolicator requests.
-    by_stacktrace_info = OrderedDict()
+    by_stacktrace_info = {}
 
     for info in infos:
         processable_frames = get_processable_frames(info, processors)

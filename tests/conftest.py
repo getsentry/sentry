@@ -1,5 +1,4 @@
 import os
-from collections import OrderedDict
 
 import pytest
 
@@ -76,8 +75,7 @@ def pytest_runtest_makereport(item, call):
 
 def _error_workflow_command(filesystempath, lineno, longrepr):
     # Build collection of arguments. Ordering is strict for easy testing
-    details_dict = OrderedDict()
-    details_dict["file"] = filesystempath
+    details_dict = {"file": filesystempath}
     if lineno is not None:
         details_dict["line"] = lineno
 

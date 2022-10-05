@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from croniter import croniter
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
@@ -8,15 +6,17 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models import MonitorStatus, MonitorType, ScheduleType
 
-SCHEDULE_TYPES = OrderedDict(
-    [("crontab", ScheduleType.CRONTAB), ("interval", ScheduleType.INTERVAL)]
-)
+SCHEDULE_TYPES = {
+    "crontab": ScheduleType.CRONTAB,
+    "interval": ScheduleType.INTERVAL,
+}
 
-MONITOR_TYPES = OrderedDict([("cron_job", MonitorType.CRON_JOB)])
+MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
-MONITOR_STATUSES = OrderedDict(
-    [("active", MonitorStatus.ACTIVE), ("disabled", MonitorStatus.DISABLED)]
-)
+MONITOR_STATUSES = {
+    "active": MonitorStatus.ACTIVE,
+    "disabled": MonitorStatus.DISABLED,
+}
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
 

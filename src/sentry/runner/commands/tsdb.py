@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import click
@@ -72,7 +71,7 @@ def organizations(metrics, since, until):
     def aggregate(series):
         return sum(value for timestamp, value in series)
 
-    metrics = OrderedDict((name, getattr(tsdb.models, name)) for name in metrics)
+    metrics = {name: getattr(tsdb.models, name) for name in metrics}
     if not metrics:
         return
 
@@ -90,7 +89,7 @@ def organizations(metrics, since, until):
     objects = Organization.objects.all()
 
     for chunk in chunked(objects, 100):
-        instances = OrderedDict((instance.pk, instance) for instance in chunk)
+        instances = {instance.pk: instance for instance in chunk}
 
         results = {}
         for metric in metrics.values():
