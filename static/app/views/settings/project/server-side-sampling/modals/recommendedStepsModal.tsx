@@ -193,7 +193,7 @@ export function RecommendedStepsModal({
                   <span className="token punctuation">{'  ...'}</span>
                   <br />
                   <span className="token literal-property property">
-                    {'  traceSampleRate'}
+                    {'  tracesSampleRate'}
                   </span>
                   <span className="token operator">:</span>{' '}
                   <span className="token string">{suggestedClientSampleRate || ''}</span>

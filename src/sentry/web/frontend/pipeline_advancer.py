@@ -1,9 +1,12 @@
 from django.contrib import messages
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.api.utils import generate_organization_url
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.utils.http import absolute_uri, create_redirect_url
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 
@@ -31,7 +34,7 @@ class PipelineAdvancerView(BaseView):
     csrf_protect = False
 
     @transaction_start("PipelineAdvancerView")
-    def handle(self, request: Request, provider_id) -> Response:
+    def handle(self, request: Request, provider_id: str) -> Response:
         pipeline = None
 
         for pipeline_cls in PIPELINE_CLASSES:
@@ -53,4 +56,14 @@ class PipelineAdvancerView(BaseView):
             messages.add_message(request, messages.ERROR, _("Invalid request."))
             return self.redirect("/")
 
-        return pipeline.current_step()
+        subdomain = pipeline.fetch_state("subdomain")
+        if subdomain is not None and request.subdomain != subdomain:
+            url_prefix = generate_organization_url(subdomain)
+            redirect_url = absolute_uri(
+                reverse("sentry-extension-setup", kwargs={"provider_id": provider_id}),
+                url_prefix=url_prefix,
+            )
+            return HttpResponseRedirect(create_redirect_url(request, redirect_url))
+
+        response = pipeline.current_step()
+        return response
