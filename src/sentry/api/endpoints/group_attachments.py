@@ -40,18 +40,14 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         ):
             return self.respond(status=404)
 
-        event_ids = request.GET.get("event_ids")
-
-        if event_ids is not None:
-            attachments = EventAttachment.objects.filter(
-                group_id=group.id, event_id__in=event_ids.split(",")
-            )
-        else:
-            attachments = EventAttachment.objects.filter(group_id=group.id)
+        attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
+        event_ids = request.GET.get("event_ids")
         if types:
             attachments = attachments.filter(type__in=types)
+        if event_ids is not None:
+            attachments = attachments.filter(event_id__in=event_ids.split(","))
 
         return self.paginate(
             default_per_page=20,

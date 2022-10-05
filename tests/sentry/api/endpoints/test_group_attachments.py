@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class GroupEventAttachmentsTest(APITestCase):
-    def create_attachment(self, type=None):
+    def create_attachment(self, type=None, event_id=None):
         if type is None:
             type = "event.attachment"
 
@@ -16,7 +16,7 @@ class GroupEventAttachmentsTest(APITestCase):
         self.file.putfile(BytesIO(b"File contents here"))
 
         self.attachment = EventAttachment.objects.create(
-            event_id=self.event.event_id,
+            event_id=event_id or self.event.event_id,
             project_id=self.event.project_id,
             group_id=self.group.id,
             file_id=self.file.id,
@@ -26,12 +26,15 @@ class GroupEventAttachmentsTest(APITestCase):
 
         return self.attachment
 
-    def path(self, types=None):
+    def path(self, types=None, event_ids=None):
         path = f"/api/0/issues/{self.group.id}/attachments/"
 
         query = [("types", t) for t in types or ()]
         if query:
             path += "?" + urlencode(query)
+
+        if event_ids:
+            path += "?event_ids=" + event_ids
 
         return path
 
@@ -68,3 +71,15 @@ class GroupEventAttachmentsTest(APITestCase):
             response = self.client.get(self.path())
 
         assert response.status_code == 404, response.content
+
+    def test_event_id_filter(self):
+        self.login_as(user=self.user)
+        attachment = self.create_attachment()
+        self.create_attachment(event_id="b" * 32)
+
+        with self.feature("organizations:event-attachments"):
+            response = self.client.get(self.path(event_ids=attachment.event_id))
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["event_id"] == attachment.event_id
