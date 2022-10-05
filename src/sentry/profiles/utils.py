@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
@@ -14,6 +15,10 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
 
+ORGANIZATION_ID_PATTERN = re.compile(r"/organizations/(\d+)/")
+PROJECT_ID_PATTERN = re.compile(r"/projects/(\d+)/")
+UUID_PATTERN = re.compile(r"/([A-Za-z0-9]{32})$")
+
 
 class RetrySkipTimeout(urllib3.Retry):
     """
@@ -25,16 +30,25 @@ class RetrySkipTimeout(urllib3.Retry):
         self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
     ):
         """
-        Just rely on the parent class unless we have a read timeout. In that case
-        immediately give up
+        Just rely on the parent class unless we have a read timeout. In that case,
+        immediately give up. Except when we're inserting a profile to vroom which
+        can timeout due to GCS where we want to retry.
         """
-        if error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
+        if url:
+            # The url is high cardinality because of the ids in it, so strip it
+            # from the path before using it in the metric tags.
+            path = urlparse(url).path
+            path = ORGANIZATION_ID_PATTERN.sub("/organizations/:orgId/", path)
+            path = PROJECT_ID_PATTERN.sub("/projects/:projId/", path)
+            path = UUID_PATTERN.sub("/:uuid", path)
+        else:
+            path = None
+
+        if path != "/profile" and error and isinstance(error, urllib3.exceptions.ReadTimeoutError):
             raise error.with_traceback(_stacktrace)
 
-        metrics.incr(
-            "profiling.client.retry",
-            tags={"method": method, "path": urlparse(url).path if url else None},
-        )
+        metrics.incr("profiling.client.retry", tags={"method": method, "path": path})
+
         return super().increment(
             method=method,
             url=url,

@@ -198,6 +198,7 @@ def _symbolicate(
             if (
                 time() - symbolication_start_time
             ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                metrics.incr("process_profile.symbolicate.timeout", sample_rate=1.0)
                 break
             else:
                 sleep_time = (
@@ -209,7 +210,9 @@ def _symbolicate(
                 continue
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
             break
+
     # returns the unsymbolicated stacktraces to avoid errors later
     return stacktraces
 
@@ -492,6 +495,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
         profile["received"] = (
             datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
         )
+
         response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
         if response.status == 204:
@@ -500,8 +504,9 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             profile["call_trees"] = json.loads(response.data)["call_trees"]
         else:
             metrics.incr(
-                "profiling.insert_vroom_profile.error",
+                "process_profile.insert_vroom_profile.error",
                 tags={"platform": profile["platform"], "reason": "bad status"},
+                sample_rate=1.0,
             )
             return False
         return True
@@ -522,8 +527,9 @@ def _insert_vroom_profile(profile: Profile) -> bool:
     except Exception as e:
         sentry_sdk.capture_exception(e)
         metrics.incr(
-            "profiling.insert_vroom_profile.error",
+            "process_profile.insert_vroom_profile.error",
             tags={"platform": profile["platform"], "reason": "encountered error"},
+            sample_rate=1.0,
         )
         return False
     finally:
