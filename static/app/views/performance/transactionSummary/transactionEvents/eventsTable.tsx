@@ -86,6 +86,7 @@ type Props = {
   transactionName: string;
   columnTitles?: string[];
   disablePagination?: boolean;
+  excludedTags?: string[];
   totalEventCount?: string;
 };
 
@@ -100,7 +101,7 @@ class EventsTable extends Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization} = this.props;
+      const {eventView, location, organization, excludedTags} = this.props;
 
       trackAnalyticsEvent({
         eventKey: 'performance_views.transactionEvents.cellaction',
@@ -110,6 +111,12 @@ class EventsTable extends Component<Props, State> {
       });
 
       const searchConditions = normalizeSearchConditions(eventView.query);
+
+      if (excludedTags) {
+        excludedTags.forEach(tag => {
+          searchConditions.removeFilter(tag);
+        });
+      }
 
       updateQuery(searchConditions, action, column, value);
 
