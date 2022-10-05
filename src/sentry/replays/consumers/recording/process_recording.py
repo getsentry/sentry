@@ -5,6 +5,7 @@ import logging
 import re
 import time
 import typing
+import zlib
 from collections import deque
 from concurrent.futures import Future
 from io import BytesIO
@@ -343,11 +344,11 @@ PATTERNS = [
 
 
 def strip_pii_from_rrweb(rrweb_output: bytes) -> bytes:
-    root = json.loads(rrweb_output)
+    root = json.loads(zlib.decompress(rrweb_output))
     for node in root:
         if node["type"] == 2:
             _recurse_rrweb(node["data"]["node"]["childNodes"])
-    return json.dumps(root).encode()
+    return zlib.compress(json.dumps(root).encode())
 
 
 def _recurse_rrweb(nodes: list[dict[str, typing.Any]]) -> None:
