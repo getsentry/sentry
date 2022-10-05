@@ -14,7 +14,7 @@ SENTRY_REGION_CONFIG = [
     Region(
         name="region1",
         id=1,
-        address="region1",
+        address="http://region1.testserver",
         category=RegionCategory.MULTI_TENANT,
     ),
 ]

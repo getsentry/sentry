@@ -2,7 +2,7 @@
 Utilities related to proxying a request to a region silo
 """
 
-
+from django.conf import settings
 from django.http import StreamingHttpResponse
 from requests import Response as ExternalResponse
 from requests import request as external_request
@@ -31,7 +31,7 @@ def _parse_response(response: ExternalResponse) -> StreamingHttpResponse:
 
 
 def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
-    """Take a django request opject and proxy it to a remote location given an org_slug"""
+    """Take a django request object and proxy it to a remote location given an org_slug"""
     from sentry.types.region import get_region_for_organization
 
     try:
@@ -40,11 +40,13 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
         raise NotFound(detail="Resource could not be found")
     target_url = get_region_for_organization(org).to_url(request.path)
 
+    # TODO: use requests session for connection pooling capabilities
     query_params = getattr(request, request.method, None)
     request_args = {
         "headers": request.headers,
         "params": dict(query_params) if query_params is not None else None,
         "stream": True,
+        "timeout": settings.GATEWAY_PROXY_TIMEOUT,
     }
     resp: ExternalResponse = external_request(request.method, target_url, **request_args)
 
