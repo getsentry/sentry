@@ -276,7 +276,6 @@ class ProjectDynamicSamplingDistributionTest(APITestCase):
                     {
                         "trace": "6503ee33b7bc43aead1facaa625a5dba",
                         "id": "5c7c7eca495842e39744196851edd947",
-                        "trace.client_sample_rate": "",
                         "project.name": self.project.slug,
                         "project_id": self.project.id,
                         "random_number() AS random_number": 121455970,
