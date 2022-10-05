@@ -8,7 +8,7 @@ from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.issues import GroupCategory
 
-CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", gc.name) for gc in GroupCategory])
+CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
 
 
 class IssueCategoryForm(forms.Form):  # type: ignore
