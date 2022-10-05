@@ -33,6 +33,7 @@ type Props = {
   ) => LocationDescriptorObject;
   loadingProjects: boolean;
   organization: Organization;
+  projectIds: number[];
   projects: Project[];
   tableCursor?: string;
   tableQuery?: string;
@@ -81,7 +82,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dataDatetime, dataCategory} = this.props;
+    const {dataDatetime, dataCategory, projectIds} = this.props;
 
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
@@ -100,7 +101,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
-      project: '-1', // get all project user has access to
+      project: projectIds,
       category: dataCategory.slice(0, -1), // backend is singular
     };
   }
@@ -395,8 +396,13 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects, tableQuery} = this.props;
+    const {dataCategory, loadingProjects, tableQuery, projectIds} = this.props;
     const {headers, tableStats} = this.tableData;
+
+    // Don't render this component if only a single project is in view
+    if (projectIds.length === 1 && projectIds[0] !== -1) {
+      return null;
+    }
 
     return (
       <Fragment>
@@ -408,7 +414,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
             onSearch={this.handleSearch}
           />
         </Container>
-
         <Container>
           <UsageTable
             isLoading={loading || loadingProjects}

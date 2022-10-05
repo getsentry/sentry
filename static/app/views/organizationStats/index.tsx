@@ -39,7 +39,7 @@ import {SearchContainer} from '../issueList/filters';
 
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-// import UsageStatsProjects from './usageStatsProjects';
+import UsageStatsProjects from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
@@ -136,6 +136,12 @@ export class OrganizationStats extends Component<Props> {
 
   get tableCursor(): string | undefined {
     return this.props.location?.query?.cursor;
+  }
+
+  get projectIds(): number[] {
+    return this.props.selection.projects.length > 0
+      ? this.props.selection.projects
+      : [-1];
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -245,6 +251,7 @@ export class OrganizationStats extends Component<Props> {
   };
 
   renderProjectPageControl = () => {
+    console.log(this.projectIds);
     return (
       <SearchContainer>
         <PageFilterBar>
@@ -264,6 +271,7 @@ export class OrganizationStats extends Component<Props> {
   };
 
   renderPageControl = () => {
+    console.log(this.projectIds);
     const {organization} = this.props;
 
     const {start, end, period, utc} = this.dataDatetime;
@@ -325,7 +333,7 @@ export class OrganizationStats extends Component<Props> {
                     dataDatetime={this.dataDatetime}
                     chartTransform={this.chartTransform}
                     handleChangeState={this.setStateOnUrl}
-                    pageFilters={pageFilters ?? {}}
+                    projectIds={this.projectIds}
                   />
                 </ErrorBoundary>
               </PageGrid>
@@ -345,11 +353,12 @@ export class OrganizationStats extends Component<Props> {
                   </Alert>
                 )}
               </Feature>
-              {/* <ErrorBoundary mini>
+              <ErrorBoundary mini>
                 <UsageStatsProjects
                   organization={organization}
                   dataCategory={this.dataCategory}
                   dataCategoryName={this.dataCategoryName}
+                  projectIds={this.projectIds}
                   dataDatetime={this.dataDatetime}
                   tableSort={this.tableSort}
                   tableQuery={this.tableQuery}
@@ -357,7 +366,7 @@ export class OrganizationStats extends Component<Props> {
                   handleChangeState={this.setStateOnUrl}
                   getNextLocations={this.getNextLocations}
                 />
-              </ErrorBoundary> */}
+              </ErrorBoundary>
             </Layout.Main>
           </Body>
         </Fragment>

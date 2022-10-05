@@ -12,13 +12,7 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {
-  DataCategory,
-  IntervalPeriod,
-  Organization,
-  Outcome,
-  PageFilters,
-} from 'sentry/types';
+import {DataCategory, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 import {
@@ -45,7 +39,7 @@ type Props = {
     transform?: ChartDataTransform;
   }) => void;
   organization: Organization;
-  pageFilters: PageFilters;
+  projectIds: number[];
   chartTransform?: string;
 } & AsyncComponent['props'];
 
@@ -55,15 +49,15 @@ type State = {
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
-    const {dataDatetime: prevDateTime, pageFilters: prevPageFilters} = prevProps;
-    const {dataDatetime: currDateTime, pageFilters: currPageFilters} = this.props;
+    const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
+    const {dataDatetime: currDateTime, projectIds: currProjectIds} = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
       prevDateTime.utc !== currDateTime.utc ||
-      prevPageFilters.projects !== currPageFilters.projects
+      prevProjectIds !== currProjectIds
     ) {
       this.reloadData();
     }
@@ -79,10 +73,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dataDatetime} = this.props;
-    const {pageFilters} = this.props;
-    const projects =
-      (pageFilters.projects || []).length > 0 ? pageFilters.projects : '-1';
+    const {dataDatetime, projectIds} = this.props;
 
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
@@ -99,7 +90,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
-      projects,
+      project: projectIds,
       field: ['sum(quantity)'],
     };
   }
