@@ -4,8 +4,6 @@ on:
   pull_request:
 
 env:
-  # TODO: swap these for ghcr ?
-  BUILDER: us.gcr.io/sentryio/sentry-builder
   IMAGE: us.gcr.io/sentryio/sentry
   SENTRY_IMAGE: us.gcr.io/sentryio/sentry:${{ github.sha }}
 
@@ -14,21 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - run: docker pull "$BUILDER"
+    - uses: ./.github/actions/setup-volta
+    - name: Setup python
+      uses: actions/setup-python@b4fe97ecda6b7a5fcd2448cdbf6a8fc76b3bedb0
+      with:
+        python-version: 3.8.14
     - run: |
-        docker build \
-          --cache-from "${BUILDER}:latest" \
-          --build-arg "SOURCE_COMMIT=${{ github.sha }}" \
-          --file docker/builder.dockerfile \
-          --tag "$BUILDER:${{ github.sha }}" \
-          .
-      timeout-minutes: 3
-    - run: |
-        docker run \
-            --rm \
-            --volume "$PWD:/workspace:rw" \
-            "$BUILDER:${{ github.sha }}"
-      timeout-minutes: 10
+        pip install $(grep ^wheel== requirements-dev-frozen.txt)
+        python setup.py bdist_wheel
+        cp requirements-frozen.txt dist/
     - run: docker pull "$IMAGE"
     - run: |
         docker build \
