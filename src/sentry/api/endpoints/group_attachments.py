@@ -40,7 +40,14 @@ class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
         ):
             return self.respond(status=404)
 
-        attachments = EventAttachment.objects.filter(group_id=group.id)
+        event_ids = request.GET.get("event_ids")
+
+        if event_ids is not None:
+            attachments = EventAttachment.objects.filter(
+                group_id=group.id, event_id__in=event_ids.split(",")
+            )
+        else:
+            attachments = EventAttachment.objects.filter(group_id=group.id)
 
         types = request.GET.getlist("types") or ()
         if types:
