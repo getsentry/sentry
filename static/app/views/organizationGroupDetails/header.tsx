@@ -326,6 +326,8 @@ function GroupHeader({
     </GuideAnchor>
   );
 
+  const hasIssueActionsV2 = organization.features.includes('issue-actions-v2');
+
   return (
     <Layout.Header>
       <div className={className}>
@@ -339,13 +341,15 @@ function GroupHeader({
               {label: shortIdBreadCrumb},
             ]}
           />
-          <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-            query={location.query}
-          />
+          {hasIssueActionsV2 && (
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+          )}
         </BreadcrumbActionWrapper>
         <HeaderRow>
           <TitleWrapper>
@@ -411,14 +415,18 @@ function GroupHeader({
           </StatsWrapper>
         </HeaderRow>
         <HeaderRow>
-          {/* <GroupActions
-            group={group}
-            project={project}
-            disabled={disableActions}
-            event={event}
-            query={location.query}
-          /> */}
-          <div />
+          {hasIssueActionsV2 ? (
+            // Render empty div to keep flex layout
+            <div />
+          ) : (
+            <GroupActions
+              group={group}
+              project={project}
+              disabled={disableActions}
+              event={event}
+              query={location.query}
+            />
+          )}
           <StyledSeenByList
             seenBy={group.seenBy}
             iconTooltip={t('People who have viewed this issue')}

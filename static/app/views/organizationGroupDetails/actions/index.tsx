@@ -15,7 +15,6 @@ import {
   openReprocessEventModal,
 } from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
@@ -25,6 +24,7 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
+import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {IconCheckmark, IconEllipsis, IconMute} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -367,9 +367,6 @@ class Actions extends Component<Props, State> {
 
     const orgFeatures = new Set(organization.features);
 
-    const isShared = group.isPublic;
-    const shareKey = isShared ? 'shared' : 'share';
-    const shareTitle = isShared ? t('Shared') : t('Share');
     const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
     const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
     const hasRelease = !!project.features?.includes('releases');
@@ -383,62 +380,63 @@ class Actions extends Component<Props, State> {
     const deleteDiscardCap = getIssueCapability(group.issueCategory, 'deleteAndDiscard');
     const shareCap = getIssueCapability(group.issueCategory, 'share');
 
-    // TODO: add feature flag
-    if (organization.features.includes('shared-issues')) {
+    const hasDeleteAccess = organization.access.includes('event:admin');
+    const sharedMenuItems: MenuItemProps[] = [
+      {
+        key: bookmarkKey,
+        label: bookmarkTitle,
+        onAction: this.onToggleBookmark,
+      },
+      {
+        key: 'reprocess',
+        label: t('Reprocess events'),
+        hidden: !displayReprocessEventAction(organization.features, event),
+        onAction: this.onReprocessEvent,
+      },
+      {
+        key: 'delete-issue',
+        priority: 'danger',
+        label: t('Delete'),
+        hidden: !hasDeleteAccess,
+        disabled: !deleteCap.enabled,
+        details: deleteCap.disabledReason,
+        onAction: this.openDeleteModal,
+      },
+      {
+        key: 'delete-and-discard',
+        priority: 'danger',
+        label: t('Delete and discard future events'),
+        hidden: !hasDeleteAccess,
+        disabled: !deleteDiscardCap.enabled,
+        details: deleteDiscardCap.disabledReason,
+        onAction: this.openDiscardModal,
+      },
+    ];
+
+    if (orgFeatures.has('issue-actions-v2')) {
       return (
         <Wrapper>
-          <Access organization={organization} access={['event:admin']}>
-            {({hasAccess}) => (
-              <DropdownMenuControl
-                triggerProps={{
-                  'aria-label': t('More Actions'),
-                  icon: <IconEllipsis size="xs" />,
-                  showChevron: false,
-                  size: 'sm',
-                }}
-                items={[
-                  ...(orgFeatures.has('shared-issues')
-                    ? [
-                        {
-                          key: shareKey,
-                          label: shareTitle,
-                          onAction: this.openShareModal,
-                        },
-                      ]
-                    : []),
-                  {
-                    key: bookmarkKey,
-                    label: bookmarkTitle,
-                    onAction: this.onToggleBookmark,
-                  },
-                  {
-                    key: 'reprocess',
-                    label: t('Reprocess events'),
-                    hidden: !displayReprocessEventAction(organization.features, event),
-                    onAction: this.onReprocessEvent,
-                  },
-                  {
-                    key: 'delete-issue',
-                    priority: 'danger',
-                    label: t('Delete'),
-                    hidden: !hasAccess,
-                    disabled: !deleteCap.enabled,
-                    details: deleteCap.disabledReason,
-                    onAction: this.openDeleteModal,
-                  },
-                  {
-                    key: 'delete-and-discard',
-                    priority: 'danger',
-                    label: t('Delete and discard future events'),
-                    hidden: !hasAccess,
-                    disabled: !deleteDiscardCap.enabled,
-                    details: deleteDiscardCap.disabledReason,
-                    onAction: this.openDiscardModal,
-                  },
-                ]}
-              />
-            )}
-          </Access>
+          <DropdownMenuControl
+            triggerProps={{
+              'aria-label': t('More Actions'),
+              icon: <IconEllipsis size="xs" />,
+              showChevron: false,
+              size: 'sm',
+            }}
+            items={[
+              ...(orgFeatures.has('shared-issues')
+                ? [
+                    {
+                      key: 'share',
+                      label: t('Share'),
+                      onAction: this.openShareModal,
+                    },
+                  ]
+                : []),
+              ...sharedMenuItems,
+            ]}
+          />
+
           <SubscribeAction
             disabled={disabled}
             group={group}
@@ -573,50 +571,15 @@ class Actions extends Component<Props, State> {
           group={group}
           onClick={this.handleClick(disabled, this.onToggleSubscribe)}
         />
-        <Access organization={organization} access={['event:admin']}>
-          {({hasAccess}) => (
-            <DropdownMenuControl
-              triggerProps={{
-                'aria-label': t('More Actions'),
-                icon: <IconEllipsis size="xs" />,
-                showChevron: false,
-                size: 'xs',
-              }}
-              items={[
-                {
-                  key: bookmarkKey,
-                  label: bookmarkTitle,
-                  hidden: false,
-                  onAction: this.onToggleBookmark,
-                },
-                {
-                  key: 'reprocess',
-                  label: t('Reprocess events'),
-                  hidden: !displayReprocessEventAction(organization.features, event),
-                  onAction: this.onReprocessEvent,
-                },
-                {
-                  key: 'delete-issue',
-                  priority: 'danger',
-                  label: t('Delete'),
-                  hidden: !hasAccess,
-                  disabled: !deleteCap.enabled,
-                  details: deleteCap.disabledReason,
-                  onAction: this.openDeleteModal,
-                },
-                {
-                  key: 'delete-and-discard',
-                  priority: 'danger',
-                  label: t('Delete and discard future events'),
-                  hidden: !hasAccess,
-                  disabled: !deleteDiscardCap.enabled,
-                  details: deleteDiscardCap.disabledReason,
-                  onAction: this.openDiscardModal,
-                },
-              ]}
-            />
-          )}
-        </Access>
+        <DropdownMenuControl
+          triggerProps={{
+            'aria-label': t('More Actions'),
+            icon: <IconEllipsis size="xs" />,
+            showChevron: false,
+            size: 'xs',
+          }}
+          items={sharedMenuItems}
+        />
       </Wrapper>
     );
   }
@@ -630,10 +593,6 @@ const Wrapper = styled('div')`
   grid-auto-flow: column;
   gap: ${space(0.5)};
   white-space: nowrap;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    flex-wrap: nowrap;
-  }
 `;
 
 export {Actions};
