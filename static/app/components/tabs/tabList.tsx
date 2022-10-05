@@ -67,9 +67,10 @@ function useOverflowTabs({
 
 interface TabListProps extends TabListStateProps<any>, AriaTabListProps<any> {
   className?: string;
+  hideBorder?: boolean;
 }
 
-function BaseTabList({className, ...props}: TabListProps) {
+function BaseTabList({hideBorder = false, className, ...props}: TabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {value, defaultValue, onChange, orientation, disabled, ...otherRootProps} =
@@ -116,6 +117,7 @@ function BaseTabList({className, ...props}: TabListProps) {
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
+        hideBorder={hideBorder}
         className={className}
         ref={tabListRef}
       >
@@ -202,6 +204,7 @@ const TabListOuterWrap = styled('div')`
 `;
 
 const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+  hideBorder: boolean;
   orientation: Orientation;
 }>`
   position: relative;
@@ -217,15 +220,15 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
         grid-auto-flow: column;
         justify-content: start;
         gap: ${space(2)};
-        border-bottom: solid 1px ${p.theme.border};
+        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
       `
       : `
+        height: 100%;
         grid-auto-flow: row;
         align-content: start;
         gap: 1px;
         padding-right: ${space(2)};
-        border-right: solid 1px ${p.theme.border};
-        height: 100%;
+        ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
       `};
 `;
 
