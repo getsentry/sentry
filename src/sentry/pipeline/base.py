@@ -154,7 +154,7 @@ class Pipeline(abc.ABC):
         """
         Render the current step.
         """
-        step_index = self.state.step_index
+        step_index = self.step_index
 
         if step_index == len(self.pipeline_views):
             return self.finish_pipeline()
@@ -198,7 +198,7 @@ class Pipeline(abc.ABC):
 
     def next_step(self, step_size: int = 1) -> HttpResponseBase:
         """Render the next step."""
-        self.state.step_index += step_size
+        self.state.step_index = self.step_index + step_size
 
         analytics_entry = self.get_analytics_entry()
         if analytics_entry and self.organization:
@@ -208,7 +208,7 @@ class Pipeline(abc.ABC):
                 user_id=user.id,
                 organization_id=self.organization.id,
                 integration=self.provider.key,
-                step_index=self.state.step_index,
+                step_index=self.step_index,
                 pipeline_type=analytics_entry.pipeline_type,
             )
 
@@ -229,6 +229,10 @@ class Pipeline(abc.ABC):
 
         self.state.data = data
 
+    @property
+    def step_index(self):
+        return self.state.step_index or 0
+
     def _fetch_state(self, key: str | None = None) -> Any | None:
         data = self.state.data
         if not data:
@@ -236,7 +240,7 @@ class Pipeline(abc.ABC):
         return data if key is None else data.get(key)
 
     def fetch_state(self, key: str | None = None) -> Any | None:
-        step_index = self.state.step_index
+        step_index = self.step_index
         if step_index >= len(self.pipeline_views):
             return self._fetch_state(key)
         view = self.pipeline_views[step_index]
