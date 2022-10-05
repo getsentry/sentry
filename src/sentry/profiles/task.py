@@ -44,6 +44,16 @@ def process_profile(
     project = Project.objects.get_from_cache(id=profile["project_id"])
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
+    sentry_sdk.set_context(
+        "profile",
+        {
+            "organization_id": profile["organization_id"],
+            "project_id": profile["project_id"],
+            "profile_id": event_id,
+            "platform": profile["platform"],
+        },
+    )
+
     try:
         if _should_symbolicate(profile):
             modules, stacktraces = _prepare_frames_from_profile(profile)
@@ -506,17 +516,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             return False
         return True
     except RecursionError as e:
-        sentry_sdk.set_context(
-            "profile",
-            {
-                "organization_id": profile["organization_id"],
-                "project_id": profile["project_id"],
-                "profile_id": profile["event_id"]
-                if "event_id" in profile
-                else profile["profile_id"],
-                "platform": profile["platform"],
-            },
-        )
         sentry_sdk.capture_exception(e)
         return True
     except Exception as e:
