@@ -226,7 +226,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                               organization={organization}
                               event={event}
                               project={_projects[0] as Project}
-                              showExampleCommit={false}
                               showTagSummary={false}
                               location={location}
                               api={this.api}

@@ -26,7 +26,6 @@ function EventCause({group, event, project}: Props) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
   const {committers, fetching} = useCommitters({
-    group,
     eventId: event.id,
     projectSlug: project.slug,
   });

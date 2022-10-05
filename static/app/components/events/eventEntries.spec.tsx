@@ -55,6 +55,13 @@ describe('EventEntries', function () {
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+      body: {
+        committers: [],
+      },
+    });
   });
 
   afterEach(() => {

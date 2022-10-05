@@ -248,7 +248,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         event={event}
                         project={projects[0] as Project}
                         location={location}
-                        showExampleCommit={false}
                         showTagSummary={false}
                         api={this.api}
                         router={router}

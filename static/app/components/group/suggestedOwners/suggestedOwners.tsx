@@ -181,7 +181,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
   const organization = useOrganization();
   const {committers, releaseCommitters} = useCommitters({
-    group: props.group,
     eventId: props.event.id,
     projectSlug: props.project.slug,
   });

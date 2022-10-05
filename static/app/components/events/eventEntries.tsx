@@ -13,7 +13,6 @@ import EventDevice from 'sentry/components/events/device';
 import EventErrors, {Error} from 'sentry/components/events/errors';
 import EventAttachments from 'sentry/components/events/eventAttachments';
 import EventCause from 'sentry/components/events/eventCause';
-import EventCauseEmpty from 'sentry/components/events/eventCauseEmpty';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import EventExtraData from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
@@ -100,7 +99,6 @@ type Props = Pick<React.ComponentProps<typeof EventEntry>, 'route' | 'router'> &
   event?: Event;
   group?: Group;
   isShare?: boolean;
-  showExampleCommit?: boolean;
   showTagSummary?: boolean;
 };
 
@@ -115,7 +113,6 @@ const EventEntries = ({
   router,
   route,
   isShare = false,
-  showExampleCommit = false,
   showTagSummary = true,
 }: Props) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -338,13 +335,9 @@ const EventEntries = ({
           proGuardErrors={proGuardErrors}
         />
       )}
-      {!isShare &&
-        isNotSharedOrganization(organization) &&
-        (showExampleCommit ? (
-          <EventCauseEmpty event={event} organization={organization} project={project} />
-        ) : (
-          <EventCause project={project} event={event} group={group} />
-        ))}
+      {!isShare && isNotSharedOrganization(organization) && (
+        <EventCause project={project} event={event} group={group} />
+      )}
       {event.userReport && group && (
         <StyledEventUserFeedback
           report={event.userReport}
