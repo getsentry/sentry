@@ -131,7 +131,7 @@ from sentry.utils.pytest.selenium import Browser
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snuba import _snuba_pool
 
-from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, extract_entity_from_mri
 from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
@@ -1248,13 +1248,13 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
 
     def _store_metric_in_metrics_layer(
         self,
-        type: str,
         name: str,
         tags: Dict[str, str],
         value,
         use_case_id: UseCaseKey,
-        org_id: int = None,
-        project_id: int = None,
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
@@ -1269,7 +1269,7 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=type,
+            type=extract_entity_from_mri(name) if type is None else type,
             name=name,
             tags=tags,
             timestamp=(
@@ -1302,12 +1302,12 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
 
     def store_performance_metric(
         self,
-        type: str,
         name: str,
         tags: Dict[str, str],
         value,
-        org_id: int = None,
-        project_id: int = None,
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
@@ -1327,12 +1327,12 @@ class BaseMetricsLayerTestCase(ABC, BaseMetricsTestCase):
 
     def store_release_health_metric(
         self,
-        type: str,
         name: str,
         tags: Dict[str, str],
         value,
-        org_id: int = None,
-        project_id: int = None,
+        type: Optional[str] = None,
+        org_id: Optional[int] = None,
+        project_id: Optional[int] = None,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,

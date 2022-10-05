@@ -94,7 +94,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value},
                 value=count_value,
@@ -102,7 +101,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             )
         for value in range(3):
             self.store_release_health_metric(
-                type="set",
                 name=SessionMRI.ERROR.value,
                 tags={"release": "foo"},
                 value=value,
@@ -148,7 +146,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for v in d_value:
                 self.store_release_health_metric(
-                    type="distribution",
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
                     value=v,
@@ -228,7 +225,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def test_query_private_metrics_raise_exception(self):
         self.store_release_health_metric(
-            type="counter",
             name=SessionMRI.SESSION.value,
             tags={"session.status": "errored_preaggr"},
             value=2,

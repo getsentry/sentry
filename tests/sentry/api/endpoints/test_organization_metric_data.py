@@ -528,7 +528,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_max_and_min_on_distributions(self):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             self.store_performance_metric(
-                type="distribution",
                 name=TransactionMRI.MEASUREMENTS_LCP.value,
                 tags={"transaction": v_transaction},
                 value=123.4 * count,
@@ -566,7 +565,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 # count decides the cardinality of this distribution bucket
                 for value in [123.4] * count:
                     self.store_performance_metric(
-                        type="distribution",
                         name=TransactionMRI.MEASUREMENTS_LCP.value,
                         tags={"transaction": v_transaction, "measurement_rating": v_rating},
                         value=value,
@@ -606,7 +604,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 # count decides the cardinality of this distribution bucket
                 for value in [123.4] * count:
                     self.store_performance_metric(
-                        type="distribution",
                         name=TransactionMRI.MEASUREMENTS_LCP.value,
                         tags={"transaction": v_transaction, "measurement_rating": v_rating},
                         value=value,
@@ -655,7 +652,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -694,7 +690,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -742,7 +737,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -797,7 +791,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -809,7 +802,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_FCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -859,7 +851,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -871,7 +862,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_FCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -959,7 +949,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -971,7 +960,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="set",
                     name=TransactionMRI.USER.value,
                     tags={tag: value},
                     value=subvalue,
@@ -1020,7 +1008,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -1036,7 +1023,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ):
                 for subvalue in numbers:
                     self.store_performance_metric(
-                        type="set",
                         name=TransactionMRI.USER.value,
                         tags={tag: value},
                         value=subvalue,
@@ -1179,7 +1165,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -1222,7 +1207,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         within the limit, and that are also with complete data from across the entities
         """
         self.store_release_health_metric(
-            type="counter",
             name=SessionMRI.SESSION.value,
             tags={"tag3": "value1"},
             value=10,
@@ -1234,7 +1218,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "value4",
         ):
             self.store_performance_metric(
-                type="distribution",
                 name=TransactionMRI.MEASUREMENTS_FCP.value,
                 tags={"tag3": value},
                 value=1,
@@ -1268,7 +1251,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         """
         for tag, tag_value in (("tag1", "group1"), ("tag1", "group2")):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={tag: tag_value},
                 value=10,
@@ -1281,7 +1263,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.ERROR.value,
                     tags={tag: tag_value},
                     value=value,
@@ -1293,7 +1274,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    type="distribution",
                     name=SessionMRI.DURATION.value,
                     tags={tag: tag_value},
                     value=value,
@@ -1327,7 +1307,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             ("tag2", "C1"),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={tag: tag_value},
                 value=10,
@@ -1342,7 +1321,6 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.ERROR.value,
                     tags={tag: tag_value},
                     value=value,
@@ -1748,7 +1726,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 15),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value},
                 value=value,
@@ -1756,7 +1733,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             )
         for value in range(3):
             self.store_release_health_metric(
-                type="set",
                 name=SessionMRI.ERROR.value,
                 tags={"release": "foo"},
                 value=value,
@@ -1800,7 +1776,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("bar", 3, 2),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": "abnormal", "release": tag_value},
                 value=value,
@@ -1830,7 +1805,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.USER.value,
                     tags={"session.status": "crashed", "release": tag_value},
                     value=value,
@@ -1855,7 +1829,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_all_user_sessions(self):
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                type="set",
                 name=SessionMRI.USER.value,
                 tags={},
                 value=value,
@@ -1878,7 +1851,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.USER.value,
                     tags=tags,
                     value=value,
@@ -1902,7 +1874,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.USER.value,
                     tags=tags,
                     value=value,
@@ -1937,7 +1908,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.USER.value,
                     tags=tags,
                     value=value,
@@ -1954,7 +1924,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("crashed", "foobar@2.0", 3, 2),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value, "release": release_tag_value},
                 value=value,
@@ -1994,7 +1963,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ({"session.status": "init", "release": "foo"}, 10),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags=tags,
                 value=value,
@@ -2002,7 +1970,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for value in range(3):
             self.store_release_health_metric(
-                type="set",
                 name=SessionMRI.ERROR.value,
                 tags={"release": "foo"},
                 value=value,
@@ -2025,7 +1992,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             ("init", 10),
         ):
             self.store_release_health_metric(
-                type="counter",
                 name=SessionMRI.SESSION.value,
                 tags={"session.status": tag_value, "release": "foo"},
                 value=value,
@@ -2058,7 +2024,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.USER.value,
                     tags={"session.status": tag_value},
                     value=value,
@@ -2080,7 +2045,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # Errored = -3
         for value in [1, 2, 4]:
             self.store_release_health_metric(
-                type="set",
                 name=SessionMRI.USER.value,
                 tags={"session.status": "crashed"},
                 value=value,
@@ -2104,7 +2068,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in values:
                 self.store_release_health_metric(
-                    type="set",
                     name=SessionMRI.USER.value,
                     tags=tags,
                     value=value,
@@ -2124,7 +2087,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         # init = 0
         # errored_all = 1
         self.store_release_health_metric(
-            type="set",
             name=SessionMRI.USER.value,
             tags={"session.status": "errored"},
             value=1,
@@ -2162,7 +2124,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             (0.5, TransactionStatusTagValue.ABORTED.value),
         ):
             self.store_performance_metric(
-                type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
                 value=value,
@@ -2240,7 +2201,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_apdex_transactions(self):
         # See https://docs.sentry.io/product/performance/metrics/#apdex
         self.store_performance_metric(
-            type="distribution",
             name=TransactionMRI.DURATION.value,
             tags={
                 TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
@@ -2250,7 +2210,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for subvalue in [0.3, 2.3]:
             self.store_performance_metric(
-                type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.TOLERATED.value
@@ -2272,7 +2231,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_miserable_users(self):
         for subvalue in [1, 2]:
             self.store_performance_metric(
-                type="set",
                 name=TransactionMRI.USER.value,
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
@@ -2282,7 +2240,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for subvalue in [1, 3]:
             self.store_performance_metric(
-                type="set",
                 name=TransactionMRI.USER.value,
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
@@ -2304,7 +2261,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_user_misery(self):
         for subvalue in [3, 4]:
             self.store_performance_metric(
-                type="set",
                 name=TransactionMRI.USER.value,
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.FRUSTRATED.value
@@ -2314,7 +2270,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         for subvalue in [5, 6]:
             self.store_performance_metric(
-                type="set",
                 name=TransactionMRI.USER.value,
                 tags={
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value: TransactionSatisfactionTagValue.SATISFIED.value
@@ -2341,7 +2296,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ):
             for value in numbers:
                 self.store_release_health_metric(
-                    type="distribution",
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
                     value=value,

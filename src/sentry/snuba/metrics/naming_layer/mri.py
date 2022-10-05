@@ -16,7 +16,14 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 `SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
 metric that is queryable by the API.
 """
-__all__ = ("SessionMRI", "TransactionMRI", "MRI_SCHEMA_REGEX", "MRI_EXPRESSION_REGEX", "parse_mri")
+__all__ = (
+    "SessionMRI",
+    "TransactionMRI",
+    "MRI_SCHEMA_REGEX",
+    "MRI_EXPRESSION_REGEX",
+    "parse_mri",
+    "extract_entity_from_mri",
+)
 
 import re
 from dataclasses import dataclass
@@ -34,6 +41,14 @@ MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
 MRI_SCHEMA_REGEX = re.compile(MRI_SCHEMA_REGEX_STRING)
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
+
+ENTITY_SHORTHANDS = {
+    "c": "counter",
+    "s": "set",
+    "d": "distribution",
+    "g": "gauge",
+    "e": "evaluated",
+}
 
 
 class SessionMRI(Enum):
@@ -140,3 +155,10 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
         # Iterate through the transaction MRI and check that this parsed_mri isn't in there
         parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
     )
+
+
+def extract_entity_from_mri(mri_string: str) -> str:
+    """
+    Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
+    """
+    return ENTITY_SHORTHANDS[parse_mri(mri_string).entity]

@@ -72,7 +72,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={"transaction": v_transaction, "measurement_rating": "poor"},
                     value=value,
@@ -153,7 +152,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for v_transaction, count in (("/foo", 1), ("/bar", 3), ("/baz", 2)):
             for value in [123.4] * count:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={"transaction": v_transaction, "measurement_rating": "poor"},
                     value=value,
@@ -236,7 +234,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
         for value in (100, 200, 300):
             self.store_performance_metric(
-                type="distribution",
                 name=transactions_speed_mri,
                 tags={},
                 value=value,
@@ -290,7 +287,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
         for value, invalid_mri in zip([100, 200], invalid_mris):
             self.store_performance_metric(
-                type="distribution",
                 name=invalid_mri,
                 tags={},
                 value=value,
@@ -331,7 +327,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     def test_query_with_tuple_condition(self):
         for value, transaction in ((10, "/foo"), (20, "/bar"), (30, "/lorem")):
             self.store_performance_metric(
-                type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={"transaction": transaction},
                 value=value,
@@ -407,7 +402,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
             for value in values:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
                     value=value,
@@ -483,7 +477,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
             for value in values:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags=tags,
                     value=value,
@@ -533,7 +526,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_performance_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
-                type="distribution",
                 name=TransactionMRI.DURATION.value,
                 tags={TransactionTagsKey.TRANSACTION_STATUS.value: tag_value},
                 value=value,
@@ -575,7 +567,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -587,7 +578,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_FCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -679,7 +669,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         ):
             for subvalue in numbers:
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.MEASUREMENTS_LCP.value,
                     tags={tag: value},
                     value=subvalue,
@@ -739,7 +728,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for hour, count in enumerate(event_counts):
             for _ in range(count):
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
                     value=1,
@@ -792,7 +780,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for hour, count in enumerate(event_counts):
             for minute in range(count):
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
                     value=1,
@@ -845,7 +832,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         self.store_metric(
             org_id=self.organization.id,
             project_id=self.project.id,
-            type="distribution",
             name=TransactionMRI.DURATION.value,
             tags={},
             timestamp=(day_ago + timedelta(hours=0, minutes=25)).timestamp(),
@@ -856,7 +842,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for hour, count in enumerate(event_counts):
             for minute in range(count):
                 self.store_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
                     timestamp=(day_ago + timedelta(hours=hour, minutes=minute + 30)).timestamp(),
@@ -906,7 +891,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for minute, count in enumerate(event_counts):
             for _ in range(count):
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
                     value=1,
@@ -961,7 +945,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         for minute, count in enumerate(event_counts):
             for _ in range(count):
                 self.store_performance_metric(
-                    type="distribution",
                     name=TransactionMRI.DURATION.value,
                     tags={},
                     value=1,
@@ -1033,7 +1016,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_performance_metric(
                 org_id=self.organization.id,
                 project_id=self.project.id,
-                type="distribution",
                 name=metric_mri,
                 tags=tags,
                 value=value,
