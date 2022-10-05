@@ -339,10 +339,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   renderButtonDelete(disabled: boolean) {
-    const {isHomepage} = this.props;
     const {isNewQuery} = this.state;
 
-    if (isNewQuery || isHomepage) {
+    if (isNewQuery) {
       return null;
     }
 
