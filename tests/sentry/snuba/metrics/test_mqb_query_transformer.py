@@ -201,6 +201,14 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     exp=Column("e:transactions/failure_rate@ratio"),
                     alias="failure_rate",
                 ),
+                Function(
+                    function="team_key_transaction",
+                    parameters=[
+                        Column("d:transactions/duration@millisecond"),
+                        [(13, "foo_transaction")],
+                    ],
+                    alias="team_key_transaction",
+                ),
             ],
             groupby=[
                 AliasedExpression(
@@ -270,7 +278,18 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                         alias="p95",
                     ),
                     direction=Direction.ASC,
-                )
+                ),
+                OrderBy(
+                    exp=Function(
+                        function="team_key_transaction",
+                        parameters=[
+                            Column("d:transactions/duration@millisecond"),
+                            [(13, "foo_transaction")],
+                        ],
+                        alias="team_key_transaction",
+                    ),
+                    direction=Direction.ASC,
+                ),
             ],
             limitby=None,
             limit=Limit(limit=51),
@@ -301,19 +320,19 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 MetricField(
                     op="team_key_transaction",
                     metric_mri="d:transactions/duration@millisecond",
-                    params={"team_key_condition_rhs": [(20, "foo_transaction")]},
+                    params={"team_key_condition_rhs": [(13, "foo_transaction")]},
                     alias="team_key_transaction",
                 ),
             ],
-            start=datetime.datetime(2022, 3, 24, 11, 11, 38, 32475),
-            end=datetime.datetime(2022, 6, 22, 11, 11, 38, 32475),
+            start=datetime.datetime(2022, 3, 24, 11, 11, 36, 75132),
+            end=datetime.datetime(2022, 6, 22, 11, 11, 36, 75132),
             granularity=Granularity(granularity=86400),
             where=[
                 MetricConditionField(
                     lhs=MetricField(
                         op="team_key_transaction",
                         metric_mri="d:transactions/duration@millisecond",
-                        params={"team_key_condition_rhs": [(20, "foo_transaction")]},
+                        params={"team_key_condition_rhs": [(13, "foo_transaction")]},
                         alias="team_key_transaction",
                     ),
                     op=Op.EQ,
@@ -326,28 +345,28 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                     MetricField(
                         op="team_key_transaction",
                         metric_mri="d:transactions/duration@millisecond",
-                        params={"team_key_condition_rhs": [(20, "foo_transaction")]},
+                        params={"team_key_condition_rhs": [(13, "foo_transaction")]},
                         alias="team_key_transaction",
                     ),
                 ),
-                MetricGroupByField("project_id"),
                 MetricGroupByField("transaction", alias="title"),
+                MetricGroupByField("project_id"),
             ],
             orderby=[
-                MetricsOrderBy(
-                    field=MetricField(
-                        op="team_key_transaction",
-                        metric_mri="d:transactions/duration@millisecond",
-                        params={"team_key_condition_rhs": [(20, "foo_transaction")]},
-                        alias="team_key_transaction",
-                    ),
-                    direction=Direction.ASC,
-                ),
                 MetricsOrderBy(
                     field=MetricField(
                         op="p95",
                         metric_mri="d:transactions/duration@millisecond",
                         alias="p95",
+                    ),
+                    direction=Direction.ASC,
+                ),
+                MetricsOrderBy(
+                    field=MetricField(
+                        op="team_key_transaction",
+                        metric_mri="d:transactions/duration@millisecond",
+                        params={"team_key_condition_rhs": [(13, "foo_transaction")]},
+                        alias="team_key_transaction",
                     ),
                     direction=Direction.ASC,
                 ),
@@ -456,28 +475,28 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 MetricField(
                     op="p75",
                     metric_mri="d:transactions/measurements.cls@millisecond",
-                    alias="p75_measurement_cls",
+                    alias="p75_measurements_cls",
                 ),
                 MetricField(
                     op="rate",
                     metric_mri="d:transactions/duration@millisecond",
-                    params={"denominator": 60, "numerator": 7776000.0},
+                    params={"numerator": 7776000.0, "denominator": 60},
                     alias="tpm",
                 ),
                 MetricField(
                     op="p75",
                     metric_mri="d:transactions/measurements.fid@millisecond",
-                    alias="p75_measurement_fid",
+                    alias="p75_measurements_fid",
                 ),
                 MetricField(
                     op="p75",
                     metric_mri="d:transactions/measurements.fcp@millisecond",
-                    alias="p75_measurement_fcp",
+                    alias="p75_measurements_fcp",
                 ),
                 MetricField(
                     op="p75",
                     metric_mri="d:transactions/measurements.lcp@millisecond",
-                    alias="p75_measurement_lcp",
+                    alias="p75_measurements_lcp",
                 ),
             ],
             start=datetime.datetime(2022, 3, 24, 11, 11, 37, 278535),
@@ -485,8 +504,8 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             granularity=Granularity(granularity=86400),
             where=None,
             groupby=[
-                MetricGroupByField("project_id", alias=None),
                 MetricGroupByField("transaction", alias=None),
+                MetricGroupByField("project_id", alias=None),
             ],
             limit=Limit(limit=51),
             offset=Offset(offset=0),
@@ -507,12 +526,13 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
                 ),
             ],
             groupby=[
+                Column("project_id"),
                 AliasedExpression(
                     exp=Column(
                         name="tags[transaction]",
                     ),
                     alias="transaction",
-                )
+                ),
             ],
             array_join=None,
             where=[
@@ -574,7 +594,7 @@ VALID_QUERIES_INTEGRATION_TEST_CASES = [
             select=[
                 MetricField(
                     op="count_unique",
-                    metric_mri="d:transactions/duration@millisecond",
+                    metric_mri="s:transactions/user@none",
                     alias="count_unique_user",
                 )
             ],
