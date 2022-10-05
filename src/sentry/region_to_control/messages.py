@@ -32,6 +32,12 @@ class AuditLogEvent:
     data: Optional[Mapping[str, any]] = None
 
 
+@dataclasses.dataclass
+class NormalizedAuditLogEvent:
+    organization_id: int = -1
+    datetime: datetime.datetime = datetime.datetime(2000, 1, 1)
+
+
 def discard_extra_fields(Dc, payload):
     message_field: dataclasses.Field
     kwds = {}
@@ -46,6 +52,10 @@ def discard_extra_fields(Dc, payload):
 class RegionToControlMessage:
     user_ip_event: Optional[UserIpEvent] = dataclasses.field(
         default=None, metadata=dict(constructor=NormalizedUserIpEvent)
+    )
+
+    audit_log_event: Optional[AuditLogEvent] = dataclasses.field(
+        default=None, metadata=dict(constructor=NormalizedAuditLogEvent)
     )
 
     @staticmethod

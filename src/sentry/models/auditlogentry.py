@@ -79,9 +79,21 @@ class AuditLogEntry(Model):
         super().save(*args, **kwargs)
 
     def save_or_write_to_kafka(self):
-        pass
+        """
+        Customer Silos do not have access to the AuditLogEntry table which is specific to the control silo.
+        For those silos, this method publishes the attempted audit log write to a durable kafka queue synchronously
+        that will eventually be consumed by the control silo.  For the control silo, this method ultimately results
+        in a save() call.
 
-    def as_kafka_event(self):
+        This method is most ideal for shared code paths that may be invoked from either control or customer silos,
+        but is not recommended on code paths that should always be invoked from the control silo and depend on the
+        synchronous database access.
+        """
+        from sentry.region_to_control.producer import produce_audit_log_entry
+
+        produce_audit_log_entry(self)
+
+    def as_kafka_event(self) -> AuditLogEvent:
         """
         Serializes a potential audit log database entry as a kafka event that should be deserialized and loaded via
         `from_event` as faithfully as possible.  It is worth keeping in mind that due to the over the wire, persistent
