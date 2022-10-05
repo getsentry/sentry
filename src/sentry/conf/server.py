@@ -948,8 +948,6 @@ SENTRY_FEATURES = {
     "organizations:active-release-monitor-alpha": False,
     # Workflow 2.0 Active Release Notifications
     "organizations:active-release-notifications-enable": False,
-    # Enables tagging javascript errors from the browser console.
-    "organizations:javascript-console-error-tag": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1100,6 +1098,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Enable new issue actions on issue details
+    "organizations:issue-actions-v2": False,
     # Enable "Owned By" and "Assigned To" on issue details
     "organizations:issue-details-owners": False,
     # Enable removing issue from issue list if action taken.
@@ -1179,6 +1179,8 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling-advanced": False,
     # Enable dynamic sampling call to action in the performance product
     "organizations:dynamic-sampling-performance-cta": False,
+    # Enable a more advanced dynamic sampling call to action in the performance product
+    "organizations:dynamic-sampling-performance-cta-advanced": False,
     # Enable the mobile screenshots feature
     "organizations:mobile-screenshots": False,
     # Enable the release details performance section

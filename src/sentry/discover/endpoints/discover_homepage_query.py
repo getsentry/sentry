@@ -80,7 +80,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 version=data["version"],
             )
             previous_homepage.set_projects(data["project_ids"])
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(serialize(previous_homepage), status=status.HTTP_200_OK)
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,
@@ -93,7 +93,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
         model.set_projects(data["project_ids"])
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response(serialize(model), status=status.HTTP_201_CREATED)
 
     def delete(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
