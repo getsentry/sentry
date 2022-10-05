@@ -188,15 +188,13 @@ export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => 
   }, []);
 };
 
-const decodeSorts = (location: Location): Array<Sort> => {
+export const decodeSorts = (location: Location): Array<Sort> => {
   const {query} = location;
 
   if (!query || !query.sort) {
     return [];
   }
-
   const sorts = decodeList(query.sort);
-
   return fromSorts(sorts);
 };
 

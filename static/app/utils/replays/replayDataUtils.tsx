@@ -157,7 +157,13 @@ export function breadcrumbFactory(
 }
 
 export function spansFactory(spans: ReplaySpan[]) {
-  return spans.sort((a, b) => a.startTimestamp - b.startTimestamp);
+  return spans
+    .sort((a, b) => a.startTimestamp - b.startTimestamp)
+    .map(span => ({
+      ...span,
+      id: `${span.description ?? span.op}-${span.startTimestamp}-${span.endTimestamp}`,
+      timestamp: span.startTimestamp * 1000,
+    }));
 }
 
 /**
