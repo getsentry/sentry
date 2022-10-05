@@ -1127,10 +1127,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                         self.build_session(
                             project_id=self.project.id,
                             started=(
-                                self.now()
-                                - timedelta(minutes=3)
-                                + timedelta(minutes=minute)
-                                - timedelta(seconds=1)
+                                self.now() - timedelta(minutes=3 - minute) - timedelta(seconds=1)
                             ).timestamp(),
                             release=release,
                         )
