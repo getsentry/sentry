@@ -322,7 +322,7 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
-    metrics.incr("performance.performance_issue.detected", len(detected_problems))
+    metrics.incr("performance.performance_issue.pretruncated", len(detected_problems))
     metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
 
     performance_problems = [
