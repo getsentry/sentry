@@ -279,6 +279,7 @@ def fetch_buffered_group_stats(group):
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
     soft_time_limit=110,
+    queue="triggers-0",
 )
 def post_process_group(
     is_new, is_regression, is_new_group_environment, cache_key, group_id=None, **kwargs
@@ -627,10 +628,6 @@ def process_similarity(event: "Event") -> None:
         safe_execute(similarity.record, event.project, [event], _with_transaction=False)
 
 
-@instrumented_task(
-    name="sentry.tasks.post_process.plugin_post_process_group",
-    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug,
-)
 def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
