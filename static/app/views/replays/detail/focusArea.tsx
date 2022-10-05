@@ -3,8 +3,6 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
-import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
@@ -15,12 +13,6 @@ import NetworkList from 'sentry/views/replays/detail/network';
 import Trace from 'sentry/views/replays/detail/trace';
 
 type Props = {};
-
-function getBreadcrumbsByCategory(breadcrumbs: Crumb[], categories: string[]) {
-  return breadcrumbs
-    .filter(isBreadcrumbTypeDefault)
-    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
-}
 
 function FocusArea({}: Props) {
   const {getActiveTab} = useActiveReplayTab();
@@ -37,13 +29,9 @@ function FocusArea({}: Props) {
 
   switch (getActiveTab()) {
     case 'console':
-      const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
-        'console',
-        'issue',
-      ]);
       return (
         <Console
-          breadcrumbs={consoleMessages ?? []}
+          breadcrumbs={replay.getConsoleCrumbs()}
           startTimestampMs={replayRecord.startedAt.getTime()}
         />
       );
