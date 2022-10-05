@@ -1,5 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -256,6 +263,26 @@ describe('TransactionReplays', () => {
 
     // Expect the second row to have the correct date
     expect(screen.getByText('7 days ago')).toBeInTheDocument();
+  });
+
+  it('should allow for searching and filtering events', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      userEvent.type(
+        screen.getByTestId('smart-search-input'),
+        `user.email:testing@sentry.io{Enter}`
+      );
+      expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
+        pathname: '/organizations/org-slug/replays/',
+        query: {
+          sort: 'startedAt',
+          project: '1',
+          transaction: 'transaction',
+          'user.email': 'testing@sentry.io',
+        },
+      });
+    });
   });
 
   it('should be able to click the `Start Time` column and request data sorted by startedAt query', async () => {
