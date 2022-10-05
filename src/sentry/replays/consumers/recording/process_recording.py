@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import logging
+import random
 import time
 from collections import deque
 from concurrent.futures import Future
@@ -177,6 +178,8 @@ class ProcessRecordingSegmentStrategy(ProcessingStrategy[KafkaPayload]):
             with sentry_sdk.start_transaction(
                 op="replays.consumer.process_recording",
                 description="Replay recording segment message received.",
+                sampled=random.random()
+                < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
             ):
                 message_dict = msgpack.unpackb(message.payload.value)
                 self._configure_sentry_scope(message_dict)
