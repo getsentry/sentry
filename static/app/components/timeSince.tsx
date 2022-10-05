@@ -84,6 +84,7 @@ function TimeSince({
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
   const options = user ? user.options : null;
+  // Use short months when showing seconds, because "September" causes the tooltip to overflow.
   const tooltipFormat = tooltipShowSeconds
     ? 'MMM D, YYYY h:mm:ss A z'
     : 'MMMM D, YYYY h:mm A z';
