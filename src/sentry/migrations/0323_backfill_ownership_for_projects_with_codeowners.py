@@ -11,15 +11,10 @@ def backfill_project_ownership(apps, schema_editor):
     ProjectCodeOwners = apps.get_model("sentry", "ProjectCodeOwners")
 
     for codeowner in RangeQuerySetWrapperWithProgressBar(ProjectCodeOwners.objects.all()):
-        if ProjectOwnership.objects.filter(project_id=codeowner.project_id).exists():
-            continue
-
-        ownership = ProjectOwnership(
+        ProjectOwnership.objects.get_or_create(
             project_id=codeowner.project_id,
-            auto_assignment=False,
-            suspect_committer_auto_assignment=False,
+            defaults={"auto_assignment": False, "suspect_committer_auto_assignment": False},
         )
-        ownership.save()
 
 
 class Migration(CheckedMigration):
