@@ -56,9 +56,10 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
                 },
             )
 
-        assert response.status_code == 204, response.content
+        assert response.status_code == 200, response.content
 
         saved_query.refresh_from_db()
+        assert response.data == serialize(saved_query)
         assert saved_query.name == "A new homepage query update"
         assert saved_query.query["fields"] == ["field1", "field2"]
         assert set(saved_query.projects.values_list("id", flat=True)) == set(self.project_ids)
@@ -81,6 +82,7 @@ class DiscoverHomepageQueryTest(DiscoverSavedQueryBase):
         new_query = DiscoverSavedQuery.objects.get(
             created_by=self.user, organization=self.org, is_homepage=True
         )
+        assert response.data == serialize(new_query)
         assert new_query.name == homepage_query_payload["name"]
         assert new_query.query["fields"] == homepage_query_payload["fields"]
         assert new_query.query["environment"] == homepage_query_payload["environment"]
