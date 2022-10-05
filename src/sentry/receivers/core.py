@@ -69,7 +69,9 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     except IndexError:
         user = None
 
-    org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
+    org, _ = Organization.objects.get_or_create(
+        slug="sentry", defaults={"name": "Sentry"}, id=getattr(settings, "SENTRY_ORGANIZATION", 1)
+    )
 
     if user:
         OrganizationMember.objects.get_or_create(user=user, organization=org, role="owner")
