@@ -1,6 +1,5 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectActions from 'sentry/actions/projectActions';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Projects from 'sentry/utils/projects';
 
@@ -210,7 +209,7 @@ describe('utils.projects', function () {
       );
 
       const newTeam = TestStubs.Team();
-      act(() => ProjectActions.addTeamSuccess(newTeam, 'foo'));
+      act(() => ProjectsStore.onAddTeam(newTeam, 'foo'));
 
       await waitFor(() =>
         expect(renderer).toHaveBeenCalledWith(
@@ -556,7 +555,6 @@ describe('utils.projects', function () {
   });
 
   describe('with all projects prop', function () {
-    const loadProjects = jest.spyOn(ProjectActions, 'loadProjects');
     let mockProjects;
     let request;
 
@@ -584,11 +582,11 @@ describe('utils.projects', function () {
         },
         body: mockProjects,
       });
-      loadProjects.mockReset();
-      act(() => ProjectsStore.reset());
+      ProjectsStore.reset();
     });
 
     it('can query for a list of all projects and save it to the store', async function () {
+      const loadInitialData = jest.spyOn(ProjectsStore, 'loadInitialData');
       createWrapper({allProjects: true});
 
       // This is initial state
@@ -621,11 +619,13 @@ describe('utils.projects', function () {
       );
 
       // expect the store action to be called
-      expect(loadProjects).toHaveBeenCalledWith(mockProjects);
+      expect(loadInitialData).toHaveBeenCalledWith(mockProjects);
+      loadInitialData.mockRestore();
     });
 
     it('does not refetch projects that are already loaded in the store', async function () {
       act(() => ProjectsStore.loadInitialData(mockProjects));
+      const loadInitialData = jest.spyOn(ProjectsStore, 'loadInitialData');
 
       createWrapper({allProjects: true});
 
@@ -641,7 +641,9 @@ describe('utils.projects', function () {
       );
 
       expect(request).not.toHaveBeenCalled();
-      expect(loadProjects).not.toHaveBeenCalled();
+      expect(loadInitialData).not.toHaveBeenCalled();
+
+      loadInitialData.mockRestore();
     });
 
     it('responds to updated projects from the project store', async function () {
@@ -660,7 +662,7 @@ describe('utils.projects', function () {
       );
 
       const newTeam = TestStubs.Team();
-      act(() => ProjectActions.addTeamSuccess(newTeam, 'a'));
+      act(() => ProjectsStore.onAddTeam(newTeam, 'a'));
 
       // Expect new team information to be available
       await waitFor(() =>

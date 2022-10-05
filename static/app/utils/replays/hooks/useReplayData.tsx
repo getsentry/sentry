@@ -70,6 +70,7 @@ type ReplayAttachment = {
 interface Result extends Pick<State, 'fetchError' | 'fetching'> {
   onRetry: () => void;
   replay: ReplayReader | null;
+  replayRecord: ReplayRecord | undefined;
 }
 
 export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
@@ -188,6 +189,10 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
   const fetchReplayAndErrors = useCallback(async (): Promise<[ReplayRecord, any]> => {
     const fetchedRecord = await fetchReplay();
     const mappedRecord = mapResponseToReplayRecord(fetchedRecord);
+    setState(prev => ({
+      ...prev,
+      replayRecord: mappedRecord,
+    }));
     const fetchedErrors = await fetchErrors(mappedRecord);
     return [mappedRecord, fetchedErrors];
   }, [fetchReplay, fetchErrors]);
@@ -247,6 +252,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     fetching: state.fetching,
     onRetry: loadEvents,
     replay,
+    replayRecord: state.replayRecord,
   };
 }
 

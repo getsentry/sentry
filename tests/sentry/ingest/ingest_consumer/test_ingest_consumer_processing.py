@@ -121,7 +121,7 @@ def test_transactions_spawn_save_event_transaction(
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("missing_chunks", (True, False))
-def test_with_attachments(default_project, task_runner, missing_chunks, monkeypatch):
+def test_with_attachments(default_project, task_runner, missing_chunks, monkeypatch, django_cache):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
     payload = get_normalized_event({"message": "hello world"}, default_project)
@@ -199,7 +199,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 )
 @pytest.mark.parametrize("with_group", [True, False], ids=["with_group", "without_group"])
 def test_individual_attachments(
-    default_project, factories, monkeypatch, event_attachments, chunks, with_group
+    default_project, factories, monkeypatch, event_attachments, chunks, with_group, django_cache
 ):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: event_attachments)
 
@@ -260,7 +260,7 @@ def test_individual_attachments(
 
 
 @pytest.mark.django_db
-def test_userreport(default_project, monkeypatch):
+def test_userreport(django_cache, default_project, monkeypatch):
     """
     Test that user_report-type kafka messages end up in a user report being
     persisted. We additionally test some logic around upserting data in
