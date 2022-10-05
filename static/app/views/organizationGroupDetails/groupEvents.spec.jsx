@@ -1,7 +1,12 @@
 import {browserHistory} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
@@ -166,12 +171,19 @@ describe('groupEvents', function () {
   });
 
   describe('When the performance flag is enabled', () => {
-    it('renders new events table for performance', function () {
-      const org = initializeOrg({
+    let org;
+    let group;
+
+    beforeEach(() => {
+      org = initializeOrg({
         organization: {features: ['performance-issues-all-events-tab']},
       });
-      const group = TestStubs.Group();
+      group = TestStubs.Group();
+    });
+
+    it('renders new events table for performance', function () {
       group.issueCategory = 'performance';
+
       render(
         <GroupEvents
           organization={org.organization}
@@ -192,11 +204,33 @@ describe('groupEvents', function () {
       expect(perfEventsColumn).toBeInTheDocument();
     });
 
+    it('renders event and trace link correctly', async () => {
+      group.issueCategory = 'performance';
+
+      render(
+        <GroupEvents
+          organization={org.organization}
+          api={new MockApiClient()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          group={group}
+          location={{query: {environment: ['prod', 'staging']}}}
+        />,
+        {context: routerContext, organization}
+      );
+      await waitForElementToBeRemoved(document.querySelector('div.loading-indicator'));
+      const eventIdATag = screen.getByText('id123').closest('a');
+      const traceIdATag = screen.getByText('trace123').closest('a');
+      expect(eventIdATag).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/1/events/id123/'
+      );
+      expect(traceIdATag).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/performance/trace/trace123/?'
+      );
+    });
+
     it('renders new events table if error', function () {
-      const org = initializeOrg({
-        organization: {features: ['performance-issues-all-events-tab']},
-      });
-      const group = TestStubs.Group();
       render(
         <GroupEvents
           organization={org.organization}
@@ -220,6 +254,7 @@ describe('groupEvents', function () {
   it('does not renders new events table if error', function () {
     const org = initializeOrg();
     const group = TestStubs.Group();
+
     render(
       <GroupEvents
         organization={org.organization}

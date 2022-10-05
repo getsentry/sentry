@@ -322,6 +322,9 @@ def _detect_performance_problems(data: Event, sdk_span: Any) -> List[Performance
 
     truncated_problems = detected_problems[:PERFORMANCE_GROUP_COUNT_LIMIT]
 
+    metrics.incr("performance.performance_issue.detected", len(detected_problems))
+    metrics.incr("performance.performance_issue.truncated", len(truncated_problems))
+
     performance_problems = [
         prepare_problem_for_grouping(problem, data, detector_type)
         for problem, detector_type in truncated_problems
@@ -1003,6 +1006,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.n_spans[0].get("hash", None),
         )
         if fingerprint not in self.stored_problems:
+            self._metrics_for_extra_matching_spans()
+
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
                 op="db",
@@ -1012,6 +1017,19 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
             )
+
+    def _metrics_for_extra_matching_spans(self):
+        # Checks for any extra spans that match the detected problem but are not part of affected spans.
+        # Temporary check since we eventually want to capture extra perf problems on the initial pass while walking spans.
+        n_count = len(self.n_spans)
+        all_matching_spans = [
+            span
+            for span in self._event.get("spans", [])
+            if span.get("span_id", None) == self.n_hash
+        ]
+        all_count = len(all_matching_spans)
+        if n_count > 0 and n_count != all_count:
+            metrics.incr("performance.performance_issue.np1_db.extra_spans")
 
     def _reset_detection(self):
         self.source_span = None

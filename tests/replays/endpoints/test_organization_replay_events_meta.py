@@ -45,22 +45,22 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase):
             {
                 "error.type": [],
                 "error.value": [],
-                "group.id": "",
                 "id": event_id_a,
                 "issue.id": 1,
                 "issue": event_a.group.qualified_short_id,
                 "project.name": self.project_1.slug,
                 "timestamp": iso_format(self.min_ago) + "+00:00",
+                "title": "<unlabeled event>",
             },
             {
                 "error.type": [],
                 "error.value": [],
-                "group.id": "",
                 "id": event_id_b,
                 "issue.id": 2,
                 "issue": event_b.group.qualified_short_id,
                 "project.name": self.project_2.slug,
                 "timestamp": iso_format(self.min_ago) + "+00:00",
+                "title": "<unlabeled event>",
             },
         ]
 
