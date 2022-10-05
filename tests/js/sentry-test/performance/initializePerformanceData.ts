@@ -1,6 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 
-import {EntryType, EventTransaction, Project} from 'sentry/types';
+import {
+  EntryType,
+  EventOrGroupType,
+  EventTransaction,
+  PerformanceDetectorData,
+  Project,
+} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -176,7 +183,9 @@ export function generateSuspectSpansResponse(opts?: {
   });
 }
 
-export function generateSampleEvent(): EventTransaction {
+export function generateSampleEvent(
+  perfProblem?: PerformanceDetectorData
+): EventTransaction {
   const event = {
     id: '2b658a829a21496b87fd1f14a61abf65',
     eventID: '2b658a829a21496b87fd1f14a61abf65',
@@ -228,4 +237,93 @@ export function generateSampleSpan(
 
   event.entries[0].data.push(span);
   return span;
+}
+
+class TransactionEventBuilder {
+  TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
+  _event: EventTransaction;
+  _spanCount = 0;
+
+  constructor() {
+    this._event = {
+      id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      eventID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      title: '/api/0/transaction-test-endpoint/',
+      type: EventOrGroupType.TRANSACTION,
+      startTimestamp: 0,
+      endTimestamp: 0,
+      contexts: {
+        trace: {
+          trace_id: this.TRACE_ID,
+          span_id: '0000000000000000',
+          op: 'pageload',
+          status: 'ok',
+          type: 'trace',
+        },
+      },
+      entries: [
+        {
+          data: [],
+          type: EntryType.SPANS,
+        },
+      ],
+      // For the purpose of mock data, we don't care as much about the properties below.
+      // They're here to satisfy the type constraints, but in the future if we need actual values here
+      // for testing purposes, we can add methods on the builder to set them.
+      crashFile: null,
+      culprit: '',
+      dateReceived: '',
+      dist: null,
+      errors: [],
+      fingerprints: [],
+      location: null,
+      message: '',
+      metadata: {
+        current_level: undefined,
+        current_tree_label: undefined,
+        directive: undefined,
+        display_title_with_tree_label: undefined,
+        filename: undefined,
+        finest_tree_label: undefined,
+        function: undefined,
+        message: undefined,
+        origin: undefined,
+        stripped_crash: undefined,
+        title: undefined,
+        type: undefined,
+        uri: undefined,
+        value: undefined,
+      },
+      projectID: '',
+      size: 0,
+      tags: [],
+      user: null,
+    };
+  }
+
+  addSpan(
+    start: number,
+    end: number,
+    op?: string,
+    description?: string,
+    status?: string,
+    numSpans?: number
+  ) {
+    // Increment the span count and convert it to a hex string to get its ID
+    const spanId = (this._spanCount++).toString(16).padStart(16, '0');
+    console.log(spanId);
+
+    const span: RawSpanType = {
+      op,
+      description,
+      start_timestamp: start,
+      timestamp: end,
+      status: status ?? 'ok',
+      data: {},
+      span_id: spanId,
+      trace_id: this.TRACE_ID,
+    };
+
+    this._event.entries[0].data.push(span);
+  }
 }
