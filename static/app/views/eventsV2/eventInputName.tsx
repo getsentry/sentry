@@ -18,6 +18,7 @@ type Props = {
 };
 
 const NAME_DEFAULT = t('Untitled query');
+const HOMEPAGE_DEFAULT = t('New Query');
 
 /**
  * Allows user to edit the name of the query.
@@ -53,7 +54,7 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
     );
   }
 
-  const value = eventView.name || NAME_DEFAULT;
+  const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
 
   return (
     <StyledTitle data-test-id={`discover2-query-name-${value}`}>
