@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from urllib.parse import urlencode, urlparse
 
+import brotli  # type: ignore
 import urllib3
 from django.conf import settings
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 from parsimonious.exceptions import ParseError
 from urllib3.response import HTTPResponse
 
@@ -53,6 +54,7 @@ _profiling_pool = connection_from_url(
     ),
     timeout=30,
     maxsize=10,
+    headers={"Accept-Encoding": "br, gzip"},
 )
 
 
@@ -63,7 +65,7 @@ def get_from_profiling_service(
     headers: Optional[Dict[Any, Any]] = None,
     json_data: Any = None,
 ) -> HTTPResponse:
-    kwargs: Dict[str, Any] = {"headers": {}, "preload_content": False}
+    kwargs: Dict[str, Any] = {"headers": {}}
     if params:
         params = {
             key: value.isoformat() if isinstance(value, datetime) else value
@@ -73,8 +75,15 @@ def get_from_profiling_service(
     if headers:
         kwargs["headers"].update(headers)
     if json_data:
-        kwargs["headers"]["Content-Type"] = "application/json"
-        kwargs["body"] = json.dumps(json_data)
+        kwargs["headers"].update(
+            {
+                "Content-Encoding": "br",
+                "Content-Type": "application/json",
+            }
+        )
+        kwargs["body"] = brotli.compress(
+            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.BrotliEncoderMode.TEXT
+        )
     return _profiling_pool.urlopen(  # type: ignore
         method,
         path,
@@ -87,23 +96,13 @@ def proxy_profiling_service(
     path: str,
     params: Optional[Dict[str, Any]] = None,
     headers: Optional[Dict[str, str]] = None,
-) -> StreamingHttpResponse:
+) -> HttpResponse:
     profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
-
-    def stream():  # type: ignore
-        yield from profiling_response.stream(decode_content=False)
-
-    response = StreamingHttpResponse(
-        streaming_content=stream(),  # type: ignore
+    return HttpResponse(
+        content=profiling_response.data,
         status=profiling_response.status,
-        content_type=profiling_response.headers.get("Content_type", "application/json"),
+        content_type=profiling_response.headers.get("Content-Type", "application/json"),
     )
-
-    for h in ["Content-Encoding", "Vary"]:
-        if h in profiling_response.headers:
-            response[h] = profiling_response.headers[h]
-
-    return response
 
 
 PROFILE_FILTERS = {

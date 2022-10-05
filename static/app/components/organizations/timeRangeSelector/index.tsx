@@ -487,7 +487,13 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                   height: 100%;
                 `}
                 inputActions={
-                  showPin ? <StyledPinButton size="xs" filter="datetime" /> : undefined
+                  showPin ? (
+                    <StyledPinButton
+                      organization={organization}
+                      filter="datetime"
+                      size="xs"
+                    />
+                  ) : undefined
                 }
                 onSelect={this.handleSelect}
                 subPanel={

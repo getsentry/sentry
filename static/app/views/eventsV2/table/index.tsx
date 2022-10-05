@@ -4,7 +4,7 @@ import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
-import Pagination from 'sentry/components/pagination';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -27,10 +27,12 @@ type TableProps = {
   eventView: EventView;
   location: Location;
   onChangeShowTags: () => void;
+  onCursor: CursorHandler;
   organization: Organization;
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  isHomepage?: boolean;
 };
 
 type TableState = {
@@ -193,7 +195,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView} = this.props;
+    const {eventView, onCursor} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -225,7 +227,7 @@ class Table extends PureComponent<TableProps, TableState> {
             );
           }}
         </Measurements>
-        <Pagination pageLinks={pageLinks} />
+        <Pagination pageLinks={pageLinks} onCursor={onCursor} />
       </Container>
     );
   }
